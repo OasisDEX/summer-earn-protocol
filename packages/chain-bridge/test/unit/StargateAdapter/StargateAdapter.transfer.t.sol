@@ -15,6 +15,7 @@ import {console} from "forge-std/console.sol";
 import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {ICrossChainConfigManaged} from "../../../src/interfaces/ICrossChainConfigManaged.sol";
 import {TransferHelpers} from "../../helpers/TransferHelpers.t.sol";
+import {RejectETH} from "../../mocks/RejectETH.sol";
 
 contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
     // Add event declaration for the event we expect
@@ -534,6 +535,78 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
             });
         adapterA.transferAsset{value: requiredFee - 1}(
             expectedOperationId,
+            params,
+            options
+        );
+    }
+
+    function testTransferAsset_RefundFailure_Reverts() public {
+        useNetworkA();
+        vm.deal(address(routerA), 10 ether);
+
+        BridgeTypes.BridgeOptions memory options = defaultBridgeOptions(
+            address(adapterA)
+        );
+
+        // Estimate the required fee
+        (uint256 requiredFee, ) = adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                asset: address(tokenA),
+                amount: 1 ether,
+                message: "",
+                refundAddress: address(this)
+            }),
+            options
+        );
+
+        // Fund router and approve
+        fundRouterAndApprove(
+            tokenA,
+            address(routerA),
+            address(adapterA),
+            user,
+            1 ether
+        );
+
+        // Use a refund address that rejects ETH
+        RejectETH rejector = new RejectETH();
+
+        bytes32 opId = keccak256(
+            abi.encode(
+                CHAIN_ID_A,
+                CHAIN_ID_B,
+                address(tokenA),
+                1 ether,
+                recipient,
+                block.timestamp,
+                block.number
+            )
+        );
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            opId,
+            address(adapterA)
+        );
+
+        // Build params with extra msg.value to force a refund attempt (> nativeFee)
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: CHAIN_ID_B,
+                asset: address(tokenA),
+                amount: 1 ether,
+                target: recipient,
+                originator: user,
+                message: "",
+                refundAddress: address(rejector)
+            });
+
+        // Expect adapter-specific RefundFailed revert on failed native refund
+        vm.prank(address(routerA));
+        vm.expectRevert(StargateAdapter.RefundFailed.selector);
+        adapterA.transferAsset{value: requiredFee + 1 wei}(
+            opId,
             params,
             options
         );

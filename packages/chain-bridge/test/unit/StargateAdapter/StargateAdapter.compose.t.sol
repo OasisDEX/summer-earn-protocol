@@ -10,6 +10,7 @@ import {MockFleetProxy} from "../../mocks/MockFleetProxy.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
+import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
@@ -65,6 +66,122 @@ contract StargateAdapterComposeTest is
         adapterB.lzCompose(
             address(adapterA),
             bytes32("test-guid"),
+            oftMessage,
+            address(0),
+            ""
+        );
+    }
+
+    function testLzCompose_Reverts_WhenUnknownStargatePool() public {
+        useNetworkB();
+        // Build valid OFT message
+        bytes memory customComposeMessage = createRelayedTransferParams(
+            user,
+            address(tokenB),
+            1 ether,
+            uint256(CHAIN_ID_A),
+            bytes32("test-operation"),
+            user
+        );
+        bytes memory oftMessage = encodeOFTCompose(
+            1,
+            ENDPOINT_ID_A,
+            1 ether,
+            address(adapterA),
+            customComposeMessage
+        );
+        // Call from authorised endpoint but with unregistered pool → Untrusted
+        vm.prank(lzEndpointB);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBridgeAdapter.Untrusted.selector,
+                "Stargate pool",
+                address(0xBEEF),
+                address(0)
+            )
+        );
+        adapterB.lzCompose(
+            address(0xBEEF),
+            bytes32("guid"),
+            oftMessage,
+            address(0),
+            ""
+        );
+    }
+
+    function testLzCompose_Reverts_WhenSourceAdapterUntrusted() public {
+        useNetworkB();
+        // Register a valid pool first
+        MockStargateV2Pool pool = new MockStargateV2Pool(address(tokenB));
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(pool));
+
+        // Build message where composeFrom is NOT a registered peer
+        bytes memory customComposeMessage = createRelayedTransferParams(
+            user,
+            address(tokenB),
+            1 ether,
+            uint256(CHAIN_ID_A),
+            bytes32("test-operation-2"),
+            user
+        );
+        address untrustedAdapter = address(0xCAFE);
+        bytes memory oftMessage = encodeOFTCompose(
+            1,
+            ENDPOINT_ID_A,
+            1 ether,
+            untrustedAdapter,
+            customComposeMessage
+        );
+
+        vm.prank(lzEndpointB);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BaseBridgeAdapter.UntrustedSourceAdapter.selector,
+                untrustedAdapter,
+                CHAIN_ID_A
+            )
+        );
+        adapterB.lzCompose(
+            address(pool),
+            bytes32("guid2"),
+            oftMessage,
+            address(0),
+            ""
+        );
+    }
+
+    function testLzCompose_Reverts_WhenSrcEidChainMismatch() public {
+        useNetworkB();
+        // Register a valid pool first
+        MockStargateV2Pool pool = new MockStargateV2Pool(address(tokenB));
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(pool));
+
+        // Build message with composeFrom set to a valid peer but wrong srcEid mapping
+        // Ensure peer adapter relationship exists for adapterA↔adapterB already from setup
+        bytes memory customComposeMessage = createRelayedTransferParams(
+            user,
+            address(tokenB),
+            1 ether,
+            uint256(CHAIN_ID_A),
+            bytes32("test-operation-3"),
+            user
+        );
+        // Use an incorrect srcEid that maps to a different chain (ENDPOINT_ID_B)
+        bytes memory oftMessage = encodeOFTCompose(
+            1,
+            ENDPOINT_ID_B,
+            1 ether,
+            address(adapterA),
+            customComposeMessage
+        );
+
+        vm.prank(lzEndpointB);
+        vm.expectRevert(BaseBridgeAdapter.InvalidSourceChainId.selector);
+        adapterB.lzCompose(
+            address(pool),
+            bytes32("guid3"),
             oftMessage,
             address(0),
             ""

@@ -6,8 +6,10 @@ import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {MockStargateV2Pool} from "../../mocks/MockStargateV2.sol";
+import {MockStargateV2OFT} from "../../mocks/MockStargateV2.sol";
 import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {ICrossChainRegistry} from "../../../src/interfaces/ICrossChainRegistry.sol";
+import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 
 contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     bytes32 testTransferId = bytes32(uint256(12345));
@@ -62,6 +64,33 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
         assertFalse(
             adapterA.supportsOperation(BridgeTypes.OperationType.READ_STATE)
+        );
+    }
+
+    function testSupportsAssetTransfer_LocalAndRemoteBranches() public {
+        useNetworkA();
+
+        // Local (same chain) – asset supported returns true; unknown returns false
+        assertTrue(adapterA.supportsAssetTransfer(CHAIN_ID_A, address(tokenA)));
+        assertFalse(
+            adapterA.supportsAssetTransfer(CHAIN_ID_A, address(0xdeadbeef))
+        );
+
+        // Remote (different chain) – requires local support AND trusted destination
+        // First, assert remote true for configured peer chain
+        assertTrue(adapterA.supportsAssetTransfer(CHAIN_ID_B, address(tokenA)));
+
+        // Untrusted remote chain: unregister peer then expect false
+        vm.startPrank(governor);
+        registryA.unregisterRelationship(
+            address(adapterA),
+            registryA.PEER_RELATIONSHIP(),
+            CHAIN_ID_B
+        );
+        vm.stopPrank();
+
+        assertFalse(
+            adapterA.supportsAssetTransfer(CHAIN_ID_B, address(tokenA))
         );
     }
 
@@ -208,6 +237,78 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.prank(governor);
         vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
         adapterA.addSupportedAsset(address(0), address(mockStargateContract));
+    }
+
+    function testEstimateReadStateAndSendMessage_RevertOperationNotSupported()
+        public
+    {
+        useNetworkA();
+        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
+        adapterA.estimateReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: address(0x1),
+                selector: bytes4(0),
+                readParams: "",
+                refundAddress: address(this)
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
+        adapterA.estimateSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: address(0x1),
+                message: "",
+                refundAddress: address(this)
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+    }
+
+    function testAddSupportedAsset_RevertsOnZeroStargateAddress() public {
+        useNetworkA();
+        vm.prank(governor);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        adapterA.addSupportedAsset(address(tokenA), address(0));
+    }
+
+    function testAddSupportedAsset_RevertsWhenStargateTypeIsNotPool() public {
+        useNetworkA();
+        // Deploy a Stargate OFT-type mock (not Pool)
+        MockStargateV2OFT wrongType = new MockStargateV2OFT(address(tokenA));
+        vm.prank(governor);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        adapterA.addSupportedAsset(address(tokenA), address(wrongType));
+    }
+
+    function testAddSupportedAsset_RevertsWhenTokenDoesNotMatchPoolToken()
+        public
+    {
+        useNetworkA();
+        // Deploy pool for a different token
+        ERC20Mock otherToken = new ERC20Mock();
+        MockStargateV2Pool poolForOther = new MockStargateV2Pool(
+            address(otherToken)
+        );
+        vm.prank(governor);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        adapterA.addSupportedAsset(address(tokenA), address(poolForOther));
     }
 
     /*//////////////////////////////////////////////////////////////
