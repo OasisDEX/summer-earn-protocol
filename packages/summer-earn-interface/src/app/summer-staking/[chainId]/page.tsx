@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { useSummerStaking } from '../../../hooks/useSummerStaking'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
@@ -32,6 +32,21 @@ function formatMultiplier(wad: bigint) {
   const frac = wad % 1000000000000000000n
   const fracStr = frac.toString().padStart(18, '0').slice(0, 2).replace(/0+$/, '') || '0'
   return `${int.toString()}.${fracStr}x`
+}
+
+function formatAmountFixed(a: bigint, decimals: number, dp: number) {
+  const base = 10n ** BigInt(decimals)
+  const i = a / base
+  const rem = a % base
+  if (dp <= 0) return i.toString()
+  if (dp >= decimals) {
+    const scale = 10n ** BigInt(dp - decimals)
+    const frac = (rem * scale).toString().padStart(dp, '0')
+    return `${i.toString()}.${frac}`
+  }
+  const scale = 10n ** BigInt(decimals - dp)
+  const frac = (rem / scale).toString().padStart(dp, '0')
+  return `${i.toString()}.${frac}`
 }
 
 export default function SummerStakingPage() {
@@ -80,6 +95,12 @@ export default function SummerStakingPage() {
   const [unstakeIndex, setUnstakeIndex] = useState<number>(0)
   const [unstakeAmountStr, setUnstakeAmountStr] = useState('')
   const [unstakeAmount, setUnstakeAmount] = useState<bigint>(0n)
+  const [nowTs, setNowTs] = useState<number>(Math.floor(Date.now() / 1000))
+
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Math.floor(Date.now() / 1000)), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   const onAmountChange = (v: string) => {
     setAmountStr(v)
@@ -131,12 +152,13 @@ export default function SummerStakingPage() {
     return newAmount > 0n ? (newWeighted * 1000000000000000000n) / newAmount : 1000000000000000000n
   }, [stakes, amount, previewMultiplierWad, currentOverallMultiplierWad])
 
-  // Penalty chart points (simple SVG)
-  const penaltyPoints = useMemo(() => {
+  // Penalty chart points (simple SVG) scaled to selected lockup period
+  const penaltyChart = useMemo(() => {
+    const steps = 64
+    const duration = Math.max(0, lockup)
     const points: { x: number; y: number }[] = []
-    const steps = 32
     for (let i = 0; i <= steps; i++) {
-      const t = Math.floor((i / steps) * MAX_LOCKUP)
+      const t = Math.floor((i / steps) * duration)
       let pct = 0
       if (t < FIXED_PENALTY_PERIOD) {
         pct = 2
@@ -145,12 +167,35 @@ export default function SummerStakingPage() {
       }
       points.push({ x: i, y: pct })
     }
-    return points
-  }, [])
+    const startPct = points[points.length - 1]?.y ?? 2
+    const tickIdx = [0, Math.floor(steps / 3), Math.floor((2 * steps) / 3), steps]
+    const ticks = tickIdx.map((idx) => {
+      const tSec = Math.floor((idx / steps) * duration)
+      return { x: idx, label: formatDays(tSec) }
+    })
+    return { points, startPct, ticks }
+  }, [lockup])
 
   const canStake = isConnected && amount > 0n
   const canUnstake = isConnected && unstakeAmount > 0n
   const canApproveEnabled = isConnected && amount > 0n
+
+  const selectedStake = useMemo(() => stakes.find((s) => s.index === unstakeIndex) || null, [stakes, unstakeIndex])
+
+  const penaltyInfoFor = (amt: bigint, endTime: bigint) => {
+    const remaining = Number(endTime) - nowTs
+    if (remaining <= 0) return { pct: 0, pctWad: 0n, amount: 0n, remaining }
+    const MAX = MAX_LOCKUP
+    let pct = 0
+    if (remaining < FIXED_PENALTY_PERIOD) {
+      pct = 0.02
+    } else {
+      pct = (remaining / MAX) * 0.2
+    }
+    const pctWad = BigInt(Math.floor(pct * 1e18))
+    const penaltyAmt = (amt * pctWad) / 1000000000000000000n
+    return { pct, pctWad, amount: penaltyAmt, remaining }
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black p-6 md:p-10">
@@ -188,7 +233,13 @@ export default function SummerStakingPage() {
                     />
                   )}
                 </div>
-                {b.cap === 0n && <div className="text-xs text-gray-500 mt-2">Disabled</div>}
+                <div className="mt-2 text-xs text-gray-400">
+                  Staked: <span className="text-white">{formatAmountFixed(b.staked, summerDecimals, 2)} {summerSymbol}</span>
+                </div>
+                <div className="text-xs text-gray-400">
+                  Cap: <span className="text-white">{b.cap === 0n ? 'Disabled' : b.cap.toString() === '115792089237316195423570985008687907853269984665640564039457584007913129639935' ? 'Unlimited' : `${formatAmountFixed(b.cap, summerDecimals, 2)} ${summerSymbol}`}</span>
+                </div>
+                {b.cap === 0n && <div className="text-xs text-gray-500 mt-1">Disabled</div>}
               </div>
             ))}
           </div>
@@ -221,11 +272,17 @@ export default function SummerStakingPage() {
                 className="w-full"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-3 bg-gray-800 rounded">
-                <div className="text-xs text-gray-400">Your multiplier</div>
+                <div className="text-xs text-gray-400">Current multiplier</div>
                 <div className="text-lg text-white font-semibold">
-                  {amount > 0n ? formatMultiplier(previewMultiplierWad) : '1.0x'}
+                  {formatMultiplier(currentOverallMultiplierWad)}
+                </div>
+              </div>
+              <div className="p-3 bg-gray-800 rounded">
+                <div className="text-xs text-gray-400">New stake multiplier</div>
+                <div className="text-lg text-white font-semibold">
+                  {amount > 0n ? formatMultiplier(previewMultiplierWad) : '—'}
                 </div>
               </div>
               <div className="p-3 bg-gray-800 rounded">
@@ -255,23 +312,40 @@ export default function SummerStakingPage() {
             {/* Penalty chart */}
             <div className="mt-2">
               <div className="text-sm text-gray-300 mb-2">Early Unstake Penalty</div>
-              <svg
-                viewBox={`0 0 ${penaltyPoints.length - 1} 20`}
-                className="w-full h-24 bg-gray-800 rounded"
-              >
-                <polyline
+              {(() => {
+                const chartWidth = penaltyChart.points.length - 1
+                const margin = 4 // add some horizontal breathing room so edge labels are visible
+                return (
+                  <svg
+                    viewBox={`-${margin} 0 ${chartWidth + margin * 2} 26`}
+                    className="w-full h-48 bg-gray-800 rounded"
+                  >
+                    <polyline
                   fill="none"
                   stroke="#34d399"
                   strokeWidth="0.5"
-                  points={penaltyPoints.map((p) => `${p.x},${20 - p.y}`).join(' ')}
+                      points={penaltyChart.points
+                        .map((p) => `${chartWidth - p.x},${20 - p.y}`)
+                        .join(' ')}
                 />
-                <text x="1" y="19" fontSize="2" fill="#9ca3af">
-                  2%
-                </text>
-                <text x={`${penaltyPoints.length - 4}`} y="3" fontSize="2" fill="#9ca3af">
-                  20%
-                </text>
-              </svg>
+                    <line x1={String(-margin)} y1="20" x2={String(chartWidth + margin)} y2="20" stroke="#374151" strokeWidth="0.3" />
+                    <text x={String(1 - margin / 2)} y="3" fontSize="2" fill="#9ca3af">
+                      {penaltyChart.startPct.toFixed(1)}%
+                    </text>
+                    <text x={String(chartWidth - 3 + margin / 2)} y="19" fontSize="2" fill="#9ca3af">
+                      2%
+                    </text>
+                    {penaltyChart.ticks.map((t, i) => (
+                      <g key={i}>
+                        <line x1={`${chartWidth - t.x}`} y1="20" x2={`${chartWidth - t.x}`} y2="21.5" stroke="#9ca3af" strokeWidth="0.2" />
+                        <text x={`${chartWidth - t.x}`} y="25" fontSize="2" fill="#9ca3af" textAnchor="middle">
+                          {t.label}
+                        </text>
+                      </g>
+                    ))}
+                  </svg>
+                )
+              })()}
               <div className="text-xs text-gray-400 mt-1">
                 Flat 2% if remaining &lt; 110 days. Linear to 20% at 3 years.
               </div>
@@ -290,21 +364,52 @@ export default function SummerStakingPage() {
               >
                 {stakes.map((s) => (
                   <option key={s.index} value={s.index}>
-                    #{s.index} • {formatDays(s.lockupPeriod)} • multiplier{' '}
-                    {formatMultiplier(s.multiplierWad)}
+                    #{s.index} • {formatDays(s.lockupPeriod)} • amount {formatAmount(s.amount, summerDecimals)} {summerSymbol} • multiplier {formatMultiplier(s.multiplierWad)}
                   </option>
                 ))}
               </select>
             </div>
             <div>
               <label className="block text-sm text-gray-300 mb-1">Amount ({summerSymbol})</label>
-              <input
-                value={unstakeAmountStr}
-                onChange={(e) => onUnstakeAmountChange(e.target.value)}
-                placeholder={`0.0`}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
-              />
+              <div className="flex gap-2">
+                <input
+                  value={unstakeAmountStr}
+                  onChange={(e) => onUnstakeAmountChange(e.target.value)}
+                  placeholder={`0.0`}
+                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedStake) return
+                    setUnstakeAmount(selectedStake.amount)
+                    setUnstakeAmountStr(formatAmount(selectedStake.amount, summerDecimals))
+                  }}
+                  className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded"
+                >
+                  Max
+                </button>
+              </div>
             </div>
+            {selectedStake && (
+              <div className="text-sm text-gray-300 space-y-1">
+                <div>
+                  Stake amount: <span className="text-white">{formatAmount(selectedStake.amount, summerDecimals)} {summerSymbol}</span>
+                </div>
+                <div>
+                  Time remaining: <span className="text-white">{formatDays(Number(selectedStake.lockupEndTime) - nowTs)}</span>
+                </div>
+                {(() => {
+                  const p = penaltyInfoFor(unstakeAmount > 0n ? unstakeAmount : selectedStake.amount, selectedStake.lockupEndTime)
+                  const pctStr = (p.pct * 100).toFixed(4)
+                  return (
+                    <div>
+                      Current penalty: <span className="text-red-400">{pctStr}%</span> → {formatAmountFixed(p.amount, summerDecimals, 4)} {summerSymbol}
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={() => approveXSummer()}
@@ -341,6 +446,7 @@ export default function SummerStakingPage() {
                     <th className="p-2">Amount</th>
                     <th className="p-2">Lockup</th>
                     <th className="p-2">Ends</th>
+                    <th className="p-2">Penalty</th>
                     <th className="p-2">Multiplier</th>
                   </tr>
                 </thead>
@@ -354,6 +460,17 @@ export default function SummerStakingPage() {
                       <td className="p-2">{formatDays(s.lockupPeriod)}</td>
                       <td className="p-2">
                         {new Date(Number(s.lockupEndTime) * 1000).toLocaleDateString()}
+                      </td>
+                      <td className="p-2">
+                        {(() => {
+                          const p = penaltyInfoFor(s.amount, s.lockupEndTime)
+                          const pctStr = (p.pct * 100).toFixed(4)
+                          return (
+                            <span>
+                              {pctStr}% • {formatAmountFixed(p.amount, summerDecimals, 4)} {summerSymbol}
+                            </span>
+                          )
+                        })()}
                       </td>
                       <td className="p-2">{formatMultiplier(s.multiplierWad)}</td>
                     </tr>
