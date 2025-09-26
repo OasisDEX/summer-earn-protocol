@@ -118,8 +118,8 @@ interface IStakedSummerToken is IERC20 {
 
     /**
      * @notice Burns caller's xSUMR balance.
+     * @dev Access: Token owner. Used for self-burn flows like unstaking where the owner directly initiates the burn.
      * @param _amount Amount of xSUMR to burn from the caller's balance.
-     * @dev Used for self-burn flows like unstaking where the owner directly initiates the burn.
      */
     function burn(uint256 _amount) external;
 

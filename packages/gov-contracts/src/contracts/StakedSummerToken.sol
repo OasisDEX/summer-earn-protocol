@@ -50,7 +50,7 @@ contract StakedSummerToken is
     // ============ GOVERNANCE ============
 
     /// @inheritdoc IStakedSummerToken
-    function addStakingModule(address _stakingModule) public onlyGovernor {
+    function addStakingModule(address _stakingModule) external onlyGovernor {
         if (_stakingModule == address(0)) {
             revert xSumr_InvalidStakingModule(
                 "Staking module address cannot be zero"
@@ -64,7 +64,7 @@ contract StakedSummerToken is
     }
 
     /// @inheritdoc IStakedSummerToken
-    function removeStakingModule(address _stakingModule) public onlyGovernor {
+    function removeStakingModule(address _stakingModule) external onlyGovernor {
         // Fully deauthorize staking module by revoking both roles
         _revokeRole(MINTER_ROLE, _stakingModule);
         _revokeRole(BURNER_ROLE, _stakingModule);
@@ -72,19 +72,19 @@ contract StakedSummerToken is
     }
 
     /// @inheritdoc IStakedSummerToken
-    function pause() public onlyGuardianOrGovernor {
+    function pause() external onlyGuardianOrGovernor {
         _pause();
     }
 
     /// @inheritdoc IStakedSummerToken
-    function unpause() public onlyGuardianOrGovernor {
+    function unpause() external onlyGuardianOrGovernor {
         _unpause();
     }
 
     // ============ MINT / BURN API ============
 
     /// @inheritdoc IStakedSummerToken
-    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
         // Only authorized staking modules are permitted to mint xSUMR
         _mint(to, amount);
     }
@@ -142,12 +142,12 @@ contract StakedSummerToken is
     // ============ ROLE MANAGEMENT (GOVERNOR) ============
 
     /// @inheritdoc IStakedSummerToken
-    function grantMinterRole(address _minter) public onlyGovernor {
+    function grantMinterRole(address _minter) external onlyGovernor {
         _grantRole(MINTER_ROLE, _minter);
     }
 
     /// @inheritdoc IStakedSummerToken
-    function revokeMinterRole(address _minter) public onlyGovernor {
+    function revokeMinterRole(address _minter) external onlyGovernor {
         _revokeRole(MINTER_ROLE, _minter);
     }
 

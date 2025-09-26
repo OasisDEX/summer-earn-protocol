@@ -17,15 +17,32 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
  * @title SummerStaking
  * @notice Enhanced staking with lockups (0–3y), weighted rewards, and bucket caps. Users stake SUMR and receive xSUMR
  *         1:1 while rewards accrue on weighted balances computed via a quadratic time multiplier.
+ *
  * @dev Architecture and invariants:
  *      - Index 0 of each portfolio aggregates all no-lockup stake; positions with lockup > 0 occupy indices > 0.
  *      - Weighted supply drives rewards accounting: `totalSupply` in base manager is the weighted sum.
- *      - Bucket caps restrict total raw SUMR per lockup bucket; 0 disables, type(uint256).max removes limit.
  *      - Early unstake penalty: fixed 2% if remaining < FIXED_PENALTY_PERIOD, else linear up to 20% at 3 years.
  *      - Token flows: stake pulls SUMR, wraps internally, and mints xSUMR; unstake burns xSUMR, unwraps, and splits
  *        penalty to treasury.
  *      - Access control: governor manages bucket caps and penalty enablement; xSUMR roles managed on the token.
  *      - Reentrancy: public mutating entrypoints are nonReentrant and updateRewards for correct accounting.
+ *
+ *      Buckets & Caps (capacity control):
+ *      - Each possible lockup duration maps to a discrete Bucket enum via `_findBucket(_lockupPeriod)`:
+ *          • NoLockup:        0 seconds (min=0, max=0)
+ *          • ShortTerm:       [1 second, 14 days]
+ *          • TwoWeeksToThreeMonths: (14 days, 90 days]
+ *          • ThreeToSixMonths:      (90 days, 180 days]
+ *          • SixToTwelveMonths:     (180 days, 365 days]
+ *          • OneToTwoYears:         (365 days, 730 days]
+ *          • TwoToThreeYears:       (730 days, 1095 days]
+ *
+ *      - Bucket caps throttle the total raw SUMR that can be staked in each bucket. They are applied on the
+ *        unweighted amount (plain token units), not the weighted amount used for rewards accounting.
+ *        Cap semantics:
+ *          • cap == 0                → bucket is disabled (any positive stake reverts with Staking_BucketCapExceeded)
+ *          • cap == type(uint256).max → bucket is unlimited
+ *          • 0 < cap < max           → currentRawStaked + amount must be <= cap
  */
 contract SummerStaking is
     StakingRewardsManagerBase,
@@ -145,7 +162,9 @@ contract SummerStaking is
             _amount,
             _stakeIndex
         );
-        // this calculation is fine up to multiples of total supply of the summer token
+        // No overflow for any realistic amounts (e.g., 1e9 total supply with 18 decimals has >20 orders
+        // of magnitude headroom). Proportional division truncates on partial unstakes; the final full exit
+        // clears the remaining weighted exactly (no residual).
         uint256 weightedAmountToRemove = (processedStake.weightedAmount *
             _amount) / processedStake.amount;
 
