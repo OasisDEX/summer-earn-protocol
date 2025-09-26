@@ -53,4 +53,6 @@ abstract contract TransferHelpers is Test {
         vm.prank(router);
         token.approve(adapter, amount);
     }
+
+    function testSkipper() public {}
 }

@@ -82,4 +82,6 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
     ) external view returns (uint32) {
         return _getLayerZeroEid(chainId);
     }
+
+    function testSkipper() public {}
 }

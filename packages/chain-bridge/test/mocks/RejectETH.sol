@@ -5,4 +5,6 @@ contract RejectETH {
     receive() external payable {
         revert("Transfer rejected");
     }
+
+    function testSkipper() public {}
 }

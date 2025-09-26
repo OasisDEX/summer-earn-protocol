@@ -216,5 +216,5 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         vm.chainId(NETWORK_B_CHAIN_ID);
     }
 
-    // function testSkipper() public {}
+    function testSkipper() public {}
 }

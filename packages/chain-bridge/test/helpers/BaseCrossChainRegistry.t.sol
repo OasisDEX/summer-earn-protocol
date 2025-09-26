@@ -72,6 +72,8 @@ contract BaseCrossChainRegistryTest is Test {
         executorType = registry.EXECUTOR_RELATIONSHIP();
     }
 
+    function testSkipper() public {}
+
     function _initializeBridgeRouter() internal {
         _initializeBridgeRouter(mockBridgeRouter);
     }

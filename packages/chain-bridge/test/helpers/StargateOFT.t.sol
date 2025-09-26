@@ -94,4 +94,6 @@ abstract contract StargateOFTHelpers {
             });
         return abi.encode(params);
     }
+
+    function testSkipper() public {}
 }
