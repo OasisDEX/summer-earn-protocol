@@ -452,7 +452,7 @@ contract StargateAdapter is
         // A misconfigured remote adapter will cause compose failures that require manual recovery.
         return
             assetToStargateContract[asset] != address(0) &&
-            isTrustedDestination(destinationChainId);
+            _hasTrustedDestination(destinationChainId);
     }
 
     /*//////////////////////////////////////////////////////////////
