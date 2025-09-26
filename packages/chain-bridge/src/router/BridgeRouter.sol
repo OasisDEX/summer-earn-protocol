@@ -416,8 +416,6 @@ contract BridgeRouter is
         return operationId;
     }
 
-    // NOTE: executeReadState removed
-
     /**
      * @inheritdoc IBridgeRouter
      */

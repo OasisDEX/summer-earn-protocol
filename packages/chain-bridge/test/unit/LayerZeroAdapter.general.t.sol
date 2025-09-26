@@ -115,7 +115,6 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         assertTrue(
             adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE)
         );
-        // READ_STATE no longer supported
         assertFalse(
             adapterA.supportsOperation(BridgeTypes.OperationType.READ_STATE)
         );
@@ -123,8 +122,4 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         );
     }
-
-    // READ_STATE channel activation tests removed
-
-    // Note: Role enforcement for activating the read channel is covered elsewhere via access manager tests
 }

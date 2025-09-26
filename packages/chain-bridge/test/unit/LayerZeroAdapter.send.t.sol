@@ -239,8 +239,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         vm.stopPrank();
     }
 
-    // NOTE: READ_STATE tests removed
-
     // Add event declarations for the events we expect
     event MessageInitiated(
         bytes32 indexed messageId,
@@ -248,6 +246,4 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         address recipient,
         bytes message
     );
-
-    // NOTE: READ_STATE events removed
 }
