@@ -911,7 +911,7 @@ contract CrossChainFleetProxyTest is Test {
                 unauthorizedCaller
             )
         );
-        proxy.notifySourceChain{value: 0.1 ether}(
+        proxy.notifyHubChain{value: 0.1 ether}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,
@@ -934,7 +934,7 @@ contract CrossChainFleetProxyTest is Test {
         // Try to call notifySourceChain when paused
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
-        proxy.notifySourceChain{value: 0.1 ether}(
+        proxy.notifyHubChain{value: 0.1 ether}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,
@@ -980,7 +980,7 @@ contract CrossChainFleetProxyTest is Test {
         // Act
         uint256 value = 0.5 ether;
         vm.prank(governor);
-        proxy.notifySourceChain{value: value}(
+        proxy.notifyHubChain{value: value}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,
