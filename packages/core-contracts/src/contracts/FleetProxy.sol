@@ -222,16 +222,6 @@ contract FleetProxy is
         _notifyHubChain(options);
     }
 
-    /**
-     * @notice Backwards-compatible wrapper: notify the source (hub) chain
-     * @dev For compatibility with older callers/tests expecting notifySourceChain
-     */
-    function notifySourceChain(
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable whenNotPaused nonReentrant onlyKeeper {
-        _notifyHubChain(options);
-    }
-
     function _notifyHubChain(
         BridgeTypes.BridgeOptions calldata options
     ) internal {
