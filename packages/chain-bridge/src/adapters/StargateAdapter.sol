@@ -576,6 +576,6 @@ contract StargateAdapter is
 
     /// @inheritdoc IBridgeTokenFeeSupport
     function supportsProtocolTokenFee() external pure returns (bool) {
-        return false;
+        return true;
     }
 }
