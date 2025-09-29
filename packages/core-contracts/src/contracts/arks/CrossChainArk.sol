@@ -370,7 +370,7 @@ contract CrossChainArk is
         BridgeTypes.BridgeOptions calldata options
     ) external payable onlyKeeper {
         if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
-        _sendNotify(
+        _sendNotification(
             satelliteChainId,
             _getTargetProxy(),
             abi.encode(latestIncomingTransferId),

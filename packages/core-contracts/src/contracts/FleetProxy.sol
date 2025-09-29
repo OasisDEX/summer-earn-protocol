@@ -245,7 +245,7 @@ contract FleetProxy is
         uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
             fleetShares
         );
-        _sendNotify(
+        _sendNotification(
             hubChainId,
             _getSourceChainArk(hubChainId),
             abi.encode(fleetAssets, latestIncomingTransferId),
