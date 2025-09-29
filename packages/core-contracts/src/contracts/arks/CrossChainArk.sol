@@ -126,6 +126,14 @@ contract CrossChainArk is
     }
 
     /**
+     * @notice Alias using hub/satellite terminology
+     * @return The satellite proxy address
+     */
+    function getSatelliteProxy() external view returns (address) {
+        return _getTargetProxy();
+    }
+
+    /**
      * @inheritdoc IERC165
      */
     function supportsInterface(

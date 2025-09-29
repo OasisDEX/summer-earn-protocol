@@ -728,7 +728,7 @@ contract CrossChainFleetProxyTest is Test {
 
         // Call notifySourceChain
         vm.prank(governor);
-        proxy.notifySourceChain{value: 0.1 ether}(
+        proxy.notifyHubChain{value: 0.1 ether}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,
@@ -856,7 +856,7 @@ contract CrossChainFleetProxyTest is Test {
 
         // Call notifySourceChain
         vm.prank(governor);
-        proxy.notifySourceChain{value: 0.1 ether}(
+        proxy.notifyHubChain{value: 0.1 ether}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,

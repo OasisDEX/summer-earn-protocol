@@ -214,11 +214,27 @@ contract FleetProxy is
     }
 
     /**
-     * @notice Notifies the source chain that assets have been received
+     * @notice Notifies the hub chain that assets have been received
+     */
+    function notifyHubChain(
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable whenNotPaused nonReentrant onlyKeeper {
+        _notifyHubChain(options);
+    }
+
+    /**
+     * @notice Backwards-compatible wrapper: notify the source (hub) chain
+     * @dev For compatibility with older callers/tests expecting notifySourceChain
      */
     function notifySourceChain(
         BridgeTypes.BridgeOptions calldata options
     ) external payable whenNotPaused nonReentrant onlyKeeper {
+        _notifyHubChain(options);
+    }
+
+    function _notifyHubChain(
+        BridgeTypes.BridgeOptions calldata options
+    ) internal {
         // Security: ensure the ARK relationship is currently valid in the registry
         if (!_isValidSourceChain(hubChainId)) revert InvalidSourceChain();
         // Security: include replay guard context - require we have a non-zero last transfer id
@@ -342,10 +358,10 @@ contract FleetProxy is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Gets the source chain ark address from the registry
-     * @param _hubChainId The chain ID where the ark is deployed
-     * @return arkAddress The source chain ark address
-     * @dev Reverts if no valid relationship exists for the source chain
+     * @notice Gets the hub-chain Ark address from the registry
+     * @param _hubChainId The chain ID where the Ark is deployed (hub)
+     * @return arkAddress The hub-chain Ark address
+     * @dev Reverts if no valid relationship exists for the hub chain
      */
     function _getSourceChainArk(
         uint16 _hubChainId
@@ -360,9 +376,9 @@ contract FleetProxy is
     }
 
     /**
-     * @notice Validates if the source chain is valid for this proxy
-     * @param _hubChainId The chain ID to validate
-     * @return isValid True if the source chain is valid
+     * @notice Validates if the hub chain is valid for this proxy
+     * @param _hubChainId The hub chain ID to validate
+     * @return isValid True if the hub chain is valid
      */
     function _isValidSourceChain(
         uint16 _hubChainId
