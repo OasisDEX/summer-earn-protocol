@@ -52,7 +52,9 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             gasLimit: 300000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter
@@ -90,7 +92,9 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             gasLimit: 300000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateReadState(
@@ -151,7 +155,9 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             gasLimit: 300000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateReadState(
@@ -199,7 +205,9 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             gasLimit: 300000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Try to call readState directly (not through bridge router)
@@ -237,7 +245,9 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             gasLimit: customGasLimit,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateReadState(
@@ -294,7 +304,9 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             gasLimit: 300000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Should revert with ReadChannelNotConfigured error
@@ -332,7 +344,9 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             gasLimit: 300000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateReadState(
@@ -403,7 +417,9 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             gasLimit: 300000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateReadState(

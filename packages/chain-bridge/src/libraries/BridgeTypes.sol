@@ -21,6 +21,9 @@ library BridgeTypes {
         uint32 calldataSize; // Size of expected return calldata (for read operations)
         uint128 msgValue; // Native value to forward (for operations requiring value)
         bytes options; // Additional adapter-specific parameters
+        // --- Protocol token fee support (optional) ---
+        bool payInProtocolToken; // If true, pay fees in protocol token when supported
+        address feeToken; // Optional explicit fee token address (adapter-specific)
     }
 
     // Enum for operation types

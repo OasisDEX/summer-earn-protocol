@@ -13,6 +13,8 @@ library BridgeOptionsTestHelper {
     uint32 public constant DEFAULT_CALLDATA_SIZE = 0;
     uint128 public constant DEFAULT_MSG_VALUE = 0;
     bytes public constant DEFAULT_OPTIONS = "";
+    bool public constant DEFAULT_PAY_IN_PROTOCOL_TOKEN = false;
+    address public constant DEFAULT_FEE_TOKEN = address(0);
 
     /**
      * @notice Creates BridgeOptions with sensible defaults
@@ -28,7 +30,9 @@ library BridgeOptionsTestHelper {
                 gasLimit: DEFAULT_GAS_LIMIT,
                 calldataSize: DEFAULT_CALLDATA_SIZE,
                 msgValue: DEFAULT_MSG_VALUE,
-                options: DEFAULT_OPTIONS
+                options: DEFAULT_OPTIONS,
+                payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
+                feeToken: DEFAULT_FEE_TOKEN
             });
     }
 
@@ -48,7 +52,9 @@ library BridgeOptionsTestHelper {
                 gasLimit: gasLimit,
                 calldataSize: DEFAULT_CALLDATA_SIZE,
                 msgValue: DEFAULT_MSG_VALUE,
-                options: DEFAULT_OPTIONS
+                options: DEFAULT_OPTIONS,
+                payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
+                feeToken: DEFAULT_FEE_TOKEN
             });
     }
 
@@ -67,7 +73,9 @@ library BridgeOptionsTestHelper {
                 gasLimit: DEFAULT_GAS_LIMIT,
                 calldataSize: DEFAULT_CALLDATA_SIZE,
                 msgValue: DEFAULT_MSG_VALUE,
-                options: DEFAULT_OPTIONS
+                options: DEFAULT_OPTIONS,
+                payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
+                feeToken: DEFAULT_FEE_TOKEN
             });
     }
 
@@ -93,7 +101,9 @@ library BridgeOptionsTestHelper {
                 gasLimit: gasLimit,
                 calldataSize: calldataSize,
                 msgValue: msgValue,
-                options: options
+                options: options,
+                payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
+                feeToken: DEFAULT_FEE_TOKEN
             });
     }
 }

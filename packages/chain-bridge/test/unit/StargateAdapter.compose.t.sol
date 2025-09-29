@@ -150,7 +150,9 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Estimate fee

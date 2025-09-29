@@ -86,7 +86,9 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Get fee estimate first (for keeper execution)
@@ -144,7 +146,9 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         vm.stopPrank(); // User stops queueing
@@ -195,7 +199,9 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         vm.stopPrank(); // User stops queueing

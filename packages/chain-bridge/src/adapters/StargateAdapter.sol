@@ -402,7 +402,9 @@ contract StargateAdapter is
                     gasLimit: options.gasLimit,
                     calldataSize: options.calldataSize,
                     msgValue: options.msgValue,
-                    options: options.options
+                    options: options.options,
+                    payInProtocolToken: options.payInProtocolToken,
+                    feeToken: options.feeToken
                 }),
                 stargateContract
             );

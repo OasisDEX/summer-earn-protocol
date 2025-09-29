@@ -25,7 +25,9 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 100,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Quote fee FOR EXECUTION
@@ -83,7 +85,9 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 100,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Quote fee FOR EXECUTION
@@ -174,7 +178,9 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 100,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Quote fee FOR EXECUTION
@@ -258,7 +264,9 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             gasLimit: 0,
             calldataSize: 100,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
@@ -297,7 +305,9 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 100,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Quote fee FOR EXECUTION

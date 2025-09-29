@@ -148,7 +148,9 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Get the required fee first (using router.quote) FOR EXECUTION
@@ -195,7 +197,9 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Get the required fee first. This quote call should revert.
@@ -245,7 +249,9 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Test 1: Valid adapter that supports everything
@@ -274,7 +280,9 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         vm.expectRevert(); // Will revert with UnsupportedChain from estimateFee
@@ -297,7 +305,9 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
@@ -320,7 +330,9 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
@@ -368,7 +380,9 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Get quote
@@ -397,7 +411,9 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             gasLimit: 0,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         vm.expectRevert(IBridgeRouter.ZeroGasLimit.selector);
@@ -422,7 +438,9 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Should revert when no adapter is specified

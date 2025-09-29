@@ -34,7 +34,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Estimate fee for transferring assets
@@ -65,7 +67,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Should revert when estimating fee for unsupported chain
@@ -100,7 +104,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Should revert when estimating fee for unsupported asset
@@ -131,7 +137,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // First estimate the fee
@@ -214,7 +222,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Approve tokens for the adapter
@@ -251,7 +261,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Should revert when transferring to unsupported chain
@@ -300,7 +312,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Should revert when transferring unsupported asset
@@ -336,7 +350,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Estimate the required fee
@@ -416,7 +432,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Estimate the required fee
@@ -517,7 +535,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Test with 1 wei less than required - should fail
@@ -598,7 +618,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Transfer tokens to router and approve

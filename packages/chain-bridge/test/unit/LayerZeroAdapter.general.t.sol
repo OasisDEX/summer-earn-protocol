@@ -89,7 +89,9 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             msgValue: 0,
             calldataSize: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Call estimateSendMessage directly on the adapter

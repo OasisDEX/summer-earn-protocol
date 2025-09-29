@@ -32,7 +32,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 100,
             msgValue: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Generate a proper operation ID (fake but realistic)
@@ -98,7 +100,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Generate a proper operation ID that matches BridgeRouter's logic
@@ -149,7 +153,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             msgValue: 0,
             calldataSize: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Call estimateSendMessage directly on the adapter
@@ -224,7 +230,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Generate a fake operation ID
@@ -266,7 +274,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0.5 ether,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Generate a fake operation ID
@@ -309,7 +319,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 100,
             msgValue: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Generate a proper operation ID that matches BridgeRouter's logic
