@@ -18,7 +18,7 @@ abstract contract ReceiptNotifier {
      * @param options Bridge options
      * @param refundAddress Where to refund any unused value
      */
-    function _sendNotify(
+    function _sendNotification(
         uint16 destinationChainId,
         address target,
         bytes memory payload,
@@ -35,9 +35,9 @@ abstract contract ReceiptNotifier {
                 refundAddress: refundAddress
             });
         router.executeSendMessage{value: msg.value}(params, options);
-        emit NotifySent(keccak256(payload), destinationChainId, target);
+        emit NotificationSent(keccak256(payload), destinationChainId, target);
     }
-    event NotifySent(
+    event NotificationSent(
         bytes32 payloadHash,
         uint16 destinationChainId,
         address target
