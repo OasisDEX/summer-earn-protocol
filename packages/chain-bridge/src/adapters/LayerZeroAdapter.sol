@@ -63,6 +63,9 @@ contract LayerZeroAdapter is
     ///      This cap avoids overly large configurations and removes magic numbers.
     uint8 public constant MAX_SUPPORTED_DVNS = 8;
 
+    /// @notice ERC20 token used to pay LayerZero protocol fees (e.g., ZRO). Zero address disables token mode.
+    address public protocolFeeToken;
+
     /// @notice Emitted when read libraries are configured
     event ReadLibrariesConfigured(
         address indexed readLib1002,
@@ -81,6 +84,9 @@ contract LayerZeroAdapter is
 
     /// @notice Emitted when per-chain read support is updated
     event ChainReadSupportUpdated(uint16 indexed chainId, bool supported);
+
+    /// @notice Emitted when the protocol fee token is configured
+    event ProtocolFeeTokenConfigured(address indexed feeToken);
 
     /// @notice Mapping of chains that support read operations
     mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
@@ -232,6 +238,27 @@ contract LayerZeroAdapter is
         endpoint.setConfig(address(this), readLib1002Address, params);
 
         emit ReadDVNsConfigured(readChannelId, readDVNs, confirmations);
+    }
+
+    /**
+     * @notice Sets the ERC20 token used to pay LayerZero protocol fees and manages allowance to the endpoint
+     * @param token The ERC20 token address (e.g., ZRO). Use address(0) to disable token-fee mode.
+     */
+    function setProtocolFeeToken(address token) external onlyGovernor {
+        // Revoke allowance on the old token if set
+        if (protocolFeeToken != address(0)) {
+            IERC20(protocolFeeToken).forceApprove(address(endpoint), 0);
+        }
+
+        protocolFeeToken = token;
+
+        // Grant max allowance on the new token to the LayerZero endpoint if set
+        if (token != address(0)) {
+            IERC20(token).forceApprove(address(endpoint), 0);
+            IERC20(token).forceApprove(address(endpoint), type(uint256).max);
+        }
+
+        emit ProtocolFeeTokenConfigured(token);
     }
 
     /**
