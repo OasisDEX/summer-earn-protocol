@@ -93,6 +93,13 @@ contract LayerZeroAdapter is
     /// @notice Emitted when protocol token fees are spent for an operation
     event ProtocolFeeSpent(bytes32 indexed operationId, uint256 tokenFee);
 
+    /// @notice Emitted when protocol token fees are collected from the payer (keeper)
+    event ProtocolFeeCollected(
+        bytes32 indexed operationId,
+        address indexed payer,
+        uint256 tokenFee
+    );
+
     /// @notice Mapping of chains that support read operations
     mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
 
@@ -534,16 +541,20 @@ contract LayerZeroAdapter is
                 // Enforce that native fee should be zero in token mode
                 if (quoted.nativeFee != 0)
                     revert InsufficientMsgValue(0, quoted.nativeFee);
-
-                // Ensure the adapter has enough balance of the protocol fee token
                 uint256 tokenFeeRequired = quoted.lzTokenFee;
+
+                // Pull protocol fee token from the keeper (originator) into the adapter
                 if (tokenFeeRequired > 0) {
-                    if (
-                        IERC20(protocolFeeToken).balanceOf(address(this)) <
+                    IERC20(protocolFeeToken).safeTransferFrom(
+                        params.originator,
+                        address(this),
                         tokenFeeRequired
-                    ) {
-                        revert InsufficientFee(tokenFeeRequired, 0);
-                    }
+                    );
+                    emit ProtocolFeeCollected(
+                        operationId,
+                        params.originator,
+                        tokenFeeRequired
+                    );
                 }
 
                 MessagingReceipt memory receipt = _lzSend(
@@ -630,12 +641,17 @@ contract LayerZeroAdapter is
                 revert InsufficientMsgValue(0, quoted.nativeFee);
             uint256 tokenFeeRequired = quoted.lzTokenFee;
             if (tokenFeeRequired > 0) {
-                if (
-                    IERC20(protocolFeeToken).balanceOf(address(this)) <
+                // Pull protocol fee token from the keeper (originator) into the adapter
+                IERC20(protocolFeeToken).safeTransferFrom(
+                    params.originator,
+                    address(this),
                     tokenFeeRequired
-                ) {
-                    revert InsufficientFee(tokenFeeRequired, 0);
-                }
+                );
+                emit ProtocolFeeCollected(
+                    operationId,
+                    params.originator,
+                    tokenFeeRequired
+                );
             }
             receipt = _lzSend(
                 lzDstEid,
