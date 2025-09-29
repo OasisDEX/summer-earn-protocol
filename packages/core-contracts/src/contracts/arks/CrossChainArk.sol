@@ -6,6 +6,7 @@ import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossCha
 import {CrossChainReceiverBase} from "@summerfi/chain-bridge/base/CrossChainReceiverBase.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
+import {ReceiptNotifier} from "../common/ReceiptNotifier.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
@@ -22,7 +23,8 @@ contract CrossChainArk is
     Ark,
     CrossChainConfigManaged,
     CrossChainReceiverBase,
-    ICrossChainArk
+    ICrossChainArk,
+    ReceiptNotifier
 {
     using SafeERC20 for IERC20;
 
@@ -133,6 +135,10 @@ contract CrossChainArk is
             interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(ICrossChainArk).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
+    }
+
+    function _notifierBridgeRouter() internal view override returns (address) {
+        return bridgeRouter();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -355,19 +361,14 @@ contract CrossChainArk is
     function notifySatelliteReceipt(
         BridgeTypes.BridgeOptions calldata options
     ) external payable onlyKeeper {
-        IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
         if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
-
-        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
-            .ExecuteSendMessageParams({
-                originator: address(this),
-                destinationChainId: satelliteChainId,
-                target: _getTargetProxy(),
-                message: abi.encode(latestIncomingTransferId),
-                refundAddress: msg.sender
-            });
-
-        bridgeRouter.executeSendMessage{value: msg.value}(params, options);
+        _sendNotify(
+            satelliteChainId,
+            _getTargetProxy(),
+            abi.encode(latestIncomingTransferId),
+            options,
+            msg.sender
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

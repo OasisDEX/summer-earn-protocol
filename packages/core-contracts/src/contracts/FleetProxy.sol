@@ -16,6 +16,7 @@ import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReceiptNotifier} from "./common/ReceiptNotifier.sol";
 
 /**
  * @title FleetProxy
@@ -28,7 +29,8 @@ contract FleetProxy is
     CrossChainReceiverBase,
     IFleetProxy,
     Pausable,
-    ReentrancyGuard
+    ReentrancyGuard,
+    ReceiptNotifier
 {
     using SafeERC20 for IERC20;
 
@@ -217,7 +219,6 @@ contract FleetProxy is
     function notifySourceChain(
         BridgeTypes.BridgeOptions calldata options
     ) external payable whenNotPaused nonReentrant onlyKeeper {
-        IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
         // Security: ensure the ARK relationship is currently valid in the registry
         if (!_isValidSourceChain(hubChainId)) revert InvalidSourceChain();
         // Security: include replay guard context - require we have a non-zero last transfer id
@@ -228,19 +229,13 @@ contract FleetProxy is
         uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
             fleetShares
         );
-        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
-            .ExecuteSendMessageParams({
-                originator: address(this),
-                destinationChainId: hubChainId,
-                target: _getSourceChainArk(hubChainId),
-                message: abi.encode(
-                    fleetAssets,
-                    latestIncomingTransferId,
-                    block.timestamp
-                ),
-                refundAddress: msg.sender
-            });
-        bridgeRouter.executeSendMessage{value: msg.value}(params, options);
+        _sendNotify(
+            hubChainId,
+            _getSourceChainArk(hubChainId),
+            abi.encode(fleetAssets, latestIncomingTransferId),
+            options,
+            msg.sender
+        );
     }
 
     /// @inheritdoc IERC165
@@ -250,6 +245,10 @@ contract FleetProxy is
         return
             interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
+    }
+
+    function _notifierBridgeRouter() internal view override returns (address) {
+        return bridgeRouter();
     }
 
     /*//////////////////////////////////////////////////////////////
