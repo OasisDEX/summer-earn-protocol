@@ -45,6 +45,9 @@ contract StargateAdapter is
     /// @notice LayerZero endpoint for compose functionality
     address public immutable LZ_ENDPOINT;
 
+    /// @notice ERC20 token used to pay LayerZero protocol fees (e.g., ZRO). Zero address disables token-fee mode.
+    address public protocolFeeToken;
+
     /// @notice Mapping of assets to their Stargate contracts on THIS chain only
     mapping(address asset => address stargateContract)
         public assetToStargateContract;
@@ -75,6 +78,9 @@ contract StargateAdapter is
 
     /// @notice Emitted when slippage tolerance is updated
     event SlippageToleranceUpdated(uint256 newSlippageBps);
+
+    /// @notice Emitted when the protocol fee token is configured
+    event ProtocolFeeTokenConfigured(address indexed feeToken);
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -119,6 +125,27 @@ contract StargateAdapter is
         }
         slippageToleranceBps = _slippageBps;
         emit SlippageToleranceUpdated(_slippageBps);
+    }
+
+    /**
+     * @notice Sets the ERC20 token used to pay LayerZero protocol fees and manages allowance to the endpoint
+     * @param token The ERC20 token address (e.g., ZRO). Use address(0) to disable token-fee mode.
+     */
+    function setProtocolFeeToken(address token) external onlyGovernor {
+        // Revoke allowance on the old token if set
+        if (protocolFeeToken != address(0)) {
+            IERC20(protocolFeeToken).forceApprove(LZ_ENDPOINT, 0);
+        }
+
+        protocolFeeToken = token;
+
+        // Grant max allowance on the new token to the LayerZero endpoint if set
+        if (token != address(0)) {
+            IERC20(token).forceApprove(LZ_ENDPOINT, 0);
+            IERC20(token).forceApprove(LZ_ENDPOINT, type(uint256).max);
+        }
+
+        emit ProtocolFeeTokenConfigured(token);
     }
 
     /**
@@ -225,25 +252,62 @@ contract StargateAdapter is
                 stargateContract
             );
 
-        // Get messaging fee and perform transfer
-        MessagingFee memory messagingFee = stargate.quoteSend(sendParam, false);
-
-        if (providedFee < messagingFee.nativeFee) {
-            revert InsufficientFee(messagingFee.nativeFee, providedFee);
-        }
-
-        // Use exact fee amount from quote - Stargate handles refunds to keeper
-        stargate.sendToken{value: messagingFee.nativeFee}(
+        // Determine fee payment mode and get messaging fee
+        bool payInToken = options.payInProtocolToken &&
+            protocolFeeToken != address(0);
+        MessagingFee memory messagingFee = stargate.quoteSend(
             sendParam,
-            messagingFee,
-            params.refundAddress // Always refund to keeper who paid fees
+            payInToken
         );
 
-        // Refund any unused native value (buffer) back to the designated refund address
-        uint256 refundAmount = providedFee - messagingFee.nativeFee;
-        if (refundAmount > 0) {
-            (bool ok, ) = params.refundAddress.call{value: refundAmount}("");
-            if (!ok) revert RefundFailed(params.refundAddress, refundAmount);
+        if (payInToken) {
+            // Enforce that native fee should be zero in token mode
+            if (messagingFee.nativeFee != 0)
+                revert InsufficientFee(0, messagingFee.nativeFee);
+
+            // Pull protocol fee token from the keeper (originator) into the adapter if needed
+            if (messagingFee.lzTokenFee > 0) {
+                IERC20(protocolFeeToken).safeTransferFrom(
+                    params.originator,
+                    address(this),
+                    messagingFee.lzTokenFee
+                );
+            }
+
+            // No native value required when paying in token
+            stargate.sendToken{value: 0}(
+                sendParam,
+                messagingFee,
+                params.refundAddress
+            );
+
+            // Refund any provided native buffer fully (since nativeFee == 0)
+            if (providedFee > 0) {
+                (bool ok, ) = params.refundAddress.call{value: providedFee}("");
+                if (!ok) revert RefundFailed(params.refundAddress, providedFee);
+            }
+        } else {
+            // Native-fee path
+            if (providedFee < messagingFee.nativeFee) {
+                revert InsufficientFee(messagingFee.nativeFee, providedFee);
+            }
+
+            // Use exact fee amount from quote - Stargate handles refunds to keeper
+            stargate.sendToken{value: messagingFee.nativeFee}(
+                sendParam,
+                messagingFee,
+                params.refundAddress // Always refund to keeper who paid fees
+            );
+
+            // Refund any unused native value (buffer) back to the designated refund address
+            uint256 refundAmount = providedFee - messagingFee.nativeFee;
+            if (refundAmount > 0) {
+                (bool ok, ) = params.refundAddress.call{value: refundAmount}(
+                    ""
+                );
+                if (!ok)
+                    revert RefundFailed(params.refundAddress, refundAmount);
+            }
         }
     }
 
@@ -411,11 +475,13 @@ contract StargateAdapter is
                 stargateContract
             );
 
+        bool payInToken = options.payInProtocolToken &&
+            protocolFeeToken != address(0);
         MessagingFee memory msgFee = IStargateV2(stargateContract).quoteSend(
             sendParam,
-            false
+            payInToken
         );
-        return (msgFee.nativeFee, 0);
+        return (msgFee.nativeFee, msgFee.lzTokenFee);
     }
 
     /// @inheritdoc IBridgeAdapter
