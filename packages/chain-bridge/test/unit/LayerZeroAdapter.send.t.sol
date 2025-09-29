@@ -391,4 +391,142 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         address destinationContract,
         bytes4 selector
     );
+
+    // Events mirrored from LayerZeroAdapter for token-fee mode assertions
+    event ProtocolFeeCollected(
+        bytes32 indexed operationId,
+        address indexed payer,
+        uint256 tokenFee
+    );
+    event ProtocolFeeSpent(bytes32 indexed operationId, uint256 tokenFee);
+
+    function testSendMessage_ProtocolTokenFeePath_EmitsEvents() public {
+        useNetworkA();
+        vm.deal(address(routerA), 1 ether);
+
+        // Enable protocol token fee mode using tokenA as the fee token
+        vm.startPrank(governor);
+        adapterA.setProtocolFeeToken(address(tokenA));
+        vm.stopPrank();
+
+        // Keeper (originator) approves adapter to pull protocol fee tokens
+        vm.prank(user);
+        tokenA.approve(address(adapterA), type(uint256).max);
+
+        // Build options with payInProtocolToken enabled
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: bytes(""),
+            payInProtocolToken: true,
+            feeToken: address(0)
+        });
+
+        // Operation ID mirrors BridgeRouter's computation in other tests
+        bytes memory message = abi.encode("hello token-fee");
+        bytes32 operationId = keccak256(
+            abi.encode(
+                block.chainid,
+                CHAIN_ID_B,
+                address(0),
+                0,
+                recipient,
+                abi.encode(message, address(user)),
+                block.timestamp,
+                BridgeTypes.OperationType.MESSAGE
+            )
+        );
+        routerA.setOperationToAdapter(operationId, address(adapterA));
+
+        // Expect token-fee collection/spend events from the adapter
+        vm.startPrank(address(routerA));
+        vm.expectEmit(true, true, false, false, address(adapterA));
+        emit ProtocolFeeCollected(operationId, address(user), 0);
+        vm.expectEmit(true, false, false, false, address(adapterA));
+        emit ProtocolFeeSpent(operationId, 0);
+
+        adapterA.sendMessage{value: 0}(
+            operationId,
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                message: message,
+                originator: address(user),
+                refundAddress: address(user)
+            }),
+            options
+        );
+        vm.stopPrank();
+    }
+
+    function testReadState_ProtocolTokenFeePath_EmitsCollected_BeforeRevert()
+        public
+    {
+        useNetworkA();
+
+        // Activate read channel
+        vm.startPrank(governor);
+        adapterA.activateReadChannel(adapterA.readChannelThreshold() + 1);
+        adapterA.setProtocolFeeToken(address(tokenA));
+        vm.stopPrank();
+
+        // Keeper (originator) approves adapter to pull protocol fee tokens
+        vm.prank(user);
+        tokenA.approve(address(adapterA), type(uint256).max);
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 100,
+            msgValue: 0,
+            options: bytes(""),
+            payInProtocolToken: true,
+            feeToken: address(0)
+        });
+
+        // Generate operation id like in other read tests
+        bytes32 operationId = keccak256(
+            abi.encode(
+                block.chainid,
+                CHAIN_ID_B,
+                address(0),
+                0,
+                address(0),
+                abi.encode(
+                    address(tokenB),
+                    bytes4(keccak256("balanceOf(address)")),
+                    abi.encode(recipient),
+                    address(user)
+                ),
+                block.timestamp,
+                BridgeTypes.OperationType.READ_STATE
+            )
+        );
+        routerA.setOperationToAdapter(operationId, address(adapterA));
+
+        // Expect ProtocolFeeCollected to be emitted before the mocked LZ revert
+        vm.expectEmit(true, true, false, false, address(adapterA));
+        emit ProtocolFeeCollected(operationId, address(user), 0);
+
+        // The devtools mock reverts when sending read packets; assert the revert
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.LZ_DefaultSendLibUnavailable.selector)
+        );
+
+        vm.prank(address(routerA));
+        adapterA.readState{value: 0}(
+            operationId,
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: CHAIN_ID_B,
+                target: address(tokenB),
+                selector: bytes4(keccak256("balanceOf(address)")),
+                readParams: abi.encode(recipient),
+                originator: address(user),
+                refundAddress: address(user)
+            }),
+            options
+        );
+    }
 }

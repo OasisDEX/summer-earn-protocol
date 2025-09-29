@@ -212,6 +212,37 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         );
     }
 
+    function testEstimateFee_IgnoresProtocolTokenFeeFlag() public {
+        useNetworkA();
+
+        // Same as normal, but with payInProtocolToken true; StargateAdapter should ignore and return native fee only
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: "",
+            payInProtocolToken: true,
+            feeToken: address(0)
+        });
+
+        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                asset: address(tokenA),
+                amount: 1 ether,
+                message: "",
+                refundAddress: address(this)
+            }),
+            options
+        );
+
+        assertTrue(nativeFee > 0);
+        assertEq(tokenFee, 0);
+    }
+
     function testTransferAssetUnauthorized() public {
         useNetworkA();
         vm.deal(user, 1 ether); // Provide ETH to the user

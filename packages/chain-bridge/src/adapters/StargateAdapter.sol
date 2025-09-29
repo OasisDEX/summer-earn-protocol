@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBridgeTokenFeeSupport} from "../interfaces/IBridgeTokenFeeSupport.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
@@ -29,7 +30,8 @@ contract StargateAdapter is
     IAssetAdapter,
     IBridgeAdapter,
     ILayerZeroComposer,
-    BaseBridgeAdapter
+    BaseBridgeAdapter,
+    IBridgeTokenFeeSupport
 {
     using SafeERC20 for IERC20;
     using AddressCast for address;
@@ -570,5 +572,10 @@ contract StargateAdapter is
      */
     function getEndpointId(uint16 chainId) external view returns (uint32) {
         return chainToExternalId[chainId];
+    }
+
+    /// @inheritdoc IBridgeTokenFeeSupport
+    function supportsProtocolTokenFee() external pure returns (bool) {
+        return false;
     }
 }
