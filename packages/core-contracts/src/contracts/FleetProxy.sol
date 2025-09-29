@@ -190,7 +190,7 @@ contract FleetProxy is
             .ExecuteTransferParams({
                 originator: address(this),
                 destinationChainId: hubChainId,
-                target: _getSourceChainArk(hubChainId),
+                target: _getHubChainArk(hubChainId),
                 asset: asset,
                 amount: amount,
                 message: abi.encode(fleetAssets),
@@ -237,7 +237,7 @@ contract FleetProxy is
         );
         _sendNotification(
             hubChainId,
-            _getSourceChainArk(hubChainId),
+            _getHubChainArk(hubChainId),
             abi.encode(fleetAssets, latestIncomingTransferId),
             options,
             msg.sender
@@ -310,7 +310,7 @@ contract FleetProxy is
         if (params.amount == 0) {
             revert NoAssets();
         }
-        if (params.originator != _getSourceChainArk(params.sourceChainId)) {
+        if (params.originator != _getHubChainArk(params.sourceChainId)) {
             revert InvalidRequestor();
         }
         _handleReceiveAssets(params.asset, params.amount, params.sourceChainId);
@@ -327,7 +327,7 @@ contract FleetProxy is
         BridgeTypes.RelayedMessageParams memory params
     ) internal override whenNotPaused {
         if (params.sourceChainId != hubChainId) revert InvalidSourceChain();
-        if (params.originator != _getSourceChainArk(params.sourceChainId)) {
+        if (params.originator != _getHubChainArk(params.sourceChainId)) {
             revert InvalidRequestor();
         }
 
@@ -353,7 +353,7 @@ contract FleetProxy is
      * @return arkAddress The hub-chain Ark address
      * @dev Reverts if no valid relationship exists for the hub chain
      */
-    function _getSourceChainArk(
+    function _getHubChainArk(
         uint16 _hubChainId
     ) internal view returns (address arkAddress) {
         return
