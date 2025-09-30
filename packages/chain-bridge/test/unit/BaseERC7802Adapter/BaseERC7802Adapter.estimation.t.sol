@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
-import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {BaseERC7802Adapter} from "../../../src/adapters/BaseERC7802Adapter.sol";
+import {ERC7802OFTAdapter} from "../../../src/adapters/ERC7802OFTAdapter.sol";
+import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
+import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {BaseERC7802AdapterSetupTest} from "./BaseERC7802Adapter.setup.t.sol";
 

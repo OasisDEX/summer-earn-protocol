@@ -4,11 +4,11 @@ pragma solidity 0.8.28;
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 
-import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
+import {BaseERC7802Adapter} from "../../../src/adapters/BaseERC7802Adapter.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
-import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
+import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 
 /**
  * @title BaseERC7802Adapter Setup Test

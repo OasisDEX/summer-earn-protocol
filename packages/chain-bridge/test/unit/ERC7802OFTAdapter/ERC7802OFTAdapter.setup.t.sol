@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
-import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
-import {MockOFT} from "../mocks/MockOFT.sol";
-import {BaseERC7802AdapterSetupTest} from "./BaseERC7802Adapter.setup.t.sol";
+import {ERC7802OFTAdapter} from "../../../src/adapters/ERC7802OFTAdapter.sol";
+import {BaseERC7802Adapter} from "../../../src/adapters/BaseERC7802Adapter.sol";
+import {MockOFT} from "../../mocks/MockOFT.sol";
+import {BaseERC7802AdapterSetupTest} from "../BaseERC7802Adapter/BaseERC7802Adapter.setup.t.sol";
 
 /**
  * @title ERC7802OFTAdapter Setup Test
