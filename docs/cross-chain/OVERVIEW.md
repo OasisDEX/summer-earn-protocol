@@ -51,6 +51,12 @@ sequenceDiagram
   Proxy->>Local: deposit()
 ```
 
+#### Notifications (standardized)
+
+- FleetProxy → Hub (MESSAGE): After receiving assets on the satellite, the destination `FleetProxy` can notify the hub-chain Ark using `notifyHubChain(options)`. The MESSAGE payload is `(fleetAssets, latestIncomingTransferId)` and is used by the Ark to update `lastRemoteAssetBalance` and clear inflight when the transfer ID matches.
+- Hub → FleetProxy (MESSAGE): After a hub-side withdrawal completes, the Ark can ACK back to the satellite using `notifySatelliteReceipt(options)`. The MESSAGE payload contains `latestIncomingTransferId`, allowing `FleetProxy` to clear `inflightWithdrawals` when it matches `latestOutgoingTransferId`.
+- Operational requirement: both notifications use `BridgeOptions` and require a non-zero `gasLimit`.
+
 #### Security at a Glance
 
 - Registry-first validation on source and destination: invalid relationships revert immediately.
@@ -65,13 +71,14 @@ Operational requirement:
 Note on withdrawals:
 
 - Disembark (withdraw) checks ensure sufficient local assets. Cross-chain withdrawals are initiated
-  on the destination by keepers via `FleetProxy.withdrawAndTransfer(...)` and delivered back to the
+  on the satellite by keepers via `FleetProxy.withdrawAndTransfer(...)` and delivered back to the
   Ark on the hub chain.
-- Single-flight semantics apply to both Ark (outbound) and FleetProxy (withdrawals). Ark clears its
-  inflight state when the next remote balance update tied to the latest outgoing transfer is
-  confirmed. FleetProxy clears inflight via an off-chain acknowledgment path
-  (`acknowledgeHubReceipt(operationId)` by SuperKeeper) once receipt is verified on the hub, or via
-  governance emergency functions.
+- Single-flight semantics apply to both Ark (outbound) and FleetProxy (withdrawals). Ark typically
+  clears its inflight state upon processing the MESSAGE from `FleetProxy.notifyHubChain(...)` that
+  contains the latest received transfer ID and remote balance. FleetProxy clears withdrawal inflight
+  via a hub → satellite MESSAGE ACK from `CrossChainArk.notifySatelliteReceipt(...)` when the
+  transfer ID matches. Fallback: SuperKeeper can call `acknowledgeHubReceipt(operationId)`, and
+  governance retains emergency controls.
 
 #### Where to go next
 
