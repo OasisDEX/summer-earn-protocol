@@ -88,8 +88,6 @@ contract BridgeRouterTestHelper is BridgeRouter {
         shouldRevert = _shouldRevert;
     }
 
-    function testSkipper() public {}
-
     /**
      * @notice Exposes a failed delivery record for testing assertions
      */
