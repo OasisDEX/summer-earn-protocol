@@ -101,6 +101,4 @@ contract MockCrossChainReceiver is CrossChainReceiverBase {
         lastOperationId = operationId;
         lastOperationType = operationType;
     }
-
-    function testSkipper() public {}
 }

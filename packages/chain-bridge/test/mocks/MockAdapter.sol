@@ -267,8 +267,6 @@ contract MockAdapter is
         console.log("destinationChainId:", destinationChainId);
     }
 
-    function testSkipper() public {}
-
     /// @inheritdoc IAssetAdapter
     function supportsAssetTransfer(
         uint16 destinationChainId,
