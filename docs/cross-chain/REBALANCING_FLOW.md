@@ -82,7 +82,8 @@ sequenceDiagram
 
 - Bridge delivery failure: 
   - Assets remain in BridgeRouter after failed delivery
-  - Use `retryFailedDelivery(operationId, overrideData)` to retry with optional asset/recipient overrides
+  - Use `retryFailedDelivery(operationId, newRecipient)` to retry with optional recipient override
+  - Pass `address(0)` as `newRecipient` to use original recipient, or specify new recipient address
   - Assets may be held by the adapter's fail-safe; recover per adapter's documented procedure
 - Registry mismatch: destination rejects delivery; investigate registry sync/state across chains.
 - Pause state: routers or proxies may be paused by guardians/governance; resume only after incident

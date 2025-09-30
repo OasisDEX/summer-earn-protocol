@@ -60,7 +60,7 @@ sequenceDiagram
 - Reentrancy protection on critical entry points.
 
 Operational requirement:
-- All cross-chain operations include explicit `BridgeOptions` with a non-zero `gasLimit`. There is no registry-level default gas limit.
+- All cross-chain operations MUST include explicit `BridgeOptions` with a non-zero `gasLimit`. The router will revert with `ZeroGasLimit()` if gas limit is zero. There is no registry-level default gas limit.
 
 Note on withdrawals:
 

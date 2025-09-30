@@ -53,7 +53,7 @@ bool ok = crossChainRegistry.isValidCrossChainPair(
     address(this),
     sourceChainId,
     uint16(block.chainid),
-    ARK_FLEET_RELATIONSHIP
+    PEER_RELATIONSHIP
 );
 require(ok, "Invalid source relationship");
 ```
@@ -77,4 +77,4 @@ require(ok, "Invalid source relationship");
 Additional registry configuration:
 - Initialize registry bridge config once per chain with the router address:
   - `initializeBridgeConfiguration(address bridgeRouter)`
-- The registry no longer manages a default gas limit. All operations must pass a non-zero gas limit in `BridgeOptions` via the router.
+- The registry no longer manages a default gas limit. All operations MUST pass a non-zero gas limit in `BridgeOptions` via the router.
