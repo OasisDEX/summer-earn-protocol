@@ -1,9 +1,9 @@
 {
   "network": "mainnet",
   "enable-grafting": true,
-  "grafting-base": "QmZuQw4aipFpBUds5JYsjRqHLDQaLT469CdgRCsvV6t878",
+  "grafting-base": "QmS7yTtytUFgBCrEEMq8gbReQ7izU3uosu77iL6fScSThk",
   "grafting-block": "23388000",
   "entry_point_address": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
-  "entry_point_start_block": 21575816,
+  "entry_point_start_block": 23471000,
   "interval-handler-block-interval": 50
 }

@@ -5,7 +5,7 @@ schema:
 features:
   - grafting
 graft:
-  base: QmZuQw4aipFpBUds5JYsjRqHLDQaLT469CdgRCsvV6t878
+  base: QmS7yTtytUFgBCrEEMq8gbReQ7izU3uosu77iL6fScSThk
   block: 23388000
 dataSources:
   - kind: ethereum/contract
@@ -13,7 +13,7 @@ dataSources:
     network: mainnet
     source:
       abi: Comet
-      startBlock: 21575816
+      startBlock: 23471000
       address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
     mapping:
       kind: ethereum/events
