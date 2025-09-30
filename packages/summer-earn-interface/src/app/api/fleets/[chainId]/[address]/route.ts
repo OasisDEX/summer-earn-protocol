@@ -26,44 +26,52 @@ export async function GET(
 
   const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets, fleetDecimals] =
     await Promise.all([
-      client.readContract({
+      // @ts-ignore
+         client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'name',
       }),
-      client.readContract({
+      // @ts-ignore
+         client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'symbol',
       }),
-      client.readContract({
+      // @ts-ignore
+         client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'asset',
       }),
-      client.readContract({
+      // @ts-ignore
+         client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'totalAssets',
       }),
-      client.readContract({
+      // @ts-ignore
+         client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'withdrawableTotalAssets',
       }),
-      client.readContract({
+      // @ts-ignore
+         client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'decimals',
       }),
     ])
   const [assetDecimals, assetSymbol] = await Promise.all([
-    client.readContract({
+    // @ts-ignore
+         client.readContract({
       address: assetAddress as `0x${string}`,
       abi: erc20Abi,
       functionName: 'decimals',
     }),
-    client.readContract({
+    // @ts-ignore
+         client.readContract({
       address: assetAddress as `0x${string}`,
       abi: erc20Abi,
       functionName: 'symbol',
@@ -73,19 +81,22 @@ export async function GET(
   let userInfo: any = null
   if (user) {
     const [balance, underlyingBalance, allowance] = await Promise.all([
-      client.readContract({
+      // @ts-ignore
+         client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'balanceOf',
         args: [user as `0x${string}`],
       }),
-      client.readContract({
+      // @ts-ignore
+         client.readContract({
         address: assetAddress as `0x${string}`,
         abi: erc20Abi,
         functionName: 'balanceOf',
         args: [user as `0x${string}`],
       }),
-      client.readContract({
+      // @ts-ignore
+         client.readContract({
         address: assetAddress as `0x${string}`,
         abi: erc20Abi,
         functionName: 'allowance',

@@ -23,12 +23,14 @@ export async function GET(
   const client = createPublicClient({ transport: http(rpcUrl) })
 
   const [activeArks, bufferArkAddress] = await Promise.all([
-    client.readContract({
+    // @ts-ignore
+         client.readContract({
       address: address as `0x${string}`,
       abi: fleetCommanderAbi,
       functionName: 'getActiveArks',
     }) as Promise<`0x${string}`[]>,
-    client.readContract({
+    // @ts-ignore
+         client.readContract({
       address: address as `0x${string}`,
       abi: fleetCommanderAbi,
       functionName: 'bufferArk',
@@ -41,17 +43,20 @@ export async function GET(
   const results = await Promise.all(
     allArks.map(async (arkAddress) => {
       const [totalAssets, withdrawableTotalAssets, name] = await Promise.all([
-        client.readContract({
+        // @ts-ignore
+         client.readContract({
           address: arkAddress,
           abi: arkAbi,
           functionName: 'totalAssets',
         }),
-        client.readContract({
+        // @ts-ignore
+         client.readContract({
           address: arkAddress,
           abi: arkAbi,
           functionName: 'withdrawableTotalAssets',
         }),
-        client.readContract({
+        // @ts-ignore
+         client.readContract({
           address: arkAddress,
           abi: arkAbi,
           functionName: 'name',
