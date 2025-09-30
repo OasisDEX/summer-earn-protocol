@@ -15,7 +15,7 @@ This document provides a practical runbook for keepers and operators.
 
 #### Monitoring and Alerts
 
-- Source chain: router execution events, adapter send events, Ark transfer events.
+- Hub chain: router execution events, adapter send events, Ark transfer events.
 - Destination chain: adapter delivery events, router delivery, FleetProxy deposit events.
 - Alert on: delivery failures, registry validation failures, pause state changes, abnormal fee quotes.
 - Reconciliation (updated):

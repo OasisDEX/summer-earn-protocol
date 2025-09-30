@@ -14,12 +14,12 @@ internal, keeper-led rebalancing process.
 
 - **CrossChain Fleet (Hub)**: User entry point and strategy accounting.
 - **Buffer Ark**: Staging area for new capital prior to cross-chain deployment.
-- **CrossChain Ark (Source)**: Per-target-chain vehicle that executes cross-chain transfers.
+- **CrossChain Ark (Hub)**: Hub-chain Ark that executes cross-chain transfers to destination chains.
 - **BridgeRouter**: Bridge coordination contract that validates adapters and forwards operations.
 - **Bridge Adapters**: Protocol-specific adapters (e.g., Stargate, LayerZero) that bridge tokens and
   messages.
 - **FleetProxy (Destination)**: Gatekeeper on the destination chain that accepts calls only from the
-  local BridgeRouter and deposits into the local fleet after registry validation of the source.
+  local BridgeRouter and deposits into the local fleet after registry validation of the hub-chain Ark.
 - **CrossChainRegistry**: Authoritative mapping of valid Ark ↔ Proxy pairs across chains; checked
   on both source and destination.
 - **Keepers**: Off-chain agents that plan and execute rebalances (queue and execute transfers).
@@ -31,7 +31,7 @@ sequenceDiagram
   participant User as User
   participant Fleet as CrossChain Fleet (Hub)
   participant Buffer as Buffer Ark
-  participant Ark as CrossChain Ark (Source)
+  participant Ark as CrossChain Ark (Hub)
   participant RouterS as BridgeRouter (Source)
   participant AdapterS as Adapter (Source)
   participant AdapterD as Adapter (Destination)
