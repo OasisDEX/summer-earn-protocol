@@ -91,7 +91,9 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             msgValue: 0,
             calldataSize: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         // Call estimateSendMessage directly on the adapter
@@ -208,7 +210,9 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             gasLimit: 300000,
             calldataSize: 0,
             msgValue: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
         vm.expectRevert(IBridgeAdapter.ReadChannelNotConfigured.selector);
         adapterA.estimateReadState(
@@ -235,7 +239,9 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             gasLimit: 300000,
             calldataSize: 0,
             msgValue: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
         vm.expectRevert(IBridgeAdapter.UnsupportedChain.selector);
         adapterA.estimateReadState(
@@ -384,7 +390,9 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                 gasLimit: 100000,
                 calldataSize: 0,
                 msgValue: 0,
-                options: bytes("")
+                options: bytes(""),
+                payInProtocolToken: false,
+                feeToken: address(0)
             })
         );
     }
@@ -405,7 +413,9 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                 gasLimit: 0,
                 calldataSize: 0,
                 msgValue: 0,
-                options: bytes("")
+                options: bytes(""),
+                payInProtocolToken: false,
+                feeToken: address(0)
             })
         );
     }
@@ -443,7 +453,9 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                 gasLimit: 200000,
                 calldataSize: 0,
                 msgValue: 0,
-                options: bytes("")
+                options: bytes(""),
+                payInProtocolToken: false,
+                feeToken: address(0)
             })
         );
     }

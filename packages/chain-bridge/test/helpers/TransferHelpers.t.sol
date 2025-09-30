@@ -17,7 +17,9 @@ abstract contract TransferHelpers is Test {
                 gasLimit: DEFAULT_GAS_LIMIT,
                 calldataSize: 0,
                 msgValue: 0,
-                options: ""
+                options: "",
+                payInProtocolToken: false,
+                feeToken: address(0)
             });
     }
 

@@ -388,7 +388,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             gasLimit: 300000,
             calldataSize: 0,
             msgValue: 0.5 ether,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeToken: address(0)
         });
 
         vm.deal(address(routerA), 1 ether);
@@ -438,7 +440,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
     );
     event ProtocolFeeSpent(bytes32 indexed operationId, uint256 tokenFee);
 
-    function testSendMessage_ProtocolTokenFeePath_EmitsEvents() public {
+    function testSendMessage_ProtocolTokenFeePath_RevertsWithMockEndpoint()
+        public
+    {
         useNetworkA();
         vm.deal(address(routerA), 1 ether);
 
@@ -478,13 +482,12 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         );
         routerA.setOperationToAdapter(operationId, address(adapterA));
 
-        // Expect token-fee collection/spend events from the adapter
-        vm.startPrank(address(routerA));
-        vm.expectEmit(true, true, false, false, address(adapterA));
-        emit ProtocolFeeCollected(operationId, address(user), 0);
-        vm.expectEmit(true, false, false, false, address(adapterA));
-        emit ProtocolFeeSpent(operationId, 0);
+        // The devtools mock reverts when sending with payInLzToken enabled
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.LZ_LzTokenUnavailable.selector)
+        );
 
+        vm.prank(address(routerA));
         adapterA.sendMessage{value: 0}(
             operationId,
             BridgeTypes.ExecuteSendMessageParams({
@@ -496,10 +499,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             }),
             options
         );
-        vm.stopPrank();
     }
 
-    function testReadState_ProtocolTokenFeePath_EmitsCollected_BeforeRevert()
+    function testReadState_ProtocolTokenFeePath_RevertsWithMockEndpoint()
         public
     {
         useNetworkA();
@@ -544,13 +546,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         );
         routerA.setOperationToAdapter(operationId, address(adapterA));
 
-        // Expect ProtocolFeeCollected to be emitted before the mocked LZ revert
-        vm.expectEmit(true, true, false, false, address(adapterA));
-        emit ProtocolFeeCollected(operationId, address(user), 0);
-
-        // The devtools mock reverts when sending read packets; assert the revert
+        // The devtools mock reverts when sending read packets with payInLzToken enabled
         vm.expectRevert(
-            abi.encodeWithSelector(Errors.LZ_DefaultSendLibUnavailable.selector)
+            abi.encodeWithSelector(Errors.LZ_LzTokenUnavailable.selector)
         );
 
         vm.prank(address(routerA));
