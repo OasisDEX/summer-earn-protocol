@@ -27,11 +27,13 @@ export async function GET(
       address: address as `0x${string}`,
       abi: fleetCommanderAbi,
       functionName: 'getActiveArks',
+      authorizationList: [],
     }) as Promise<`0x${string}`[]>,
     client.readContract({
       address: address as `0x${string}`,
       abi: fleetCommanderAbi,
       functionName: 'bufferArk',
+      authorizationList: [],
     }) as Promise<`0x${string}`>,
   ])
 
@@ -41,13 +43,24 @@ export async function GET(
   const results = await Promise.all(
     allArks.map(async (arkAddress) => {
       const [totalAssets, withdrawableTotalAssets, name] = await Promise.all([
-        client.readContract({ address: arkAddress, abi: arkAbi, functionName: 'totalAssets' }),
+        client.readContract({
+          address: arkAddress,
+          abi: arkAbi,
+          functionName: 'totalAssets',
+          authorizationList: [],
+        }),
         client.readContract({
           address: arkAddress,
           abi: arkAbi,
           functionName: 'withdrawableTotalAssets',
+          authorizationList: [],
         }),
-        client.readContract({ address: arkAddress, abi: arkAbi, functionName: 'name' }),
+        client.readContract({
+          address: arkAddress,
+          abi: arkAbi,
+          functionName: 'name',
+          authorizationList: [],
+        }),
       ])
       return {
         address: arkAddress,

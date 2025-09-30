@@ -180,7 +180,10 @@ export default function SummerStakingPage() {
   const canUnstake = isConnected && unstakeAmount > 0n
   const canApproveEnabled = isConnected && amount > 0n
 
-  const selectedStake = useMemo(() => stakes.find((s) => s.index === unstakeIndex) || null, [stakes, unstakeIndex])
+  const selectedStake = useMemo(
+    () => stakes.find((s) => s.index === unstakeIndex) || null,
+    [stakes, unstakeIndex],
+  )
 
   const penaltyInfoFor = (amt: bigint, endTime: bigint) => {
     const remaining = Number(endTime) - nowTs
@@ -234,10 +237,21 @@ export default function SummerStakingPage() {
                   )}
                 </div>
                 <div className="mt-2 text-xs text-gray-400">
-                  Staked: <span className="text-white">{formatAmountFixed(b.staked, summerDecimals, 2)} {summerSymbol}</span>
+                  Staked:{' '}
+                  <span className="text-white">
+                    {formatAmountFixed(b.staked, summerDecimals, 2)} {summerSymbol}
+                  </span>
                 </div>
                 <div className="text-xs text-gray-400">
-                  Cap: <span className="text-white">{b.cap === 0n ? 'Disabled' : b.cap.toString() === '115792089237316195423570985008687907853269984665640564039457584007913129639935' ? 'Unlimited' : `${formatAmountFixed(b.cap, summerDecimals, 2)} ${summerSymbol}`}</span>
+                  Cap:{' '}
+                  <span className="text-white">
+                    {b.cap === 0n
+                      ? 'Disabled'
+                      : b.cap.toString() ===
+                          '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+                        ? 'Unlimited'
+                        : `${formatAmountFixed(b.cap, summerDecimals, 2)} ${summerSymbol}`}
+                  </span>
                 </div>
                 {b.cap === 0n && <div className="text-xs text-gray-500 mt-1">Disabled</div>}
               </div>
@@ -321,24 +335,49 @@ export default function SummerStakingPage() {
                     className="w-full h-48 bg-gray-800 rounded"
                   >
                     <polyline
-                  fill="none"
+                      fill="none"
                       stroke="#ff2d8f"
-                  strokeWidth="0.5"
+                      strokeWidth="0.5"
                       points={penaltyChart.points
                         .map((p) => `${chartWidth - p.x},${20 - p.y}`)
                         .join(' ')}
-                />
-                    <line x1={String(-margin)} y1="20" x2={String(chartWidth + margin)} y2="20" stroke="#374151" strokeWidth="0.3" />
+                    />
+                    <line
+                      x1={String(-margin)}
+                      y1="20"
+                      x2={String(chartWidth + margin)}
+                      y2="20"
+                      stroke="#374151"
+                      strokeWidth="0.3"
+                    />
                     <text x={String(1 - margin / 2)} y="3" fontSize="2" fill="#9ca3af">
                       {penaltyChart.startPct.toFixed(1)}%
                     </text>
-                    <text x={String(chartWidth - 3 + margin / 2)} y="19" fontSize="2" fill="#9ca3af">
+                    <text
+                      x={String(chartWidth - 3 + margin / 2)}
+                      y="19"
+                      fontSize="2"
+                      fill="#9ca3af"
+                    >
                       2%
                     </text>
                     {penaltyChart.ticks.map((t, i) => (
                       <g key={i}>
-                        <line x1={`${chartWidth - t.x}`} y1="20" x2={`${chartWidth - t.x}`} y2="21.5" stroke="#9ca3af" strokeWidth="0.2" />
-                        <text x={`${chartWidth - t.x}`} y="25" fontSize="2" fill="#9ca3af" textAnchor="middle">
+                        <line
+                          x1={`${chartWidth - t.x}`}
+                          y1="20"
+                          x2={`${chartWidth - t.x}`}
+                          y2="21.5"
+                          stroke="#9ca3af"
+                          strokeWidth="0.2"
+                        />
+                        <text
+                          x={`${chartWidth - t.x}`}
+                          y="25"
+                          fontSize="2"
+                          fill="#9ca3af"
+                          textAnchor="middle"
+                        >
                           {t.label}
                         </text>
                       </g>
@@ -364,7 +403,9 @@ export default function SummerStakingPage() {
               >
                 {stakes.map((s) => (
                   <option key={s.index} value={s.index}>
-                    #{s.index} • {formatDays(s.lockupPeriod)} • amount {formatAmount(s.amount, summerDecimals)} {summerSymbol} • multiplier {formatMultiplier(s.multiplierWad)}
+                    #{s.index} • {formatDays(s.lockupPeriod)} • amount{' '}
+                    {formatAmount(s.amount, summerDecimals)} {summerSymbol} • multiplier{' '}
+                    {formatMultiplier(s.multiplierWad)}
                   </option>
                 ))}
               </select>
@@ -394,17 +435,27 @@ export default function SummerStakingPage() {
             {selectedStake && (
               <div className="text-sm text-gray-300 space-y-1">
                 <div>
-                  Stake amount: <span className="text-white">{formatAmount(selectedStake.amount, summerDecimals)} {summerSymbol}</span>
+                  Stake amount:{' '}
+                  <span className="text-white">
+                    {formatAmount(selectedStake.amount, summerDecimals)} {summerSymbol}
+                  </span>
                 </div>
                 <div>
-                  Time remaining: <span className="text-white">{formatDays(Number(selectedStake.lockupEndTime) - nowTs)}</span>
+                  Time remaining:{' '}
+                  <span className="text-white">
+                    {formatDays(Number(selectedStake.lockupEndTime) - nowTs)}
+                  </span>
                 </div>
                 {(() => {
-                  const p = penaltyInfoFor(unstakeAmount > 0n ? unstakeAmount : selectedStake.amount, selectedStake.lockupEndTime)
+                  const p = penaltyInfoFor(
+                    unstakeAmount > 0n ? unstakeAmount : selectedStake.amount,
+                    selectedStake.lockupEndTime,
+                  )
                   const pctStr = (p.pct * 100).toFixed(4)
                   return (
                     <div>
-                      Current penalty: <span className="text-red-400">{pctStr}%</span> → {formatAmountFixed(p.amount, summerDecimals, 4)} {summerSymbol}
+                      Current penalty: <span className="text-red-400">{pctStr}%</span> →{' '}
+                      {formatAmountFixed(p.amount, summerDecimals, 4)} {summerSymbol}
                     </div>
                   )
                 })()}
@@ -467,7 +518,8 @@ export default function SummerStakingPage() {
                           const pctStr = (p.pct * 100).toFixed(4)
                           return (
                             <span>
-                              {pctStr}% • {formatAmountFixed(p.amount, summerDecimals, 4)} {summerSymbol}
+                              {pctStr}% • {formatAmountFixed(p.amount, summerDecimals, 4)}{' '}
+                              {summerSymbol}
                             </span>
                           )
                         })()}

@@ -152,6 +152,7 @@ export function useRaftContract() {
           abi: RAFT_ABI,
           functionName: 'obtainedTokens',
           args: [arkAddress, tokenAddress as Address],
+          authorizationList: [],
         })
         return {
           tokenAddress,

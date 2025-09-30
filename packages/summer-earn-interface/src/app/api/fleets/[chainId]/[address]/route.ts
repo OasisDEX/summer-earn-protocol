@@ -30,31 +30,37 @@ export async function GET(
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'name',
+        authorizationList: [],
       }),
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'symbol',
+        authorizationList: [],
       }),
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'asset',
+        authorizationList: [],
       }),
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'totalAssets',
+        authorizationList: [],
       }),
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'withdrawableTotalAssets',
+        authorizationList: [],
       }),
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'decimals',
+        authorizationList: [],
       }),
     ])
   const [assetDecimals, assetSymbol] = await Promise.all([
@@ -62,11 +68,13 @@ export async function GET(
       address: assetAddress as `0x${string}`,
       abi: erc20Abi,
       functionName: 'decimals',
+      authorizationList: [],
     }),
     client.readContract({
       address: assetAddress as `0x${string}`,
       abi: erc20Abi,
       functionName: 'symbol',
+      authorizationList: [],
     }),
   ])
 
@@ -78,18 +86,21 @@ export async function GET(
         abi: fleetCommanderAbi,
         functionName: 'balanceOf',
         args: [user as `0x${string}`],
+        authorizationList: [],
       }),
       client.readContract({
         address: assetAddress as `0x${string}`,
         abi: erc20Abi,
         functionName: 'balanceOf',
         args: [user as `0x${string}`],
+        authorizationList: [],
       }),
       client.readContract({
         address: assetAddress as `0x${string}`,
         abi: erc20Abi,
         functionName: 'allowance',
         args: [user as `0x${string}`, address as `0x${string}`],
+        authorizationList: [],
       }),
     ])
     userInfo = {

@@ -41,6 +41,7 @@ export async function GET(request: Request) {
       address: harbor as `0x${string}`,
       abi: harborCommandAbi,
       functionName: 'getActiveFleetCommanders',
+      authorizationList: [],
     })) as `0x${string}`[]
 
     const allFleets = [...activeFleets]
@@ -57,26 +58,31 @@ export async function GET(request: Request) {
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'name',
+              authorizationList: [],
             }),
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'symbol',
+              authorizationList: [],
             }),
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'asset',
+              authorizationList: [],
             }),
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'totalAssets',
+              authorizationList: [],
             }),
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'withdrawableTotalAssets',
+              authorizationList: [],
             }),
           ])
 
@@ -85,11 +91,13 @@ export async function GET(request: Request) {
             address: assetAddress as `0x${string}`,
             abi: erc20Abi,
             functionName: 'decimals',
+            authorizationList: [],
           }),
           client.readContract({
             address: assetAddress as `0x${string}`,
             abi: erc20Abi,
             functionName: 'symbol',
+            authorizationList: [],
           }),
         ])
 
