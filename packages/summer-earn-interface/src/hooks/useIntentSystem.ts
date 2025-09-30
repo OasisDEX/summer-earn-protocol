@@ -89,14 +89,12 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
             abi: IntentBondFactoryABI,
             functionName: 'getSolverBondAmount',
             args: [solverAddress as `0x${string}`],
-            authorizationList: [],
           }),
           publicClient.readContract({
             address: intentBondFactory as `0x${string}`,
             abi: IntentBondFactoryABI,
             functionName: 'isSolverVouched',
             args: [solverAddress as `0x${string}`, parseEther('1000')], // Check with 1000 token requirement
-            authorizationList: [],
           }),
         ])
 
@@ -259,7 +257,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
           abi: IntentBondFactoryABI,
           functionName: 'getSolverBond',
           args: [solverAddress as `0x${string}`],
-          authorizationList: [],
         })
 
         if (!bondAddress || bondAddress === '0x0000000000000000000000000000000000000000') {
@@ -271,7 +268,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'summerToken',
-          authorizationList: [],
         })
 
         // Approve SUMMER tokens for the bond contract
@@ -339,7 +335,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
           abi: IntentBondFactoryABI,
           functionName: 'isSolverVouched',
           args: [solverAddress as `0x${string}`, requiredAmount],
-          authorizationList: [],
         })
 
         return isVouched as boolean
@@ -362,7 +357,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
           abi: IntentBondFactoryABI,
           functionName: 'getSolverBondAmount',
           args: [solverAddress as `0x${string}`],
-          authorizationList: [],
         })
 
         return bondAmount as bigint
@@ -385,7 +379,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
           abi: IntentHandlerABI,
           functionName: 'hasCommitted',
           args: [intent],
-          authorizationList: [],
         })
 
         return result as [bigint, bigint, boolean]
@@ -547,7 +540,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'summerToken',
-          authorizationList: [],
         })
 
         const allowance = await publicClient.readContract({
@@ -566,7 +558,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
           ],
           functionName: 'allowance',
           args: [userAddress as `0x${string}`, bondContractAddress as `0x${string}`],
-          authorizationList: [],
         })
 
         return allowance as bigint

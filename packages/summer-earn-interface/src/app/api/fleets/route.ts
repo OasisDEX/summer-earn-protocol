@@ -28,22 +28,21 @@ export async function GET(request: Request) {
     if (cached && cached.expiry > now) {
       return NextResponse.json(cached.data)
     }
-
+    console.log('chainId', chainId)
     const rpcUrl = CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]
     const harbor = HARBOR_COMMAND_ADDRESSES[environment][Number(chainId)]
     if (!rpcUrl || !harbor) {
       return NextResponse.json({ error: 'Unsupported chain or environment' }, { status: 400 })
     }
-
+    console.log('rpcUrl', rpcUrl)
     const client = createPublicClient({ transport: http(rpcUrl) })
-
     const activeFleets = (await client.readContract({
       address: harbor as `0x${string}`,
       abi: harborCommandAbi,
       functionName: 'getActiveFleetCommanders',
-      authorizationList: [],
     })) as `0x${string}`[]
 
+    console.log('activeFleets', activeFleets)
     const allFleets = [...activeFleets]
     // Preserve existing Base chain special-case if needed
     if (chainId === '8453') {
@@ -58,31 +57,26 @@ export async function GET(request: Request) {
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'name',
-              authorizationList: [],
             }),
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'symbol',
-              authorizationList: [],
             }),
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'asset',
-              authorizationList: [],
             }),
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'totalAssets',
-              authorizationList: [],
             }),
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'withdrawableTotalAssets',
-              authorizationList: [],
             }),
           ])
 
@@ -91,13 +85,11 @@ export async function GET(request: Request) {
             address: assetAddress as `0x${string}`,
             abi: erc20Abi,
             functionName: 'decimals',
-            authorizationList: [],
           }),
           client.readContract({
             address: assetAddress as `0x${string}`,
             abi: erc20Abi,
             functionName: 'symbol',
-            authorizationList: [],
           }),
         ])
 

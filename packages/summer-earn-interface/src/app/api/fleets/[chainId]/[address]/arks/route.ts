@@ -27,13 +27,11 @@ export async function GET(
       address: address as `0x${string}`,
       abi: fleetCommanderAbi,
       functionName: 'getActiveArks',
-      authorizationList: [],
     }) as Promise<`0x${string}`[]>,
     client.readContract({
       address: address as `0x${string}`,
       abi: fleetCommanderAbi,
       functionName: 'bufferArk',
-      authorizationList: [],
     }) as Promise<`0x${string}`>,
   ])
 
@@ -47,19 +45,16 @@ export async function GET(
           address: arkAddress,
           abi: arkAbi,
           functionName: 'totalAssets',
-          authorizationList: [],
         }),
         client.readContract({
           address: arkAddress,
           abi: arkAbi,
           functionName: 'withdrawableTotalAssets',
-          authorizationList: [],
         }),
         client.readContract({
           address: arkAddress,
           abi: arkAbi,
           functionName: 'name',
-          authorizationList: [],
         }),
       ])
       return {
