@@ -53,7 +53,7 @@ bool ok = crossChainRegistry.isValidCrossChainPair(
     address(this),
     sourceChainId,
     uint16(block.chainid),
-    ARK_FLEET_RELATIONSHIP
+    PEER_RELATIONSHIP
 );
 require(ok, "Invalid source relationship");
 ```
@@ -64,8 +64,8 @@ require(ok, "Invalid source relationship");
 - Immediate failure at the first validation point (source or destination).
 - Strong adapter authentication; no arbitrary callers.
 - Emergency controls: pause/unpause; unregister compromised relationships.
-- Consistent configuration across chains for both `PEER_RELATIONSHIP` (adapter peers) and
-  `PEER_RELATIONSHIP` (Ark ↔ Proxy pairs).
+- Consistent configuration across chains using `PEER_RELATIONSHIP` for both adapter peers and
+  Ark ↔ Proxy pairs.
 
 #### Deployment Checklist
 
