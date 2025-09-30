@@ -11,7 +11,7 @@ export const CHAIN_NAMES: Record<ChainId, string> = {
 export const CHAIN_RPC_URLS: Record<ChainId, string> = {
   [mainnet.id]: 'https://rpc.mevblocker.io/noreverts',
   [arbitrum.id]: 'https://arb1.arbitrum.io/rpc',
-  [base.id]: 'https://0xrpc.io/base',
+  [base.id]: 'https://base.lava.build',
   [sonic.id]: 'https://sonic.api.onfinality.io/public',
 }
 
