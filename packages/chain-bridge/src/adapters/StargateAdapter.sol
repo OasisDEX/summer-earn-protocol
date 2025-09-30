@@ -19,7 +19,6 @@ import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/in
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
-import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
 
 /**
  * @title StargateAdapter
@@ -85,7 +84,6 @@ contract StargateAdapter is
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
-
     /// @notice Thrown when refunding excess native fee to `refundAddress` fails
     error RefundFailed(address recipient, uint256 amount);
 
@@ -332,7 +330,7 @@ contract StargateAdapter is
         BridgeTypes.BridgeOptions memory options
     ) internal view returns (SendParam memory) {
         // Always use taxi mode for compose functionality and reliability
-        bytes memory oftCmd = OftCmdHelper.taxi(); // Always use taxi mode like in the example
+        bytes memory oftCmd = bytes(""); // Always use taxi mode like in the example
 
         // Add compose options when compose message is present
         bytes memory extraOptions = composeMsg.length > 0
@@ -422,7 +420,7 @@ contract StargateAdapter is
         // Always use taxi mode for cross-chain asset transfers
         // This aligns with the pattern shown in Stargate V2 examples
         // Taxi mode is more reliable and required for compose functionality
-        return OftCmdHelper.taxi(); // Returns ""
+        return bytes(""); // Returns ""
     }
 
     /**
@@ -524,7 +522,7 @@ contract StargateAdapter is
         // A misconfigured remote adapter will cause compose failures that require manual recovery.
         return
             assetToStargateContract[asset] != address(0) &&
-            isTrustedDestination(destinationChainId);
+            _hasTrustedDestination(destinationChainId);
     }
 
     /*//////////////////////////////////////////////////////////////
