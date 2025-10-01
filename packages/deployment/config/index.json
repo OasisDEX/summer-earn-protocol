@@ -710,6 +710,10 @@
             "valamore_usdc_growth": "0x8399C8Fc273bD165C346Af74A02e65f10e4FD78F"
           }
         }
+      },
+      "infinifi": {
+        "gateway": "0x3f04b65Ddbd87f9CE0A2e7Eb24d80e7fb87625b5",
+        "siUSD": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB"
       }
     },
     "bridge": {

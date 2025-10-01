@@ -35,7 +35,7 @@ contract SiUSDArkTestFork is Test, IArkEvents, ArkTestBase {
     IERC4626 public siusdVault;
 
     uint256 forkBlock = 23400000; // Block where siUSD contracts are deployed
-    uint256 futureBlock = 23500000;
+    uint256 futureBlock = 23450000;
     uint256 forkId;
 
     function setUp() public {
@@ -120,7 +120,7 @@ contract SiUSDArkTestFork is Test, IArkEvents, ArkTestBase {
         assertEq(address(testArk.asset()), USDC, "Asset should be USDC");
     }
 
-    function test_RealIntegration_WithGateway() public {
+    function test_Integration_Board() public {
         // Test with real InfiniFi gateway contract
         uint256 amount = 1000 * 10 ** 6; // 1000 USDC
         deal(address(usdc), commander, amount);
@@ -142,6 +142,74 @@ contract SiUSDArkTestFork is Test, IArkEvents, ArkTestBase {
             "Should have more assets after boarding"
         );
         assertGt(totalAssetsAfter, 0, "Should have assets after boarding");
+
+        vm.stopPrank();
+    }
+
+    function test_Integration_BoardAndDisembark() public {
+        // Test full lifecycle: board USDC -> get siUSD -> disembark back to USDC
+        uint256 boardAmount = 1000 * 10 ** 6; // 1000 USDC
+        deal(address(usdc), commander, boardAmount);
+
+        vm.startPrank(commander);
+        usdc.approve(address(ark), boardAmount);
+
+        // Initial state
+        uint256 commanderUsdcBefore = usdc.balanceOf(commander);
+        uint256 totalAssetsBefore = ark.totalAssets();
+
+        // BOARD: Deposit USDC into the ark
+        ark.board(boardAmount, bytes(""));
+
+        uint256 totalAssetsAfterBoard = ark.totalAssets();
+        uint256 commanderUsdcAfterBoard = usdc.balanceOf(commander);
+
+        // Verify boarding worked
+        assertGt(
+            totalAssetsAfterBoard,
+            totalAssetsBefore,
+            "Total assets should increase after boarding"
+        );
+        assertEq(
+            commanderUsdcBefore - commanderUsdcAfterBoard,
+            boardAmount,
+            "Commander should have spent the board amount"
+        );
+
+        // Roll forward some blocks to simulate time passing and potential yield accrual
+        vm.rollFork(futureBlock);
+
+        uint256 totalAssetsBeforeDisembark = ark.totalAssets();
+
+        // DISEMBARK: Withdraw back to USDC
+        // Disembark all assets
+        ark.disembark(totalAssetsBeforeDisembark, bytes(""));
+
+        uint256 totalAssetsAfterDisembark = ark.totalAssets();
+        uint256 commanderUsdcAfterDisembark = usdc.balanceOf(commander);
+
+        // Verify disembark worked
+        assertLt(
+            totalAssetsAfterDisembark,
+            totalAssetsBeforeDisembark,
+            "Total assets should decrease after disembark"
+        );
+        assertGt(
+            commanderUsdcAfterDisembark,
+            commanderUsdcAfterBoard,
+            "Commander should have received USDC back"
+        );
+
+        // The amount received should be approximately the amount boarded
+        // (might be slightly different due to rounding or yield)
+        uint256 usdcReceived = commanderUsdcAfterDisembark -
+            commanderUsdcAfterBoard;
+        assertApproxEqRel(
+            usdcReceived,
+            boardAmount,
+            0.01e18, // 1% tolerance for potential fees/slippage
+            "Should receive approximately the same amount back"
+        );
 
         vm.stopPrank();
     }
