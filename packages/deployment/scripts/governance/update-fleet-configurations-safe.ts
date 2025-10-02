@@ -536,6 +536,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
   arbitrum: {
     compound_v3: [Token.COMP],
     fluid: [Token.ARB],
+    siloV2: [Token.ARB],
   },
 }
 
