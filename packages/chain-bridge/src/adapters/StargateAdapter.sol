@@ -231,54 +231,111 @@ contract StargateAdapter is
         );
 
         if (payInToken) {
-            // Enforce that native fee should be zero in token mode
-            if (messagingFee.nativeFee != 0)
-                revert InsufficientFee(0, messagingFee.nativeFee);
-
-            // Use base contract functionality for protocol token fee collection
-            _collectProtocolTokenFee(
+            _executeTokenPayment(
                 operationId,
-                params.originator,
-                messagingFee.lzTokenFee
-            );
-
-            // Ensure sufficient allowance for the LayerZero endpoint
-            _ensureSufficientAllowance(messagingFee.lzTokenFee, LZ_ENDPOINT);
-
-            // No native value required when paying in token
-            stargate.sendToken{value: 0}(
+                params,
+                stargate,
                 sendParam,
                 messagingFee,
-                params.refundAddress
+                providedFee
             );
-
-            // Refund any provided native buffer fully (since nativeFee == 0)
-            if (providedFee > 0) {
-                (bool ok, ) = params.refundAddress.call{value: providedFee}("");
-                if (!ok) revert RefundFailed(params.refundAddress, providedFee);
-            }
         } else {
-            // Native-fee path
-            if (providedFee < messagingFee.nativeFee) {
-                revert InsufficientFee(messagingFee.nativeFee, providedFee);
-            }
-
-            // Use exact fee amount from quote - Stargate handles refunds to keeper
-            stargate.sendToken{value: messagingFee.nativeFee}(
+            _executeNativePayment(
+                params,
+                stargate,
                 sendParam,
                 messagingFee,
-                params.refundAddress // Always refund to keeper who paid fees
+                providedFee
             );
+        }
+    }
 
-            // Refund any unused native value (buffer) back to the designated refund address
-            uint256 refundAmount = providedFee - messagingFee.nativeFee;
-            if (refundAmount > 0) {
-                (bool ok, ) = params.refundAddress.call{value: refundAmount}(
-                    ""
-                );
-                if (!ok)
-                    revert RefundFailed(params.refundAddress, refundAmount);
-            }
+    /**
+     * @dev Execute token payment for Stargate transfer
+     * @param operationId The operation ID for this transfer
+     * @param params Transfer parameters
+     * @param stargate Stargate contract instance
+     * @param sendParam Send parameters for Stargate
+     * @param messagingFee Fee information from Stargate
+     * @param providedFee Native fee provided by caller
+     */
+    function _executeTokenPayment(
+        bytes32 operationId,
+        BridgeTypes.ExecuteTransferParams memory params,
+        IStargateV2 stargate,
+        SendParam memory sendParam,
+        MessagingFee memory messagingFee,
+        uint256 providedFee
+    ) internal {
+        // Enforce that native fee should be zero in token mode
+        if (messagingFee.nativeFee != 0)
+            revert InsufficientFee(0, messagingFee.nativeFee);
+
+        // Use base contract functionality for protocol token fee collection
+        _collectProtocolTokenFee(
+            operationId,
+            params.originator,
+            messagingFee.lzTokenFee
+        );
+
+        // Ensure sufficient allowance for the LayerZero endpoint
+        _ensureSufficientAllowance(messagingFee.lzTokenFee, LZ_ENDPOINT);
+
+        // No native value required when paying in token
+        stargate.sendToken{value: 0}(
+            sendParam,
+            messagingFee,
+            params.refundAddress
+        );
+
+        // Refund any provided native buffer fully (since nativeFee == 0)
+        _refundExcessNative(params.refundAddress, providedFee);
+    }
+
+    /**
+     * @dev Execute native payment for Stargate transfer
+     * @param params Transfer parameters
+     * @param stargate Stargate contract instance
+     * @param sendParam Send parameters for Stargate
+     * @param messagingFee Fee information from Stargate
+     * @param providedFee Native fee provided by caller
+     */
+    function _executeNativePayment(
+        BridgeTypes.ExecuteTransferParams memory params,
+        IStargateV2 stargate,
+        SendParam memory sendParam,
+        MessagingFee memory messagingFee,
+        uint256 providedFee
+    ) internal {
+        // Native-fee path
+        if (providedFee < messagingFee.nativeFee) {
+            revert InsufficientFee(messagingFee.nativeFee, providedFee);
+        }
+
+        // Use exact fee amount from quote - Stargate handles refunds to keeper
+        stargate.sendToken{value: messagingFee.nativeFee}(
+            sendParam,
+            messagingFee,
+            params.refundAddress // Always refund to keeper who paid fees
+        );
+
+        // Refund any unused native value (buffer) back to the designated refund address
+        uint256 refundAmount = providedFee - messagingFee.nativeFee;
+        _refundExcessNative(params.refundAddress, refundAmount);
+    }
+
+    /**
+     * @dev Refund excess native tokens to the specified address
+     * @param refundAddress Address to receive the refund
+     * @param refundAmount Amount to refund
+     */
+    function _refundExcessNative(
+        address refundAddress,
+        uint256 refundAmount
+    ) internal {
+        if (refundAmount > 0) {
+            (bool ok, ) = refundAddress.call{value: refundAmount}("");
+            if (!ok) revert RefundFailed(refundAddress, refundAmount);
         }
     }
 
@@ -434,15 +491,7 @@ contract StargateAdapter is
         ) = _prepareSendParamWithSlippageValidation(
                 params,
                 dummyOperationId,
-                BridgeTypes.BridgeOptions({
-                    specifiedAdapter: options.specifiedAdapter,
-                    gasLimit: options.gasLimit,
-                    calldataSize: options.calldataSize,
-                    msgValue: options.msgValue,
-                    options: options.options,
-                    payInProtocolToken: options.payInProtocolToken,
-                    feeToken: options.feeToken
-                }),
+                options,
                 stargateContract
             );
 
