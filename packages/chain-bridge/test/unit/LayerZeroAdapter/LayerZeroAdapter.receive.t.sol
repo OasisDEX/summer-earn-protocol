@@ -22,8 +22,6 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         mockReceiver = new MockCrossChainReceiver();
     }
 
-    // READ_STATE receive test removed
-
     function testGeneralMessageDelivery() public {
         bytes32 messageId = bytes32(uint256(1));
         bytes memory message = "test message";

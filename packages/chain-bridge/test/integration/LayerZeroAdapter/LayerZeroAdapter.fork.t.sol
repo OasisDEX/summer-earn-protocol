@@ -21,7 +21,6 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         // Test complete workflow: execute → verify
         // This demonstrates the integration between Router, and Adapter
         _executeBridgeMessage("Integration workflow test");
-        // READ_STATE removed from workflow
 
         console.log("[SUCCESS] Full workflow completed successfully");
     }

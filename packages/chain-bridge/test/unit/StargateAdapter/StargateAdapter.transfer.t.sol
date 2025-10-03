@@ -153,9 +153,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
             )
         );
 
-        // Setup the router to expect this operation from this adapter
-        // operationToAdapter no longer exists; no setup needed
-
         // Mock a transfer request from the router
         vm.prank(address(routerA));
 
@@ -253,10 +250,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
         useNetworkA();
         vm.deal(address(routerA), 1 ether); // Provide ETH to the router
 
-        // vm.prank(governor);
-        // routerA.registerAdapter(address(adapterA));
-        // operationToAdapter no longer exists; no setup needed
-
         BridgeTypes.BridgeOptions memory options = defaultBridgeOptions(
             address(adapterA)
         );
@@ -327,9 +320,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
                 block.number
             )
         );
-
-        // Setup the router to expect this operation from this adapter
-        // operationToAdapter no longer exists; no setup needed
 
         // Try to transfer with insufficient fee (half of required)
         vm.prank(address(routerA));
@@ -441,7 +431,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
             )
         );
 
-        // operationToAdapter no longer exists; no setup needed
         // Test with significantly MORE than required fee - should also work
         vm.prank(address(routerA));
         adapterA.transferAsset{value: requiredFee * 100}(
@@ -449,7 +438,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
             params,
             options
         );
-        // removed noisy log
     }
 
     function testTransferAssetMsgValueConsistencyEdgeCases() public {
@@ -494,8 +482,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
                 block.number
             )
         );
-
-        // operationToAdapter no longer exists; no setup needed
 
         // Test with 1 wei less - should fail
         vm.prank(address(routerA));
@@ -639,8 +625,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
                 block.number
             )
         );
-
-        // operationToAdapter no longer exists; no setup needed
 
         // Mock the quoteOFT call to return high slippage
         // Create the response structs

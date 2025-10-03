@@ -32,7 +32,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // Variables to control mock behavior (Added from core contracts version)
     bytes32 public nextTransferId;
     bytes32 public nextMessageId;
-    // READ_STATE removed
 
     // Track calls for verification (Added from core contracts version)
     struct TransferCall {
@@ -425,8 +424,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     {
         return _executeTransferAssets(params);
     }
-
-    // READ_STATE external exec removed
 
     function executeSendMessage(
         BridgeTypes.ExecuteSendMessageParams calldata params,

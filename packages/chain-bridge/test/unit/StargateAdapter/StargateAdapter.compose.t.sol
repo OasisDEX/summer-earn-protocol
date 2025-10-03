@@ -235,9 +235,6 @@ contract StargateAdapterComposeTest is
             )
         );
 
-        // Setup router
-        // operationToAdapter no longer exists; no setup needed
-
         // Mock Stargate to expect the proper RelayedTransferParams
         bytes memory expectedComposeMsg = createRelayedTransferParams(
             address(fleetProxyB), // recipient

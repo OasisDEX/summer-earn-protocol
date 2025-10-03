@@ -69,7 +69,6 @@ contract MockAdapter is
     ) BaseBridgeAdapter(_registry, _accessManager) {
         // Initialize operation type to message type mapping (for consistency)
         operationToMessageType[BridgeTypes.OperationType.MESSAGE] = 1; // Mock message type
-        // READ_STATE removed
         operationToMessageType[BridgeTypes.OperationType.TRANSFER_ASSET] = 3; // Mock transfer type
 
         // Initialize default supported chain for testing
@@ -77,7 +76,6 @@ contract MockAdapter is
 
         // Initialize default supported operations
         supportedOperations[BridgeTypes.OperationType.MESSAGE] = true;
-        // READ_STATE removed
         supportedOperations[BridgeTypes.OperationType.TRANSFER_ASSET] = true;
     }
 
