@@ -127,8 +127,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(accessManager),
             supportedChains,
             lzEids,
-            governor,
-            4294965694
+            governor
         );
 
         // Setup Stargate adapter
@@ -167,9 +166,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
         layerZeroAdapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
 
-        // Activate the read channel for state reading operations
-        uint32 READ_CHANNEL_ID = 4294967295;
-        layerZeroAdapter.activateReadChannel(READ_CHANNEL_ID);
+        // READ_STATE channel activation removed
 
         // Register cross-chain relationships in registry
         registry.registerRelationship(
@@ -948,7 +945,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create the LayerZero Origin struct for the read response
         // Read responses come from srcEid > READ_CHANNEL_THRESHOLD
         // We use a simple increment to stay within uint32 bounds
-        uint32 readResponseEid = layerZeroAdapter.readChannelThreshold() + 1;
+        uint32 readResponseEid = ARB_LZ_EID;
 
         // Create the response payload (encoded remote balance)
         bytes memory responsePayload = _encodeMessage(

@@ -6,8 +6,8 @@
   "scripts": {
     "build": "forge build --skip 'test'",
     "test": "FOUNDRY_PROFILE=test forge test",
-    "coverage": "FOUNDRY_PROFILE=test forge coverage --ir-minimum",
-    "coverage:lcov": "FOUNDRY_PROFILE=test forge coverage --report lcov --ir-minimum",
+    "coverage": "FOUNDRY_PROFILE=test forge coverage --ir-minimum --no-match-coverage 'test/'",
+    "coverage:lcov": "FOUNDRY_PROFILE=test forge coverage --report lcov --ir-minimum --no-match-coverage 'test/'",
     "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info"
   },
   "dependencies": {
