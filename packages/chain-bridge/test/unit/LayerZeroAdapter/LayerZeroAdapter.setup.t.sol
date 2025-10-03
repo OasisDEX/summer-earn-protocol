@@ -113,8 +113,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             address(accessManagerA),
             chains,
             lzEids,
-            governor,
-            READ_CHANNEL_THRESHOLD
+            governor
         );
 
         // Final configuration
@@ -161,8 +160,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             address(accessManagerB),
             chains,
             lzEids,
-            governor,
-            READ_CHANNEL_THRESHOLD
+            governor
         );
 
         // Final configuration

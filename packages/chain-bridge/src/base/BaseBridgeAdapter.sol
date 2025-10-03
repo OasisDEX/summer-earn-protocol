@@ -323,12 +323,6 @@ abstract contract BaseBridgeAdapter is
         return abi.decode(_message, (BridgeTypes.RelayedTransferParams));
     }
 
-    function _decodeRelayedReadResponse(
-        bytes memory _message
-    ) internal pure returns (BridgeTypes.RelayedReadResponse memory) {
-        return abi.decode(_message, (BridgeTypes.RelayedReadResponse));
-    }
-
     function _encodeRelayedMessageParams(
         BridgeTypes.RelayedMessageParams memory _params
     ) internal pure returns (bytes memory) {
@@ -337,12 +331,6 @@ abstract contract BaseBridgeAdapter is
 
     function _encodeRelayedTransferParams(
         BridgeTypes.RelayedTransferParams memory _params
-    ) internal pure returns (bytes memory) {
-        return abi.encode(_params);
-    }
-
-    function _encodeRelayedReadResponse(
-        BridgeTypes.RelayedReadResponse memory _params
     ) internal pure returns (bytes memory) {
         return abi.encode(_params);
     }
@@ -364,16 +352,6 @@ abstract contract BaseBridgeAdapter is
             BridgeCodec.encodePayload(
                 BridgeTypes.OperationType.TRANSFER_ASSET,
                 _encodeRelayedTransferParams(_params)
-            );
-    }
-
-    function _encodeRelayedReadResponseWithType(
-        BridgeTypes.RelayedReadResponse memory _params
-    ) internal pure returns (bytes memory) {
-        return
-            BridgeCodec.encodePayload(
-                BridgeTypes.OperationType.READ_STATE,
-                _encodeRelayedReadResponse(_params)
             );
     }
 

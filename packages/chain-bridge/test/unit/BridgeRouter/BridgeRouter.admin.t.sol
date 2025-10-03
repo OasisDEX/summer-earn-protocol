@@ -10,8 +10,6 @@ import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAcces
 
 import {RejectETH} from "../../mocks/RejectETH.sol";
 
-// (moved) ReentrancyAttacker now lives in BridgeRouter.recovery.t.sol tests
-
 contract BridgeRouterAdminTest is BridgeRouterSetup {
     // ---- ADMIN FUNCTION TESTS ----
 
@@ -131,59 +129,6 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testExecuteReadState_Reverts_WhenPaused() public {
-        // Pause the router
-        vm.prank(governor);
-        vm.expectEmit(true, false, false, true);
-        emit IBridgeRouter.RouterPaused(governor);
-        router.pause();
-
-        vm.startPrank(user);
-
-        // Create bridge options
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(mockAdapter),
-            gasLimit: 500000,
-            calldataSize: 0,
-            msgValue: 0,
-            options: "",
-            payInProtocolToken: false,
-            feeToken: address(0)
-        });
-
-        vm.stopPrank(); // User stops queueing
-
-        vm.startPrank(executor);
-
-        // Get quote for execution
-        (uint256 nativeFee, , ) = router.quoteReadState(
-            BridgeTypes.ExecuteReadStateParams({
-                destinationChainId: DEST_CHAIN_ID,
-                target: address(0x1234), // Target contract
-                selector: bytes4(keccak256("someFunction()")),
-                readParams: "",
-                originator: user,
-                refundAddress: user
-            }),
-            options
-        );
-
-        vm.expectRevert(IBridgeRouter.Paused.selector);
-        router.executeReadState{value: nativeFee}(
-            BridgeTypes.ExecuteReadStateParams({
-                destinationChainId: DEST_CHAIN_ID,
-                target: address(mockAdapter), // Use mock adapter as target contract
-                selector: bytes4(keccak256("test()")), // Example function selector
-                readParams: "", // Empty params
-                originator: user,
-                refundAddress: address(keeper)
-            }),
-            options
-        );
-
-        vm.stopPrank();
-    }
-
     function testExecuteSendMessage_Reverts_WhenPaused() public {
         // Pause the router
         vm.prank(governor);
@@ -223,6 +168,4 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         );
         vm.stopPrank();
     }
-
-    // recover assets tests moved to BridgeRouter.recovery.t.sol
 }

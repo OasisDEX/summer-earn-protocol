@@ -237,12 +237,6 @@ contract StargateAdapterComposeTest is
             )
         );
 
-        // Setup router
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
-        );
-
         // Mock Stargate to expect the proper RelayedTransferParams
         bytes memory expectedComposeMsg = createRelayedTransferParams(
             address(fleetProxyB), // recipient
