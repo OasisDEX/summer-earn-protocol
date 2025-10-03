@@ -555,29 +555,4 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         mockFee = _mockFee;
         // Note: We don't have mockSpecifiedAdapter in this version as we use MOCK_ADAPTER_ADDRESS
     }
-
-    // Add readState function from core contracts version
-    function readState(
-        uint16 destinationChainId,
-        address target,
-        bytes4 selector,
-        bytes calldata readParams,
-        BridgeTypes.BridgeOptions calldata
-    ) external payable returns (bytes32) {
-        if (mockPaused) revert Paused();
-
-        bytes32 operationId = nextReadId;
-        operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
-
-        emit ReadRequestInitiated(
-            operationId,
-            destinationChainId,
-            target,
-            selector,
-            readParams,
-            MOCK_ADAPTER_ADDRESS
-        );
-
-        return operationId;
-    }
 }

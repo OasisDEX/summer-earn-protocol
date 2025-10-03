@@ -80,29 +80,6 @@ contract CrossChainReceiverBaseTest is Test {
         assertEq(receiverAll.lastReceivedData(), p.message);
     }
 
-    function test_receiveOperation_routes_READSTATE_and_updates_state() public {
-        BridgeTypes.RelayedReadResponse memory p = BridgeTypes
-            .RelayedReadResponse({
-                readResponseData: bytes("read-result"),
-                operationId: OP_ID,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-
-        receiverAll.receiveOperation(
-            BridgeTypes.OperationType.READ_STATE,
-            abi.encode(p)
-        );
-
-        assertEq(
-            uint8(receiverAll.lastOperationType()),
-            uint8(BridgeTypes.OperationType.READ_STATE)
-        );
-        assertEq(receiverAll.lastSender(), address(this));
-        assertEq(receiverAll.lastSourceChainId(), SOURCE_CHAIN_ID);
-        assertEq(receiverAll.lastOperationId(), OP_ID);
-        assertEq(receiverAll.lastReceivedData(), p.readResponseData);
-    }
-
     /* -------------------------------------------------------------------------- */
     /*                         auth & unsupported operation                        */
     /* -------------------------------------------------------------------------- */
@@ -172,15 +149,11 @@ contract CrossChainReceiverBaseTest is Test {
     function test_getSupportedOperationTypes_returns_from_impl() public {
         BridgeTypes.OperationType[] memory typesAll = receiverAll
             .getSupportedOperationTypes();
-        assertEq(typesAll.length, 3);
+        assertEq(typesAll.length, 2);
         assertEq(uint8(typesAll[0]), uint8(BridgeTypes.OperationType.MESSAGE));
         assertEq(
             uint8(typesAll[1]),
             uint8(BridgeTypes.OperationType.TRANSFER_ASSET)
-        );
-        assertEq(
-            uint8(typesAll[2]),
-            uint8(BridgeTypes.OperationType.READ_STATE)
         );
 
         BridgeTypes.OperationType[]

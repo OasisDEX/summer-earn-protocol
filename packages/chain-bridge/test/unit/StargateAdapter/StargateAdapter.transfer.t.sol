@@ -421,10 +421,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
             )
         );
 
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
-        );
         // removed noisy log
         BridgeTypes.ExecuteTransferParams
             memory params = buildExecuteTransferParams(
@@ -586,10 +582,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
                 block.timestamp,
                 block.number
             )
-        );
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            opId,
-            address(adapterA)
         );
 
         // Build params with extra msg.value to force a refund attempt (> nativeFee)
