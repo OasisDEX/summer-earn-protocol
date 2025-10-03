@@ -366,7 +366,7 @@ contract CrossChainArk is
 
     /// @notice Notifies the satellite chain proxy that assets have been received on the hub
     /// @dev Keeper-triggered message to clear inflight on FleetProxy via ACK
-    function notifySatelliteReceipt(
+    function notifySatelliteChain(
         BridgeTypes.BridgeOptions calldata options
     ) external payable onlyKeeper {
         if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
@@ -383,6 +383,7 @@ contract CrossChainArk is
                         HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Error thrown when the sender is invalid
     error InvalidSender();
     /// @notice Error thrown when trying to start a new outbound while inflight > 0
     error InFlight();
