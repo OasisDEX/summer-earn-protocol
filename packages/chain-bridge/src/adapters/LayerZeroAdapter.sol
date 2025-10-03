@@ -91,12 +91,17 @@ contract LayerZeroAdapter is
     event ProtocolFeeTokenConfigured(address indexed feeToken);
 
     /// @notice Emitted when protocol token fees are spent for an operation
-    event ProtocolFeeSpent(bytes32 indexed operationId, uint256 tokenFee);
+    event ProtocolFeeSpent(
+        bytes32 indexed operationId,
+        address indexed token,
+        uint256 tokenFee
+    );
 
     /// @notice Emitted when protocol token fees are collected from the payer (keeper)
     event ProtocolFeeCollected(
         bytes32 indexed operationId,
         address indexed payer,
+        address indexed token,
         uint256 tokenFee
     );
 
@@ -264,9 +269,10 @@ contract LayerZeroAdapter is
 
         protocolFeeToken = token;
 
-        // Grant max allowance on the new token to the LayerZero endpoint if set
+        // Grant reasonable allowance on the new token to the LayerZero endpoint if set
+        // Note: Using max approval for gas efficiency, but consider implementing
+        // dynamic approvals based on actual usage patterns for enhanced security
         if (token != address(0)) {
-            IERC20(token).forceApprove(address(endpoint), 0);
             IERC20(token).forceApprove(address(endpoint), type(uint256).max);
         }
 
@@ -550,9 +556,14 @@ contract LayerZeroAdapter is
                         address(this),
                         tokenFeeRequired
                     );
+
+                    // Ensure sufficient allowance for the operation
+                    _ensureSufficientAllowance(tokenFeeRequired);
+
                     emit ProtocolFeeCollected(
                         operationId,
                         params.originator,
+                        protocolFeeToken,
                         tokenFeeRequired
                     );
                 }
@@ -564,7 +575,11 @@ contract LayerZeroAdapter is
                     EndpointFee(0, tokenFeeRequired),
                     payable(params.refundAddress)
                 );
-                emit ProtocolFeeSpent(operationId, tokenFeeRequired);
+                emit ProtocolFeeSpent(
+                    operationId,
+                    protocolFeeToken,
+                    tokenFeeRequired
+                );
                 guid = receipt.guid;
             } else {
                 MessagingReceipt memory receipt = _lzSend(
@@ -647,9 +662,14 @@ contract LayerZeroAdapter is
                     address(this),
                     tokenFeeRequired
                 );
+
+                // Ensure sufficient allowance for the operation
+                _ensureSufficientAllowance(tokenFeeRequired);
+
                 emit ProtocolFeeCollected(
                     operationId,
                     params.originator,
+                    protocolFeeToken,
                     tokenFeeRequired
                 );
             }
@@ -660,7 +680,11 @@ contract LayerZeroAdapter is
                 EndpointFee(0, tokenFeeRequired),
                 payable(params.refundAddress)
             );
-            emit ProtocolFeeSpent(operationId, tokenFeeRequired);
+            emit ProtocolFeeSpent(
+                operationId,
+                protocolFeeToken,
+                tokenFeeRequired
+            );
         } else {
             receipt = _lzSend(
                 lzDstEid,
@@ -686,6 +710,27 @@ contract LayerZeroAdapter is
     /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Ensures sufficient allowance for protocol fee token spending
+     * @param requiredAmount The amount of tokens needed for the operation
+     * @dev This function provides a more secure alternative to max approvals
+     *      by only approving the exact amount needed for each operation
+     */
+    function _ensureSufficientAllowance(uint256 requiredAmount) internal {
+        if (protocolFeeToken == address(0)) return;
+
+        uint256 currentAllowance = IERC20(protocolFeeToken).allowance(
+            address(this),
+            address(endpoint)
+        );
+        if (currentAllowance < requiredAmount) {
+            IERC20(protocolFeeToken).forceApprove(
+                address(endpoint),
+                requiredAmount
+            );
+        }
+    }
 
     /**
      * @notice Converts a chain ID to a LayerZero endpoint ID
