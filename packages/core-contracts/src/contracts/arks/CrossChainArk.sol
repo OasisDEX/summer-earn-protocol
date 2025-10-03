@@ -6,6 +6,7 @@ import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossCha
 import {CrossChainReceiverBase} from "@summerfi/chain-bridge/base/CrossChainReceiverBase.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
+import {ReceiptNotifier} from "../common/ReceiptNotifier.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
@@ -22,7 +23,8 @@ contract CrossChainArk is
     Ark,
     CrossChainConfigManaged,
     CrossChainReceiverBase,
-    ICrossChainArk
+    ICrossChainArk,
+    ReceiptNotifier
 {
     using SafeERC20 for IERC20;
 
@@ -41,6 +43,9 @@ contract CrossChainArk is
 
     /// @notice The latest outgoing transfer ID
     bytes32 public latestOutgoingTransferId;
+
+    /// @notice The latest incoming transfer ID received from the satellite proxy
+    bytes32 public latestIncomingTransferId;
 
     /// @notice The last amount sent in the latest outgoing transfer
     uint256 public lastSentAmount;
@@ -118,6 +123,14 @@ contract CrossChainArk is
     }
 
     /**
+     * @notice Alias using hub/satellite terminology
+     * @return The satellite proxy address
+     */
+    function getSatelliteProxy() external view returns (address) {
+        return _getTargetProxy();
+    }
+
+    /**
      * @inheritdoc IERC165
      */
     function supportsInterface(
@@ -127,6 +140,10 @@ contract CrossChainArk is
             interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(ICrossChainArk).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
+    }
+
+    function _notifierBridgeRouter() internal view override returns (address) {
+        return bridgeRouter();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -328,12 +345,31 @@ contract CrossChainArk is
         );
 
         emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
+
+        // Track the latest incoming transfer id to ACK back to satellite
+        latestIncomingTransferId = params.operationId;
+    }
+
+    /// @notice Notifies the satellite chain proxy that assets have been received on the hub
+    /// @dev Keeper-triggered message to clear inflight on FleetProxy via ACK
+    function notifySatelliteChain(
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable onlyKeeper {
+        if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
+        _sendNotification(
+            satelliteChainId,
+            _getTargetProxy(),
+            abi.encode(latestIncomingTransferId),
+            options,
+            msg.sender
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
                         HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Error thrown when the sender is invalid
     error InvalidSender();
     /// @notice Error thrown when trying to start a new outbound while inflight > 0
     error InFlight();
