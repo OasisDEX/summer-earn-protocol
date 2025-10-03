@@ -23,67 +23,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         mockReceiver = new MockCrossChainReceiver();
     }
 
-    function testDirectReadState() public {
-        useNetworkA();
-
-        // Create adapter params with empty options
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapterA),
-            gasLimit: 500000,
-            calldataSize: 100,
-            msgValue: 0,
-            options: bytes("")
-        });
-
-        // Generate a proper operation ID (fake but realistic)
-        bytes32 operationId = keccak256(
-            abi.encode(
-                block.chainid,
-                CHAIN_ID_B,
-                address(0), // No asset for read operations
-                0, // No amount for read operations
-                address(0), // No recipient for read operations
-                abi.encode(
-                    address(tokenB),
-                    bytes4(keccak256("balanceOf(address)")),
-                    abi.encode(recipient),
-                    address(user)
-                ),
-                block.timestamp,
-                BridgeTypes.OperationType.READ_STATE
-            )
-        );
-
-        routerA.setOperationToAdapter(operationId, address(adapterA));
-
-        vm.startPrank(governor);
-        adapterA.activateReadChannel(adapterA.readChannelThreshold() + 1);
-        vm.stopPrank();
-
-        // We expect this call to revert with LZ_DefaultSendLibUnavailable
-        // This is because the LayerZeroOptionsHelper.createLzReadOptions is creating
-        // options of type 5, which is not supported by the mock executor when !_isRead
-        vm.expectRevert(
-            abi.encodeWithSelector(Errors.LZ_DefaultSendLibUnavailable.selector)
-        );
-        vm.deal(address(routerA), 1 ether);
-        vm.prank(address(routerA));
-        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
-            .ExecuteReadStateParams({
-                destinationChainId: CHAIN_ID_B,
-                target: address(tokenB),
-                selector: bytes4(keccak256("balanceOf(address)")),
-                readParams: abi.encode("read params"),
-                originator: address(user),
-                refundAddress: address(user)
-            });
-        adapterA.readState{value: 0.1 ether}(
-            operationId, // Use proper operation ID
-            params,
-            options
-        );
-    }
-
     function testDirectSendMessage() public {
         useNetworkA();
         vm.deal(user, 1 ether);
@@ -114,8 +53,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
                 BridgeTypes.OperationType.MESSAGE
             )
         );
-
-        routerA.setOperationToAdapter(operationId, address(adapterA));
 
         vm.deal(address(routerA), 1 ether);
 
@@ -300,121 +237,11 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         vm.stopPrank();
     }
 
-    function testReadStateWithProperOperationId() public {
-        useNetworkA();
-
-        // Create adapter params with empty options
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapterA),
-            gasLimit: 500000,
-            calldataSize: 100,
-            msgValue: 0,
-            options: bytes("")
-        });
-
-        // Generate a proper operation ID that matches BridgeRouter's logic
-        bytes32 operationId = keccak256(
-            abi.encode(
-                block.chainid,
-                CHAIN_ID_B,
-                address(0), // No asset for read operations
-                0, // No amount for read operations
-                address(0), // No recipient for read operations
-                abi.encode(
-                    address(tokenB),
-                    bytes4(keccak256("balanceOf(address)")),
-                    abi.encode(recipient),
-                    address(user)
-                ),
-                block.timestamp,
-                BridgeTypes.OperationType.READ_STATE
-            )
-        );
-
-        routerA.setOperationToAdapter(operationId, address(adapterA));
-
-        vm.startPrank(governor);
-        adapterA.activateReadChannel(adapterA.readChannelThreshold() + 1);
-        vm.stopPrank();
-
-        // We expect this call to revert with LZ_DefaultSendLibUnavailable
-        // This is because the LayerZeroOptionsHelper.createLzReadOptions is creating
-        // options of type 5, which is not supported by the mock executor when !_isRead
-        vm.expectRevert(
-            abi.encodeWithSelector(Errors.LZ_DefaultSendLibUnavailable.selector)
-        );
-
-        vm.deal(address(routerA), 1 ether);
-        vm.prank(address(routerA));
-
-        // This should revert due to the mock LayerZero setup
-        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
-            .ExecuteReadStateParams({
-                destinationChainId: CHAIN_ID_B,
-                target: address(tokenB),
-                selector: bytes4(keccak256("balanceOf(address)")),
-                readParams: abi.encode(recipient),
-                originator: address(user),
-                refundAddress: address(user)
-            });
-        adapterA.readState{value: 0.1 ether}(
-            operationId, // Use proper operation ID
-            params,
-            options
-        );
-    }
-
-    function test_readState_reverts_when_msg_value_insufficient() public {
-        useNetworkA();
-        vm.startPrank(governor);
-        adapterA.activateReadChannel(READ_CHANNEL_THRESHOLD + 1);
-        adapterA.setChainReadSupport(CHAIN_ID_B, true);
-        vm.stopPrank();
-
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapterA),
-            gasLimit: 300000,
-            calldataSize: 0,
-            msgValue: 0.5 ether,
-            options: bytes("")
-        });
-
-        vm.deal(address(routerA), 1 ether);
-        vm.prank(address(routerA));
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBridgeAdapter.InsufficientMsgValue.selector,
-                uint128(0.5 ether),
-                0.1 ether
-            )
-        );
-        adapterA.readState{value: 0.1 ether}(
-            bytes32(uint256(1)),
-            BridgeTypes.ExecuteReadStateParams({
-                destinationChainId: CHAIN_ID_B,
-                target: address(0xdead),
-                selector: bytes4(keccak256("balanceOf(address)")),
-                readParams: abi.encode(address(this)),
-                originator: address(this),
-                refundAddress: address(this)
-            }),
-            options
-        );
-    }
-
     // Add event declarations for the events we expect
     event MessageInitiated(
         bytes32 indexed messageId,
         uint16 destinationChainId,
         address recipient,
         bytes message
-    );
-
-    event ReadRequestInitiated(
-        bytes32 indexed requestId,
-        uint16 srcChainId,
-        uint16 destinationChainId,
-        address destinationContract,
-        bytes4 selector
     );
 }

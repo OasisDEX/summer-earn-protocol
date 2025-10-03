@@ -24,9 +24,11 @@ library BridgeTypes {
     }
 
     // Enum for operation types
+    // NOTE: READ_STATE remains as a reserved placeholder to avoid renumbering.
+    //       The protocol currently does not implement READ_STATE functionality.
     enum OperationType {
         MESSAGE,
-        READ_STATE,
+        READ_STATE, // reserved; not implemented
         TRANSFER_ASSET
     }
 
@@ -51,14 +53,8 @@ library BridgeTypes {
     }
 
     /**
-     * @notice Parameters for executeReadState
-     * @dev This struct is used to read state from a contract on a destination chain.
-     * @dev The originator is the address that initiated the read state operation ie. crosschain ark
-     * @dev The destinationChainId is the chain id of the destination chain.
-     * @dev The target is the address that will be read from.
-     * @dev The selector is the selector of the function to read state from.
-     * @dev The readParams are the parameters to pass to the read state function.
-     * @dev The refundAddress is the address that will receive the refund.
+     * @notice Reserved parameters for a potential future READ_STATE flow
+     * @dev Kept to preserve ABI stability; current router/adapters do not use it.
      */
     struct ExecuteReadStateParams {
         address originator;
@@ -87,12 +83,8 @@ library BridgeTypes {
     }
 
     /**
-     * @notice Generic wrapper for a cross-chain state–read response
-     * @dev Keeps result bytes in a typed container so every contract
-     *      that consumes the response can simply:
-     *          BridgeTypes.ReadResponse memory r =
-     *              abi.decode(resultData, (BridgeTypes.ReadResponse));
-     *      and then decode `r.data` to whatever concrete type it expects.
+     * @notice Reserved wrapper for a potential future READ_STATE response
+     * @dev Present only to preserve types; not produced or consumed today.
      */
     struct RelayedReadResponse {
         bytes readResponseData; // ABI-encoded return data of the read call

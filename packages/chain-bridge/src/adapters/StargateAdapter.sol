@@ -413,14 +413,6 @@ contract StargateAdapter is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function estimateReadState(
-        BridgeTypes.ExecuteReadStateParams calldata,
-        BridgeTypes.BridgeOptions calldata
-    ) external pure returns (uint256, uint256) {
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc IBridgeAdapter
     function estimateSendMessage(
         BridgeTypes.ExecuteSendMessageParams calldata,
         BridgeTypes.BridgeOptions calldata

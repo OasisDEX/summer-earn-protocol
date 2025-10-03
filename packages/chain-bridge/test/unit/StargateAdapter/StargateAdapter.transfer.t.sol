@@ -153,12 +153,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
             )
         );
 
-        // Setup the router to expect this operation from this adapter
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
-        );
-
         // Mock a transfer request from the router
         vm.prank(address(routerA));
 
@@ -256,15 +250,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
         useNetworkA();
         vm.deal(address(routerA), 1 ether); // Provide ETH to the router
 
-        // vm.prank(governor);
-        // routerA.registerAdapter(address(adapterA));
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            bytes32(
-                0x528376a1966c744b216d0b277b4672bcda5b6ddb690dc471e2cb20923fbda502
-            ),
-            address(adapterA)
-        );
-
         BridgeTypes.BridgeOptions memory options = defaultBridgeOptions(
             address(adapterA)
         );
@@ -334,12 +319,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
                 block.timestamp,
                 block.number
             )
-        );
-
-        // Setup the router to expect this operation from this adapter
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
         );
 
         // Try to transfer with insufficient fee (half of required)
@@ -452,10 +431,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
             )
         );
 
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId2,
-            address(adapterA)
-        );
         // Test with significantly MORE than required fee - should also work
         vm.prank(address(routerA));
         adapterA.transferAsset{value: requiredFee * 100}(
@@ -463,7 +438,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
             params,
             options
         );
-        // removed noisy log
     }
 
     function testTransferAssetMsgValueConsistencyEdgeCases() public {
@@ -507,11 +481,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
                 block.timestamp,
                 block.number
             )
-        );
-
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
         );
 
         // Test with 1 wei less - should fail
@@ -655,12 +624,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
                 block.timestamp,
                 block.number
             )
-        );
-
-        // Setup router
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
         );
 
         // Mock the quoteOFT call to return high slippage

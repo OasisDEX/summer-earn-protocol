@@ -46,17 +46,6 @@ interface IBridgeRouter is IERC165 {
         address adapter
     );
 
-    /// @notice Emitted when a read request is initiated by the BridgeQueue
-    event ReadRequestInitiated(
-        // Corrected from sourceChainId for clarity
-        bytes32 indexed operationId,
-        uint16 destinationChainId,
-        address destinationContract,
-        bytes4 selector,
-        bytes readParams,
-        address adapter
-    );
-
     /// @notice Emitted when any cross-chain operation is delivered
     event OperationDelivered(
         bytes32 indexed operationId,
@@ -151,22 +140,6 @@ interface IBridgeRouter is IERC165 {
     ) external payable returns (bytes32 operationId);
 
     /**
-     * @notice Execute cross-chain state read via a specified adapter.
-     * @param params Struct containing all parameters for the read execution.
-     * @param options Bridge options including specified adapter and gas limit.
-     * @return operationId Unique operation ID.
-     * @custom:reverts ZeroGasLimit if `options.gasLimit` is zero.
-     * @custom:reverts InvalidParams if any parameter is invalid.
-     * @custom:reverts OnlyAuthorizedExecutor if caller is not an authorized executor.
-     * @custom:reverts UnknownAdapter if `options.specifiedAdapter` is not registered.
-     * @custom:reverts UnsupportedAdapterOperation if adapter does not support READ_STATE.
-     */
-    function executeReadState(
-        BridgeTypes.ExecuteReadStateParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 operationId);
-
-    /**
      * @notice Execute general message send via a specified adapter.
      * @param params Struct containing all parameters for the message send execution.
      * @param options Bridge options including specified adapter and gas limit.
@@ -214,22 +187,6 @@ interface IBridgeRouter is IERC165 {
      */
     function quoteTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    )
-        external
-        view
-        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter);
-
-    /**
-     * @notice Estimate fees for a read state operation
-     * @param params Read state parameters identical to executeReadState
-     * @param options Bridge options including adapter choice
-     * @return nativeFee Estimated base fee in native currency
-     * @return tokenFee Estimated base fee in the asset token
-     * @return specifiedAdapter The adapter that was specified in the options
-     */
-    function quoteReadState(
-        BridgeTypes.ExecuteReadStateParams calldata params,
         BridgeTypes.BridgeOptions calldata options
     )
         external

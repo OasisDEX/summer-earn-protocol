@@ -43,14 +43,6 @@ contract BridgeRouter is
     /// @notice Set of registered adapters
     EnumerableSet.AddressSet private adapters;
 
-    /// @notice Mapping of operation IDs to the adapter that processed them
-    mapping(bytes32 operationId => address adapterAddress)
-        public operationToAdapter;
-
-    /// @notice Mapping to track read request originators
-    mapping(bytes32 requestId => address originator)
-        public readRequestToOriginator;
-
     /// @notice Pause state of the router
     bool public paused;
 
@@ -182,22 +174,6 @@ contract BridgeRouter is
             params.asset == address(0) ||
             params.refundAddress == address(0) ||
             params.destinationChainId == 0
-        ) revert InvalidParams();
-    }
-
-    /**
-     * @dev Internal function to validate read state parameters
-     * @param params Parameters to validate
-     */
-    function _validateReadStateParams(
-        BridgeTypes.ExecuteReadStateParams calldata params
-    ) internal pure {
-        if (
-            params.originator == address(0) ||
-            params.target == address(0) ||
-            params.destinationChainId == 0 ||
-            params.selector == bytes4(0) ||
-            params.refundAddress == address(0)
         ) revert InvalidParams();
     }
 
@@ -367,11 +343,7 @@ contract BridgeRouter is
             );
             return (d.operationId, d.sourceChainId);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            BridgeTypes.RelayedReadResponse memory d = abi.decode(
-                operationPayload,
-                (BridgeTypes.RelayedReadResponse)
-            );
-            return (d.operationId, d.sourceChainId);
+            revert UnsupportedOperationType();
         } else {
             revert UnsupportedOperationType();
         }
@@ -438,70 +410,6 @@ contract BridgeRouter is
             params.asset,
             params.amount,
             params.target,
-            specifiedAdapter
-        );
-
-        return operationId;
-    }
-
-    /**
-     * @inheritdoc IBridgeRouter
-     */
-    function executeReadState(
-        BridgeTypes.ExecuteReadStateParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    )
-        external
-        payable
-        onlyAuthorizedExecutor
-        whenNotPaused
-        nonReentrant
-        validAdapter(
-            options.specifiedAdapter,
-            BridgeTypes.OperationType.READ_STATE
-        )
-        returns (bytes32 operationId)
-    {
-        if (options.gasLimit == 0) revert ZeroGasLimit();
-        _validateReadStateParams(params);
-        _validateOriginator(params.originator);
-
-        address specifiedAdapter = options.specifiedAdapter;
-
-        // Generate the operation ID ONCE - Router is the source of truth
-        operationId = _generateOperationId(
-            BridgeTypes.OperationType.READ_STATE,
-            params.destinationChainId,
-            address(0), // No asset
-            0, // No amount
-            address(0), // No target for read operations
-            abi.encode(
-                params.target,
-                params.selector,
-                params.readParams,
-                params.originator
-            )
-        );
-
-        // Only relevant for read operations
-        operationToAdapter[operationId] = specifiedAdapter;
-
-        // Store the originator for response delivery
-        readRequestToOriginator[operationId] = params.originator;
-
-        // Call adapter with the full msg.value
-        IMessageAdapter(specifiedAdapter).readState{value: msg.value}(
-            operationId, // Pass the router-generated ID
-            params,
-            options
-        );
-
-        emit ReadRequestInitiated(
-            operationId,
-            params.destinationChainId,
-            params.target,
-            params.selector,
-            params.readParams,
             specifiedAdapter
         );
 
@@ -583,27 +491,6 @@ contract BridgeRouter is
         _validateTransferParams(params);
         (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter)
             .estimateTransferAssets(params, options);
-
-        nativeFee = _applyFeeBuffer(nativeFee);
-        tokenFee = _applyFeeBuffer(tokenFee);
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function quoteReadState(
-        BridgeTypes.ExecuteReadStateParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    )
-        external
-        view
-        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
-    {
-        specifiedAdapter = options.specifiedAdapter;
-        if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
-        if (!adapters.contains(specifiedAdapter)) revert UnknownAdapter();
-
-        _validateReadStateParams(params);
-        (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter)
-            .estimateReadState(params, options);
 
         nativeFee = _applyFeeBuffer(nativeFee);
         tokenFee = _applyFeeBuffer(tokenFee);
@@ -714,24 +601,7 @@ contract BridgeRouter is
                 operationPayload
             );
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            BridgeTypes.RelayedReadResponse memory data = abi.decode(
-                operationPayload,
-                (BridgeTypes.RelayedReadResponse)
-            );
-
-            // Authorization: ensure the responding adapter matches the one that originated the read
-            if (operationToAdapter[data.operationId] != adapter)
-                revert Unauthorized();
-
-            address originator = readRequestToOriginator[data.operationId];
-            if (originator == address(0)) revert InvalidParams();
-            // For read responses, deliver to originator (must be contract implementing interface)
-            _requireReceiverIsCrossChainReceiver(originator);
-
-            ICrossChainReceiver(originator).receiveOperation(
-                BridgeTypes.OperationType.READ_STATE,
-                operationPayload
-            );
+            revert UnsupportedOperationType();
         } else {
             revert UnsupportedOperationType();
         }
@@ -857,11 +727,6 @@ contract BridgeRouter is
         FailedDeliveryRecord memory r = failedDeliveries[operationId];
 
         if (r.failedAt == 0) revert InvalidParams();
-
-        // State reads should not be retryable as they are read-only operations
-        if (r.operationType == BridgeTypes.OperationType.READ_STATE) {
-            revert UnsupportedOperationType();
-        }
 
         // Use the original adapter - no override needed
         address effectiveAdapter = r.adapter;
