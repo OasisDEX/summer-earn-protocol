@@ -68,6 +68,9 @@ contract LayerZeroAdapter is
     /// @notice ERC20 token used to pay LayerZero protocol fees (e.g., ZRO). Zero address disables token mode.
     address public protocolFeeToken;
 
+    /// @notice Thrown when payInProtocolToken is requested but protocolFeeToken is not configured
+    error ProtocolTokenNotConfigured();
+
     /// @notice Emitted when read libraries are configured
     event ReadLibrariesConfigured(
         address indexed readLib1002,
@@ -537,7 +540,10 @@ contract LayerZeroAdapter is
             );
 
             // If paying in protocol token and supported, use token fee path
-            if (options.payInProtocolToken && protocolFeeToken != address(0)) {
+            if (options.payInProtocolToken) {
+                if (protocolFeeToken == address(0)) {
+                    revert ProtocolTokenNotConfigured();
+                }
                 EndpointFee memory quoted = _quote(
                     readChannelId,
                     cmd,
@@ -645,7 +651,10 @@ contract LayerZeroAdapter is
         // Send message through OApp's _lzSend
         // Use params.refundAddress which is set to the keeper who initiated the transaction
         MessagingReceipt memory receipt;
-        if (options.payInProtocolToken && protocolFeeToken != address(0)) {
+        if (options.payInProtocolToken) {
+            if (protocolFeeToken == address(0)) {
+                revert ProtocolTokenNotConfigured();
+            }
             EndpointFee memory quoted = _quote(
                 lzDstEid,
                 payload,
