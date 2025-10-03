@@ -31,8 +31,7 @@ contract LayerZeroAdapter is
     OAppRead,
     IMessageAdapter,
     IBridgeAdapter,
-    BaseBridgeAdapter,
-    IBridgeTokenFeeSupport
+    BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -65,12 +64,6 @@ contract LayerZeroAdapter is
     ///      This cap avoids overly large configurations and removes magic numbers.
     uint8 public constant MAX_SUPPORTED_DVNS = 8;
 
-    /// @notice ERC20 token used to pay LayerZero protocol fees (e.g., ZRO). Zero address disables token mode.
-    address public protocolFeeToken;
-
-    /// @notice Thrown when payInProtocolToken is requested but protocolFeeToken is not configured
-    error ProtocolTokenNotConfigured();
-
     /// @notice Emitted when read libraries are configured
     event ReadLibrariesConfigured(
         address indexed readLib1002,
@@ -89,24 +82,6 @@ contract LayerZeroAdapter is
 
     /// @notice Emitted when per-chain read support is updated
     event ChainReadSupportUpdated(uint16 indexed chainId, bool supported);
-
-    /// @notice Emitted when the protocol fee token is configured
-    event ProtocolFeeTokenConfigured(address indexed feeToken);
-
-    /// @notice Emitted when protocol token fees are spent for an operation
-    event ProtocolFeeSpent(
-        bytes32 indexed operationId,
-        address indexed token,
-        uint256 tokenFee
-    );
-
-    /// @notice Emitted when protocol token fees are collected from the payer (keeper)
-    event ProtocolFeeCollected(
-        bytes32 indexed operationId,
-        address indexed payer,
-        address indexed token,
-        uint256 tokenFee
-    );
 
     /// @notice Mapping of chains that support read operations
     mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
@@ -258,28 +233,6 @@ contract LayerZeroAdapter is
         endpoint.setConfig(address(this), readLib1002Address, params);
 
         emit ReadDVNsConfigured(readChannelId, readDVNs, confirmations);
-    }
-
-    /**
-     * @notice Sets the ERC20 token used to pay LayerZero protocol fees and manages allowance to the endpoint
-     * @param token The ERC20 token address (e.g., ZRO). Use address(0) to disable token-fee mode.
-     */
-    function setProtocolFeeToken(address token) external onlyGovernor {
-        // Revoke allowance on the old token if set
-        if (protocolFeeToken != address(0)) {
-            IERC20(protocolFeeToken).forceApprove(address(endpoint), 0);
-        }
-
-        protocolFeeToken = token;
-
-        // Grant reasonable allowance on the new token to the LayerZero endpoint if set
-        // Note: Using max approval for gas efficiency, but consider implementing
-        // dynamic approvals based on actual usage patterns for enhanced security
-        if (token != address(0)) {
-            IERC20(token).forceApprove(address(endpoint), type(uint256).max);
-        }
-
-        emit ProtocolFeeTokenConfigured(token);
     }
 
     /**
@@ -564,7 +517,10 @@ contract LayerZeroAdapter is
                     );
 
                     // Ensure sufficient allowance for the operation
-                    _ensureSufficientAllowance(tokenFeeRequired);
+                    _ensureSufficientAllowance(
+                        tokenFeeRequired,
+                        address(endpoint)
+                    );
 
                     emit ProtocolFeeCollected(
                         operationId,
@@ -652,9 +608,6 @@ contract LayerZeroAdapter is
         // Use params.refundAddress which is set to the keeper who initiated the transaction
         MessagingReceipt memory receipt;
         if (options.payInProtocolToken) {
-            if (protocolFeeToken == address(0)) {
-                revert ProtocolTokenNotConfigured();
-            }
             EndpointFee memory quoted = _quote(
                 lzDstEid,
                 payload,
@@ -664,24 +617,14 @@ contract LayerZeroAdapter is
             if (quoted.nativeFee != 0)
                 revert InsufficientMsgValue(0, quoted.nativeFee);
             uint256 tokenFeeRequired = quoted.lzTokenFee;
-            if (tokenFeeRequired > 0) {
-                // Pull protocol fee token from the keeper (originator) into the adapter
-                IERC20(protocolFeeToken).safeTransferFrom(
-                    params.originator,
-                    address(this),
-                    tokenFeeRequired
-                );
 
-                // Ensure sufficient allowance for the operation
-                _ensureSufficientAllowance(tokenFeeRequired);
+            _collectProtocolTokenFee(
+                operationId,
+                params.originator,
+                tokenFeeRequired
+            );
+            _ensureSufficientAllowance(tokenFeeRequired, address(endpoint));
 
-                emit ProtocolFeeCollected(
-                    operationId,
-                    params.originator,
-                    protocolFeeToken,
-                    tokenFeeRequired
-                );
-            }
             receipt = _lzSend(
                 lzDstEid,
                 payload,
@@ -721,27 +664,6 @@ contract LayerZeroAdapter is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Ensures sufficient allowance for protocol fee token spending
-     * @param requiredAmount The amount of tokens needed for the operation
-     * @dev This function provides a more secure alternative to max approvals
-     *      by only approving the exact amount needed for each operation
-     */
-    function _ensureSufficientAllowance(uint256 requiredAmount) internal {
-        if (protocolFeeToken == address(0)) return;
-
-        uint256 currentAllowance = IERC20(protocolFeeToken).allowance(
-            address(this),
-            address(endpoint)
-        );
-        if (currentAllowance < requiredAmount) {
-            IERC20(protocolFeeToken).forceApprove(
-                address(endpoint),
-                requiredAmount
-            );
-        }
-    }
-
-    /**
      * @notice Converts a chain ID to a LayerZero endpoint ID
      * @param chainId Standard chain ID
      * @return lzEid LayerZero endpoint ID
@@ -775,11 +697,6 @@ contract LayerZeroAdapter is
                     gasLimit
                 );
         }
-    }
-
-    /// @inheritdoc IBridgeTokenFeeSupport
-    function supportsProtocolTokenFee() external pure returns (bool) {
-        return true;
     }
 
     /**

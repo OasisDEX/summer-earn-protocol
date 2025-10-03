@@ -29,8 +29,7 @@ contract StargateAdapter is
     IAssetAdapter,
     IBridgeAdapter,
     ILayerZeroComposer,
-    BaseBridgeAdapter,
-    IBridgeTokenFeeSupport
+    BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
     using AddressCast for address;
@@ -43,9 +42,6 @@ contract StargateAdapter is
 
     /// @notice LayerZero endpoint for compose functionality
     address public immutable LZ_ENDPOINT;
-
-    /// @notice ERC20 token used to pay LayerZero protocol fees (e.g., ZRO). Zero address disables token-fee mode.
-    address public protocolFeeToken;
 
     /// @notice Mapping of assets to their Stargate contracts on THIS chain only
     mapping(address asset => address stargateContract)
@@ -77,9 +73,6 @@ contract StargateAdapter is
 
     /// @notice Emitted when slippage tolerance is updated
     event SlippageToleranceUpdated(uint256 newSlippageBps);
-
-    /// @notice Emitted when the protocol fee token is configured
-    event ProtocolFeeTokenConfigured(address indexed feeToken);
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -123,27 +116,6 @@ contract StargateAdapter is
         }
         slippageToleranceBps = _slippageBps;
         emit SlippageToleranceUpdated(_slippageBps);
-    }
-
-    /**
-     * @notice Sets the ERC20 token used to pay LayerZero protocol fees and manages allowance to the endpoint
-     * @param token The ERC20 token address (e.g., ZRO). Use address(0) to disable token-fee mode.
-     */
-    function setProtocolFeeToken(address token) external onlyGovernor {
-        // Revoke allowance on the old token if set
-        if (protocolFeeToken != address(0)) {
-            IERC20(protocolFeeToken).forceApprove(LZ_ENDPOINT, 0);
-        }
-
-        protocolFeeToken = token;
-
-        // Grant max allowance on the new token to the LayerZero endpoint if set
-        if (token != address(0)) {
-            IERC20(token).forceApprove(LZ_ENDPOINT, 0);
-            IERC20(token).forceApprove(LZ_ENDPOINT, type(uint256).max);
-        }
-
-        emit ProtocolFeeTokenConfigured(token);
     }
 
     /**
@@ -263,14 +235,15 @@ contract StargateAdapter is
             if (messagingFee.nativeFee != 0)
                 revert InsufficientFee(0, messagingFee.nativeFee);
 
-            // Pull protocol fee token from the keeper (originator) into the adapter if needed
-            if (messagingFee.lzTokenFee > 0) {
-                IERC20(protocolFeeToken).safeTransferFrom(
-                    params.originator,
-                    address(this),
-                    messagingFee.lzTokenFee
-                );
-            }
+            // Use base contract functionality for protocol token fee collection
+            _collectProtocolTokenFee(
+                operationId,
+                params.originator,
+                messagingFee.lzTokenFee
+            );
+
+            // Ensure sufficient allowance for the LayerZero endpoint
+            _ensureSufficientAllowance(messagingFee.lzTokenFee, LZ_ENDPOINT);
 
             // No native value required when paying in token
             stargate.sendToken{value: 0}(
@@ -636,10 +609,5 @@ contract StargateAdapter is
      */
     function getEndpointId(uint16 chainId) external view returns (uint32) {
         return chainToExternalId[chainId];
-    }
-
-    /// @inheritdoc IBridgeTokenFeeSupport
-    function supportsProtocolTokenFee() external pure returns (bool) {
-        return true;
     }
 }
