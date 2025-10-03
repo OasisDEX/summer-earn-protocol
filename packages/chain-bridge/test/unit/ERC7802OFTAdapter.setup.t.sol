@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
+import {ERC7802OFTAdapterTestHarness} from "../mocks/ERC7802OFTAdapterTestHarness.sol";
 import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
 import {MockOFT} from "../mocks/MockOFT.sol";
 import {BaseERC7802AdapterSetupTest} from "./BaseERC7802Adapter.setup.t.sol";
@@ -38,7 +39,12 @@ contract ERC7802OFTAdapterSetupTest is BaseERC7802AdapterSetupTest {
         uint16[] memory chains,
         uint32[] memory lzEids
     ) internal override returns (BaseERC7802Adapter) {
-        return new ERC7802OFTAdapter(registry, accessManager, lzEndpoint);
+        return
+            new ERC7802OFTAdapterTestHarness(
+                registry,
+                accessManager,
+                lzEndpoint
+            );
     }
 
     function _configureOFTs() internal {

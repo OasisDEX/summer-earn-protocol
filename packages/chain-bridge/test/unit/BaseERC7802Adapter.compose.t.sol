@@ -3,18 +3,38 @@ pragma solidity 0.8.28;
 
 import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
 import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
+import {ERC7802OFTAdapterTestHarness} from "../mocks/ERC7802OFTAdapterTestHarness.sol";
+import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
-import {BaseERC7802AdapterSetupTest} from "./BaseERC7802Adapter.setup.t.sol";
+import {ERC7802OFTAdapterSetupTest} from "./ERC7802OFTAdapter.setup.t.sol";
 
 /**
  * @title BaseERC7802Adapter Compose Tests
  * @notice Tests LayerZero compose functionality of BaseERC7802Adapter
  */
-contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
+contract BaseERC7802AdapterComposeTest is ERC7802OFTAdapterSetupTest {
     using AddressCast for address;
+
+    /*//////////////////////////////////////////////////////////////
+                        HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Helper to encode OFT compose message
+    function encodeOFTCompose(
+        uint64 nonce,
+        uint32 srcEid,
+        uint256 amountLD,
+        address composeFrom,
+        bytes memory composeMsg
+    ) internal pure returns (bytes memory) {
+        bytes32 composeFromWord = bytes32(uint256(uint160(composeFrom)));
+        bytes memory packed = abi.encodePacked(composeFromWord, composeMsg);
+        return OFTComposeMsgCodec.encode(nonce, srcEid, amountLD, packed);
+    }
 
     /*//////////////////////////////////////////////////////////////
                         LZ COMPOSE AUTHORIZATION TESTS
@@ -26,7 +46,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
         address caller = address(0x1234);
         bytes memory extraData = "";
 
-        vm.expectRevert(BaseERC7802Adapter.Unauthorized.selector);
+        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
         adapterA.lzCompose(address(0), guid, message, caller, extraData);
     }
 
@@ -42,15 +62,19 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
     function test_DecodeOFTCompose_RevertsForShortMessage() public {
         bytes memory shortMessage = new bytes(75); // Less than 76 bytes minimum
 
-        vm.expectRevert(BaseERC7802Adapter.InvalidMessage.selector);
-        adapterA._decodeOFTCompose(shortMessage);
+        vm.expectRevert(BaseBridgeAdapter.InvalidMessage.selector);
+        ERC7802OFTAdapterTestHarness(address(adapterA)).decodeOFTCompose_test(
+            shortMessage
+        );
     }
 
     function test_DecodeOFTCompose_RevertsForExactly76Bytes() public {
         bytes memory message76 = new bytes(76);
 
-        vm.expectRevert(BaseERC7802Adapter.InvalidMessage.selector);
-        adapterA._decodeOFTCompose(message76);
+        vm.expectRevert(BaseBridgeAdapter.InvalidMessage.selector);
+        ERC7802OFTAdapterTestHarness(address(adapterA)).decodeOFTCompose_test(
+            message76
+        );
     }
 
     function test_DecodeOFTCompose_ReturnsCorrectValuesForValidMessage()
@@ -62,7 +86,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
         address composeFrom = address(adapterB);
         bytes memory composeMsg = abi.encode("test compose message");
 
-        bytes memory validMessage = OFTComposeMsgCodec.encode(
+        bytes memory validMessage = encodeOFTCompose(
             1, // nonce
             srcEid,
             amountLD,
@@ -75,7 +99,8 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
             uint256 decodedAmountLD,
             address decodedComposeFrom,
             bytes memory decodedComposeMsg
-        ) = adapterA._decodeOFTCompose(validMessage);
+        ) = ERC7802OFTAdapterTestHarness(address(adapterA))
+                .decodeOFTCompose_test(validMessage);
 
         assertEq(decodedSrcEid, srcEid);
         assertEq(decodedAmountLD, amountLD);
@@ -94,7 +119,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
         address untrustedAdapter = address(0x9999); // Not in registry
         bytes memory composeMsg = abi.encode("test");
 
-        bytes memory message = OFTComposeMsgCodec.encode(
+        bytes memory message = encodeOFTCompose(
             1,
             srcEid,
             amountLD,
@@ -103,7 +128,13 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
         );
 
         vm.prank(lzEndpointA);
-        vm.expectRevert(BaseERC7802Adapter.UntrustedSourceAdapter.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BaseBridgeAdapter.UntrustedSourceAdapter.selector,
+                untrustedAdapter,
+                uint16(srcEid)
+            )
+        );
         adapterA.lzCompose(
             untrustedAdapter,
             bytes32(0),
@@ -120,7 +151,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
         address composeFrom = address(adapterB);
         bytes memory composeMsg = abi.encode("test");
 
-        bytes memory message = OFTComposeMsgCodec.encode(
+        bytes memory message = encodeOFTCompose(
             1,
             unmappedSrcEid,
             amountLD,
@@ -129,7 +160,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
         );
 
         vm.prank(lzEndpointA);
-        vm.expectRevert(BaseERC7802Adapter.InvalidSourceChainId.selector);
+        vm.expectRevert(BaseBridgeAdapter.InvalidSourceChainId.selector);
         adapterA.lzCompose(composeFrom, bytes32(0), message, address(this), "");
     }
 
@@ -154,7 +185,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
 
         bytes memory composeMsg = abi.encode(transferParams);
 
-        bytes memory message = OFTComposeMsgCodec.encode(
+        bytes memory message = encodeOFTCompose(
             1,
             srcEid,
             amountLD,
@@ -163,7 +194,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
         );
 
         vm.prank(lzEndpointA);
-        vm.expectRevert(BaseERC7802Adapter.UnsupportedAsset.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
         adapterA.lzCompose(composeFrom, bytes32(0), message, address(this), "");
     }
 
@@ -190,7 +221,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
 
         bytes memory composeMsg = abi.encode(transferParams);
 
-        bytes memory message = OFTComposeMsgCodec.encode(
+        bytes memory message = encodeOFTCompose(
             1,
             srcEid,
             amountLD,
@@ -203,7 +234,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
         assertLt(adapterBalance, amountLD);
 
         vm.prank(lzEndpointA);
-        vm.expectRevert(BaseERC7802Adapter.InsufficientBalance.selector);
+        vm.expectRevert(IBridgeAdapter.InsufficientBalance.selector);
         adapterA.lzCompose(composeFrom, bytes32(0), message, address(this), "");
     }
 
@@ -231,7 +262,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
 
         bytes memory composeMsg = abi.encode(transferParams);
 
-        bytes memory message = OFTComposeMsgCodec.encode(
+        bytes memory message = encodeOFTCompose(
             1,
             srcEid,
             oftAmount, // OFT amount should be used
@@ -273,7 +304,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
 
         bytes memory composeMsg = abi.encode(transferParams);
 
-        bytes memory message = OFTComposeMsgCodec.encode(
+        bytes memory message = encodeOFTCompose(
             1,
             srcEid,
             amountLD,
@@ -323,7 +354,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
 
         bytes memory composeMsg = abi.encode(transferParams);
 
-        bytes memory message = OFTComposeMsgCodec.encode(
+        bytes memory message = encodeOFTCompose(
             1,
             srcEid,
             amountLD,
@@ -377,10 +408,8 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
                 refundAddress: user
             });
 
-        bytes memory encoded = adapterA._encodeComposeTransferParams(
-            operationId,
-            params
-        );
+        bytes memory encoded = ERC7802OFTAdapterTestHarness(address(adapterA))
+            .encodeComposeTransferParams_test(operationId, params);
 
         BridgeTypes.RelayedTransferParams memory decoded = abi.decode(
             encoded,
@@ -412,7 +441,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
         // Empty compose message
         bytes memory composeMsg = "";
 
-        bytes memory message = OFTComposeMsgCodec.encode(
+        bytes memory message = encodeOFTCompose(
             1,
             srcEid,
             amountLD,
@@ -453,7 +482,7 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
 
         bytes memory composeMsg = abi.encode(transferParams);
 
-        bytes memory message = OFTComposeMsgCodec.encode(
+        bytes memory message = encodeOFTCompose(
             1,
             srcEid,
             amountLD,
@@ -463,15 +492,5 @@ contract BaseERC7802AdapterComposeTest is BaseERC7802AdapterSetupTest {
 
         vm.prank(lzEndpointA);
         adapterA.lzCompose(composeFrom, bytes32(0), message, address(this), "");
-    }
-
-    function _deployAdapter(
-        address registry,
-        address accessManager,
-        address lzEndpoint,
-        uint16[] memory chains,
-        uint32[] memory lzEids
-    ) internal override returns (BaseERC7802Adapter) {
-        return new ERC7802OFTAdapter(registry, accessManager, lzEndpoint);
     }
 }

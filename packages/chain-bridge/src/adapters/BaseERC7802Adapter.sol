@@ -98,7 +98,8 @@ abstract contract BaseERC7802Adapter is
         if (dstAdapter == address(0)) revert UnsupportedChain();
 
         // Execute transport-specific burn/mint initiation
-        uint256 used = _sendTransport{value: msg.value}(
+        // Note: msg.value is automatically available to internal payable functions
+        uint256 used = _sendTransport(
             operationId,
             params.asset,
             params.destinationChainId,
@@ -241,7 +242,7 @@ abstract contract BaseERC7802Adapter is
         BridgeTypes.BridgeOptions calldata options,
         BridgeTypes.ExecuteTransferParams calldata params,
         address refundAddress
-    ) internal payable virtual returns (uint256 feeUsed);
+    ) internal virtual returns (uint256 feeUsed);
 
     function _estimateTransport(
         bytes32 operationId,
@@ -277,7 +278,8 @@ abstract contract BaseERC7802Adapter is
         bytes calldata message
     )
         internal
-        pure
+        view
+        virtual
         returns (
             uint32 srcEid,
             uint256 amountLD,
@@ -297,7 +299,7 @@ abstract contract BaseERC7802Adapter is
         srcEid = OFTComposeMsgCodec.srcEid(message);
         amountLD = OFTComposeMsgCodec.amountLD(message);
         composeMsg = OFTComposeMsgCodec.composeMsg(message);
-        composeFrom = OFTComposeMsgCodec.composeFrom(message);
+        composeFrom = OFTComposeMsgCodec.composeFrom(message).toAddress();
     }
 
     /**

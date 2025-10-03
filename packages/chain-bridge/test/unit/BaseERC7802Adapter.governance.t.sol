@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
 import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
+import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {BaseERC7802AdapterSetupTest} from "./BaseERC7802Adapter.setup.t.sol";
 
@@ -17,7 +18,7 @@ contract BaseERC7802AdapterGovernanceTest is BaseERC7802AdapterSetupTest {
 
     function test_SetAssetSupport_RevertsForZeroAddress() public {
         vm.prank(governor);
-        vm.expectRevert(BaseERC7802Adapter.InvalidParams.selector);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
         adapterA.setAssetSupport(address(0), true);
     }
 
@@ -117,7 +118,7 @@ contract BaseERC7802AdapterGovernanceTest is BaseERC7802AdapterSetupTest {
 
     function test_MapExternalId_RevertsForZeroExternalId() public {
         vm.prank(governor);
-        vm.expectRevert(BaseERC7802Adapter.InvalidParams.selector);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
         adapterA.mapExternalId(CHAIN_ID_A, 0);
     }
 

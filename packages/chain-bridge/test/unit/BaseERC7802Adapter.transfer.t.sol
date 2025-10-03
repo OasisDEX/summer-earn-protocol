@@ -3,16 +3,18 @@ pragma solidity 0.8.28;
 
 import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
 import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
+import {ERC7802OFTAdapterTestHarness} from "../mocks/ERC7802OFTAdapterTestHarness.sol";
+import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {BaseERC7802AdapterSetupTest} from "./BaseERC7802Adapter.setup.t.sol";
+import {ERC7802OFTAdapterSetupTest} from "./ERC7802OFTAdapter.setup.t.sol";
 
 /**
  * @title BaseERC7802Adapter Transfer Tests
  * @notice Tests transfer and finalize functionality of BaseERC7802Adapter
  */
-contract BaseERC7802AdapterTransferTest is BaseERC7802AdapterSetupTest {
+contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
                         TRANSFER ASSET TESTS
     //////////////////////////////////////////////////////////////*/
@@ -45,7 +47,7 @@ contract BaseERC7802AdapterTransferTest is BaseERC7802AdapterSetupTest {
         });
 
         vm.prank(address(routerA));
-        vm.expectRevert(BaseERC7802Adapter.UnsupportedAsset.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
         adapterA.transferAsset("", params, options);
     }
 
@@ -70,7 +72,7 @@ contract BaseERC7802AdapterTransferTest is BaseERC7802AdapterSetupTest {
         });
 
         vm.prank(address(routerA));
-        vm.expectRevert(BaseERC7802Adapter.InvalidParams.selector);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
         adapterA.transferAsset("", params, options);
     }
 
@@ -97,7 +99,12 @@ contract BaseERC7802AdapterTransferTest is BaseERC7802AdapterSetupTest {
         });
 
         vm.prank(address(routerA));
-        vm.expectRevert(BaseERC7802Adapter.UntrustedDestinationChain.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BaseBridgeAdapter.UntrustedDestinationChain.selector,
+                untrustedChain
+            )
+        );
         adapterA.transferAsset("", params, options);
     }
 
@@ -122,7 +129,7 @@ contract BaseERC7802AdapterTransferTest is BaseERC7802AdapterSetupTest {
         });
 
         vm.prank(user); // Non-router caller
-        vm.expectRevert(BaseERC7802Adapter.Unauthorized.selector);
+        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
         adapterA.transferAsset("", params, options);
     }
 
@@ -246,7 +253,7 @@ contract BaseERC7802AdapterTransferTest is BaseERC7802AdapterSetupTest {
             });
 
         vm.prank(governor); // Authorized executor
-        vm.expectRevert(BaseERC7802Adapter.UnsupportedAsset.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
         adapterA.finalize("", params);
     }
 
@@ -263,7 +270,7 @@ contract BaseERC7802AdapterTransferTest is BaseERC7802AdapterSetupTest {
             });
 
         vm.prank(governor);
-        vm.expectRevert(BaseERC7802Adapter.InvalidParams.selector);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
         adapterA.finalize("", params);
     }
 
@@ -280,7 +287,7 @@ contract BaseERC7802AdapterTransferTest is BaseERC7802AdapterSetupTest {
             });
 
         vm.prank(governor);
-        vm.expectRevert(BaseERC7802Adapter.InvalidParams.selector);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
         adapterA.finalize("", params);
     }
 
@@ -303,7 +310,7 @@ contract BaseERC7802AdapterTransferTest is BaseERC7802AdapterSetupTest {
         assertLt(adapterBalance, transferAmount);
 
         vm.prank(governor);
-        vm.expectRevert(BaseERC7802Adapter.InsufficientBalance.selector);
+        vm.expectRevert(IBridgeAdapter.InsufficientBalance.selector);
         adapterA.finalize("", params);
     }
 
@@ -320,7 +327,7 @@ contract BaseERC7802AdapterTransferTest is BaseERC7802AdapterSetupTest {
             });
 
         vm.prank(user); // Non-authorized executor
-        vm.expectRevert(BaseERC7802Adapter.Unauthorized.selector);
+        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
         adapterA.finalize("", params);
     }
 
@@ -420,15 +427,5 @@ contract BaseERC7802AdapterTransferTest is BaseERC7802AdapterSetupTest {
 
     function test_Finalize_HandlesMessageInPayload() public {
         // Test that finalize correctly handles messages in the transfer payload
-    }
-
-    function _deployAdapter(
-        address registry,
-        address accessManager,
-        address lzEndpoint,
-        uint16[] memory chains,
-        uint32[] memory lzEids
-    ) internal override returns (BaseERC7802Adapter) {
-        return new ERC7802OFTAdapter(registry, accessManager, lzEndpoint);
     }
 }

@@ -3,17 +3,19 @@ pragma solidity 0.8.28;
 
 import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
 import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
+import {ERC7802OFTAdapterTestHarness} from "../mocks/ERC7802OFTAdapterTestHarness.sol";
+import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {BaseERC7802AdapterSetupTest} from "./BaseERC7802Adapter.setup.t.sol";
+import {ERC7802OFTAdapterSetupTest} from "./ERC7802OFTAdapter.setup.t.sol";
 
 /**
  * @title BaseERC7802Adapter General Tests
  * @notice Tests general functionality of BaseERC7802Adapter
  */
-contract BaseERC7802AdapterGeneralTest is BaseERC7802AdapterSetupTest {
+contract BaseERC7802AdapterGeneralTest is ERC7802OFTAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
                         INITIALIZATION TESTS
     //////////////////////////////////////////////////////////////*/
@@ -154,7 +156,7 @@ contract BaseERC7802AdapterGeneralTest is BaseERC7802AdapterSetupTest {
         address caller = address(0x1234);
         bytes memory extraData = "";
 
-        vm.expectRevert(BaseERC7802Adapter.Unauthorized.selector);
+        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
         adapterA.lzCompose(address(0), guid, message, caller, extraData);
     }
 
@@ -189,8 +191,10 @@ contract BaseERC7802AdapterGeneralTest is BaseERC7802AdapterSetupTest {
 
     function test_DecodeOFTCompose_RevertsForShortMessage() public {
         bytes memory shortMessage = new bytes(75); // Less than 76 bytes minimum
-        vm.expectRevert(BaseERC7802Adapter.InvalidMessage.selector);
-        adapterA._decodeOFTCompose(shortMessage);
+        vm.expectRevert(BaseBridgeAdapter.InvalidMessage.selector);
+        ERC7802OFTAdapterTestHarness(address(adapterA)).decodeOFTCompose_test(
+            shortMessage
+        );
     }
 
     function test_DecodeOFTCompose_ReturnsCorrectValues() public {
@@ -343,15 +347,5 @@ contract BaseERC7802AdapterGeneralTest is BaseERC7802AdapterSetupTest {
 
     function test_TransferAsset_EmitsTransferInitiatedEvent() public {
         // Test would need to call transferAsset and verify event emission
-    }
-
-    function _deployAdapter(
-        address registry,
-        address accessManager,
-        address lzEndpoint,
-        uint16[] memory chains,
-        uint32[] memory lzEids
-    ) internal override returns (BaseERC7802Adapter) {
-        return new ERC7802OFTAdapter(registry, accessManager, lzEndpoint);
     }
 }

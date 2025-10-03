@@ -60,7 +60,7 @@ contract ERC7802OFTAdapter is BaseERC7802Adapter {
         BridgeTypes.BridgeOptions calldata,
         BridgeTypes.ExecuteTransferParams calldata params,
         address refundAddress
-    ) internal payable override returns (uint256 feeUsed) {
+    ) internal override returns (uint256 feeUsed) {
         address oft = oftForToken[token];
         if (oft == address(0)) revert UnsupportedAsset();
 

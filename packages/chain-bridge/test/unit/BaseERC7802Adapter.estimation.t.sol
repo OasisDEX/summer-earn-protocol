@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
 import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
+import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -46,7 +47,7 @@ contract BaseERC7802AdapterEstimationTest is BaseERC7802AdapterSetupTest {
             options: ""
         });
 
-        vm.expectRevert(BaseERC7802Adapter.UnsupportedAsset.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
         adapterA.estimateTransferAssets(params, options);
     }
 
@@ -70,7 +71,7 @@ contract BaseERC7802AdapterEstimationTest is BaseERC7802AdapterSetupTest {
             options: ""
         });
 
-        vm.expectRevert(BaseERC7802Adapter.InvalidParams.selector);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
         adapterA.estimateTransferAssets(params, options);
     }
 
@@ -98,7 +99,7 @@ contract BaseERC7802AdapterEstimationTest is BaseERC7802AdapterSetupTest {
             options: ""
         });
 
-        vm.expectRevert(BaseERC7802Adapter.UntrustedDestinationChain.selector);
+        vm.expectRevert(BaseBridgeAdapter.UntrustedDestinationChain.selector);
         adapterA.estimateTransferAssets(params, options);
     }
 
@@ -443,7 +444,7 @@ contract BaseERC7802AdapterEstimationTest is BaseERC7802AdapterSetupTest {
 
         // Test with destination same as source (would revert in transfer, but estimation might work)
         params.destinationChainId = CHAIN_ID_A;
-        vm.expectRevert(BaseERC7802Adapter.UntrustedDestinationChain.selector); // Same chain not trusted
+        vm.expectRevert(BaseBridgeAdapter.UntrustedDestinationChain.selector); // Same chain not trusted
         adapterA.estimateTransferAssets(params, options);
 
         // Reset to valid destination
