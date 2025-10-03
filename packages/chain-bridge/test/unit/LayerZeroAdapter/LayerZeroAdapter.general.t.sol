@@ -141,14 +141,16 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         public
         view
     {
-        // Test with unsupported operation type
-        assertFalse(
-            adapterA.supportsMessageOperation(
-                CHAIN_ID_B,
-                BridgeTypes.OperationType.TRANSFER_ASSET
-            )
+        bool supported = adapterA.supportsMessageOperation(
+            CHAIN_ID_B,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
+        assertFalse(supported);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        ESTIMATION & VALIDATION TESTS
+    //////////////////////////////////////////////////////////////*/
 
     function test_estimateTransferAssets_reverts_OperationNotSupported()
         public
@@ -205,6 +207,10 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             options
         );
     }
+
+    /*//////////////////////////////////////////////////////////////
+                          RECEIVE VALIDATION TESTS
+    //////////////////////////////////////////////////////////////*/
 
     function test_receive_reverts_on_invalid_source_chain_id() public {
         useNetworkA();
