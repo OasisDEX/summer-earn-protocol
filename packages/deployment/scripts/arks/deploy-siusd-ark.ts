@@ -26,6 +26,7 @@ export async function deploySiUSDArk(config: BaseConfig, arkParams?: SiUSDArkUse
     return { ark: deployedSiUSDArk.siUSDArk }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
+    return undefined
   }
 }
 

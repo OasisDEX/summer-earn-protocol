@@ -365,13 +365,14 @@ export async function deployArk(
       deployedArk = ark
       break
     }
-    case ArkType.SiUSDArkType: {
+    case ArkType.SiUSDArk: {
       // SiUSDArk only supports USDC
       if (token !== Token.USDC) {
         throw new Error('SiUSDArk only supports USDC as the asset')
       }
       const gateway = validateAddress(config.protocolSpecific.infinifi?.gateway, 'InfiniFi Gateway')
-      const siUSD = validateAddress(config.protocolSpecific.infinifi?.siUSD, 'siUSD vault')
+      const siUSD = validateErc4626Address(config.protocolSpecific.infinifi?.siUSD, 'siUSD vault')
+      // Enforce USDC + config validations as in deployArk
       const ark = await deploySiUSDArk(config, {
         ...baseArkParams,
         gateway: gateway,

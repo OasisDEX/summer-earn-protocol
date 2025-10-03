@@ -65,15 +65,6 @@ contract SiUSDArk is Ark {
 
         gateway = IInfiniFiGateway(_gateway);
         siUSD = IERC4626(_siUSD);
-
-        // Approve Gateway to spend USDC for mintAndStake operations
-        config.asset.forceApprove(_gateway, Constants.MAX_UINT256);
-
-        // Approve Gateway to spend siUSD for unstake operations
-        IERC20(_siUSD).forceApprove(_gateway, Constants.MAX_UINT256);
-
-        // Approve Gateway to spend iUSD (siUSD's asset) for redeem operations
-        IERC20(siUSD.asset()).forceApprove(_gateway, Constants.MAX_UINT256);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -83,9 +74,9 @@ contract SiUSDArk is Ark {
     /**
      * @inheritdoc IArk
      * @notice Returns the total assets managed by this Ark, denominated in USDC
-     * @dev Converts siUSD shares -> iUSD (via ERC4626)
-     *      Note: iUSD is approximately 1:1 with USDC (adjusted for decimals)
-     *      iUSD has 18 decimals, USDC has 6 decimals
+     * @dev Uses InfiniFi's 1:1 peg mechanism (USDC ↔ iUSD)
+     * @dev Decimal conversion: iUSD (18 decimals) → USDC (6 decimals)
+     * @dev Rounding: Conservative rounding towards zero
      * @return assets The total balance of USDC-equivalent assets
      */
     function totalAssets() public view override returns (uint256 assets) {
@@ -94,8 +85,7 @@ contract SiUSDArk is Ark {
             // Convert siUSD shares to iUSD amount (18 decimals)
             uint256 iUSDAmount = siUSD.convertToAssets(siUSDShares);
             // Convert iUSD (18 decimals) to USDC equivalent (6 decimals)
-            // iUSD is pegged 1:1 to USD, so we just adjust decimals
-            assets = iUSDAmount / 1e12;
+            assets = _convertIUSDtoUSDC(iUSDAmount);
         }
     }
 
@@ -104,8 +94,34 @@ contract SiUSDArk is Ark {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Converts iUSD amount (18 decimals) to USDC equivalent (6 decimals)
+     * @dev Uses InfiniFi's 1:1 peg mechanism with decimal adjustment
+     * @dev This rounds towards zero, which is the conservative and standard approach
+     * @param iUSDAmount The iUSD amount in 18 decimals
+     * @return usdcAmount The equivalent USDC amount in 6 decimals
+     */
+    function _convertIUSDtoUSDC(
+        uint256 iUSDAmount
+    ) internal pure returns (uint256 usdcAmount) {
+        return iUSDAmount / 1e12;
+    }
+
+    /**
+     * @notice Converts USDC amount (6 decimals) to iUSD equivalent (18 decimals)
+     * @dev Uses InfiniFi's 1:1 peg mechanism with decimal adjustment
+     * @param usdcAmount The USDC amount in 6 decimals
+     * @return iUSDAmount The equivalent iUSD amount in 18 decimals
+     */
+    function _convertUSDCtoIUSD(
+        uint256 usdcAmount
+    ) internal pure returns (uint256 iUSDAmount) {
+        return usdcAmount * 1e12;
+    }
+
+    /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev Returns the USDC-equivalent value of assets that can be withdrawn
+     * @dev Uses InfiniFi's 1:1 peg mechanism
+     * @dev Decimal conversion: iUSD (18 decimals) → USDC (6 decimals)
      * @return withdrawableAssets Amount of USDC that can be withdrawn
      */
     function _withdrawableTotalAssets()
@@ -118,8 +134,8 @@ contract SiUSDArk is Ark {
         if (siUSDShares > 0) {
             // Get maximum iUSD we can withdraw from siUSD vault (18 decimals)
             uint256 maxIUSD = siUSD.maxWithdraw(address(this));
-            // Convert to USDC equivalent (6 decimals)
-            withdrawableAssets = maxIUSD / 1e12;
+            // Convert iUSD (18 decimals) to USDC equivalent (6 decimals)
+            withdrawableAssets = _convertIUSDtoUSDC(maxIUSD);
         }
     }
 
@@ -129,8 +145,9 @@ contract SiUSDArk is Ark {
      * @param amount The amount of USDC to deposit
      */
     function _board(uint256 amount, bytes calldata) internal override {
+        // Approve Gateway to spend USDC for this specific amount
+        config.asset.forceApprove(address(gateway), amount);
         // Use Gateway to mint iUSD and stake to siUSD in one transaction
-        // This returns the amount of iUSD that was minted (and staked)
         gateway.mintAndStake(address(this), amount);
     }
 
@@ -141,19 +158,28 @@ contract SiUSDArk is Ark {
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
         // Step 1: Calculate how much iUSD we need (convert USDC decimals to iUSD decimals)
-        uint256 iUSDNeeded = amount * 1e12; // USDC (6 dec) -> iUSD (18 dec)
+        // This is correct because InfiniFi maintains 1:1 USDC ↔ iUSD peg
+        uint256 iUSDNeeded = _convertUSDCtoIUSD(amount);
 
         // Step 2: Calculate how many siUSD shares we need to unstake to get that much iUSD
         uint256 siUSDSharesToUnstake = siUSD.previewWithdraw(iUSDNeeded);
 
-        // Step 3: Unstake siUSD to receive iUSD via Gateway
+        // Step 3: Approve Gateway to spend siUSD for this specific amount
+        IERC20(address(siUSD)).forceApprove(
+            address(gateway),
+            siUSDSharesToUnstake
+        );
+        // Unstake siUSD to receive iUSD via Gateway
         uint256 iUSDReceived = gateway.unstake(
             address(this),
             siUSDSharesToUnstake
         );
 
-        // Step 4: Redeem iUSD for USDC via Gateway (with 0 slippage protection for now)
-        gateway.redeem(address(this), iUSDReceived, 0);
+        // Step 4: Approve Gateway to spend iUSD for this specific amount
+        IERC20(siUSD.asset()).forceApprove(address(gateway), iUSDReceived);
+
+        // Redeem iUSD for USDC - must get exact amount or revert
+        gateway.redeem(address(this), iUSDReceived, amount);
     }
 
     /**
