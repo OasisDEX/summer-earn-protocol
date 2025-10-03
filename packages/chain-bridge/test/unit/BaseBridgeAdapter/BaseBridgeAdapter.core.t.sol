@@ -70,11 +70,6 @@ contract ExposedAdapter is BaseBridgeAdapter {
         return _encodeRelayedTransferParams(p);
     }
 
-    function exposed_encodeRelayedReadResponse(
-        BridgeTypes.RelayedReadResponse memory p
-    ) external pure returns (bytes memory) {
-        return _encodeRelayedReadResponse(p);
-    }
 
     function exposed_encodeRelayedMessageParamsWithType(
         BridgeTypes.RelayedMessageParams memory p
@@ -88,11 +83,6 @@ contract ExposedAdapter is BaseBridgeAdapter {
         return _encodeRelayedTransferParamsWithType(p);
     }
 
-    function exposed_encodeRelayedReadResponseWithType(
-        BridgeTypes.RelayedReadResponse memory p
-    ) external pure returns (bytes memory) {
-        return _encodeRelayedReadResponseWithType(p);
-    }
 }
 
 contract BaseBridgeAdapterCoreTest is Test {
@@ -372,45 +362,4 @@ contract BaseBridgeAdapterCoreTest is Test {
         assertEq(decoded.message, p.message);
     }
 
-    function testEncodeDecode_ReadResponse_WithType() public {
-        BridgeTypes.RelayedReadResponse memory p = BridgeTypes
-            .RelayedReadResponse({
-                readResponseData: hex"11223344",
-                operationId: keccak256("op3"),
-                sourceChainId: 9
-            });
-
-        bytes memory payload = adapterA
-            .exposed_encodeRelayedReadResponseWithType(p);
-        (BridgeTypes.OperationType op, bytes memory data) = adapterA
-            .exposed_decodePayload(payload);
-        assertEq(uint256(op), uint256(BridgeTypes.OperationType.READ_STATE));
-
-        BridgeTypes.RelayedReadResponse memory decoded = abi.decode(
-            data,
-            (BridgeTypes.RelayedReadResponse)
-        );
-        assertEq(decoded.operationId, p.operationId);
-        assertEq(decoded.sourceChainId, p.sourceChainId);
-        assertEq(decoded.readResponseData, p.readResponseData);
-    }
-
-    function testDecodeRelayedReadResponse_Direct() public {
-        BridgeTypes.RelayedReadResponse memory p = BridgeTypes
-            .RelayedReadResponse({
-                readResponseData: hex"998877",
-                operationId: keccak256("op4"),
-                sourceChainId: 10
-            });
-
-        bytes memory encoded = adapterA.exposed_encodeRelayedReadResponse(p);
-        // Directly decode using BaseBridgeAdapter helper path (via abi.decode equivalence)
-        BridgeTypes.RelayedReadResponse memory decoded = abi.decode(
-            encoded,
-            (BridgeTypes.RelayedReadResponse)
-        );
-        assertEq(decoded.operationId, p.operationId);
-        assertEq(decoded.sourceChainId, p.sourceChainId);
-        assertEq(decoded.readResponseData, p.readResponseData);
-    }
 }

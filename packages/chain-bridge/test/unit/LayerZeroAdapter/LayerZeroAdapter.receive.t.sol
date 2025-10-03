@@ -78,32 +78,6 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         );
     }
 
-    function test_readResponse_withoutOperationId_emitsEvent_and_returns()
-        public
-    {
-        Origin memory origin = Origin({
-            srcEid: READ_CHANNEL_THRESHOLD + 1,
-            sender: addressToBytes32(address(adapterB)),
-            nonce: 1
-        });
-
-        bytes32 unknownGuid = keccak256("no-op");
-        bytes memory readPayload = abi.encodePacked(uint256(123));
-
-        vm.expectEmit(true, false, false, true);
-        emit IMessageAdapter.ReadOperationNotFound(
-            unknownGuid,
-            "No operationId found"
-        );
-
-        adapterA.lzReceiveTest(
-            origin,
-            unknownGuid,
-            readPayload,
-            address(adapterB),
-            bytes("")
-        );
-    }
 
     function test_receive_with_short_payload_reverts_UnsupportedMessageType()
         public

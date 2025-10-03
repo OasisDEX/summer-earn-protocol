@@ -566,7 +566,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Call notifySatelliteReceipt as keeper
         vm.deal(keeper, 1 ether);
         vm.prank(keeper);
-        ark.notifySatelliteReceipt{value: 0.1 ether}(
+        ark.notifySatelliteChain{value: 0.1 ether}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 200000,
@@ -593,7 +593,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         vm.deal(keeper, 1 ether);
         vm.prank(keeper);
         vm.expectRevert(ICrossChainArk.InvalidRequestor.selector);
-        ark.notifySatelliteReceipt{value: 0.1 ether}(
+        ark.notifySatelliteChain{value: 0.1 ether}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 200000,
