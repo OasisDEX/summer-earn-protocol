@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {CrossChainRegistryOld} from "../../src/contracts/CrossChainRegistryOld.sol";
 import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {Test} from "forge-std/Test.sol";
@@ -9,7 +9,7 @@ import {Test} from "forge-std/Test.sol";
 /// @notice Base helper for CrossChainRegistry tests with shared setup, events, and helpers
 contract BaseCrossChainRegistryTest is Test {
     // Core contracts
-    CrossChainRegistry public registry;
+    CrossChainRegistryOld public registry;
     ProtocolAccessManager public accessManager;
 
     // Common actors
@@ -65,7 +65,7 @@ contract BaseCrossChainRegistryTest is Test {
         // Deploy access manager and registry
         accessManager = new ProtocolAccessManager(governor);
         vm.prank(governor);
-        registry = new CrossChainRegistry(address(accessManager));
+        registry = new CrossChainRegistryOld(address(accessManager));
 
         // Capture relationship types from the contract to avoid drift
         peerType = registry.PEER_RELATIONSHIP();

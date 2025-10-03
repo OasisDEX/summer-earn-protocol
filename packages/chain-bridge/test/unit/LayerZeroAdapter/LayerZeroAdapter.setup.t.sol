@@ -8,7 +8,7 @@ import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
+import {CrossChainRegistryOld} from "../../../src/contracts/CrossChainRegistryOld.sol";
 
 // Base test contract with common setup used by all LayerZero adapter tests
 contract LayerZeroAdapterSetupTest is TestHelperOz5 {
@@ -23,14 +23,14 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     BridgeRouterTestHelper public routerA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
-    CrossChainRegistry public registryA;
+    CrossChainRegistryOld public registryA;
 
     // Chain B contracts
     LayerZeroAdapterTestHelper public adapterB;
     BridgeRouterTestHelper public routerB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
-    CrossChainRegistry public registryB;
+    CrossChainRegistryOld public registryB;
 
     // Test wallets
     address public governor = address(0x1);
@@ -53,7 +53,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     // Network chain IDs for vm.chainId()
     uint256 public constant NETWORK_A_CHAIN_ID = 31337;
     uint256 public constant NETWORK_B_CHAIN_ID = 31338;
-
 
     function setUp() public virtual override {
         super.setUp();
@@ -92,7 +91,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         accessManagerA = new ProtocolAccessManager(governor);
 
         // Deploy registry
-        registryA = new CrossChainRegistry(address(accessManagerA));
+        registryA = new CrossChainRegistryOld(address(accessManagerA));
 
         // Deploy router and configure
         routerA = new BridgeRouterTestHelper(
@@ -139,7 +138,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         accessManagerB = new ProtocolAccessManager(governor);
 
         // Deploy registry
-        registryB = new CrossChainRegistry(address(accessManagerB));
+        registryB = new CrossChainRegistryOld(address(accessManagerB));
 
         // Deploy router and configure
         routerB = new BridgeRouterTestHelper(

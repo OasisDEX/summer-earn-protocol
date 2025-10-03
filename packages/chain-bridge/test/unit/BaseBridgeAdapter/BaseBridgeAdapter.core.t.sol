@@ -6,7 +6,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
-import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
+import {CrossChainRegistryOld} from "../../../src/contracts/CrossChainRegistryOld.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 
@@ -70,7 +70,6 @@ contract ExposedAdapter is BaseBridgeAdapter {
         return _encodeRelayedTransferParams(p);
     }
 
-
     function exposed_encodeRelayedMessageParamsWithType(
         BridgeTypes.RelayedMessageParams memory p
     ) external pure returns (bytes memory) {
@@ -82,7 +81,6 @@ contract ExposedAdapter is BaseBridgeAdapter {
     ) external pure returns (bytes memory) {
         return _encodeRelayedTransferParamsWithType(p);
     }
-
 }
 
 contract BaseBridgeAdapterCoreTest is Test {
@@ -90,7 +88,7 @@ contract BaseBridgeAdapterCoreTest is Test {
     address public user = address(0xB0B);
 
     ProtocolAccessManager public accessManager;
-    CrossChainRegistry public registry;
+    CrossChainRegistryOld public registry;
     ExposedAdapter public adapterA;
     ExposedAdapter public adapterB;
     ExposedAdapter public adapterB2;
@@ -101,7 +99,7 @@ contract BaseBridgeAdapterCoreTest is Test {
     function setUp() public {
         vm.startPrank(governor);
         accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistry(address(accessManager));
+        registry = new CrossChainRegistryOld(address(accessManager));
         adapterA = new ExposedAdapter(
             address(registry),
             address(accessManager)
@@ -361,5 +359,4 @@ contract BaseBridgeAdapterCoreTest is Test {
         assertEq(decoded.amount, p.amount);
         assertEq(decoded.message, p.message);
     }
-
 }

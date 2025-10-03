@@ -10,7 +10,7 @@ import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockHarborCommand} from "../../mocks/MockHarborCommand.sol";
-import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
+import {CrossChainRegistryOld} from "../../../src/contracts/CrossChainRegistryOld.sol";
 
 // Base test contract with common setup used by all Stargate adapter tests
 contract StargateAdapterSetupTest is TestHelperOz5 {
@@ -21,7 +21,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     // Chain A contracts
     StargateAdapter public adapterA;
     BridgeRouterTestHelper public routerA;
-    CrossChainRegistry public registryA;
+    CrossChainRegistryOld public registryA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
     MockStargateV2Pool public stargateA;
@@ -29,7 +29,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     // Chain B contracts
     StargateAdapter public adapterB;
     BridgeRouterTestHelper public routerB;
-    CrossChainRegistry public registryB;
+    CrossChainRegistryOld public registryB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
     MockStargateV2Pool public stargateB;
@@ -80,7 +80,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         stargateA = new MockStargateV2Pool(address(tokenA));
 
         accessManagerA = new ProtocolAccessManager(governor);
-        registryA = new CrossChainRegistry(address(accessManagerA));
+        registryA = new CrossChainRegistryOld(address(accessManagerA));
         harborCommandA = new MockHarborCommand();
         routerA = new BridgeRouterTestHelper(
             address(accessManagerA),
@@ -116,7 +116,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         stargateB = new MockStargateV2Pool(address(tokenB));
 
         accessManagerB = new ProtocolAccessManager(governor);
-        registryB = new CrossChainRegistry(address(accessManagerB));
+        registryB = new CrossChainRegistryOld(address(accessManagerB));
         harborCommandB = new MockHarborCommand();
         routerB = new BridgeRouterTestHelper(
             address(accessManagerB),
