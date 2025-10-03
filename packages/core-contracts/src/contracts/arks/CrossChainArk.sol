@@ -44,11 +44,8 @@ contract CrossChainArk is
     /// @notice The latest outgoing transfer ID
     bytes32 public latestOutgoingTransferId;
 
-    /// @notice The latest incoming transfer ID received from the satellite proxy
+    /// @notice The latest incoming transfer ID
     bytes32 public latestIncomingTransferId;
-
-    /// @notice The last amount sent in the latest outgoing transfer
-    uint256 public lastSentAmount;
 
     /// @notice Pending transfer params for the cross-chain transfer
     BridgeTypes.ExecuteTransferParams public pendingTransferParams;
@@ -93,7 +90,6 @@ contract CrossChainArk is
     /// in case of bridge failures or accounting discrepancies
     function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
         inflightAssets = amount;
-        lastSentAmount = amount;
         emit InflightSet(amount, bytes32(0));
     }
 
@@ -196,7 +192,6 @@ contract CrossChainArk is
         );
         // Set inflight before initiating the transfer
         inflightAssets = pendingTransferParams.amount;
-        lastSentAmount = pendingTransferParams.amount;
         bytes32 operationId = bridgeRouter.executeTransferAssets{
             value: msg.value
         }(pendingTransferParams, pendingTransferOptions);
@@ -302,9 +297,9 @@ contract CrossChainArk is
 
         // Reset inflight assets as the state read now reflects the current remote balance
         if (inflightAssets > 0) {
+            uint256 previous = inflightAssets;
             inflightAssets = 0;
-            emit InflightCleared(params.operationId, lastSentAmount);
-            lastSentAmount = 0;
+            emit InflightCleared(params.operationId, previous);
         }
     }
 

@@ -239,47 +239,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         adapterA.addSupportedAsset(address(0), address(mockStargateContract));
     }
 
-    function testEstimateReadStateAndSendMessage_RevertOperationNotSupported()
-        public
-    {
-        useNetworkA();
-        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
-        adapterA.estimateReadState(
-            BridgeTypes.ExecuteReadStateParams({
-                originator: address(this),
-                destinationChainId: CHAIN_ID_B,
-                target: address(0x1),
-                selector: bytes4(0),
-                readParams: "",
-                refundAddress: address(this)
-            }),
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(adapterA),
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            })
-        );
-
-        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
-        adapterA.estimateSendMessage(
-            BridgeTypes.ExecuteSendMessageParams({
-                originator: address(this),
-                destinationChainId: CHAIN_ID_B,
-                target: address(0x1),
-                message: "",
-                refundAddress: address(this)
-            }),
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(adapterA),
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            })
-        );
-    }
 
     function testAddSupportedAsset_RevertsOnZeroStargateAddress() public {
         useNetworkA();

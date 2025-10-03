@@ -54,8 +54,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     uint256 public constant NETWORK_A_CHAIN_ID = 31337;
     uint256 public constant NETWORK_B_CHAIN_ID = 31338;
 
-    // Shared read-channel threshold constant for unit tests
-    uint32 public constant READ_CHANNEL_THRESHOLD = 4294965694;
 
     function setUp() public virtual override {
         super.setUp();
