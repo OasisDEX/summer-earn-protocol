@@ -87,4 +87,10 @@ interface ICrossChainArk {
         bytes32 latestTransferReceivedInFleetProxy,
         bytes32 latestOutgoingTransferId
     );
+
+    /// @notice Emitted when a stale balance notification is rejected.
+    event StaleNotification(
+        uint256 receivedTimestamp,
+        uint256 lastTimestamp
+    );
 }

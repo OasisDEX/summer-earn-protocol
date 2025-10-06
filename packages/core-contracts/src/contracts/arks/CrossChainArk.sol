@@ -45,6 +45,9 @@ contract CrossChainArk is
     /// @notice The last amount sent in the latest outgoing transfer
     uint256 public lastSentAmount;
 
+    /// @notice Timestamp of the last processed balance notification
+    uint256 public lastNotificationTimestamp;
+
     /// @notice Pending transfer params for the cross-chain transfer
     BridgeTypes.ExecuteTransferParams public pendingTransferParams;
 
@@ -264,9 +267,9 @@ contract CrossChainArk is
             revert InvalidSourceChain();
         if (params.originator != _getTargetProxy()) revert InvalidSender();
 
-        // Decode the remote asset balance
-        (uint256 newRemoteBalance, bytes32 latestReceivedTransferId) = abi
-            .decode(params.message, (uint256, bytes32));
+        // Decode the remote asset balance with timestamp
+        (uint256 newRemoteBalance, bytes32 latestReceivedTransferId, uint256 timestamp) = abi
+            .decode(params.message, (uint256, bytes32, uint256));
         if (latestReceivedTransferId != latestOutgoingTransferId) {
             // we skip updating the remote balance if the transfer id (received in FleetProxy) is not the latest
             // sent by this Ark
@@ -276,6 +279,14 @@ contract CrossChainArk is
             );
             return;
         }
+        
+        // Reject stale notifications to prevent race conditions
+        if (timestamp < lastNotificationTimestamp) {
+            emit StaleNotification(timestamp, lastNotificationTimestamp);
+            return;
+        }
+        
+        lastNotificationTimestamp = timestamp;
 
         lastRemoteAssetBalance = newRemoteBalance;
         emit RemoteAssetBalanceUpdated(

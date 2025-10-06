@@ -48,14 +48,18 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 balance,
         uint16 sourceChainId,
         bytes32 latestOutgoingTransferId
-    ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
+    ) internal view returns (BridgeTypes.RelayedMessageParams memory) {
         return
             BridgeTypes.RelayedMessageParams({
                 operationId: operationId,
                 originator: originator,
                 sourceChainId: sourceChainId,
                 recipient: arkAddress,
-                message: abi.encode(balance, latestOutgoingTransferId)
+                message: abi.encode(
+                    balance,
+                    latestOutgoingTransferId,
+                    block.timestamp
+                )
             });
     }
 
@@ -849,5 +853,70 @@ contract CrossChainArkTest is Test, ArkTestBase {
             assetAfterExecution == address(0),
             "Transfer should have succeeded"
         );
+    }
+
+    function testStaleNotificationProtection() public {
+        uint256 initialBalance = 1000;
+        uint256 newBalance = 2000;
+        bytes32 requestId1 = keccak256("stale-test-1");
+        bytes32 requestId2 = keccak256("stale-test-2");
+
+        // First, set up a valid notification
+        BridgeTypes.RelayedMessageParams memory params1 = _encodeMessage(
+            requestId1,
+            address(proxy),
+            address(ark),
+            initialBalance,
+            TARGET_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
+        );
+
+        // Process the first notification
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params1)
+        );
+
+        assertEq(ark.lastRemoteAssetBalance(), initialBalance);
+        assertEq(ark.lastNotificationTimestamp(), block.timestamp);
+
+        // Now try to send a stale notification with an older timestamp
+        vm.warp(block.timestamp + 100); // Advance time
+
+        BridgeTypes.RelayedMessageParams memory params2 = _encodeMessage(
+            requestId2,
+            address(proxy),
+            address(ark),
+            newBalance,
+            TARGET_CHAIN_ID,
+            bytes32(0)
+        );
+
+        // Manually create a message with an older timestamp
+        bytes memory staleMessage = abi.encode(
+            newBalance,
+            bytes32(0),
+            block.timestamp - 50
+        );
+        params2.message = staleMessage;
+
+        // Expect the StaleNotification event
+        vm.expectEmit(true, true, true, true);
+        emit ICrossChainArk.StaleNotification(
+            block.timestamp - 50,
+            block.timestamp
+        );
+
+        // Process the stale notification - should be rejected
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params2)
+        );
+
+        // Verify the balance wasn't updated
+        assertEq(ark.lastRemoteAssetBalance(), initialBalance);
+        assertEq(ark.lastNotificationTimestamp(), block.timestamp);
     }
 }
