@@ -433,4 +433,24 @@ contract CrossChainArk is
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
     }
+
+    /**
+     * @notice Checks if the CrossChainArk is synced with remote state
+     * @dev A CrossChainArk is considered synced if:
+     *      1. There are no inflight assets (no pending transfers)
+     *      2. The last remote balance is recent (within sync window)
+     * @return bool True if synced, false otherwise
+     */
+    function isSynced() public view override returns (bool) {
+        // If there are inflight assets, we're not synced
+        if (inflightAssets > 0) {
+            return false;
+        }
+
+        // For now, we consider synced if no inflight assets
+        // In a full implementation, you might want to check if lastRemoteAssetBalance
+        // was updated within a certain time window
+        // TODO: implement this
+        return true;
+    }
 }

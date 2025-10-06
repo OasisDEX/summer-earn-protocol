@@ -87,4 +87,12 @@ interface IArk is
      * @dev the ark is withdrawable if it doesnt require keeper data and _isWithdrawable returns true
      */
     function withdrawableTotalAssets() external view returns (uint256);
+
+    /**
+     * @notice Checks if the Ark is synced with remote state
+     * @return bool True if the Ark is synced, false otherwise
+     * @dev For non-cross-chain Arks, this always returns true
+     * @dev For cross-chain Arks, this should be overridden to check sync status
+     */
+    function isSynced() external view returns (bool);
 }
