@@ -36,6 +36,9 @@ contract CrossChainArk is
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
 
+    /// @notice Timestamp when lastRemoteAssetBalance was last updated
+    uint256 public lastRemoteBalanceUpdateTime;
+
     /// @notice Amount of assets currently in-flight (being bridged)
     uint256 public inflightAssets;
 
@@ -50,6 +53,9 @@ contract CrossChainArk is
 
     /// @notice Pending transfer options for the cross-chain transfer
     BridgeTypes.BridgeOptions public pendingTransferOptions;
+
+    /// @notice Maximum time window for considering remote balance as "recent" (24 hours)
+    uint256 public constant SYNC_WINDOW = 24 hours;
 
     /// @notice Emitted when inflight is set for an outbound transfer
     event InflightSet(uint256 amount, bytes32 operationId);
@@ -90,6 +96,15 @@ contract CrossChainArk is
         inflightAssets = amount;
         lastSentAmount = amount;
         emit InflightSet(amount, bytes32(0));
+    }
+
+    /// @notice Set the latest outgoing transfer ID (for testing purposes)
+    /// @param transferId The transfer ID to set
+    /// @dev This function is only for testing and should be removed in production
+    function setLatestOutgoingTransferId(bytes32 transferId) external {
+        // Only allow in test environment
+        require(block.chainid == 31337, "Only for testing");
+        latestOutgoingTransferId = transferId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -278,6 +293,7 @@ contract CrossChainArk is
         }
 
         lastRemoteAssetBalance = newRemoteBalance;
+        lastRemoteBalanceUpdateTime = block.timestamp;
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
@@ -322,6 +338,7 @@ contract CrossChainArk is
         // Update the remote asset tracking
 
         lastRemoteAssetBalance = remoteBalance;
+        lastRemoteBalanceUpdateTime = block.timestamp;
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
@@ -447,10 +464,13 @@ contract CrossChainArk is
             return false;
         }
 
-        // For now, we consider synced if no inflight assets
-        // In a full implementation, you might want to check if lastRemoteAssetBalance
-        // was updated within a certain time window
-        // TODO: implement this
-        return true;
+        // Check if remote balance was updated within sync window
+        if (lastRemoteBalanceUpdateTime == 0) {
+            // Never received a remote balance update
+            return false;
+        }
+
+        // Check if the last update is within the sync window
+        return block.timestamp - lastRemoteBalanceUpdateTime <= SYNC_WINDOW;
     }
 }

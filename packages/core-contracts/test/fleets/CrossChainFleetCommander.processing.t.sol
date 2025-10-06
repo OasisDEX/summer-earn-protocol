@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {CrossChainFleetCommanderTestBase} from "./CrossChainFleetCommanderTestBase.sol";
 import {CrossChainFleetCommander} from "../../src/contracts/CrossChainFleetCommander.sol";
 import {ICrossChainFleetCommander} from "../../src/interfaces/ICrossChainFleetCommander.sol";
+import {ICrossChainFleetCommanderErrors} from "../../src/errors/ICrossChainFleetCommanderErrors.sol";
 import {AsyncOperation} from "../../src/types/CrossChainFleetCommanderTypes.sol";
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
@@ -70,7 +71,11 @@ contract CrossChainFleetCommanderProcessingTest is
 
         // Should not be able to process with unsynced Ark
         vm.prank(superkeeper);
-        vm.expectRevert("CrossChainFleetCommander: Not all Arks synced");
+        vm.expectRevert(
+            ICrossChainFleetCommanderErrors
+                .CrossChainFleetCommanderNotAllArksSynced
+                .selector
+        );
         crossChainFleetCommander.processAsyncOperations(1);
     }
 

@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {CrossChainFleetCommanderTestBase} from "./CrossChainFleetCommanderTestBase.sol";
 import {CrossChainFleetCommander} from "../../src/contracts/CrossChainFleetCommander.sol";
 import {ICrossChainFleetCommander} from "../../src/interfaces/ICrossChainFleetCommander.sol";
+import {ICrossChainFleetCommanderErrors} from "../../src/errors/ICrossChainFleetCommanderErrors.sol";
 import {AsyncOperation} from "../../src/types/CrossChainFleetCommanderTypes.sol";
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
@@ -183,7 +184,15 @@ contract CrossChainFleetCommanderAsyncOperationsTest is
         uint256 belowMinimum = MIN_QUEUE_AMOUNT - 1;
 
         vm.prank(asyncUser);
-        vm.expectRevert("CrossChainFleetCommander: Amount below minimum");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderAmountBelowMinimum
+                    .selector,
+                belowMinimum,
+                MIN_QUEUE_AMOUNT
+            )
+        );
         crossChainFleetCommander.queueDeposit(belowMinimum, asyncUser);
     }
 
@@ -191,7 +200,15 @@ contract CrossChainFleetCommanderAsyncOperationsTest is
         uint256 belowMinimum = MIN_QUEUE_AMOUNT - 1;
 
         vm.prank(asyncUser);
-        vm.expectRevert("CrossChainFleetCommander: Amount below minimum");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderAmountBelowMinimum
+                    .selector,
+                belowMinimum,
+                MIN_QUEUE_AMOUNT
+            )
+        );
         crossChainFleetCommander.queueWithdrawal(
             belowMinimum,
             asyncUser,
@@ -309,7 +326,15 @@ contract CrossChainFleetCommanderAsyncOperationsTest is
         setupAsyncUser(overflowUser, DEPOSIT_AMOUNT);
 
         vm.prank(overflowUser);
-        vm.expectRevert("CrossChainFleetCommander: Queue full");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderQueueFull
+                    .selector,
+                500, // current queue size
+                500 // max queue size
+            )
+        );
         crossChainFleetCommander.queueDeposit(MIN_QUEUE_AMOUNT, overflowUser);
     }
 
@@ -354,7 +379,16 @@ contract CrossChainFleetCommanderAsyncOperationsTest is
         );
 
         vm.prank(asyncUser2);
-        vm.expectRevert("CrossChainFleetCommander: Not your operation");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderNotYourOperation
+                    .selector,
+                operationId,
+                asyncUser2,
+                asyncUser
+            )
+        );
         crossChainFleetCommander.cancelOperation(operationId);
     }
 
@@ -372,7 +406,12 @@ contract CrossChainFleetCommanderAsyncOperationsTest is
         // Try to cancel processed operation
         vm.prank(asyncUser);
         vm.expectRevert(
-            "CrossChainFleetCommander: Operation already processed"
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderOperationAlreadyProcessedForCancellation
+                    .selector,
+                operationId
+            )
         );
         crossChainFleetCommander.cancelOperation(operationId);
     }

@@ -7,6 +7,7 @@ import {AsyncOperation, CrossChainFleetCommanderParams} from "../types/CrossChai
 import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+import {ICrossChainFleetCommanderErrors} from "../errors/ICrossChainFleetCommanderErrors.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
@@ -26,8 +27,7 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Error thrown when users try to use sync functions instead of async ones
-    error CrossChainFleetCommanderUseAsyncFunction(string message);
+    // Custom errors are now defined in ICrossChainFleetCommanderErrors.sol
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -89,10 +89,10 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
      * @dev This is the key MEV protection - operations only process when state is current
      */
     modifier allArksSynced() {
-        require(
-            areAllArksSynced(),
-            "CrossChainFleetCommander: Not all Arks synced"
-        );
+        if (!areAllArksSynced()) {
+            revert ICrossChainFleetCommanderErrors
+                .CrossChainFleetCommanderNotAllArksSynced();
+        }
         _;
     }
 
@@ -105,10 +105,13 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         uint256 assets,
         address receiver
     ) external whenNotPaused returns (uint256 operationId) {
-        require(
-            assets >= minQueueAmount,
-            "CrossChainFleetCommander: Amount below minimum"
-        );
+        if (assets < minQueueAmount) {
+            revert ICrossChainFleetCommanderErrors
+                .CrossChainFleetCommanderAmountBelowMinimum(
+                    assets,
+                    minQueueAmount
+                );
+        }
         _validateDeposit(assets, _msgSender());
 
         operationId = _queueOperation(
@@ -138,10 +141,13 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         address receiver,
         address owner
     ) external whenNotPaused returns (uint256 operationId) {
-        require(
-            assets >= minQueueAmount,
-            "CrossChainFleetCommander: Amount below minimum"
-        );
+        if (assets < minQueueAmount) {
+            revert ICrossChainFleetCommanderErrors
+                .CrossChainFleetCommanderAmountBelowMinimum(
+                    assets,
+                    minQueueAmount
+                );
+        }
         uint256 shares = previewWithdraw(assets);
         _validateWithdrawFromArks(assets, shares, owner);
 
@@ -249,14 +255,20 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     /// @inheritdoc ICrossChainFleetCommander
     function cancelOperation(uint256 operationId) external {
         AsyncOperation storage operation = asyncOperations[operationId];
-        require(
-            !operation.processed,
-            "CrossChainFleetCommander: Operation already processed"
-        );
-        require(
-            operation.user == _msgSender(),
-            "CrossChainFleetCommander: Not your operation"
-        );
+        if (operation.processed) {
+            revert ICrossChainFleetCommanderErrors
+                .CrossChainFleetCommanderOperationAlreadyProcessedForCancellation(
+                    operationId
+                );
+        }
+        if (operation.user != _msgSender()) {
+            revert ICrossChainFleetCommanderErrors
+                .CrossChainFleetCommanderNotYourOperation(
+                    operationId,
+                    _msgSender(),
+                    operation.user
+                );
+        }
 
         _cancelOperation(operationId);
         emit AsyncOperationCancelled(operationId, operation.user);
@@ -275,17 +287,23 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         AsyncOperation memory operation
     ) internal returns (uint256 operationId) {
         // Check queue size limit
-        require(
-            operationQueue.length < MAX_QUEUE_SIZE,
-            "CrossChainFleetCommander: Queue full"
-        );
+        if (operationQueue.length >= MAX_QUEUE_SIZE) {
+            revert ICrossChainFleetCommanderErrors
+                .CrossChainFleetCommanderQueueFull(
+                    operationQueue.length,
+                    MAX_QUEUE_SIZE
+                );
+        }
 
         // Check minimum amount for deposits and withdrawals
         if (operation.operationType == 0 || operation.operationType == 1) {
-            require(
-                operation.amount >= minQueueAmount,
-                "CrossChainFleetCommander: Amount below minimum"
-            );
+            if (operation.amount < minQueueAmount) {
+                revert ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderAmountBelowMinimum(
+                        operation.amount,
+                        minQueueAmount
+                    );
+            }
         }
 
         operationId = nextOperationId++;
@@ -300,10 +318,10 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
      */
     function _processOperation(uint256 operationId) external {
         AsyncOperation storage operation = asyncOperations[operationId];
-        require(
-            !operation.processed,
-            "CrossChainFleetCommander: Operation already processed"
-        );
+        if (operation.processed) {
+            revert ICrossChainFleetCommanderErrors
+                .CrossChainFleetCommanderOperationAlreadyProcessed(operationId);
+        }
 
         if (operation.operationType == 0) {
             // Deposit operation
@@ -508,9 +526,10 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         uint256 assets,
         address receiver
     ) public override(FleetCommander, IERC4626) returns (uint256 shares) {
-        revert CrossChainFleetCommanderUseAsyncFunction(
-            "Use queueDeposit() for async operations"
-        );
+        revert ICrossChainFleetCommanderErrors
+            .CrossChainFleetCommanderUseAsyncFunction(
+                "Use queueDeposit() for async operations"
+            );
     }
 
     /**
@@ -527,9 +546,10 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         override(FleetCommander, IFleetCommander)
         returns (uint256 shares)
     {
-        revert CrossChainFleetCommanderUseAsyncFunction(
-            "Use queueWithdrawal() for async operations"
-        );
+        revert ICrossChainFleetCommanderErrors
+            .CrossChainFleetCommanderUseAsyncFunction(
+                "Use queueWithdrawal() for async operations"
+            );
     }
 
     /**
@@ -546,8 +566,9 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         override(FleetCommander, IFleetCommander)
         returns (uint256 assets)
     {
-        revert CrossChainFleetCommanderUseAsyncFunction(
-            "Use queueRedemption() for async operations"
-        );
+        revert ICrossChainFleetCommanderErrors
+            .CrossChainFleetCommanderUseAsyncFunction(
+                "Use queueRedemption() for async operations"
+            );
     }
 }

@@ -8,6 +8,7 @@ import {console} from "forge-std/console.sol";
 import {UnsyncedArkMock} from "./CrossChainFleetCommanderTestBase.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {ICrossChainFleetCommanderErrors} from "../../src/errors/ICrossChainFleetCommanderErrors.sol";
 
 /**
  * @title CrossChainFleetCommander Sync Status Tests
@@ -142,7 +143,11 @@ contract CrossChainFleetCommanderSyncStatusTest is
 
         // Try to process operations with unsynced Ark
         vm.prank(superkeeper);
-        vm.expectRevert("CrossChainFleetCommander: Not all Arks synced");
+        vm.expectRevert(
+            ICrossChainFleetCommanderErrors
+                .CrossChainFleetCommanderNotAllArksSynced
+                .selector
+        );
         crossChainFleetCommander.processAsyncOperations(1);
     }
 
@@ -371,7 +376,11 @@ contract CrossChainFleetCommanderSyncStatusTest is
         assertFalse(areAllArksSynced(), "Should not be synced");
 
         vm.prank(superkeeper);
-        vm.expectRevert("CrossChainFleetCommander: Not all Arks synced");
+        vm.expectRevert(
+            ICrossChainFleetCommanderErrors
+                .CrossChainFleetCommanderNotAllArksSynced
+                .selector
+        );
         crossChainFleetCommander.processAsyncOperations(1);
 
         // Operations should remain queued

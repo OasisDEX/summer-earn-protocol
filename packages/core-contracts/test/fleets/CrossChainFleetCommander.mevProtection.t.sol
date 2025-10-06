@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {CrossChainFleetCommanderTestBase} from "./CrossChainFleetCommanderTestBase.sol";
 import {CrossChainFleetCommander} from "../../src/contracts/CrossChainFleetCommander.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {ICrossChainFleetCommanderErrors} from "../../src/errors/ICrossChainFleetCommanderErrors.sol";
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 
@@ -33,7 +34,7 @@ contract CrossChainFleetCommanderMevProtectionTest is
         vm.prank(asyncUser);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CrossChainFleetCommander
+                ICrossChainFleetCommanderErrors
                     .CrossChainFleetCommanderUseAsyncFunction
                     .selector,
                 "Use queueDeposit() for async operations"
@@ -46,7 +47,7 @@ contract CrossChainFleetCommanderMevProtectionTest is
         vm.prank(asyncUser);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CrossChainFleetCommander
+                ICrossChainFleetCommanderErrors
                     .CrossChainFleetCommanderUseAsyncFunction
                     .selector,
                 "Use queueWithdrawal() for async operations"
@@ -63,7 +64,7 @@ contract CrossChainFleetCommanderMevProtectionTest is
         vm.prank(asyncUser);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CrossChainFleetCommander
+                ICrossChainFleetCommanderErrors
                     .CrossChainFleetCommanderUseAsyncFunction
                     .selector,
                 "Use queueRedemption() for async operations"
@@ -112,7 +113,13 @@ contract CrossChainFleetCommanderMevProtectionTest is
 
         // Should not be able to process with unsynced Ark
         vm.prank(superkeeper);
-        vm.expectRevert("CrossChainFleetCommander: Not all Arks synced");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderNotAllArksSynced
+                    .selector
+            )
+        );
         crossChainFleetCommander.processAsyncOperations(1);
 
         // Operation should remain queued
@@ -157,7 +164,13 @@ contract CrossChainFleetCommanderMevProtectionTest is
 
         // Should not be able to process
         vm.prank(superkeeper);
-        vm.expectRevert("CrossChainFleetCommander: Not all Arks synced");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderNotAllArksSynced
+                    .selector
+            )
+        );
         crossChainFleetCommander.processAsyncOperations(1);
 
         // Set deposit cap to 0 and remove unsynced Ark
@@ -228,7 +241,13 @@ contract CrossChainFleetCommanderMevProtectionTest is
 
         // Try to process - should fail
         vm.prank(superkeeper);
-        vm.expectRevert("CrossChainFleetCommander: Not all Arks synced");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderNotAllArksSynced
+                    .selector
+            )
+        );
         crossChainFleetCommander.processAsyncOperations(1);
 
         // Set deposit cap to 0 and remove unsynced Ark to make all Arks synced
@@ -262,7 +281,13 @@ contract CrossChainFleetCommanderMevProtectionTest is
 
         // Should not be able to process any operations
         vm.prank(superkeeper);
-        vm.expectRevert("CrossChainFleetCommander: Not all Arks synced");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderNotAllArksSynced
+                    .selector
+            )
+        );
         crossChainFleetCommander.processAsyncOperations(10);
 
         // All operations should remain queued
@@ -405,7 +430,13 @@ contract CrossChainFleetCommanderMevProtectionTest is
 
         // Even superkeeper cannot process with unsynced Ark
         vm.prank(superkeeper);
-        vm.expectRevert("CrossChainFleetCommander: Not all Arks synced");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderNotAllArksSynced
+                    .selector
+            )
+        );
         crossChainFleetCommander.processAsyncOperations(1);
     }
 
@@ -448,7 +479,15 @@ contract CrossChainFleetCommanderMevProtectionTest is
         setupAsyncUser(spamUser, DEPOSIT_AMOUNT);
 
         vm.prank(spamUser);
-        vm.expectRevert("CrossChainFleetCommander: Queue full");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderQueueFull
+                    .selector,
+                500, // current size
+                500 // max size
+            )
+        );
         crossChainFleetCommander.queueDeposit(MIN_QUEUE_AMOUNT, spamUser);
     }
 
@@ -457,7 +496,15 @@ contract CrossChainFleetCommanderMevProtectionTest is
         uint256 dustAmount = 1; // 1 wei
 
         vm.prank(asyncUser);
-        vm.expectRevert("CrossChainFleetCommander: Amount below minimum");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderAmountBelowMinimum
+                    .selector,
+                dustAmount,
+                MIN_QUEUE_AMOUNT
+            )
+        );
         crossChainFleetCommander.queueDeposit(dustAmount, asyncUser);
 
         // For withdrawal, we need to first deposit some assets to make withdrawal possible
@@ -468,7 +515,15 @@ contract CrossChainFleetCommanderMevProtectionTest is
 
         // Now test withdrawal with dust amount
         vm.prank(asyncUser);
-        vm.expectRevert("CrossChainFleetCommander: Amount below minimum");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderAmountBelowMinimum
+                    .selector,
+                dustAmount,
+                MIN_QUEUE_AMOUNT
+            )
+        );
         crossChainFleetCommander.queueWithdrawal(
             dustAmount,
             asyncUser,
@@ -499,7 +554,13 @@ contract CrossChainFleetCommanderMevProtectionTest is
 
         // 4. Cannot process with unsynced Ark
         vm.prank(superkeeper);
-        vm.expectRevert("CrossChainFleetCommander: Not all Arks synced");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderNotAllArksSynced
+                    .selector
+            )
+        );
         crossChainFleetCommander.processAsyncOperations(2);
 
         // 5. Set deposit cap to 0 and remove unsynced Ark to allow processing
@@ -679,7 +740,13 @@ contract CrossChainFleetCommanderMevProtectionTest is
 
         // Cannot process with unsynced Ark
         vm.prank(superkeeper);
-        vm.expectRevert("CrossChainFleetCommander: Not all Arks synced");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderNotAllArksSynced
+                    .selector
+            )
+        );
         crossChainFleetCommander.processAsyncOperations(2);
 
         // Operations remain queued until sync
