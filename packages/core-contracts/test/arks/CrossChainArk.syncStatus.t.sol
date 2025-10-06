@@ -13,6 +13,7 @@ import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainReg
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
@@ -120,7 +121,7 @@ contract CrossChainArkSyncStatusTest is Test, TestHelpers {
             depositCap: 100000 * 10 ** 6,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false,
+            requiresKeeperData: true,
             maxDepositPercentageOfTVL: PERCENTAGE_1
         });
 
@@ -145,6 +146,32 @@ contract CrossChainArkSyncStatusTest is Test, TestHelpers {
             msgValue: 0,
             options: bytes("")
         });
+
+        // Set up FleetCommander manually
+        FleetCommanderParams
+            memory fleetCommanderParams = FleetCommanderParams({
+                accessManager: address(accessManager),
+                configurationManager: address(configurationManager),
+                initialMinimumBufferBalance: 10000 * 10 ** 6,
+                initialRebalanceCooldown: 1000,
+                asset: address(mockToken),
+                name: "TestFleet",
+                details: "TestArk details",
+                symbol: "TEST-SUM",
+                initialTipRate: PERCENTAGE_1,
+                depositCap: type(uint256).max
+            });
+        fleetCommander = new FleetCommander(fleetCommanderParams);
+
+        // Grant commander and keeper roles to FleetCommander
+        vm.prank(governor);
+        accessManager.grantCommanderRole(address(ark), address(fleetCommander));
+        vm.prank(governor);
+        accessManager.grantKeeperRole(address(ark), address(fleetCommander));
+
+        // Activate the Ark
+        vm.prank(governor);
+        fleetCommander.addArk(address(ark));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -382,8 +409,10 @@ contract CrossChainArkSyncStatusTest is Test, TestHelpers {
         // First, execute a real transfer to set the latestOutgoingTransferId
         uint256 amount = 1000 * 10 ** 6;
 
-        // Fund the ark with tokens
-        mockToken.mint(address(ark), amount);
+        // Fund the fleetCommander with tokens and approve the ark to spend them
+        mockToken.mint(address(fleetCommander), amount);
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), amount);
 
         // Create executeTransferParams for the board call
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
@@ -399,11 +428,11 @@ contract CrossChainArkSyncStatusTest is Test, TestHelpers {
         bytes memory executeTransferParams = abi.encode(params, defaultOptions);
 
         // Board the assets (this stores pending transfer params)
-        vm.prank(keeper);
+        vm.prank(address(fleetCommander));
         ark.board(amount, executeTransferParams);
 
         // Execute the transfer to set the transfer ID
-        vm.prank(keeper);
+        vm.prank(address(fleetCommander));
         ark.executeTransferAssets{value: 0}();
 
         // Now simulate a message with the same transfer ID that was set
