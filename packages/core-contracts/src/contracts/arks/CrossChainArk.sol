@@ -433,4 +433,29 @@ contract CrossChainArk is
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
     }
+
+    /**
+     * @notice Sweeps tokens from the CrossChainArk
+     * @dev Overrides the base Ark sweep function to prevent sweeping during pending transfers or inflight assets
+     * @param tokens The addresses of the tokens to sweep
+     * @return sweptTokens The addresses of the tokens that were swept
+     * @return sweptAmounts The amounts of the tokens that were swept
+     * @custom:security-considerations
+     * - Prevents sweeping when there are pending transfers or inflight assets
+     * - Ensures cross-chain transfer integrity by maintaining sufficient liquidity
+     */
+    function sweep(
+        address[] memory tokens
+    )
+        public
+        override
+        onlyRaft
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        // Prevent sweeping during pending transfers or inflight assets
+        _assertCanBoardOrDisembark();
+
+        // Call the parent sweep function
+        return super.sweep(tokens);
+    }
 }

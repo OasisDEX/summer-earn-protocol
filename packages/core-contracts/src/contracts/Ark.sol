@@ -92,7 +92,8 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     function sweep(
         address[] memory tokens
     )
-        external
+        public
+        virtual
         onlyRaft
         nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)

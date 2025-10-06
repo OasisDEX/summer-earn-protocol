@@ -20,7 +20,8 @@ import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAcces
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
-import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
+import {Raft} from "../../src/contracts/Raft.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
     event InflightCleared(bytes32 operationId, uint256 amount);
@@ -117,9 +118,21 @@ contract CrossChainArkTest is Test, ArkTestBase {
         vm.prank(governor);
         accessManager.grantCommanderRole(address(ark), address(fleetCommander));
 
+        // Grant curator role to curator for the fleet commander
+        vm.prank(governor);
+        accessManager.grantCuratorRole(address(fleetCommander), curator);
+
+        // Grant the ark authorization to board the buffer ark
+        vm.prank(governor);
+        accessManager.grantCommanderRole(address(fleetCommander), address(ark));
+
         // Activate the Ark
         vm.prank(governor);
         fleetCommander.addArk(address(ark));
+
+        // Approve the ark to spend its own tokens (needed for sweep function)
+        vm.prank(address(ark));
+        mockToken.approve(address(ark), type(uint256).max);
 
         // Deploy mock adapter
         mockAdapter = new MockAdapter(
@@ -849,5 +862,146 @@ contract CrossChainArkTest is Test, ArkTestBase {
             assetAfterExecution == address(0),
             "Transfer should have succeeded"
         );
+    }
+
+    function test_SweepPreventedDuringPendingTransfer() public {
+        // Setup: Create a different token (not the ark's main asset) to sweep
+        ERC20Mock otherToken = new ERC20Mock();
+        deal(address(otherToken), address(ark), 1000e18);
+
+        // Setup sweepable token in Raft
+        vm.prank(curator);
+        Raft(raft).setSweepableToken(address(ark), address(otherToken), true);
+
+        // Step 1: Queue a transfer (board) but don't execute it yet
+        uint256 transferAmount = 500e18;
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: TARGET_CHAIN_ID,
+                asset: address(mockToken),
+                amount: transferAmount,
+                target: proxy,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory executeTransferParams = abi.encode(params, options);
+
+        // Give FleetCommander tokens and approve ark to spend them
+        deal(address(mockToken), address(fleetCommander), transferAmount);
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), transferAmount);
+
+        // Board the transfer (this queues it but doesn't execute)
+        vm.prank(address(fleetCommander));
+        ark.board(transferAmount, executeTransferParams);
+
+        // Step 2: Try to sweep tokens while transfer is pending
+        address[] memory tokensToSweep = new address[](1);
+        tokensToSweep[0] = address(otherToken);
+
+        // This should revert because there's a pending transfer
+        vm.prank(address(raft));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainArk.PendingTransferAlreadyQueued.selector
+            )
+        );
+        ark.sweep(tokensToSweep);
+
+        // Step 3: Cancel the pending transfer
+        vm.prank(keeper);
+        ark.cancelPendingTransfer();
+
+        // Step 4: Now sweep should work
+        vm.prank(address(raft));
+        (address[] memory sweptTokens, uint256[] memory sweptAmounts) = ark
+            .sweep(tokensToSweep);
+
+        assertEq(sweptTokens.length, 1, "Should have swept 1 token");
+        assertEq(
+            sweptTokens[0],
+            address(otherToken),
+            "Should have swept otherToken"
+        );
+        assertGt(sweptAmounts[0], 0, "Should have swept some amount");
+    }
+
+    function test_SweepPreventedDuringInflightAssets() public {
+        // Setup: Create a different token (not the ark's main asset) to sweep
+        ERC20Mock otherToken = new ERC20Mock();
+        deal(address(otherToken), address(ark), 1000e18);
+
+        // Setup sweepable token in Raft
+        vm.prank(curator);
+        Raft(raft).setSweepableToken(address(ark), address(otherToken), true);
+
+        // Step 1: Queue and execute a transfer (this sets inflight assets)
+        uint256 transferAmount = 500e18;
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: TARGET_CHAIN_ID,
+                asset: address(mockToken),
+                amount: transferAmount,
+                target: proxy,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory executeTransferParams = abi.encode(params, options);
+
+        // Give FleetCommander tokens and approve ark to spend them
+        deal(address(mockToken), address(fleetCommander), transferAmount);
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), transferAmount);
+
+        // Board and execute the transfer
+        vm.prank(address(fleetCommander));
+        ark.board(transferAmount, executeTransferParams);
+
+        vm.prank(keeper);
+        ark.executeTransferAssets();
+
+        // Step 2: Try to sweep tokens while assets are inflight
+        address[] memory tokensToSweep = new address[](1);
+        tokensToSweep[0] = address(otherToken);
+
+        // This should revert because there are inflight assets
+        vm.prank(address(raft));
+        vm.expectRevert(
+            abi.encodeWithSelector(CrossChainArk.InFlight.selector)
+        );
+        ark.sweep(tokensToSweep);
+
+        // Step 3: Simulate clearing inflight assets (normally done by receiving a message)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(0);
+
+        // Step 4: Now sweep should work
+        vm.prank(address(raft));
+        (address[] memory sweptTokens, uint256[] memory sweptAmounts) = ark
+            .sweep(tokensToSweep);
+
+        assertEq(sweptTokens.length, 1, "Should have swept 1 token");
+        assertEq(
+            sweptTokens[0],
+            address(otherToken),
+            "Should have swept otherToken"
+        );
+        assertGt(sweptAmounts[0], 0, "Should have swept some amount");
     }
 }
