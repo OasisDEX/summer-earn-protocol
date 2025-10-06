@@ -10,17 +10,19 @@ import {BaseCrossChainRegistry} from "./BaseCrossChainRegistry.sol";
  *      Only supports bidirectional pair registrations and removals for security and consistency.
  */
 abstract contract AdapterCrossChainRegistry is BaseCrossChainRegistry {
+    /// @notice Constant for peer relationship type
+    bytes32 public constant PEER_RELATIONSHIP = keccak256("PEER_RELATIONSHIP");
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Initializes the AdapterCrossChainRegistry
-     * @param _accessManager Address of the access manager
      */
-    constructor(
-        address _accessManager
-    ) BaseCrossChainRegistry(_accessManager) {}
+    constructor(address) {
+        _addRelationshipType(PEER_RELATIONSHIP);
+    }
 
     /*//////////////////////////////////////////////////////////////
                     ADAPTER PEER PAIR RELATIONSHIP CONVENIENCE
@@ -132,18 +134,6 @@ abstract contract AdapterCrossChainRegistry is BaseCrossChainRegistry {
         )
     {
         return _getTargetsForSource(sourceAdapter, PEER_RELATIONSHIP);
-    }
-
-    /**
-     * @notice Get the first peer adapter for a given source adapter
-     * @param sourceAdapter Address of the source adapter
-     * @return targetAdapter Address of the target adapter
-     * @return targetChainId Chain ID where the target adapter is deployed
-     */
-    function getFirstAdapterPeer(
-        address sourceAdapter
-    ) external view returns (address targetAdapter, uint16 targetChainId) {
-        return _getTargetForSource(sourceAdapter, PEER_RELATIONSHIP);
     }
 
     /**

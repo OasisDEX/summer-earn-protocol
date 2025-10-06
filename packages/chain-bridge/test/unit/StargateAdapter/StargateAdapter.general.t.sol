@@ -20,7 +20,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
     function testSupportsChain_List_ReturnsConfiguredPeers() public view {
         // Get chains through registry relationships
-        (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
+        (, uint16[] memory supportedChains) = registryA.getAllTargetsForSource(
             address(adapterA),
             registryA.PEER_RELATIONSHIP()
         );
@@ -155,7 +155,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Verify it's in the list of supported chains (through registry relationships)
-        (, uint16[] memory targetChainIds) = registryA.getTargetsForSource(
+        (, uint16[] memory targetChainIds) = registryA.getAllTargetsForSource(
             address(adapterA),
             registryA.PEER_RELATIONSHIP()
         );
@@ -238,7 +238,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
         adapterA.addSupportedAsset(address(0), address(mockStargateContract));
     }
-
 
     function testAddSupportedAsset_RevertsOnZeroStargateAddress() public {
         useNetworkA();

@@ -9,17 +9,20 @@ import {BaseCrossChainRegistry} from "./BaseCrossChainRegistry.sol";
  * @dev Inherits from BaseCrossChainRegistry and provides executor-specific convenience functions
  */
 abstract contract ExecutorCrossChainRegistry is BaseCrossChainRegistry {
+    /// @notice Constant for executor relationship type
+    bytes32 public constant EXECUTOR_RELATIONSHIP =
+        keccak256("EXECUTOR_RELATIONSHIP");
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Initializes the ExecutorCrossChainRegistry
-     * @param _accessManager Address of the access manager
      */
-    constructor(
-        address _accessManager
-    ) BaseCrossChainRegistry(_accessManager) {}
+    constructor(address) {
+        _addRelationshipType(EXECUTOR_RELATIONSHIP);
+    }
 
     /*//////////////////////////////////////////////////////////////
                         EXECUTOR_RELATIONSHIP FUNCTIONS
@@ -114,59 +117,5 @@ abstract contract ExecutorCrossChainRegistry is BaseCrossChainRegistry {
                 EXECUTOR_RELATIONSHIP,
                 _currentChainId()
             );
-    }
-
-    /**
-     * @notice Batch register multiple executors
-     * @param executors Array of executor addresses to register
-     */
-    function batchRegisterExecutors(
-        address[] calldata executors
-    ) external onlyGovernor {
-        for (uint256 i = 0; i < executors.length; i++) {
-            _registerRelationship(
-                executors[i],
-                bridgeRouter,
-                _currentChainId(),
-                _currentChainId(),
-                EXECUTOR_RELATIONSHIP
-            );
-        }
-    }
-
-    /**
-     * @notice Batch remove multiple executors
-     * @param executors Array of executor addresses to remove
-     */
-    function batchRemoveExecutors(
-        address[] calldata executors
-    ) external onlyGovernor {
-        for (uint256 i = 0; i < executors.length; i++) {
-            _unregisterRelationship(
-                executors[i],
-                EXECUTOR_RELATIONSHIP,
-                _currentChainId()
-            );
-        }
-    }
-
-    /**
-     * @notice Check if multiple addresses are authorized executors
-     * @param executors Array of addresses to check
-     * @return results Array of boolean results indicating authorization status
-     */
-    function batchCheckExecutors(
-        address[] calldata executors
-    ) external view returns (bool[] memory results) {
-        results = new bool[](executors.length);
-        for (uint256 i = 0; i < executors.length; i++) {
-            results[i] = _isValidCrossChainPair(
-                executors[i],
-                bridgeRouter,
-                _currentChainId(),
-                _currentChainId(),
-                EXECUTOR_RELATIONSHIP
-            );
-        }
     }
 }

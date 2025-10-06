@@ -9,7 +9,17 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
  * @title BaseCrossChainRegistry
  * @notice Abstract base contract for managing cross-chain relationships between different contract types
  * @dev Provides core functionality for cross-chain relationship management with internal methods
- * that can be extended by specialized registry contracts
+ *      that can be extended by specialized registry contracts.
+ *
+ *      RELATIONSHIP CARDINALITY:
+ *      - Source contracts can have multiple target contracts across different chains (1 to N)
+ *      - Each source-target relationship is unique per chain and relationship type (1 to 1 per chain)
+ *      - Relationship types define the nature of the connection (PEER_RELATIONSHIP, EXECUTOR_RELATIONSHIP)
+ *
+ *      KEY STRUCTURES:
+ *      - crossChainRelations: Maps relationship keys to full relationship data
+ *      - registeredSourceContracts: Tracks which contracts are registered as sources per relationship type
+ *      - sourceToTargetChains: Maps source contracts to their target chain IDs for efficient enumeration
  */
 abstract contract BaseCrossChainRegistry is
     ICrossChainRegistry,
@@ -25,20 +35,27 @@ abstract contract BaseCrossChainRegistry is
     uint16 private immutable CURRENT_CHAIN_ID;
 
     /// @notice Mapping from relationship key to relationship information
-    /// Key: keccak256(abi.encode(sourceContract, relationshipType, targetChainId))
-    mapping(bytes32 => CrossChainRelation) internal crossChainRelations;
+    /// @dev Key: keccak256(abi.encode(sourceContract, relationshipType, targetChainId))
+    ///      Value: Complete relationship data including source, target, chain IDs, and relationship type
+    mapping(bytes32 relationshipKey => CrossChainRelation relationshipData)
+        internal crossChainRelations;
 
-    /// @notice Mapping from target key to source contract address
-    /// Key: keccak256(abi.encode(sourceChainId, targetChainId, targetContract, relationshipType))
-    mapping(bytes32 => address) private targetToSource;
+    /// @notice Mapping from target key to source contract address for reverse lookups
+    /// @dev Key: keccak256(abi.encode(sourceChainId, targetChainId, targetContract, relationshipType))
+    ///      Value: Source contract address that has a relationship with the target
+    mapping(bytes32 targetKey => address sourceContract) private targetToSource;
 
     /// @notice EnumerableSet of all registered source contracts per relationship type
-    mapping(bytes32 => EnumerableSet.AddressSet)
+    /// @dev Key: relationshipType (bytes32)
+    ///      Value: Set of source contract addresses registered for this relationship type
+    mapping(bytes32 relationshipType => EnumerableSet.AddressSet sourceContracts)
         private registeredSourceContracts;
 
     /// @notice Mapping to track all target chain IDs for each source contract and relationship type
-    /// Key: keccak256(abi.encode(sourceContract, relationshipType))
-    mapping(bytes32 => uint16[]) internal sourceToTargetChains;
+    /// @dev Key: keccak256(abi.encode(sourceContract, relationshipType))
+    ///      Value: Array of target chain IDs where the source contract has relationships
+    mapping(bytes32 sourceTrackingKey => uint16[] targetChainIds)
+        internal sourceToTargetChains;
 
     /// @notice Array of supported relationship types
     bytes32[] private supportedRelationshipTypes;
@@ -48,11 +65,6 @@ abstract contract BaseCrossChainRegistry is
 
     /// @notice The bridge router contract address
     address public bridgeRouter;
-
-    /// @notice Constants for relationship types
-    bytes32 public constant PEER_RELATIONSHIP = keccak256("PEER_RELATIONSHIP");
-    bytes32 public constant EXECUTOR_RELATIONSHIP =
-        keccak256("EXECUTOR_RELATIONSHIP");
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -64,9 +76,6 @@ abstract contract BaseCrossChainRegistry is
      */
     constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {
         CURRENT_CHAIN_ID = uint16(block.chainid);
-
-        _addRelationshipType(PEER_RELATIONSHIP);
-        _addRelationshipType(EXECUTOR_RELATIONSHIP);
 
         emit RegistryInitialized(uint16(block.chainid));
     }
@@ -262,58 +271,6 @@ abstract contract BaseCrossChainRegistry is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Internal function to get target for source
-     * @param sourceContract The address of the source contract
-     * @param relationshipType The type of relationship
-     * @return targetContract The address of the target contract
-     * @return targetChainId The chain ID where the target contract is deployed
-     */
-    function _getTargetForSource(
-        address sourceContract,
-        bytes32 relationshipType
-    ) internal view returns (address targetContract, uint16 targetChainId) {
-        if (
-            !registeredSourceContracts[relationshipType].contains(
-                sourceContract
-            )
-        ) {
-            revert RelationshipDoesNotExist(
-                sourceContract,
-                relationshipType,
-                0
-            );
-        }
-
-        // Get the first registered target chain for this source contract and relationship type
-        // Note: Returns only the first relationship found, not necessarily all relationships
-        bytes32 sourceTrackingKey = _getSourceTrackingKey(
-            sourceContract,
-            relationshipType
-        );
-        uint16[] memory targetChains = sourceToTargetChains[sourceTrackingKey];
-
-        if (targetChains.length == 0) {
-            revert RelationshipDoesNotExist(
-                sourceContract,
-                relationshipType,
-                0
-            );
-        }
-
-        uint16 firstTargetChainId = targetChains[0];
-        bytes32 relationshipKey = _getRelationshipKey(
-            sourceContract,
-            relationshipType,
-            firstTargetChainId
-        );
-
-        CrossChainRelation memory relation = crossChainRelations[
-            relationshipKey
-        ];
-        return (relation.targetContract, relation.targetChainId);
-    }
-
-    /**
      * @notice Internal function to get source for target
      * @param sourceChainId The chain ID of the source chain
      * @param targetChainId The chain ID of the target chain
@@ -366,18 +323,13 @@ abstract contract BaseCrossChainRegistry is
             targetChainId
         );
 
-        if (
-            !registeredSourceContracts[relationshipType].contains(
-                sourceContract
-            )
-        ) {
-            return false;
-        }
-
         CrossChainRelation memory relation = crossChainRelations[
             relationshipKey
         ];
-        return (relation.targetContract == targetContract &&
+
+        // Check if relationship exists and matches the provided parameters
+        return (relation.sourceContract != address(0) &&
+            relation.targetContract == targetContract &&
             relation.sourceChainId == sourceChainId &&
             relation.targetChainId == targetChainId);
     }
@@ -411,6 +363,33 @@ abstract contract BaseCrossChainRegistry is
     }
 
     /**
+     * @notice Internal function to get all relationships for a source contract
+     * @param sourceContract The address of the source contract
+     * @param relationshipType The type of relationship
+     * @return relationships Array of all relationships for the source contract
+     */
+    function _getRelationships(
+        address sourceContract,
+        bytes32 relationshipType
+    ) internal view returns (CrossChainRelation[] memory relationships) {
+        uint16[] memory targetChains = _getTargetChains(
+            sourceContract,
+            relationshipType
+        );
+
+        relationships = new CrossChainRelation[](targetChains.length);
+
+        for (uint256 i = 0; i < targetChains.length; i++) {
+            bytes32 relationshipKey = _getRelationshipKey(
+                sourceContract,
+                relationshipType,
+                targetChains[i]
+            );
+            relationships[i] = crossChainRelations[relationshipKey];
+        }
+    }
+
+    /**
      * @notice Internal function to get targets for source
      * @param sourceContract The address of the source contract
      * @param relationshipType The type of relationship
@@ -428,26 +407,17 @@ abstract contract BaseCrossChainRegistry is
             uint16[] memory targetChainIds
         )
     {
-        bytes32 sourceTrackingKey = _getSourceTrackingKey(
+        CrossChainRelation[] memory relationships = _getRelationships(
             sourceContract,
             relationshipType
         );
-        uint16[] memory targetChains = sourceToTargetChains[sourceTrackingKey];
 
-        targetContracts = new address[](targetChains.length);
-        targetChainIds = new uint16[](targetChains.length);
+        targetContracts = new address[](relationships.length);
+        targetChainIds = new uint16[](relationships.length);
 
-        for (uint256 i = 0; i < targetChains.length; i++) {
-            bytes32 relationshipKey = _getRelationshipKey(
-                sourceContract,
-                relationshipType,
-                targetChains[i]
-            );
-            CrossChainRelation memory relation = crossChainRelations[
-                relationshipKey
-            ];
-            targetContracts[i] = relation.targetContract;
-            targetChainIds[i] = relation.targetChainId;
+        for (uint256 i = 0; i < relationships.length; i++) {
+            targetContracts[i] = relationships[i].targetContract;
+            targetChainIds[i] = relationships[i].targetChainId;
         }
     }
 
@@ -566,6 +536,23 @@ abstract contract BaseCrossChainRegistry is
     }
 
     /**
+     * @notice Get target chain IDs for a source contract and relationship type
+     * @param sourceContract The source contract address
+     * @param relationshipType The relationship type
+     * @return targetChainIds Array of target chain IDs
+     */
+    function _getTargetChains(
+        address sourceContract,
+        bytes32 relationshipType
+    ) internal view returns (uint16[] memory targetChainIds) {
+        bytes32 sourceTrackingKey = _getSourceTrackingKey(
+            sourceContract,
+            relationshipType
+        );
+        return sourceToTargetChains[sourceTrackingKey];
+    }
+
+    /**
      * @notice Add a new relationship type to the registry
      * @param relationshipType The relationship type to add
      */
@@ -621,7 +608,7 @@ abstract contract BaseCrossChainRegistry is
         uint16 sourceChainId,
         uint16 targetChainId,
         bytes32 relationshipType
-    ) public onlyGovernor {
+    ) external onlyGovernor {
         _registerRelationship(
             sourceContract,
             targetContract,
@@ -636,7 +623,7 @@ abstract contract BaseCrossChainRegistry is
         address sourceContract,
         bytes32 relationshipType,
         uint16 targetChainId
-    ) public onlyGovernor {
+    ) external onlyGovernor {
         _unregisterRelationship(
             sourceContract,
             relationshipType,
@@ -658,20 +645,12 @@ abstract contract BaseCrossChainRegistry is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ICrossChainRegistry
-    function getTargetForSource(
-        address sourceContract,
-        bytes32 relationshipType
-    ) public view returns (address targetContract, uint16 targetChainId) {
-        return _getTargetForSource(sourceContract, relationshipType);
-    }
-
-    /// @inheritdoc ICrossChainRegistry
     function getSourceForTarget(
         uint16 sourceChainId,
         uint16 targetChainId,
         address targetContract,
         bytes32 relationshipType
-    ) public view returns (address sourceContract) {
+    ) external view returns (address sourceContract) {
         return
             _getSourceForTarget(
                 sourceChainId,
@@ -688,7 +667,7 @@ abstract contract BaseCrossChainRegistry is
         uint16 sourceChainId,
         uint16 targetChainId,
         bytes32 relationshipType
-    ) public view returns (bool isValid) {
+    ) external view returns (bool isValid) {
         return
             _isValidCrossChainPair(
                 sourceContract,
@@ -704,23 +683,12 @@ abstract contract BaseCrossChainRegistry is
         address sourceContract,
         bytes32 relationshipType
     ) external view returns (CrossChainRelation memory relation) {
-        if (!_isSourceContractRegistered(sourceContract, relationshipType)) {
-            revert RelationshipDoesNotExist(
-                sourceContract,
-                relationshipType,
-                0
-            );
-        }
-
-        // Get the first registered target chain for this source contract and relationship type
-        // Note: Returns only the first relationship found, not necessarily all relationships
-        bytes32 sourceTrackingKey = _getSourceTrackingKey(
+        CrossChainRelation[] memory relationships = _getRelationships(
             sourceContract,
             relationshipType
         );
-        uint16[] memory targetChains = sourceToTargetChains[sourceTrackingKey];
 
-        if (targetChains.length == 0) {
+        if (relationships.length == 0) {
             revert RelationshipDoesNotExist(
                 sourceContract,
                 relationshipType,
@@ -728,22 +696,16 @@ abstract contract BaseCrossChainRegistry is
             );
         }
 
-        uint16 firstTargetChainId = targetChains[0];
-        bytes32 relationshipKey = _getRelationshipKey(
-            sourceContract,
-            relationshipType,
-            firstTargetChainId
-        );
-
-        return crossChainRelations[relationshipKey];
+        // Return the first relationship found
+        return relationships[0];
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function getTargetsForSource(
+    function getAllTargetsForSource(
         address sourceContract,
         bytes32 relationshipType
     )
-        public
+        external
         view
         returns (
             address[] memory targetContracts,

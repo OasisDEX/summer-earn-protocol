@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {AdapterCrossChainRegistry} from "./AdapterCrossChainRegistry.sol";
 import {ExecutorCrossChainRegistry} from "./ExecutorCrossChainRegistry.sol";
+import {BaseCrossChainRegistry} from "./BaseCrossChainRegistry.sol";
 
 /**
  * @title CrossChainRegistry
@@ -11,6 +12,7 @@ import {ExecutorCrossChainRegistry} from "./ExecutorCrossChainRegistry.sol";
  * to provide a complete cross-chain relationship management system
  */
 contract CrossChainRegistry is
+    BaseCrossChainRegistry,
     AdapterCrossChainRegistry,
     ExecutorCrossChainRegistry
 {
@@ -25,7 +27,10 @@ contract CrossChainRegistry is
     constructor(
         address _accessManager
     )
+        BaseCrossChainRegistry(_accessManager)
         AdapterCrossChainRegistry(_accessManager)
         ExecutorCrossChainRegistry(_accessManager)
-    {}
+    {
+        // All constructors are called to initialize relationship types
+    }
 }

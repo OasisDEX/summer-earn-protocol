@@ -19,7 +19,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
     function testGetSupportedChains() public view {
         // Get chains through registry relationships
-        (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
+        (, uint16[] memory supportedChains) = registryA.getAllTargetsForSource(
             address(adapterA),
             registryA.PEER_RELATIONSHIP()
         );

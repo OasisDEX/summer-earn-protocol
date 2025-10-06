@@ -144,52 +144,6 @@ contract CrossChainRegistryOld is ICrossChainRegistry, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ICrossChainRegistry
-    function getTargetForSource(
-        address sourceContract,
-        bytes32 relationshipType
-    ) public view returns (address targetContract, uint16 targetChainId) {
-        if (
-            !registeredSourceContracts[relationshipType].contains(
-                sourceContract
-            )
-        ) {
-            revert RelationshipDoesNotExist(
-                sourceContract,
-                relationshipType,
-                0
-            );
-        }
-
-        // Get the first registered target chain for this source contract and relationship type
-        // Note: Returns only the first relationship found, not necessarily all relationships
-        bytes32 sourceTrackingKey = _getSourceTrackingKey(
-            sourceContract,
-            relationshipType
-        );
-        uint16[] memory targetChains = sourceToTargetChains[sourceTrackingKey];
-
-        if (targetChains.length == 0) {
-            revert RelationshipDoesNotExist(
-                sourceContract,
-                relationshipType,
-                0
-            );
-        }
-
-        uint16 firstTargetChainId = targetChains[0];
-        bytes32 relationshipKey = _getRelationshipKey(
-            sourceContract,
-            relationshipType,
-            firstTargetChainId
-        );
-
-        CrossChainRelation memory relation = crossChainRelations[
-            relationshipKey
-        ];
-        return (relation.targetContract, relation.targetChainId);
-    }
-
-    /// @inheritdoc ICrossChainRegistry
     function getSourceForTarget(
         uint16 sourceChainId,
         uint16 targetChainId,
@@ -287,7 +241,7 @@ contract CrossChainRegistryOld is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function getTargetsForSource(
+    function getAllTargetsForSource(
         address sourceContract,
         bytes32 relationshipType
     )
