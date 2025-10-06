@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {CrossChainRegistryOld} from "../../../src/contracts/CrossChainRegistryOld.sol";
+import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {LayerZeroAdapterTestHelper} from "../../helpers/LayerZeroAdapterTestHelper.sol";
@@ -18,7 +18,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
     // Contracts
     LayerZeroAdapterTestHelper public layerZeroAdapter;
     BridgeRouterTestHelper public router;
-    CrossChainRegistryOld public registry;
+    CrossChainRegistry public registry;
     ProtocolAccessManager public accessManager;
 
     // Test addresses
@@ -61,7 +61,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         accessManager = new ProtocolAccessManager(governor);
 
         // Deploy registry
-        registry = new CrossChainRegistryOld(address(accessManager));
+        registry = new CrossChainRegistry(address(accessManager));
 
         // Configure roles
         vm.startPrank(governor);

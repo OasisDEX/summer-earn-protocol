@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import {Test} from "forge-std/Test.sol";
 import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
 
-import {CrossChainRegistryOld} from "../../../src/contracts/CrossChainRegistryOld.sol";
+import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
 
 import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {MockFleetProxy} from "../../mocks/MockFleetProxy.sol";
@@ -41,8 +41,8 @@ contract StargateAdapterComposeForkTest is Test {
     StargateAdapter adapterArbitrum;
     BridgeRouterTestHelper routerMainnet;
     BridgeRouterTestHelper routerArbitrum;
-    CrossChainRegistryOld registryMainnet;
-    CrossChainRegistryOld registryArbitrum;
+    CrossChainRegistry registryMainnet;
+    CrossChainRegistry registryArbitrum;
     MockFleetProxy fleetProxyArbitrum;
     MockStargateV2Pool mockStargateMainnet;
     MockStargateV2Pool mockStargateArbitrum;
@@ -71,7 +71,7 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Deploy and initialize CrossChainRegistry for mainnet
-        registryMainnet = new CrossChainRegistryOld(address(accessManager));
+        registryMainnet = new CrossChainRegistry(address(accessManager));
 
         routerMainnet = new BridgeRouterTestHelper(
             address(accessManager),
@@ -118,7 +118,7 @@ contract StargateAdapterComposeForkTest is Test {
             governor
         );
 
-        registryArbitrum = new CrossChainRegistryOld(address(accessManagerArb));
+        registryArbitrum = new CrossChainRegistry(address(accessManagerArb));
 
         routerArbitrum = new BridgeRouterTestHelper(
             address(accessManagerArb),

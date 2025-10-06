@@ -6,7 +6,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
-import {CrossChainRegistryOld} from "../../../src/contracts/CrossChainRegistryOld.sol";
+import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 
@@ -88,7 +88,7 @@ contract BaseBridgeAdapterCoreTest is Test {
     address public user = address(0xB0B);
 
     ProtocolAccessManager public accessManager;
-    CrossChainRegistryOld public registry;
+    CrossChainRegistry public registry;
     ExposedAdapter public adapterA;
     ExposedAdapter public adapterB;
     ExposedAdapter public adapterB2;
@@ -99,7 +99,7 @@ contract BaseBridgeAdapterCoreTest is Test {
     function setUp() public {
         vm.startPrank(governor);
         accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistryOld(address(accessManager));
+        registry = new CrossChainRegistry(address(accessManager));
         adapterA = new ExposedAdapter(
             address(registry),
             address(accessManager)

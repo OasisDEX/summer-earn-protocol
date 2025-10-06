@@ -7,7 +7,7 @@ import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {MockAdapter} from "../../mocks/MockAdapter.sol";
 import {MockCrossChainReceiver} from "../../mocks/MockCrossChainReceiver.sol";
 
-import {CrossChainRegistryOld} from "../../../src/contracts/CrossChainRegistryOld.sol";
+import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -22,7 +22,7 @@ contract BridgeRouterSetup is Test {
     /* ────────────────  Core contracts & mocks  ──────────────── */
     BridgeRouterTestHelper public router;
     ProtocolAccessManager public accessManager;
-    CrossChainRegistryOld public registry;
+    CrossChainRegistry public registry;
 
     MockAdapter public mockAdapter; // CURRENT_CHAIN_ID adapter
     MockAdapter public mockAdapterDest; // DEST_CHAIN_ID adapter
@@ -55,7 +55,7 @@ contract BridgeRouterSetup is Test {
     function setUp() public virtual {
         /* --------- Access manager & registry --------- */
         accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistryOld(address(accessManager));
+        registry = new CrossChainRegistry(address(accessManager));
 
         /* --------- BridgeRouter (test helper) --------- */
         vm.startPrank(governor);

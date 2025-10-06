@@ -5,7 +5,7 @@ import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
-import {CrossChainRegistryOld} from "../../../src/contracts/CrossChainRegistryOld.sol";
+import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract MinimalAdapter is BaseBridgeAdapter {
@@ -34,7 +34,7 @@ contract BaseBridgeAdapterSweepTest is Test {
     address public user = address(0xB0B);
     ERC20Mock public token;
     ProtocolAccessManager public accessManager;
-    CrossChainRegistryOld public registry;
+    CrossChainRegistry public registry;
     MinimalAdapter public adapter;
 
     event TokensRecovered(
@@ -47,7 +47,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         vm.startPrank(governor);
         token = new ERC20Mock();
         accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistryOld(address(accessManager));
+        registry = new CrossChainRegistry(address(accessManager));
         adapter = new MinimalAdapter(address(registry), address(accessManager));
         vm.stopPrank();
     }
