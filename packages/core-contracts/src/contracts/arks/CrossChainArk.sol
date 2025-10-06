@@ -98,15 +98,6 @@ contract CrossChainArk is
         emit InflightSet(amount, bytes32(0));
     }
 
-    /// @notice Set the latest outgoing transfer ID (for testing purposes)
-    /// @param transferId The transfer ID to set
-    /// @dev This function is only for testing and should be removed in production
-    function setLatestOutgoingTransferId(bytes32 transferId) external {
-        // Only allow in test environment
-        require(block.chainid == 31337, "Only for testing");
-        latestOutgoingTransferId = transferId;
-    }
-
     /*//////////////////////////////////////////////////////////////
                         PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/

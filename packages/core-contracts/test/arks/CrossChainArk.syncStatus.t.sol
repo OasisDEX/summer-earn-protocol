@@ -379,11 +379,36 @@ contract CrossChainArkSyncStatusTest is Test, TestHelpers {
     }
 
     function testIsSyncedWithValidTransferId() public {
-        // First, set a valid outgoing transfer ID
-        ark.setLatestOutgoingTransferId(bytes32(uint256(123)));
+        // First, execute a real transfer to set the latestOutgoingTransferId
+        uint256 amount = 1000 * 10 ** 6;
 
-        // Simulate message with matching transfer ID
-        _simulateMessageWithTransferId(1000 * 10 ** 6, bytes32(uint256(123)));
+        // Fund the ark with tokens
+        mockToken.mint(address(ark), amount);
+
+        // Create executeTransferParams for the board call
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: TARGET_CHAIN_ID,
+                asset: address(mockToken),
+                amount: amount,
+                target: proxy,
+                originator: address(ark),
+                refundAddress: keeper,
+                message: ""
+            });
+        bytes memory executeTransferParams = abi.encode(params, defaultOptions);
+
+        // Board the assets (this stores pending transfer params)
+        vm.prank(keeper);
+        ark.board(amount, executeTransferParams);
+
+        // Execute the transfer to set the transfer ID
+        vm.prank(keeper);
+        ark.executeTransferAssets{value: 0}();
+
+        // Now simulate a message with the same transfer ID that was set
+        bytes32 transferId = ark.latestOutgoingTransferId();
+        _simulateMessageWithTransferId(1000 * 10 ** 6, transferId);
 
         assertTrue(ark.isSynced(), "Should be synced with valid transfer ID");
         assertEq(
