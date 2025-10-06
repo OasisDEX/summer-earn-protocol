@@ -127,6 +127,7 @@ contract FleetCommander is
         address owner
     )
         public
+        virtual
         override(ERC4626, IFleetCommander)
         collectTip
         useCache
@@ -175,6 +176,7 @@ contract FleetCommander is
         address owner
     )
         public
+        virtual
         override(ERC4626, IFleetCommander)
         collectTip
         useCache
@@ -212,11 +214,7 @@ contract FleetCommander is
 
         _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
 
-        _forceDisembarkFromSortedArks(assets);
-        _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
-        _resetLastActionTimestamp();
-
-        emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
+        return _internalWithdraw(assets, receiver, owner, _msgSender());
     }
 
     /// @inheritdoc IFleetCommander
@@ -234,11 +232,7 @@ contract FleetCommander is
     {
         _validateRedeemFromArks(shares, owner);
 
-        totalAssetsToWithdraw = previewRedeem(shares);
-        _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
-        _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
-        _resetLastActionTimestamp();
-        emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
+        return _internalRedeem(shares, receiver, owner, _msgSender());
     }
 
     /// @inheritdoc IERC4626
@@ -247,6 +241,7 @@ contract FleetCommander is
         address receiver
     )
         public
+        virtual
         override(ERC4626, IERC4626)
         collectTip
         useCache
@@ -254,18 +249,7 @@ contract FleetCommander is
         returns (uint256 shares)
     {
         _validateDeposit(assets, _msgSender());
-
-        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
-
-        shares = previewDeposit(assets);
-        _deposit(_msgSender(), receiver, assets, shares);
-        _board(address(config.bufferArk), assets);
-
-        emit FundsBufferBalanceUpdated(
-            _msgSender(),
-            previousFundsBufferBalance,
-            config.bufferArk.totalAssets()
-        );
+        return _internalDeposit(assets, receiver, _msgSender());
     }
 
     /// @inheritdoc IFleetCommander
@@ -342,6 +326,7 @@ contract FleetCommander is
     function totalAssets()
         public
         view
+        virtual
         override(IFleetCommander, ERC4626)
         returns (uint256)
     {
@@ -550,6 +535,77 @@ contract FleetCommander is
     function _board(address ark, uint256 amount) internal {
         IERC20(asset()).forceApprove(ark, amount);
         IArk(ark).board(amount, bytes(""));
+    }
+
+    /**
+     * @notice Internal deposit method that performs the core deposit logic
+     * @param assets The amount of assets to deposit
+     * @param receiver The address to receive the shares
+     * @param user The address of the user making the deposit
+     * @return shares The number of shares minted
+     */
+    function _internalDeposit(
+        uint256 assets,
+        address receiver,
+        address user
+    ) internal returns (uint256 shares) {
+        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
+
+        shares = previewDeposit(assets);
+        _deposit(user, receiver, assets, shares);
+        _board(address(config.bufferArk), assets);
+
+        emit FundsBufferBalanceUpdated(
+            user,
+            previousFundsBufferBalance,
+            config.bufferArk.totalAssets()
+        );
+    }
+
+    /**
+     * @notice Internal withdrawal method that performs the core withdrawal logic
+     * @param assets The amount of assets to withdraw
+     * @param receiver The address to receive the assets
+     * @param owner The address of the owner of the shares
+     * @param caller The address of the caller (for authorization context)
+     * @return shares The number of shares redeemed
+     */
+    function _internalWithdraw(
+        uint256 assets,
+        address receiver,
+        address owner,
+        address caller
+    ) internal returns (uint256 shares) {
+        shares = previewWithdraw(assets);
+
+        _getWithdrawableArksData(config.bufferArk);
+        _forceDisembarkFromSortedArks(assets);
+        _withdraw(caller, receiver, owner, assets, shares);
+        _resetLastActionTimestamp();
+
+        emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
+    }
+
+    /**
+     * @notice Internal redemption method that performs the core redemption logic
+     * @param shares The number of shares to redeem
+     * @param receiver The address to receive the assets
+     * @param owner The address of the owner of the shares
+     * @param caller The address of the caller (for authorization context)
+     * @return assets The amount of assets withdrawn
+     */
+    function _internalRedeem(
+        uint256 shares,
+        address receiver,
+        address owner,
+        address caller
+    ) internal returns (uint256 assets) {
+        assets = previewRedeem(shares);
+        _getWithdrawableArksData(config.bufferArk);
+        _forceDisembarkFromSortedArks(assets);
+        _withdraw(caller, receiver, owner, assets, shares);
+        _resetLastActionTimestamp();
+        emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
 
     /**

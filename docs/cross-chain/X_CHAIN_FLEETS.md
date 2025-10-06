@@ -35,7 +35,6 @@ The `CrossChainFleetCommander` implements a queue-based system that prevents imm
 #### 3. Superkeeper Processing
 - Only superkeepers can process queued operations
 - Requires all Arks to be synced (`allArksSynced` modifier)
-- Enforces minimum processing intervals
 
 ### Architecture
 
@@ -71,6 +70,10 @@ function isSynced() public view override returns (bool) {
     if (inflightAssets > 0) {
         return false;
     }
+    
+    // For now, we consider synced if no inflight assets
+    // In a full implementation, you might want to check if lastRemoteAssetBalance
+    // was updated within a certain time window
     return true;
 }
 ```
@@ -84,12 +87,11 @@ function isSynced() public view override returns (bool) {
 
 #### Superkeeper Functions
 - `processAsyncOperations()` - Process queued operations (requires sync)
-- `cancelExpiredOperation()` - Cancel expired operations
+- `cancelOperation()` - Cancel queued operations
 
 #### Sync Requirements
 - `areAllArksSynced()` - Check if all Arks are synced
 - `allArksSynced` modifier - Enforce sync requirement
-- `processingIntervalElapsed` modifier - Enforce processing intervals
 
 ### 4. MEV Protection Mechanisms
 
@@ -132,8 +134,7 @@ bool synced = fleetCommander.areAllArksSynced();
 ## Configuration Parameters
 
 ### CrossChainFleetCommanderParams
-- `maxQueueTime`: Maximum time operations can stay in queue
-- `minProcessingInterval`: Minimum time between processing cycles
+- `minQueueAmount`: Minimum amount for queue operations (in asset units)
 - Standard FleetCommander parameters (name, symbol, asset, etc.)
 
 ## Benefits
@@ -183,9 +184,9 @@ bool synced = fleetCommander.areAllArksSynced();
 - Users can check queue status
 
 ### 3. Fallback Mechanisms
-- Emergency processing functions
+- Operation cancellation by users
 - Manual sync override (governance)
-- Expired operation cancellation
+- Queue size limits to prevent bloat
 
 ## Security Considerations
 
@@ -200,8 +201,8 @@ bool synced = fleetCommander.areAllArksSynced();
 - Consider multi-sig requirements
 
 ### 3. Queue Management
-- Prevent queue bloat
-- Handle expired operations
+- Prevent queue bloat (MAX_QUEUE_SIZE limit)
+- Handle operation cancellation
 - Monitor processing efficiency
 
 ## Conclusion

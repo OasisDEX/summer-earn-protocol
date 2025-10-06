@@ -4,9 +4,14 @@ pragma solidity 0.8.28;
 import {FleetCommander} from "./FleetCommander.sol";
 import {ICrossChainFleetCommander} from "../interfaces/ICrossChainFleetCommander.sol";
 import {AsyncOperation, CrossChainFleetCommanderParams} from "../types/CrossChainFleetCommanderTypes.sol";
+import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "../interfaces/IArk.sol";
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title CrossChainFleetCommander
@@ -60,10 +65,15 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         FleetCommander(
             FleetCommanderParams({
                 name: params.name,
+                details: params.details,
                 symbol: params.symbol,
+                configurationManager: params.configurationManager,
+                accessManager: params.accessManager,
                 asset: params.asset,
-                initialTipRate: params.initialTipRate,
-                initialRebalanceCooldown: params.initialRebalanceCooldown
+                initialMinimumBufferBalance: params.initialMinimumBufferBalance,
+                initialRebalanceCooldown: params.initialRebalanceCooldown,
+                depositCap: params.depositCap,
+                initialTipRate: params.initialTipRate
             })
         )
     {
@@ -95,6 +105,10 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         uint256 assets,
         address receiver
     ) external whenNotPaused returns (uint256 operationId) {
+        require(
+            assets >= minQueueAmount,
+            "CrossChainFleetCommander: Amount below minimum"
+        );
         _validateDeposit(assets, _msgSender());
 
         operationId = _queueOperation(
@@ -124,6 +138,10 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         address receiver,
         address owner
     ) external whenNotPaused returns (uint256 operationId) {
+        require(
+            assets >= minQueueAmount,
+            "CrossChainFleetCommander: Amount below minimum"
+        );
         uint256 shares = previewWithdraw(assets);
         _validateWithdrawFromArks(assets, shares, owner);
 
@@ -306,9 +324,9 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
      * @param operation The operation to process
      */
     function _processDeposit(AsyncOperation memory operation) internal {
-        uint256 shares = previewDeposit(operation.amount);
-        _deposit(operation.user, operation.receiver, operation.amount, shares);
-        _board(address(config.bufferArk), operation.amount);
+        _validateDeposit(operation.amount, operation.user);
+
+        _internalDeposit(operation.amount, operation.receiver, operation.user);
     }
 
     /**
@@ -316,13 +334,18 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
      * @param operation The operation to process
      */
     function _processWithdrawal(AsyncOperation memory operation) internal {
-        _forceDisembarkFromSortedArks(operation.amount);
-        _withdraw(
-            operation.user,
+        uint256 shares = previewWithdraw(operation.amount);
+        _validateWithdrawFromArksForAsync(
+            operation.amount,
+            shares,
+            operation.user
+        );
+
+        _internalWithdraw(
+            operation.amount,
             operation.receiver,
             operation.user,
-            operation.amount,
-            operation.shares
+            operation.user
         );
     }
 
@@ -331,13 +354,13 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
      * @param operation The operation to process
      */
     function _processRedemption(AsyncOperation memory operation) internal {
-        _forceDisembarkFromSortedArks(operation.amount);
-        _withdraw(
-            operation.user,
+        _validateRedeemFromArksForAsync(operation.shares, operation.user);
+
+        _internalRedeem(
+            operation.shares,
             operation.receiver,
             operation.user,
-            operation.amount,
-            operation.shares
+            operation.user
         );
     }
 
@@ -348,6 +371,44 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     function _cancelOperation(uint256 operationId) internal {
         asyncOperations[operationId].processed = true;
         queuedOperationsCount--;
+    }
+
+    /**
+     * @notice Validate withdrawal for async operations (no allowance check needed)
+     * @param assets The amount of assets to withdraw
+     * @param shares The number of shares to redeem
+     * @param owner The address of the owner of the shares
+     */
+    function _validateWithdrawFromArksForAsync(
+        uint256 assets,
+        uint256 shares,
+        address owner
+    ) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
+        uint256 maxAssets = maxWithdraw(owner);
+        if (assets > maxAssets) {
+            revert ERC4626ExceededMaxWithdraw(owner, assets, maxAssets);
+        }
+    }
+
+    /**
+     * @notice Validate redemption for async operations (no allowance check needed)
+     * @param shares The number of shares to redeem
+     * @param owner The address of the owner of the shares
+     */
+    function _validateRedeemFromArksForAsync(
+        uint256 shares,
+        address owner
+    ) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
+        uint256 maxShares = maxRedeem(owner);
+        if (shares > maxShares) {
+            revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
+        }
     }
 
     /**
@@ -367,6 +428,7 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
                     operationQueue[j] = operationQueue[j + 1];
                 }
                 operationQueue.pop();
+                queuedOperationsCount--;
             }
         }
     }
@@ -423,6 +485,16 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         return MAX_QUEUE_SIZE;
     }
 
+    /// @inheritdoc IFleetCommander
+    function totalAssets()
+        public
+        view
+        override(FleetCommander, IFleetCommander)
+        returns (uint256)
+    {
+        return _totalAssets(config.bufferArk);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             OVERRIDDEN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -435,7 +507,7 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     function deposit(
         uint256 assets,
         address receiver
-    ) public override returns (uint256 shares) {
+    ) public override(FleetCommander, IERC4626) returns (uint256 shares) {
         revert CrossChainFleetCommanderUseAsyncFunction(
             "Use queueDeposit() for async operations"
         );
@@ -450,7 +522,11 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         uint256 assets,
         address receiver,
         address owner
-    ) public override returns (uint256 shares) {
+    )
+        public
+        override(FleetCommander, IFleetCommander)
+        returns (uint256 shares)
+    {
         revert CrossChainFleetCommanderUseAsyncFunction(
             "Use queueWithdrawal() for async operations"
         );
@@ -465,7 +541,11 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         uint256 shares,
         address receiver,
         address owner
-    ) public override returns (uint256 assets) {
+    )
+        public
+        override(FleetCommander, IFleetCommander)
+        returns (uint256 assets)
+    {
         revert CrossChainFleetCommanderUseAsyncFunction(
             "Use queueRedemption() for async operations"
         );
