@@ -89,8 +89,5 @@ interface ICrossChainArk {
     );
 
     /// @notice Emitted when a stale balance notification is rejected.
-    event StaleNotification(
-        uint256 receivedTimestamp,
-        uint256 lastTimestamp
-    );
+    event StaleNotification(uint256 receivedTimestamp, uint256 lastTimestamp);
 }

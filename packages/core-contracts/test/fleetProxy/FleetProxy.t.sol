@@ -880,10 +880,8 @@ contract CrossChainFleetProxyTest is Test {
         );
 
         // Decode and verify the message content
-        (uint256 fleetAssets, bytes32 transferId, uint256 timestamp) = abi.decode(
-            message,
-            (uint256, bytes32, uint256)
-        );
+        (uint256 fleetAssets, bytes32 transferId, uint256 timestamp) = abi
+            .decode(message, (uint256, bytes32, uint256));
 
         // Verify the fleet assets amount is zero
         assertEq(fleetAssets, 0, "Message should contain zero fleet assets");
@@ -898,9 +896,13 @@ contract CrossChainFleetProxyTest is Test {
             transferId != bytes32(0),
             "Transfer ID should be set from the deposit operation"
         );
-        
+
         // Verify the timestamp is reasonable (should be current block timestamp)
-        assertEq(timestamp, block.timestamp, "Timestamp should match current block timestamp");
+        assertEq(
+            timestamp,
+            block.timestamp,
+            "Timestamp should match current block timestamp"
+        );
     }
 
     function test_NotifySourceChain_UnauthorizedCaller() public {

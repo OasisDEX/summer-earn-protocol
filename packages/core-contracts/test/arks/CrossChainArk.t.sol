@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import "forge-std/Test.sol";
+import "forge-std/console.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
@@ -882,30 +883,31 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(ark.lastNotificationTimestamp(), block.timestamp);
 
         // Now try to send a stale notification with an older timestamp
-        vm.warp(block.timestamp + 100); // Advance time
+        vm.warp(block.timestamp + 100); // Advance time to 101
 
-        BridgeTypes.RelayedMessageParams memory params2 = _encodeMessage(
-            requestId2,
-            address(proxy),
-            address(ark),
-            newBalance,
-            TARGET_CHAIN_ID,
-            bytes32(0)
-        );
+        // Create the stale message directly without using _encodeMessage
+        uint256 staleTimestamp = 0; // This should be 0, which is older than 1
 
-        // Manually create a message with an older timestamp
         bytes memory staleMessage = abi.encode(
             newBalance,
             bytes32(0),
-            block.timestamp - 50
+            staleTimestamp
         );
-        params2.message = staleMessage;
+
+        BridgeTypes.RelayedMessageParams memory params2 = BridgeTypes
+            .RelayedMessageParams({
+                operationId: requestId2,
+                originator: address(proxy),
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                message: staleMessage
+            });
 
         // Expect the StaleNotification event
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.StaleNotification(
-            block.timestamp - 50,
-            block.timestamp
+            staleTimestamp, // 0
+            1 // lastNotificationTimestamp was 1
         );
 
         // Process the stale notification - should be rejected
@@ -917,6 +919,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Verify the balance wasn't updated
         assertEq(ark.lastRemoteAssetBalance(), initialBalance);
-        assertEq(ark.lastNotificationTimestamp(), block.timestamp);
+        assertEq(ark.lastNotificationTimestamp(), 1);
     }
 }

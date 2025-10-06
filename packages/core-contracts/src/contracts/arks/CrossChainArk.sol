@@ -268,8 +268,11 @@ contract CrossChainArk is
         if (params.originator != _getTargetProxy()) revert InvalidSender();
 
         // Decode the remote asset balance with timestamp
-        (uint256 newRemoteBalance, bytes32 latestReceivedTransferId, uint256 timestamp) = abi
-            .decode(params.message, (uint256, bytes32, uint256));
+        (
+            uint256 newRemoteBalance,
+            bytes32 latestReceivedTransferId,
+            uint256 timestamp
+        ) = abi.decode(params.message, (uint256, bytes32, uint256));
         if (latestReceivedTransferId != latestOutgoingTransferId) {
             // we skip updating the remote balance if the transfer id (received in FleetProxy) is not the latest
             // sent by this Ark
@@ -279,13 +282,13 @@ contract CrossChainArk is
             );
             return;
         }
-        
+
         // Reject stale notifications to prevent race conditions
         if (timestamp < lastNotificationTimestamp) {
             emit StaleNotification(timestamp, lastNotificationTimestamp);
             return;
         }
-        
+
         lastNotificationTimestamp = timestamp;
 
         lastRemoteAssetBalance = newRemoteBalance;

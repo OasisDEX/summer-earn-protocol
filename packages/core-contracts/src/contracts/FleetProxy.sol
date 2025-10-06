@@ -229,7 +229,11 @@ contract FleetProxy is
                 originator: address(this),
                 destinationChainId: hubChainId,
                 target: _getSourceChainArk(hubChainId),
-                message: abi.encode(fleetAssets, latestIncomingTransferId, block.timestamp),
+                message: abi.encode(
+                    fleetAssets,
+                    latestIncomingTransferId,
+                    block.timestamp
+                ),
                 refundAddress: msg.sender
             });
         bridgeRouter.executeSendMessage{value: msg.value}(params, options);
