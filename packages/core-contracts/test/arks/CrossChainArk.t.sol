@@ -92,7 +92,12 @@ contract CrossChainArkTest is Test, ArkTestBase {
             options: ""
         });
 
-        ark = new CrossChainArk(address(registry), TARGET_CHAIN_ID, params);
+        ark = new CrossChainArk(
+            address(registry),
+            TARGET_CHAIN_ID,
+            3600,
+            params
+        ); // 1 hour sync timeframe
 
         // Register the ark-proxy relationship in the registry
         vm.startPrank(governor);
@@ -136,6 +141,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(address(ark.crossChainRegistry()), address(registry));
         assertEq(ark.satelliteChainId(), TARGET_CHAIN_ID);
         assertEq(ark.getTargetProxy(), proxy); // Uses registry lookup
+        assertEq(ark.syncTimeframe(), 3600); // 1 hour sync timeframe
     }
 
     function test_RegistryRelationshipIntegration() public {
@@ -848,6 +854,267 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertTrue(
             assetAfterExecution == address(0),
             "Transfer should have succeeded"
+        );
+    }
+
+    // ========================================================================
+    // isSynced FUNCTIONALITY TESTS
+    // ========================================================================
+
+    function testIsSyncedInitialState() public view {
+        // Initially, no balance update has occurred, so Ark should not be synced
+        assertFalse(ark.isSynced(), "Ark should not be synced initially");
+        assertEq(
+            ark.lastRemoteBalanceUpdateTime(),
+            0,
+            "Last update time should be 0 initially"
+        );
+    }
+
+    function testIsSyncedAfterBalanceUpdate() public {
+        uint256 remoteBalance = 1000;
+        bytes32 requestId = keccak256("sync-test");
+
+        // Simulate receiving a balance update
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
+            requestId,
+            address(proxy),
+            address(ark),
+            remoteBalance,
+            TARGET_CHAIN_ID,
+            bytes32(0)
+        );
+
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
+
+        // Ark should be synced immediately after balance update
+        assertTrue(ark.isSynced(), "Ark should be synced after balance update");
+        assertEq(
+            ark.lastRemoteBalanceUpdateTime(),
+            block.timestamp,
+            "Update time should be current timestamp"
+        );
+    }
+
+    function testIsSyncedWithinTimeframe() public {
+        uint256 remoteBalance = 1000;
+        bytes32 requestId = keccak256("timeframe-test");
+
+        // Simulate receiving a balance update
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
+            requestId,
+            address(proxy),
+            address(ark),
+            remoteBalance,
+            TARGET_CHAIN_ID,
+            bytes32(0)
+        );
+
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
+
+        // Fast forward to just before the sync timeframe expires (3599 seconds)
+        vm.warp(block.timestamp + 3599);
+        assertTrue(
+            ark.isSynced(),
+            "Ark should still be synced within timeframe"
+        );
+
+        // Fast forward to exactly the sync timeframe (3600 seconds)
+        vm.warp(block.timestamp + 1);
+        assertTrue(
+            ark.isSynced(),
+            "Ark should still be synced at exact timeframe boundary"
+        );
+    }
+
+    function testIsSyncedAfterTimeframeExpires() public {
+        uint256 remoteBalance = 1000;
+        bytes32 requestId = keccak256("expired-test");
+
+        // Simulate receiving a balance update
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
+            requestId,
+            address(proxy),
+            address(ark),
+            remoteBalance,
+            TARGET_CHAIN_ID,
+            bytes32(0)
+        );
+
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
+
+        // Fast forward past the sync timeframe (3601 seconds)
+        vm.warp(block.timestamp + 3601);
+        assertFalse(
+            ark.isSynced(),
+            "Ark should not be synced after timeframe expires"
+        );
+    }
+
+    function testIsSyncedMultipleUpdates() public {
+        uint256 remoteBalance1 = 1000;
+        uint256 remoteBalance2 = 2000;
+
+        // First balance update
+        BridgeTypes.RelayedMessageParams memory params1 = _encodeMessage(
+            keccak256("update1"),
+            address(proxy),
+            address(ark),
+            remoteBalance1,
+            TARGET_CHAIN_ID,
+            bytes32(0)
+        );
+
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params1)
+        );
+
+        // Fast forward to near expiry
+        vm.warp(block.timestamp + 3500);
+        assertTrue(ark.isSynced(), "Ark should be synced after first update");
+
+        // Second balance update (should reset the timer)
+        BridgeTypes.RelayedMessageParams memory params2 = _encodeMessage(
+            keccak256("update2"),
+            address(proxy),
+            address(ark),
+            remoteBalance2,
+            TARGET_CHAIN_ID,
+            bytes32(0)
+        );
+
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params2)
+        );
+
+        // Should still be synced after second update
+        assertTrue(ark.isSynced(), "Ark should be synced after second update");
+        assertEq(
+            ark.lastRemoteAssetBalance(),
+            remoteBalance2,
+            "Remote balance should be updated"
+        );
+    }
+
+    function testSyncTimeframeGetter() public view {
+        // Test that the public getter works correctly
+        assertEq(
+            ark.syncTimeframe(),
+            3600,
+            "Sync timeframe should be 3600 seconds (1 hour)"
+        );
+    }
+
+    function testSyncTimeframeConfigurable() public {
+        // Test that different sync timeframes can be configured
+        ArkParams memory params = ArkParams({
+            name: "TestArk2",
+            details: "TestArk2 details",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            asset: address(mockToken),
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true,
+            maxDepositPercentageOfTVL: PERCENTAGE_1
+        });
+
+        // Create Ark with 2-hour sync timeframe
+        CrossChainArk ark2 = new CrossChainArk(
+            address(registry),
+            TARGET_CHAIN_ID,
+            7200,
+            params
+        );
+        assertEq(
+            ark2.syncTimeframe(),
+            7200,
+            "Sync timeframe should be 7200 seconds (2 hours)"
+        );
+
+        // Create Ark with 30-minute sync timeframe
+        CrossChainArk ark3 = new CrossChainArk(
+            address(registry),
+            TARGET_CHAIN_ID,
+            1800,
+            params
+        );
+        assertEq(
+            ark3.syncTimeframe(),
+            1800,
+            "Sync timeframe should be 1800 seconds (30 minutes)"
+        );
+    }
+
+    function testSyncTimeframeValidation() public {
+        ArkParams memory params = ArkParams({
+            name: "TestArk3",
+            details: "TestArk3 details",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            asset: address(mockToken),
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true,
+            maxDepositPercentageOfTVL: PERCENTAGE_1
+        });
+
+        // Test that zero sync timeframe reverts
+        vm.expectRevert(ICrossChainArk.InvalidSyncTimeframe.selector);
+        new CrossChainArk(address(registry), TARGET_CHAIN_ID, 0, params);
+    }
+
+    function testIsSyncedWithTransferAsset() public {
+        uint256 remoteBalance = 1500;
+        uint256 amount = 500;
+
+        // Simulate receiving assets via TRANSFER_ASSET operation
+        deal(address(mockToken), address(ark), amount);
+
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: keccak256("transfer-test"),
+                originator: address(proxy),
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                asset: address(mockToken),
+                amount: amount,
+                message: abi.encode(remoteBalance)
+            });
+
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(params)
+        );
+
+        // Ark should be synced after receiving assets
+        assertTrue(
+            ark.isSynced(),
+            "Ark should be synced after receiving assets"
+        );
+        assertEq(
+            ark.lastRemoteAssetBalance(),
+            remoteBalance,
+            "Remote balance should be updated"
         );
     }
 }

@@ -36,6 +36,12 @@ contract CrossChainArk is
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
 
+    /// @notice Timestamp when the remote balance was last updated
+    uint256 public lastRemoteBalanceUpdateTime;
+
+    /// @notice Sync timeframe in seconds (default: 1 hour)
+    uint256 public immutable syncTimeframe;
+
     /// @notice Amount of assets currently in-flight (being bridged)
     uint256 public inflightAssets;
 
@@ -66,16 +72,20 @@ contract CrossChainArk is
      * @notice Constructor to set up the CrossChainArk
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _satelliteChainId ID of the satellite chain where the fleet proxy operates
+     * @param _syncTimeframe Sync timeframe in seconds (e.g., 3600 for 1 hour)
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
         address _crossChainRegistry,
         uint16 _satelliteChainId,
+        uint256 _syncTimeframe,
         ArkParams memory _params
     ) Ark(_params) CrossChainConfigManaged(_crossChainRegistry) {
         if (_satelliteChainId == 0) revert InvalidSatelliteChain();
+        if (_syncTimeframe == 0) revert InvalidSyncTimeframe();
 
         satelliteChainId = _satelliteChainId;
+        syncTimeframe = _syncTimeframe;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -278,6 +288,7 @@ contract CrossChainArk is
         }
 
         lastRemoteAssetBalance = newRemoteBalance;
+        lastRemoteBalanceUpdateTime = block.timestamp;
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
@@ -322,6 +333,7 @@ contract CrossChainArk is
         // Update the remote asset tracking
 
         lastRemoteAssetBalance = remoteBalance;
+        lastRemoteBalanceUpdateTime = block.timestamp;
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
@@ -337,6 +349,8 @@ contract CrossChainArk is
     error InvalidSender();
     /// @notice Error thrown when trying to start a new outbound while inflight > 0
     error InFlight();
+    /// @notice Error thrown when sync timeframe is invalid (zero)
+    error InvalidSyncTimeframe();
 
     /**
      * @notice Ensures ready for executing a pending transfer: no inflight and has pending
@@ -432,5 +446,20 @@ contract CrossChainArk is
     {
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
+    }
+
+    /**
+     * @notice Checks if the Ark is synced based on time-based criteria
+     * @dev Returns true if a balance has been received within the configured sync timeframe
+     * @return bool True if synced (balance received within sync timeframe), false otherwise
+     */
+    function _isSynced() internal view override returns (bool) {
+        // If no balance update has ever occurred, consider it not synced
+        if (lastRemoteBalanceUpdateTime == 0) {
+            return false;
+        }
+
+        // Check if the last balance update was within the configured sync timeframe
+        return block.timestamp - lastRemoteBalanceUpdateTime <= syncTimeframe;
     }
 }

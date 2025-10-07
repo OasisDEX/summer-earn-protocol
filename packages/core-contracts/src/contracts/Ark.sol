@@ -76,6 +76,11 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     }
 
     /// @inheritdoc IArk
+    function isSynced() external view returns (bool) {
+        return _isSynced();
+    }
+
+    /// @inheritdoc IArk
     function harvest(
         bytes calldata additionalData
     )
@@ -252,5 +257,14 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
      */
     function _balanceOfAsset() internal view virtual returns (uint256) {
         return config.asset.balanceOf(address(this));
+    }
+
+    /**
+     * @notice Internal function to check if the Ark is synced
+     * @dev This function should be implemented by derived contracts to define specific sync logic
+     * @return bool True if the Ark is synced, false otherwise
+     */
+    function _isSynced() internal view virtual returns (bool) {
+        return true;
     }
 }
