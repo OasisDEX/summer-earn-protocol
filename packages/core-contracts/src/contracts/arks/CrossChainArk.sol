@@ -60,8 +60,6 @@ contract CrossChainArk is
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    // singleFlight modifier removed in favor of explicit assertions for clarity
-
     /**
      * @notice Constructor to set up the CrossChainArk
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
