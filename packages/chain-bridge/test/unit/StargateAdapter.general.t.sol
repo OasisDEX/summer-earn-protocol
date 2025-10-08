@@ -96,9 +96,11 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.startPrank(governor);
 
         // First unregister the existing peer relationship for CHAIN_ID_B
-        registryA.unregisterRelationship(
+        // Since PEER_RELATIONSHIP is bijective, we need to use pair unregistration
+        registryA.unregisterAdapterPeerPair(
             address(adapterA),
-            registryA.PEER_RELATIONSHIP(),
+            address(adapterB),
+            CHAIN_ID_A,
             CHAIN_ID_B
         );
 

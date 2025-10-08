@@ -7,27 +7,16 @@ import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol"
 contract CrossChainRegistryEnumerationTest is BaseCrossChainRegistryTest {
     function test_getTargetsForSource_returnsMultiple() public {
         vm.startPrank(governor);
-        registry.registerRelationship(
+        // Since PEER_RELATIONSHIP is bijective, we need to use pair registration
+        // For testing enumeration, we'll register each relationship individually
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
-        registry.registerRelationship(
-            ark1,
-            proxy2,
-            CURRENT_CHAIN_ID,
-            10,
-            peerType
-        );
-        registry.registerRelationship(
-            ark1,
-            proxy3,
-            CURRENT_CHAIN_ID,
-            137,
-            peerType
-        );
+        registry.registerAdapterPeerPair(ark1, proxy2, CURRENT_CHAIN_ID, 10);
+        registry.registerAdapterPeerPair(ark1, proxy3, CURRENT_CHAIN_ID, 137);
         vm.stopPrank();
 
         (address[] memory targets, uint16[] memory chains) = registry
@@ -38,12 +27,11 @@ contract CrossChainRegistryEnumerationTest is BaseCrossChainRegistryTest {
 
     function test_getRelationshipByTarget_returnsDetails() public {
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         ICrossChainRegistry.CrossChainRelation memory rel = registry
@@ -58,12 +46,11 @@ contract CrossChainRegistryEnumerationTest is BaseCrossChainRegistryTest {
 
     function test_getRelationship_returnsDetails() public {
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         ICrossChainRegistry.CrossChainRelation memory rel = registry
@@ -77,25 +64,24 @@ contract CrossChainRegistryEnumerationTest is BaseCrossChainRegistryTest {
 
     function test_getRegisteredSourceContracts_listsSources() public {
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark2,
             proxy2,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
         vm.stopPrank();
 
         address[] memory sources = registry.getRegisteredSourceContracts(
             peerType
         );
-        assertEq(sources.length, 2);
+        // Since we used registerAdapterPeerPair, we get both directions (4 total: ark1, proxy1, ark2, proxy2)
+        assertEq(sources.length, 4);
     }
 }

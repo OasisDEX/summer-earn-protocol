@@ -43,6 +43,12 @@ interface ICrossChainRegistry {
         address indexed newBridgeRouter
     );
 
+    /// @notice Emitted when a relationship type's bijective requirement is updated
+    event BijectiveRelationshipTypeUpdated(
+        bytes32 indexed relationshipType,
+        bool isBijective
+    );
+
     /// @notice Emitted when a cross-chain relationship is registered
     event CrossChainRelationshipRegistered(
         address indexed sourceContract,
@@ -118,6 +124,9 @@ interface ICrossChainRegistry {
         bytes32 relationshipType,
         address existingSourceContract
     );
+
+    /// @notice Thrown when trying to use singular registration methods for bijective relationship types
+    error UsePairRegistrationMethods(bytes32 relationshipType);
 
     /*//////////////////////////////////////////////////////////////
                             CONSTANTS GETTERS
@@ -316,8 +325,12 @@ interface ICrossChainRegistry {
     /**
      * @notice Add a supported relationship type (governor-only)
      * @param relationshipType The relationship type hash to add
+     * @param isBijective Whether this relationship type requires bijective mapping
      */
-    function addSupportedRelationshipType(bytes32 relationshipType) external;
+    function addSupportedRelationshipType(
+        bytes32 relationshipType,
+        bool isBijective
+    ) external;
 
     /**
      * @notice Get the current chain ID

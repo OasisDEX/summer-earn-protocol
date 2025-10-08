@@ -12,6 +12,8 @@ contract CrossChainRegistryIntegrationTest is BaseCrossChainRegistryTest {
         address arkAddress = makeAddr("testArk");
         address proxyAddress = makeAddr("testProxy");
 
+        // Since PEER_RELATIONSHIP is bijective, we need to use pair registration
+        // This will emit two events: one for each direction
         vm.expectEmit(true, true, true, true, address(registry));
         emit CrossChainRelationshipRegistered(
             arkAddress,
@@ -21,13 +23,21 @@ contract CrossChainRegistryIntegrationTest is BaseCrossChainRegistryTest {
             peerType
         );
 
+        vm.expectEmit(true, true, true, true, address(registry));
+        emit CrossChainRelationshipRegistered(
+            proxyAddress,
+            arkAddress,
+            TARGET_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            peerType
+        );
+
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             arkAddress,
             proxyAddress,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         (address targetContract, uint16 chainId) = registry.getTargetForSource(
