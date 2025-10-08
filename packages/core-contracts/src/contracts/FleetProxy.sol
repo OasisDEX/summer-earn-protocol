@@ -124,7 +124,7 @@ contract FleetProxy is
         if (amount == 0) {
             emit InflightCleared(bytes32(0), previous);
         } else {
-            emit InflightSet(amount, bytes32(0));
+            emit InflightSet(inflightWithdrawals, bytes32(0));
         }
     }
 
