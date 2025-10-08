@@ -112,7 +112,7 @@ contract CrossChainRegistryBijectiveTest is Test {
 
     function testCanSetBijectiveRelationshipType() public {
         // Make EXECUTOR_RELATIONSHIP bijective
-        registry.setBijectiveRelationshipType(
+        registry.addSupportedRelationshipType(
             registry.EXECUTOR_RELATIONSHIP(),
             true
         );
@@ -211,7 +211,7 @@ contract CrossChainRegistryBijectiveTest is Test {
 
     function testCanUnsetBijectiveRelationshipType() public {
         // Make PEER_RELATIONSHIP non-bijective
-        registry.setBijectiveRelationshipType(
+        registry.addSupportedRelationshipType(
             registry.PEER_RELATIONSHIP(),
             false
         );
@@ -229,16 +229,14 @@ contract CrossChainRegistryBijectiveTest is Test {
         );
     }
 
-    function testCannotSetBijectiveForUnsupportedRelationshipType() public {
-        bytes32 unsupportedType = keccak256("UNSUPPORTED_TYPE");
+    function testCanAddNewSupportedRelationshipType() public {
+        bytes32 newType = keccak256("NEW_TYPE");
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.UnsupportedRelationshipType.selector,
-                unsupportedType
-            )
-        );
-        registry.setBijectiveRelationshipType(unsupportedType, true);
+        // Should be able to add a new relationship type
+        registry.addSupportedRelationshipType(newType, true);
+
+        // Verify it was added and is bijective
+        assertTrue(registry.isBijectiveRelationshipType(newType));
     }
 
     function testValidateBijectiveRelationships() public view {
@@ -327,7 +325,7 @@ contract CrossChainRegistryBijectiveTest is Test {
             true
         );
 
-        registry.setBijectiveRelationshipType(
+        registry.addSupportedRelationshipType(
             registry.EXECUTOR_RELATIONSHIP(),
             true
         );

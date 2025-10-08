@@ -407,22 +407,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /**
-     * @notice Mark a relationship type as requiring bijective mapping
-     * @dev When true, only pair registration methods can be used for this relationship type
-     * @param relationshipType The relationship type to mark as bijective
-     */
-    function setBijectiveRelationshipType(
-        bytes32 relationshipType,
-        bool isBijective
-    ) external onlyGovernor {
-        if (!relationshipTypeSupported[relationshipType]) {
-            revert UnsupportedRelationshipType(relationshipType);
-        }
-        bijectiveRelationshipTypes[relationshipType] = isBijective;
-        emit BijectiveRelationshipTypeUpdated(relationshipType, isBijective);
-    }
-
-    /**
      * @notice Check if a relationship type requires bijective mapping
      * @param relationshipType The relationship type to check
      * @return isBijective True if the relationship type requires bijective mapping
