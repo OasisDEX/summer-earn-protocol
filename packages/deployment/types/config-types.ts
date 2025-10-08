@@ -32,6 +32,7 @@ export enum ArkType {
   FluidLiteArk = 'FluidLiteArk',
   AeraArk = 'AeraArk',
   StargateV2PoolArk = 'StargateV2PoolArk',
+  SiUSDArk = 'SiUSDArk',
 }
 
 export const arkTypes = [
@@ -57,6 +58,7 @@ export const arkTypes = [
   { title: 'FluidLiteArk', value: ArkType.FluidLiteArk },
   { title: 'AeraArk', value: ArkType.AeraArk },
   { title: 'StargateV2PoolArk', value: ArkType.StargateV2PoolArk },
+  { title: 'SiUSDArk', value: ArkType.SiUSDArk },
 ]
 
 export interface Config {
@@ -233,6 +235,10 @@ export interface BaseConfig {
       pools: {
         [key in Token]: Address
       }
+    }
+    infinifi?: {
+      gateway: Address
+      siUSD: Address
     }
   }
   bridge?: DeployedBridge

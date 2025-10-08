@@ -20,6 +20,7 @@ import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
 import { deploySiloArk } from '../arks/deploy-silo-ark'
 import { deploySiloArkV2 } from '../arks/deploy-silo-ark-v2'
 import { deploySiloManagedVaultArk } from '../arks/deploy-silo-managed-vault-ark'
+import { deploySiUSDArk } from '../arks/deploy-siusd-ark'
 import { deploySkyRewardsArk } from '../arks/deploy-sky-rewards-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
@@ -364,6 +365,22 @@ export async function deployArk(
       deployedArk = ark
       break
     }
+    case ArkType.SiUSDArk: {
+      // SiUSDArk only supports USDC
+      if (token !== Token.USDC) {
+        throw new Error('SiUSDArk only supports USDC as the asset')
+      }
+      const gateway = validateAddress(config.protocolSpecific.infinifi?.gateway, 'InfiniFi Gateway')
+      const siUSD = validateErc4626Address(config.protocolSpecific.infinifi?.siUSD, 'siUSD vault')
+      // Enforce USDC + config validations as in deployArk
+      const ark = await deploySiUSDArk(config, {
+        ...baseArkParams,
+        gateway: gateway,
+        siUSD: siUSD,
+      })
+      deployedArk = ark
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${type}`)
   }
@@ -463,6 +480,11 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.StargateV2PoolArk: {
       deployedArk = await deployStargateV2PoolArk(config)
+      break
+    }
+
+    case ArkType.SiUSDArkType: {
+      deployedArk = await deploySiUSDArk(config)
       break
     }
 
