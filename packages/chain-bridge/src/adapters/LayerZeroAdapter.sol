@@ -49,26 +49,6 @@ contract LayerZeroAdapter is
     error InvalidEndpointId();
 
     /*//////////////////////////////////////////////////////////////
-                              MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Modifier to check if an operation is supported by the adapter
-    modifier withSupportedOperation(BridgeTypes.OperationType operationType) {
-        if (!_supportsOperation(operationType)) {
-            revert OperationNotSupported();
-        }
-        _;
-    }
-
-    /// @notice Modifier to check if destination chain supports read operations
-    modifier withDestChainSupportsRead(uint16 destinationChainId) {
-        if (chainToExternalId[destinationChainId] == 0) {
-            revert UnsupportedChain();
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
@@ -341,13 +321,13 @@ contract LayerZeroAdapter is
     }
 
     /**
-     * @notice Internal version of supportsOperation for use within the contract
+     * @notice Override the base class implementation to define LayerZero-specific operation support
      * @param operationType The operation type to check
      * @return true if the operation is supported
      */
     function _supportsOperation(
         BridgeTypes.OperationType operationType
-    ) internal pure returns (bool) {
+    ) internal pure override returns (bool) {
         // LayerZero adapter now only supports messaging operations
         return operationType == BridgeTypes.OperationType.MESSAGE;
     }
