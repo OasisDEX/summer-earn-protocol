@@ -23,15 +23,6 @@ import {ReceiptNotifier} from "./common/ReceiptNotifier.sol";
  * @notice Proxy contract for managing cross-chain Fleet operations
  * @dev Implements cross-chain asset reception and management for Fleet contracts
  */
-
-/*//////////////////////////////////////////////////////////////
-                            EVENTS
-//////////////////////////////////////////////////////////////*/
-
-/// @notice Emitted when inflight withdrawals are set locally
-event InflightSet(uint256 amount, bytes32 operationId);
-/// @notice Emitted when inflight withdrawals are cleared
-event InflightCleared(uint256 amount, bytes32 operationId);
 contract FleetProxy is
     ProtocolAccessManaged,
     CrossChainConfigManaged,
