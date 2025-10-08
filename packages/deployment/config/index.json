@@ -23,6 +23,9 @@
         },
         "harborCommand": {
           "address": "0x831BE0EB9a37AC39347Ced1Be6da402268E66831"
+        },
+        "admiralsQuarters": {
+          "address": "0x92176c8Ce4F6c9925ba2dbFAe0E2a395f03512c0"
         }
       }
     },

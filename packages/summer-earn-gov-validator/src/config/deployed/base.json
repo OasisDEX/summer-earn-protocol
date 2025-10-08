@@ -69,5 +69,6 @@
   "LazyVault_Whitelist_LowerRisk_USDC_AaveV3_usdc_8453#AaveV3Ark": "0xC01348b33Dd2431980688DBd0D1956BA1e642172",
   "LazyVault_Whitelist_LowerRisk_USDC_CompoundV3_usdc_8453#CompoundV3Ark": "0xBc2d7A8793159F40FB80e8CACcE00c8FdC7c4b42",
   "LazyVault_Whitelist_LowerRisk_USDC_MorphoVault_usdc_Gauntlet_USDC_Core_8453#MorphoVaultArk": "0x0016087243e69BE85570f48fde1A33316aB1AA44",
-  "LazyVault_Whitelist_LowerRisk_USDC_Moonwell_usdc_8453#MoonwellArk": "0x0C2ccA4B3ba72Df9c2C8aC8d9e1a17066088c597"
+  "LazyVault_Whitelist_LowerRisk_USDC_Moonwell_usdc_8453#MoonwellArk": "0x0C2ccA4B3ba72Df9c2C8aC8d9e1a17066088c597",
+  "AdmiralsQuartersModule_20251008T113643401#AdmiralsQuarters": "0x92176c8Ce4F6c9925ba2dbFAe0E2a395f03512c0"
 }
