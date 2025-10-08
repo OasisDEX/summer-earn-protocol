@@ -2,6 +2,8 @@
 pragma solidity ^0.8.26;
 
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
+import {TokenRecovery} from "../../../src/base/TokenRecovery.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
@@ -75,8 +77,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         vm.prank(user);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControlErrors.CallerIsNotGovernor.selector,
-                user
+                IBaseBridgeAdapterErrors.Unauthorized.selector
             )
         );
         adapter.sweep(address(token), address(0xBEEF), 1 ether);
@@ -86,9 +87,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         // Adapter has 0 tokens initially
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                BaseBridgeAdapter.InsufficientBalance.selector
-            )
+            abi.encodeWithSelector(TokenRecovery.InsufficientBalance.selector)
         );
         adapter.sweep(address(token), address(0xBEEF), 1 ether);
     }
@@ -97,7 +96,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         token.mint(address(adapter), 1 ether);
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(BaseBridgeAdapter.InvalidParams.selector)
+            abi.encodeWithSelector(TokenRecovery.InvalidRecoveryParams.selector)
         );
         adapter.sweep(address(token), address(0), 1);
     }
@@ -145,8 +144,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         vm.prank(user);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControlErrors.CallerIsNotGovernor.selector,
-                user
+                IBaseBridgeAdapterErrors.Unauthorized.selector
             )
         );
         adapter.sweep(address(0), address(0xBEEF), 1 ether);
@@ -156,9 +154,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         // Adapter has 0 ETH initially
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                BaseBridgeAdapter.InsufficientBalance.selector
-            )
+            abi.encodeWithSelector(TokenRecovery.InsufficientBalance.selector)
         );
         adapter.sweep(address(0), address(0xBEEF), 1 ether);
     }
@@ -167,7 +163,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         vm.deal(address(adapter), 1 ether);
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(BaseBridgeAdapter.InvalidParams.selector)
+            abi.encodeWithSelector(TokenRecovery.InvalidRecoveryParams.selector)
         );
         adapter.sweep(address(0), address(0), 1 ether);
     }
@@ -179,7 +175,7 @@ contract BaseBridgeAdapterSweepTest is Test {
 
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(BaseBridgeAdapter.TransferFailed.selector)
+            abi.encodeWithSelector(TokenRecovery.FailedCall.selector)
         );
         adapter.sweep(address(0), address(rejectContract), 1 ether);
     }

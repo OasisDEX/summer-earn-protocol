@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {MockHarborCommand} from "../../mocks/MockHarborCommand.sol";
 import {MockStargateV2Pool} from "../../mocks/MockStargateV2.sol";
@@ -211,7 +212,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     function testConstructor_RevertWhenZeroEndpoint() public {
         useNetworkA();
         vm.prank(governor);
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         // lzEndpoint zero should revert in adapter constructor
         new StargateAdapter(
             address(registryA),

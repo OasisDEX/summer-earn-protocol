@@ -303,7 +303,7 @@ contract StargateAdapter is
         returns (SendParam memory sendParam, OFTReceipt memory oftReceipt)
     {
         // Resolve destination adapter via registry
-        address destinationAdapter = _peerAdapter(params.destinationChainId);
+        address destinationAdapter = _getAdapterPeer(params.destinationChainId);
 
         // Build SendParam - Stargate will wrap this with OFTComposeMsgCodec internally
         sendParam = _buildSendParam(
@@ -491,7 +491,7 @@ contract StargateAdapter is
         atm.amount = amountLD;
         // Ensure the LayerZero srcEid maps to the same chain as encoded in the payload
         uint16 chainFromEid = externalIdToChainId[srcEid];
-        _assertSourceChainId(atm.sourceChainId, chainFromEid);
+        _validateSourceChainId(atm.sourceChainId, chainFromEid);
 
         // Overwrite the asset with the local token address resolved from the Stargate pool
         // The asset encoded on the source chain may not match the target-chain address

@@ -124,7 +124,7 @@ contract LayerZeroAdapter is
     ) internal {
         BridgeTypes.RelayedMessageParams
             memory relayedMessageParams = _decodeRelayedMessageParams(_payload);
-        _assertSourceChainId(
+        _validateSourceChainId(
             externalIdToChainId[_origin.srcEid],
             relayedMessageParams.sourceChainId
         );

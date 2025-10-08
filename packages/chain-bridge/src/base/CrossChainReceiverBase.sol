@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {BridgeMessagingHelper} from "../libraries/BridgeMessagingHelper.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 /**
@@ -29,16 +30,14 @@ abstract contract CrossChainReceiverBase is ICrossChainReceiver {
         _requireAuthorizedCaller();
 
         if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.RelayedMessageParams memory params = abi.decode(
-                encodedParams,
-                (BridgeTypes.RelayedMessageParams)
-            );
+            BridgeTypes.RelayedMessageParams
+                memory params = BridgeMessagingHelper
+                    .decodeRelayedMessageParams(encodedParams);
             _handleMessage(params);
         } else if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.RelayedTransferParams memory params = abi.decode(
-                encodedParams,
-                (BridgeTypes.RelayedTransferParams)
-            );
+            BridgeTypes.RelayedTransferParams
+                memory params = BridgeMessagingHelper
+                    .decodeRelayedTransferParams(encodedParams);
             _handleTransferAsset(params);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
             // READ_STATE is not supported

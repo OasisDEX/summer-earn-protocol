@@ -4,51 +4,94 @@ pragma solidity 0.8.28;
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
+import {IBaseBridgeAdapterEvents} from "../interfaces/IBaseBridgeAdapterEvents.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeCodec} from "../libraries/BridgeCodec.sol";
+import {BridgeMessagingHelper} from "../libraries/BridgeMessagingHelper.sol";
+import {TokenRecovery} from "./TokenRecovery.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 
+/**
+ * @title BaseBridgeAdapter
+ * @notice Abstract base contract for implementing cross-chain bridge adapters
+ * @dev This contract provides the foundational functionality for bridge adapters that enable
+ *      cross-chain communication and asset transfers. It handles chain ID mapping, peer validation,
+ *      and provides common utilities for derived bridge implementations.
+ *
+ * ## Architecture Overview
+ *
+ * The BaseBridgeAdapter implements a two-layer security model:
+ * 1. **Registry Check**: Validates that governance has authorized communication with peer adapters
+ * 2. **External ID Mapping**: Ensures the adapter knows how to translate chain IDs to bridge-specific external IDs
+ *
+ * ## Key Features
+ *
+ * - **Chain ID Management**: Maps canonical EVM chain IDs to bridge-specific external identifiers
+ * - **Peer Validation**: Ensures only trusted peer adapters can send cross-chain messages
+ * - **Token Recovery**: Governance-controlled token recovery functionality for stuck assets
+ * - **Message Encoding/Decoding**: Utilities for encoding and decoding cross-chain messages
+ *
+ * ## Usage Examples
+ *
+ * ### Basic Implementation
+ * ```solidity
+ * contract MyBridgeAdapter is BaseBridgeAdapter {
+ *     constructor(address registry, address accessManager)
+ *         BaseBridgeAdapter(registry, accessManager) {}
+ *
+ *     function _sendMessage(uint16 dstChain, bytes memory message) internal override {
+ *         // Implement bridge-specific message sending logic
+ *     }
+ * }
+ * ```
+ *
+ * ### Chain ID Mapping
+ * ```solidity
+ * // Map Ethereum mainnet (chainId: 1) to LayerZero endpoint ID (101)
+ * adapter.mapExternalId(1, 101);
+ * ```
+ *
+ * ### Token Recovery
+ * ```solidity
+ * // Recover stuck ETH
+ * adapter.sweep(address(0), recipient, amount);
+ *
+ * // Recover stuck ERC20 tokens
+ * adapter.sweep(tokenAddress, recipient, amount);
+ * ```
+ *
+ * ## Integration Guidelines
+ *
+ * 1. **Inheritance**: Derive from BaseBridgeAdapter and implement bridge-specific logic
+ * 2. **Access Control**: Use the provided modifiers for access control
+ * 3. **Error Handling**: Use the predefined errors for consistent error reporting
+ * 4. **Event Emission**: Emit events for important state changes
+ *
+ * ## Security Considerations
+ *
+ * - All external functions are protected by appropriate access control
+ * - Chain ID validation prevents integer overflow issues
+ * - Peer validation ensures only authorized adapters can send messages
+ * - Token recovery is restricted to governance roles
+ *
+ * @author Summer Protocol Team
+ * @dev This contract is abstract and must be extended by concrete bridge implementations
+ */
 abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
-    ReentrancyGuard,
     ProtocolAccessManaged,
-    IERC165
+    TokenRecovery,
+    IERC165,
+    IBaseBridgeAdapterErrors,
+    IBaseBridgeAdapterEvents
 {
     using SafeERC20 for IERC20;
-    /// @notice Error thrown when destination chain peer is not trusted by governance
-    error UntrustedDestinationChain(uint16 chainId);
-
-    /// @notice Error thrown when source adapter is not trusted
-    error UntrustedSourceAdapter(address srcAdapter, uint16 srcChain);
-
-    /// @notice Error thrown when the amount is invalid
-    error InvalidAmount();
-
-    /// @notice Error thrown when the source chain ID is invalid
-    error InvalidSourceChainId();
-
-    /// @notice Error thrown when chain ID exceeds uint16 max value
-    error ChainIdTooLarge(uint256 chainId);
-
-    /// @notice Thrown when a call is made by an unauthorized address
-    error Unauthorized();
-
-    /// @notice Error thrown when the message is invalid
-    error InvalidMessage();
-
-    /// @notice Error thrown when invalid parameters are provided
-    error InvalidParams();
-
-    /// @notice Thrown when the contract has insufficient balance
-    error InsufficientBalance();
-
-    /// @notice Thrown when a native token transfer fails
-    error TransferFailed();
 
     uint16 public immutable THIS_CHAIN;
 
@@ -58,26 +101,13 @@ abstract contract BaseBridgeAdapter is
     /// @notice Reverse mapping of external bridge protocol IDs to chain IDs
     mapping(uint32 externalId => uint16 chainId) public externalIdToChainId;
 
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when a chain external ID mapping is added
-    event ExternalIdMapped(uint16 indexed chainId, uint32 indexed externalId);
-
-    /// @notice Emitted when a chain external ID mapping is removed
-    event ExternalIdUnmapped(uint16 indexed chainId, uint32 indexed externalId);
-
-    /// @notice Emitted when stuck tokens are recovered via sweep
-    event TokensRecovered(
-        address indexed asset,
-        uint256 amount,
-        address indexed recipient
-    );
-
     /**
-     * @param _registry Address of the CrossChainRegistry contract
-     * @param _accessManager Address of the AccessManager contract
+     * @notice Initializes the BaseBridgeAdapter with required dependencies
+     * @dev Sets up the cross-chain registry and access management systems
+     * @param _registry Address of the CrossChainRegistry contract for peer management
+     * @param _accessManager Address of the AccessManager contract for role-based access control
+     * @custom:throws InvalidParams if access manager address is zero
+     * @custom:throws ChainIdTooLarge if current chain ID exceeds uint16 maximum value
      */
     constructor(
         address _registry,
@@ -93,19 +123,27 @@ abstract contract BaseBridgeAdapter is
     }
 
     /*//////////////////////////////////////////////////////////////
-                            GOVERNANCE FUNCTIONS
+                            EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Map a canonical chain ID to an adapter-specific external ID
-     * @dev Governance utility. Centralizes mapping logic and events.
-     * @param chainId Canonical EVM chain ID
-     * @param externalId Adapter/bridge external identifier (e.g., LayerZero EID)
+     * @dev Governance utility that enables the adapter to communicate with specific chains.
+     *      This mapping is essential for cross-chain operations as it translates between
+     *      canonical EVM chain IDs and bridge-specific external identifiers.
+     * @param chainId Canonical EVM chain ID (e.g., 1 for Ethereum mainnet)
+     * @param externalId Adapter/bridge external identifier (e.g., LayerZero EID: 101 for Ethereum)
+     * @custom:throws InvalidParams if chainId or externalId is zero
+     * @custom:emits ExternalIdMapped when mapping is successfully created
+     * @custom:access Only callable by governance role
      */
     function mapExternalId(
         uint16 chainId,
         uint32 externalId
     ) external onlyGovernor {
+        if (chainId == 0) {
+            revert InvalidParams();
+        }
         if (externalId == 0) {
             revert InvalidParams();
         }
@@ -114,11 +152,36 @@ abstract contract BaseBridgeAdapter is
 
     /**
      * @notice Remove the external ID mapping for a canonical chain ID
+     * @dev Governance utility to disable communication with a specific chain by removing
+     *      the external ID mapping. This effectively prevents cross-chain operations
+     *      to/from the specified chain.
      * @param chainId Canonical EVM chain ID to unmap
+     * @custom:throws InvalidParams if chainId is zero
+     * @custom:emits ExternalIdUnmapped when mapping is successfully removed
+     * @custom:access Only callable by governance role
      */
     function unmapExternalId(uint16 chainId) external onlyGovernor {
+        if (chainId == 0) {
+            revert InvalidParams();
+        }
         _unmapChainExternalId(chainId);
     }
+
+    /**
+     * @notice Check if the caller is authorized to perform token recovery
+     * @dev Implementation of TokenRecovery authorization - only governance can recover tokens
+     * @custom:throws Unauthorized if caller is not governance
+     */
+    function _requireRecoveryAuthorization() internal view override {
+        // Check if caller has governor role
+        if (!_isGovernor(msg.sender)) {
+            revert Unauthorized();
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
@@ -137,7 +200,7 @@ abstract contract BaseBridgeAdapter is
      * 2. External ID mapping: "Do I know how to talk to the bridge on that chain?" (technical capability)
      */
     modifier onlyTrustedDestination(uint16 dstChain) {
-        if (!isTrustedDestination(dstChain)) {
+        if (!isAllowedDestination(dstChain)) {
             revert UntrustedDestinationChain(dstChain);
         }
         _;
@@ -161,16 +224,27 @@ abstract contract BaseBridgeAdapter is
         return targetChainIds;
     }
 
-    function _peerAdapter(uint16 dstChain) internal view returns (address) {
-        return CROSS_CHAIN_REGISTRY.getAdapterPeer(address(this), dstChain);
-    }
-
     /**
      * @notice Returns true if governance has registered a peer adapter for `dstChain`
      */
-    function isTrustedDestination(uint16 dstChain) public view returns (bool) {
+    function isAllowedDestination(uint16 dstChain) public view returns (bool) {
         // Revert if the relationship does not exist; used by modifiers and explicit checks
-        return _peerAdapter(dstChain) != address(0);
+        return _getAdapterPeer(dstChain) != address(0);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Get the peer adapter address for a destination chain
+     * @dev This function is kept separate for potential future extensibility.
+     *      Derived contracts may override this to add custom peer resolution logic.
+     * @param dstChain Destination chain ID
+     * @return Peer adapter address for the destination chain
+     */
+    function _getAdapterPeer(uint16 dstChain) internal view returns (address) {
+        return CROSS_CHAIN_REGISTRY.getAdapterPeer(address(this), dstChain);
     }
 
     /**
@@ -206,7 +280,7 @@ abstract contract BaseBridgeAdapter is
         }
     }
 
-    function _assertSourceChainId(
+    function _validateSourceChainId(
         uint16 sourceChainId,
         uint16 expectedChainId
     ) internal pure {
@@ -269,60 +343,88 @@ abstract contract BaseBridgeAdapter is
 
     /**
      * @notice Requires a non-zero gas limit and returns it
+     * @dev This function is used by derived bridge adapters to validate gas limits
+     *      before passing them to bridge protocols. It ensures that a valid gas limit
+     *      is provided for cross-chain operations.
      * @param userGas User-provided gas limit
      * @return gasLimit The validated gas limit
+     * @custom:throws InvalidParams if userGas is zero
      */
     function _requireGasLimit(uint64 userGas) internal pure returns (uint64) {
         if (userGas == 0) revert InvalidParams();
         return userGas;
     }
 
+    /**
+     * @notice Decode relayed message parameters from bytes
+     * @param _message Encoded message parameters
+     * @return Decoded RelayedMessageParams struct
+     */
     function _decodeRelayedMessageParams(
         bytes memory _message
     ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
-        return abi.decode(_message, (BridgeTypes.RelayedMessageParams));
+        return BridgeMessagingHelper.decodeRelayedMessageParams(_message);
     }
 
+    /**
+     * @notice Decode relayed transfer parameters from bytes
+     * @param _message Encoded transfer parameters
+     * @return Decoded RelayedTransferParams struct
+     */
     function _decodeRelayedTransferParams(
         bytes memory _message
     ) internal pure returns (BridgeTypes.RelayedTransferParams memory) {
-        return abi.decode(_message, (BridgeTypes.RelayedTransferParams));
+        return BridgeMessagingHelper.decodeRelayedTransferParams(_message);
     }
 
+    /**
+     * @notice Encode relayed message parameters to bytes
+     * @param _params RelayedMessageParams struct to encode
+     * @return Encoded message parameters
+     */
     function _encodeRelayedMessageParams(
         BridgeTypes.RelayedMessageParams memory _params
     ) internal pure returns (bytes memory) {
-        return abi.encode(_params);
+        return BridgeMessagingHelper.encodeRelayedMessageParams(_params);
     }
 
+    /**
+     * @notice Encode relayed transfer parameters to bytes
+     * @param _params RelayedTransferParams struct to encode
+     * @return Encoded transfer parameters
+     */
     function _encodeRelayedTransferParams(
         BridgeTypes.RelayedTransferParams memory _params
     ) internal pure returns (bytes memory) {
-        return abi.encode(_params);
+        return BridgeMessagingHelper.encodeRelayedTransferParams(_params);
     }
 
+    /**
+     * @notice Encode relayed message parameters with operation type prefix
+     * @param _params RelayedMessageParams struct to encode
+     * @return Encoded message parameters with operation type
+     */
     function _encodeRelayedMessageParamsWithType(
         BridgeTypes.RelayedMessageParams memory _params
     ) internal pure returns (bytes memory) {
         return
-            BridgeCodec.encodePayload(
-                BridgeTypes.OperationType.MESSAGE,
-                _encodeRelayedMessageParams(_params)
-            );
+            BridgeMessagingHelper.encodeRelayedMessageParamsWithType(_params);
     }
 
+    /**
+     * @notice Encode relayed transfer parameters with operation type prefix
+     * @param _params RelayedTransferParams struct to encode
+     * @return Encoded transfer parameters with operation type
+     */
     function _encodeRelayedTransferParamsWithType(
         BridgeTypes.RelayedTransferParams memory _params
     ) internal pure returns (bytes memory) {
         return
-            BridgeCodec.encodePayload(
-                BridgeTypes.OperationType.TRANSFER_ASSET,
-                _encodeRelayedTransferParams(_params)
-            );
+            BridgeMessagingHelper.encodeRelayedTransferParamsWithType(_params);
     }
 
     /**
-     * @notice Decodes a payload to extract OperationType and data
+     * @notice Decode a payload to extract OperationType and data
      * @param payload The encoded payload with OperationType prefix
      * @return operationType The extracted operation type
      * @return data The remaining payload data after removing the prefix
@@ -334,34 +436,6 @@ abstract contract BaseBridgeAdapter is
         pure
         returns (BridgeTypes.OperationType operationType, bytes memory data)
     {
-        return BridgeCodec.decodePayload(payload);
-    }
-
-    /**
-     * @notice Governance-only sweep to recover tokens held by this adapter
-     * @param asset Token to recover (address(0) for native ETH)
-     * @param to Recipient of the recovered tokens
-     * @param amount Amount to sweep
-     */
-    function sweep(
-        address asset,
-        address to,
-        uint256 amount
-    ) external onlyGovernor nonReentrant {
-        if (to == address(0)) revert InvalidParams();
-
-        if (asset == address(0)) {
-            // Handle native ETH
-            if (address(this).balance < amount) revert InsufficientBalance();
-            (bool success, ) = to.call{value: amount}("");
-            if (!success) revert TransferFailed();
-        } else {
-            // Handle ERC20 tokens
-            uint256 balance = IERC20(asset).balanceOf(address(this));
-            if (balance < amount) revert InsufficientBalance();
-            IERC20(asset).safeTransfer(to, amount);
-        }
-
-        emit TokensRecovered(asset, amount, to);
+        return BridgeMessagingHelper.decodePayload(payload);
     }
 }

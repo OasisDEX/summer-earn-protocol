@@ -10,6 +10,7 @@ import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {Errors} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Errors.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
@@ -176,7 +177,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
     function test_estimateSendMessage_reverts_when_gasLimit_zero() public {
         useNetworkA();
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         adapterA.estimateSendMessage(
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: CHAIN_ID_B,
@@ -222,7 +223,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             nonce: 1
         });
 
-        vm.expectRevert(BaseBridgeAdapter.InvalidSourceChainId.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidSourceChainId.selector);
         adapterA.lzReceiveTest(
             origin,
             guid,
