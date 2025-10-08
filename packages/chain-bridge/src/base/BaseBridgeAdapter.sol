@@ -37,50 +37,6 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
  * - **Token Recovery**: Governance-controlled token recovery functionality for stuck assets
  * - **Message Encoding/Decoding**: Utilities for encoding and decoding cross-chain messages
  *
- * ## Usage Examples
- *
- * ### Basic Implementation
- * ```solidity
- * contract MyBridgeAdapter is BaseBridgeAdapter {
- *     constructor(address registry, address accessManager)
- *         BaseBridgeAdapter(registry, accessManager) {}
- *
- *     function _sendMessage(uint16 dstChain, bytes memory message) internal override {
- *         // Implement bridge-specific message sending logic
- *     }
- * }
- * ```
- *
- * ### Chain ID Mapping
- * ```solidity
- * // Map Ethereum mainnet (chainId: 1) to LayerZero endpoint ID (101)
- * adapter.mapExternalId(1, 101);
- * ```
- *
- * ### Token Recovery
- * ```solidity
- * // Recover stuck ETH
- * adapter.sweep(address(0), recipient, amount);
- *
- * // Recover stuck ERC20 tokens
- * adapter.sweep(tokenAddress, recipient, amount);
- * ```
- *
- * ## Integration Guidelines
- *
- * 1. **Inheritance**: Derive from BaseBridgeAdapter and implement bridge-specific logic
- * 2. **Access Control**: Use the provided modifiers for access control
- * 3. **Error Handling**: Use the predefined errors for consistent error reporting
- * 4. **Event Emission**: Emit events for important state changes
- *
- * ## Security Considerations
- *
- * - All external functions are protected by appropriate access control
- * - Chain ID validation prevents integer overflow issues
- * - Peer validation ensures only authorized adapters can send messages
- * - Token recovery is restricted to governance roles
- *
- * @author Summer Protocol Team
  * @dev This contract is abstract and must be extended by concrete bridge implementations
  */
 abstract contract BaseBridgeAdapter is
