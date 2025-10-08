@@ -52,7 +52,7 @@ contract LayerZeroAdapter is
                               MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Modifier to check if an operation is supported
+    /// @notice Modifier to check if an operation is supported by the adapter
     modifier withSupportedOperation(BridgeTypes.OperationType operationType) {
         if (!_supportsOperation(operationType)) {
             revert OperationNotSupported();
@@ -319,7 +319,8 @@ contract LayerZeroAdapter is
     /**
      * @notice Creates LayerZero options with appropriate gas limits
      * @param options User-provided bridge options
-     * @return lzOptions The prepared LayerZero options
+     * 
+     @return lzOptions The prepared LayerZero options
      */
     function _createLzOptions(
         BridgeTypes.BridgeOptions memory options
