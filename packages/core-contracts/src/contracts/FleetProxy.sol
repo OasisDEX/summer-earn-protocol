@@ -23,6 +23,15 @@ import {ReceiptNotifier} from "./common/ReceiptNotifier.sol";
  * @notice Proxy contract for managing cross-chain Fleet operations
  * @dev Implements cross-chain asset reception and management for Fleet contracts
  */
+
+/*//////////////////////////////////////////////////////////////
+                            EVENTS
+//////////////////////////////////////////////////////////////*/
+
+/// @notice Emitted when inflight withdrawals are set locally
+event InflightSet(uint256 amount, bytes32 operationId);
+/// @notice Emitted when inflight withdrawals are cleared
+event InflightCleared(uint256 amount, bytes32 operationId);
 contract FleetProxy is
     ProtocolAccessManaged,
     CrossChainConfigManaged,
@@ -117,14 +126,17 @@ contract FleetProxy is
     /// @param amount Amount of withdrawal assets to set as in-flight
     /// @dev This is an emergency function that allows governance to manually correct inflight withdrawal tracking
     /// in case of bridge failures or accounting discrepancies
-    /// @dev Emits InflightCleared if amount is 0, otherwise emits InflightSet
+    /// @dev Always emits InflightSet with the new amount, and InflightCleared if clearing previous amount
     function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
         uint256 previous = inflightWithdrawals;
         inflightWithdrawals = amount;
-        if (amount == 0) {
-            emit InflightCleared(bytes32(0), previous);
-        } else {
-            emit InflightSet(amount, bytes32(0));
+
+        // Always emit InflightSet with the new amount
+        emit InflightSet(amount, bytes32(0));
+
+        // If we're clearing a previous amount, also emit InflightCleared
+        if (previous != 0 && amount == 0) {
+            emit InflightCleared(previous, bytes32(0));
         }
     }
 
@@ -137,13 +149,8 @@ contract FleetProxy is
         uint256 previous = inflightWithdrawals;
         if (previous == 0) revert InvalidOperation();
         inflightWithdrawals = 0;
-        emit InflightCleared(operationId, previous);
+        emit InflightCleared(previous, operationId);
     }
-
-    /// @notice Emitted when inflight withdrawals are set locally
-    event InflightSet(uint256 amount, bytes32 operationId);
-    /// @notice Emitted when inflight withdrawals are cleared
-    event InflightCleared(bytes32 operationId, uint256 amount);
 
     /// @notice Keeper function to withdraw and transfer assets
     /// @param amount The amount of assets to withdraw
@@ -156,7 +163,7 @@ contract FleetProxy is
         uint amount,
         BridgeTypes.BridgeOptions calldata options
     ) external payable whenNotPaused nonReentrant onlyKeeper {
-        _assertCanWithdraw(amount);
+        _validateCanWithdraw(amount);
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
 
         // 1. Get the asset from fleet contract
@@ -340,7 +347,7 @@ contract FleetProxy is
 
         inflightWithdrawals = 0;
         latestOutgoingTransferId = bytes32(0);
-        emit InflightCleared(ackOpId, previous);
+        emit InflightCleared(previous, ackOpId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -356,12 +363,15 @@ contract FleetProxy is
     function _getHubChainArk(
         uint16 _hubChainId
     ) internal view returns (address arkAddress) {
+        ICrossChainRegistry registry = ICrossChainRegistry(
+            crossChainRegistry()
+        );
         return
-            ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
+            registry.getSourceForTarget(
                 _hubChainId,
-                ICrossChainRegistry(crossChainRegistry()).currentChainId(),
+                registry.currentChainId(),
                 address(this),
-                ICrossChainRegistry(crossChainRegistry()).PEER_RELATIONSHIP()
+                registry.PEER_RELATIONSHIP()
             );
     }
 
@@ -373,26 +383,26 @@ contract FleetProxy is
     function _isValidSourceChain(
         uint16 _hubChainId
     ) internal view returns (bool isValid) {
+        ICrossChainRegistry registry = ICrossChainRegistry(
+            crossChainRegistry()
+        );
         try
-            ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
+            registry.getSourceForTarget(
                 _hubChainId,
-                ICrossChainRegistry(crossChainRegistry()).currentChainId(),
+                registry.currentChainId(),
                 address(this),
-                ICrossChainRegistry(crossChainRegistry()).PEER_RELATIONSHIP()
+                registry.PEER_RELATIONSHIP()
             )
         returns (address ark) {
             if (ark != address(0)) {
                 try
-                    ICrossChainRegistry(crossChainRegistry())
-                        .isValidCrossChainPair(
-                            ark,
-                            address(this),
-                            hubChainId,
-                            ICrossChainRegistry(crossChainRegistry())
-                                .currentChainId(),
-                            ICrossChainRegistry(crossChainRegistry())
-                                .PEER_RELATIONSHIP()
-                        )
+                    registry.isValidCrossChainPair(
+                        ark,
+                        address(this),
+                        hubChainId,
+                        registry.currentChainId(),
+                        registry.PEER_RELATIONSHIP()
+                    )
                 returns (bool valid) {
                     return valid;
                 } catch {
@@ -431,7 +441,7 @@ contract FleetProxy is
      * @notice Validates preconditions before withdrawing from fleet
      * @param amount The amount requested to withdraw
      */
-    function _assertCanWithdraw(uint256 amount) internal view {
+    function _validateCanWithdraw(uint256 amount) internal view {
         if (amount == 0) revert NoAssets();
         if (inflightWithdrawals != 0) revert InFlight();
     }
