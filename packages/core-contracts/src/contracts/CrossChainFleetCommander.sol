@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {FleetCommander} from "./FleetCommander.sol";
 import {ICrossChainFleetCommander} from "../interfaces/ICrossChainFleetCommander.sol";
 import {CrossChainFleetCommanderParams} from "../types/CrossChainFleetCommanderTypes.sol";
-import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
+import {FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ICrossChainFleetCommanderErrors} from "../errors/ICrossChainFleetCommanderErrors.sol";
@@ -85,6 +85,18 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         _;
     }
 
+    /**
+     * @dev Modifier to ensure all arks are in sync before critical operations
+     * @dev This prevents operations when cross-chain arks are not properly synced
+     */
+    modifier allArksSynced() {
+        if (!areAllArksSynced()) {
+            revert ICrossChainFleetCommanderErrors
+                .CrossChainFleetCommanderArksNotSynced();
+        }
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             COOLDOWN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -92,6 +104,62 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     /// @notice Get the cooldown period
     function getCooldownPeriod() external view returns (uint256 period) {
         return config.cooldownPeriod;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            SYNC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Check if all arks are in sync
+    /// @return bool True if all arks are synced, false otherwise
+    function areAllArksSynced() public view returns (bool) {
+        address[] memory activeArks = getActiveArks();
+
+        // Check all active arks
+        for (uint256 i = 0; i < activeArks.length; i++) {
+            if (!IArk(activeArks[i]).isSynced()) {
+                return false;
+            }
+        }
+
+        // Check buffer ark
+        if (!IArk(address(config.bufferArk)).isSynced()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// @notice Get the list of unsynced arks
+    /// @return unsyncedArks Array of addresses of arks that are not synced
+    function getUnsyncedArks()
+        external
+        view
+        returns (address[] memory unsyncedArks)
+    {
+        address[] memory activeArks = getActiveArks();
+        address[] memory tempUnsynced = new address[](activeArks.length + 1); // +1 for buffer ark
+        uint256 unsyncedCount = 0;
+
+        // Check all active arks
+        for (uint256 i = 0; i < activeArks.length; i++) {
+            if (!IArk(activeArks[i]).isSynced()) {
+                tempUnsynced[unsyncedCount] = activeArks[i];
+                unsyncedCount++;
+            }
+        }
+
+        // Check buffer ark
+        if (!IArk(address(config.bufferArk)).isSynced()) {
+            tempUnsynced[unsyncedCount] = address(config.bufferArk);
+            unsyncedCount++;
+        }
+
+        // Create properly sized array
+        unsyncedArks = new address[](unsyncedCount);
+        for (uint256 i = 0; i < unsyncedCount; i++) {
+            unsyncedArks[i] = tempUnsynced[i];
+        }
     }
 
     /// @notice Get the timestamp when a user can next withdraw/redeem
@@ -163,8 +231,8 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     }
 
     /**
-     * @notice Override withdraw to enforce cooldown
-     * @dev Ensures cooldown period has passed since last deposit
+     * @notice Override withdraw to enforce cooldown and sync check
+     * @dev Ensures cooldown period has passed since last deposit and all arks are synced
      */
     function withdraw(
         uint256 assets,
@@ -174,14 +242,15 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         public
         override(FleetCommander, IFleetCommander)
         cooldownEnforced(owner)
+        allArksSynced
         returns (uint256 shares)
     {
         return super.withdraw(assets, receiver, owner);
     }
 
     /**
-     * @notice Override redeem to enforce cooldown
-     * @dev Ensures cooldown period has passed since last deposit
+     * @notice Override redeem to enforce cooldown and sync check
+     * @dev Ensures cooldown period has passed since last deposit and all arks are synced
      */
     function redeem(
         uint256 shares,
@@ -191,6 +260,7 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         public
         override(FleetCommander, IFleetCommander)
         cooldownEnforced(owner)
+        allArksSynced
         returns (uint256 assets)
     {
         return super.redeem(shares, receiver, owner);

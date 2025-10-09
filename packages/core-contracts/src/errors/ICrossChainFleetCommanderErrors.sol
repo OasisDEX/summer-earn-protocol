@@ -19,4 +19,11 @@ interface ICrossChainFleetCommanderErrors {
         uint256 currentTime,
         uint256 cooldownEndTime
     );
+
+    /**
+     * @notice Thrown when not all arks are in sync during critical operations
+     * @dev This error is thrown when attempting to perform operations that require
+     *      all arks to be properly synced with their remote state
+     */
+    error CrossChainFleetCommanderArksNotSynced();
 }
