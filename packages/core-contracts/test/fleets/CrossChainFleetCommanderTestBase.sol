@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {CrossChainFleetCommander} from "../../src/contracts/CrossChainFleetCommander.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-import {CrossChainFleetCommanderParams, AsyncOperation} from "../../src/types/CrossChainFleetCommanderTypes.sol";
+import {CrossChainFleetCommanderParams} from "../../src/types/CrossChainFleetCommanderTypes.sol";
 import {PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test} from "forge-std/Test.sol";
@@ -16,7 +16,7 @@ import {ArkMock} from "../mocks/ArkMock.sol";
 
 /**
  * @title CrossChainFleetCommanderTestBase
- * @notice Base test contract for CrossChainFleetCommander with async operations
+ * @notice Base test contract for CrossChainFleetCommander with cooldown protection
  * @dev Extends FleetCommanderTestBase with CrossChainFleetCommander specific setup
  */
 abstract contract CrossChainFleetCommanderTestBase is
@@ -30,16 +30,15 @@ abstract contract CrossChainFleetCommanderTestBase is
 
     // CrossChainFleetCommander specific parameters
     CrossChainFleetCommanderParams public crossChainFleetCommanderParams;
-    uint256 public constant MIN_QUEUE_AMOUNT = 1000 * 10 ** 6; // 1000 USDC
+    uint256 public constant COOLDOWN_PERIOD = 1 hours; // 1 hour cooldown
 
     // Mock Arks with sync status
     SyncedArkMock public syncedArkMock;
     UnsyncedArkMock public unsyncedArkMock;
 
     // Test addresses
-    address public superkeeper = address(0x100);
-    address public asyncUser = address(0x200);
-    address public asyncUser2 = address(0x300);
+    address public user1 = address(0x200);
+    address public user2 = address(0x300);
 
     constructor() {}
 
@@ -75,14 +74,6 @@ abstract contract CrossChainFleetCommanderTestBase is
         accessManager.grantCommanderRole(
             address(bufferArk),
             address(crossChainFleetCommander)
-        );
-        vm.stopPrank();
-
-        // Grant superkeeper role
-        vm.startPrank(governor);
-        accessManager.grantKeeperRole(
-            address(crossChainFleetCommander),
-            superkeeper
         );
         vm.stopPrank();
 
@@ -134,7 +125,7 @@ abstract contract CrossChainFleetCommanderTestBase is
             initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
             depositCap: type(uint256).max,
             initialTipRate: initialTipRate,
-            minQueueAmount: MIN_QUEUE_AMOUNT
+            cooldownPeriod: COOLDOWN_PERIOD
         });
 
         crossChainFleetCommander = new CrossChainFleetCommander(
@@ -247,11 +238,11 @@ abstract contract CrossChainFleetCommanderTestBase is
     }
 
     /**
-     * @notice Setup user with tokens for async operations
+     * @notice Setup user with tokens for cooldown testing
      * @param user The user address
      * @param amount The amount of tokens to mint
      */
-    function setupAsyncUser(address user, uint256 amount) internal {
+    function setupUser(address user, uint256 amount) internal {
         mockToken.mint(user, amount);
         vm.startPrank(user);
         mockToken.approve(address(crossChainFleetCommander), amount);
@@ -259,113 +250,85 @@ abstract contract CrossChainFleetCommanderTestBase is
     }
 
     /**
-     * @notice Queue a deposit operation
+     * @notice Perform a deposit operation
      * @param user The user address
      * @param amount The amount to deposit
      * @param receiver The receiver address
-     * @return operationId The operation ID
+     * @return shares The number of shares received
      */
-    function queueDeposit(
+    function performDeposit(
         address user,
         uint256 amount,
         address receiver
-    ) internal returns (uint256 operationId) {
+    ) internal returns (uint256 shares) {
         vm.prank(user);
-        operationId = crossChainFleetCommander.queueDeposit(amount, receiver);
+        shares = crossChainFleetCommander.deposit(amount, receiver);
     }
 
     /**
-     * @notice Queue a withdrawal operation
+     * @notice Perform a withdrawal operation
      * @param user The user address
      * @param amount The amount to withdraw
      * @param receiver The receiver address
      * @param owner The owner address
-     * @return operationId The operation ID
+     * @return shares The number of shares burned
      */
-    function queueWithdrawal(
+    function performWithdrawal(
         address user,
         uint256 amount,
         address receiver,
         address owner
-    ) internal returns (uint256 operationId) {
+    ) internal returns (uint256 shares) {
         vm.prank(user);
-        operationId = crossChainFleetCommander.queueWithdrawal(
-            amount,
-            receiver,
-            owner
-        );
+        shares = crossChainFleetCommander.withdraw(amount, receiver, owner);
     }
 
     /**
-     * @notice Queue a redemption operation
+     * @notice Perform a redemption operation
      * @param user The user address
      * @param shares The number of shares to redeem
      * @param receiver The receiver address
      * @param owner The owner address
-     * @return operationId The operation ID
+     * @return assets The number of assets received
      */
-    function queueRedemption(
+    function performRedemption(
         address user,
         uint256 shares,
         address receiver,
         address owner
-    ) internal returns (uint256 operationId) {
+    ) internal returns (uint256 assets) {
         vm.prank(user);
-        operationId = crossChainFleetCommander.queueRedemption(
-            shares,
-            receiver,
-            owner
-        );
+        assets = crossChainFleetCommander.redeem(shares, receiver, owner);
     }
 
     /**
-     * @notice Process async operations as superkeeper
-     * @param maxOperations Maximum number of operations to process
-     * @return processedCount Number of operations processed
-     * @return failedCount Number of operations that failed
+     * @notice Get the cooldown period
+     * @return period The cooldown period in seconds
      */
-    function processAsyncOperations(
-        uint256 maxOperations
-    ) internal returns (uint256 processedCount, uint256 failedCount) {
-        vm.prank(superkeeper);
-        (processedCount, failedCount) = crossChainFleetCommander
-            .processAsyncOperations(maxOperations);
+    function getCooldownPeriod() internal view returns (uint256 period) {
+        return crossChainFleetCommander.getCooldownPeriod();
     }
 
     /**
-     * @notice Cancel an operation
-     * @param operationId The operation ID to cancel
+     * @notice Get the timestamp when a user can next withdraw/redeem
+     * @param user The address of the user
+     * @return timestamp The timestamp when the user can next withdraw/redeem
      */
-    function cancelOperation(uint256 operationId) internal {
-        vm.prank(asyncUser);
-        crossChainFleetCommander.cancelOperation(operationId);
+    function getNextWithdrawTimestamp(
+        address user
+    ) internal view returns (uint256 timestamp) {
+        return crossChainFleetCommander.getNextWithdrawTimestamp(user);
     }
 
     /**
-     * @notice Check if all Arks are synced
-     * @return synced True if all Arks are synced
+     * @notice Check if a user can withdraw/redeem (cooldown has passed)
+     * @param user The address of the user
+     * @return canWithdrawNow True if the user can withdraw/redeem now
      */
-    function areAllArksSynced() internal view returns (bool synced) {
-        return crossChainFleetCommander.areAllArksSynced();
-    }
-
-    /**
-     * @notice Get async operation details
-     * @param operationId The operation ID
-     * @return operation The operation details
-     */
-    function getAsyncOperation(
-        uint256 operationId
-    ) internal view returns (AsyncOperation memory operation) {
-        return crossChainFleetCommander.getAsyncOperation(operationId);
-    }
-
-    /**
-     * @notice Get queued operations count
-     * @return count The number of queued operations
-     */
-    function getQueuedOperationsCount() internal view returns (uint256 count) {
-        return crossChainFleetCommander.getQueuedOperationsCount();
+    function canWithdraw(
+        address user
+    ) internal view returns (bool canWithdrawNow) {
+        return crossChainFleetCommander.canWithdraw(user);
     }
 
     /**
@@ -409,7 +372,7 @@ abstract contract CrossChainFleetCommanderTestBase is
 contract SyncedArkMock is ArkMock {
     constructor(ArkParams memory _params) ArkMock(_params) {}
 
-    function isSynced() public view override returns (bool) {
+    function isSynced() public pure override returns (bool) {
         return true;
     }
 }
@@ -421,7 +384,7 @@ contract SyncedArkMock is ArkMock {
 contract UnsyncedArkMock is ArkMock {
     constructor(ArkParams memory _params) ArkMock(_params) {}
 
-    function isSynced() public view override returns (bool) {
+    function isSynced() public pure override returns (bool) {
         return false;
     }
 }

@@ -39,6 +39,7 @@ contract FunctionalArkMock is Ark {
         bytes calldata
     )
         internal
+        pure
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {

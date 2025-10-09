@@ -9,61 +9,14 @@ pragma solidity 0.8.28;
  */
 interface ICrossChainFleetCommanderErrors {
     /**
-     * @notice Thrown when users try to use sync functions instead of async ones
-     * @param message The error message explaining which async function to use
+     * @notice Thrown when cooldown period has not been met for withdraw/redeem operations
+     * @param user The address of the user attempting the operation
+     * @param currentTime The current block timestamp
+     * @param cooldownEndTime The timestamp when cooldown period ends
      */
-    error CrossChainFleetCommanderUseAsyncFunction(string message);
-
-    /**
-     * @notice Thrown when not all Arks are synced before processing operations
-     */
-    error CrossChainFleetCommanderNotAllArksSynced();
-
-    /**
-     * @notice Thrown when the operation amount is below the minimum required amount
-     * @param amount The amount provided
-     * @param minAmount The minimum required amount
-     */
-    error CrossChainFleetCommanderAmountBelowMinimum(
-        uint256 amount,
-        uint256 minAmount
-    );
-
-    /**
-     * @notice Thrown when the operation queue is full
-     * @param currentSize The current queue size
-     * @param maxSize The maximum allowed queue size
-     */
-    error CrossChainFleetCommanderQueueFull(
-        uint256 currentSize,
-        uint256 maxSize
-    );
-
-    /**
-     * @notice Thrown when trying to process an operation that has already been processed
-     * @param operationId The ID of the operation that was already processed
-     */
-    error CrossChainFleetCommanderOperationAlreadyProcessed(
-        uint256 operationId
-    );
-
-    /**
-     * @notice Thrown when trying to cancel an operation that has already been processed
-     * @param operationId The ID of the operation that was already processed
-     */
-    error CrossChainFleetCommanderOperationAlreadyProcessedForCancellation(
-        uint256 operationId
-    );
-
-    /**
-     * @notice Thrown when trying to cancel an operation that doesn't belong to the caller
-     * @param operationId The ID of the operation
-     * @param caller The address attempting to cancel
-     * @param owner The actual owner of the operation
-     */
-    error CrossChainFleetCommanderNotYourOperation(
-        uint256 operationId,
-        address caller,
-        address owner
+    error CrossChainFleetCommanderCooldownNotMet(
+        address user,
+        uint256 currentTime,
+        uint256 cooldownEndTime
     );
 }

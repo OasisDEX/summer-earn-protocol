@@ -178,7 +178,7 @@ contract CrossChainArkSyncStatusTest is Test, TestHelpers {
                             SYNC STATUS TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testIsSyncedInitiallyUnsynced() public {
+    function testIsSyncedInitiallyUnsynced() public view {
         // Initially, no remote balance has been received
         assertFalse(
             ark.isSynced(),
@@ -322,7 +322,7 @@ contract CrossChainArkSyncStatusTest is Test, TestHelpers {
                             SYNC WINDOW TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testSyncWindowConstant() public {
+    function testSyncWindowConstant() public view {
         assertEq(ark.SYNC_WINDOW(), 24 hours, "Sync window should be 24 hours");
     }
 

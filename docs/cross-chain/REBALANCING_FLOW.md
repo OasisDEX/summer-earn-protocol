@@ -6,6 +6,7 @@ to destination fleets.
 #### High-Level Steps
 
 1. Users deposit into the CrossChain Fleet (hub chain) via the standard fleet interface.
+   - **MEV Protection**: User's deposit timestamp is recorded to enforce cooldown period
 2. Assets accrue in the Buffer Ark.
 3. Keepers decide target allocations per destination chain and queue transfers (including full
    ExecuteTransferParams and BridgeOptions) from the Buffer Ark to the respective CrossChain Ark(s).
@@ -94,3 +95,27 @@ sequenceDiagram
   from the local fleet and bridge assets back to the Ark on the hub chain.
 - Single-flight applies; a new withdrawal cannot be initiated until inflight is cleared via
   `acknowledgeHubReceipt` or governance override.
+
+#### MEV Protection in Cross-Chain Operations
+
+The CrossChainFleetCommander implements cooldown-based MEV protection:
+
+**Deposit Phase:**
+- User deposits trigger timestamp recording via `_updateLastDepositTimestamp()`
+- Cooldown period starts immediately after deposit confirmation
+
+**Withdrawal Phase:**
+- Users cannot withdraw/redeem until cooldown period has elapsed
+- `cooldownEnforced` modifier checks `lastDepositTimestamp[user] + cooldownPeriod`
+- Reverts with `CrossChainFleetCommanderCooldownNotMet` if cooldown not satisfied
+
+**Key Protection Mechanisms:**
+- Prevents immediate withdrawal after deposit (sandwich attack protection)
+- Blocks front-running of cross-chain rebalancing operations
+- Ensures keeper-led rebalancing cannot be exploited by MEV bots
+- Configurable cooldown period per fleet deployment
+
+**Monitoring Functions:**
+- `getCooldownPeriod()`: Returns the configured cooldown duration
+- `getNextWithdrawTimestamp(user)`: Shows when user can next withdraw
+- `canWithdraw(user)`: Boolean check for withdrawal eligibility

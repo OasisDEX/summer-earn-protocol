@@ -18,6 +18,11 @@ This document provides a practical runbook for keepers and operators.
 - Source chain: router execution events, adapter send events, Ark transfer events.
 - Destination chain: adapter delivery events, router delivery, FleetProxy deposit events.
 - Alert on: delivery failures, registry validation failures, pause state changes, abnormal fee quotes.
+- **MEV Protection Monitoring**:
+  - Track `CrossChainFleetCommanderCooldownNotMet` errors for potential attack attempts
+  - Monitor deposit/withdrawal patterns for unusual activity
+  - Alert on high frequency of cooldown violations from same addresses
+  - Track cooldown period effectiveness and user experience metrics
 - Reconciliation (updated):
   - Ark: `inflightAssets` is set on execution and cleared when a corresponding remote balance update is processed for the latest outgoing operation. Track `InflightSet(amount, operationId)` and `InflightCleared(operationId, amount)` alongside `RemoteAssetBalanceUpdated`.
   - FleetProxy: `latestIncomingTransferId` advances on deposits. For withdrawals, track `InflightSet(amount, operationId)` on initiation and clear inflight via `acknowledgeHubReceipt(operationId)` (SuperKeeper) once receipt is verified on the hub, emitting `InflightCleared(operationId, amount)`. Governance can `forceUpdateInflightAssets(amount)` for emergency correction.
@@ -32,8 +37,49 @@ This document provides a practical runbook for keepers and operators.
 - Registry mismatch: verify registry entries on both chains; correct and re-execute only after confirmation.
 - Contract paused: identify root cause, coordinate governance/guardian to safely unpause.
 
+#### MEV Protection Troubleshooting
+
+**Common Issues:**
+
+1. **User Complaints About Cooldown**:
+   - Check user's last deposit timestamp: `lastDepositTimestamp[user]`
+   - Verify cooldown period: `getCooldownPeriod()`
+   - Calculate remaining time: `getNextWithdrawTimestamp(user) - block.timestamp`
+   - Explain cooldown mechanism and security benefits
+
+2. **High Cooldown Violation Rate**:
+   - Investigate potential MEV attack attempts
+   - Check for coordinated violation attempts from multiple addresses
+   - Consider adjusting cooldown period if too restrictive
+   - Monitor for patterns indicating systematic exploitation attempts
+
+3. **User Experience Issues**:
+   - Track average cooldown wait times
+   - Monitor user feedback and support tickets
+   - Consider UI improvements to show cooldown status
+   - Evaluate cooldown period effectiveness
+
+**Monitoring Queries:**
+
+```solidity
+// Check user cooldown status
+bool canWithdraw = fleetCommander.canWithdraw(user);
+uint256 nextWithdrawTime = fleetCommander.getNextWithdrawTimestamp(user);
+uint256 cooldownPeriod = fleetCommander.getCooldownPeriod();
+```
+
+**Alert Thresholds:**
+- >10 cooldown violations per hour from same address
+- >50 cooldown violations per hour across all users
+- Average cooldown wait time >2x configured period
+- User complaints about cooldown >5% of total users
+
 #### Governance and Safety Controls
 
 - Pause/unpause on BridgeRouter and FleetProxy.
 - Register/unregister Ark ↔ Proxy relationships in CrossChainRegistry.
 - Asset recovery functions (where applicable) for stuck native or ERC20 balances.
+- **MEV Protection Controls**:
+  - Cooldown period is immutable after deployment (by design)
+  - No governance override for individual user cooldowns
+  - Monitor cooldown effectiveness through metrics and user feedback
