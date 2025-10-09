@@ -206,18 +206,18 @@ abstract contract BaseCrossChainRegistry is
             targetChainId
         );
 
+        CrossChainRelation memory relation = crossChainRelations[
+            relationshipKey
+        ];
+
         // Verify the relationship exists before attempting to unregister
-        if (crossChainRelations[relationshipKey].sourceContract == address(0)) {
+        if (relation.sourceContract == address(0)) {
             revert RelationshipDoesNotExist(
                 sourceContract,
                 relationshipType,
                 targetChainId
             );
         }
-
-        CrossChainRelation memory relation = crossChainRelations[
-            relationshipKey
-        ];
 
         // Remove reverse mapping only when it was stored (inter-chain)
         bool sameChain = _isSameChain(
