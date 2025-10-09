@@ -537,7 +537,8 @@
           "Euler_Frontier_YieldFi": "0xc727069c0eb261Be642272fe3848518192683fFc",
           "Euler_Frontier_Hyperwave": "0x3C75C170671acb394804DfAf63e4F9891C121625",
           "Euler_Frontier_Yala": "0x481D4909D7ca2eb27c4975f08dCE07DBeF0d3Fa7",
-          "Euler_Frontier_Pareto": "0xa94F9CE821C7bD57cc12991CB46ca19f5789278F"
+          "Euler_Frontier_Pareto": "0xa94F9CE821C7bD57cc12991CB46ca19f5789278F",
+          "SiUSD_InfiniFi_Senior": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB"
         },
         "dai": {},
         "usde": {},

@@ -135,5 +135,6 @@
   "LazyVault_HigherRisk_WETH_ERC4626_Euler_Frontier_Upshift_weth_1#ERC4626Ark": "0x0264f3A10526B5Eb5F75Eb4004Df6E3Ccc3b45e3",
   "LazyVault_HigherRisk_WETH_ERC4626_Euler_Alterscope_LRT_WETH_weth_1#ERC4626Ark": "0xdc931F070DFe8680CE0c76e16D8b626ab7b49CE9",
   "BummerLazyVault_WETH_Origin_ARM_weth_steth_1_gov#ArmArk": "0x42f4BeA2F645D24016c53d57C60fd3813030BCeB",
-  "LazyVault_HigherRisk_WETH_Origin_ARM_weth_steth_1_gov#ArmArk": "0x219CCBf0d3990e1CdAaF3ea840c7B233553c86a3"
+  "LazyVault_HigherRisk_WETH_Origin_ARM_weth_steth_1_gov#ArmArk": "0x219CCBf0d3990e1CdAaF3ea840c7B233553c86a3",
+  "LazyVault_HigherRisk_USDC_SiUSDArk_usdc_1#SiUSDArk": "0x5Ebbc493fD41dD607cDAd244a9E6CA7466A3F264"
 }

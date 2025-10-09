@@ -238,6 +238,14 @@
         "vaultName": "Euler_Frontier_Pareto",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "SiUSDArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "SiUSD_InfiniFi_Senior",
+        "protocol": "infinifi"
+      }
     }
   ]
 }

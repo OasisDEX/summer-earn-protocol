@@ -483,7 +483,7 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
       break
     }
 
-    case ArkType.SiUSDArkType: {
+    case ArkType.SiUSDArk: {
       deployedArk = await deploySiUSDArk(config)
       break
     }
