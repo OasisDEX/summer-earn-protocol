@@ -58,18 +58,7 @@ abstract contract TokenRecovery is ReentrancyGuard {
         // Check authorization - must be implemented by derived contracts
         _requireRecoveryAuthorization();
 
-        if (asset == address(0)) {
-            // Handle native ETH
-            if (address(this).balance < amount) revert InsufficientBalance();
-            Address.sendValue(payable(to), amount);
-        } else {
-            // Handle ERC20 tokens
-            uint256 balance = IERC20(asset).balanceOf(address(this));
-            if (balance < amount) revert InsufficientBalance();
-            IERC20(asset).safeTransfer(to, amount);
-        }
-
-        emit TokensRecovered(asset, amount, to);
+        _recoverToken(asset, to, amount);
     }
 
     /**
