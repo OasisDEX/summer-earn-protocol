@@ -37,6 +37,12 @@ The `CrossChainFleetCommander` implements a cooldown-based system that prevents 
 - Prevents timing-based arbitrage attacks
 - Maintains ERC4626 interface compatibility
 
+#### 4. Sync Status Monitoring
+- Monitors sync status of all arks in the fleet
+- Prevents deposits when arks are not properly synced with remote state
+- Allows withdrawals/redemptions even when arks are unsynced (user fund access)
+- Provides diagnostic functions to identify unsynced arks
+
 ### Architecture
 
 ```
@@ -72,6 +78,10 @@ The cooldown period is configurable through the `initialCooldownPeriod` paramete
 - `getNextWithdrawTimestamp(address user)` - Get when user can next withdraw
 - `canWithdraw(address user)` - Check if user can withdraw now
 - `setCooldownPeriod(uint256 newCooldownPeriod)` - Update cooldown period (curator only)
+
+#### Sync Status Functions
+- `areAllArksSynced()` - Check if all arks in the fleet are synced
+- `getUnsyncedArks()` - Get list of arks that are not synced
 
 #### Cooldown Enforcement
 - `cooldownEnforced` modifier - Enforces cooldown on withdrawals/redemptions
@@ -143,10 +153,11 @@ uint256 assets = fleetCommander.withdraw(500e6, user, user);
 - **Access control**: Modifier-based enforcement
 
 ### 3. User Experience
-- **Immediate deposits**: Users can deposit immediately
+- **Immediate deposits**: Users can deposit immediately (when arks are synced)
 - **Clear cooldown status**: Users can check when they can withdraw
 - **Transparency**: Simple cooldown mechanism is easy to understand
 - **Adaptive protection**: Cooldown period can be adjusted based on market conditions
+- **Fund access**: Users can always withdraw their funds regardless of sync status
 
 ## Trade-offs
 
@@ -154,11 +165,13 @@ uint256 assets = fleetCommander.withdraw(500e6, user, user);
 - Withdrawals/redemptions are delayed after deposits (by design)
 - Users must wait for cooldown period to pass
 - May impact users who need immediate liquidity
+- Deposits may be blocked when arks are not synced (for safety)
 
 ### 2. Complexity
 - Slightly more complex than standard FleetCommander
 - Requires tracking deposit timestamps
 - Additional state management
+- Sync status monitoring adds operational complexity
 
 ### 3. Gas Costs
 - Minimal additional gas for timestamp tracking
