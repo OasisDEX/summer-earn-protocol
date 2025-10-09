@@ -24,16 +24,8 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     using Math for uint256;
 
     /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    // Custom errors are now defined in ICrossChainFleetCommanderErrors.sol
-
-    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-
-    // Cooldown period is now configurable through FleetConfig.cooldownPeriod
 
     /// @notice Mapping of user address to their last deposit timestamp
     mapping(address => uint256) public lastDepositTimestamp;
@@ -80,6 +72,7 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         uint256 lastDeposit = lastDepositTimestamp[user];
         if (
             lastDeposit > 0 &&
+            config.cooldownPeriod > 0 &&
             block.timestamp <= lastDeposit + config.cooldownPeriod
         ) {
             revert ICrossChainFleetCommanderErrors
@@ -119,6 +112,9 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         uint256 lastDeposit = lastDepositTimestamp[user];
         if (lastDeposit == 0) {
             return true; // No previous deposit
+        }
+        if (config.cooldownPeriod == 0) {
+            return true; // No cooldown period
         }
         return block.timestamp > lastDeposit + config.cooldownPeriod;
     }

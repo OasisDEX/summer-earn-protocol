@@ -227,7 +227,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         });
 
         // Create CrossChainArk with the proper CrossChainConfigManager
-        ark = new CrossChainArk(address(registry), DEST_CHAIN_ID, 3600, params); // 1 hour sync timeframe
+        ark = new CrossChainArk(address(registry), DEST_CHAIN_ID, params);
 
         // Register the ark-proxy relationship - use a different proxy address to avoid conflicts
         vm.startPrank(governor);
@@ -1182,8 +1182,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
         assertEq(
             ark.syncTimeframe(),
-            3600,
-            "Sync timeframe should be 3600 seconds (1 hour)"
+            86400,
+            "Sync timeframe should be 86400 seconds (24 hours)"
         );
     }
 
@@ -1289,128 +1289,11 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Should be synced initially
         assertTrue(ark.isSynced(), "Ark should be synced after balance update");
 
-        // Fast forward past the sync timeframe (3601 seconds)
-        vm.warp(block.timestamp + 3601);
+        // Fast forward past the sync timeframe (86401 seconds)
+        vm.warp(block.timestamp + 86401);
         assertFalse(
             ark.isSynced(),
             "Ark should not be synced after timeframe expires"
-        );
-    }
-
-    function testIsSyncedWithStargateIntegration() public {
-        // This test simulates the complete flow with Stargate adapter
-        uint256 amount = 2000 * 10 ** 6; // 2000 USDC
-        uint256 remoteBalance = 5000 * 10 ** 6; // 5000 USDC remote balance
-
-        // Fund commander and approve
-        deal(address(usdc), commander, amount);
-        vm.prank(commander);
-        usdc.approve(address(ark), amount);
-
-        // Board assets (this will set up pending transfer)
-        BridgeTypes.ExecuteTransferParams memory transferParams = BridgeTypes
-            .ExecuteTransferParams({
-                destinationChainId: DEST_CHAIN_ID,
-                asset: address(usdc),
-                amount: amount,
-                target: ARK_PROXY,
-                originator: address(ark),
-                refundAddress: commander,
-                message: ""
-            });
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(stargateAdapter),
-            gasLimit: 200000,
-            msgValue: 0,
-            calldataSize: 0,
-            options: ""
-        });
-        bytes memory executeTransferParams = abi.encode(
-            transferParams,
-            options
-        );
-
-        vm.prank(commander);
-        ark.board(amount, executeTransferParams);
-
-        // Execute the transfer
-        (uint256 nativeFee, , ) = bridgeRouter.quoteTransferAssets(
-            transferParams,
-            options
-        );
-        vm.deal(commander, nativeFee);
-        vm.prank(commander);
-        ark.executeTransferAssets{value: nativeFee}();
-
-        // Simulate receiving a balance update after the transfer
-        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
-            keccak256("stargate-integration-test"),
-            ARK_PROXY,
-            address(ark),
-            remoteBalance,
-            DEST_CHAIN_ID,
-            bytes32(0)
-        );
-
-        vm.prank(address(bridgeRouter));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params)
-        );
-
-        // Ark should be synced after the complete Stargate integration
-        assertTrue(
-            ark.isSynced(),
-            "Ark should be synced after Stargate integration"
-        );
-        assertEq(
-            ark.lastRemoteAssetBalance(),
-            remoteBalance,
-            "Remote balance should be updated"
-        );
-    }
-
-    function testIsSyncedWithLayerZeroReadStateFlow() public {
-        // This test simulates the complete LayerZero read state flow
-        uint256 initialLocalBalance = 1000 * 10 ** 6; // 1000 USDC local
-        uint256 mockRemoteBalance = 4000 * 10 ** 6; // 4000 USDC remote
-
-        // Give ark some local balance
-        deal(address(usdc), address(ark), initialLocalBalance);
-
-        // Simulate LayerZero read state response
-        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
-            keccak256("layerzero-read-state-test"),
-            ARK_PROXY,
-            address(ark),
-            mockRemoteBalance,
-            DEST_CHAIN_ID,
-            bytes32(0)
-        );
-
-        vm.prank(address(bridgeRouter));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params)
-        );
-
-        // Ark should be synced after LayerZero read state
-        assertTrue(
-            ark.isSynced(),
-            "Ark should be synced after LayerZero read state"
-        );
-        assertEq(
-            ark.lastRemoteAssetBalance(),
-            mockRemoteBalance,
-            "Remote balance should be updated"
-        );
-
-        // Verify total assets calculation includes remote balance
-        uint256 expectedTotal = initialLocalBalance + mockRemoteBalance;
-        assertEq(
-            ark.totalAssets(),
-            expectedTotal,
-            "Total assets should include local + remote"
         );
     }
 

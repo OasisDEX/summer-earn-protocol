@@ -443,6 +443,14 @@ contract CrossChainArk is
     }
 
     /**
+     * @notice Returns the sync timeframe for this CrossChainArk
+     * @return uint256 The sync timeframe in seconds
+     */
+    function syncTimeframe() public pure returns (uint256) {
+        return SYNC_WINDOW;
+    }
+
+    /**
      * @notice Checks if the CrossChainArk is synced with remote state
      * @dev A CrossChainArk is considered synced if:
      *      1. There are no inflight assets (no pending transfers)

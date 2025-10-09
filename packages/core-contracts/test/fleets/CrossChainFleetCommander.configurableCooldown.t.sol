@@ -89,8 +89,11 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
 
         // Try to set cooldown period when paused (should fail)
         vm.prank(governor);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         crossChainFleetCommander.setCooldownPeriod(newCooldownPeriod);
+
+        // Wait for minimum pause time to elapse (2 days)
+        vm.warp(block.timestamp + 2 days + 1);
 
         // Unpause and try again (should succeed)
         vm.prank(governor);

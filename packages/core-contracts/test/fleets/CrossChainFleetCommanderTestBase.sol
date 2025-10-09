@@ -125,7 +125,7 @@ abstract contract CrossChainFleetCommanderTestBase is
             initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
             depositCap: type(uint256).max,
             initialTipRate: initialTipRate,
-            cooldownPeriod: COOLDOWN_PERIOD
+            initialCooldownPeriod: COOLDOWN_PERIOD
         });
 
         crossChainFleetCommander = new CrossChainFleetCommander(

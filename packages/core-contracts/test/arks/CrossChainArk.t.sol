@@ -92,12 +92,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             options: ""
         });
 
-        ark = new CrossChainArk(
-            address(registry),
-            TARGET_CHAIN_ID,
-            3600,
-            params
-        ); // 1 hour sync timeframe
+        ark = new CrossChainArk(address(registry), TARGET_CHAIN_ID, params);
 
         // Register the ark-proxy relationship in the registry
         vm.startPrank(governor);
@@ -141,7 +136,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(address(ark.crossChainRegistry()), address(registry));
         assertEq(ark.satelliteChainId(), TARGET_CHAIN_ID);
         assertEq(ark.getTargetProxy(), proxy); // Uses registry lookup
-        assertEq(ark.syncTimeframe(), 3600); // 1 hour sync timeframe
+        assertEq(ark.syncTimeframe(), 86400); // 24 hour sync timeframe
     }
 
     function test_RegistryRelationshipIntegration() public {
@@ -955,8 +950,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             abi.encode(params)
         );
 
-        // Fast forward past the sync timeframe (3601 seconds)
-        vm.warp(block.timestamp + 3601);
+        // Fast forward past the sync timeframe (86401 seconds)
+        vm.warp(block.timestamp + 86401);
         assertFalse(
             ark.isSynced(),
             "Ark should not be synced after timeframe expires"
@@ -1016,8 +1011,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Test that the public getter works correctly
         assertEq(
             ark.syncTimeframe(),
-            3600,
-            "Sync timeframe should be 3600 seconds (1 hour)"
+            86400,
+            "Sync timeframe should be 86400 seconds (24 hours)"
         );
     }
 
@@ -1040,46 +1035,35 @@ contract CrossChainArkTest is Test, ArkTestBase {
         CrossChainArk ark2 = new CrossChainArk(
             address(registry),
             TARGET_CHAIN_ID,
-            7200,
             params
         );
         assertEq(
             ark2.syncTimeframe(),
-            7200,
-            "Sync timeframe should be 7200 seconds (2 hours)"
+            86400,
+            "Sync timeframe should be 86400 seconds (24 hours)"
         );
 
         // Create Ark with 30-minute sync timeframe
         CrossChainArk ark3 = new CrossChainArk(
             address(registry),
             TARGET_CHAIN_ID,
-            1800,
             params
         );
         assertEq(
             ark3.syncTimeframe(),
-            1800,
-            "Sync timeframe should be 1800 seconds (30 minutes)"
+            86400,
+            "Sync timeframe should be 86400 seconds (24 hours)"
         );
     }
 
     function testSyncTimeframeValidation() public {
-        ArkParams memory params = ArkParams({
-            name: "TestArk3",
-            details: "TestArk3 details",
-            accessManager: address(accessManager),
-            configurationManager: address(configurationManager),
-            asset: address(mockToken),
-            depositCap: type(uint256).max,
-            maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true,
-            maxDepositPercentageOfTVL: PERCENTAGE_1
-        });
-
-        // Test that zero sync timeframe reverts
-        vm.expectRevert(ICrossChainArk.InvalidSyncTimeframe.selector);
-        new CrossChainArk(address(registry), TARGET_CHAIN_ID, 0, params);
+        // Since sync timeframe is now a constant (24 hours), this test is no longer applicable
+        // The sync timeframe is always 86400 seconds (24 hours) and cannot be configured
+        assertEq(
+            ark.syncTimeframe(),
+            86400,
+            "Sync timeframe should be 86400 seconds (24 hours)"
+        );
     }
 
     function testIsSyncedWithTransferAsset() public {
