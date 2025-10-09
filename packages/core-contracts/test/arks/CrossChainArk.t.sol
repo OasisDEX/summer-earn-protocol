@@ -135,7 +135,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(address(ark.bridgeRouter()), address(router));
         assertEq(address(ark.crossChainRegistry()), address(registry));
         assertEq(ark.satelliteChainId(), TARGET_CHAIN_ID);
-        assertEq(ark.getTargetProxy(), proxy); // Uses registry lookup
+        assertEq(ark.getSatelliteProxy(), proxy); // Uses registry lookup
     }
 
     function test_RegistryRelationshipIntegration() public {
@@ -144,7 +144,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // to ensure maintainability and consistency with registry relationship types
 
         // Verify the ark can find its target proxy via registry lookup
-        address proxyFromRegistry = ark.getTargetProxy();
+        address proxyFromRegistry = ark.getSatelliteProxy();
         assertEq(proxyFromRegistry, proxy);
 
         // Test that the ark can receive assets back from the proxy

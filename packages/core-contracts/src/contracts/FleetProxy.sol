@@ -356,13 +356,19 @@ contract FleetProxy is
     function _getHubChainArk(
         uint16 _hubChainId
     ) internal view returns (address arkAddress) {
-        return
-            ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
+        address ark = ICrossChainRegistry(crossChainRegistry())
+            .getSourceForTarget(
                 _hubChainId,
                 ICrossChainRegistry(crossChainRegistry()).currentChainId(),
                 address(this),
                 ICrossChainRegistry(crossChainRegistry()).PEER_RELATIONSHIP()
             );
+
+        if (ark == address(0)) {
+            revert InvalidSourceChain();
+        }
+
+        return ark;
     }
 
     /**
