@@ -88,8 +88,8 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     /**
      * @dev Modifier to ensure all arks are in sync before critical operations
      * @dev This prevents operations when cross-chain arks are not properly synced.
-     *      Note: This modifier is available for future use but is not currently
-     *      applied to withdrawals/redemptions to ensure users can always access their funds.
+     *      Applied to deposits for safety, but not to withdrawals/redemptions
+     *      to ensure users can always access their funds.
      */
     modifier allArksSynced() {
         if (!areAllArksSynced()) {
