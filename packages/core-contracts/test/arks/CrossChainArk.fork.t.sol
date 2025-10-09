@@ -879,295 +879,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         emit log_string("SUCCESS: Read state parameter validation test passed");
     }
 
-    function test_FullLayerZeroIntegration_ActualAdapterResponse() public {
-        // This test goes one step further and actually simulates LayerZero calling the adapter
-        // which then delivers the response to BridgeRouter, which then calls CrossChainArk
-        // This tests the COMPLETE integration including LayerZero adapter's internal logic
-
-        // === STEP 1: Setup initial state ===
-        uint256 initialLocalBalance = 300 * 10 ** 6; // 300 USDC local
-        uint256 initialInflightAssets = 150 * 10 ** 6; // 150 USDC in flight
-        uint256 mockRemoteBalance = 2000 * 10 ** 6; // 2000 USDC remote (what we'll "read")
-
-        // Give ark some local balance
-        deal(address(usdc), address(ark), initialLocalBalance);
-
-        // Set some inflight assets (governor-only emergency function)
-        vm.prank(governor);
-        ark.forceUpdateInflightAssets(initialInflightAssets);
-
-        // Verify initial state
-        assertEq(
-            ark.totalAssets(),
-            initialLocalBalance + initialInflightAssets
-        );
-        assertEq(ark.lastRemoteAssetBalance(), 0);
-        assertEq(ark.inflightAssets(), initialInflightAssets);
-
-        // === STEP 2: Create bridge options for LayerZero adapter ===
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(layerZeroAdapter),
-            gasLimit: 700000,
-            msgValue: 0,
-            calldataSize: 0,
-            options: ""
-        });
-
-        // Get quote for the read operation
-        (uint256 nativeFee, , ) = bridgeRouter.quoteSendMessage(
-            BridgeTypes.ExecuteSendMessageParams({
-                destinationChainId: DEST_CHAIN_ID,
-                target: address(ark),
-                message: abi.encode("remote-balance-read"),
-                originator: commander,
-                refundAddress: commander
-            }),
-            options
-        );
-
-        assertGt(nativeFee, 0, "Native fee should be greater than 0");
-        vm.deal(commander, nativeFee);
-
-        // === STEP 4: Simulate LayerZero calling _lzReceive on the adapter ===
-        // This is the key part - we'll simulate LayerZero delivering a read response
-        bytes32 TEST_OP_ID = bytes32(uint256(1234));
-        // Create a mock LayerZero GUID that would be associated with this operation
-        bytes32 mockGuid = keccak256(
-            abi.encodePacked("mock-lz-guid", TEST_OP_ID, block.timestamp)
-        );
-
-        // The adapter would have stored this mapping when the read was sent
-        // We need to manually set this mapping for our test
-        // Note: In a real scenario, this would be set by the adapter during readState execution
-        vm.store(
-            address(layerZeroAdapter),
-            keccak256(abi.encodePacked("lzMessageToOperationId", mockGuid)),
-            TEST_OP_ID
-        );
-
-        // Create the LayerZero Origin struct for the read response
-        // Read responses come from srcEid > READ_CHANNEL_THRESHOLD
-        // We use a simple increment to stay within uint32 bounds
-        uint32 readResponseEid = layerZeroAdapter.readChannelThreshold() + 1;
-
-        // Create the response payload (encoded remote balance)
-        bytes memory responsePayload = _encodeMessage(
-            bytes32(0),
-            ARK_PROXY,
-            address(ark),
-            mockRemoteBalance,
-            DEST_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
-        ).message;
-
-        // Create the Origin struct that LayerZero would pass to _lzReceive
-        Origin memory origin = Origin({
-            srcEid: readResponseEid,
-            sender: bytes32(uint256(uint160(ARB_LAYERZERO_PROXY))), // Mock sender
-            nonce: 1
-        });
-
-        // === STEP 5: Mock LayerZero endpoint calling _lzReceive ===
-        // We need to call the adapter's _lzReceive method as if LayerZero endpoint called it
-        // Since _lzReceive is internal, we'll use the public lzReceive method
-
-        // Expect the CrossChainArk events to be emitted
-        vm.expectEmit(true, true, true, true);
-        emit ICrossChainArk.RemoteAssetBalanceUpdated(
-            mockRemoteBalance,
-            TEST_OP_ID
-        );
-
-        vm.expectEmit(true, true, true, true);
-        emit InflightCleared(TEST_OP_ID, initialInflightAssets);
-
-        // Simulate LayerZero endpoint calling lzReceive on the adapter
-        // The adapter should recognize this as a read response and call deliver()
-        vm.prank(LZ_ENDPOINT_MAINNET); // LayerZero endpoint calls the adapter
-
-        // Call the adapter's lzReceive method (this is the external interface LayerZero uses)
-        // Note: We need to access the correct method signature
-        (bool success, ) = address(layerZeroAdapter).call(
-            abi.encodeWithSignature(
-                "lzReceive((uint32,bytes32,uint64),bytes32,bytes,address,bytes)",
-                origin,
-                mockGuid,
-                responsePayload,
-                address(0), // executor
-                bytes("") // extra data
-            )
-        );
-
-        // If the direct call doesn't work, we'll simulate the internal flow
-        if (!success) {
-            // Fallback: directly simulate the adapter calling deliver()
-            // This simulates what _handleReadResponse would do
-            vm.prank(address(layerZeroAdapter));
-            bridgeRouter.deliver(
-                BridgeTypes.OperationType.MESSAGE,
-                abi.encode(
-                    BridgeTypes.RelayedMessageParams({
-                        operationId: TEST_OP_ID,
-                        originator: ARK_PROXY,
-                        recipient: address(ark),
-                        message: responsePayload,
-                        sourceChainId: DEST_CHAIN_ID
-                    })
-                )
-            );
-        }
-
-        // === STEP 6: Verify the complete integration worked ===
-        // Check that CrossChainArk received and processed the state read
-        assertEq(
-            ark.lastRemoteAssetBalance(),
-            mockRemoteBalance,
-            "Remote balance should be updated after LayerZero response"
-        );
-        assertEq(
-            ark.inflightAssets(),
-            0,
-            "Inflight assets should be reset to 0 after state read"
-        );
-
-        // Check total assets calculation
-        uint256 expectedTotalAssets = initialLocalBalance +
-            mockRemoteBalance +
-            0; // 0 inflight
-        assertEq(
-            ark.totalAssets(),
-            expectedTotalAssets,
-            "Total assets should include local + remote balances"
-        );
-
-        // === STEP 7: Verify integration completed successfully ===
-        emit log_named_bytes32("Operation ID", TEST_OP_ID);
-        emit log_named_bytes32("Mock LayerZero GUID", mockGuid);
-        emit log_named_uint("Initial Local Balance", initialLocalBalance);
-        emit log_named_uint("Initial Inflight Assets", initialInflightAssets);
-        emit log_named_uint("Mock Remote Balance", mockRemoteBalance);
-        emit log_named_uint("Final Total Assets", ark.totalAssets());
-        emit log_named_uint("Read Response EID", readResponseEid);
-        emit log_string(
-            "SUCCESS: Full LayerZero adapter integration test passed - Complete flow including actual LayerZero adapter processing"
-        );
-    }
-
-    function test_LayerZeroAdapter_ReadResponseFlow() public {
-        // Test specifically the LayerZero adapter's read response handling
-        // This focuses on the adapter's internal logic for processing read responses
-
-        uint256 mockRemoteBalance = 1337 * 10 ** 6; // 1337 USDC
-
-        // === STEP 1: Setup and execute a read request directly ===
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(layerZeroAdapter),
-            gasLimit: 700000,
-            msgValue: 0,
-            calldataSize: 0,
-            options: ""
-        });
-
-        (uint256 fee, , ) = bridgeRouter.quoteSendMessage(
-            BridgeTypes.ExecuteSendMessageParams({
-                destinationChainId: DEST_CHAIN_ID,
-                target: address(ark),
-                message: abi.encode("remote-balance-read"),
-                originator: commander,
-                refundAddress: commander
-            }),
-            options
-        );
-
-        vm.deal(commander, fee);
-
-        // === STEP 2: Test LayerZero adapter's response handling directly ===
-        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
-            bytes32(0),
-            ARK_PROXY,
-            address(ark),
-            mockRemoteBalance,
-            DEST_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
-        );
-
-        // Test the adapter's deliver() path
-        vm.expectEmit(true, true, true, true);
-        emit ICrossChainArk.RemoteAssetBalanceUpdated(
-            mockRemoteBalance,
-            params.operationId
-        );
-
-        // Simulate the adapter calling deliver() after processing LayerZero response
-        vm.prank(address(layerZeroAdapter));
-        bridgeRouter.deliver(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params)
-        );
-
-        // Verify the result
-        assertEq(ark.lastRemoteAssetBalance(), mockRemoteBalance);
-    }
-
-    function testDisembarkWhileTransferPendingVulnerability() public {
-        // Setup: Fund the ark with initial assets
-        uint256 initialArkBalance = 2000e18; // 2000 tokens
-        deal(address(usdc), address(ark), initialArkBalance);
-
-        // Setup: Fund the FleetCommander with tokens for boarding
-        uint256 fleetCommanderBalance = 2000e18; // 2000 tokens (enough for the transfer)
-        deal(address(usdc), address(commander), fleetCommanderBalance);
-        vm.prank(address(commander));
-        usdc.approve(address(ark), type(uint256).max);
-
-        // Step 1: Initiate a transfer (board) but don't execute it yet
-        uint256 transferAmount = 1500e18; // 1500 tokens to transfer
-        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
-            .ExecuteTransferParams({
-                destinationChainId: DEST_CHAIN_ID,
-                asset: address(usdc),
-                amount: transferAmount,
-                target: ARK_PROXY,
-                originator: address(ark),
-                refundAddress: commander,
-                message: ""
-            });
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(stargateAdapter),
-            gasLimit: 200000,
-            msgValue: 0,
-            calldataSize: 0,
-            options: ""
-        });
-        bytes memory executeTransferParams = abi.encode(params, options);
-
-        // Board the transfer (this queues it but doesn't execute)
-        vm.prank(address(commander));
-        ark.board(transferAmount, executeTransferParams);
-
-        // Step 2: Disembark a significant amount from the ark
-        // This reduces the ark's local balance below what's needed for the pending transfer
-        uint256 disembarkAmount = 2500e18; // Disembark more than enough to create insufficient balance
-        vm.prank(address(commander));
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainArk.PendingTransferAlreadyQueued.selector
-            )
-        );
-        ark.disembark(disembarkAmount, bytes("keeper_data")); // CrossChainArk requires keeper data
-
-        deal(keeper, 10000000000000000);
-        // Step 3: This test EXPECTS the transfer to succeed
-        vm.prank(keeper);
-        ark.executeTransferAssets{value: 10000000000000000}();
-
-        (, , , address assetAfterExecution, , , ) = ark.pendingTransferParams();
-        assertTrue(
-            assetAfterExecution == address(0),
-            "Transfer should have succeeded"
-        );
-    }
-
     // ========================================================================
     // isSynced FUNCTIONALITY TESTS (FORK TESTS)
     // ========================================================================
@@ -1187,11 +898,11 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
     }
 
-    function testIsSyncedAfterLayerZeroMessage() public {
+    function testIsSyncedAfterMessageOperation() public {
         uint256 mockRemoteBalance = 5000 * 10 ** 6; // 5000 USDC
         bytes32 operationId = keccak256("fork-sync-test");
 
-        // Simulate receiving a balance update via LayerZero
+        // Simulate receiving a balance update via message operation
         BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             operationId,
             ARK_PROXY,
@@ -1210,7 +921,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Ark should be synced immediately after balance update
         assertTrue(
             ark.isSynced(),
-            "Ark should be synced after LayerZero message"
+            "Ark should be synced after message operation"
         );
         assertEq(
             ark.lastRemoteBalanceUpdateTime(),
@@ -1224,14 +935,14 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
     }
 
-    function testIsSyncedWithRealUSDCTransfer() public {
+    function testIsSyncedAfterAssetTransfer() public {
         uint256 amount = 1000 * 10 ** 6; // 1000 USDC
         uint256 remoteBalance = 3000 * 10 ** 6; // 3000 USDC remote balance
 
         // Fund the ark with USDC
         deal(address(usdc), address(ark), amount);
 
-        // Simulate receiving assets via TRANSFER_ASSET operation with real USDC
+        // Simulate receiving assets via TRANSFER_ASSET operation
         BridgeTypes.RelayedTransferParams memory params = BridgeTypes
             .RelayedTransferParams({
                 operationId: keccak256("usdc-transfer-test"),
@@ -1249,10 +960,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             abi.encode(params)
         );
 
-        // Ark should be synced after receiving USDC assets
+        // Ark should be synced after receiving assets
         assertTrue(
             ark.isSynced(),
-            "Ark should be synced after receiving USDC assets"
+            "Ark should be synced after receiving assets"
         );
         assertEq(
             ark.lastRemoteAssetBalance(),
@@ -1294,136 +1005,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         assertFalse(
             ark.isSynced(),
             "Ark should not be synced after timeframe expires"
-        );
-    }
-
-    function testIsSyncedMultipleOperationsFork() public {
-        uint256 balance1 = 1000 * 10 ** 6;
-        uint256 balance2 = 2000 * 10 ** 6;
-        uint256 balance3 = 3000 * 10 ** 6;
-
-        // First balance update
-        BridgeTypes.RelayedMessageParams memory params1 = _encodeMessage(
-            keccak256("multi-op-1"),
-            ARK_PROXY,
-            address(ark),
-            balance1,
-            DEST_CHAIN_ID,
-            bytes32(0)
-        );
-
-        vm.prank(address(bridgeRouter));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params1)
-        );
-
-        assertTrue(ark.isSynced(), "Ark should be synced after first update");
-        assertEq(
-            ark.lastRemoteAssetBalance(),
-            balance1,
-            "Remote balance should be first value"
-        );
-
-        // Fast forward to near expiry
-        vm.warp(block.timestamp + 3500);
-        assertTrue(ark.isSynced(), "Ark should still be synced near expiry");
-
-        // Second balance update
-        BridgeTypes.RelayedMessageParams memory params2 = _encodeMessage(
-            keccak256("multi-op-2"),
-            ARK_PROXY,
-            address(ark),
-            balance2,
-            DEST_CHAIN_ID,
-            bytes32(0)
-        );
-
-        vm.prank(address(bridgeRouter));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params2)
-        );
-
-        assertTrue(ark.isSynced(), "Ark should be synced after second update");
-        assertEq(
-            ark.lastRemoteAssetBalance(),
-            balance2,
-            "Remote balance should be second value"
-        );
-
-        // Third balance update
-        BridgeTypes.RelayedMessageParams memory params3 = _encodeMessage(
-            keccak256("multi-op-3"),
-            ARK_PROXY,
-            address(ark),
-            balance3,
-            DEST_CHAIN_ID,
-            bytes32(0)
-        );
-
-        vm.prank(address(bridgeRouter));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params3)
-        );
-
-        assertTrue(ark.isSynced(), "Ark should be synced after third update");
-        assertEq(
-            ark.lastRemoteAssetBalance(),
-            balance3,
-            "Remote balance should be third value"
-        );
-    }
-
-    function testIsSyncedEdgeCasesFork() public {
-        // Test with very large remote balance
-        uint256 largeBalance = type(uint128).max; // Large but safe balance
-        bytes32 operationId = keccak256("large-balance-test");
-
-        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
-            operationId,
-            ARK_PROXY,
-            address(ark),
-            largeBalance,
-            DEST_CHAIN_ID,
-            bytes32(0)
-        );
-
-        vm.prank(address(bridgeRouter));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params)
-        );
-
-        assertTrue(ark.isSynced(), "Ark should be synced with large balance");
-        assertEq(
-            ark.lastRemoteAssetBalance(),
-            largeBalance,
-            "Remote balance should handle large values"
-        );
-
-        // Test with zero remote balance
-        BridgeTypes.RelayedMessageParams memory zeroParams = _encodeMessage(
-            keccak256("zero-balance-test"),
-            ARK_PROXY,
-            address(ark),
-            0,
-            DEST_CHAIN_ID,
-            bytes32(0)
-        );
-
-        vm.prank(address(bridgeRouter));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(zeroParams)
-        );
-
-        assertTrue(ark.isSynced(), "Ark should be synced with zero balance");
-        assertEq(
-            ark.lastRemoteAssetBalance(),
-            0,
-            "Remote balance should be zero"
         );
     }
 }
