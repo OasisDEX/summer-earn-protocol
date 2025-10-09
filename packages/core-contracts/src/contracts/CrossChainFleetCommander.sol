@@ -231,8 +231,8 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     }
 
     /**
-     * @notice Override withdraw to enforce cooldown and sync check
-     * @dev Ensures cooldown period has passed since last deposit and all arks are synced
+     * @notice Override withdraw to enforce cooldown
+     * @dev Ensures cooldown period has passed since last deposit
      */
     function withdraw(
         uint256 assets,
@@ -242,15 +242,14 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         public
         override(FleetCommander, IFleetCommander)
         cooldownEnforced(owner)
-        allArksSynced
         returns (uint256 shares)
     {
         return super.withdraw(assets, receiver, owner);
     }
 
     /**
-     * @notice Override redeem to enforce cooldown and sync check
-     * @dev Ensures cooldown period has passed since last deposit and all arks are synced
+     * @notice Override redeem to enforce cooldown
+     * @dev Ensures cooldown period has passed since last deposit
      */
     function redeem(
         uint256 shares,
@@ -260,7 +259,6 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         public
         override(FleetCommander, IFleetCommander)
         cooldownEnforced(owner)
-        allArksSynced
         returns (uint256 assets)
     {
         return super.redeem(shares, receiver, owner);

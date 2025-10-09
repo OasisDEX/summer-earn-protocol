@@ -90,15 +90,15 @@ contract CrossChainFleetCommanderSyncTest is CrossChainFleetCommanderTestBase {
         // Fast forward past cooldown period
         vm.warp(block.timestamp + COOLDOWN_PERIOD + 1);
 
-        // Withdrawal should fail when arks are unsynced
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainFleetCommanderErrors
-                    .CrossChainFleetCommanderArksNotSynced
-                    .selector
-            )
+        // Withdrawal should succeed even when arks are unsynced
+        // (users should be able to withdraw their funds regardless of sync status)
+        uint256 shares = performWithdrawal(
+            user1,
+            WITHDRAW_AMOUNT,
+            user1,
+            user1
         );
-        performWithdrawal(user1, WITHDRAW_AMOUNT, user1, user1);
+        assertGt(shares, 0);
     }
 
     function testRedeem_WithUnsyncedArks() public {
@@ -117,15 +117,10 @@ contract CrossChainFleetCommanderSyncTest is CrossChainFleetCommanderTestBase {
         // Fast forward past cooldown period
         vm.warp(block.timestamp + COOLDOWN_PERIOD + 1);
 
-        // Redemption should fail when arks are unsynced
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainFleetCommanderErrors
-                    .CrossChainFleetCommanderArksNotSynced
-                    .selector
-            )
-        );
-        performRedemption(user1, 250 * 10 ** 6, user1, user1);
+        // Redemption should succeed even when arks are unsynced
+        // (users should be able to redeem their shares regardless of sync status)
+        uint256 assets = performRedemption(user1, 250 * 10 ** 6, user1, user1);
+        assertGt(assets, 0);
     }
 
     function testDeposit_WithUnsyncedArks() public {
