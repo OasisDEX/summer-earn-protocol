@@ -276,7 +276,7 @@ abstract contract BaseCrossChainRegistry is
      * @param targetChainId The chain ID of the target chain
      * @param targetContract The address of the target contract
      * @param relationshipType The type of relationship
-     * @return sourceContract The address of the source contract
+     * @return sourceContract The address of the source contract, or address(0) if not found
      */
     function _getSourceForTarget(
         uint16 sourceChainId,
@@ -291,14 +291,6 @@ abstract contract BaseCrossChainRegistry is
             relationshipType
         );
         sourceContract = targetToSource[targetKey];
-
-        if (sourceContract == address(0)) {
-            revert RelationshipDoesNotExist(
-                address(0),
-                relationshipType,
-                targetChainId
-            );
-        }
     }
 
     /**
@@ -339,7 +331,7 @@ abstract contract BaseCrossChainRegistry is
      * @param sourceContract The address of the source contract
      * @param relationshipType The type of relationship
      * @param targetChainId The target chain ID
-     * @return relation The complete relationship details
+     * @return relation The complete relationship details, with zero values if not found
      */
     function _getRelationshipByTarget(
         address sourceContract,
@@ -353,13 +345,6 @@ abstract contract BaseCrossChainRegistry is
         );
 
         relation = crossChainRelations[relationshipKey];
-        if (relation.sourceContract == address(0)) {
-            revert RelationshipDoesNotExist(
-                sourceContract,
-                relationshipType,
-                targetChainId
-            );
-        }
     }
 
     /**
@@ -689,11 +674,15 @@ abstract contract BaseCrossChainRegistry is
         );
 
         if (relationships.length == 0) {
-            revert RelationshipDoesNotExist(
-                sourceContract,
-                relationshipType,
-                0
-            );
+            // Return empty relationship struct when no relationships exist
+            return
+                CrossChainRelation({
+                    sourceContract: address(0),
+                    targetContract: address(0),
+                    sourceChainId: 0,
+                    targetChainId: 0,
+                    relationshipType: bytes32(0)
+                });
         }
 
         // Return the first relationship found

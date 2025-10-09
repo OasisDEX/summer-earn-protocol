@@ -42,16 +42,13 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
             "Chain B should be supported"
         );
 
-        // Expect revert when checking unsupported chain
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(adapterA),
-                registryA.PEER_RELATIONSHIP(),
-                uint16(9999)
-            )
+        // Expect address(0) when checking unsupported chain
+        address peer = registryA.getAdapterPeer(address(adapterA), 9999);
+        assertEq(
+            peer,
+            address(0),
+            "Unsupported chain should return address(0)"
         );
-        registryA.getAdapterPeer(address(adapterA), 9999);
     }
 
     function testFeatureSupport() public view {

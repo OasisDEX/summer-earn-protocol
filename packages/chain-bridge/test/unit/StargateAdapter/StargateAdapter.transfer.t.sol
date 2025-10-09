@@ -62,12 +62,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
 
         // Should revert when estimating fee for unsupported chain
         vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(adapterA),
-                registryA.PEER_RELATIONSHIP(),
-                9999
-            )
+            abi.encodeWithSignature("UntrustedDestinationChain(uint16)", 9999)
         );
         adapterA.estimateTransferAssets(
             BridgeTypes.ExecuteTransferParams({
@@ -223,12 +218,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
         // Should revert when transferring to unsupported chain
         vm.prank(address(routerA));
         vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(adapterA),
-                registryA.PEER_RELATIONSHIP(),
-                9999
-            )
+            abi.encodeWithSignature("UntrustedDestinationChain(uint16)", 9999)
         );
         BridgeTypes.ExecuteTransferParams
             memory params = buildExecuteTransferParams(

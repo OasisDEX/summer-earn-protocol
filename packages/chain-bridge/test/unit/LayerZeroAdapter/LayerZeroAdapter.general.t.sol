@@ -38,19 +38,16 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             "Chain B should be supported"
         );
 
-        // Expect revert when unsupported chain is queried
+        // Expect address(0) when unsupported chain is queried
         ICrossChainRegistry registryA = ICrossChainRegistry(
             address(adapterA.CROSS_CHAIN_REGISTRY())
         );
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(adapterA),
-                registryA.PEER_RELATIONSHIP(),
-                2
-            )
+        address peer = registryA.getAdapterPeer(address(adapterA), 2);
+        assertEq(
+            peer,
+            address(0),
+            "Unsupported chain should return address(0)"
         );
-        registryA.getAdapterPeer(address(adapterA), 2);
     }
 
     // Update test for UnsupportedMessageType error: use a valid but unsupported op (TRANSFER_ASSET)

@@ -299,16 +299,13 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         assertFalse(registry.isSourceContractRegistered(ark1, peerType));
         assertEq(registry.getRelationshipCount(peerType), 0);
 
-        // Should revert when trying to access
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                ark1,
-                PEER_RELATIONSHIP,
-                0
-            )
-        );
-        registry.getRelationship(ark1, peerType);
+        // Should return empty relationship when trying to access
+        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(ark1, peerType);
+        assertEq(relation.sourceContract, address(0));
+        assertEq(relation.targetContract, address(0));
+        assertEq(relation.sourceChainId, 0);
+        assertEq(relation.targetChainId, 0);
+        assertEq(relation.relationshipType, bytes32(0));
     }
 
     function test_unregisterCrossChainRelationship_revertNotExists() public {
@@ -356,16 +353,13 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         assertEq(relation.targetChainId, TARGET_CHAIN_ID);
     }
 
-    function test_getTargetForSource_revertNotExists() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                ark1,
-                peerType,
-                0
-            )
-        );
-        registry.getRelationship(ark1, peerType);
+    function test_getTargetForSource_returnsEmptyWhenNotExists() public {
+        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(ark1, peerType);
+        assertEq(relation.sourceContract, address(0));
+        assertEq(relation.targetContract, address(0));
+        assertEq(relation.sourceChainId, 0);
+        assertEq(relation.targetChainId, 0);
+        assertEq(relation.relationshipType, bytes32(0));
     }
 
     function test_getSourceForTarget() public {
@@ -387,21 +381,14 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         assertEq(sourceContract, ark1);
     }
 
-    function test_getSourceForTarget_revertNotExists() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(0),
-                peerType,
-                TARGET_CHAIN_ID
-            )
-        );
-        registry.getSourceForTarget(
+    function test_getSourceForTarget_returnsZeroWhenNotExists() public {
+        address sourceContract = registry.getSourceForTarget(
             CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
             proxy1,
             peerType
         );
+        assertEq(sourceContract, address(0));
     }
 
     function test_isValidCrossChainPair() public {
