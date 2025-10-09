@@ -29,6 +29,7 @@ struct CrossChainFleetCommanderParams {
     uint256 depositCap;
     /// @notice The initial tip rate (as a percentage, e.g., 5 for 5%)
     Percentage initialTipRate;
-    /// @notice The cooldown period between deposit and withdraw/redeem (in seconds)
-    uint256 cooldownPeriod;
+    /// @notice The initial cooldown period between deposit and withdraw/redeem (in seconds)
+    /// @dev This will be set in FleetConfig and can be updated via governance
+    uint256 initialCooldownPeriod;
 }

@@ -57,6 +57,11 @@ struct FleetConfig {
      * @notice The address of the staking rewards contract
      */
     address stakingRewardsManager;
+    /**
+     * @notice The cooldown period between deposit and withdraw/redeem (in seconds)
+     * @dev This value is used to prevent MEV attacks and sandwich attacks on cross-chain operations
+     */
+    uint256 cooldownPeriod;
 }
 
 /**

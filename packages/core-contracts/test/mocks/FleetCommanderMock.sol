@@ -216,4 +216,8 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     function setFleetTokenTransferability() external {
         transfersEnabled = true;
     }
+
+    function setCooldownPeriod(uint256 newCooldownPeriod) external {
+        config.cooldownPeriod = newCooldownPeriod;
+    }
 }

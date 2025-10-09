@@ -33,8 +33,7 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Cooldown period between deposit and withdraw/redeem (in seconds)
-    uint256 public immutable cooldownPeriod;
+    // Cooldown period is now configurable through FleetConfig.cooldownPeriod
 
     /// @notice Mapping of user address to their last deposit timestamp
     mapping(address => uint256) public lastDepositTimestamp;
@@ -65,7 +64,8 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
             })
         )
     {
-        cooldownPeriod = params.cooldownPeriod;
+        // Initialize cooldown period in FleetConfig
+        config.cooldownPeriod = params.initialCooldownPeriod;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -79,13 +79,14 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     modifier cooldownEnforced(address user) {
         uint256 lastDeposit = lastDepositTimestamp[user];
         if (
-            lastDeposit > 0 && block.timestamp <= lastDeposit + cooldownPeriod
+            lastDeposit > 0 &&
+            block.timestamp <= lastDeposit + config.cooldownPeriod
         ) {
             revert ICrossChainFleetCommanderErrors
                 .CrossChainFleetCommanderCooldownNotMet(
                     user,
                     block.timestamp,
-                    lastDeposit + cooldownPeriod
+                    lastDeposit + config.cooldownPeriod
                 );
         }
         _;
@@ -97,7 +98,7 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
 
     /// @notice Get the cooldown period
     function getCooldownPeriod() external view returns (uint256 period) {
-        return cooldownPeriod;
+        return config.cooldownPeriod;
     }
 
     /// @notice Get the timestamp when a user can next withdraw/redeem
@@ -108,7 +109,7 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         if (lastDeposit == 0) {
             return 0; // No previous deposit
         }
-        return lastDeposit + cooldownPeriod;
+        return lastDeposit + config.cooldownPeriod;
     }
 
     /// @notice Check if a user can withdraw/redeem (cooldown has passed)
@@ -119,7 +120,7 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         if (lastDeposit == 0) {
             return true; // No previous deposit
         }
-        return block.timestamp > lastDeposit + cooldownPeriod;
+        return block.timestamp > lastDeposit + config.cooldownPeriod;
     }
 
     /*//////////////////////////////////////////////////////////////

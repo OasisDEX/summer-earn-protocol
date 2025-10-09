@@ -128,4 +128,11 @@ interface IFleetCommanderConfigProvider is
      * @dev Only callable by the governor when not paused
      */
     function setFleetTokenTransferability() external;
+
+    /**
+     * @notice Sets the cooldown period for cross-chain operations
+     * @dev Only callable by the curator when not paused
+     * @param newCooldownPeriod The new cooldown period in seconds
+     */
+    function setCooldownPeriod(uint256 newCooldownPeriod) external;
 }

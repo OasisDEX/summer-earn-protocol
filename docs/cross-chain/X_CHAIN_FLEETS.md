@@ -16,160 +16,154 @@ The `CrossChainFleetCommander` is a specialized variant of the standard `FleetCo
 1. **Loss Realization Arbitrage**: Withdraw before loss, deposit after
 2. **Reward Distribution Sandwich**: Capture rewards before they're distributed
 
-## Solution: Async Operations with Sync Requirements
+## Solution: Cooldown-Based MEV Protection
 
-The `CrossChainFleetCommander` implements a queue-based system that prevents immediate execution of deposits and withdrawals, requiring all Arks to be synced before processing.
+The `CrossChainFleetCommander` implements a cooldown-based system that prevents immediate withdrawal or redemption after deposits, eliminating the ability for arbitrageurs to exploit timing-based attacks.
 
 ### Key Components
 
-#### 1. Async Operation Queue
-- All deposits/withdrawals are queued instead of executed immediately
-- Operations are processed in FIFO order by superkeepers
-- Prevents timing-based MEV attacks
+#### 1. Cooldown Period Enforcement
+- Configurable cooldown period between deposits and withdrawals/redemptions
+- Prevents immediate withdrawal after deposit to eliminate MEV opportunities
+- Tracks last deposit timestamp per user
 
-#### 2. Ark Sync Status
-- Added `isSynced()` method to base `Ark` contract
-- Non-cross-chain Arks always return `true`
-- Cross-chain Arks check for inflight assets and recent updates
+#### 2. Deposit Tracking
+- Records timestamp of each user's last deposit
+- Enforces cooldown period before allowing withdrawals/redemptions
+- Simple and efficient state management
 
-#### 3. Superkeeper Processing
-- Only superkeepers can process queued operations
-- Requires all Arks to be synced (`allArksSynced` modifier)
+#### 3. Access Control
+- Cooldown enforcement through modifiers
+- Prevents timing-based arbitrage attacks
+- Maintains ERC4626 interface compatibility
 
 ### Architecture
 
 ```
-User Request → Queue Operation → Superkeeper Processing → Execution
+User Deposit → Record Timestamp → Cooldown Period → Withdrawal/Redemption
      ↓              ↓                    ↓                    ↓
-  Immediate      Async Queue        Sync Check         Safe Execution
-  Response       (MEV Protected)    (All Arks)         (No MEV)
+  Immediate      Track Last        Enforce Wait        Safe Execution
+  Response       Deposit Time      (MEV Protected)     (No MEV)
 ```
 
 ## Implementation Details
 
-### 1. Base Ark Changes
+### 1. State Variables
 
-**Added to `Ark.sol`:**
+**Added to `CrossChainFleetCommander.sol`:**
 ```solidity
-function isSynced() public view virtual returns (bool) {
-    return true; // Non-cross-chain Arks are always synced
-}
+/// @notice Mapping of user address to their last deposit timestamp
+mapping(address => uint256) public lastDepositTimestamp;
 ```
 
-**Added to `IArk.sol`:**
+### 2. Cooldown Configuration
+
+**Constructor Parameters:**
 ```solidity
-function isSynced() external view returns (bool);
+CrossChainFleetCommanderParams memory params
 ```
 
-### 2. CrossChain Ark Sync Logic
-
-**Updated `CrossChainArk.sol`:**
-```solidity
-function isSynced() public view override returns (bool) {
-    // If there are inflight assets, we're not synced
-    if (inflightAssets > 0) {
-        return false;
-    }
-    
-    // For now, we consider synced if no inflight assets
-    // In a full implementation, you might want to check if lastRemoteAssetBalance
-    // was updated within a certain time window
-    return true;
-}
-```
+The cooldown period is configurable through the `initialCooldownPeriod` parameter in the constructor and stored in the `FleetConfig`. After deployment, the cooldown period can be updated by curators using the `setCooldownPeriod()` function.
 
 ### 3. CrossChain FleetCommander Features
 
-#### Async Operations
-- `queueDeposit()` - Queue deposit operations
-- `queueWithdrawal()` - Queue withdrawal operations  
-- `queueRedemption()` - Queue redemption operations
+#### Cooldown Functions
+- `getCooldownPeriod()` - Get the current cooldown period
+- `getNextWithdrawTimestamp(address user)` - Get when user can next withdraw
+- `canWithdraw(address user)` - Check if user can withdraw now
+- `setCooldownPeriod(uint256 newCooldownPeriod)` - Update cooldown period (curator only)
 
-#### Superkeeper Functions
-- `processAsyncOperations()` - Process queued operations (requires sync)
-- `cancelOperation()` - Cancel queued operations
-
-#### Sync Requirements
-- `areAllArksSynced()` - Check if all Arks are synced
-- `allArksSynced` modifier - Enforce sync requirement
+#### Cooldown Enforcement
+- `cooldownEnforced` modifier - Enforces cooldown on withdrawals/redemptions
+- `_updateLastDepositTimestamp()` - Internal function to track deposits
 
 ### 4. MEV Protection Mechanisms
 
-#### Information Asymmetry Elimination
-- Operations are queued, not executed immediately
-- No immediate price discovery based on stale data
-- Prevents front-running based on remote chain events
-
 #### Timing Attack Prevention
-- All operations require all Arks to be synced
-- No execution during bridge delays
+- Cooldown period prevents immediate withdrawal after deposit
+- Eliminates ability to exploit timing-based arbitrage
 - Prevents sandwich attacks on reward distributions
 
+#### Deposit Tracking
+- Records exact timestamp of each user's last deposit
+- Enforces waiting period before withdrawals/redemptions
+- Simple and efficient state management
+
 #### Access Control
-- Only superkeepers can process operations
-- Sync requirements prevent premature execution
-- Queue system prevents direct manipulation
+- Cooldown enforcement through modifiers
+- Prevents manipulation of timing-based attacks
+- Maintains ERC4626 interface compatibility
 
 ## Usage Example
 
 ### 1. User Deposits
 ```solidity
-// User calls deposit (now async)
+// User calls deposit (timestamp is recorded)
 uint256 shares = fleetCommander.deposit(1000e6, user);
-// Returns preview shares, actual deposit is queued
+// Returns shares immediately, cooldown period starts
 ```
 
-### 2. Superkeeper Processing
+### 2. Cooldown Check
 ```solidity
-// Superkeeper processes when all Arks are synced
-(uint256 processed, uint256 failed) = fleetCommander.processAsyncOperations(10);
+// Check if user can withdraw
+bool canWithdraw = fleetCommander.canWithdraw(user);
+
+// Get next withdraw timestamp
+uint256 nextWithdrawTime = fleetCommander.getNextWithdrawTimestamp(user);
 ```
 
-### 3. Sync Status Check
+### 3. User Withdrawals
 ```solidity
-// Check if all Arks are synced
-bool synced = fleetCommander.areAllArksSynced();
+// Withdrawal will revert if cooldown not met
+uint256 assets = fleetCommander.withdraw(500e6, user, user);
+// Only succeeds if cooldown period has passed
 ```
 
 ## Configuration Parameters
 
 ### CrossChainFleetCommanderParams
-- `minQueueAmount`: Minimum amount for queue operations (in asset units)
+- `initialCooldownPeriod`: Initial cooldown period between deposits and withdrawals (in seconds)
 - Standard FleetCommander parameters (name, symbol, asset, etc.)
+
+### Governance Updates
+- `setCooldownPeriod(newCooldownPeriod)`: Update cooldown period after deployment (curator only)
+- Emits `FleetCommanderCooldownPeriodUpdated` event when updated
+- Can only be called when contract is not paused
 
 ## Benefits
 
 ### 1. MEV Protection
-- **Eliminates timing attacks**: No immediate execution based on stale data
-- **Prevents arbitrage**: Operations only execute when state is current
+- **Eliminates timing attacks**: Cooldown prevents immediate withdrawal after deposit
+- **Prevents arbitrage**: Users cannot exploit timing-based opportunities
 - **Reduces value extraction**: From 5-20% annually to near zero
 
 ### 2. Protocol Security
-- **Sync requirements**: Ensures accurate pricing
-- **Queue system**: Prevents manipulation
-- **Access control**: Only authorized processing
+- **Cooldown enforcement**: Prevents manipulation of timing-based attacks
+- **Simple state management**: Efficient tracking of deposit timestamps
+- **Access control**: Modifier-based enforcement
 
 ### 3. User Experience
-- **Immediate response**: Users get preview values instantly
-- **Guaranteed execution**: Operations are processed when safe
-- **Transparency**: Clear queue status and processing
+- **Immediate deposits**: Users can deposit immediately
+- **Clear cooldown status**: Users can check when they can withdraw
+- **Transparency**: Simple cooldown mechanism is easy to understand
+- **Adaptive protection**: Cooldown period can be adjusted based on market conditions
 
 ## Trade-offs
 
-### 1. Latency
-- Operations are not immediate (by design)
-- Processing depends on sync status
-- May require waiting for bridge confirmations
+### 1. User Experience
+- Withdrawals/redemptions are delayed after deposits (by design)
+- Users must wait for cooldown period to pass
+- May impact users who need immediate liquidity
 
 ### 2. Complexity
-- More complex than standard FleetCommander
-- Requires superkeeper infrastructure
+- Slightly more complex than standard FleetCommander
+- Requires tracking deposit timestamps
 - Additional state management
 
 ### 3. Gas Costs
-- Queue operations cost gas
-- Processing operations cost gas
-- Overall higher gas usage
+- Minimal additional gas for timestamp tracking
+- Cooldown checks are very efficient
+- Overall minimal gas impact
 
 ## Migration Strategy
 
@@ -181,38 +175,41 @@ bool synced = fleetCommander.areAllArksSynced();
 ### 2. Backward Compatibility
 - Maintains ERC4626 interface
 - Preview functions work immediately
-- Users can check queue status
+- Users can check cooldown status
 
 ### 3. Fallback Mechanisms
-- Operation cancellation by users
-- Manual sync override (governance)
-- Queue size limits to prevent bloat
+- Users can check cooldown status before attempting withdrawals
+- Clear error messages when cooldown not met
+- Configurable cooldown period for different use cases
+- Governance can adjust cooldown period based on operational needs
 
 ## Security Considerations
 
-### 1. Sync Status Reliability
-- Cross-chain Arks must accurately report sync status
-- Bridge failures could affect sync status
-- Need monitoring and alerting
+### 1. Cooldown Period Configuration
+- Cooldown period must be set appropriately for the use case
+- Too short: May not prevent all MEV attacks
+- Too long: May impact user experience
+- Governance can adjust period based on market conditions and security requirements
 
-### 2. Superkeeper Security
-- Superkeepers must be trusted
-- Need proper access controls
-- Consider multi-sig requirements
+### 2. Timestamp Manipulation
+- Block timestamp manipulation is not a concern (uses block.timestamp)
+- Cooldown enforcement is deterministic
+- No external dependencies for timing
 
-### 3. Queue Management
-- Prevent queue bloat (MAX_QUEUE_SIZE limit)
-- Handle operation cancellation
-- Monitor processing efficiency
+### 3. State Management
+- Simple timestamp tracking reduces attack surface
+- No complex queue management required
+- Minimal state to maintain
 
 ## Conclusion
 
-The `CrossChainFleetCommander` provides a robust solution to the MEV vulnerability by implementing async operations with sync requirements. This prevents arbitrageurs from exploiting timing-based attacks while maintaining the core functionality of the protocol.
+The `CrossChainFleetCommander` provides a robust solution to the MEV vulnerability by implementing a cooldown-based system that prevents immediate withdrawal after deposits. This prevents arbitrageurs from exploiting timing-based attacks while maintaining the core functionality of the protocol.
 
 The solution is designed to be:
-- **Secure**: Eliminates MEV opportunities
-- **Scalable**: Handles high transaction volumes
-- **User-friendly**: Maintains familiar interfaces
-- **Maintainable**: Clear separation of concerns
+- **Secure**: Eliminates MEV opportunities through cooldown enforcement
+- **Simple**: Minimal complexity with efficient state management
+- **User-friendly**: Clear cooldown status and familiar interfaces
+- **Maintainable**: Straightforward implementation with clear logic
+- **Adaptive**: Configurable cooldown period allows for operational flexibility
 
-This implementation addresses the fundamental protocol-level issue that could make the system economically unviable at scale, ensuring the long-term sustainability of the protocol.
+This implementation addresses the fundamental protocol-level issue that could make the system economically unviable at scale, ensuring the long-term sustainability of the protocol. The governance-controlled cooldown period provides the flexibility to adapt to changing market conditions while maintaining security.

@@ -82,13 +82,15 @@ The CrossChainFleetCommander implements a cooldown-based MEV protection system:
 - **Deposit Tracking**: Each user's last deposit timestamp is recorded
 - **Withdrawal Enforcement**: Users cannot withdraw/redeem until the cooldown period has elapsed
 - **MEV Attack Prevention**: Prevents sandwich attacks and front-running on cross-chain operations
+- **Governance Control**: Cooldown period can be updated by curators to adapt to changing market conditions
 
 Key functions:
 - `getCooldownPeriod()`: Returns the configured cooldown duration
 - `getNextWithdrawTimestamp(user)`: Shows when a user can next withdraw
 - `canWithdraw(user)`: Checks if cooldown has passed for a user
+- `setCooldownPeriod(newPeriod)`: Updates the cooldown period (curator only)
 
-This mechanism ensures that cross-chain rebalancing operations cannot be immediately exploited by MEV bots, providing protection for both users and the protocol.
+This mechanism ensures that cross-chain rebalancing operations cannot be immediately exploited by MEV bots, providing protection for both users and the protocol. The configurable nature allows for operational flexibility while maintaining security.
 
 #### Where to go next
 

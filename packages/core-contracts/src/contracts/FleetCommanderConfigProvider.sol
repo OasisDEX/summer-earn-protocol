@@ -73,7 +73,8 @@ contract FleetCommanderConfigProvider is
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
             stakingRewardsManager: IFleetCommanderRewardsManagerFactory(
                 fleetCommanderRewardsManagerFactory()
-            ).createRewardsManager(address(_accessManager), address(this))
+            ).createRewardsManager(address(_accessManager), address(this)),
+            cooldownPeriod: 0 // Default cooldown period for regular FleetCommander
         });
         details = params.details;
     }
@@ -225,6 +226,14 @@ contract FleetCommanderConfigProvider is
             transfersEnabled = true;
             emit TransfersEnabled();
         }
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProvider
+    function setCooldownPeriod(
+        uint256 newCooldownPeriod
+    ) external onlyCurator(address(this)) whenNotPaused {
+        config.cooldownPeriod = newCooldownPeriod;
+        emit FleetCommanderCooldownPeriodUpdated(newCooldownPeriod);
     }
 
     // INTERNAL FUNCTIONS
