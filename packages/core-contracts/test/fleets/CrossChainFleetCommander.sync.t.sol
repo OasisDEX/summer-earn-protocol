@@ -8,7 +8,10 @@ import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 /**
  * @title CrossChainFleetCommanderSyncTest
  * @notice Test suite for CrossChainFleetCommander sync functionality
- * @dev Tests the sync check functionality for cross-chain operations
+ * @dev Tests the sync check functionality for cross-chain operations.
+ *      - Deposits are blocked when arks are unsynced (for safety)
+ *      - Withdrawals and redemptions are allowed even when arks are unsynced
+ *        to ensure users can always access their funds.
  */
 contract CrossChainFleetCommanderSyncTest is CrossChainFleetCommanderTestBase {
     uint256 public constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
@@ -75,7 +78,13 @@ contract CrossChainFleetCommanderSyncTest is CrossChainFleetCommanderTestBase {
     //////////////////////////////////////////////////////////////*/
 
     function testWithdraw_WithUnsyncedArks() public {
-        // Add an unsynced ark to the fleet
+        // Perform a deposit first while arks are synced
+        performDeposit(user1, DEPOSIT_AMOUNT, user1);
+
+        // Fast forward past cooldown period
+        vm.warp(block.timestamp + COOLDOWN_PERIOD + 1);
+
+        // Now add an unsynced ark to the fleet
         vm.startPrank(governor);
         accessManager.grantCommanderRole(
             address(unsyncedArkMock),
@@ -83,12 +92,6 @@ contract CrossChainFleetCommanderSyncTest is CrossChainFleetCommanderTestBase {
         );
         crossChainFleetCommander.addArk(address(unsyncedArkMock));
         vm.stopPrank();
-
-        // Perform a deposit first
-        performDeposit(user1, DEPOSIT_AMOUNT, user1);
-
-        // Fast forward past cooldown period
-        vm.warp(block.timestamp + COOLDOWN_PERIOD + 1);
 
         // Withdrawal should succeed even when arks are unsynced
         // (users should be able to withdraw their funds regardless of sync status)
@@ -102,7 +105,13 @@ contract CrossChainFleetCommanderSyncTest is CrossChainFleetCommanderTestBase {
     }
 
     function testRedeem_WithUnsyncedArks() public {
-        // Add an unsynced ark to the fleet
+        // Perform a deposit first while arks are synced
+        performDeposit(user1, DEPOSIT_AMOUNT, user1);
+
+        // Fast forward past cooldown period
+        vm.warp(block.timestamp + COOLDOWN_PERIOD + 1);
+
+        // Now add an unsynced ark to the fleet
         vm.startPrank(governor);
         accessManager.grantCommanderRole(
             address(unsyncedArkMock),
@@ -110,12 +119,6 @@ contract CrossChainFleetCommanderSyncTest is CrossChainFleetCommanderTestBase {
         );
         crossChainFleetCommander.addArk(address(unsyncedArkMock));
         vm.stopPrank();
-
-        // Perform a deposit first
-        performDeposit(user1, DEPOSIT_AMOUNT, user1);
-
-        // Fast forward past cooldown period
-        vm.warp(block.timestamp + COOLDOWN_PERIOD + 1);
 
         // Redemption should succeed even when arks are unsynced
         // (users should be able to redeem their shares regardless of sync status)
@@ -133,9 +136,16 @@ contract CrossChainFleetCommanderSyncTest is CrossChainFleetCommanderTestBase {
         crossChainFleetCommander.addArk(address(unsyncedArkMock));
         vm.stopPrank();
 
-        // Deposit should still work even when arks are unsynced
-        uint256 shares = performDeposit(user1, DEPOSIT_AMOUNT, user1);
-        assertGt(shares, 0);
+        // Deposit should fail when arks are unsynced
+        // (users shouldn't deposit into unsynced arks for safety)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainFleetCommanderErrors
+                    .CrossChainFleetCommanderArksNotSynced
+                    .selector
+            )
+        );
+        performDeposit(user1, DEPOSIT_AMOUNT, user1);
     }
 
     function testAreAllArksSynced_WithUnsyncedArks() public {

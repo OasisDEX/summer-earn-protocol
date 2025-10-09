@@ -87,7 +87,9 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
 
     /**
      * @dev Modifier to ensure all arks are in sync before critical operations
-     * @dev This prevents operations when cross-chain arks are not properly synced
+     * @dev This prevents operations when cross-chain arks are not properly synced.
+     *      Note: This modifier is available for future use but is not currently
+     *      applied to withdrawals/redemptions to ensure users can always access their funds.
      */
     modifier allArksSynced() {
         if (!areAllArksSynced()) {
@@ -218,13 +220,19 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Override deposit to track timestamp for cooldown
-     * @dev Updates the last deposit timestamp to enforce cooldown on withdrawals
+     * @notice Override deposit to track timestamp for cooldown and enforce sync check
+     * @dev Updates the last deposit timestamp to enforce cooldown on withdrawals.
+     *      Also ensures all arks are synced before allowing deposits.
      */
     function deposit(
         uint256 assets,
         address receiver
-    ) public override(FleetCommander, IERC4626) returns (uint256 shares) {
+    )
+        public
+        override(FleetCommander, IERC4626)
+        allArksSynced
+        returns (uint256 shares)
+    {
         shares = super.deposit(assets, receiver);
         _updateLastDepositTimestamp(_msgSender());
         return shares;
