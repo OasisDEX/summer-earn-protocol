@@ -4,13 +4,14 @@ pragma solidity 0.8.28;
 import {ICrossChainConfigManaged} from "../interfaces/ICrossChainConfigManaged.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
+import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 
 /**
  * @title CrossChainConfigManaged
  * @notice Base contract for contracts that need to read from the CrossChainRegistry
  * @custom:see ICrossChainConfigManaged
  */
-abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
+abstract contract CrossChainConfigManaged is ICrossChainConfigManaged, Context {
     ICrossChainRegistry public immutable CROSS_CHAIN_REGISTRY;
 
     /**
@@ -30,20 +31,20 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Modifier ensuring the caller (`msg.sender`) is registered as an executor in the registry.
+     * @dev Modifier ensuring the caller (`_msgSender()`) is registered as an executor in the registry.
      * Reverts with `OnlyAuthorizedExecutor` if the caller is not registered.
      */
     modifier onlyAuthorizedExecutor() {
-        if (!isExecutor(msg.sender)) revert OnlyAuthorizedExecutor();
+        if (!isExecutor(_msgSender())) revert OnlyAuthorizedExecutor();
         _;
     }
 
     /**
-     * @dev Modifier ensuring the caller (`msg.sender`) is the bridge router.
+     * @dev Modifier ensuring the caller (`_msgSender()`) is the bridge router.
      * Reverts with `OnlyBridgeRouter` if the caller is not the bridge router.
      */
     modifier onlyRouter() {
-        if (msg.sender != bridgeRouter()) revert OnlyBridgeRouter();
+        if (_msgSender() != bridgeRouter()) revert OnlyBridgeRouter();
         _;
     }
 
