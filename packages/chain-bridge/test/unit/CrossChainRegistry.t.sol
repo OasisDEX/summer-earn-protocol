@@ -660,10 +660,10 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
 
         // Add the relationship types first
         vm.prank(governor);
-        registry.addSupportedRelationshipType(peerTypeLocal, false);
+        registry.addSupportedRelationshipType(peerTypeLocal);
 
         vm.prank(governor);
-        registry.addSupportedRelationshipType(executorTypeLocal, false);
+        registry.addSupportedRelationshipType(executorTypeLocal);
 
         vm.prank(governor);
         registry.registerRelationship(
@@ -860,7 +860,7 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         address dst = makeAddr("localDst");
 
         vm.prank(governor);
-        registry.addSupportedRelationshipType(localRelationship, false);
+        registry.addSupportedRelationshipType(localRelationship);
 
         vm.expectEmit(true, true, true, true);
         emit CrossChainRelationshipRegistered(

@@ -43,14 +43,13 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice Mapping to track if a relationship type is supported
     mapping(bytes32 => bool) private relationshipTypeSupported;
 
-    /// @notice Mapping to track which relationship types require bijective mapping
-    /// @dev When true, only pair registration methods can be used for this relationship type
-    mapping(bytes32 => bool) private bijectiveRelationshipTypes;
-
     /// @notice The bridge router contract address
     address public bridgeRouter;
 
     /// @notice Constants for relationship types
+    /// @dev Note: PEER_RELATIONSHIP requires use of pair registration methods (registerAdapterPeerPair/unregisterAdapterPeerPair)
+    /// to ensure bidirectional relationships. Other newly added relationship types that require bijective mapping
+    /// may need similar enforcement to prevent misconfiguration.
     bytes32 public constant PEER_RELATIONSHIP = keccak256("PEER_RELATIONSHIP");
     bytes32 public constant EXECUTOR_RELATIONSHIP =
         keccak256("EXECUTOR_RELATIONSHIP");
@@ -69,9 +68,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         _addRelationshipType(PEER_RELATIONSHIP);
         _addRelationshipType(EXECUTOR_RELATIONSHIP);
 
-        // Mark PEER_RELATIONSHIP as requiring bijective mapping
-        bijectiveRelationshipTypes[PEER_RELATIONSHIP] = true;
-
         emit RegistryInitialized(uint16(block.chainid));
     }
 
@@ -87,8 +83,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 targetChainId,
         bytes32 relationshipType
     ) public onlyGovernor {
-        // Check if this relationship type requires bijective mapping
-        if (bijectiveRelationshipTypes[relationshipType]) {
+        // PEER_RELATIONSHIP requires use of pair registration methods
+        if (relationshipType == PEER_RELATIONSHIP) {
             revert UsePairRegistrationMethods(relationshipType);
         }
 
@@ -108,8 +104,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         bytes32 relationshipType,
         uint16 targetChainId
     ) public onlyGovernor {
-        // Check if this relationship type requires bijective mapping
-        if (bijectiveRelationshipTypes[relationshipType]) {
+        // PEER_RELATIONSHIP requires use of pair registration methods
+        if (relationshipType == PEER_RELATIONSHIP) {
             revert UsePairRegistrationMethods(relationshipType);
         }
 
@@ -393,47 +389,11 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /**
      * @notice Add a supported relationship type (governor-only)
      * @param relationshipType The relationship type hash to add
-     * @param isBijective Whether this relationship type requires bijective mapping
      */
     function addSupportedRelationshipType(
-        bytes32 relationshipType,
-        bool isBijective
+        bytes32 relationshipType
     ) external onlyGovernor {
         _addRelationshipType(relationshipType);
-        bijectiveRelationshipTypes[relationshipType] = isBijective;
-        if (isBijective) {
-            emit BijectiveRelationshipTypeUpdated(relationshipType, true);
-        }
-    }
-
-    /**
-     * @notice Check if a relationship type requires bijective mapping
-     * @param relationshipType The relationship type to check
-     * @return isBijective True if the relationship type requires bijective mapping
-     */
-    function isBijectiveRelationshipType(
-        bytes32 relationshipType
-    ) external view returns (bool isBijective) {
-        return bijectiveRelationshipTypes[relationshipType];
-    }
-
-    /**
-     * @notice Validate that all relationships of a given type are bijective
-     * @dev This function can be used for governance checks or off-chain validation
-     * @param relationshipType The relationship type to validate
-     * @return isBijective True if all relationships are properly bijective
-     * @return violations Array of relationship violations found (empty if bijective)
-     */
-    function validateBijectiveRelationships(
-        bytes32 relationshipType
-    ) external view returns (bool isBijective, string[] memory violations) {
-        if (!bijectiveRelationshipTypes[relationshipType]) {
-            return (true, new string[](0)); // Non-bijective types are always "valid"
-        }
-
-        // For now, return true as the pair registration methods ensure bijectivity
-        // This function can be extended with more sophisticated validation logic
-        return (true, new string[](0));
     }
 
     /*//////////////////////////////////////////////////////////////
