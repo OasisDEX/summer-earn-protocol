@@ -8,6 +8,7 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 
 contract ExposedAdapter is BaseBridgeAdapter {
@@ -27,11 +28,11 @@ contract ExposedAdapter is BaseBridgeAdapter {
         _assertTrustedSource(srcAdapter, srcChain);
     }
 
-    function exposed_assertSourceChainId(
+    function exposed_validateSourceChainId(
         uint16 sourceChainId,
         uint16 expected
     ) external pure {
-        _assertSourceChainId(sourceChainId, expected);
+        _validateSourceChainId(sourceChainId, expected);
     }
 
     function exposed_externalIdForChain(
@@ -70,7 +71,6 @@ contract ExposedAdapter is BaseBridgeAdapter {
         return _encodeRelayedTransferParams(p);
     }
 
-
     function exposed_encodeRelayedMessageParamsWithType(
         BridgeTypes.RelayedMessageParams memory p
     ) external pure returns (bytes memory) {
@@ -82,7 +82,6 @@ contract ExposedAdapter is BaseBridgeAdapter {
     ) external pure returns (bytes memory) {
         return _encodeRelayedTransferParamsWithType(p);
     }
-
 }
 
 contract BaseBridgeAdapterCoreTest is Test {
@@ -155,7 +154,9 @@ contract BaseBridgeAdapterCoreTest is Test {
     function testMapExternalId_Reverts_WhenExternalIdZero() public {
         vm.startPrank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(BaseBridgeAdapter.InvalidParams.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
         );
         adapterA.mapExternalId(1234, 0);
         vm.stopPrank();
@@ -188,7 +189,9 @@ contract BaseBridgeAdapterCoreTest is Test {
     // -------- Gas limit validation --------
     function testRequireGasLimit_RevertsOnZero() public {
         vm.expectRevert(
-            abi.encodeWithSelector(BaseBridgeAdapter.InvalidParams.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
         );
         adapterA.exposed_requireGasLimit(0);
     }
@@ -225,7 +228,7 @@ contract BaseBridgeAdapterCoreTest is Test {
 
         // Now passes
         adapterA.onlyTrusted(chainB);
-        assertTrue(adapterA.isTrustedDestination(chainB));
+        assertTrue(adapterA.isAllowedDestination(chainB));
     }
 
     function testAssertTrustedSource_RevertAndPass() public {
@@ -235,7 +238,7 @@ contract BaseBridgeAdapterCoreTest is Test {
         // Before registration: should revert
         vm.expectRevert(
             abi.encodeWithSelector(
-                BaseBridgeAdapter.UntrustedSourceAdapter.selector,
+                IBaseBridgeAdapterErrors.UntrustedSourceAdapter.selector,
                 address(adapterB2),
                 chainB
             )
@@ -289,14 +292,14 @@ contract BaseBridgeAdapterCoreTest is Test {
     function testAssertSourceChainId_RevertOnMismatch() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                BaseBridgeAdapter.InvalidSourceChainId.selector
+                IBaseBridgeAdapterErrors.InvalidSourceChainId.selector
             )
         );
-        adapterA.exposed_assertSourceChainId(100, 200);
+        adapterA.exposed_validateSourceChainId(100, 200);
     }
 
     function testAssertSourceChainId_PassOnMatch() public {
-        adapterA.exposed_assertSourceChainId(123, 123);
+        adapterA.exposed_validateSourceChainId(123, 123);
     }
 
     // -------- Encode/Decode helpers --------
@@ -361,5 +364,4 @@ contract BaseBridgeAdapterCoreTest is Test {
         assertEq(decoded.amount, p.amount);
         assertEq(decoded.message, p.message);
     }
-
 }
