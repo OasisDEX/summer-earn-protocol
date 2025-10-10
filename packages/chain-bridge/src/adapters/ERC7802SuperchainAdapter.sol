@@ -16,9 +16,8 @@ contract ERC7802SuperchainAdapter is BaseERC7802Adapter {
     constructor(
         address _crossChainRegistry,
         address _accessManager,
-        address _lzEndpoint,
         address _superchainBridge
-    ) BaseERC7802Adapter(_crossChainRegistry, _accessManager, _lzEndpoint) {
+    ) BaseERC7802Adapter(_crossChainRegistry, _accessManager) {
         if (_superchainBridge == address(0)) revert InvalidParams();
         superchainBridge = ISuperchainTokenBridge(_superchainBridge);
     }

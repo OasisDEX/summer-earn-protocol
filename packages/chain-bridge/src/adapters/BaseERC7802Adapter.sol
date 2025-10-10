@@ -11,10 +11,6 @@ import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 
-import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
-import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
-import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
-
 /**
  * @title BaseERC7802Adapter
  * @notice Base adapter implementing common flow for ERC-7802 mint/burn transports with OFT compose support
@@ -25,30 +21,20 @@ abstract contract BaseERC7802Adapter is
     IAssetAdapter,
     IBridgeAdapter,
     IMessageAdapter,
-    ILayerZeroComposer,
     BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
-    using AddressCast for address;
-    using AddressCast for bytes32;
 
     /// @notice Tracks which assets are supported by this adapter on THIS chain
     mapping(address asset => bool supported) public supportedAsset;
-
-    /// @notice LayerZero endpoint for compose functionality
-    address public immutable LZ_ENDPOINT;
 
     /// @notice Emitted when support is toggled for an asset
     event AssetSupportUpdated(address indexed asset, bool supported);
 
     constructor(
         address _crossChainRegistry,
-        address _accessManager,
-        address _lzEndpoint
-    ) BaseBridgeAdapter(_crossChainRegistry, _accessManager) {
-        if (_lzEndpoint == address(0)) revert InvalidParams();
-        LZ_ENDPOINT = _lzEndpoint;
-    }
+        address _accessManager
+    ) BaseBridgeAdapter(_crossChainRegistry, _accessManager) {}
 
     /*//////////////////////////////////////////////////////////////
                              GOVERNANCE
@@ -260,145 +246,5 @@ abstract contract BaseERC7802Adapter is
     ) internal view returns (uint256) {
         uint32 ext = chainToExternalId[chainId];
         return ext == 0 ? uint256(chainId) : uint256(ext);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                             COMPOSE HELPERS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @dev Decode OFT compose message header and payload
-     * @param message The OFT-encoded compose message
-     * @return srcEid Source endpoint ID
-     * @return amountLD Amount in local decimals
-     * @return composeFrom Address that sent the compose message
-     * @return composeMsg The composed message payload
-     */
-    function _decodeOFTCompose(
-        bytes calldata message
-    )
-        internal
-        view
-        virtual
-        returns (
-            uint32 srcEid,
-            uint256 amountLD,
-            address composeFrom,
-            bytes memory composeMsg
-        )
-    {
-        // Sanity-check the OFT compose header is fully present before decoding.
-        // Layout (ABI-aligned as produced by OFTComposeMsgCodec):
-        //  - 8B nonce | 4B srcEid                                   (total so far: 12 bytes)
-        //  - 32B amountLD                                           (total so far: 44 bytes)
-        //  - 32B composeFrom (left-padded address, present when composeMsg != empty)
-        // Minimum length when composeFrom is present: 12 + 32 + 32 = 76 bytes.
-        if (message.length < 76) revert InvalidMessage();
-
-        // Use official codec for extraction
-        srcEid = OFTComposeMsgCodec.srcEid(message);
-        amountLD = OFTComposeMsgCodec.amountLD(message);
-        composeMsg = OFTComposeMsgCodec.composeMsg(message);
-        composeFrom = OFTComposeMsgCodec.composeFrom(message).toAddress();
-    }
-
-    /**
-     * @dev Encode transfer parameters for OFT compose message
-     * @param operationId Router-provided operation ID
-     * @param params Transfer parameters
-     * @return Encoded compose message payload
-     */
-    function _encodeComposeTransferParams(
-        bytes32 operationId,
-        BridgeTypes.ExecuteTransferParams calldata params
-    ) internal pure returns (bytes memory) {
-        BridgeTypes.RelayedTransferParams memory relayedParams = BridgeTypes
-            .RelayedTransferParams({
-                operationId: operationId,
-                originator: params.originator,
-                sourceChainId: uint16(block.chainid),
-                recipient: params.target,
-                asset: params.asset,
-                amount: params.amount,
-                message: params.message
-            });
-
-        return abi.encode(relayedParams);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                             LAYERZERO COMPOSE
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Handles composed messages from LayerZero after OFT token delivery
-     * @dev Called by LayerZero endpoint after tokens are delivered via OFT
-     * @param _from The originating OApp (should be destination OFT contract)
-     * @param _guid LayerZero message GUID
-     * @param _message OFT-encoded compose message from OFT
-     * @param _caller The caller of the compose function
-     * @param _extraData Additional data from LayerZero
-     */
-    function lzCompose(
-        address _from,
-        bytes32 _guid,
-        bytes calldata _message,
-        address _caller,
-        bytes calldata _extraData
-    ) external payable override nonReentrant {
-        // Verify caller is LayerZero endpoint
-        if (msg.sender != LZ_ENDPOINT) revert Unauthorized();
-
-        // Decode OFT compose payload
-        (
-            uint32 srcEid,
-            uint256 amountLD,
-            address composeFrom,
-            bytes memory composeMsg
-        ) = _decodeOFTCompose(_message);
-
-        // Decode transfer parameters from compose message
-        BridgeTypes.RelayedTransferParams
-            memory params = _decodeRelayedTransferParams(composeMsg);
-
-        // Validate the source adapter relationship
-        _assertTrustedSource(composeFrom, uint16(srcEid));
-
-        // Ensure the LayerZero srcEid maps to the same chain as encoded in the payload
-        uint16 chainFromEid = externalIdToChainId[srcEid];
-        _assertSourceChainId(params.sourceChainId, chainFromEid);
-
-        // Use the minted amount from OFT compose header as authoritative
-        params.amount = amountLD;
-
-        // Ensure the asset is supported
-        if (!supportedAsset[params.asset]) revert UnsupportedAsset();
-
-        // Note: destinationChainId is implicitly THIS_CHAIN for compose messages
-
-        // Check that we have the expected amount of tokens
-        uint256 bal = IERC20(params.asset).balanceOf(address(this));
-        if (bal < params.amount) revert InsufficientBalance();
-
-        // Move tokens to router, which will forward to recipient during deliver
-        IERC20(params.asset).safeTransfer(bridgeRouter(), params.amount);
-
-        // Create the finalize params for the router
-        BridgeTypes.ExecuteTransferParams memory finalizeParams = BridgeTypes
-            .ExecuteTransferParams({
-                originator: params.originator,
-                destinationChainId: THIS_CHAIN,
-                target: params.recipient,
-                asset: params.asset,
-                amount: params.amount,
-                message: params.message,
-                refundAddress: address(this) // Adapter receives any refunds
-            });
-
-        // Finalize through router
-        IBridgeRouter(bridgeRouter()).deliver(
-            BridgeTypes.OperationType.TRANSFER_ASSET,
-            _encodeRelayedTransferParams(params)
-        );
     }
 }
