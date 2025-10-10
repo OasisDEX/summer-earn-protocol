@@ -207,7 +207,7 @@ contract ERC7802OFTAdapter is BaseERC7802Adapter, ILayerZeroComposer {
 
         // Ensure the LayerZero srcEid maps to the same chain as encoded in the payload
         uint16 chainFromEid = externalIdToChainId[srcEid];
-        _assertSourceChainId(params.sourceChainId, chainFromEid);
+        _validateSourceChainId(params.sourceChainId, chainFromEid);
 
         // Use the minted amount from OFT compose header as authoritative
         params.amount = amountLD;

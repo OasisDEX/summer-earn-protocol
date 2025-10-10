@@ -80,7 +80,7 @@ abstract contract BaseERC7802Adapter is
         );
 
         // Resolve destination peer adapter via registry
-        address dstAdapter = _peerAdapter(params.destinationChainId);
+        address dstAdapter = _getAdapterPeer(params.destinationChainId);
         if (dstAdapter == address(0)) revert UnsupportedChain();
 
         // Execute transport-specific burn/mint initiation
@@ -169,7 +169,7 @@ abstract contract BaseERC7802Adapter is
         }
         if (!supportedAsset[params.asset]) revert UnsupportedAsset();
         if (params.amount == 0) revert InvalidParams();
-        address dstAdapter = _peerAdapter(params.destinationChainId);
+        address dstAdapter = _getAdapterPeer(params.destinationChainId);
         if (dstAdapter == address(0)) revert UnsupportedChain();
         return
             _estimateTransport(
@@ -212,7 +212,7 @@ abstract contract BaseERC7802Adapter is
         address asset
     ) external view returns (bool) {
         return
-            supportedAsset[asset] && isTrustedDestination(destinationChainId);
+            supportedAsset[asset] && isAllowedDestination(destinationChainId);
     }
 
     /*//////////////////////////////////////////////////////////////
