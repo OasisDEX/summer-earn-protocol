@@ -138,6 +138,47 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(ark.getTargetProxy(), proxy); // Uses registry lookup
     }
 
+    function test_RegistryRelationshipIntegration() public {
+        // This test verifies the integration between CrossChainArk and CrossChainRegistry
+        // The contract MUST use registry.PEER_RELATIONSHIP() rather than hardcoded constants
+        // to ensure maintainability and consistency with registry relationship types
+
+        // Verify the ark can find its target proxy via registry lookup
+        address proxyFromRegistry = ark.getTargetProxy();
+        assertEq(proxyFromRegistry, proxy);
+
+        // Test that the ark can receive assets back from the proxy
+        uint256 amount = 500;
+        deal(address(mockToken), address(ark), amount);
+
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: keccak256("test-receive"),
+                originator: proxy,
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                asset: address(mockToken),
+                amount: amount,
+                message: abi.encode(ark.lastRemoteAssetBalance())
+            });
+
+        vm.expectEmit(true, true, true, true);
+        emit ICrossChainArk.AssetsReceived(
+            address(mockToken),
+            amount,
+            TARGET_CHAIN_ID
+        );
+
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(params)
+        );
+
+        // Verify the transfer was accepted (relationship validation passed)
+        assertEq(mockToken.balanceOf(address(ark)), amount);
+    }
+
     function testBoardCallsQueueTransferAssets() public {
         // Approve Ark to spend tokens from FleetCommander
 
@@ -490,6 +531,77 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Check state was updated correctly
         assertEq(ark.lastRemoteAssetBalance(), initialRemoteBalance - amount);
+    }
+
+    //----------------- Satellite Receipt Notify (Ark → Proxy) -----------------//
+
+    function test_NotifySatelliteReceipt_SendsAckMessage() public {
+        // Simulate receiving a withdrawal from satellite so that latestIncomingTransferId is set
+        uint256 amount = 500;
+        bytes32 opId = keccak256("withdrawal-op");
+        bytes memory message = abi.encode(uint256(1000));
+
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: opId,
+                originator: proxy,
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                asset: address(mockToken),
+                amount: amount,
+                message: message
+            });
+
+        // deliver transfer from router
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(params)
+        );
+
+        // Ensure latestIncomingTransferId set
+        bytes32 latestIn = ark.latestIncomingTransferId();
+        assertEq(latestIn, opId);
+
+        // Call notifySatelliteReceipt as keeper
+        vm.deal(keeper, 1 ether);
+        vm.prank(keeper);
+        ark.notifySatelliteChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 200000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // The mock router records messageCalls, check count increased
+        uint256 count = router.getMessageCallCount();
+        assertEq(count, 1, "one message should be sent");
+
+        // Verify payload contains opId
+        (, , bytes memory sentMessage) = router.messageCalls(count - 1);
+        bytes32 decodedOpId = abi.decode(sentMessage, (bytes32));
+        assertEq(decodedOpId, opId, "ACK payload should contain opId");
+    }
+
+    function test_NotifySatelliteReceipt_RequiresLatestIncomingTransferId()
+        public
+    {
+        // Without prior inbound transfer, calling notify should revert
+        vm.deal(keeper, 1 ether);
+        vm.prank(keeper);
+        vm.expectRevert(ICrossChainArk.InvalidRequestor.selector);
+        ark.notifySatelliteChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 200000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
     }
 
     // ========================================================================

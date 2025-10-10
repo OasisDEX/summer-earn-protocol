@@ -69,6 +69,4 @@ contract MockFleetProxy is CrossChainReceiverBase {
         lastMessage = params.message;
         lastSourceChainId = params.sourceChainId;
     }
-
-    function testSkipper() public {}
 }

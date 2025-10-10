@@ -1,15 +1,15 @@
 ### Cross-Chain Registry and Security
 
-This document outlines the `CrossChainRegistry` model and how validation is performed on source and
+This document outlines the `CrossChainRegistry` model and how validation is performed on hub and
 destination chains.
 
 #### Registry Model
 
-- Governance-controlled registry that records valid relationships between a source Ark and a
+- Governance-controlled registry that records valid relationships between the hub-chain Ark and a
   destination FleetProxy for a specific source/target chain pair and relationship type.
 - Registry state must be identical across all participating chains.
 
-#### Source-Side Validation (Ark)
+#### Hub-Side Validation (Ark)
 
 - Before initiating a cross-chain transfer, the CrossChain Ark queries the registry for the target
   relationship.
@@ -23,7 +23,7 @@ Example pattern:
 // Pseudocode for clarity; refer to the codebase for exact interfaces
 address proxy = crossChainRegistry.getRelationshipByTarget(
     address(this),
-    ARK_FLEET_RELATIONSHIP,
+    PEER_RELATIONSHIP,
     destinationChainId
 ).targetContract;
 require(proxy != address(0), "No relationship");
@@ -34,7 +34,8 @@ require(proxy != address(0), "No relationship");
 - Upon delivery, the FleetProxy validates:
   - Caller is the local BridgeRouter (FleetProxy trusts only the router; the router authenticates
     adapters and peer relationships).
-  - The source chain and Ark match an active registry relationship for this FleetProxy.
+  - The hub chain and Ark match an active registry relationship for this FleetProxy.
+  - The message originates from the hub chain and the originator equals the hub-chain Ark.
 - If either check fails, the call reverts and funds are not deposited into the local fleet.
 
 Example pattern:
@@ -47,13 +48,13 @@ require(msg.sender == bridgeRouter, "Only router");
 // - onlyRegisteredAdapter(adapter)
 // - peer relationship exists for (sourceChainId, adapter)
 
-// Recipient validates source Ark + chain via registry
+// Recipient validates hub-chain Ark + chain via registry
 bool ok = crossChainRegistry.isValidCrossChainPair(
-    sourceArk,
+    hubArk,
     address(this),
-    sourceChainId,
+    hubChainId,
     uint16(block.chainid),
-    ARK_FLEET_RELATIONSHIP
+    PEER_RELATIONSHIP
 );
 require(ok, "Invalid source relationship");
 ```
@@ -65,7 +66,7 @@ require(ok, "Invalid source relationship");
 - Strong adapter authentication; no arbitrary callers.
 - Emergency controls: pause/unpause; unregister compromised relationships.
 - Consistent configuration across chains for both `PEER_RELATIONSHIP` (adapter peers) and
-  `ARK_FLEET_RELATIONSHIP` (Ark ↔ Proxy pairs).
+  `PEER_RELATIONSHIP` (Ark ↔ Proxy pairs).
 
 #### Deployment Checklist
 
@@ -77,4 +78,4 @@ require(ok, "Invalid source relationship");
 Additional registry configuration:
 - Initialize registry bridge config once per chain with the router address:
   - `initializeBridgeConfiguration(address bridgeRouter)`
-- The registry no longer manages a default gas limit. All operations must pass a non-zero gas limit in `BridgeOptions` via the router.
+- The registry no longer manages a default gas limit. All operations MUST pass a non-zero gas limit in `BridgeOptions` via the router.

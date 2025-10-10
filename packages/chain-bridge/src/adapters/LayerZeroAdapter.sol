@@ -7,12 +7,9 @@ import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
-import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
 import {MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
-import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
-import {EVMCallRequestV1, ReadCodecV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Bytes32AddressLib} from "solmate/src/utils/Bytes32AddressLib.sol";
@@ -42,49 +39,6 @@ contract LayerZeroAdapter is
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
 
-    /// @notice Binds a read response guid to the originally requested destination chain
-    /// @dev Used to enforce registry trust checks for read-channel responses
-    mapping(bytes32 guid => uint16 expectedChainId)
-        public expectedReadChainByGuid;
-
-    /// @notice Threshold used to distinguish LayerZero lzRead responses by `srcEid`
-    /// @dev LayerZero routes read responses through a reserved "read channel" range
-    ///      near the top of the uint32 EID space (commonly with READ_CHANNEL_ID at
-    ///      4294967295). Any `srcEid` strictly greater than this threshold is treated
-    ///      as a read response. This value is set at deploy time to allow
-    ///      forward-compatibility and testing across different environments.
-    uint32 public immutable readChannelThreshold;
-
-    /// @notice Active read channel ID for sending read requests
-    uint32 public readChannelId;
-
-    /// @notice Governance cap for number of DVNs allowed in read config
-    /// @dev Practical deployments typically use a small DVN set (e.g. 1-3).
-    ///      This cap avoids overly large configurations and removes magic numbers.
-    uint8 public constant MAX_SUPPORTED_DVNS = 8;
-
-    /// @notice Emitted when read libraries are configured
-    event ReadLibrariesConfigured(
-        address indexed readLib1002,
-        uint32 indexed readChannelId
-    );
-
-    /// @notice Emitted when read DVNs are configured
-    event ReadDVNsConfigured(
-        uint32 indexed readChannelId,
-        address[] readDVNs,
-        uint64 confirmations
-    );
-
-    /// @notice Emitted when a read channel is activated
-    event ReadChannelActivated(uint32 indexed readChannelId);
-
-    /// @notice Emitted when per-chain read support is updated
-    event ChainReadSupportUpdated(uint16 indexed chainId, bool supported);
-
-    /// @notice Mapping of chains that support read operations
-    mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
-
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -99,7 +53,6 @@ contract LayerZeroAdapter is
      *                     (Adds only the *mapping*; talking to a peer
      *                     still requires governance to register it in the registry.)
      * @param _initialOwner Owner for Ownable/OAppRead
-     * @param _readChannelThreshold Threshold for determining read-channel responses
      */
     constructor(
         address _endpoint,
@@ -107,8 +60,7 @@ contract LayerZeroAdapter is
         address _accessManager,
         uint16[] memory _endpointChains,
         uint32[] memory _endpointIds,
-        address _initialOwner,
-        uint32 _readChannelThreshold
+        address _initialOwner
     )
         OAppRead(_endpoint, _initialOwner)
         Ownable(_initialOwner)
@@ -118,134 +70,12 @@ contract LayerZeroAdapter is
         if (_initialOwner == address(0)) revert InvalidParams();
         if (_endpointChains.length != _endpointIds.length)
             revert InvalidParams();
-        if (_readChannelThreshold == 0) revert InvalidParams();
-        readChannelThreshold = _readChannelThreshold;
 
         // Setup chain ID to LayerZero EID mappings using base functionality
         for (uint256 i = 0; i < _endpointChains.length; i++) {
             if (_endpointIds[i] == 0) revert InvalidParams();
             _mapChainExternalId(_endpointChains[i], _endpointIds[i]);
         }
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                          GOVERNANCE FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Activates a read channel for state reading operations
-     * @param _readChannelId The ID of the read channel to activate
-     * @dev Requirements:
-     *      - `_readChannelId` must be non-zero
-     *      - `_readChannelId` must be strictly greater than `readChannelThreshold`
-     *      These checks prevent misconfiguration where read responses would not be
-     *      properly classified by `_lzReceive`.
-     */
-    function activateReadChannel(uint32 _readChannelId) external onlyGovernor {
-        if (_readChannelId == 0 || _readChannelId <= readChannelThreshold) {
-            revert InvalidParams();
-        }
-        setReadChannel(readChannelId, false);
-        readChannelId = _readChannelId;
-        setReadChannel(_readChannelId, true);
-        emit ReadChannelActivated(_readChannelId);
-    }
-
-    /**
-     * @notice Configures ReadLib1002 for read operations
-     * @param readLib1002Address Address of the ReadLib1002 contract
-     * @dev Must be called to enable read operations
-     */
-    function configureReadLibraries(
-        address readLib1002Address
-    ) external onlyGovernor {
-        if (readChannelId == 0) revert ReadChannelNotConfigured();
-        if (readLib1002Address == address(0)) revert InvalidParams();
-
-        // Set send library for read channel
-        endpoint.setSendLibrary(
-            address(this),
-            readChannelId,
-            readLib1002Address
-        );
-
-        // Set receive library for read channel
-        endpoint.setReceiveLibrary(
-            address(this),
-            readChannelId,
-            readLib1002Address,
-            0
-        );
-
-        emit ReadLibrariesConfigured(readLib1002Address, readChannelId);
-    }
-
-    /**
-     * @notice Configures DVN settings for read operations
-     * @param readLib1002Address Address of the ReadLib1002 contract
-     * @param readDVNs Array of DVN addresses for read operations (must be sorted alphabetically)
-     * @param confirmations Number of block confirmations required
-     * @param executor Address of the executor for read operations
-     * @dev Must be called to enable read operations with proper DVN and executor configuration
-     */
-    function configureReadDVNs(
-        address readLib1002Address,
-        address[] memory readDVNs,
-        uint64 confirmations,
-        address executor
-    ) external onlyGovernor {
-        if (readChannelId == 0) revert ReadChannelNotConfigured();
-        if (readDVNs.length == 0) revert InvalidParams();
-        if (readDVNs.length > MAX_SUPPORTED_DVNS) revert InvalidParams();
-        if (readLib1002Address == address(0)) revert InvalidParams();
-        if (executor == address(0)) revert InvalidParams();
-
-        // Verify DVNs are sorted (required by LayerZero)
-        for (uint256 i = 0; i < readDVNs.length; i++) {
-            if (readDVNs[i] == address(0)) revert InvalidParams();
-            if (i == 0) continue;
-            if (readDVNs[i] <= readDVNs[i - 1]) revert InvalidParams(); // Must be sorted
-        }
-
-        // Create ReadLibConfig for read operations (this includes BOTH DVNs AND executor)
-        ReadLibConfig memory readLibConfig = ReadLibConfig({
-            executor: executor,
-            requiredDVNCount: uint8(readDVNs.length),
-            optionalDVNCount: 0,
-            optionalDVNThreshold: 0,
-            requiredDVNs: readDVNs,
-            optionalDVNs: new address[](0)
-        });
-
-        // Encode the ReadLibConfig
-        bytes memory encodedConfig = abi.encode(readLibConfig);
-
-        // Create SetConfigParam array for the read channel
-        SetConfigParam[] memory params = new SetConfigParam[](1);
-        params[0] = SetConfigParam({
-            eid: readChannelId,
-            configType: 1, // CONFIG_TYPE_READ_LID_CONFIG
-            config: encodedConfig
-        });
-
-        // Configure read library for read channel
-        endpoint.setConfig(address(this), readLib1002Address, params);
-
-        emit ReadDVNsConfigured(readChannelId, readDVNs, confirmations);
-    }
-
-    /**
-     * @notice Configure read support for specific chains
-     * @param chainId The chain ID to configure
-     * @param supported Whether read operations are supported on this chain
-     * @dev Can only be called by the contract owner
-     */
-    function setChainReadSupport(
-        uint16 chainId,
-        bool supported
-    ) external onlyGovernor {
-        chainSupportsRead[chainId] = supported;
-        emit ChainReadSupportUpdated(chainId, supported);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -267,20 +97,7 @@ contract LayerZeroAdapter is
         address,
         bytes calldata
     ) internal override {
-        // Check if this is a response from a read channel
-        // srcEid - Read Channel ID for Read operations -
-        // https://docs.layerzero.network/v2/developers/evm/lzread/overview#hybrid-messaging--read
-
-        // Read responses are identified by the read-channel `srcEid` and do NOT carry an
-        // operation type prefix. The raw LayerZero read payload is forwarded as
-        // `RelayedReadResponse.readResponseData`. The Router binds the response to the
-        // original request using `operationId` (tracked via `lzMessageToOperationId`) and
-        // resolves the `originator` from its own storage (`readRequestToOriginator`).
-        // Therefore, the read response payload itself should not include an operation type
-        // or originator.
-        if (_origin.srcEid > readChannelThreshold) {
-            _relayReadResponse(_guid, _payload);
-        } else if (_payload.length >= 2) {
+        if (_payload.length >= 2) {
             // Decode the payload to extract operation type and data
             (
                 BridgeTypes.OperationType operationType,
@@ -307,7 +124,7 @@ contract LayerZeroAdapter is
     ) internal {
         BridgeTypes.RelayedMessageParams
             memory relayedMessageParams = _decodeRelayedMessageParams(_payload);
-        _assertSourceChainId(
+        _validateSourceChainId(
             externalIdToChainId[_origin.srcEid],
             relayedMessageParams.sourceChainId
         );
@@ -324,41 +141,6 @@ contract LayerZeroAdapter is
         );
     }
 
-    /**
-     * @dev Handles responses from lzRead operations
-     * @param _guid Global unique identifier for tracking the packet
-     * @param _payload Response payload
-     */
-    function _relayReadResponse(bytes32 _guid, bytes memory _payload) internal {
-        // Extract requestId from the guid mapping
-        bytes32 operationId = lzMessageToOperationId[_guid];
-        if (operationId == bytes32(0)) {
-            // Silently fail so it doesn't get locked with DVN
-            emit ReadOperationNotFound(_guid, "No operationId found");
-            return;
-        }
-
-        // Resolve the expected source chain from the original request's destination
-        uint16 expectedChainId = expectedReadChainByGuid[_guid];
-
-        bytes memory operationPayload = _encodeRelayedReadResponse(
-            BridgeTypes.RelayedReadResponse({
-                readResponseData: _payload,
-                operationId: operationId,
-                sourceChainId: expectedChainId
-            })
-        );
-
-        IBridgeRouter(bridgeRouter()).deliver(
-            BridgeTypes.OperationType.READ_STATE,
-            operationPayload
-        );
-
-        // Clean up mapping after successful delivery to prevent storage bloat
-        delete lzMessageToOperationId[_guid];
-        delete expectedReadChainByGuid[_guid];
-    }
-
     /*//////////////////////////////////////////////////////////////
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
@@ -369,52 +151,6 @@ contract LayerZeroAdapter is
         BridgeTypes.BridgeOptions calldata /* options */
     ) external pure returns (uint256, /* nativeFee */ uint256 /* tokenFee */) {
         revert OperationNotSupported();
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function estimateReadState(
-        BridgeTypes.ExecuteReadStateParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    )
-        external
-        view
-        onlyTrustedDestination(params.destinationChainId)
-        returns (uint256 nativeFee, uint256 tokenFee)
-    {
-        if (!supportsOperation(BridgeTypes.OperationType.READ_STATE)) {
-            revert OperationNotSupported();
-        }
-
-        // Ensure read channel is configured
-        if (readChannelId == 0) revert ReadChannelNotConfigured();
-
-        // Check if the destination chain supports read operations
-        if (!chainSupportsRead[params.destinationChainId]) {
-            revert UnsupportedChain();
-        }
-
-        uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
-
-        // Create realistic payload using actual parameters
-        bytes memory payload = _createReadStatePayload(
-            lzDstEid,
-            params.target,
-            abi.encodePacked(params.selector, params.readParams)
-        );
-
-        bytes memory lzOptions = _createLzOptions(
-            options,
-            BridgeTypes.OperationType.READ_STATE
-        );
-
-        EndpointFee memory fee = _quote(
-            readChannelId,
-            payload,
-            lzOptions,
-            false
-        );
-
-        return (fee.nativeFee, fee.lzTokenFee);
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -445,74 +181,11 @@ contract LayerZeroAdapter is
             })
         );
 
-        bytes memory lzOptions = _createLzOptions(
-            options,
-            BridgeTypes.OperationType.MESSAGE
-        );
+        bytes memory lzOptions = _createLzOptions(options);
 
         EndpointFee memory fee = _quote(lzDstEid, payload, lzOptions, false);
 
         return (fee.nativeFee, fee.lzTokenFee);
-    }
-
-    /// @inheritdoc IMessageAdapter
-    function readState(
-        bytes32 operationId,
-        BridgeTypes.ExecuteReadStateParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    )
-        external
-        payable
-        onlyTrustedDestination(params.destinationChainId)
-        onlyRouter
-        nonReentrant
-    {
-        // Ensure a read channel has been configured
-        if (readChannelId == 0) revert ReadChannelNotConfigured();
-
-        // Get the LayerZero EID for destination chain
-        uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
-
-        // Check if enough value was sent if specified in adapter options
-        if (options.msgValue > 0 && msg.value < options.msgValue) {
-            revert InsufficientMsgValue(options.msgValue, msg.value);
-        }
-
-        bytes32 guid;
-        {
-            // Clean, focused payload creation for read operations
-            bytes memory cmd = _createReadStatePayload(
-                lzDstEid,
-                params.target,
-                abi.encodePacked(params.selector, params.readParams)
-            );
-            bytes memory lzOptions = _createLzOptions(
-                options,
-                BridgeTypes.OperationType.READ_STATE
-            );
-
-            MessagingReceipt memory receipt = _lzSend(
-                readChannelId,
-                cmd,
-                lzOptions,
-                EndpointFee(msg.value, 0),
-                payable(params.refundAddress)
-            );
-            guid = receipt.guid;
-        }
-
-        // Map LayerZero's guid to router's operation ID
-        lzMessageToOperationId[guid] = operationId;
-        // Bind the guid to the originally requested destination chain for trust checks
-        expectedReadChainByGuid[guid] = params.destinationChainId;
-
-        emit ReadRequestInitiated(
-            operationId,
-            uint16(block.chainid),
-            params.destinationChainId,
-            params.target,
-            params.selector
-        );
     }
 
     /// @inheritdoc IMessageAdapter
@@ -545,13 +218,10 @@ contract LayerZeroAdapter is
                 sourceChainId: uint16(block.chainid)
             })
         );
-        bytes memory lzOptions = _createLzOptions(
-            options,
-            BridgeTypes.OperationType.MESSAGE
-        );
+        bytes memory lzOptions = _createLzOptions(options);
 
         // Send message through OApp's _lzSend
-        // Use tx.origin as refund address since that's the keeper who initiated the transaction
+        // Use params.refundAddress which is set to the keeper who initiated the transaction
         MessagingReceipt memory receipt = _lzSend(
             lzDstEid,
             payload,
@@ -591,56 +261,18 @@ contract LayerZeroAdapter is
     /**
      * @notice Creates LayerZero options with appropriate gas limits
      * @param options User-provided bridge options
-     * @param operationType The operation type being sent
      * @return lzOptions The prepared LayerZero options
      */
     function _createLzOptions(
-        BridgeTypes.BridgeOptions memory options,
-        BridgeTypes.OperationType operationType
+        BridgeTypes.BridgeOptions memory options
     ) internal pure returns (bytes memory) {
         uint128 gasLimit = uint128(_requireGasLimit(options.gasLimit));
-
-        if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            return
-                LayerZeroOptionsHelper.createLzReadOptions(options, gasLimit);
-        } else {
-            return
-                LayerZeroOptionsHelper.createMessagingOptions(
-                    options,
-                    gasLimit
-                );
-        }
-    }
-
-    /**
-     * @notice Creates a read state payload for LayerZero operations
-     * @param lzDstEid LayerZero destination endpoint ID
-     * @param target Target contract address (use address(0x1) for estimation)
-     * @param callData Call data (use empty bytes for estimation)
-     * @return payload Encoded read state payload
-     */
-    function _createReadStatePayload(
-        uint32 lzDstEid,
-        address target,
-        bytes memory callData
-    ) internal view returns (bytes memory payload) {
-        EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
-        readRequests[0] = EVMCallRequestV1({
-            appRequestLabel: 1,
-            targetEid: lzDstEid,
-            isBlockNum: false,
-            blockNumOrTimestamp: uint64(block.timestamp),
-            confirmations: 15,
-            to: target,
-            callData: callData
-        });
-
-        return ReadCodecV1.encode(0, readRequests);
+        return LayerZeroOptionsHelper.createMessagingOptions(options, gasLimit);
     }
 
     /**
      * @notice Creates a message payload for LayerZero operations
-     * @param params Message parameters (use dummy values for estimation)
+     * @param params Message parameters
      * @return payload Encoded message payload
      */
     function _createMessagePayload(
@@ -653,10 +285,8 @@ contract LayerZeroAdapter is
     function supportsOperation(
         BridgeTypes.OperationType operationType
     ) public pure override returns (bool) {
-        // LayerZero supports messaging and state reading operations, but not asset transfer
-        return
-            operationType == BridgeTypes.OperationType.MESSAGE ||
-            operationType == BridgeTypes.OperationType.READ_STATE;
+        // LayerZero adapter now only supports messaging operations
+        return operationType == BridgeTypes.OperationType.MESSAGE;
     }
 
     /// @inheritdoc IMessageAdapter
@@ -669,18 +299,8 @@ contract LayerZeroAdapter is
             return false;
         }
 
-        // Check if the adapter supports this operation type in general
-        if (!supportsOperation(operationType)) {
-            return false;
-        }
-
-        // For READ_STATE operations, check both global config and chain-specific support
-        if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            return readChannelId != 0 && chainSupportsRead[destinationChainId];
-        }
-
-        // For MESSAGE operations, no additional requirements beyond chain support
-        return true;
+        // Only MESSAGE is supported
+        return operationType == BridgeTypes.OperationType.MESSAGE;
     }
 
     /**

@@ -23,6 +23,4 @@ contract MockHarborCommand is IHarborCommandMinimal {
     ) external {
         activeFleetCommanders[_fleetCommander] = _isActive;
     }
-
-    function testSkipper() public {}
 }

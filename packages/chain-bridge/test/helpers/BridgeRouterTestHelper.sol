@@ -27,60 +27,6 @@ contract BridgeRouterTestHelper is BridgeRouter {
     }
 
     /**
-     * @notice Updates the operationToAdapter mapping for testing
-     * @param operationId ID of the operation
-     * @param adapter Address of the adapter to associate with this operation
-     */
-    function setOperationToAdapter(
-        bytes32 operationId,
-        address adapter
-    ) external {
-        operationToAdapter[operationId] = adapter;
-    }
-
-    /**
-     * @notice Removes an entry from the operationToAdapter mapping
-     * @param operationId ID of the operation to remove
-     */
-    function removeOperationToAdapter(bytes32 operationId) external {
-        delete operationToAdapter[operationId];
-    }
-
-    /**
-     * @notice Gets the adapter associated with a operation
-     * @param operationId ID of the operation
-     * @return Address of the adapter associated with this operation
-     */
-    function getOperationAdapter(
-        bytes32 operationId
-    ) external view returns (address) {
-        return operationToAdapter[operationId];
-    }
-
-    /**
-     * @notice Sets the read request originator for testing purposes
-     * @param requestId ID of the read request
-     * @param originator Address of the originator to set
-     */
-    function setReadRequestOriginator(
-        bytes32 requestId,
-        address originator
-    ) external {
-        readRequestToOriginator[requestId] = originator;
-    }
-
-    /**
-     * @notice Gets the originator associated with a read request
-     * @param requestId ID of the read request
-     * @return Address of the originator associated with this request
-     */
-    function getReadRequestOriginator(
-        bytes32 requestId
-    ) external view returns (address) {
-        return readRequestToOriginator[requestId];
-    }
-
-    /**
      * @notice Sets whether operations should revert for testing purposes
      * @param _shouldRevert Whether operations should revert
      */
@@ -88,5 +34,29 @@ contract BridgeRouterTestHelper is BridgeRouter {
         shouldRevert = _shouldRevert;
     }
 
-    function testSkipper() public {}
+    /**
+     * @notice Exposes a failed delivery record for testing assertions
+     */
+    function getFailedDeliveryRecord(
+        bytes32 operationId
+    )
+        external
+        view
+        returns (
+            BridgeTypes.OperationType operationType,
+            address adapter,
+            uint16 sourceChainId,
+            bytes memory operationPayload,
+            uint256 failedAt
+        )
+    {
+        FailedDeliveryRecord memory r = failedDeliveries[operationId];
+        return (
+            r.operationType,
+            r.adapter,
+            r.sourceChainId,
+            r.operationPayload,
+            r.failedAt
+        );
+    }
 }

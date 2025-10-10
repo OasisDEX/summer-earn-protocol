@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {BridgeMessagingHelper} from "../libraries/BridgeMessagingHelper.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 /**
@@ -29,23 +30,18 @@ abstract contract CrossChainReceiverBase is ICrossChainReceiver {
         _requireAuthorizedCaller();
 
         if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.RelayedMessageParams memory params = abi.decode(
-                encodedParams,
-                (BridgeTypes.RelayedMessageParams)
-            );
+            BridgeTypes.RelayedMessageParams
+                memory params = BridgeMessagingHelper
+                    .decodeRelayedMessageParams(encodedParams);
             _handleMessage(params);
         } else if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.RelayedTransferParams memory params = abi.decode(
-                encodedParams,
-                (BridgeTypes.RelayedTransferParams)
-            );
+            BridgeTypes.RelayedTransferParams
+                memory params = BridgeMessagingHelper
+                    .decodeRelayedTransferParams(encodedParams);
             _handleTransferAsset(params);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            BridgeTypes.RelayedReadResponse memory params = abi.decode(
-                encodedParams,
-                (BridgeTypes.RelayedReadResponse)
-            );
-            _handleReadStateResponse(params);
+            // READ_STATE is not supported
+            revert UnsupportedOperationType();
         } else {
             revert UnsupportedOperationType();
         }
@@ -98,17 +94,6 @@ abstract contract CrossChainReceiverBase is ICrossChainReceiver {
      */
     function _handleTransferAsset(
         BridgeTypes.RelayedTransferParams memory
-    ) internal virtual {
-        // Default implementation reverts for unsupported operation
-        revert UnsupportedOperationType();
-    }
-
-    /**
-     * @notice Handles READ_STATE response operation type
-     * @dev Override this function to handle read state responses
-     */
-    function _handleReadStateResponse(
-        BridgeTypes.RelayedReadResponse memory
     ) internal virtual {
         // Default implementation reverts for unsupported operation
         revert UnsupportedOperationType();

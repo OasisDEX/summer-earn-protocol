@@ -10,7 +10,7 @@ to destination fleets.
 3. Keepers decide target allocations per destination chain and queue transfers (including full
    ExecuteTransferParams and BridgeOptions) from the Buffer Ark to the respective CrossChain Ark(s).
 4. A registered executor (keeper) executes the queued transfers by calling the CrossChain Ark on the
-   source chain.
+   hub chain.
 5. The CrossChain Ark routes the transfer to the BridgeRouter, which forwards to a selected,
    registered adapter.
 6. The adapter bridges the tokens plus a small operation message to the destination chain.
@@ -25,7 +25,7 @@ sequenceDiagram
   participant User as User
   participant Fleet as CrossChain Fleet (Hub)
   participant Buffer as Buffer Ark
-  participant Ark as CrossChain Ark (Source)
+  participant Ark as CrossChain Ark (Hub)
   participant RouterS as BridgeRouter (Source)
   participant AdapterS as Adapter (Source)
   participant AdapterD as Adapter (Destination)
@@ -52,7 +52,7 @@ sequenceDiagram
   relationship for the target chain. Router execution is gated by `onlyAuthorizedExecutor` (keepers
   must be registered executors).
 - Destination chain: Router authenticates adapters and peer mappings; FleetProxy trusts only the
-  router, then validates the source Ark + chain pair via the registry before depositing.
+  router, then validates the hub-chain Ark + chain pair via the registry before depositing.
 
 #### Single-Flight Gating and Inflight Accounting
 
@@ -80,8 +80,11 @@ sequenceDiagram
 
 #### Failure Modes (typical)
 
-- Bridge delivery failure: assets may be held by the adapter’s fail-safe; recover per adapter’s
-  documented procedure.
+- Bridge delivery failure: 
+  - Assets remain in BridgeRouter after failed delivery
+  - Use `retryFailedDelivery(operationId, newRecipient)` to retry with optional recipient override
+  - Pass `address(0)` as `newRecipient` to use original recipient, or specify new recipient address
+  - Assets may be held by the adapter's fail-safe; recover per adapter's documented procedure
 - Registry mismatch: destination rejects delivery; investigate registry sync/state across chains.
 - Pause state: routers or proxies may be paused by guardians/governance; resume only after incident
   resolution.

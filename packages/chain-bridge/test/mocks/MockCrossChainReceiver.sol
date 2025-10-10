@@ -49,10 +49,9 @@ contract MockCrossChainReceiver is CrossChainReceiverBase {
         override
         returns (BridgeTypes.OperationType[] memory supportedTypes)
     {
-        supportedTypes = new BridgeTypes.OperationType[](3);
+        supportedTypes = new BridgeTypes.OperationType[](2);
         supportedTypes[0] = BridgeTypes.OperationType.MESSAGE;
         supportedTypes[1] = BridgeTypes.OperationType.TRANSFER_ASSET;
-        supportedTypes[2] = BridgeTypes.OperationType.READ_STATE;
     }
 
     /**
@@ -85,20 +84,7 @@ contract MockCrossChainReceiver is CrossChainReceiverBase {
         );
     }
 
-    /**
-     * @notice Handles READ_STATE response operations
-     */
-    function _handleReadStateResponse(
-        BridgeTypes.RelayedReadResponse memory params
-    ) internal override {
-        _processReceipt(
-            params.readResponseData,
-            msg.sender,
-            params.operationId,
-            params.sourceChainId,
-            BridgeTypes.OperationType.READ_STATE
-        );
-    }
+    // READ_STATE handler removed
 
     function _processReceipt(
         bytes memory data,
@@ -115,6 +101,4 @@ contract MockCrossChainReceiver is CrossChainReceiverBase {
         lastOperationId = operationId;
         lastOperationType = operationType;
     }
-
-    function testSkipper() public {}
 }

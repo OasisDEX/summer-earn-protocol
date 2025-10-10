@@ -36,14 +36,8 @@ interface IBridgeAdapter {
     /// @notice Thrown when insufficient fee is provided for an operation
     error InsufficientFee(uint256 required, uint256 provided);
 
-    /// @notice Thrown when a read channel is not configured for a chain
-    error ReadChannelNotConfigured();
-
     /// @notice Thrown when an asset is not supported by the adapter
     error UnsupportedAsset();
-
-    /// @notice Thrown when the contract has insufficient balance
-    error InsufficientBalance();
 
     /// @notice Thrown when an unsupported message type is received
     error UnsupportedMessageType();
@@ -67,18 +61,6 @@ interface IBridgeAdapter {
      */
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    ) external view returns (uint256 nativeFee, uint256 tokenFee);
-
-    /**
-     * @notice Estimate fees for a read state operation using execution parameters
-     * @param params Read state parameters identical to execute methods
-     * @param options Bridge options including adapter selection and parameters
-     * @return nativeFee Fee in the chain's native token
-     * @return tokenFee Fee in the transferred token (if applicable)
-     */
-    function estimateReadState(
-        BridgeTypes.ExecuteReadStateParams calldata params,
         BridgeTypes.BridgeOptions calldata options
     ) external view returns (uint256 nativeFee, uint256 tokenFee);
 

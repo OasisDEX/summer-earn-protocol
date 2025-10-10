@@ -15,7 +15,7 @@ This document provides a practical runbook for keepers and operators.
 
 #### Monitoring and Alerts
 
-- Source chain: router execution events, adapter send events, Ark transfer events.
+- Hub chain: router execution events, adapter send events, Ark transfer events.
 - Destination chain: adapter delivery events, router delivery, FleetProxy deposit events.
 - Alert on: delivery failures, registry validation failures, pause state changes, abnormal fee quotes.
 - Reconciliation (updated):
@@ -24,7 +24,12 @@ This document provides a practical runbook for keepers and operators.
 
 #### Failure and Recovery
 
-- Bridge delivery failure: follow the adapter’s documented recovery path (e.g., retrieval by governance or retry mechanisms).
+- Bridge delivery failure: 
+  - Failed deliveries are automatically recorded by the router with operation payload
+  - Use `retryFailedDelivery(operationId, newRecipient)` to retry failed operations
+  - Pass `address(0)` as `newRecipient` to use the original recipient, or specify a new recipient address
+  - Use `getFailedDeliveryIds()` to enumerate failed operations that can be retried
+  - Follow the adapter's documented recovery path for other failure types (e.g., retrieval by governance)
 - Registry mismatch: verify registry entries on both chains; correct and re-execute only after confirmation.
 - Contract paused: identify root cause, coordinate governance/guardian to safely unpause.
 

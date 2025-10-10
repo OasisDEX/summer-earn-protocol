@@ -14,12 +14,12 @@ internal, keeper-led rebalancing process.
 
 - **CrossChain Fleet (Hub)**: User entry point and strategy accounting.
 - **Buffer Ark**: Staging area for new capital prior to cross-chain deployment.
-- **CrossChain Ark (Source)**: Per-target-chain vehicle that executes cross-chain transfers.
+- **CrossChain Ark (Hub)**: Hub-chain Ark that executes cross-chain transfers to destination chains.
 - **BridgeRouter**: Bridge coordination contract that validates adapters and forwards operations.
 - **Bridge Adapters**: Protocol-specific adapters (e.g., Stargate, LayerZero) that bridge tokens and
   messages.
 - **FleetProxy (Destination)**: Gatekeeper on the destination chain that accepts calls only from the
-  local BridgeRouter and deposits into the local fleet after registry validation of the source.
+  local BridgeRouter and deposits into the local fleet after registry validation of the hub-chain Ark.
 - **CrossChainRegistry**: Authoritative mapping of valid Ark ↔ Proxy pairs across chains; checked
   on both source and destination.
 - **Keepers**: Off-chain agents that plan and execute rebalances (queue and execute transfers).
@@ -31,7 +31,7 @@ sequenceDiagram
   participant User as User
   participant Fleet as CrossChain Fleet (Hub)
   participant Buffer as Buffer Ark
-  participant Ark as CrossChain Ark (Source)
+  participant Ark as CrossChain Ark (Hub)
   participant RouterS as BridgeRouter (Source)
   participant AdapterS as Adapter (Source)
   participant AdapterD as Adapter (Destination)
@@ -51,6 +51,12 @@ sequenceDiagram
   Proxy->>Local: deposit()
 ```
 
+#### Notifications (standardized)
+
+- FleetProxy → Hub (MESSAGE): After receiving assets on the satellite, the destination `FleetProxy` can notify the hub-chain Ark using `notifyHubChain(options)`. The MESSAGE payload is `(fleetAssets, latestIncomingTransferId)` and is used by the Ark to update `lastRemoteAssetBalance` and clear inflight when the transfer ID matches.
+- Hub → FleetProxy (MESSAGE): After a hub-side withdrawal completes, the Ark can ACK back to the satellite using `notifySatelliteReceipt(options)`. The MESSAGE payload contains `latestIncomingTransferId`, allowing `FleetProxy` to clear `inflightWithdrawals` when it matches `latestOutgoingTransferId`.
+- Operational requirement: both notifications use `BridgeOptions` and require a non-zero `gasLimit`.
+
 #### Security at a Glance
 
 - Registry-first validation on source and destination: invalid relationships revert immediately.
@@ -60,18 +66,19 @@ sequenceDiagram
 - Reentrancy protection on critical entry points.
 
 Operational requirement:
-- All cross-chain operations include explicit `BridgeOptions` with a non-zero `gasLimit`. There is no registry-level default gas limit.
+- All cross-chain operations MUST include explicit `BridgeOptions` with a non-zero `gasLimit`. The router will revert with `ZeroGasLimit()` if gas limit is zero. There is no registry-level default gas limit.
 
 Note on withdrawals:
 
 - Disembark (withdraw) checks ensure sufficient local assets. Cross-chain withdrawals are initiated
-  on the destination by keepers via `FleetProxy.withdrawAndTransfer(...)` and delivered back to the
+  on the satellite by keepers via `FleetProxy.withdrawAndTransfer(...)` and delivered back to the
   Ark on the hub chain.
-- Single-flight semantics apply to both Ark (outbound) and FleetProxy (withdrawals). Ark clears its
-  inflight state when the next remote balance update tied to the latest outgoing transfer is
-  confirmed. FleetProxy clears inflight via an off-chain acknowledgment path
-  (`acknowledgeHubReceipt(operationId)` by SuperKeeper) once receipt is verified on the hub, or via
-  governance emergency functions.
+- Single-flight semantics apply to both Ark (outbound) and FleetProxy (withdrawals). Ark typically
+  clears its inflight state upon processing the MESSAGE from `FleetProxy.notifyHubChain(...)` that
+  contains the latest received transfer ID and remote balance. FleetProxy clears withdrawal inflight
+  via a hub → satellite MESSAGE ACK from `CrossChainArk.notifySatelliteReceipt(...)` when the
+  transfer ID matches. Fallback: SuperKeeper can call `acknowledgeHubReceipt(operationId)`, and
+  governance retains emergency controls.
 
 #### Where to go next
 

@@ -26,8 +26,7 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
         address _accessManager,
         uint16[] memory _supportedChains,
         uint32[] memory _lzEids,
-        address _initialOwner,
-        uint32 _readChannelThreshold
+        address _initialOwner
     )
         LayerZeroAdapter(
             _endpoint,
@@ -35,8 +34,7 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
             _accessManager,
             _supportedChains,
             _lzEids,
-            _initialOwner,
-            _readChannelThreshold
+            _initialOwner
         )
     {}
 
@@ -65,13 +63,6 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
         lzMessageToOperationId[guid] = operationId;
     }
 
-    function setExpectedReadChainByGuid(
-        bytes32 guid,
-        uint16 expectedChainId
-    ) external {
-        expectedReadChainByGuid[guid] = expectedChainId;
-    }
-
     /**
      * @notice Exposes the internal getLayerZeroChainId function for testing
      * @param chainId Chain ID
@@ -82,6 +73,4 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
     ) external view returns (uint32) {
         return _getLayerZeroEid(chainId);
     }
-
-    function testSkipper() public {}
 }
