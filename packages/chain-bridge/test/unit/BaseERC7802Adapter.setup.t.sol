@@ -121,7 +121,7 @@ abstract contract BaseERC7802AdapterSetupTest is TestHelperOz5 {
 
         // Final configuration
         routerA.registerAdapter(address(adapterA));
-        tokenA.mint(user, 10000e18);
+        tokenA.mint(user, 20000e18);
 
         vm.stopPrank();
     }
@@ -170,7 +170,7 @@ abstract contract BaseERC7802AdapterSetupTest is TestHelperOz5 {
 
         // Final configuration
         routerB.registerAdapter(address(adapterB));
-        tokenB.mint(user, 10000e18);
+        tokenB.mint(user, 20000e18);
 
         vm.stopPrank();
     }

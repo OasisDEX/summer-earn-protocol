@@ -17,7 +17,9 @@ contract ERC7802OFTAdapterSetupTest is BaseERC7802AdapterSetupTest {
     MockOFT public oftB;
 
     function setUp() public virtual override {
-        // Deploy mock OFTs first
+        super.setUp();
+
+        // Deploy mock OFTs after tokens are created
         oftA = new MockOFT(address(tokenA));
         oftB = new MockOFT(address(tokenB));
 
@@ -25,7 +27,8 @@ contract ERC7802OFTAdapterSetupTest is BaseERC7802AdapterSetupTest {
         vm.label(address(oftA), "MockOFT_A");
         vm.label(address(oftB), "MockOFT_B");
 
-        super.setUp();
+        _configureOFTs();
+        _setupOFTBalances();
     }
 
     /**
@@ -69,17 +72,17 @@ contract ERC7802OFTAdapterSetupTest is BaseERC7802AdapterSetupTest {
     }
 
     function _setupOFTBalances() internal {
-        // Give OFTs some tokens for testing
+        // Give OFTs some tokens for testing, but leave some for user
         useNetworkA();
         vm.startPrank(user);
         tokenA.approve(address(oftA), type(uint256).max);
-        tokenA.transfer(address(oftA), 10000e18);
+        tokenA.transfer(address(oftA), 5000e18); // Transfer half to OFT, keep half for user
         vm.stopPrank();
 
         useNetworkB();
         vm.startPrank(user);
         tokenB.approve(address(oftB), type(uint256).max);
-        tokenB.transfer(address(oftB), 10000e18);
+        tokenB.transfer(address(oftB), 5000e18); // Transfer half to OFT, keep half for user
         vm.stopPrank();
 
         useNetworkA();

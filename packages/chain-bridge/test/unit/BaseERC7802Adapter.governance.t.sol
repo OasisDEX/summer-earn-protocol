@@ -4,6 +4,8 @@ pragma solidity 0.8.28;
 import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
 import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../src/interfaces/IBaseBridgeAdapterErrors.sol";
+import {IBaseBridgeAdapterEvents} from "../../src/interfaces/IBaseBridgeAdapterEvents.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {BaseERC7802AdapterSetupTest} from "./BaseERC7802Adapter.setup.t.sol";
 
@@ -18,7 +20,7 @@ contract BaseERC7802AdapterGovernanceTest is BaseERC7802AdapterSetupTest {
 
     function test_SetAssetSupport_RevertsForZeroAddress() public {
         vm.prank(governor);
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         adapterA.setAssetSupport(address(0), true);
     }
 
@@ -118,7 +120,7 @@ contract BaseERC7802AdapterGovernanceTest is BaseERC7802AdapterSetupTest {
 
     function test_MapExternalId_RevertsForZeroExternalId() public {
         vm.prank(governor);
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         adapterA.mapExternalId(CHAIN_ID_A, 0);
     }
 
@@ -209,7 +211,10 @@ contract BaseERC7802AdapterGovernanceTest is BaseERC7802AdapterSetupTest {
         uint32 testExternalId = 8888;
 
         vm.expectEmit(true, true, false, true);
-        emit BaseERC7802Adapter.ExternalIdMapped(testChainId, testExternalId);
+        emit IBaseBridgeAdapterEvents.ExternalIdMapped(
+            testChainId,
+            testExternalId
+        );
 
         vm.prank(governor);
         adapterA.mapExternalId(testChainId, testExternalId);
@@ -224,7 +229,10 @@ contract BaseERC7802AdapterGovernanceTest is BaseERC7802AdapterSetupTest {
         adapterA.mapExternalId(testChainId, testExternalId);
 
         vm.expectEmit(true, true, false, true);
-        emit BaseERC7802Adapter.ExternalIdUnmapped(testChainId, testExternalId);
+        emit IBaseBridgeAdapterEvents.ExternalIdUnmapped(
+            testChainId,
+            testExternalId
+        );
 
         vm.prank(governor);
         adapterA.unmapExternalId(testChainId);

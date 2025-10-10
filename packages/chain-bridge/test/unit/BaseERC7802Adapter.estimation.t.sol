@@ -5,6 +5,8 @@ import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
 import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../src/interfaces/IBaseBridgeAdapterErrors.sol";
+import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {BaseERC7802AdapterSetupTest} from "./BaseERC7802Adapter.setup.t.sol";
@@ -71,7 +73,7 @@ contract BaseERC7802AdapterEstimationTest is BaseERC7802AdapterSetupTest {
             options: ""
         });
 
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         adapterA.estimateTransferAssets(params, options);
     }
 
@@ -99,7 +101,14 @@ contract BaseERC7802AdapterEstimationTest is BaseERC7802AdapterSetupTest {
             options: ""
         });
 
-        vm.expectRevert(BaseBridgeAdapter.UntrustedDestinationChain.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                address(adapterA),
+                adapterA.CROSS_CHAIN_REGISTRY().PEER_RELATIONSHIP(),
+                untrustedChain
+            )
+        );
         adapterA.estimateTransferAssets(params, options);
     }
 
@@ -233,6 +242,7 @@ contract BaseERC7802AdapterEstimationTest is BaseERC7802AdapterSetupTest {
                 destinationChainId: CHAIN_ID_B,
                 target: recipient,
                 asset: address(tokenA),
+                amount: 100e18,
                 message: "",
                 refundAddress: user
             });
@@ -444,7 +454,14 @@ contract BaseERC7802AdapterEstimationTest is BaseERC7802AdapterSetupTest {
 
         // Test with destination same as source (would revert in transfer, but estimation might work)
         params.destinationChainId = CHAIN_ID_A;
-        vm.expectRevert(BaseBridgeAdapter.UntrustedDestinationChain.selector); // Same chain not trusted
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                address(adapterA),
+                adapterA.CROSS_CHAIN_REGISTRY().PEER_RELATIONSHIP(),
+                CHAIN_ID_A
+            )
+        ); // Same chain not trusted
         adapterA.estimateTransferAssets(params, options);
 
         // Reset to valid destination

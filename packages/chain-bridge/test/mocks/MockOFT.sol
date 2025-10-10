@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {MessagingFee, SendParam, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
  * @title MockOFT
@@ -52,7 +52,7 @@ contract MockOFT {
         SendParam calldata sendParam,
         MessagingFee calldata fee,
         address refundAddress
-    ) external payable {
+    ) external payable returns (MessagingReceipt memory, OFTReceipt memory) {
         // Validate fee
         require(msg.value >= fee.nativeFee, "Insufficient fee");
 
@@ -70,6 +70,15 @@ contract MockOFT {
         if (msg.value > fee.nativeFee) {
             payable(refundAddress).transfer(msg.value - fee.nativeFee);
         }
+
+        // Return mock receipts
+        return (
+            MessagingReceipt({guid: bytes32(0), nonce: 0, fee: fee}),
+            OFTReceipt({
+                amountSentLD: sendParam.amountLD,
+                amountReceivedLD: sendParam.amountLD
+            })
+        );
     }
 
     function forceApprove(address spender, uint256 amount) external {

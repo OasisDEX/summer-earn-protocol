@@ -249,6 +249,12 @@ abstract contract BaseBridgeAdapter is
      * @param externalId Bridge-specific external ID for the chain (e.g., LayerZero EID)
      */
     function _mapChainExternalId(uint16 chainId, uint32 externalId) internal {
+        // Clear old reverse mapping if it exists
+        uint32 oldExternalId = chainToExternalId[chainId];
+        if (oldExternalId != 0) {
+            delete externalIdToChainId[oldExternalId];
+        }
+
         chainToExternalId[chainId] = externalId;
         externalIdToChainId[externalId] = chainId;
         emit ExternalIdMapped(chainId, externalId);

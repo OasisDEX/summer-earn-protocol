@@ -5,6 +5,8 @@ import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
 import {MockOFT} from "../mocks/MockOFT.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {IBaseBridgeAdapterErrors} from "../../src/interfaces/IBaseBridgeAdapterErrors.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {ERC7802OFTAdapterSetupTest} from "./ERC7802OFTAdapter.setup.t.sol";
 
 /**
@@ -12,12 +14,6 @@ import {ERC7802OFTAdapterSetupTest} from "./ERC7802OFTAdapter.setup.t.sol";
  * @notice Tests OFT-specific functionality of ERC7802OFTAdapter
  */
 contract ERC7802OFTAdapterGeneralTest is ERC7802OFTAdapterSetupTest {
-    function setUp() public override {
-        super.setUp();
-        _configureOFTs();
-        _setupOFTBalances();
-    }
-
     /*//////////////////////////////////////////////////////////////
                         OFT MAPPING TESTS
     //////////////////////////////////////////////////////////////*/
@@ -49,7 +45,7 @@ contract ERC7802OFTAdapterGeneralTest is ERC7802OFTAdapterSetupTest {
         MockOFT testOft = new MockOFT(address(tokenA));
 
         vm.prank(governor);
-        vm.expectRevert(ERC7802OFTAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         ERC7802OFTAdapter(address(adapterA)).setOftForToken(
             address(0),
             address(testOft)
@@ -58,7 +54,7 @@ contract ERC7802OFTAdapterGeneralTest is ERC7802OFTAdapterSetupTest {
 
     function test_SetOftForToken_RevertsForZeroOftAddress() public {
         vm.prank(governor);
-        vm.expectRevert(ERC7802OFTAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         ERC7802OFTAdapter(address(adapterA)).setOftForToken(
             address(tokenA),
             address(0)
@@ -81,7 +77,7 @@ contract ERC7802OFTAdapterGeneralTest is ERC7802OFTAdapterSetupTest {
         address invalidOft = address(new ERC20Mock()); // This won't have token() function
 
         vm.prank(governor);
-        vm.expectRevert(ERC7802OFTAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         ERC7802OFTAdapter(address(adapterA)).setOftForToken(
             address(tokenA),
             invalidOft
@@ -93,7 +89,7 @@ contract ERC7802OFTAdapterGeneralTest is ERC7802OFTAdapterSetupTest {
         MockOFT wrongOft = new MockOFT(address(wrongToken)); // OFT for different token
 
         vm.prank(governor);
-        vm.expectRevert(ERC7802OFTAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         ERC7802OFTAdapter(address(adapterA)).setOftForToken(
             address(tokenA),
             address(wrongOft)
@@ -154,16 +150,12 @@ contract ERC7802OFTAdapterGeneralTest is ERC7802OFTAdapterSetupTest {
             address(oftA)
         );
         assertEq(
-            ERC7802OFTAdapter(address(adapterA)).oftForToken(
-                address(token2),
-                address(oft2)
-            )
+            ERC7802OFTAdapter(address(adapterA)).oftForToken(address(token2)),
+            address(oft2)
         );
         assertEq(
-            ERC7802OFTAdapter(address(adapterA)).oftForToken(
-                address(token3),
-                address(oft3)
-            )
+            ERC7802OFTAdapter(address(adapterA)).oftForToken(address(token3)),
+            address(oft3)
         );
     }
 
@@ -315,7 +307,7 @@ contract ERC7802OFTAdapterGeneralTest is ERC7802OFTAdapterSetupTest {
         });
 
         vm.prank(address(routerA));
-        vm.expectRevert(ERC7802OFTAdapter.UnsupportedAsset.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
         ERC7802OFTAdapter(address(adapterA)).transferAsset("", params, options);
     }
 }

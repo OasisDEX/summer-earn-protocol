@@ -9,6 +9,17 @@ import {ISuperchainTokenBridge} from "../interfaces/ISuperchainTokenBridge.sol";
  * @title ERC7802SuperchainAdapter
  * @notice ERC-7802 adapter using OP Superchain Token Bridge predeploy
  * @dev See: https://docs.optimism.io/interop/superchain-erc20
+ *
+ * IMPORTANT EXECUTION MODEL:
+ * Unlike other adapters (for example, StargateAdapter which uses automated lzCompose execution), this adapter requires
+ * manual keeper intervention on the destination chain:
+ *
+ * 1. Source chain: sendERC20() burns tokens and initiates cross-chain message
+ * 2. Destination chain: OP Stack autorelayer delivers message and mints tokens to adapter
+ * 3. Destination chain: KEEPER MUST call finalize() to complete delivery to end recipient
+ *
+ * The OP Stack autorelayer only handles message delivery and token minting - it does NOT
+ * call the adapter's finalize() function. This must be done by an authorized keeper.
  */
 contract ERC7802SuperchainAdapter is BaseERC7802Adapter {
     ISuperchainTokenBridge public immutable superchainBridge;
@@ -34,11 +45,11 @@ contract ERC7802SuperchainAdapter is BaseERC7802Adapter {
     ) internal override returns (uint256 feeUsed) {
         superchainBridge.sendERC20(
             token,
-            _externalOrCanonical(dstChainId),
+            _externalIdForChain(dstChainId),
             dstAdapter,
             amount
         );
-        return 0; // initiation is a regular L2 tx; autorelayer handles execution
+        return 0; // initiation is a regular L2 tx; keeper must call finalize() on destination
     }
 
     function _estimateTransport(

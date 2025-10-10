@@ -84,7 +84,7 @@ contract ERC7802OFTAdapter is BaseERC7802Adapter, ILayerZeroComposer {
         }
 
         SendParam memory sendParam = SendParam({
-            dstEid: uint32(_externalOrCanonical(dstChainId)),
+            dstEid: _externalIdForChain(dstChainId),
             to: dstAdapter.toBytes32(),
             amountLD: amount,
             minAmountLD: amount, // Require exact amount (no slippage for stablecoins)
@@ -124,7 +124,7 @@ contract ERC7802OFTAdapter is BaseERC7802Adapter, ILayerZeroComposer {
         }
 
         SendParam memory sendParam = SendParam({
-            dstEid: uint32(_externalOrCanonical(dstChainId)),
+            dstEid: _externalIdForChain(dstChainId),
             to: dstAdapter.toBytes32(),
             amountLD: amount,
             minAmountLD: amount, // Require exact amount (no slippage for stablecoins)
@@ -174,18 +174,14 @@ contract ERC7802OFTAdapter is BaseERC7802Adapter, ILayerZeroComposer {
     /**
      * @notice Handles composed messages from LayerZero after OFT token delivery
      * @dev Called by LayerZero endpoint after tokens are delivered via OFT
-     * @param _from The originating OApp (should be destination OFT contract)
-     * @param _guid LayerZero message GUID
      * @param _message OFT-encoded compose message from OFT
-     * @param _caller The caller of the compose function
-     * @param _extraData Additional data from LayerZero
      */
     function lzCompose(
-        address _from,
-        bytes32 _guid,
+        address /* _from */,
+        bytes32 /* _guid */,
         bytes calldata _message,
-        address _caller,
-        bytes calldata _extraData
+        address /* _caller */,
+        bytes calldata /* _extraData */
     ) external payable override nonReentrant {
         // Verify caller is LayerZero endpoint
         if (msg.sender != LZ_ENDPOINT) revert Unauthorized();
@@ -202,11 +198,12 @@ contract ERC7802OFTAdapter is BaseERC7802Adapter, ILayerZeroComposer {
         BridgeTypes.RelayedTransferParams
             memory params = _decodeRelayedTransferParams(composeMsg);
 
-        // Validate the source adapter relationship
-        _assertTrustedSource(composeFrom, uint16(srcEid));
-
         // Ensure the LayerZero srcEid maps to the same chain as encoded in the payload
-        uint16 chainFromEid = externalIdToChainId[srcEid];
+        uint16 chainFromEid = _chainIdFromExternalId(srcEid);
+
+        // Validate the source adapter relationship using the mapped chain ID
+        _assertTrustedSource(composeFrom, chainFromEid);
+
         _validateSourceChainId(params.sourceChainId, chainFromEid);
 
         // Use the minted amount from OFT compose header as authoritative
@@ -259,7 +256,8 @@ contract ERC7802OFTAdapter is BaseERC7802Adapter, ILayerZeroComposer {
         //  - 32B amountLD                                           (total so far: 44 bytes)
         //  - 32B composeFrom (left-padded address, present when composeMsg != empty)
         // Minimum length when composeFrom is present: 12 + 32 + 32 = 76 bytes.
-        if (message.length < 76) revert InvalidMessage();
+        // A valid message must have additional compose message data beyond the header.
+        if (message.length <= 76) revert InvalidMessage();
 
         // Use official codec for extraction
         srcEid = OFTComposeMsgCodec.srcEid(message);
@@ -277,7 +275,7 @@ contract ERC7802OFTAdapter is BaseERC7802Adapter, ILayerZeroComposer {
     function _encodeComposeTransferParams(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params
-    ) internal pure returns (bytes memory) {
+    ) internal view returns (bytes memory) {
         BridgeTypes.RelayedTransferParams memory relayedParams = BridgeTypes
             .RelayedTransferParams({
                 operationId: operationId,

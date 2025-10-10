@@ -39,7 +39,57 @@ contract ERC7802OFTAdapterTestHarness is ERC7802OFTAdapter {
     function encodeComposeTransferParams_test(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params
-    ) public pure returns (bytes memory) {
+    ) public view returns (bytes memory) {
         return _encodeComposeTransferParams(operationId, params);
+    }
+
+    /**
+     * @notice Public wrapper to expose _sendTransport for testing
+     */
+    function sendTransport_test(
+        bytes32 operationId,
+        address token,
+        uint16 dstChainId,
+        address dstAdapter,
+        uint256 amount,
+        BridgeTypes.BridgeOptions calldata options,
+        BridgeTypes.ExecuteTransferParams calldata params,
+        address refundAddress
+    ) public payable returns (uint256 feeUsed) {
+        return
+            _sendTransport(
+                operationId,
+                token,
+                dstChainId,
+                dstAdapter,
+                amount,
+                options,
+                params,
+                refundAddress
+            );
+    }
+
+    /**
+     * @notice Public wrapper to expose _estimateTransport for testing
+     */
+    function estimateTransport_test(
+        bytes32 operationId,
+        address token,
+        uint16 dstChainId,
+        address dstAdapter,
+        uint256 amount,
+        BridgeTypes.BridgeOptions calldata options,
+        BridgeTypes.ExecuteTransferParams calldata params
+    ) public view returns (uint256 nativeFee, uint256 tokenFee) {
+        return
+            _estimateTransport(
+                operationId,
+                token,
+                dstChainId,
+                dstAdapter,
+                amount,
+                options,
+                params
+            );
     }
 }

@@ -6,6 +6,7 @@ import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
 import {ERC7802OFTAdapterTestHarness} from "../mocks/ERC7802OFTAdapterTestHarness.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
@@ -22,8 +23,14 @@ contract BaseERC7802AdapterGeneralTest is ERC7802OFTAdapterSetupTest {
 
     function test_Initialization_SetsLZEndpoint() public {
         // Test that LZ endpoint is properly set during construction
-        assertEq(adapterA.LZ_ENDPOINT(), lzEndpointA);
-        assertEq(adapterB.LZ_ENDPOINT(), lzEndpointB);
+        assertEq(
+            ERC7802OFTAdapter(address(adapterA)).LZ_ENDPOINT(),
+            lzEndpointA
+        );
+        assertEq(
+            ERC7802OFTAdapter(address(adapterB)).LZ_ENDPOINT(),
+            lzEndpointB
+        );
     }
 
     function test_Initialization_RequiresValidLZEndpoint() public {
@@ -114,17 +121,6 @@ contract BaseERC7802AdapterGeneralTest is ERC7802OFTAdapterSetupTest {
                         EXTERNAL ID MAPPING TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_ExternalOrCanonical_ReturnsExternalIdWhenMapped() public {
-        useNetworkA();
-        assertEq(adapterA._externalOrCanonical(CHAIN_ID_B), LZ_EID_B);
-    }
-
-    function test_ExternalOrCanonical_ReturnsCanonicalIdWhenNotMapped() public {
-        useNetworkA();
-        uint16 unmappedChain = 9999;
-        assertEq(adapterA._externalOrCanonical(unmappedChain), unmappedChain);
-    }
-
     /*//////////////////////////////////////////////////////////////
                         INTERFACE SUPPORT TESTS
     //////////////////////////////////////////////////////////////*/
@@ -156,8 +152,14 @@ contract BaseERC7802AdapterGeneralTest is ERC7802OFTAdapterSetupTest {
         address caller = address(0x1234);
         bytes memory extraData = "";
 
-        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
-        adapterA.lzCompose(address(0), guid, message, caller, extraData);
+        vm.expectRevert(IBaseBridgeAdapterErrors.Unauthorized.selector);
+        ERC7802OFTAdapter(address(adapterA)).lzCompose(
+            address(0),
+            guid,
+            message,
+            caller,
+            extraData
+        );
     }
 
     function test_LzCompose_RequiresValidOFTComposeMessage() public {
@@ -191,7 +193,7 @@ contract BaseERC7802AdapterGeneralTest is ERC7802OFTAdapterSetupTest {
 
     function test_DecodeOFTCompose_RevertsForShortMessage() public {
         bytes memory shortMessage = new bytes(75); // Less than 76 bytes minimum
-        vm.expectRevert(BaseBridgeAdapter.InvalidMessage.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidMessage.selector);
         ERC7802OFTAdapterTestHarness(address(adapterA)).decodeOFTCompose_test(
             shortMessage
         );

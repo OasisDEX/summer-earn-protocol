@@ -5,8 +5,12 @@ import {BaseERC7802Adapter} from "../../src/adapters/BaseERC7802Adapter.sol";
 import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
 import {ERC7802OFTAdapterTestHarness} from "../mocks/ERC7802OFTAdapterTestHarness.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../src/interfaces/IBaseBridgeAdapterErrors.sol";
+import {IAssetAdapter} from "../../src/interfaces/IAssetAdapter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {BridgeMessagingHelper} from "../../src/libraries/BridgeMessagingHelper.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ERC7802OFTAdapterSetupTest} from "./ERC7802OFTAdapter.setup.t.sol";
 
@@ -72,7 +76,7 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
         });
 
         vm.prank(address(routerA));
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         adapterA.transferAsset("", params, options);
     }
 
@@ -101,7 +105,7 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
         vm.prank(address(routerA));
         vm.expectRevert(
             abi.encodeWithSelector(
-                BaseBridgeAdapter.UntrustedDestinationChain.selector,
+                IBaseBridgeAdapterErrors.UntrustedDestinationChain.selector,
                 untrustedChain
             )
         );
@@ -129,7 +133,7 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
         });
 
         vm.prank(user); // Non-router caller
-        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.Unauthorized.selector);
         adapterA.transferAsset("", params, options);
     }
 
@@ -215,7 +219,7 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
         });
 
         vm.expectEmit(true, true, true, true);
-        emit BaseERC7802Adapter.TransferInitiated(
+        emit IAssetAdapter.TransferInitiated(
             "", // operationId
             CHAIN_ID_B,
             address(tokenA),
@@ -270,7 +274,7 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
             });
 
         vm.prank(governor);
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         adapterA.finalize("", params);
     }
 
@@ -287,7 +291,7 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
             });
 
         vm.prank(governor);
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         adapterA.finalize("", params);
     }
 
@@ -310,7 +314,7 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
         assertLt(adapterBalance, transferAmount);
 
         vm.prank(governor);
-        vm.expectRevert(IBridgeAdapter.InsufficientBalance.selector);
+        vm.expectRevert(IBridgeRouter.InsufficientBalance.selector);
         adapterA.finalize("", params);
     }
 
@@ -327,7 +331,7 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
             });
 
         vm.prank(user); // Non-authorized executor
-        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.Unauthorized.selector);
         adapterA.finalize("", params);
     }
 
@@ -390,7 +394,7 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
                 routerA.deliver,
                 (
                     BridgeTypes.OperationType.TRANSFER_ASSET,
-                    adapterA._encodeRelayedTransferParams(
+                    BridgeMessagingHelper.encodeRelayedTransferParams(
                         BridgeTypes.RelayedTransferParams({
                             operationId: "",
                             originator: user,

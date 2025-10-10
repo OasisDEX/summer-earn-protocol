@@ -16,6 +16,14 @@ import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
  * @notice Base adapter implementing common flow for ERC-7802 mint/burn transports with OFT compose support
  * @dev Children must implement transport-specific _send7802 and _estimate7802 hooks
  * @dev Supports atomic asset transfers with optional compose messages via OFT compose functionality
+ *
+ * EXECUTION MODEL:
+ * Unlike StargateAdapter which uses automated lzCompose, ERC-7802 adapters require manual keeper execution:
+ * 1. Source: _sendTransport() burns tokens and initiates cross-chain message
+ * 2. Destination: Transport protocol (e.g., OP Stack) delivers message and mints tokens to adapter
+ * 3. Destination: KEEPER MUST call finalize() to complete delivery to end recipient
+ *
+ * The finalize() function is critical and must be called by authorized keepers after tokens are minted.
  */
 abstract contract BaseERC7802Adapter is
     IAssetAdapter,
@@ -114,6 +122,9 @@ abstract contract BaseERC7802Adapter is
     }
 
     /// @notice Finalize on destination after tokens are minted to this adapter
+    /// @dev CRITICAL: This function must be called by an authorized keeper after tokens are minted
+    /// @dev The OP Stack autorelayer mints tokens to this adapter but does NOT call this function
+    /// @dev Keeper must monitor for incoming ERC-7802 transfers and call this to complete delivery
     function finalize(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params
@@ -183,7 +194,6 @@ abstract contract BaseERC7802Adapter is
             );
     }
 
-    /// @inheritdoc IBridgeAdapter
     function estimateReadState(
         BridgeTypes.ExecuteReadStateParams calldata,
         BridgeTypes.BridgeOptions calldata
@@ -212,7 +222,7 @@ abstract contract BaseERC7802Adapter is
         address asset
     ) external view returns (bool) {
         return
-            supportedAsset[asset] && isAllowedDestination(destinationChainId);
+            supportedAsset[asset] && _hasTrustedDestination(destinationChainId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -239,12 +249,4 @@ abstract contract BaseERC7802Adapter is
         BridgeTypes.BridgeOptions calldata options,
         BridgeTypes.ExecuteTransferParams calldata params
     ) internal view virtual returns (uint256 nativeFee, uint256 tokenFee);
-
-    /// @notice Prefer mapped external ID, else canonical chainId
-    function _externalOrCanonical(
-        uint16 chainId
-    ) internal view returns (uint256) {
-        uint32 ext = chainToExternalId[chainId];
-        return ext == 0 ? uint256(chainId) : uint256(ext);
-    }
 }

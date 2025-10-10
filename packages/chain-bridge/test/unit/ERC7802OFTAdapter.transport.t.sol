@@ -2,10 +2,12 @@
 pragma solidity 0.8.28;
 
 import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
+import {ERC7802OFTAdapterTestHarness} from "../mocks/ERC7802OFTAdapterTestHarness.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {ERC7802OFTAdapterSetupTest} from "./ERC7802OFTAdapter.setup.t.sol";
 
 /**
@@ -19,6 +21,10 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
         super.setUp();
         _configureOFTs();
         _setupOFTBalances();
+
+        // Give user some ETH to receive refunds
+        vm.deal(user, 10 ether);
+        vm.deal(recipient, 10 ether);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -47,12 +53,12 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
             options: ""
         });
 
-        vm.expectRevert(ERC7802OFTAdapter.UnsupportedAsset.selector);
-        ERC7802OFTAdapter(address(adapterA))._sendTransport(
+        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
+        ERC7802OFTAdapterTestHarness(address(adapterA)).sendTransport_test(
             keccak256("test"),
             address(unsupportedToken),
             CHAIN_ID_B,
-            address(adapterB).toBytes32(),
+            address(adapterB),
             100e18,
             options,
             params,
@@ -95,11 +101,13 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
                 0.1 ether
             )
         );
-        ERC7802OFTAdapter(address(adapterA))._sendTransport{value: 0.1 ether}(
+        ERC7802OFTAdapterTestHarness(address(adapterA)).sendTransport_test{
+            value: 0.1 ether
+        }(
             keccak256("test"),
             address(tokenA),
             CHAIN_ID_B,
-            address(adapterB).toBytes32(),
+            address(adapterB),
             100e18,
             options,
             params,
@@ -131,13 +139,21 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
             options: ""
         });
 
+        // Give adapter some ETH for fees
+        vm.deal(address(adapterA), 1 ether);
+
         // Call send transport
+        // Give adapter some ETH for fees
+        vm.deal(address(adapterA), 1 ether);
+
         vm.prank(address(adapterA));
-        ERC7802OFTAdapter(address(adapterA))._sendTransport{value: 0.1 ether}(
+        ERC7802OFTAdapterTestHarness(address(adapterA)).sendTransport_test{
+            value: 0.1 ether
+        }(
             keccak256("test"),
             address(tokenA),
             CHAIN_ID_B,
-            address(adapterB).toBytes32(),
+            address(adapterB),
             100e18,
             options,
             params,
@@ -194,12 +210,17 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
             abi.encodeCall(oftA.send, (expectedSendParam, expectedFee, user))
         );
 
+        // Give adapter some ETH for fees
+        vm.deal(address(adapterA), 1 ether);
+
         vm.prank(address(adapterA));
-        ERC7802OFTAdapter(address(adapterA))._sendTransport{value: 0.1 ether}(
+        ERC7802OFTAdapterTestHarness(address(adapterA)).sendTransport_test{
+            value: 0.1 ether
+        }(
             keccak256("test"),
             address(tokenA),
             CHAIN_ID_B,
-            address(adapterB).toBytes32(),
+            address(adapterB),
             100e18,
             options,
             params,
@@ -231,12 +252,17 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
             options: ""
         });
 
+        // Give adapter some ETH for fees
+        vm.deal(address(adapterA), 1 ether);
+
         vm.prank(address(adapterA));
-        ERC7802OFTAdapter(address(adapterA))._sendTransport{value: 0.1 ether}(
+        ERC7802OFTAdapterTestHarness(address(adapterA)).sendTransport_test{
+            value: 0.1 ether
+        }(
             keccak256("test"),
             address(tokenA),
             CHAIN_ID_B,
-            address(adapterB).toBytes32(),
+            address(adapterB),
             100e18,
             options,
             params,
@@ -271,14 +297,16 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
             options: ""
         });
 
+        // Give adapter some ETH for fees
+        vm.deal(address(adapterA), 1 ether);
+
         vm.prank(address(adapterA));
-        uint256 usedFee = ERC7802OFTAdapter(address(adapterA))._sendTransport{
-            value: 0.2 ether
-        }(
+        uint256 usedFee = ERC7802OFTAdapterTestHarness(address(adapterA))
+            .sendTransport_test{value: 0.2 ether}(
             keccak256("test"),
             address(tokenA),
             CHAIN_ID_B,
-            address(adapterB).toBytes32(),
+            address(adapterB),
             100e18,
             options,
             params,
@@ -315,12 +343,12 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
             options: ""
         });
 
-        vm.expectRevert(ERC7802OFTAdapter.UnsupportedAsset.selector);
-        ERC7802OFTAdapter(address(adapterA))._estimateTransport(
+        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
+        ERC7802OFTAdapterTestHarness(address(adapterA)).estimateTransport_test(
             keccak256("test"),
             address(unsupportedToken),
             CHAIN_ID_B,
-            address(adapterB).toBytes32(),
+            address(adapterB),
             100e18,
             options,
             params
@@ -347,13 +375,13 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
             options: ""
         });
 
-        (uint256 nativeFee, uint256 tokenFee) = ERC7802OFTAdapter(
+        (uint256 nativeFee, uint256 tokenFee) = ERC7802OFTAdapterTestHarness(
             address(adapterA)
-        )._estimateTransport(
+        ).estimateTransport_test(
                 keccak256("test"),
                 address(tokenA),
                 CHAIN_ID_B,
-                address(adapterB).toBytes32(),
+                address(adapterB),
                 100e18,
                 options,
                 params
@@ -387,13 +415,13 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
             options: ""
         });
 
-        (uint256 nativeFee, uint256 tokenFee) = ERC7802OFTAdapter(
+        (uint256 nativeFee, uint256 tokenFee) = ERC7802OFTAdapterTestHarness(
             address(adapterA)
-        )._estimateTransport(
+        ).estimateTransport_test(
                 keccak256("test"),
                 address(tokenA),
                 CHAIN_ID_B,
-                address(adapterB).toBytes32(),
+                address(adapterB),
                 100e18,
                 options,
                 params
@@ -424,13 +452,13 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
             options: ""
         });
 
-        (uint256 nativeFee, uint256 tokenFee) = ERC7802OFTAdapter(
+        (uint256 nativeFee, uint256 tokenFee) = ERC7802OFTAdapterTestHarness(
             address(adapterA)
-        )._estimateTransport(
+        ).estimateTransport_test(
                 keccak256("test"),
                 address(tokenA),
                 CHAIN_ID_B,
-                address(adapterB).toBytes32(),
+                address(adapterB),
                 100e18,
                 options,
                 params
@@ -462,13 +490,13 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
             options: ""
         });
 
-        (uint256 nativeFee, uint256 tokenFee) = ERC7802OFTAdapter(
+        (uint256 nativeFee, uint256 tokenFee) = ERC7802OFTAdapterTestHarness(
             address(adapterA)
-        )._estimateTransport(
+        ).estimateTransport_test(
                 keccak256("test"),
                 address(tokenA),
                 CHAIN_ID_B,
-                address(adapterB).toBytes32(),
+                address(adapterB),
                 1000e18,
                 options,
                 params
@@ -501,13 +529,13 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
         });
 
         // This should use LZ_EID_B for CHAIN_ID_B
-        (uint256 nativeFee, uint256 tokenFee) = ERC7802OFTAdapter(
+        (uint256 nativeFee, uint256 tokenFee) = ERC7802OFTAdapterTestHarness(
             address(adapterA)
-        )._estimateTransport(
+        ).estimateTransport_test(
                 keccak256("test"),
                 address(tokenA),
                 CHAIN_ID_B,
-                address(adapterB).toBytes32(),
+                address(adapterB),
                 100e18,
                 options,
                 params
@@ -546,28 +574,31 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
         (
             uint256 estimatedNativeFee,
             uint256 estimatedTokenFee
-        ) = ERC7802OFTAdapter(address(adapterA))._estimateTransport(
-                keccak256("test"),
-                address(tokenA),
-                CHAIN_ID_B,
-                address(adapterB).toBytes32(),
-                100e18,
-                options,
-                params
-            );
+        ) = ERC7802OFTAdapterTestHarness(address(adapterA))
+                .estimateTransport_test(
+                    keccak256("test"),
+                    address(tokenA),
+                    CHAIN_ID_B,
+                    address(adapterB),
+                    100e18,
+                    options,
+                    params
+                );
 
         // Give user tokens and call send with estimated fee
         vm.prank(user);
         tokenA.transfer(address(adapterA), 100e18);
 
+        // Give adapter some ETH for fees
+        vm.deal(address(adapterA), 1 ether);
+
         vm.prank(address(adapterA));
-        uint256 usedFee = ERC7802OFTAdapter(address(adapterA))._sendTransport{
-            value: estimatedNativeFee
-        }(
+        uint256 usedFee = ERC7802OFTAdapterTestHarness(address(adapterA))
+            .sendTransport_test{value: estimatedNativeFee}(
             keccak256("test"),
             address(tokenA),
             CHAIN_ID_B,
-            address(adapterB).toBytes32(),
+            address(adapterB),
             100e18,
             options,
             params,
@@ -606,14 +637,17 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
         uint256 excessValue = 0.5 ether;
         uint256 requiredFee = 0.1 ether;
 
+        // Give adapter some ETH for fees
+        vm.deal(address(adapterA), 1 ether);
+
         vm.prank(address(adapterA));
-        ERC7802OFTAdapter(address(adapterA))._sendTransport{
+        ERC7802OFTAdapterTestHarness(address(adapterA)).sendTransport_test{
             value: requiredFee + excessValue
         }(
             keccak256("test"),
             address(tokenA),
             CHAIN_ID_B,
-            address(adapterB).toBytes32(),
+            address(adapterB),
             100e18,
             options,
             params,
