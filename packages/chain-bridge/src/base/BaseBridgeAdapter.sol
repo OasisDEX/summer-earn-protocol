@@ -184,8 +184,8 @@ abstract contract BaseBridgeAdapter is
      * @notice Returns true if governance has registered a peer adapter for `dstChain`
      */
     function isAllowedDestination(uint16 dstChain) public view returns (bool) {
-        // Revert if the relationship does not exist; used by modifiers and explicit checks
-        return _getAdapterPeer(dstChain) != address(0);
+        // Use safe check to avoid reverting on missing relationships
+        return _hasTrustedDestination(dstChain);
     }
 
     /*//////////////////////////////////////////////////////////////

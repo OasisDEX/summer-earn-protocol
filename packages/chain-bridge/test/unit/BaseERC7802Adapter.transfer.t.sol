@@ -6,6 +6,7 @@ import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
 import {ERC7802OFTAdapterTestHarness} from "../mocks/ERC7802OFTAdapterTestHarness.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../src/interfaces/IBaseBridgeAdapterErrors.sol";
+import {ICrossChainConfigManaged} from "../../src/interfaces/ICrossChainConfigManaged.sol";
 import {IAssetAdapter} from "../../src/interfaces/IAssetAdapter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
@@ -133,7 +134,7 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
         });
 
         vm.prank(user); // Non-router caller
-        vm.expectRevert(IBaseBridgeAdapterErrors.Unauthorized.selector);
+        vm.expectRevert(ICrossChainConfigManaged.OnlyBridgeRouter.selector);
         adapterA.transferAsset("", params, options);
     }
 
@@ -147,6 +148,10 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
         // Transfer tokens to router (simulating normal flow)
         vm.prank(user);
         tokenA.transfer(address(routerA), transferAmount);
+
+        // Router must approve adapter to spend tokens
+        vm.prank(address(routerA));
+        tokenA.approve(address(adapterA), transferAmount);
 
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
@@ -170,24 +175,21 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
         uint256 routerBalanceBefore = tokenA.balanceOf(address(routerA));
         uint256 adapterBalanceBefore = tokenA.balanceOf(address(adapterA));
 
+        // Fund router with ETH for fees
+        vm.deal(address(routerA), 1 ether);
+
         vm.prank(address(routerA));
-        // Note: This will likely revert due to abstract _sendTransport not being implemented
-        // In concrete implementations, this would succeed
-        vm.expectRevert(); // Implementation-specific revert
+        // The transfer should succeed since OFT is configured for tokenA
+        adapterA.transferAsset{value: 0.5 ether}("", params, options);
 
-        try adapterA.transferAsset("", params, options) {
-            uint256 routerBalanceAfter = tokenA.balanceOf(address(routerA));
-            uint256 adapterBalanceAfter = tokenA.balanceOf(address(adapterA));
+        uint256 routerBalanceAfter = tokenA.balanceOf(address(routerA));
+        uint256 adapterBalanceAfter = tokenA.balanceOf(address(adapterA));
 
-            // Verify tokens were transferred from router to adapter
-            assertEq(routerBalanceAfter, routerBalanceBefore - transferAmount);
-            assertEq(
-                adapterBalanceAfter,
-                adapterBalanceBefore + transferAmount
-            );
-        } catch {
-            // Expected to revert in abstract test
-        }
+        // Verify tokens were transferred from router (burned in OFT flow)
+        assertEq(routerBalanceAfter, routerBalanceBefore - transferAmount);
+        // In OFT flow, tokens are burned/sent to OFT, not held by adapter
+        // So we just verify the adapter didn't receive them directly
+        assertLe(adapterBalanceAfter, adapterBalanceBefore);
     }
 
     function test_TransferAsset_EmitsTransferInitiatedEvent() public {
@@ -198,6 +200,10 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
         tokenA.approve(address(routerA), transferAmount);
         vm.prank(user);
         tokenA.transfer(address(routerA), transferAmount);
+
+        // Router must approve adapter to spend tokens
+        vm.prank(address(routerA));
+        tokenA.approve(address(adapterA), transferAmount);
 
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
@@ -218,6 +224,9 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
             options: ""
         });
 
+        // Fund router with ETH for fees
+        vm.deal(address(routerA), 1 ether);
+
         vm.expectEmit(true, true, true, true);
         emit IAssetAdapter.TransferInitiated(
             "", // operationId
@@ -228,10 +237,8 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
         );
 
         vm.prank(address(routerA));
-        // Note: This will revert due to abstract implementation
-        vm.expectRevert();
-
-        adapterA.transferAsset("", params, options);
+        // The transfer should succeed since OFT is configured for tokenA
+        adapterA.transferAsset{value: 0.5 ether}("", params, options);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -331,7 +338,9 @@ contract BaseERC7802AdapterTransferTest is ERC7802OFTAdapterSetupTest {
             });
 
         vm.prank(user); // Non-authorized executor
-        vm.expectRevert(IBaseBridgeAdapterErrors.Unauthorized.selector);
+        vm.expectRevert(
+            ICrossChainConfigManaged.OnlyAuthorizedExecutor.selector
+        );
         adapterA.finalize("", params);
     }
 

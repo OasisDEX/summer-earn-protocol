@@ -278,14 +278,12 @@ contract ERC7802OFTAdapterGeneralTest is ERC7802OFTAdapterSetupTest {
             true
         );
 
+        // Register user as executor
+        vm.prank(governor);
+        registryA.registerExecutor(user);
+
         // Give user some tokens
         tokenWithoutOft.mint(user, 100e18);
-
-        // Try to transfer - should fail due to missing OFT
-        vm.prank(user);
-        tokenWithoutOft.approve(address(routerA), 100e18);
-        vm.prank(user);
-        tokenWithoutOft.transfer(address(routerA), 100e18);
 
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
@@ -306,8 +304,13 @@ contract ERC7802OFTAdapterGeneralTest is ERC7802OFTAdapterSetupTest {
             options: ""
         });
 
-        vm.prank(address(routerA));
+        // Approve router to spend tokens
+        vm.prank(user);
+        tokenWithoutOft.approve(address(routerA), 100e18);
+
+        // Try to transfer through router - should fail due to missing OFT mapping
+        vm.prank(user);
         vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
-        ERC7802OFTAdapter(address(adapterA)).transferAsset("", params, options);
+        routerA.executeTransferAssets(params, options);
     }
 }

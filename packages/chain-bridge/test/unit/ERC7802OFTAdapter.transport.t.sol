@@ -5,7 +5,7 @@ import {ERC7802OFTAdapter} from "../../src/adapters/ERC7802OFTAdapter.sol";
 import {ERC7802OFTAdapterTestHarness} from "../mocks/ERC7802OFTAdapterTestHarness.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {MessagingFee, SendParam, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {ERC7802OFTAdapterSetupTest} from "./ERC7802OFTAdapter.setup.t.sol";
@@ -142,9 +142,37 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
         // Give adapter some ETH for fees
         vm.deal(address(adapterA), 1 ether);
 
-        // Call send transport
-        // Give adapter some ETH for fees
-        vm.deal(address(adapterA), 1 ether);
+        // Check that OFT is not approved before the call
+        assertEq(tokenA.allowance(address(adapterA), address(oftA)), 0);
+
+        // Mock the OFT send call to not consume the approval
+        vm.mockCall(
+            address(oftA),
+            abi.encodeCall(
+                oftA.send,
+                (
+                    SendParam({
+                        dstEid: uint32(LZ_EID_B),
+                        to: address(adapterB).toBytes32(),
+                        amountLD: 100e18,
+                        minAmountLD: 100e18,
+                        extraOptions: bytes(""),
+                        composeMsg: bytes(""),
+                        oftCmd: bytes("")
+                    }),
+                    MessagingFee({nativeFee: 0.1 ether, lzTokenFee: 0}),
+                    user
+                )
+            ),
+            abi.encode(
+                MessagingReceipt({
+                    guid: bytes32(0),
+                    nonce: 0,
+                    fee: MessagingFee({nativeFee: 0.1 ether, lzTokenFee: 0})
+                }),
+                OFTReceipt({amountSentLD: 100e18, amountReceivedLD: 100e18})
+            )
+        );
 
         vm.prank(address(adapterA));
         ERC7802OFTAdapterTestHarness(address(adapterA)).sendTransport_test{
@@ -160,7 +188,7 @@ contract ERC7802OFTAdapterTransportTest is ERC7802OFTAdapterSetupTest {
             user
         );
 
-        // Verify OFT was approved to spend tokens
+        // Verify OFT was approved to spend tokens (approval should still be there since we mocked the call)
         assertEq(tokenA.allowance(address(adapterA), address(oftA)), 100e18);
     }
 

@@ -134,7 +134,7 @@ contract ERC7802OFTAdapter is BaseERC7802Adapter, ILayerZeroComposer {
         });
 
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
-        return (fee.nativeFee, 0);
+        return (fee.nativeFee, fee.lzTokenFee);
     }
 
     /*//////////////////////////////////////////////////////////////

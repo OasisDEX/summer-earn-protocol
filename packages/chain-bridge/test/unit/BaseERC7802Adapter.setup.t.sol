@@ -119,6 +119,9 @@ abstract contract BaseERC7802AdapterSetupTest is TestHelperOz5 {
         // Enable asset support for testing
         adapterA.setAssetSupport(address(tokenA), true);
 
+        // Register authorized executors
+        registryA.registerExecutor(governor);
+
         // Final configuration
         routerA.registerAdapter(address(adapterA));
         tokenA.mint(user, 20000e18);
@@ -167,6 +170,9 @@ abstract contract BaseERC7802AdapterSetupTest is TestHelperOz5 {
 
         // Enable asset support for testing
         adapterB.setAssetSupport(address(tokenB), true);
+
+        // Register authorized executors
+        registryB.registerExecutor(governor);
 
         // Final configuration
         routerB.registerAdapter(address(adapterB));
