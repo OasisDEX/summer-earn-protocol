@@ -49,7 +49,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice Constants for relationship types
     /// @dev Note: PEER_RELATIONSHIP requires use of pair registration methods (registerAdapterPeerPair/unregisterAdapterPeerPair)
     /// to ensure bidirectional relationships. Other newly added relationship types that require bijective mapping
-    /// may need similar enforcement to prevent misconfiguration.
+    /// will require careful configuration as there is no enforcement for those - they may get misconfigured.
     bytes32 public constant PEER_RELATIONSHIP = keccak256("PEER_RELATIONSHIP");
     bytes32 public constant EXECUTOR_RELATIONSHIP =
         keccak256("EXECUTOR_RELATIONSHIP");
