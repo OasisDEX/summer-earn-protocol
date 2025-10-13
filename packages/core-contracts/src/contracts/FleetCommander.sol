@@ -214,7 +214,6 @@ contract FleetCommander is
 
         _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
 
-        _getWithdrawableArksData(config.bufferArk);
         _forceDisembarkFromSortedArks(assets);
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
         _resetLastActionTimestamp();
@@ -238,7 +237,7 @@ contract FleetCommander is
         _validateRedeemFromArks(shares, owner);
 
         totalAssetsToWithdraw = previewRedeem(shares);
-        _getWithdrawableArksData(config.bufferArk);
+
         _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
         _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
         _resetLastActionTimestamp();

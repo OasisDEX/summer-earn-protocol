@@ -228,14 +228,6 @@ contract FleetCommanderConfigProvider is
         }
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
-    function setCooldownPeriod(
-        uint256 newCooldownPeriod
-    ) external onlyCurator(address(this)) whenNotPaused {
-        config.cooldownPeriod = newCooldownPeriod;
-        emit FleetCommanderCooldownPeriodUpdated(newCooldownPeriod);
-    }
-
     // INTERNAL FUNCTIONS
     /**
      * @dev Internal function to add a new Ark to the fleet

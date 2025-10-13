@@ -37,4 +37,11 @@ interface ICrossChainFleetCommander is IFleetCommander {
     function canWithdraw(
         address user
     ) external view returns (bool canWithdrawNow);
+
+    /**
+     * @notice Set the cooldown period for deposits
+     * @dev Only callable by the curator when not paused
+     * @param newCooldownPeriod The new cooldown period in seconds
+     */
+    function setCooldownPeriod(uint256 newCooldownPeriod) external;
 }

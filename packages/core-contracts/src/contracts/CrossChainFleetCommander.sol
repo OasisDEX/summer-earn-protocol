@@ -13,6 +13,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {IFleetCommanderConfigProviderEvents} from "../events/IFleetCommanderConfigProviderEvents.sol";
 
 /**
  * @title CrossChainFleetCommander
@@ -20,7 +21,11 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * @dev Implements a cooldown period between deposits and withdrawals to prevent
  *      MEV attacks and sandwich attacks on cross-chain operations
  */
-contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
+contract CrossChainFleetCommander is
+    FleetCommander,
+    ICrossChainFleetCommander,
+    IFleetCommanderConfigProviderEvents
+{
     using Math for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -94,14 +99,23 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     function canWithdraw(
         address user
     ) external view returns (bool canWithdrawNow) {
-        uint256 lastDeposit = lastDepositTimestamp[user];
-        if (lastDeposit == 0) {
+        uint256 nextWithdrawTimestamp = this.getNextWithdrawTimestamp(user);
+        if (nextWithdrawTimestamp == 0) {
             return true; // No previous deposit
         }
         if (config.cooldownPeriod == 0) {
             return true; // No cooldown period
         }
-        return block.timestamp > lastDeposit + config.cooldownPeriod;
+        return block.timestamp > nextWithdrawTimestamp;
+    }
+
+    /// @notice Set the cooldown period for deposits
+    /// @param newCooldownPeriod The new cooldown period in seconds
+    function setCooldownPeriod(
+        uint256 newCooldownPeriod
+    ) external onlyCurator(address(this)) whenNotPaused {
+        config.cooldownPeriod = newCooldownPeriod;
+        emit FleetCommanderCooldownPeriodUpdated(newCooldownPeriod);
     }
 
     /*//////////////////////////////////////////////////////////////
