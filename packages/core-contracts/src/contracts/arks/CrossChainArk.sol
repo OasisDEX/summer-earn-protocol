@@ -54,9 +54,6 @@ contract CrossChainArk is
     /// @notice Pending transfer options for the cross-chain transfer
     BridgeTypes.BridgeOptions public pendingTransferOptions;
 
-    /// @notice Maximum time window for considering remote balance as "recent" (24 hours)
-    uint256 public constant SYNC_WINDOW = 24 hours;
-
     /// @notice Emitted when inflight is set for an outbound transfer
     event InflightSet(uint256 amount, bytes32 operationId);
     /// @notice Emitted when inflight is cleared following an ACK/state update
@@ -121,6 +118,15 @@ contract CrossChainArk is
      */
     function getTargetProxy() external view returns (address) {
         return _getTargetProxy();
+    }
+
+    /**
+     * @notice Gets the timestamp of the last remote balance update
+     * @return The timestamp when the last remote balance update was received
+     * @dev Returns 0 if no remote balance update has been received yet
+     */
+    function getLastRemoteBalanceUpdateTime() external view returns (uint256) {
+        return lastRemoteBalanceUpdateTime;
     }
 
     /**
@@ -440,36 +446,5 @@ contract CrossChainArk is
     {
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
-    }
-
-    /**
-     * @notice Returns the sync timeframe for this CrossChainArk
-     * @return uint256 The sync timeframe in seconds
-     */
-    function syncTimeframe() public pure returns (uint256) {
-        return SYNC_WINDOW;
-    }
-
-    /**
-     * @notice Checks if the CrossChainArk is synced with remote state
-     * @dev A CrossChainArk is considered synced if:
-     *      1. There are no inflight assets (no pending transfers)
-     *      2. The last remote balance is recent (within sync window)
-     * @return bool True if synced, false otherwise
-     */
-    function isSynced() public view override returns (bool) {
-        // If there are inflight assets, we're not synced
-        if (inflightAssets > 0) {
-            return false;
-        }
-
-        // Check if remote balance was updated within sync window
-        if (lastRemoteBalanceUpdateTime == 0) {
-            // Never received a remote balance update
-            return false;
-        }
-
-        // Check if the last update is within the sync window
-        return block.timestamp - lastRemoteBalanceUpdateTime <= SYNC_WINDOW;
     }
 }

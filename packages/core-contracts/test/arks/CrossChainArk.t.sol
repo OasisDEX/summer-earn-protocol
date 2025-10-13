@@ -136,7 +136,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(address(ark.crossChainRegistry()), address(registry));
         assertEq(ark.satelliteChainId(), TARGET_CHAIN_ID);
         assertEq(ark.getTargetProxy(), proxy); // Uses registry lookup
-        assertEq(ark.syncTimeframe(), 86400); // 24 hour sync timeframe
+        assertEq(ark.getLastRemoteBalanceUpdateTime(), 0); // Should be 0 initially
     }
 
     function test_RegistryRelationshipIntegration() public {
@@ -781,120 +781,5 @@ contract CrossChainArkTest is Test, ArkTestBase {
         vm.prank(address(keeper));
         vm.expectRevert(ICrossChainArk.NoPendingTransferQueued.selector);
         ark.cancelPendingTransfer();
-    }
-
-    // ========================================================================
-    // isSynced FUNCTIONALITY TESTS
-    // ========================================================================
-
-    function testIsSyncedInitialState() public view {
-        // Initially, no balance update has occurred, so Ark should not be synced
-        assertFalse(ark.isSynced(), "Ark should not be synced initially");
-        assertEq(
-            ark.lastRemoteBalanceUpdateTime(),
-            0,
-            "Last update time should be 0 initially"
-        );
-    }
-
-    function testIsSyncedAfterBalanceUpdate() public {
-        uint256 remoteBalance = 1000;
-        bytes32 requestId = keccak256("sync-test");
-
-        // Simulate receiving a balance update
-        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
-            requestId,
-            address(proxy),
-            address(ark),
-            remoteBalance,
-            TARGET_CHAIN_ID,
-            bytes32(0)
-        );
-
-        vm.prank(address(router));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params)
-        );
-
-        // Ark should be synced immediately after balance update
-        assertTrue(ark.isSynced(), "Ark should be synced after balance update");
-        assertEq(
-            ark.lastRemoteBalanceUpdateTime(),
-            block.timestamp,
-            "Update time should be current timestamp"
-        );
-    }
-
-    function testIsSyncedWithinTimeframe() public {
-        uint256 remoteBalance = 1000;
-        bytes32 requestId = keccak256("timeframe-test");
-
-        // Simulate receiving a balance update
-        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
-            requestId,
-            address(proxy),
-            address(ark),
-            remoteBalance,
-            TARGET_CHAIN_ID,
-            bytes32(0)
-        );
-
-        vm.prank(address(router));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params)
-        );
-
-        // Fast forward to just before the sync timeframe expires (3599 seconds)
-        vm.warp(block.timestamp + 3599);
-        assertTrue(
-            ark.isSynced(),
-            "Ark should still be synced within timeframe"
-        );
-
-        // Fast forward to exactly the sync timeframe (3600 seconds)
-        vm.warp(block.timestamp + 1);
-        assertTrue(
-            ark.isSynced(),
-            "Ark should still be synced at exact timeframe boundary"
-        );
-    }
-
-    function testIsSyncedAfterTimeframeExpires() public {
-        uint256 remoteBalance = 1000;
-        bytes32 requestId = keccak256("expired-test");
-
-        // Simulate receiving a balance update
-        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
-            requestId,
-            address(proxy),
-            address(ark),
-            remoteBalance,
-            TARGET_CHAIN_ID,
-            bytes32(0)
-        );
-
-        vm.prank(address(router));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params)
-        );
-
-        // Fast forward past the sync timeframe (86401 seconds)
-        vm.warp(block.timestamp + 86401);
-        assertFalse(
-            ark.isSynced(),
-            "Ark should not be synced after timeframe expires"
-        );
-    }
-
-    function testSyncTimeframeGetter() public view {
-        // Test that the public getter works correctly
-        assertEq(
-            ark.syncTimeframe(),
-            86400,
-            "Sync timeframe should be 86400 seconds (24 hours)"
-        );
     }
 }

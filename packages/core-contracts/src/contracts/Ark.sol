@@ -253,14 +253,4 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     function _balanceOfAsset() internal view virtual returns (uint256) {
         return config.asset.balanceOf(address(this));
     }
-
-    /**
-     * @notice Checks if the Ark is synced with remote state
-     * @dev For non-cross-chain Arks, this always returns true
-     * @dev For cross-chain Arks, this should be overridden to check sync status
-     * @return bool True if the Ark is synced, false otherwise
-     */
-    function isSynced() public view virtual returns (bool) {
-        return true;
-    }
 }

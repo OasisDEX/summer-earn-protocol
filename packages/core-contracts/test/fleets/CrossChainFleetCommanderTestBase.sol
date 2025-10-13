@@ -32,10 +32,6 @@ abstract contract CrossChainFleetCommanderTestBase is
     CrossChainFleetCommanderParams public crossChainFleetCommanderParams;
     uint256 public constant COOLDOWN_PERIOD = 1 hours; // 1 hour cooldown
 
-    // Mock Arks with sync status
-    SyncedArkMock public syncedArkMock;
-    UnsyncedArkMock public unsyncedArkMock;
-
     // Test addresses
     address public user1 = address(0x200);
     address public user2 = address(0x300);
@@ -79,9 +75,6 @@ abstract contract CrossChainFleetCommanderTestBase is
 
         // Setup mock Arks for the CrossChainFleetCommander
         setupMockArksForCrossChain();
-
-        // Setup additional mock Arks for sync testing
-        setupSyncTestArks();
     }
 
     /**
@@ -200,41 +193,6 @@ abstract contract CrossChainFleetCommanderTestBase is
         crossChainFleetCommander.addArk(ark3);
         crossChainFleetCommander.addArk(ark4);
         vm.stopPrank();
-    }
-
-    /**
-     * @notice Setup mock Arks for sync testing
-     */
-    function setupSyncTestArks() internal {
-        syncedArkMock = new SyncedArkMock(
-            ArkParams({
-                name: "SyncedArk",
-                details: "SyncedArk details",
-                accessManager: address(accessManager),
-                asset: address(mockToken),
-                configurationManager: address(configurationManager),
-                depositCap: 100000 * 10 ** 6,
-                maxRebalanceOutflow: type(uint256).max,
-                maxRebalanceInflow: type(uint256).max,
-                requiresKeeperData: false,
-                maxDepositPercentageOfTVL: PERCENTAGE_100
-            })
-        );
-
-        unsyncedArkMock = new UnsyncedArkMock(
-            ArkParams({
-                name: "UnsyncedArk",
-                details: "UnsyncedArk details",
-                accessManager: address(accessManager),
-                asset: address(mockToken),
-                configurationManager: address(configurationManager),
-                depositCap: 100000 * 10 ** 6,
-                maxRebalanceOutflow: type(uint256).max,
-                maxRebalanceInflow: type(uint256).max,
-                requiresKeeperData: false,
-                maxDepositPercentageOfTVL: PERCENTAGE_100
-            })
-        );
     }
 
     /**
@@ -362,29 +320,5 @@ abstract contract CrossChainFleetCommanderTestBase is
             );
         }
         vm.stopPrank();
-    }
-}
-
-/**
- * @title SyncedArkMock
- * @notice Mock Ark that always reports as synced
- */
-contract SyncedArkMock is ArkMock {
-    constructor(ArkParams memory _params) ArkMock(_params) {}
-
-    function isSynced() public pure override returns (bool) {
-        return true;
-    }
-}
-
-/**
- * @title UnsyncedArkMock
- * @notice Mock Ark that always reports as unsynced
- */
-contract UnsyncedArkMock is ArkMock {
-    constructor(ArkParams memory _params) ArkMock(_params) {}
-
-    function isSynced() public pure override returns (bool) {
-        return false;
     }
 }

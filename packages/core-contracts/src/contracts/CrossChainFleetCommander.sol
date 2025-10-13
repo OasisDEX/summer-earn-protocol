@@ -85,20 +85,6 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         _;
     }
 
-    /**
-     * @dev Modifier to ensure all arks are in sync before critical operations
-     * @dev This prevents operations when cross-chain arks are not properly synced.
-     *      Applied to deposits for safety, but not to withdrawals/redemptions
-     *      to ensure users can always access their funds.
-     */
-    modifier allArksSynced() {
-        if (!areAllArksSynced()) {
-            revert ICrossChainFleetCommanderErrors
-                .CrossChainFleetCommanderArksNotSynced();
-        }
-        _;
-    }
-
     /*//////////////////////////////////////////////////////////////
                             COOLDOWN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -106,62 +92,6 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     /// @notice Get the cooldown period
     function getCooldownPeriod() external view returns (uint256 period) {
         return config.cooldownPeriod;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            SYNC FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Check if all arks are in sync
-    /// @return bool True if all arks are synced, false otherwise
-    function areAllArksSynced() public view returns (bool) {
-        address[] memory activeArks = getActiveArks();
-
-        // Check all active arks
-        for (uint256 i = 0; i < activeArks.length; i++) {
-            if (!IArk(activeArks[i]).isSynced()) {
-                return false;
-            }
-        }
-
-        // Check buffer ark
-        if (!IArk(address(config.bufferArk)).isSynced()) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /// @notice Get the list of unsynced arks
-    /// @return unsyncedArks Array of addresses of arks that are not synced
-    function getUnsyncedArks()
-        external
-        view
-        returns (address[] memory unsyncedArks)
-    {
-        address[] memory activeArks = getActiveArks();
-        address[] memory tempUnsynced = new address[](activeArks.length + 1); // +1 for buffer ark
-        uint256 unsyncedCount = 0;
-
-        // Check all active arks
-        for (uint256 i = 0; i < activeArks.length; i++) {
-            if (!IArk(activeArks[i]).isSynced()) {
-                tempUnsynced[unsyncedCount] = activeArks[i];
-                unsyncedCount++;
-            }
-        }
-
-        // Check buffer ark
-        if (!IArk(address(config.bufferArk)).isSynced()) {
-            tempUnsynced[unsyncedCount] = address(config.bufferArk);
-            unsyncedCount++;
-        }
-
-        // Create properly sized array
-        unsyncedArks = new address[](unsyncedCount);
-        for (uint256 i = 0; i < unsyncedCount; i++) {
-            unsyncedArks[i] = tempUnsynced[i];
-        }
     }
 
     /// @notice Get the timestamp when a user can next withdraw/redeem
@@ -220,19 +150,13 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Override deposit to track timestamp for cooldown and enforce sync check
+     * @notice Override deposit to track timestamp for cooldown
      * @dev Updates the last deposit timestamp to enforce cooldown on withdrawals.
-     *      Also ensures all arks are synced before allowing deposits.
      */
     function deposit(
         uint256 assets,
         address receiver
-    )
-        public
-        override(FleetCommander, IERC4626)
-        allArksSynced
-        returns (uint256 shares)
-    {
+    ) public override(FleetCommander, IERC4626) returns (uint256 shares) {
         shares = super.deposit(assets, receiver);
         _updateLastDepositTimestamp(_msgSender());
         return shares;
