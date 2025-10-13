@@ -34,7 +34,7 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
      * @dev Used to enforce cooldown periods between deposits and withdrawals/redemptions
      *      Timestamp is set to 0 for users who have never deposited
      */
-    mapping(address => uint256) public lastDepositTimestamp;
+    mapping(address user => uint256 timestamp) public lastDepositTimestamp;
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -168,5 +168,73 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         address owner
     ) public override cooldownEnforced(owner) returns (uint256 assets) {
         assets = super.redeem(shares, receiver, owner);
+    }
+
+    /**
+     * @notice Withdraws assets from the buffer by burning shares from the owner
+     * @param assets The amount of assets to withdraw
+     * @param receiver The address to receive the withdrawn assets
+     * @param owner The address that owns the shares being burned
+     * @return shares The amount of shares burned from the owner
+     * @dev Enforces cooldown period - owner must not have deposited within the cooldown period
+     *      Reverts with CrossChainFleetCommanderCooldownNotMet if cooldown is not satisfied
+     */
+    function withdrawFromBuffer(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public override cooldownEnforced(owner) returns (uint256 shares) {
+        shares = super.withdrawFromBuffer(assets, receiver, owner);
+    }
+
+    /**
+     * @notice Redeems shares from the buffer for assets
+     * @param shares The amount of shares to redeem
+     * @param receiver The address to receive the redeemed assets
+     * @param owner The address that owns the shares being redeemed
+     * @return assets The amount of assets redeemed
+     * @dev Enforces cooldown period - owner must not have deposited within the cooldown period
+     *      Reverts with CrossChainFleetCommanderCooldownNotMet if cooldown is not satisfied
+     */
+    function redeemFromBuffer(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public override cooldownEnforced(owner) returns (uint256 assets) {
+        assets = super.redeemFromBuffer(shares, receiver, owner);
+    }
+
+    /**
+     * @notice Withdraws assets from arks by burning shares from the owner
+     * @param assets The amount of assets to withdraw
+     * @param receiver The address to receive the withdrawn assets
+     * @param owner The address that owns the shares being burned
+     * @return shares The amount of shares burned from the owner
+     * @dev Enforces cooldown period - owner must not have deposited within the cooldown period
+     *      Reverts with CrossChainFleetCommanderCooldownNotMet if cooldown is not satisfied
+     */
+    function withdrawFromArks(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public override cooldownEnforced(owner) returns (uint256 shares) {
+        shares = super.withdrawFromArks(assets, receiver, owner);
+    }
+
+    /**
+     * @notice Redeems shares from arks for assets
+     * @param shares The amount of shares to redeem
+     * @param receiver The address to receive the redeemed assets
+     * @param owner The address that owns the shares being redeemed
+     * @return assets The amount of assets redeemed
+     * @dev Enforces cooldown period - owner must not have deposited within the cooldown period
+     *      Reverts with CrossChainFleetCommanderCooldownNotMet if cooldown is not satisfied
+     */
+    function redeemFromArks(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public override cooldownEnforced(owner) returns (uint256 assets) {
+        assets = super.redeemFromArks(shares, receiver, owner);
     }
 }

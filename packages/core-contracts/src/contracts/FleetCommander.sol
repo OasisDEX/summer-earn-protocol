@@ -103,7 +103,14 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
+    )
+        public
+        virtual
+        whenNotPaused
+        collectTip
+        useCache
+        returns (uint256 shares)
+    {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -152,7 +159,14 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
+    )
+        public
+        virtual
+        collectTip
+        useCache
+        whenNotPaused
+        returns (uint256 assets)
+    {
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -203,6 +217,7 @@ contract FleetCommander is
         address owner
     )
         public
+        virtual
         override(IFleetCommander)
         collectTip
         useWithdrawCache
@@ -227,6 +242,7 @@ contract FleetCommander is
         address owner
     )
         public
+        virtual
         override(IFleetCommander)
         collectTip
         useWithdrawCache
