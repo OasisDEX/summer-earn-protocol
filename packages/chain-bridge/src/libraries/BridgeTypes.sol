@@ -27,9 +27,9 @@ library BridgeTypes {
     // NOTE: READ_STATE remains as a reserved placeholder to avoid renumbering.
     //       The protocol currently does not implement READ_STATE functionality.
     enum OperationType {
-        MESSAGE,
-        READ_STATE, // reserved; not implemented
-        TRANSFER_ASSET
+        MESSAGE, // Send a message to a destination chain without transferring assets
+        READ_STATE, // reserved; not implemented - would read state from destination chain
+        TRANSFER_ASSET // Transfer assets from one chain to another
     }
 
     /**
@@ -91,6 +91,17 @@ library BridgeTypes {
         bytes32 operationId;
         uint16 sourceChainId;
     }
+    /**
+     * @notice Parameters for relayed asset transfers
+     * @dev This struct contains the parameters for processing a relayed asset transfer
+     * @dev The operationId is the unique identifier for this cross-chain operation
+     * @dev The originator is the address that initiated the original transfer on the source chain
+     * @dev The sourceChainId is the chain ID where the original transfer was initiated
+     * @dev The recipient is the address that will receive the assets on the destination chain
+     * @dev The asset is the address of the asset being transferred
+     * @dev The amount is the amount of the asset to be transferred
+     * @dev The message is the message data to be delivered with the transfer
+     */
     struct RelayedTransferParams {
         bytes32 operationId;
         address originator;
@@ -100,6 +111,15 @@ library BridgeTypes {
         uint256 amount;
         bytes message;
     }
+    /**
+     * @notice Parameters for relayed message delivery
+     * @dev This struct contains the parameters for processing a relayed message
+     * @dev The operationId is the unique identifier for this cross-chain operation
+     * @dev The originator is the address that initiated the original message on the source chain
+     * @dev The sourceChainId is the chain ID where the original message was sent from
+     * @dev The recipient is the address that will receive the message on the destination chain
+     * @dev The message is the message data to be delivered
+     */
     struct RelayedMessageParams {
         bytes32 operationId;
         address originator;

@@ -146,7 +146,7 @@ contract CrossChainArk is
         uint256 amount,
         bytes calldata executeTransferParams
     ) internal override {
-        _assertCanBoardOrDisembark();
+        _validateCanBoardOrDisembark();
         address proxyAddress = _getSatelliteProxy();
 
         (
@@ -216,7 +216,7 @@ contract CrossChainArk is
      * FleetProxy.withdrawAndTransfer() which transfers assets back to this contract
      */
     function _disembark(uint256 amount, bytes calldata) internal view override {
-        _assertCanBoardOrDisembark();
+        _validateCanBoardOrDisembark();
         // Ensure we have enough assets on the contract
         uint256 availableAssets = config.asset.balanceOf(address(this));
         if (availableAssets < amount) {
@@ -295,10 +295,10 @@ contract CrossChainArk is
     }
 
     /**
-     * @notice Asserts that the board or disembark can be performed
-     * @dev This function asserts that no inflight transfer exists and no pending transfer is queued
+     * @notice Validates that the board or disembark can be performed
+     * @dev This function validates that no inflight transfer exists and no pending transfer is queued
      */
-    function _assertCanBoardOrDisembark() internal view {
+    function _validateCanBoardOrDisembark() internal view {
         if (inflightAssets != 0) revert InFlight();
         if (pendingTransferParams.asset != address(0)) {
             revert PendingTransferAlreadyQueued();

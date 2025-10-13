@@ -12,6 +12,7 @@ import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
@@ -62,7 +63,7 @@ contract StargateAdapterComposeTest is
         );
 
         // Should revert when called by non-endpoint
-        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.Unauthorized.selector);
         adapterB.lzCompose(
             address(adapterA),
             bytes32("test-guid"),
@@ -137,7 +138,7 @@ contract StargateAdapterComposeTest is
         vm.prank(lzEndpointB);
         vm.expectRevert(
             abi.encodeWithSelector(
-                BaseBridgeAdapter.UntrustedSourceAdapter.selector,
+                IBaseBridgeAdapterErrors.UntrustedSourceAdapter.selector,
                 untrustedAdapter,
                 CHAIN_ID_A
             )
@@ -178,7 +179,7 @@ contract StargateAdapterComposeTest is
         );
 
         vm.prank(lzEndpointB);
-        vm.expectRevert(BaseBridgeAdapter.InvalidSourceChainId.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidSourceChainId.selector);
         adapterB.lzCompose(
             address(pool),
             bytes32("guid3"),
@@ -445,7 +446,7 @@ contract StargateAdapterComposeTest is
         bytes memory invalidOFTMessage = hex"01"; // too short
 
         // Should revert with InvalidMessage due to header length
-        vm.expectRevert(BaseBridgeAdapter.InvalidMessage.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidMessage.selector);
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
@@ -474,7 +475,7 @@ contract StargateAdapterComposeTest is
         );
 
         // Should revert with InvalidMessage during OFT header decoding
-        vm.expectRevert(BaseBridgeAdapter.InvalidMessage.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidMessage.selector);
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
