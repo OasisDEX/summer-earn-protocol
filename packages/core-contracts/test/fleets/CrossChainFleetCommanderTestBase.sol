@@ -267,7 +267,7 @@ abstract contract CrossChainFleetCommanderTestBase is
      * @return period The cooldown period in seconds
      */
     function getCooldownPeriod() internal view returns (uint256 period) {
-        return crossChainFleetCommander.getConfig().cooldownPeriod;
+        return crossChainFleetCommander.getConfig().userCooldownPeriod;
     }
 
     /**

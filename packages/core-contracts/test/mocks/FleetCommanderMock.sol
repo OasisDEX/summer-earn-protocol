@@ -190,8 +190,6 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function unpause() external {}
 
-    function setMinimumPauseTime(uint256 newMinimumPauseTime) external {}
-
     function depositAndStake(
         uint256 assets,
         address receiver

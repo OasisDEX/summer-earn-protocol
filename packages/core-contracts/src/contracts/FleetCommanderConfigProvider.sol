@@ -37,13 +37,12 @@ contract FleetCommanderConfigProvider is
     EnumerableSet.AddressSet private _activeArks;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
-    uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
 
     constructor(
         FleetCommanderParams memory params
     )
         ProtocolAccessManaged(params.accessManager)
-        FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
+        FleetCommanderPausable()
         ConfigurationManaged(params.configurationManager)
     {
         BufferArk _bufferArk = new BufferArk(

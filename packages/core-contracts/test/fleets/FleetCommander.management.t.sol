@@ -426,8 +426,8 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         );
         fleetCommander.unpause();
 
-        // Wait for minimum pause time
-        vm.warp(block.timestamp + fleetCommander.minimumPauseTime());
+        // Wait for minimum pause time (2 days)
+        vm.warp(block.timestamp + 2 days);
 
         // Now unpause should succeed
         vm.prank(governor);
@@ -447,19 +447,6 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             )
         );
         fleetCommander.unpause();
-    }
-
-    function test_SetMinimumPauseTime() public {
-        uint256 newMinimumPauseTime = 48 hours;
-
-        vm.prank(governor);
-        vm.expectEmit(false, false, false, true);
-        emit FleetCommanderPausable.MinimumPauseTimeUpdated(
-            newMinimumPauseTime
-        );
-        fleetCommander.setMinimumPauseTime(newMinimumPauseTime);
-
-        assertEq(fleetCommander.minimumPauseTime(), newMinimumPauseTime);
     }
 
     function test_PauseNonGovernor() public {
@@ -487,17 +474,6 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             )
         );
         fleetCommander.unpause();
-    }
-
-    function test_SetMinimumPauseTimeNonGovernor() public {
-        vm.prank(address(0x123));
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "CallerIsNotGovernor(address)",
-                address(0x123)
-            )
-        );
-        fleetCommander.setMinimumPauseTime(48 hours);
     }
 
     function test_setDepositCapWhenPaused() public {

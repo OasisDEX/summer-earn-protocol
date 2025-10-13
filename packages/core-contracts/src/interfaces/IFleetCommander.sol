@@ -185,13 +185,6 @@ interface IFleetCommander is
     function setTipRate(Percentage newTipRate) external;
 
     /**
-     * @notice Sets a new minimum pause time for the FleetCommander
-     * @dev Only callable by the governor
-     * @param newMinimumPauseTime The new minimum pause time in seconds
-     */
-    function setMinimumPauseTime(uint256 newMinimumPauseTime) external;
-
-    /**
      * @notice Updates the rebalance cooldown period
      * @param newCooldown The new cooldown period in seconds
      */

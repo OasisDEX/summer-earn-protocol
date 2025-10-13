@@ -466,13 +466,6 @@ contract FleetCommander is
     }
 
     /// @inheritdoc IFleetCommander
-    function setMinimumPauseTime(
-        uint256 _newMinimumPauseTime
-    ) public onlyGovernor whenNotPaused {
-        _setMinimumPauseTime(_newMinimumPauseTime);
-    }
-
-    /// @inheritdoc IFleetCommander
     function updateRebalanceCooldown(
         uint256 newCooldown
     ) external onlyCurator(address(this)) whenNotPaused {
