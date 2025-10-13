@@ -4,45 +4,52 @@ pragma solidity 0.8.28;
 import {FleetCommander} from "./FleetCommander.sol";
 import {ICrossChainFleetCommander} from "../interfaces/ICrossChainFleetCommander.sol";
 import {CrossChainFleetCommanderParams} from "../types/CrossChainFleetCommanderTypes.sol";
-import {FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
-import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ICrossChainFleetCommanderErrors} from "../errors/ICrossChainFleetCommanderErrors.sol";
-import {Constants} from "@summerfi/constants/Constants.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title CrossChainFleetCommander
- * @notice FleetCommander variant with cooldown-based MEV protection
- * @dev Implements a cooldown period between deposits and withdrawals to prevent
- *      MEV attacks and sandwich attacks on cross-chain operations
+ * @notice A FleetCommander implementation with cross-chain cooldown protection mechanisms
+ * @dev Extends the base FleetCommander to add cooldown periods between deposits and withdrawals/redemptions.
+ *      This prevents rapid deposit-withdraw cycles that could be exploited in cross-chain scenarios.
+ *
+ * Key Features:
+ * - Enforces cooldown periods after deposits before allowing withdrawals/redemptions
+ * - Propagates cooldown timestamps when shares are transferred between users
+ * - Maintains individual cooldown tracking per user address
+ * - Emits events for cooldown propagation to enable off-chain monitoring
+ *
+ * Security Considerations:
+ * - Cooldown periods help prevent MEV attacks and rapid arbitrage in cross-chain contexts
+ * - Transfer cooldown propagation ensures cooldown protection isn't bypassed via transfers
+ * - Only applies cooldown to withdrawal/redemption operations, not deposits
  */
 contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
-    using Math for uint256;
-
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Mapping of user address to their last deposit timestamp
+    /**
+     * @notice Maps user addresses to their last deposit timestamp
+     * @dev Used to enforce cooldown periods between deposits and withdrawals/redemptions
+     *      Timestamp is set to 0 for users who have never deposited
+     */
     mapping(address => uint256) public lastDepositTimestamp;
 
     /*//////////////////////////////////////////////////////////////
-                                CONSTRUCTOR
+                            CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the CrossChain FleetCommander
+     * @notice Initializes the CrossChainFleetCommander contract
      * @param params CrossChainFleetCommanderParams struct containing initialization parameters
+     * @dev Calls the parent FleetCommander constructor and sets the user-specific cooldown period
+     *      without affecting the rebalancing cooldown period
      */
     constructor(
         CrossChainFleetCommanderParams memory params
     ) FleetCommander(params.fleetCommanderParams) {
-        // Initialize cooldown period in FleetConfig
-        config.cooldownPeriod = params.cooldownPeriod;
+        config.userCooldownPeriod = params.cooldownPeriod;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -50,67 +57,26 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Modifier to ensure cooldown period has passed since last deposit
-     * @dev This prevents immediate withdraw/redeem after deposit for MEV protection
+     * @notice Modifier that enforces cooldown period before allowing withdrawal/redemption operations
+     * @param user The address of the user attempting the operation
+     * @dev Reverts if the user's last deposit was within the cooldown period
+     *      Only applies when user cooldown period is greater than 0
      */
     modifier cooldownEnforced(address user) {
         uint256 lastDeposit = lastDepositTimestamp[user];
         if (
             lastDeposit > 0 &&
-            config.cooldownPeriod > 0 &&
-            block.timestamp <= lastDeposit + config.cooldownPeriod
+            config.userCooldownPeriod > 0 &&
+            block.timestamp <= lastDeposit + config.userCooldownPeriod
         ) {
             revert ICrossChainFleetCommanderErrors
                 .CrossChainFleetCommanderCooldownNotMet(
                     user,
                     block.timestamp,
-                    lastDeposit + config.cooldownPeriod
+                    lastDeposit + config.userCooldownPeriod
                 );
         }
         _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            COOLDOWN FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Get the cooldown period
-    function getCooldownPeriod() external view returns (uint256 period) {
-        return config.cooldownPeriod;
-    }
-
-    /// @notice Get the timestamp when a user can next withdraw/redeem
-    function getNextWithdrawTimestamp(
-        address user
-    ) public view returns (uint256 timestamp) {
-        uint256 lastDeposit = lastDepositTimestamp[user];
-        if (lastDeposit == 0) {
-            return 0; // No previous deposit
-        }
-        return lastDeposit + config.cooldownPeriod;
-    }
-
-    /// @notice Check if a user can withdraw/redeem (cooldown has passed)
-    function canWithdraw(
-        address user
-    ) external view returns (bool canWithdrawNow) {
-        uint256 nextWithdrawTimestamp = getNextWithdrawTimestamp(user);
-        if (nextWithdrawTimestamp == 0) {
-            return true; // No previous deposit
-        }
-        if (config.cooldownPeriod == 0) {
-            return true; // No cooldown period
-        }
-        return block.timestamp > nextWithdrawTimestamp;
-    }
-
-    /// @notice Set the cooldown period for deposits
-    /// @param newCooldownPeriod The new cooldown period in seconds
-    function setCooldownPeriod(
-        uint256 newCooldownPeriod
-    ) external onlyCurator(address(this)) whenNotPaused {
-        config.cooldownPeriod = newCooldownPeriod;
-        emit FleetCommanderCooldownPeriodUpdated(newCooldownPeriod);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -118,107 +84,89 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Update the last deposit timestamp for a user
-     * @param user The address of the user who deposited
+     * @notice Override of ERC20 _update to handle cooldown timestamp propagation
+     * @param from The address tokens are transferred from (0 for minting)
+     * @param to The address tokens are transferred to (0 for burning)
+     * @param value The amount of tokens being transferred
+     * @dev When shares are transferred between non-zero addresses, propagates the cooldown timestamp
+     *      from sender to recipient if the sender has a more recent (or only) cooldown timestamp.
+     *      This prevents users from bypassing cooldown restrictions by transferring shares.
      */
-    function _updateLastDepositTimestamp(address user) internal {
-        lastDepositTimestamp[user] = block.timestamp;
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal virtual override {
+        // Call parent _update to handle the actual transfer
+        super._update(from, to, value);
+
+        // Only propagate cooldown for transfers between non-zero addresses (not mint/burn)
+        if (from != address(0) && to != address(0)) {
+            uint256 fromTimestamp = lastDepositTimestamp[from];
+            uint256 toTimestamp = lastDepositTimestamp[to];
+
+            // Propagate cooldown if sender has a timestamp and it's more recent than recipient's
+            if (
+                fromTimestamp > 0 &&
+                (fromTimestamp < toTimestamp || toTimestamp == 0)
+            ) {
+                lastDepositTimestamp[to] = fromTimestamp;
+                emit FleetCommanderCooldownPropagated(from, to, fromTimestamp);
+            }
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IFleetCommander
-    function totalAssets()
-        public
-        view
-        override(FleetCommander, IFleetCommander)
-        returns (uint256)
-    {
-        return _totalAssets(config.bufferArk);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            OVERRIDDEN FUNCTIONS
+                            PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Override deposit to track timestamp for cooldown
-     * @dev Updates the last deposit timestamp to enforce cooldown on withdrawals.
+     * @notice Deposits assets and mints shares to the receiver
+     * @param assets The amount of assets to deposit
+     * @param receiver The address to receive the minted shares
+     * @return shares The amount of shares minted to the receiver
+     * @dev Updates the receiver's last deposit timestamp to the current block timestamp
+     *      This timestamp will be used to enforce cooldown periods for future withdrawals/redemptions
      */
     function deposit(
         uint256 assets,
         address receiver
-    ) public override(FleetCommander, IERC4626) returns (uint256 shares) {
+    ) public override returns (uint256 shares) {
         shares = super.deposit(assets, receiver);
-        _updateLastDepositTimestamp(_msgSender());
+        lastDepositTimestamp[receiver] = block.timestamp;
     }
 
     /**
-     * @notice Override withdraw to enforce cooldown
-     * @dev Ensures cooldown period has passed since last deposit
+     * @notice Withdraws assets by burning shares from the owner
+     * @param assets The amount of assets to withdraw
+     * @param receiver The address to receive the withdrawn assets
+     * @param owner The address that owns the shares being burned
+     * @return shares The amount of shares burned from the owner
+     * @dev Enforces cooldown period - owner must not have deposited within the cooldown period
+     *      Reverts with CrossChainFleetCommanderCooldownNotMet if cooldown is not satisfied
      */
     function withdraw(
         uint256 assets,
         address receiver,
         address owner
-    )
-        public
-        override(FleetCommander, IFleetCommander)
-        cooldownEnforced(owner)
-        returns (uint256 shares)
-    {
+    ) public override cooldownEnforced(owner) returns (uint256 shares) {
         shares = super.withdraw(assets, receiver, owner);
     }
 
     /**
-     * @notice Override redeem to enforce cooldown
-     * @dev Ensures cooldown period has passed since last deposit
+     * @notice Redeems shares for assets
+     * @param shares The amount of shares to redeem
+     * @param receiver The address to receive the redeemed assets
+     * @param owner The address that owns the shares being redeemed
+     * @return assets The amount of assets redeemed
+     * @dev Enforces cooldown period - owner must not have deposited within the cooldown period
+     *      Reverts with CrossChainFleetCommanderCooldownNotMet if cooldown is not satisfied
      */
     function redeem(
         uint256 shares,
         address receiver,
         address owner
-    )
-        public
-        override(FleetCommander, IFleetCommander)
-        cooldownEnforced(owner)
-        returns (uint256 assets)
-    {
+    ) public override cooldownEnforced(owner) returns (uint256 assets) {
         assets = super.redeem(shares, receiver, owner);
     }
-
-    // /**
-    //  * @notice Override transfer to enforce cooldown on sender
-    //  * @dev Prevents circumventing withdrawal cooldown via transfer
-    //  */
-    // function transfer(
-    //     address to,
-    //     uint256 amount
-    // )
-    //     public
-    //     override(FleetCommander, IERC20)
-    //     cooldownEnforced(_msgSender())
-    //     returns (bool)
-    // {
-    //     return super.transfer(to, amount);
-    // }
-
-    // /**
-    //  * @notice Override transferFrom to enforce cooldown on sender
-    //  * @dev Prevents circumventing withdrawal cooldown via transferFrom
-    //  */
-    // function transferFrom(
-    //     address from,
-    //     address to,
-    //     uint256 amount
-    // )
-    //     public
-    //     override(FleetCommander, IERC20)
-    //     cooldownEnforced(from)
-    //     returns (bool)
-    // {
-    //     return super.transferFrom(from, to, amount);
-    // }
 }

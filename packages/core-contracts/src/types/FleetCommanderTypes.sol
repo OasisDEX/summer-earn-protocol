@@ -55,8 +55,15 @@ struct FleetConfig {
     /**
      * @notice The cooldown period between deposit and withdraw/redeem (in seconds)
      * @dev This value is used to prevent MEV attacks and sandwich attacks on cross-chain operations
+     * @dev For CrossChainFleetCommander, this is the user-specific cooldown period
      */
     uint256 cooldownPeriod;
+    /**
+     * @notice The user-specific cooldown period between deposit and withdraw/redeem (in seconds)
+     * @dev This value is used specifically for CrossChainFleetCommander to prevent MEV attacks
+     *      and sandwich attacks on cross-chain operations. Separate from rebalancing cooldown.
+     */
+    uint256 userCooldownPeriod;
 }
 
 /**

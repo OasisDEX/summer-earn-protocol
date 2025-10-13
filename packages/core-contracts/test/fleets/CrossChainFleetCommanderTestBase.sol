@@ -267,7 +267,7 @@ abstract contract CrossChainFleetCommanderTestBase is
      * @return period The cooldown period in seconds
      */
     function getCooldownPeriod() internal view returns (uint256 period) {
-        return crossChainFleetCommander.getCooldownPeriod();
+        return crossChainFleetCommander.getConfig().cooldownPeriod;
     }
 
     /**
@@ -278,7 +278,13 @@ abstract contract CrossChainFleetCommanderTestBase is
     function getNextWithdrawTimestamp(
         address user
     ) internal view returns (uint256 timestamp) {
-        return crossChainFleetCommander.getNextWithdrawTimestamp(user);
+        uint256 lastDeposit = crossChainFleetCommander.lastDepositTimestamp(
+            user
+        );
+        if (lastDeposit == 0) {
+            return 0; // No previous deposit
+        }
+        return lastDeposit + getCooldownPeriod();
     }
 
     /**
@@ -289,7 +295,14 @@ abstract contract CrossChainFleetCommanderTestBase is
     function canWithdraw(
         address user
     ) internal view returns (bool canWithdrawNow) {
-        return crossChainFleetCommander.canWithdraw(user);
+        uint256 nextWithdrawTimestamp = getNextWithdrawTimestamp(user);
+        if (nextWithdrawTimestamp == 0) {
+            return true; // No previous deposit
+        }
+        if (getCooldownPeriod() == 0) {
+            return true; // No cooldown period
+        }
+        return block.timestamp > nextWithdrawTimestamp;
     }
 
     /**

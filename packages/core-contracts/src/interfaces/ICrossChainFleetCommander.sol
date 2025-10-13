@@ -2,46 +2,29 @@
 pragma solidity 0.8.28;
 
 import {IFleetCommander} from "./IFleetCommander.sol";
-import {CrossChainFleetCommanderParams} from "../types/CrossChainFleetCommanderTypes.sol";
 
 /**
  * @title ICrossChainFleetCommander
  * @notice Interface for CrossChain FleetCommander with cooldown protection
- * @dev Extends IFleetCommander with cooldown functionality to prevent MEV attacks
  */
-interface ICrossChainFleetCommander is IFleetCommander {
+interface ICrossChainFleetCommander {
     /*//////////////////////////////////////////////////////////////
-                            COOLDOWN FUNCTIONS
+                            EVENTS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Get the cooldown period between deposit and withdraw/redeem
-     * @return period The cooldown period in seconds
+     * @notice Emitted when cooldown timestamp is propagated from sender to recipient
+     * @param from The address that sent the shares
+     * @param to The address that received the shares
+     * @param cooldownTimestamp The cooldown timestamp that was propagated
      */
-    function getCooldownPeriod() external view returns (uint256 period);
+    event FleetCommanderCooldownPropagated(
+        address indexed from,
+        address indexed to,
+        uint256 cooldownTimestamp
+    );
 
-    /**
-     * @notice Get the timestamp when a user can next withdraw/redeem
-     * @param user The address of the user
-     * @return timestamp The timestamp when the user can next withdraw/redeem, or 0 if no previous deposit
-     */
-    function getNextWithdrawTimestamp(
-        address user
-    ) external view returns (uint256 timestamp);
-
-    /**
-     * @notice Check if a user can withdraw/redeem (cooldown has passed)
-     * @param user The address of the user
-     * @return canWithdrawNow True if the user can withdraw/redeem now
-     */
-    function canWithdraw(
-        address user
-    ) external view returns (bool canWithdrawNow);
-
-    /**
-     * @notice Set the cooldown period for deposits
-     * @dev Only callable by the curator when not paused
-     * @param newCooldownPeriod The new cooldown period in seconds
-     */
-    function setCooldownPeriod(uint256 newCooldownPeriod) external;
+    /*//////////////////////////////////////////////////////////////
+                            COOLDOWN FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 }
