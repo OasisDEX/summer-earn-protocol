@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {CrossChainFleetCommander} from "../../src/contracts/CrossChainFleetCommander.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {CrossChainFleetCommanderParams} from "../../src/types/CrossChainFleetCommanderTypes.sol";
+import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test} from "forge-std/Test.sol";
@@ -108,17 +109,19 @@ abstract contract CrossChainFleetCommanderTestBase is
 
         // Setup CrossChainFleetCommander parameters
         crossChainFleetCommanderParams = CrossChainFleetCommanderParams({
-            name: fleetName,
-            details: "Test CrossChain FleetCommander",
-            symbol: "TEST-SUM",
-            configurationManager: address(configurationManager),
-            accessManager: address(accessManager),
-            asset: underlyingToken,
-            initialMinimumBufferBalance: 0,
-            initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
-            depositCap: type(uint256).max,
-            initialTipRate: initialTipRate,
-            initialCooldownPeriod: COOLDOWN_PERIOD
+            fleetCommanderParams: FleetCommanderParams({
+                name: fleetName,
+                details: "Test CrossChain FleetCommander",
+                symbol: "TEST-SUM",
+                configurationManager: address(configurationManager),
+                accessManager: address(accessManager),
+                asset: underlyingToken,
+                initialMinimumBufferBalance: 0,
+                initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
+                depositCap: type(uint256).max,
+                initialTipRate: initialTipRate
+            }),
+            cooldownPeriod: COOLDOWN_PERIOD
         });
 
         crossChainFleetCommander = new CrossChainFleetCommander(

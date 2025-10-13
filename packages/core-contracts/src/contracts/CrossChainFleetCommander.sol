@@ -40,24 +40,9 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
      */
     constructor(
         CrossChainFleetCommanderParams memory params
-    )
-        FleetCommander(
-            FleetCommanderParams({
-                name: params.name,
-                details: params.details,
-                symbol: params.symbol,
-                configurationManager: params.configurationManager,
-                accessManager: params.accessManager,
-                asset: params.asset,
-                initialMinimumBufferBalance: params.initialMinimumBufferBalance,
-                initialRebalanceCooldown: params.initialRebalanceCooldown,
-                depositCap: params.depositCap,
-                initialTipRate: params.initialTipRate
-            })
-        )
-    {
+    ) FleetCommander(params.fleetCommanderParams) {
         // Initialize cooldown period in FleetConfig
-        config.cooldownPeriod = params.initialCooldownPeriod;
+        config.cooldownPeriod = params.cooldownPeriod;
     }
 
     /*//////////////////////////////////////////////////////////////
