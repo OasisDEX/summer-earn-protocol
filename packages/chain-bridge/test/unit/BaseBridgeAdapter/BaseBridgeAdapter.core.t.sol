@@ -207,12 +207,7 @@ contract BaseBridgeAdapterCoreTest is Test {
 
         // Not trusted yet
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "RelationshipDoesNotExist(address,bytes32,uint16)",
-                address(adapterA),
-                keccak256("PEER_RELATIONSHIP"),
-                chainB
-            )
+            abi.encodeWithSignature("UntrustedDestinationChain(uint16)", chainB)
         );
         adapterA.onlyTrusted(chainB);
 

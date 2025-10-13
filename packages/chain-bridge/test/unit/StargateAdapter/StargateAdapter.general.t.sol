@@ -21,7 +21,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
     function testSupportsChain_List_ReturnsConfiguredPeers() public view {
         // Get chains through registry relationships
-        (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
+        (, uint16[] memory supportedChains) = registryA.getAllTargetsForSource(
             address(adapterA),
             registryA.PEER_RELATIONSHIP()
         );
@@ -43,16 +43,13 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
             "Chain B should be supported"
         );
 
-        // Expect revert when checking unsupported chain
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(adapterA),
-                registryA.PEER_RELATIONSHIP(),
-                uint16(9999)
-            )
+        // Expect address(0) when checking unsupported chain
+        address peer = registryA.getAdapterPeer(address(adapterA), 9999);
+        assertEq(
+            peer,
+            address(0),
+            "Unsupported chain should return address(0)"
         );
-        registryA.getAdapterPeer(address(adapterA), 9999);
     }
 
     function testFeatureSupport() public view {
@@ -156,7 +153,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Verify it's in the list of supported chains (through registry relationships)
-        (, uint16[] memory targetChainIds) = registryA.getTargetsForSource(
+        (, uint16[] memory targetChainIds) = registryA.getAllTargetsForSource(
             address(adapterA),
             registryA.PEER_RELATIONSHIP()
         );

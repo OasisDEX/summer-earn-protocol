@@ -30,12 +30,12 @@ contract CrossChainRegistryIntegrationTest is BaseCrossChainRegistryTest {
             peerType
         );
 
-        (address targetContract, uint16 chainId) = registry.getTargetForSource(
-            arkAddress,
-            peerType
-        );
-        assertEq(targetContract, proxyAddress);
-        assertEq(chainId, TARGET_CHAIN_ID);
+        (address[] memory targetContracts, uint16[] memory chainIds) = registry
+            .getAllTargetsForSource(arkAddress, peerType);
+        assertEq(targetContracts.length, 1);
+        assertEq(targetContracts[0], proxyAddress);
+        assertEq(chainIds.length, 1);
+        assertEq(chainIds[0], TARGET_CHAIN_ID);
 
         address sourceContract = registry.getSourceForTarget(
             CURRENT_CHAIN_ID,

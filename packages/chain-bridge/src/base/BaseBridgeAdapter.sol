@@ -173,7 +173,7 @@ abstract contract BaseBridgeAdapter is
         returns (uint16[] memory chains)
     {
         (, uint16[] memory targetChainIds) = CROSS_CHAIN_REGISTRY
-            .getTargetsForSource(
+            .getAllTargetsForSource(
                 address(this),
                 CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
             );

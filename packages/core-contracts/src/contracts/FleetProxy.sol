@@ -357,13 +357,18 @@ contract FleetProxy is
         ICrossChainRegistry registry = ICrossChainRegistry(
             crossChainRegistry()
         );
-        return
-            registry.getSourceForTarget(
-                _hubChainId,
-                registry.currentChainId(),
-                address(this),
-                registry.PEER_RELATIONSHIP()
-            );
+        address ark = registry.getSourceForTarget(
+            _hubChainId,
+            registry.currentChainId(),
+            address(this),
+            registry.PEER_RELATIONSHIP()
+        );
+
+        if (ark == address(0)) {
+            revert InvalidSourceChain();
+        }
+
+        return ark;
     }
 
     /**
