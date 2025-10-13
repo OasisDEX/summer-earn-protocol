@@ -20,6 +20,7 @@ struct FleetCommanderParams {
     uint256 initialRebalanceCooldown;
     uint256 depositCap;
     Percentage initialTipRate;
+    uint256 initialCooldownPeriod;
 }
 
 /**

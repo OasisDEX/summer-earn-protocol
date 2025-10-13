@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {CrossChainFleetCommanderTestBase} from "./CrossChainFleetCommanderTestBase.sol";
-import {CrossChainFleetCommander} from "../../src/contracts/CrossChainFleetCommander.sol";
+import {FleetCommanderWithCooldownTestBase} from "./CrossChainFleetCommanderTestBase.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ICrossChainFleetCommanderErrors} from "../../src/errors/ICrossChainFleetCommanderErrors.sol";
 import {Test} from "forge-std/Test.sol";
 
 /**
- * @title CrossChainFleetCommander Cooldown Tests
- * @notice Test suite for cooldown functionality in CrossChainFleetCommander
+ * @title FleetCommander Cooldown Tests
+ * @notice Test suite for cooldown functionality in FleetCommander
  * @dev Tests cooldown enforcement, deposit tracking, and MEV protection
  */
-contract CrossChainFleetCommanderCooldownTest is
-    CrossChainFleetCommanderTestBase
+contract FleetCommanderCooldownTest is
+    FleetCommanderWithCooldownTestBase
 {
     uint256 constant INITIAL_TIP_RATE = 5; // 5%
     uint256 constant DEPOSIT_AMOUNT = 10000 * 10 ** 6; // 10,000 USDC
     uint256 constant WITHDRAWAL_AMOUNT = 5000 * 10 ** 6; // 5,000 USDC
 
     function setUp() public {
-        initializeCrossChainFleetCommander(INITIAL_TIP_RATE);
+        initializeFleetCommanderWithCooldown(INITIAL_TIP_RATE);
         setupUser(user1, DEPOSIT_AMOUNT * 2);
         setupUser(user2, DEPOSIT_AMOUNT * 2);
     }
@@ -69,7 +69,7 @@ contract CrossChainFleetCommanderCooldownTest is
                 block.timestamp + COOLDOWN_PERIOD
             )
         );
-        crossChainFleetCommander.withdraw(WITHDRAWAL_AMOUNT, user1, user1);
+        fleetCommanderWithCooldown.withdraw(WITHDRAWAL_AMOUNT, user1, user1);
     }
 
     function testRedeemBeforeCooldownFails() public {
@@ -88,7 +88,7 @@ contract CrossChainFleetCommanderCooldownTest is
                 block.timestamp + COOLDOWN_PERIOD
             )
         );
-        crossChainFleetCommander.redeem(shares / 2, user1, user1);
+        fleetCommanderWithCooldown.redeem(shares / 2, user1, user1);
     }
 
     function testWithdrawAfterCooldownSucceeds() public {

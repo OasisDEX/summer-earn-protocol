@@ -166,6 +166,22 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     function maxBufferWithdraw(address owner) external view returns (uint256) {}
     function maxBufferRedeem(address owner) external view returns (uint256) {}
 
+    function getCooldownPeriod() external pure returns (uint256) {
+        return 0;
+    }
+
+    function getNextWithdrawTimestamp(address user) external pure returns (uint256) {
+        return 0;
+    }
+
+    function canWithdraw(address user) external pure returns (bool) {
+        return true;
+    }
+
+    function setCooldownPeriod(uint256 newCooldownPeriod) external {
+        // Mock implementation - do nothing
+    }
+
     function getConfig() external view override returns (FleetConfig memory) {
         return config;
     }
@@ -217,7 +233,4 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         transfersEnabled = true;
     }
 
-    function setCooldownPeriod(uint256 newCooldownPeriod) external {
-        config.cooldownPeriod = newCooldownPeriod;
-    }
 }

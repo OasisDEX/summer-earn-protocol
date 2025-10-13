@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {CrossChainFleetCommander} from "../../src/contracts/CrossChainFleetCommander.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-import {CrossChainFleetCommanderParams} from "../../src/types/CrossChainFleetCommanderTypes.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -16,21 +15,21 @@ import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 
 /**
- * @title CrossChainFleetCommanderTestBase
- * @notice Base test contract for CrossChainFleetCommander with cooldown protection
- * @dev Extends FleetCommanderTestBase with CrossChainFleetCommander specific setup
+ * @title FleetCommanderWithCooldownTestBase
+ * @notice Base test contract for FleetCommander with cooldown protection
+ * @dev Extends FleetCommanderTestBase with cooldown specific setup
  */
-abstract contract CrossChainFleetCommanderTestBase is
+abstract contract FleetCommanderWithCooldownTestBase is
     Test,
     FleetCommanderTestBase
 {
     using PercentageUtils for uint256;
 
-    // CrossChainFleetCommander specific contracts
-    CrossChainFleetCommander public crossChainFleetCommander;
+    // FleetCommander with cooldown functionality
+    FleetCommander public fleetCommanderWithCooldown;
 
-    // CrossChainFleetCommander specific parameters
-    CrossChainFleetCommanderParams public crossChainFleetCommanderParams;
+    // FleetCommander parameters with cooldown
+    FleetCommanderParams public fleetCommanderParamsWithCooldown;
     uint256 public constant COOLDOWN_PERIOD = 1 hours; // 1 hour cooldown
 
     // Test addresses
@@ -40,10 +39,10 @@ abstract contract CrossChainFleetCommanderTestBase is
     constructor() {}
 
     /**
-     * @notice Initialize CrossChainFleetCommander with proper setup
+     * @notice Initialize FleetCommander with cooldown functionality
      * @param initialTipRate The initial tip rate for the FleetCommander
      */
-    function initializeCrossChainFleetCommander(
+    function initializeFleetCommanderWithCooldown(
         uint256 initialTipRate
     ) internal {
         // Initialize mock token first
@@ -52,38 +51,38 @@ abstract contract CrossChainFleetCommanderTestBase is
         // First setup the base contracts
         setupBaseContracts();
 
-        // Setup CrossChainFleetCommander (which inherits from FleetCommander)
-        setupCrossChainFleetCommander(
+        // Setup FleetCommander with cooldown functionality
+        setupFleetCommanderWithCooldown(
             address(mockToken),
             PercentageUtils.fromIntegerPercentage(initialTipRate)
         );
 
-        // Grant roles for CrossChainFleetCommander
+        // Grant roles for FleetCommander
         vm.startPrank(governor);
         accessManager.grantKeeperRole(
-            address(crossChainFleetCommander),
+            address(fleetCommanderWithCooldown),
             keeper
         );
         accessManager.grantCuratorRole(
-            address(crossChainFleetCommander),
+            address(fleetCommanderWithCooldown),
             governor
         );
         accessManager.grantCommanderRole(
             address(bufferArk),
-            address(crossChainFleetCommander)
+            address(fleetCommanderWithCooldown)
         );
         vm.stopPrank();
 
-        // Setup mock Arks for the CrossChainFleetCommander
-        setupMockArksForCrossChain();
+        // Setup mock Arks for the FleetCommander
+        setupMockArksForFleetCommander();
     }
 
     /**
-     * @notice Setup CrossChainFleetCommander with buffer Ark
+     * @notice Setup FleetCommander with cooldown functionality
      * @param underlyingToken The underlying token address
      * @param initialTipRate The initial tip rate
      */
-    function setupCrossChainFleetCommander(
+    function setupFleetCommanderWithCooldown(
         address underlyingToken,
         Percentage initialTipRate
     ) internal {
@@ -107,42 +106,40 @@ abstract contract CrossChainFleetCommanderTestBase is
             rewardTokenAddresses[i] = address(rewardTokens[i]);
         }
 
-        // Setup CrossChainFleetCommander parameters
-        crossChainFleetCommanderParams = CrossChainFleetCommanderParams({
-            fleetCommanderParams: FleetCommanderParams({
-                name: fleetName,
-                details: "Test CrossChain FleetCommander",
-                symbol: "TEST-SUM",
-                configurationManager: address(configurationManager),
-                accessManager: address(accessManager),
-                asset: underlyingToken,
-                initialMinimumBufferBalance: 0,
-                initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
-                depositCap: type(uint256).max,
-                initialTipRate: initialTipRate
-            }),
-            cooldownPeriod: COOLDOWN_PERIOD
+        // Setup FleetCommander parameters with cooldown
+        fleetCommanderParamsWithCooldown = FleetCommanderParams({
+            name: fleetName,
+            details: "Test FleetCommander with Cooldown",
+            symbol: "TEST-SUM",
+            configurationManager: address(configurationManager),
+            accessManager: address(accessManager),
+            asset: underlyingToken,
+            initialMinimumBufferBalance: 0,
+            initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
+            depositCap: type(uint256).max,
+            initialTipRate: initialTipRate,
+            initialCooldownPeriod: COOLDOWN_PERIOD
         });
 
-        crossChainFleetCommander = new CrossChainFleetCommander(
-            crossChainFleetCommanderParams
+        fleetCommanderWithCooldown = new FleetCommander(
+            fleetCommanderParamsWithCooldown
         );
 
-        // Get the bufferArk from the CrossChainFleetCommander
-        bufferArkAddress = crossChainFleetCommander.bufferArk();
+        // Get the bufferArk from the FleetCommander
+        bufferArkAddress = fleetCommanderWithCooldown.bufferArk();
         bufferArk = BufferArk(bufferArkAddress);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(crossChainFleetCommander)
+            address(fleetCommanderWithCooldown)
         );
-        harborCommand.enlistFleetCommander(address(crossChainFleetCommander));
+        harborCommand.enlistFleetCommander(address(fleetCommanderWithCooldown));
         vm.stopPrank();
     }
 
     /**
-     * @notice Setup mock Arks for CrossChainFleetCommander
+     * @notice Setup mock Arks for FleetCommander
      */
-    function setupMockArksForCrossChain() internal {
-        // Create mock Arks for the CrossChainFleetCommander
+    function setupMockArksForFleetCommander() internal {
+        // Create mock Arks for the FleetCommander
         mockArk1 = createMockArk(
             address(mockToken),
             ARK1_MAX_ALLOCATION,
@@ -173,28 +170,28 @@ abstract contract CrossChainFleetCommanderTestBase is
         vm.startPrank(governor);
         accessManager.grantCommanderRole(
             ark1,
-            address(crossChainFleetCommander)
+            address(fleetCommanderWithCooldown)
         );
         accessManager.grantCommanderRole(
             ark2,
-            address(crossChainFleetCommander)
+            address(fleetCommanderWithCooldown)
         );
         accessManager.grantCommanderRole(
             ark3,
-            address(crossChainFleetCommander)
+            address(fleetCommanderWithCooldown)
         );
         accessManager.grantCommanderRole(
             ark4,
-            address(crossChainFleetCommander)
+            address(fleetCommanderWithCooldown)
         );
         vm.stopPrank();
 
-        // Add Arks to CrossChainFleetCommander
+        // Add Arks to FleetCommander
         vm.startPrank(governor);
-        crossChainFleetCommander.addArk(ark1);
-        crossChainFleetCommander.addArk(ark2);
-        crossChainFleetCommander.addArk(ark3);
-        crossChainFleetCommander.addArk(ark4);
+        fleetCommanderWithCooldown.addArk(ark1);
+        fleetCommanderWithCooldown.addArk(ark2);
+        fleetCommanderWithCooldown.addArk(ark3);
+        fleetCommanderWithCooldown.addArk(ark4);
         vm.stopPrank();
     }
 
@@ -206,7 +203,7 @@ abstract contract CrossChainFleetCommanderTestBase is
     function setupUser(address user, uint256 amount) internal {
         mockToken.mint(user, amount);
         vm.startPrank(user);
-        mockToken.approve(address(crossChainFleetCommander), amount);
+        mockToken.approve(address(fleetCommanderWithCooldown), amount);
         vm.stopPrank();
     }
 
@@ -223,7 +220,7 @@ abstract contract CrossChainFleetCommanderTestBase is
         address receiver
     ) internal returns (uint256 shares) {
         vm.prank(user);
-        shares = crossChainFleetCommander.deposit(amount, receiver);
+        shares = fleetCommanderWithCooldown.deposit(amount, receiver);
     }
 
     /**
@@ -241,7 +238,7 @@ abstract contract CrossChainFleetCommanderTestBase is
         address owner
     ) internal returns (uint256 shares) {
         vm.prank(user);
-        shares = crossChainFleetCommander.withdraw(amount, receiver, owner);
+        shares = fleetCommanderWithCooldown.withdraw(amount, receiver, owner);
     }
 
     /**
@@ -259,7 +256,7 @@ abstract contract CrossChainFleetCommanderTestBase is
         address owner
     ) internal returns (uint256 assets) {
         vm.prank(user);
-        assets = crossChainFleetCommander.redeem(shares, receiver, owner);
+        assets = fleetCommanderWithCooldown.redeem(shares, receiver, owner);
     }
 
     /**
@@ -267,7 +264,7 @@ abstract contract CrossChainFleetCommanderTestBase is
      * @return period The cooldown period in seconds
      */
     function getCooldownPeriod() internal view returns (uint256 period) {
-        return crossChainFleetCommander.getCooldownPeriod();
+        return fleetCommanderWithCooldown.getCooldownPeriod();
     }
 
     /**
@@ -278,7 +275,7 @@ abstract contract CrossChainFleetCommanderTestBase is
     function getNextWithdrawTimestamp(
         address user
     ) internal view returns (uint256 timestamp) {
-        return crossChainFleetCommander.getNextWithdrawTimestamp(user);
+        return fleetCommanderWithCooldown.getNextWithdrawTimestamp(user);
     }
 
     /**
@@ -289,37 +286,37 @@ abstract contract CrossChainFleetCommanderTestBase is
     function canWithdraw(
         address user
     ) internal view returns (bool canWithdrawNow) {
-        return crossChainFleetCommander.canWithdraw(user);
+        return fleetCommanderWithCooldown.canWithdraw(user);
     }
 
     /**
-     * @notice Grant roles for CrossChainFleetCommander
+     * @notice Grant roles for FleetCommander
      * @param arks Array of Ark addresses
      * @param _bufferArkAddress Buffer Ark address
      * @param _keeper Keeper address
      */
-    function grantCrossChainFleetCommanderRoles(
+    function grantFleetCommanderRoles(
         address[] memory arks,
         address _bufferArkAddress,
         address _keeper
     ) internal {
         vm.startPrank(governor);
         accessManager.grantKeeperRole(
-            address(crossChainFleetCommander),
+            address(fleetCommanderWithCooldown),
             _keeper
         );
         accessManager.grantCuratorRole(
-            address(crossChainFleetCommander),
+            address(fleetCommanderWithCooldown),
             governor
         );
         accessManager.grantCommanderRole(
             address(_bufferArkAddress),
-            address(crossChainFleetCommander)
+            address(fleetCommanderWithCooldown)
         );
         for (uint256 i = 0; i < arks.length; i++) {
             accessManager.grantCommanderRole(
                 arks[i],
-                address(crossChainFleetCommander)
+                address(fleetCommanderWithCooldown)
             );
         }
         vm.stopPrank();

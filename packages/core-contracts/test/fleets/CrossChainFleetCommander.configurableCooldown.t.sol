@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {CrossChainFleetCommanderTestBase} from "./CrossChainFleetCommanderTestBase.sol";
-import {CrossChainFleetCommander} from "../../src/contracts/CrossChainFleetCommander.sol";
+import {FleetCommanderWithCooldownTestBase} from "./CrossChainFleetCommanderTestBase.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
 import {Test} from "forge-std/Test.sol";
 
 /**
- * @title CrossChainFleetCommander Configurable Cooldown Tests
- * @notice Test suite for configurable cooldown functionality in CrossChainFleetCommander
+ * @title FleetCommander Configurable Cooldown Tests
+ * @notice Test suite for configurable cooldown functionality in FleetCommander
  * @dev Tests the setCooldownPeriod function and its effects on cooldown behavior
  */
-contract CrossChainFleetCommanderConfigurableCooldownTest is
-    CrossChainFleetCommanderTestBase
+contract FleetCommanderConfigurableCooldownTest is
+    FleetCommanderWithCooldownTestBase
 {
     uint256 constant INITIAL_TIP_RATE = 5; // 5%
     uint256 constant DEPOSIT_AMOUNT = 10000 * 10 ** 6; // 10,000 USDC
     uint256 constant WITHDRAWAL_AMOUNT = 5000 * 10 ** 6; // 5,000 USDC
 
     function setUp() public {
-        initializeCrossChainFleetCommander(INITIAL_TIP_RATE);
+        initializeFleetCommanderWithCooldown(INITIAL_TIP_RATE);
         setupUser(user1, DEPOSIT_AMOUNT * 2);
         setupUser(user2, DEPOSIT_AMOUNT * 2);
     }
@@ -41,7 +41,7 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
 
         // Set new cooldown period as curator
         vm.prank(governor); // governor has curator role
-        crossChainFleetCommander.setCooldownPeriod(newCooldownPeriod);
+        fleetCommanderWithCooldown.setCooldownPeriod(newCooldownPeriod);
 
         // Verify cooldown period was updated
         assertEq(
@@ -61,7 +61,7 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
 
         // Set new cooldown period
         vm.prank(governor);
-        crossChainFleetCommander.setCooldownPeriod(newCooldownPeriod);
+        fleetCommanderWithCooldown.setCooldownPeriod(newCooldownPeriod);
     }
 
     function testSetCooldownPeriodOnlyCurator() public {
@@ -70,7 +70,7 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
         // Try to set cooldown period as non-curator (should fail)
         vm.prank(user1);
         vm.expectRevert();
-        crossChainFleetCommander.setCooldownPeriod(newCooldownPeriod);
+        fleetCommanderWithCooldown.setCooldownPeriod(newCooldownPeriod);
 
         // Verify cooldown period was not changed
         assertEq(
@@ -85,22 +85,22 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
 
         // Pause the contract
         vm.prank(governor);
-        crossChainFleetCommander.pause();
+        fleetCommanderWithCooldown.pause();
 
         // Try to set cooldown period when paused (should fail)
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
-        crossChainFleetCommander.setCooldownPeriod(newCooldownPeriod);
+        fleetCommanderWithCooldown.setCooldownPeriod(newCooldownPeriod);
 
         // Wait for minimum pause time to elapse (2 days)
         vm.warp(block.timestamp + 2 days + 1);
 
         // Unpause and try again (should succeed)
         vm.prank(governor);
-        crossChainFleetCommander.unpause();
+        fleetCommanderWithCooldown.unpause();
 
         vm.prank(governor);
-        crossChainFleetCommander.setCooldownPeriod(newCooldownPeriod);
+        fleetCommanderWithCooldown.setCooldownPeriod(newCooldownPeriod);
 
         assertEq(
             getCooldownPeriod(),
@@ -114,7 +114,7 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
 
         // Set new cooldown period
         vm.prank(governor);
-        crossChainFleetCommander.setCooldownPeriod(newCooldownPeriod);
+        fleetCommanderWithCooldown.setCooldownPeriod(newCooldownPeriod);
 
         // Perform a deposit
         performDeposit(user1, DEPOSIT_AMOUNT, user1);
@@ -148,7 +148,7 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
 
         // Set new cooldown period
         vm.prank(governor);
-        crossChainFleetCommander.setCooldownPeriod(newCooldownPeriod);
+        fleetCommanderWithCooldown.setCooldownPeriod(newCooldownPeriod);
 
         // Perform a deposit
         performDeposit(user1, DEPOSIT_AMOUNT, user1);
@@ -194,7 +194,7 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
         // Update cooldown period
         uint256 newCooldownPeriod = 2 hours;
         vm.prank(governor);
-        crossChainFleetCommander.setCooldownPeriod(newCooldownPeriod);
+        fleetCommanderWithCooldown.setCooldownPeriod(newCooldownPeriod);
 
         // User1's next withdraw time should be updated to use new cooldown period
         uint256 updatedNextWithdrawTime = getNextWithdrawTimestamp(user1);
@@ -217,7 +217,7 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
     function testZeroCooldownPeriod() public {
         // Set cooldown period to zero
         vm.prank(governor);
-        crossChainFleetCommander.setCooldownPeriod(0);
+        fleetCommanderWithCooldown.setCooldownPeriod(0);
 
         // Perform a deposit
         performDeposit(user1, DEPOSIT_AMOUNT, user1);
@@ -237,7 +237,7 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
 
         // Set very long cooldown period
         vm.prank(governor);
-        crossChainFleetCommander.setCooldownPeriod(veryLongCooldown);
+        fleetCommanderWithCooldown.setCooldownPeriod(veryLongCooldown);
 
         // Perform a deposit
         performDeposit(user1, DEPOSIT_AMOUNT, user1);
@@ -268,7 +268,7 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
 
         for (uint256 i = 0; i < cooldownPeriods.length; i++) {
             vm.prank(governor);
-            crossChainFleetCommander.setCooldownPeriod(cooldownPeriods[i]);
+            fleetCommanderWithCooldown.setCooldownPeriod(cooldownPeriods[i]);
 
             assertEq(
                 getCooldownPeriod(),

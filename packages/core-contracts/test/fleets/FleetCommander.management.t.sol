@@ -42,7 +42,8 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             symbol: "FC",
             details: "Mock details",
             depositCap: 10000,
-            initialTipRate: Percentage.wrap(0)
+            initialTipRate: Percentage.wrap(0),
+            initialCooldownPeriod: 0
         });
 
         FleetCommander newFleetCommander = new FleetCommander(params);

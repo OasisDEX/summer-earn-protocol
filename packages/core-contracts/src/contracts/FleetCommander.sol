@@ -5,7 +5,7 @@ import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
-import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
+import {UserCooldownEnforcer} from "../utils/CooldownEnforcer/UserCooldownEnforcer.sol";
 
 import {FleetCommanderCache} from "./FleetCommanderCache.sol";
 import {FleetCommanderConfigProvider} from "./FleetCommanderConfigProvider.sol";
@@ -15,6 +15,7 @@ import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contrac
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
+import {ICrossChainFleetCommanderErrors} from "../errors/ICrossChainFleetCommanderErrors.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
@@ -30,11 +31,15 @@ contract FleetCommander is
     ERC4626,
     Tipper,
     FleetCommanderCache,
-    CooldownEnforcer
+    UserCooldownEnforcer
 {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
     using Math for uint256;
+
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -51,8 +56,11 @@ contract FleetCommander is
         ERC20(params.name, params.symbol)
         FleetCommanderConfigProvider(params)
         Tipper(params.initialTipRate)
-        CooldownEnforcer(params.initialRebalanceCooldown, false)
-    {}
+        UserCooldownEnforcer(params.initialRebalanceCooldown, false)
+    {
+        // Set user cooldown period from config
+        _setUserCooldownPeriod(params.initialCooldownPeriod);
+    }
 
     /*//////////////////////////////////////////////////////////////
                             MODIFIERS
@@ -131,6 +139,7 @@ contract FleetCommander is
         override(ERC4626, IFleetCommander)
         collectTip
         useCache
+        enforceUserCooldown(owner)
         whenNotPaused
         returns (uint256 assets)
     {
@@ -180,6 +189,7 @@ contract FleetCommander is
         override(ERC4626, IFleetCommander)
         collectTip
         useCache
+        enforceUserCooldown(owner)
         whenNotPaused
         returns (uint256 shares)
     {
@@ -264,6 +274,7 @@ contract FleetCommander is
         shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
         _board(address(config.bufferArk), assets);
+        _updateUserLastActionTimestamp(_msgSender());
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -423,6 +434,25 @@ contract FleetCommander is
         );
     }
 
+    /// @notice Get the cooldown period
+    function getCooldownPeriod() external view returns (uint256 period) {
+        return getUserCooldownPeriod();
+    }
+
+    /// @notice Get the timestamp when a user can next withdraw/redeem
+    function getNextWithdrawTimestamp(
+        address user
+    ) public view returns (uint256 timestamp) {
+        return getNextUserActionTimestamp(user);
+    }
+
+    /// @notice Check if a user can withdraw/redeem (cooldown has passed)
+    function canWithdraw(
+        address user
+    ) external view returns (bool canWithdrawNow) {
+        return canUserPerformAction(user);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL KEEPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -462,6 +492,15 @@ contract FleetCommander is
         uint256 newCooldown
     ) external onlyCurator(address(this)) whenNotPaused {
         _updateCooldown(newCooldown);
+    }
+
+    /// @notice Set the cooldown period for deposits
+    /// @param newCooldownPeriod The new cooldown period in seconds
+    function setCooldownPeriod(
+        uint256 newCooldownPeriod
+    ) external onlyCurator(address(this)) whenNotPaused {
+        _setUserCooldownPeriod(newCooldownPeriod);
+        emit FleetCommanderCooldownPeriodUpdated(newCooldownPeriod);
     }
 
     /// @inheritdoc IFleetCommander

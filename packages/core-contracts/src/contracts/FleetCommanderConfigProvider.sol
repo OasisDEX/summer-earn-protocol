@@ -74,7 +74,7 @@ contract FleetCommanderConfigProvider is
             stakingRewardsManager: IFleetCommanderRewardsManagerFactory(
                 fleetCommanderRewardsManagerFactory()
             ).createRewardsManager(address(_accessManager), address(this)),
-            cooldownPeriod: 0 // Default cooldown period for regular FleetCommander
+            cooldownPeriod: params.initialCooldownPeriod
         });
         details = params.details;
     }
