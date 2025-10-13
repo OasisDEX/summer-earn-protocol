@@ -141,10 +141,16 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     function deposit(
         uint256 assets,
         address receiver
-    ) public override(FleetCommander, IERC4626) returns (uint256 shares) {
+    )
+        public
+        override(FleetCommander, IERC4626)
+        collectTip
+        useCache
+        whenNotPaused
+        returns (uint256 shares)
+    {
         shares = super.deposit(assets, receiver);
         _updateLastDepositTimestamp(_msgSender());
-        return shares;
     }
 
     /**
@@ -161,7 +167,7 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         cooldownEnforced(owner)
         returns (uint256 shares)
     {
-        return super.withdraw(assets, receiver, owner);
+        shares = super.withdraw(assets, receiver, owner);
     }
 
     /**
@@ -178,6 +184,6 @@ contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
         cooldownEnforced(owner)
         returns (uint256 assets)
     {
-        return super.redeem(shares, receiver, owner);
+        assets = super.redeem(shares, receiver, owner);
     }
 }
