@@ -42,8 +42,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             symbol: "FC",
             details: "Mock details",
             depositCap: 10000,
-            initialTipRate: Percentage.wrap(0),
-            initialCooldownPeriod: 0
+            initialTipRate: Percentage.wrap(0)
         });
 
         FleetCommander newFleetCommander = new FleetCommander(params);
@@ -522,19 +521,6 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         fleetCommander.setFleetDepositCap(1000);
-    }
-
-    function test_UpdateStakingRewardsManager() public {
-        address initialStakingRewardsManager = fleetCommander
-            .getConfig()
-            .stakingRewardsManager;
-
-        vm.prank(governor);
-        fleetCommander.updateStakingRewardsManager();
-
-        FleetConfig memory config = fleetCommander.getConfig();
-        assertNotEq(config.stakingRewardsManager, initialStakingRewardsManager);
-        assertNotEq(config.stakingRewardsManager, address(0));
     }
 
     function test_TransfersDisabledByDefault() public view {

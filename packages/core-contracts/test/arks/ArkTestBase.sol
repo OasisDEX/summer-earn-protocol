@@ -107,8 +107,7 @@ contract ArkTestBase is TestHelpers {
                 details: "TestArk details",
                 symbol: "TEST-SUM",
                 initialTipRate: toPercentage(0),
-                depositCap: type(uint256).max,
-                initialCooldownPeriod: 0
+                depositCap: type(uint256).max
             });
         FleetCommander fleetCommander = new FleetCommander(
             fleetCommanderParams
@@ -136,8 +135,7 @@ contract ArkTestBase is TestHelpers {
                 details: "TestArk details",
                 symbol: "TEST-SUM",
                 initialTipRate: initialTipRate,
-                depositCap: type(uint256).max,
-                initialCooldownPeriod: 0
+                depositCap: type(uint256).max
             });
         FleetCommander fleetCommander = new FleetCommander(
             fleetCommanderParams

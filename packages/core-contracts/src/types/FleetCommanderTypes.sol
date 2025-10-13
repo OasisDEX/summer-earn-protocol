@@ -3,13 +3,28 @@ pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 
-import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @notice Configuration parameters for the FleetCommander contract
  */
 struct FleetCommanderParams {
+    string name;
+    string details;
+    string symbol;
+    address configurationManager;
+    address accessManager;
+    address asset;
+    uint256 initialMinimumBufferBalance;
+    uint256 initialRebalanceCooldown;
+    uint256 depositCap;
+    Percentage initialTipRate;
+}
+
+/**
+ * @notice Configuration parameters for the CrossChainFleetCommander contract
+ */
+struct CrossChainFleetCommanderParams {
     string name;
     string details;
     string symbol;

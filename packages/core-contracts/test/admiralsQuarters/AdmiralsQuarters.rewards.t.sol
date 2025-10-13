@@ -313,66 +313,6 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
         );
     }
 
-    function test_ClaimFleetRewards() public {
-        // Note: Rewards are already setup in setUp()
-        // Setup: Deposit and enter fleet
-        vm.startPrank(user1);
-        uint256 depositAmount = 100e6;
-
-        // Ensure user has USDC and approvals
-        deal(USDC_ADDRESS, user1, depositAmount);
-        IERC20(USDC_ADDRESS).approve(address(admiralsQuarters), depositAmount);
-
-        // Execute deposit, enter fleet, and stake
-        bytes[] memory depositAndEnterCalls = new bytes[](3);
-        depositAndEnterCalls[0] = abi.encodeCall(
-            admiralsQuarters.depositTokens,
-            (IERC20(USDC_ADDRESS), depositAmount)
-        );
-        depositAndEnterCalls[1] = abi.encodeWithSelector(
-            ENTER_FLEET_SELECTOR,
-            address(usdcFleet),
-            depositAmount,
-            address(admiralsQuarters)
-        );
-        depositAndEnterCalls[2] = abi.encodeCall(
-            admiralsQuarters.stake,
-            (address(usdcFleet), 0) // stake all shares
-        );
-        admiralsQuarters.multicall(depositAndEnterCalls);
-
-        // Warp time to accumulate rewards
-        vm.warp(block.timestamp + 5 days);
-        vm.roll(block.number + 1000);
-
-        // Claim rewards
-        address[] memory fleetCommanders = new address[](1);
-        fleetCommanders[0] = address(usdcFleet);
-
-        uint256 initialRewardBalance = rewardTokens[0].balanceOf(user1);
-
-        bytes[] memory claimCalls = new bytes[](1);
-        claimCalls[0] = abi.encodeCall(
-            admiralsQuarters.claimFleetRewards,
-            (fleetCommanders, address(rewardTokens[0]))
-        );
-        admiralsQuarters.multicall(claimCalls);
-
-        uint256 finalRewardBalance = rewardTokens[0].balanceOf(user1);
-        assertGt(
-            finalRewardBalance,
-            initialRewardBalance,
-            "Should have received fleet rewards"
-        );
-
-        assertEq(
-            rewardTokens[0].balanceOf(address(admiralsQuarters)),
-            0,
-            "Should have no tokens leftover in AdmiralsQuarters"
-        );
-        vm.stopPrank();
-    }
-
     function test_ClaimAllRewardsViaBundledMulticall() public {
         // Setup fleet rewards (already done in setUp())
 
@@ -409,7 +349,7 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
         deal(USDC_ADDRESS, user1, depositAmount);
 
         // Enter fleet and stake
-        bytes[] memory setupCalls = new bytes[](3);
+        bytes[] memory setupCalls = new bytes[](2);
         setupCalls[0] = abi.encodeCall(
             admiralsQuarters.depositTokens,
             (IERC20(USDC_ADDRESS), depositAmount)
@@ -419,10 +359,6 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
             address(usdcFleet),
             depositAmount,
             address(admiralsQuarters)
-        );
-        setupCalls[2] = abi.encodeCall(
-            admiralsQuarters.stake,
-            (address(usdcFleet), 0) // stake all shares
         );
         admiralsQuarters.multicall(setupCalls);
 
@@ -445,7 +381,7 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
         uint256 initialRewardBalance = rewardTokens[0].balanceOf(user1);
 
         // Bundle all claims in a single multicall
-        bytes[] memory claimCalls = new bytes[](3);
+        bytes[] memory claimCalls = new bytes[](2);
         claimCalls[0] = abi.encodeCall(
             admiralsQuarters.claimMerkleRewards,
             (user1, indices, amounts, proofs, address(mockRewardsRedeemer))
@@ -454,10 +390,11 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
             admiralsQuarters.claimGovernanceRewards,
             (address(mockGovRewardsManager), address(rewardTokens[0]))
         );
-        claimCalls[2] = abi.encodeCall(
-            admiralsQuarters.claimFleetRewards,
-            (fleetCommanders, address(rewardTokens[0]))
-        );
+        // Fleet rewards claiming removed - skipping
+        // claimCalls[2] = abi.encodeCall(
+        //     admiralsQuarters.claimFleetRewards,
+        //     (fleetCommanders, address(rewardTokens[0]))
+        // );
         admiralsQuarters.multicall(claimCalls);
 
         uint256 finalRewardBalance = rewardTokens[0].balanceOf(user1);
@@ -466,22 +403,6 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
             initialRewardBalance,
             "Should have received all rewards"
         );
-        vm.stopPrank();
-    }
-
-    function test_ClaimFleetRewards_InvalidFleetCommander() public {
-        vm.startPrank(user1);
-        address[] memory fleetCommanders = new address[](1);
-        fleetCommanders[0] = address(0x123); // Invalid address
-
-        bytes[] memory claimCalls = new bytes[](1);
-        claimCalls[0] = abi.encodeCall(
-            admiralsQuarters.claimFleetRewards,
-            (fleetCommanders, address(rewardTokens[0]))
-        );
-
-        vm.expectRevert(IAdmiralsQuartersErrors.InvalidFleetCommander.selector);
-        admiralsQuarters.multicall(claimCalls);
         vm.stopPrank();
     }
 }

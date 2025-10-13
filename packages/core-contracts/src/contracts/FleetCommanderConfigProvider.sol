@@ -6,11 +6,10 @@ import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
 import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
 
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
-
 import {IFleetCommanderRewardsManagerFactory} from "../interfaces/IFleetCommanderRewardsManagerFactory.sol";
+
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
-import {FleetCommanderRewardsManager} from "./FleetCommanderRewardsManager.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
@@ -74,7 +73,7 @@ contract FleetCommanderConfigProvider is
             stakingRewardsManager: IFleetCommanderRewardsManagerFactory(
                 fleetCommanderRewardsManagerFactory()
             ).createRewardsManager(address(_accessManager), address(this)),
-            cooldownPeriod: params.initialCooldownPeriod
+            cooldownPeriod: 0
         });
         details = params.details;
     }
@@ -187,18 +186,6 @@ contract FleetCommanderConfigProvider is
     ) external onlyCurator(address(this)) whenNotPaused {
         config.depositCap = newCap;
         emit FleetCommanderDepositCapUpdated(newCap);
-    }
-
-    ///@inheritdoc IFleetCommanderConfigProvider
-    function updateStakingRewardsManager()
-        external
-        onlyCurator(address(this))
-        whenNotPaused
-    {
-        config.stakingRewardsManager = IFleetCommanderRewardsManagerFactory(
-            fleetCommanderRewardsManagerFactory()
-        ).createRewardsManager(address(_accessManager), address(this));
-        emit FleetCommanderStakingRewardsUpdated(config.stakingRewardsManager);
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider

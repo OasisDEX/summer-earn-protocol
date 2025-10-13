@@ -5,7 +5,7 @@ import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
-import {UserCooldownEnforcer} from "../utils/CooldownEnforcer/UserCooldownEnforcer.sol";
+import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 
 import {FleetCommanderCache} from "./FleetCommanderCache.sol";
 import {FleetCommanderConfigProvider} from "./FleetCommanderConfigProvider.sol";
@@ -14,7 +14,6 @@ import {Tipper} from "./Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {ICrossChainFleetCommanderErrors} from "../errors/ICrossChainFleetCommanderErrors.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -31,7 +30,7 @@ contract FleetCommander is
     ERC4626,
     Tipper,
     FleetCommanderCache,
-    UserCooldownEnforcer
+    CooldownEnforcer
 {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
@@ -52,11 +51,8 @@ contract FleetCommander is
         ERC20(params.name, params.symbol)
         FleetCommanderConfigProvider(params)
         Tipper(params.initialTipRate)
-        UserCooldownEnforcer(params.initialRebalanceCooldown, false)
-    {
-        // Set user cooldown period from config
-        _setUserCooldownPeriod(params.initialCooldownPeriod);
-    }
+        CooldownEnforcer(params.initialRebalanceCooldown, false)
+    {}
 
     /*//////////////////////////////////////////////////////////////
                             MODIFIERS
@@ -110,9 +106,9 @@ contract FleetCommander is
         address owner
     )
         public
+        virtual
         whenNotPaused
         collectTip
-        enforceUserCooldown(owner)
         useCache
         returns (uint256 shares)
     {
@@ -142,7 +138,6 @@ contract FleetCommander is
         override(ERC4626, IFleetCommander)
         collectTip
         useCache
-        enforceUserCooldown(owner)
         whenNotPaused
         returns (uint256 assets)
     {
@@ -167,9 +162,9 @@ contract FleetCommander is
         address owner
     )
         public
+        virtual
         collectTip
         useCache
-        enforceUserCooldown(owner)
         whenNotPaused
         returns (uint256 assets)
     {
@@ -199,7 +194,6 @@ contract FleetCommander is
         override(ERC4626, IFleetCommander)
         collectTip
         useCache
-        enforceUserCooldown(owner)
         whenNotPaused
         returns (uint256 shares)
     {
@@ -248,10 +242,10 @@ contract FleetCommander is
         address owner
     )
         public
+        virtual
         override(IFleetCommander)
         collectTip
         useWithdrawCache
-        enforceUserCooldown(owner)
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
@@ -285,7 +279,6 @@ contract FleetCommander is
         shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
         _board(address(config.bufferArk), assets);
-        _updateUserLastActionTimestamp(_msgSender());
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -486,13 +479,18 @@ contract FleetCommander is
         _updateCooldown(newCooldown);
     }
 
-    /// @notice Set the cooldown period for deposits
-    /// @param newCooldownPeriod The new cooldown period in seconds
+    /// @inheritdoc IFleetCommander
     function setCooldownPeriod(
         uint256 newCooldownPeriod
-    ) external onlyCurator(address(this)) whenNotPaused {
-        _setUserCooldownPeriod(newCooldownPeriod);
+    ) external virtual onlyCurator(address(this)) whenNotPaused {
+        // Base FleetCommander doesn't enforce user cooldowns, so this is a no-op
+        // This function exists for interface compatibility
         emit FleetCommanderCooldownPeriodUpdated(newCooldownPeriod);
+    }
+
+    function getUserCooldownPeriod() external view virtual returns (uint256) {
+        // Base FleetCommander doesn't enforce user cooldowns, so return 0
+        return 0;
     }
 
     /// @inheritdoc IFleetCommander
@@ -523,7 +521,7 @@ contract FleetCommander is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
+        if (transfersEnabled) {
             return super.transfer(to, amount);
         }
 
@@ -536,7 +534,7 @@ contract FleetCommander is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
+        if (transfersEnabled) {
             return super.transferFrom(from, to, amount);
         }
         revert FleetCommanderTransfersDisabled();

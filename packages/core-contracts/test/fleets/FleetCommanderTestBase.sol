@@ -206,8 +206,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             symbol: "TEST-SUM",
             details: "TestFleet-details",
             initialTipRate: initialTipRate,
-            depositCap: type(uint256).max,
-            initialCooldownPeriod: 0
+            depositCap: type(uint256).max
         });
         fleetCommander = new FleetCommander(fleetCommanderParams);
 

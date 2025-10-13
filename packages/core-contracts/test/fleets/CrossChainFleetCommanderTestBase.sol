@@ -2,8 +2,9 @@
 pragma solidity 0.8.28;
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {CrossChainFleetCommander} from "../../src/contracts/CrossChainFleetCommander.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+import {FleetCommanderParams, CrossChainFleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test} from "forge-std/Test.sol";
@@ -26,10 +27,10 @@ abstract contract FleetCommanderWithCooldownTestBase is
     using PercentageUtils for uint256;
 
     // FleetCommander with cooldown functionality
-    FleetCommander public fleetCommanderWithCooldown;
+    CrossChainFleetCommander public fleetCommanderWithCooldown;
 
     // FleetCommander parameters with cooldown
-    FleetCommanderParams public fleetCommanderParamsWithCooldown;
+    CrossChainFleetCommanderParams public fleetCommanderParamsWithCooldown;
     uint256 public constant COOLDOWN_PERIOD = 1 hours; // 1 hour cooldown
 
     // Test addresses
@@ -107,7 +108,7 @@ abstract contract FleetCommanderWithCooldownTestBase is
         }
 
         // Setup FleetCommander parameters with cooldown
-        fleetCommanderParamsWithCooldown = FleetCommanderParams({
+        fleetCommanderParamsWithCooldown = CrossChainFleetCommanderParams({
             name: fleetName,
             details: "Test FleetCommander with Cooldown",
             symbol: "TEST-SUM",
@@ -121,7 +122,7 @@ abstract contract FleetCommanderWithCooldownTestBase is
             initialCooldownPeriod: COOLDOWN_PERIOD
         });
 
-        fleetCommanderWithCooldown = new FleetCommander(
+        fleetCommanderWithCooldown = new CrossChainFleetCommander(
             fleetCommanderParamsWithCooldown
         );
 
