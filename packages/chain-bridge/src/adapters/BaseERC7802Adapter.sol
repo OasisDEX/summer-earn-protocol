@@ -194,13 +194,6 @@ abstract contract BaseERC7802Adapter is
             );
     }
 
-    function estimateReadState(
-        BridgeTypes.ExecuteReadStateParams calldata,
-        BridgeTypes.BridgeOptions calldata
-    ) external pure returns (uint256, uint256) {
-        revert OperationNotSupported();
-    }
-
     /// @inheritdoc IBridgeAdapter
     function estimateSendMessage(
         BridgeTypes.ExecuteSendMessageParams calldata,

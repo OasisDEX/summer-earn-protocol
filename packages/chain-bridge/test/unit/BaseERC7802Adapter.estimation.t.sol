@@ -103,9 +103,7 @@ contract BaseERC7802AdapterEstimationTest is BaseERC7802AdapterSetupTest {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(adapterA),
-                adapterA.CROSS_CHAIN_REGISTRY().PEER_RELATIONSHIP(),
+                IBaseBridgeAdapterErrors.UntrustedDestinationChain.selector,
                 untrustedChain
             )
         );
@@ -176,33 +174,6 @@ contract BaseERC7802AdapterEstimationTest is BaseERC7802AdapterSetupTest {
         }
         vm.expectRevert(); // Abstract implementation
         adapterA.estimateTransferAssets(params, options);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        ESTIMATE READ STATE TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function test_EstimateReadState_Reverts() public {
-        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
-            .ExecuteReadStateParams({
-                originator: user,
-                destinationChainId: CHAIN_ID_B,
-                target: address(0x1234),
-                selector: bytes4(keccak256("test()")),
-                readParams: "",
-                refundAddress: user
-            });
-
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapterA),
-            gasLimit: 500000,
-            msgValue: 0,
-            calldataSize: 0,
-            options: ""
-        });
-
-        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
-        adapterA.estimateReadState(params, options);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -456,9 +427,7 @@ contract BaseERC7802AdapterEstimationTest is BaseERC7802AdapterSetupTest {
         params.destinationChainId = CHAIN_ID_A;
         vm.expectRevert(
             abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(adapterA),
-                adapterA.CROSS_CHAIN_REGISTRY().PEER_RELATIONSHIP(),
+                IBaseBridgeAdapterErrors.UntrustedDestinationChain.selector,
                 CHAIN_ID_A
             )
         ); // Same chain not trusted

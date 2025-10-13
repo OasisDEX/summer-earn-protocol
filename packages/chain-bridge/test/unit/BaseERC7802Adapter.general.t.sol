@@ -292,27 +292,6 @@ contract BaseERC7802AdapterGeneralTest is ERC7802OFTAdapterSetupTest {
         // Test would need to call estimate with untrusted destination
     }
 
-    function test_EstimateReadState_Reverts() public {
-        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
-        adapterA.estimateReadState(
-            BridgeTypes.ExecuteReadStateParams({
-                originator: address(0),
-                destinationChainId: 0,
-                target: address(0),
-                selector: bytes4(0),
-                readParams: "",
-                refundAddress: address(0)
-            }),
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(0),
-                gasLimit: 0,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            })
-        );
-    }
-
     function test_EstimateSendMessage_Reverts() public {
         vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
         adapterA.estimateSendMessage(

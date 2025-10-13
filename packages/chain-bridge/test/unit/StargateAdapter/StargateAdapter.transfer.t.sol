@@ -5,6 +5,7 @@ import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
 
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 
 import {ICrossChainRegistry} from "../../../src/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
@@ -63,9 +64,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
         // Should revert when estimating fee for unsupported chain
         vm.expectRevert(
             abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(adapterA),
-                registryA.PEER_RELATIONSHIP(),
+                IBaseBridgeAdapterErrors.UntrustedDestinationChain.selector,
                 9999
             )
         );
@@ -224,9 +223,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
         vm.prank(address(routerA));
         vm.expectRevert(
             abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(adapterA),
-                registryA.PEER_RELATIONSHIP(),
+                IBaseBridgeAdapterErrors.UntrustedDestinationChain.selector,
                 9999
             )
         );
