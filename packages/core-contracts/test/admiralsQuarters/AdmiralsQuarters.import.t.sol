@@ -5,7 +5,6 @@ import {AdmiralsQuarters} from "../../src/contracts/AdmiralsQuarters.sol";
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {IAggregationRouterV6} from "../../src/interfaces/1inch/IAggregationRouterV6.sol";
-// import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol"; // Removed - no longer needed
 
 import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
 import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";
@@ -152,11 +151,6 @@ contract AdmiralsQuartersImportTest is
             address(admiralsQuarters)
         );
 
-        // importCalls[2] = abi.encodeCall(
-        //     admiralsQuarters.stake,
-        //     (address(usdcFleet), 0)
-        // ); // Removed - staking functionality no longer available
-
         admiralsQuarters.multicall(importCalls);
 
         // Verify results
@@ -165,13 +159,6 @@ contract AdmiralsQuartersImportTest is
             balanceBefore - cTokenAmount - 1,
             "Should have no cUSDC left"
         );
-        // assertGt(
-        //     IFleetCommanderRewardsManager(
-        //         usdcFleet.getConfig().stakingRewardsManager
-        //     ).balanceOf(user1),
-        //     0,
-        //     "Should have USDC fleet shares"
-        // ); // Removed - staking functionality no longer available
 
         vm.stopPrank();
     }
@@ -197,10 +184,6 @@ contract AdmiralsQuartersImportTest is
             0,
             address(admiralsQuarters)
         );
-        // importCalls[2] = abi.encodeCall(
-        //     admiralsQuarters.stake,
-        //     (address(usdcFleet), 0)
-        // ); // Removed - staking functionality no longer available
 
         admiralsQuarters.multicall(importCalls);
 
@@ -210,13 +193,6 @@ contract AdmiralsQuartersImportTest is
             initialUserBalance - aTokenAmount - 1,
             "Should have no aUSDC left"
         );
-        // assertGt(
-        //     IFleetCommanderRewardsManager(
-        //         usdcFleet.getConfig().stakingRewardsManager
-        //     ).balanceOf(AUSDC_HOLDER),
-        //     0,
-        //     "Should have USDC fleet shares"
-        // ); // Removed - staking functionality no longer available
 
         vm.stopPrank();
     }
@@ -246,10 +222,6 @@ contract AdmiralsQuartersImportTest is
             0,
             address(admiralsQuarters)
         );
-        // importCalls[2] = abi.encodeCall(
-        //     admiralsQuarters.stake,
-        //     (address(usdcFleet), 0)
-        // ); // Removed - staking functionality no longer available
 
         admiralsQuarters.multicall(importCalls);
 
@@ -269,13 +241,6 @@ contract AdmiralsQuartersImportTest is
             0,
             "AdmiralsQuarters should have no USDC 4626 vault tokens left"
         );
-        // assertGt(
-        //     IFleetCommanderRewardsManager(
-        //         usdcFleet.getConfig().stakingRewardsManager
-        //     ).balanceOf(user1),
-        //     0,
-        //     "Should have USDC fleet shares"
-        // ); // Removed - staking functionality no longer available
 
         vm.stopPrank();
     }
@@ -328,10 +293,6 @@ contract AdmiralsQuartersImportTest is
             0,
             address(admiralsQuarters)
         );
-        // importCalls[4] = abi.encodeCall(
-        //     admiralsQuarters.stake,
-        //     (address(usdcFleet), 0)
-        // ); // Removed - staking functionality no longer available
 
         admiralsQuarters.multicall(importCalls);
 
@@ -351,13 +312,6 @@ contract AdmiralsQuartersImportTest is
             erc4626sharesBefore - vaultSharesAmount,
             "Should have less shares left"
         );
-        // assertGt(
-        //     IFleetCommanderRewardsManager(
-        //         usdcFleet.getConfig().stakingRewardsManager
-        //     ).balanceOf(user1),
-        //     0,
-        //     "Should have USDC fleet shares"
-        // ); // Removed - staking functionality no longer available
 
         vm.stopPrank();
     }
