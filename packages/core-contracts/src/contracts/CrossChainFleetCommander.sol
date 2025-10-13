@@ -13,7 +13,6 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {IFleetCommanderConfigProviderEvents} from "../events/IFleetCommanderConfigProviderEvents.sol";
 
 /**
  * @title CrossChainFleetCommander
@@ -21,11 +20,7 @@ import {IFleetCommanderConfigProviderEvents} from "../events/IFleetCommanderConf
  * @dev Implements a cooldown period between deposits and withdrawals to prevent
  *      MEV attacks and sandwich attacks on cross-chain operations
  */
-contract CrossChainFleetCommander is
-    FleetCommander,
-    ICrossChainFleetCommander,
-    IFleetCommanderConfigProviderEvents
-{
+contract CrossChainFleetCommander is FleetCommander, ICrossChainFleetCommander {
     using Math for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -87,7 +82,7 @@ contract CrossChainFleetCommander is
     /// @notice Get the timestamp when a user can next withdraw/redeem
     function getNextWithdrawTimestamp(
         address user
-    ) external view returns (uint256 timestamp) {
+    ) public view returns (uint256 timestamp) {
         uint256 lastDeposit = lastDepositTimestamp[user];
         if (lastDeposit == 0) {
             return 0; // No previous deposit
@@ -99,7 +94,7 @@ contract CrossChainFleetCommander is
     function canWithdraw(
         address user
     ) external view returns (bool canWithdrawNow) {
-        uint256 nextWithdrawTimestamp = this.getNextWithdrawTimestamp(user);
+        uint256 nextWithdrawTimestamp = getNextWithdrawTimestamp(user);
         if (nextWithdrawTimestamp == 0) {
             return true; // No previous deposit
         }
