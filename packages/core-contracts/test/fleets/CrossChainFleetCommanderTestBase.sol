@@ -264,7 +264,7 @@ abstract contract FleetCommanderWithCooldownTestBase is
      * @return period The cooldown period in seconds
      */
     function getCooldownPeriod() internal view returns (uint256 period) {
-        return fleetCommanderWithCooldown.getCooldownPeriod();
+        return fleetCommanderWithCooldown.getUserCooldownPeriod();
     }
 
     /**
@@ -275,7 +275,7 @@ abstract contract FleetCommanderWithCooldownTestBase is
     function getNextWithdrawTimestamp(
         address user
     ) internal view returns (uint256 timestamp) {
-        return fleetCommanderWithCooldown.getNextWithdrawTimestamp(user);
+        return fleetCommanderWithCooldown.getNextUserActionTimestamp(user);
     }
 
     /**
@@ -286,7 +286,7 @@ abstract contract FleetCommanderWithCooldownTestBase is
     function canWithdraw(
         address user
     ) internal view returns (bool canWithdrawNow) {
-        return fleetCommanderWithCooldown.canWithdraw(user);
+        return fleetCommanderWithCooldown.canUserPerformAction(user);
     }
 
     /**

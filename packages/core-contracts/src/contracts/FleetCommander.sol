@@ -38,10 +38,6 @@ contract FleetCommander is
     using Math for uint256;
 
     /*//////////////////////////////////////////////////////////////
-                            STATE VARIABLES
-    //////////////////////////////////////////////////////////////*/
-
-    /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
@@ -112,7 +108,14 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
+    )
+        public
+        whenNotPaused
+        collectTip
+        enforceUserCooldown(owner)
+        useCache
+        returns (uint256 shares)
+    {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -162,7 +165,14 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
+    )
+        public
+        collectTip
+        useCache
+        enforceUserCooldown(owner)
+        whenNotPaused
+        returns (uint256 assets)
+    {
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -241,6 +251,7 @@ contract FleetCommander is
         override(IFleetCommander)
         collectTip
         useWithdrawCache
+        enforceUserCooldown(owner)
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
@@ -432,25 +443,6 @@ contract FleetCommander is
             previewWithdraw(config.bufferArk.totalAssets()),
             balanceOf(owner)
         );
-    }
-
-    /// @notice Get the cooldown period
-    function getCooldownPeriod() external view returns (uint256 period) {
-        return getUserCooldownPeriod();
-    }
-
-    /// @notice Get the timestamp when a user can next withdraw/redeem
-    function getNextWithdrawTimestamp(
-        address user
-    ) public view returns (uint256 timestamp) {
-        return getNextUserActionTimestamp(user);
-    }
-
-    /// @notice Check if a user can withdraw/redeem (cooldown has passed)
-    function canWithdraw(
-        address user
-    ) external view returns (bool canWithdrawNow) {
-        return canUserPerformAction(user);
     }
 
     /*//////////////////////////////////////////////////////////////
