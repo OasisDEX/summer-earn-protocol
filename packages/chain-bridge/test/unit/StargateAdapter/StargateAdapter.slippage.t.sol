@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
+import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
 
 contract StargateAdapterSlippageGovernanceTest is StargateAdapterSetupTest {
     function testSetSlippageTolerance_OnlyGovernor() public {
@@ -22,14 +23,24 @@ contract StargateAdapterSlippageGovernanceTest is StargateAdapterSetupTest {
     function testSetSlippageTolerance_RevertBelowMin() public {
         useNetworkA();
         vm.prank(governor);
-        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                StargateAdapter.InvalidSlippageTolerance.selector,
+                0
+            )
+        );
         adapterA.setSlippageTolerance(0); // below MIN_SLIPPAGE_BPS (1)
     }
 
     function testSetSlippageTolerance_RevertAboveMax() public {
         useNetworkA();
         vm.prank(governor);
-        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                StargateAdapter.InvalidSlippageTolerance.selector,
+                1001
+            )
+        );
         adapterA.setSlippageTolerance(1001); // above MAX_SLIPPAGE_BPS (1000)
     }
 }

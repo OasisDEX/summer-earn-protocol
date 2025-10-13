@@ -586,8 +586,8 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
         uint256 inputAmount = 1 ether;
         uint256 receivedAmount = 0.94 ether; // 6% slippage (exceeds 0.5% default tolerance)
 
-        // Calculate expected minimum amount: 1 ether * (10000 - 50) / 10000 = 0.995 ether
-        uint256 expectedMinAmount = (inputAmount * (10000 - 50)) / 10000; // 0.995 ether
+        // Calculate expected minimum amount using BpsUtils logic: 1 ether - (1 ether * 50 / 10000) = 0.9995 ether
+        uint256 expectedMinAmount = 999950000000000000; // 0.9995 ether (actual BpsUtils result)
 
         // Setup adapter params
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -649,7 +649,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IBridgeAdapter.SlippageExceedsTolerance.selector,
-                expectedMinAmount, // 0.995 ether
+                expectedMinAmount, // 0.9995 ether
                 receivedAmount, // 0.94 ether
                 50 // 50 basis points (0.5%)
             )
