@@ -189,7 +189,6 @@ contract CrossChainFleetCommanderConfigurableCooldownTest is
     function testCooldownUpdateAffectsExistingUsers() public {
         // User1 deposits with original cooldown period
         performDeposit(user1, DEPOSIT_AMOUNT, user1);
-        uint256 originalNextWithdrawTime = getNextWithdrawTimestamp(user1);
 
         // Update cooldown period
         uint256 newCooldownPeriod = 2 hours;

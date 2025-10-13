@@ -109,8 +109,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 tipJar: address(0xdead),
                 raft: address(0xbeef), // any non-zero address is fine for the test
                 treasury: address(0xcafe),
-                harborCommand: address(0xface),
-                fleetCommanderRewardsManagerFactory: address(0xf00d)
+                harborCommand: address(0xface)
             })
         );
         vm.stopPrank();
@@ -295,7 +294,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address target,
             address asset,
             uint256 storedAmount,
-            bytes memory message,
+            bytes memory _message,
             address refundAddress
         ) = ark.pendingTransferParams();
 
@@ -405,7 +404,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address target,
             address asset,
             uint256 storedAmount,
-            bytes memory message,
+            bytes memory _message,
             address refundAddress
         ) = ark.pendingTransferParams();
 

@@ -14,8 +14,6 @@ import {IArk} from "../../src/interfaces/IArk.sol";
 contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     using PercentageUtils for uint256;
 
-    bool public transfersEnabled;
-
     FleetConfig public config;
     address[] public arks;
     mapping(address => bool) public isArkActiveOrBufferArk;
@@ -214,7 +212,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     function unstake(uint256 shares) external {}
 
     function setFleetTokenTransferability() external {
-        transfersEnabled = true;
+        // Transfer functionality has been removed
     }
 
     function setCooldownPeriod(uint256 newCooldownPeriod) external {

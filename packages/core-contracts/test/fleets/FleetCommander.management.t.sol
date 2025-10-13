@@ -89,20 +89,6 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         assertEq(config.minimumBufferBalance, newBalance);
     }
 
-    function test_TransferDisabled() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("FleetCommanderTransfersDisabled()")
-        );
-        fleetCommander.transfer(address(0x123), 100);
-    }
-
-    function test_TransferFromDisabled() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("FleetCommanderTransfersDisabled()")
-        );
-        fleetCommander.transferFrom(address(this), address(0x123), 100);
-    }
-
     function test_RemoveArkWithNonZeroAllocation() public {
         vm.prank(governor);
         vm.expectRevert(
@@ -523,55 +509,16 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommander.setFleetDepositCap(1000);
     }
 
-    function test_UpdateStakingRewardsManager() public {
-        address initialStakingRewardsManager = fleetCommander
-            .getConfig()
-            .stakingRewardsManager;
-
-        vm.prank(governor);
-        fleetCommander.updateStakingRewardsManager();
-
-        FleetConfig memory config = fleetCommander.getConfig();
-        assertNotEq(config.stakingRewardsManager, initialStakingRewardsManager);
-        assertNotEq(config.stakingRewardsManager, address(0));
-    }
-
-    function test_TransfersDisabledByDefault() public view {
-        assertEq(
-            fleetCommander.transfersEnabled(),
-            false,
-            "Transfers should be disabled by default"
-        );
-    }
-
-    function test_SetTransfersEnabled() public {
-        vm.prank(governor);
-        fleetCommander.setFleetTokenTransferability();
-
-        assertEq(
-            fleetCommander.transfersEnabled(),
-            true,
-            "Transfers should be enabled after setting"
-        );
-    }
-
-    function test_SetTransfersEnabled_EmitsEvent() public {
-        vm.prank(governor);
-
-        vm.expectEmit(true, true, true, true);
-        emit IFleetCommanderConfigProviderEvents.TransfersEnabled();
-        fleetCommander.setFleetTokenTransferability();
-    }
-
-    function test_SetTransfersEnabled_OnlyGovernor() public {
-        // Test non-governor cannot enable transfers
-        vm.prank(address(0x123));
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "CallerIsNotGovernor(address)",
-                address(0x123)
-            )
-        );
-        fleetCommander.setFleetTokenTransferability();
-    }
+    // function test_UpdateStakingRewardsManager() public {
+    //     address initialStakingRewardsManager = fleetCommander
+    //         .getConfig()
+    //         .stakingRewardsManager;
+    //
+    //     vm.prank(governor);
+    //     fleetCommander.updateStakingRewardsManager();
+    //
+    //     FleetConfig memory config = fleetCommander.getConfig();
+    //     assertNotEq(config.stakingRewardsManager, initialStakingRewardsManager);
+    //     assertNotEq(config.stakingRewardsManager, address(0));
+    // }
 }

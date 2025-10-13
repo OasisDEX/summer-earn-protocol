@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 
-import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
@@ -53,10 +52,6 @@ struct FleetConfig {
      * @notice The maximum number of rebalance operations in a single rebalance
      */
     uint256 maxRebalanceOperations;
-    /**
-     * @notice The address of the staking rewards contract
-     */
-    address stakingRewardsManager;
     /**
      * @notice The cooldown period between deposit and withdraw/redeem (in seconds)
      * @dev This value is used to prevent MEV attacks and sandwich attacks on cross-chain operations

@@ -14,7 +14,6 @@ import {Tipper} from "./Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
@@ -481,34 +480,6 @@ contract FleetCommander is
     /// @inheritdoc IFleetCommander
     function unpause() external onlyGuardianOrGovernor {
         _unpause();
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        PUBLIC ERC20 FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IERC20
-    function transfer(
-        address to,
-        uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
-            return super.transfer(to, amount);
-        }
-
-        revert FleetCommanderTransfersDisabled();
-    }
-
-    /// @inheritdoc IERC20
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
-            return super.transferFrom(from, to, amount);
-        }
-        revert FleetCommanderTransfersDisabled();
     }
 
     /*//////////////////////////////////////////////////////////////

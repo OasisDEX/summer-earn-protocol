@@ -5,7 +5,7 @@ import {AdmiralsQuarters} from "../../src/contracts/AdmiralsQuarters.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {IAdmiralsQuartersErrors} from "../../src/errors/IAdmiralsQuartersErrors.sol";
 import {IAdmiralsQuarters} from "../../src/interfaces/IAdmiralsQuarters.sol";
-import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
+// import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol"; // Removed - staking functionality no longer available
 import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
@@ -74,14 +74,14 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
         accessManager.grantAdmiralsQuartersRole(address(admiralsQuarters));
 
         // Setup initial rewards
-        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
-        deal(address(rewardTokens[0]), governor, 1000e6);
-        rewardTokens[0].approve(address(rewardsManager), 1000e6);
-        IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
-            address(rewardTokens[0]),
-            1000e6,
-            10 days
-        );
+        // address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+        // deal(address(rewardTokens[0]), governor, 1000e6);
+        // rewardTokens[0].approve(address(rewardsManager), 1000e6);
+        // IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
+        //     address(rewardTokens[0]),
+        //     1000e6,
+        //     10 days
+        // ); // Removed - staking functionality no longer available
         vm.stopPrank();
 
         // Setup user

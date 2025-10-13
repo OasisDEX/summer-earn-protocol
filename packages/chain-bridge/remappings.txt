@@ -4,3 +4,4 @@ forge-std/=node_modules/@summerfi/dependencies/lib/forge-std/src/
 @summerfi/access-contracts/=node_modules/@summerfi/access-contracts/src/
 solmate/=node_modules/@summerfi/dependencies/lib/solmate/
 @stargatefinance/stg-evm-v2/=node_modules/@stargatefinance/stg-evm-v2/
+@pendle/core-v2/contracts/=node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/

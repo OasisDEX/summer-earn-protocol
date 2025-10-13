@@ -80,10 +80,7 @@ contract ArkTestBase is TestHelpers {
                     tipJar: tipJar,
                     raft: raft,
                     treasury: treasury,
-                    harborCommand: address(harborCommand),
-                    fleetCommanderRewardsManagerFactory: address(
-                        fleetCommanderRewardsManagerFactory
-                    )
+                    harborCommand: address(harborCommand)
                 })
             );
         }

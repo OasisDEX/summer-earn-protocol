@@ -138,7 +138,6 @@ contract CrossChainFleetCommanderCooldownTest is
     function testMultipleDepositsUpdateTimestamp() public {
         // First deposit
         performDeposit(user1, DEPOSIT_AMOUNT, user1);
-        uint256 firstDepositTime = block.timestamp;
 
         // Wait half the cooldown period
         vm.warp(block.timestamp + COOLDOWN_PERIOD / 2);
