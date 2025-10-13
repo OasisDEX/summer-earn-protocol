@@ -24,6 +24,12 @@ interface ICrossChainFleetCommander {
         uint256 cooldownTimestamp
     );
 
+    /**
+     * @notice Emitted when the user cooldown period is updated
+     * @param newCooldownPeriod The new cooldown period in seconds
+     */
+    event UserCooldownPeriodUpdated(uint256 newCooldownPeriod);
+
     /*//////////////////////////////////////////////////////////////
                             COOLDOWN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
