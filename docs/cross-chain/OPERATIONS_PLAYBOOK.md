@@ -22,6 +22,16 @@ This document provides a practical runbook for keepers and operators.
   - Ark: `inflightAssets` is set on execution and cleared when a corresponding remote balance update is processed for the latest outgoing operation. Track `InflightSet(amount, operationId)` and `InflightCleared(operationId, amount)` alongside `RemoteAssetBalanceUpdated`.
   - FleetProxy: `latestIncomingTransferId` advances on deposits. For withdrawals, track `InflightSet(amount, operationId)` on initiation and clear inflight via `acknowledgeHubReceipt(operationId)` (SuperKeeper) once receipt is verified on the hub, emitting `InflightCleared(operationId, amount)`. Governance can `forceUpdateInflightAssets(amount)` for emergency correction.
 
+#### ERC7802 Adapter Operations
+
+For ERC7802 adapters (ERC7802OFTAdapter, ERC7802SuperchainAdapter), additional monitoring and finalization steps are required:
+
+- Monitor for tokens minted to ERC7802 adapters on destination chains
+- Call `finalize(operationId, params)` to complete delivery after tokens are minted
+- Alert on pending finalizations that exceed time thresholds (e.g., >30 minutes)
+- Track finalization success/failure events and adapter balance changes
+- Ensure authorized executors are configured for finalization calls
+
 #### Failure and Recovery
 
 - Bridge delivery failure: 

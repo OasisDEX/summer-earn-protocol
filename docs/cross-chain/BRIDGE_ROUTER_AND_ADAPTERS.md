@@ -59,7 +59,22 @@ router.executeTransferAssets{ value: nativeFee }(params, opts);
 - Implement a fee estimation method that the router (or callers) can use.
 - Implement operation-specific methods to execute the transfer/message/read-state on the source chain.
 - Implement destination-side delivery that authenticates and calls back into the local BridgeRouter.
-- Only registered adapters are allowed to invoke the router’s delivery entry points.
+- Only registered adapters are allowed to invoke the router's delivery entry points.
+
+#### Adapter Execution Models
+
+There are two distinct execution models for cross-chain delivery:
+
+**Automated Adapters** (StargateAdapter, LayerZeroAdapter):
+- Delivery completes automatically via protocol callbacks (e.g., `lzCompose`)
+- No keeper intervention required on destination chain
+- Tokens are delivered directly to the end recipient through the router
+
+**Manual Finalization Adapters** (ERC7802OFTAdapter, ERC7802SuperchainAdapter):
+- Require keeper to call `finalize()` after tokens are minted to the adapter
+- Transport protocol (e.g., OP Stack) delivers message and mints tokens to adapter
+- Keeper must monitor for minted tokens and call `finalize(operationId, params)` to complete delivery
+- This is a keeper responsibility, not a protocol limitation
 
 #### Delivery to Recipients
 
