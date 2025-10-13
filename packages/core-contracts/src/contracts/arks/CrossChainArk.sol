@@ -173,7 +173,7 @@ contract CrossChainArk is
     function executeTransferAssets() external payable onlyKeeper {
         _assertCanExecuteTransfer();
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
-        config.asset.approve(
+        config.asset.forceApprove(
             address(bridgeRouter),
             pendingTransferParams.amount
         );
