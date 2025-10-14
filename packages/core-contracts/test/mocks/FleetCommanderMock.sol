@@ -210,6 +210,6 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     function unstake(uint256 shares) external {}
 
     function setCooldownPeriod(uint256 newCooldownPeriod) external {
-        config.cooldownPeriod = newCooldownPeriod;
+        config.userCooldownPeriod = newCooldownPeriod;
     }
 }

@@ -19,6 +19,7 @@ struct FleetCommanderParams {
     uint256 initialRebalanceCooldown;
     uint256 depositCap;
     Percentage initialTipRate;
+    uint256 userCooldownPeriod;
 }
 
 /**
@@ -53,15 +54,14 @@ struct FleetConfig {
      */
     uint256 maxRebalanceOperations;
     /**
+     * @notice The cooldown period between rebalance operations (in seconds)
+     * @dev This value prevents too frequent rebalancing operations
+     */
+    uint256 rebalanceCooldown;
+    /**
      * @notice The cooldown period between deposit and withdraw/redeem (in seconds)
      * @dev This value is used to prevent MEV attacks and sandwich attacks on cross-chain operations
-     * @dev For CrossChainFleetCommander, this is the user-specific cooldown period
-     */
-    uint256 cooldownPeriod;
-    /**
-     * @notice The user-specific cooldown period between deposit and withdraw/redeem (in seconds)
-     * @dev This value is used specifically for CrossChainFleetCommander to prevent MEV attacks
-     *      and sandwich attacks on cross-chain operations. Separate from rebalancing cooldown.
+     *      Default is 0 (no cooldown), can be set to any value to enable cooldown protection
      */
     uint256 userCooldownPeriod;
 }

@@ -50,7 +50,11 @@ contract FleetCommander is
         ERC20(params.name, params.symbol)
         FleetCommanderConfigProvider(params)
         Tipper(params.initialTipRate)
-        CooldownEnforcer(params.initialRebalanceCooldown, false)
+        CooldownEnforcer(
+            params.initialRebalanceCooldown,
+            params.userCooldownPeriod,
+            false
+        )
     {}
 
     /*//////////////////////////////////////////////////////////////
@@ -105,10 +109,10 @@ contract FleetCommander is
         address owner
     )
         public
-        virtual
         whenNotPaused
         collectTip
         useCache
+        enforceUserDepositCooldown(owner)
         returns (uint256 shares)
     {
         shares = previewWithdraw(assets);
@@ -133,11 +137,11 @@ contract FleetCommander is
         address owner
     )
         public
-        virtual
         override(ERC4626, IFleetCommander)
         collectTip
         useCache
         whenNotPaused
+        enforceUserDepositCooldown(owner)
         returns (uint256 assets)
     {
         uint256 bufferBalance = config.bufferArk.totalAssets();
@@ -161,10 +165,10 @@ contract FleetCommander is
         address owner
     )
         public
-        virtual
         collectTip
         useCache
         whenNotPaused
+        enforceUserDepositCooldown(owner)
         returns (uint256 assets)
     {
         _validateBufferRedeem(shares, owner);
@@ -189,11 +193,11 @@ contract FleetCommander is
         address owner
     )
         public
-        virtual
         override(ERC4626, IFleetCommander)
         collectTip
         useCache
         whenNotPaused
+        enforceUserDepositCooldown(owner)
         returns (uint256 shares)
     {
         uint256 bufferBalance = config.bufferArk.totalAssets();
@@ -217,11 +221,11 @@ contract FleetCommander is
         address owner
     )
         public
-        virtual
         override(IFleetCommander)
         collectTip
         useWithdrawCache
         whenNotPaused
+        enforceUserDepositCooldown(owner)
         returns (uint256 totalSharesToRedeem)
     {
         totalSharesToRedeem = previewWithdraw(assets);
@@ -230,7 +234,7 @@ contract FleetCommander is
 
         _forceDisembarkFromSortedArks(assets);
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
-        _resetLastActionTimestamp();
+        _resetLastRebalanceTimestamp();
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
@@ -242,11 +246,11 @@ contract FleetCommander is
         address owner
     )
         public
-        virtual
         override(IFleetCommander)
         collectTip
         useWithdrawCache
         whenNotPaused
+        enforceUserDepositCooldown(owner)
         returns (uint256 totalAssetsToWithdraw)
     {
         _validateRedeemFromArks(shares, owner);
@@ -255,7 +259,7 @@ contract FleetCommander is
 
         _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
         _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
-        _resetLastActionTimestamp();
+        _resetLastRebalanceTimestamp();
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
 
@@ -265,7 +269,6 @@ contract FleetCommander is
         address receiver
     )
         public
-        virtual
         override(ERC4626, IERC4626)
         collectTip
         useCache
@@ -279,6 +282,9 @@ contract FleetCommander is
         shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
         _board(address(config.bufferArk), assets);
+
+        // Update the receiver's last deposit timestamp
+        _recordDepositTimestamp(receiver);
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -361,7 +367,6 @@ contract FleetCommander is
     function totalAssets()
         public
         view
-        virtual
         override(IFleetCommander, ERC4626)
         returns (uint256)
     {
@@ -445,7 +450,7 @@ contract FleetCommander is
     /// @inheritdoc IFleetCommander
     function rebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
+    ) external onlyKeeper enforceRebalanceCooldown collectTip whenNotPaused {
         _validateReallocateAllAssets(rebalanceData);
         _validateAdjustBuffer(rebalanceData);
         _reallocateAllAssets(rebalanceData);
@@ -469,7 +474,7 @@ contract FleetCommander is
     function updateRebalanceCooldown(
         uint256 newCooldown
     ) external onlyCurator(address(this)) whenNotPaused {
-        _updateCooldown(newCooldown);
+        _updateRebalanceCooldown(newCooldown);
     }
 
     /// @inheritdoc IFleetCommander
@@ -496,6 +501,29 @@ contract FleetCommander is
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Override of ERC20 _update to handle cooldown timestamp propagation
+     * @param from The address tokens are transferred from (0 for minting)
+     * @param to The address tokens are transferred to (0 for burning)
+     * @param value The amount of tokens being transferred
+     * @dev When shares are transferred between non-zero addresses, propagates the cooldown timestamp
+     *      from sender to recipient if the sender has a more recent (or only) cooldown timestamp.
+     *      This prevents users from bypassing cooldown restrictions by transferring shares.
+     */
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal override {
+        // Call parent _update to handle the actual transfer
+        super._update(from, to, value);
+
+        // Only propagate cooldown for transfers between non-zero addresses (not mint/burn)
+        if (from != address(0) && to != address(0)) {
+            _propagateCooldownTimestamp(from, to);
+        }
+    }
+
+    /**
      * @notice Mints new shares as tips to the specified account
      * @dev This function overrides the abstract _mintTip function from the Tipper contract.
      *      It is called internally by the _accrueTip function to mint new shares as tips.
@@ -505,10 +533,7 @@ contract FleetCommander is
      * @param account The address to receive the minted tip shares
      * @param amount The amount of shares to mint as a tip
      */
-    function _mintTip(
-        address account,
-        uint256 amount
-    ) internal virtual override {
+    function _mintTip(address account, uint256 amount) internal override {
         _mint(account, amount);
     }
 

@@ -66,8 +66,8 @@ contract FleetCommanderConfigProvider is
             minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-            cooldownPeriod: 0, // Default cooldown period for regular FleetCommander
-            userCooldownPeriod: 0 // Is set in CrossChainFleetCommander constructor
+            rebalanceCooldown: params.initialRebalanceCooldown,
+            userCooldownPeriod: params.userCooldownPeriod // User cooldown period, default 0 (no cooldown)
         });
         details = params.details;
     }
