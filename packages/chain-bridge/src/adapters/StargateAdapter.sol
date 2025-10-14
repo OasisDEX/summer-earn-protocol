@@ -15,6 +15,7 @@ import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/in
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {BpsUtils} from "../helpers/BpsUtils.sol";
+import {Bps, toBps, fromBps} from "../helpers/Bps.sol";
 import {LayerZeroComposeHelper} from "../helpers/LayerZeroComposeHelper.sol";
 
 /**
@@ -50,13 +51,13 @@ contract StargateAdapter is
         public stargateContractToAsset;
 
     /// @notice Maximum slippage tolerance (10% = 1000 basis points)
-    uint256 public constant MAX_SLIPPAGE_BPS = 1000;
+    Bps public constant MAX_SLIPPAGE_BPS = Bps.wrap(1000);
 
     /// @notice Minimum slippage tolerance (0.01% = 1 basis point)
-    uint256 public constant MIN_SLIPPAGE_BPS = 1;
+    Bps public constant MIN_SLIPPAGE_BPS = Bps.wrap(1);
 
     /// @notice Default slippage tolerance in basis points (0.5% = 50 basis points)
-    uint256 public slippageToleranceBps = 50;
+    Bps public slippageToleranceBps = Bps.wrap(50);
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -70,7 +71,7 @@ contract StargateAdapter is
     );
 
     /// @notice Emitted when slippage tolerance is updated
-    event SlippageToleranceUpdated(uint256 newSlippageBps);
+    event SlippageToleranceUpdated(Bps newSlippageBps);
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -124,11 +125,11 @@ contract StargateAdapter is
      * @notice Sets the slippage tolerance for fallback minimum amount calculation
      * @param _slippageBps New slippage tolerance in basis points (e.g., 50 = 0.5%)
      */
-    function setSlippageTolerance(uint256 _slippageBps) external onlyGovernor {
+    function setSlippageTolerance(Bps _slippageBps) external onlyGovernor {
         if (
             _slippageBps < MIN_SLIPPAGE_BPS || _slippageBps > MAX_SLIPPAGE_BPS
         ) {
-            revert InvalidSlippageTolerance(_slippageBps);
+            revert InvalidSlippageTolerance(fromBps(_slippageBps));
         }
         slippageToleranceBps = _slippageBps;
         emit SlippageToleranceUpdated(_slippageBps);
@@ -400,9 +401,9 @@ contract StargateAdapter is
         // Refund any unused native value (buffer) back to the designated refund address
         uint256 refundAmount = providedFee - messagingFee.nativeFee;
         if (refundAmount > 0) {
-            (bool success, ) = payable(params.refundAddress).call{
-                value: refundAmount
-            }("");
+            (bool success, ) = params.refundAddress.call{value: refundAmount}(
+                ""
+            );
             if (!success) {
                 revert RefundFailed(params.refundAddress, refundAmount);
             }

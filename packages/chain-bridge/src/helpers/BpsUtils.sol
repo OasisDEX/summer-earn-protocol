@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {Percentage, PERCENTAGE_100, PERCENTAGE_FACTOR} from "@summerfi/percentage-solidity/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/PercentageUtils.sol";
+import {Bps, BPS_FACTOR, toBps, fromBps} from "./Bps.sol";
 
 /**
  * @title BpsUtils
@@ -12,18 +13,15 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/PercentageUtils.sol
 library BpsUtils {
     using PercentageUtils for uint256;
 
-    /// @notice Basis points factor (10000 = 100%)
-    uint256 public constant BPS_FACTOR = 10000;
-
     /**
      * @notice Converts basis points to Percentage type
      * @param bps Basis points value (e.g., 50 = 0.5%)
      * @return percentage The equivalent Percentage value
      */
-    function bpsToPercentage(uint256 bps) internal pure returns (Percentage) {
+    function bpsToPercentage(Bps bps) internal pure returns (Percentage) {
         // Convert BPS to percentage with 18 decimals
         // Formula: (bps * PERCENTAGE_FACTOR) / BPS_FACTOR
-        return Percentage.wrap((bps * PERCENTAGE_FACTOR) / BPS_FACTOR);
+        return Percentage.wrap((fromBps(bps) * PERCENTAGE_FACTOR) / BPS_FACTOR);
     }
 
     /**
@@ -33,10 +31,13 @@ library BpsUtils {
      */
     function percentageToBps(
         Percentage percentage
-    ) internal pure returns (uint256) {
+    ) internal pure returns (Bps) {
         // Convert percentage to BPS
         // Formula: (percentage * BPS_FACTOR) / PERCENTAGE_FACTOR
-        return (Percentage.unwrap(percentage) * BPS_FACTOR) / PERCENTAGE_FACTOR;
+        return
+            toBps(
+                (Percentage.unwrap(percentage) * BPS_FACTOR) / PERCENTAGE_FACTOR
+            );
     }
 
     /**
@@ -47,7 +48,7 @@ library BpsUtils {
      */
     function applyBpsDiscount(
         uint256 amount,
-        uint256 discountBps
+        Bps discountBps
     ) internal pure returns (uint256) {
         Percentage discount = bpsToPercentage(discountBps);
         return PercentageUtils.subtractPercentage(amount, discount);
@@ -61,7 +62,7 @@ library BpsUtils {
      */
     function calculateBpsFee(
         uint256 amount,
-        uint256 feeBps
+        Bps feeBps
     ) internal pure returns (uint256) {
         Percentage fee = bpsToPercentage(feeBps);
         return PercentageUtils.applyPercentage(amount, fee);
@@ -72,7 +73,7 @@ library BpsUtils {
      * @param bps The basis points value to validate
      * @return valid True if the value is between 0 and 10000 (0% to 100%)
      */
-    function isValidBps(uint256 bps) internal pure returns (bool) {
-        return bps <= BPS_FACTOR;
+    function isValidBps(Bps bps) internal pure returns (bool) {
+        return fromBps(bps) <= BPS_FACTOR;
     }
 }

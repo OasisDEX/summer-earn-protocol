@@ -5,6 +5,7 @@ import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
 
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
+import {Bps} from "../../../src/helpers/Bps.sol";
 
 import {ICrossChainRegistry} from "../../../src/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
@@ -651,7 +652,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
                 IBridgeAdapter.SlippageExceedsTolerance.selector,
                 expectedMinAmount, // 0.9995 ether
                 receivedAmount, // 0.94 ether
-                50 // 50 basis points (0.5%)
+                Bps.wrap(50) // 50 basis points (0.5%)
             )
         );
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
