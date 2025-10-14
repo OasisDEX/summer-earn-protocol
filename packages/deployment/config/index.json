@@ -162,6 +162,22 @@
         },
         "rewards": "0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1"
       },
+      "fluid": {
+        "fToken": {
+          "usdc": {
+            "fToken": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
+            "merkleDistributor": "0x94312a608246Cecfce6811Db84B3Ef4B2619054E"
+          },
+          "eurc": {
+            "fToken": "0x1943FA26360f038230442525Cf1B9125b5DCB401",
+            "merkleDistributor": "0x94312a608246Cecfce6811Db84B3Ef4B2619054E"
+          },
+          "weth": {
+            "fToken": "0x9272D6153133175175Bc276512B2336BE3931CE9",
+            "merkleDistributor": "0x94312a608246Cecfce6811Db84B3Ef4B2619054E"
+          }
+        }
+      },
       "erc4626": {
         "usdc": {
           "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
@@ -289,6 +305,18 @@
     "protocolSpecific": {
       "syrup": {
         "pools": {}
+      },
+      "fluid": {
+        "fToken": {
+          "usdc": {
+            "fToken": "0x1A996cb54bb95462040408C06122D45D6Cdb6096",
+            "merkleDistributor": "0x94312a608246Cecfce6811Db84B3Ef4B2619054E"
+          },
+          "usdt": {
+            "fToken": "0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03",
+            "merkleDistributor": "0x94312a608246Cecfce6811Db84B3Ef4B2619054E"
+          }
+        }
       },
       "erc4626": {
         "usdc": {
@@ -520,6 +548,29 @@
           }
         }
       },
+      "fluid": {
+        "lite": {
+          "weth": {
+            "wrapper": "0x64338FD8e7b1918B4a806A175e26eD152B3d0b7b",
+            "vault": "0xa0d3707c569ff8c87fa923d3823ec5d81c98be78",
+            "withdrawalQueue": "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1"
+          }
+        },
+        "fToken": {
+          "usdc": {
+            "fToken": "0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33",
+            "merkleDistributor": "0x7060FE0Dd3E31be01EFAc6B28C8D38018fD163B0"
+          },
+          "usdt": {
+            "fToken": "0x5C20B550819128074FD538Edf79791733ccEdd18",
+            "merkleDistributor": "0x7060FE0Dd3E31be01EFAc6B28C8D38018fD163B0"
+          },
+          "eurc": {
+            "fToken": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
+            "merkleDistributor": "0x7060FE0Dd3E31be01EFAc6B28C8D38018fD163B0"
+          }
+        }
+      },
       "erc4626": {
         "usdc": {
           "Gearbox": "0xda00000035fef4082f78def6a8903bee419fbf8e",
@@ -686,15 +737,6 @@
         },
         "staking": {
           "sky": "0x0650CAF159C5A49f711e8169D4336ECB9b950275"
-        }
-      },
-      "fluid": {
-        "lite": {
-          "weth": {
-            "wrapper": "0x64338FD8e7b1918B4a806A175e26eD152B3d0b7b",
-            "vault": "0xa0d3707c569ff8c87fa923d3823ec5d81c98be78",
-            "withdrawalQueue": "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1"
-          }
         }
       },
       "silo": {
