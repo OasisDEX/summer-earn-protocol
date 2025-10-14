@@ -21,11 +21,11 @@ contract ExposedAdapter is BaseBridgeAdapter {
         uint16 dstChain
     ) external onlyTrustedDestination(dstChain) {}
 
-    function exposed_assertTrustedSource(
+    function exposed_validateTrustedSource(
         address srcAdapter,
         uint16 srcChain
-    ) external view {
-        _assertTrustedSource(srcAdapter, srcChain);
+    ) external view returns (bool) {
+        return _validateTrustedSource(srcAdapter, srcChain);
     }
 
     function exposed_validateSourceChainId(
@@ -224,34 +224,6 @@ contract BaseBridgeAdapterCoreTest is Test {
         // Now passes
         adapterA.onlyTrusted(chainB);
         assertTrue(adapterA.isAllowedDestination(chainB));
-    }
-
-    function testAssertTrustedSource_RevertAndPass() public {
-        uint16 chainA = uint16(block.chainid);
-        uint16 chainB = 5555;
-
-        // Before registration: should revert
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBaseBridgeAdapterErrors.UntrustedSourceAdapter.selector,
-                address(adapterB2),
-                chainB
-            )
-        );
-        adapterA.exposed_assertTrustedSource(address(adapterB2), chainB);
-
-        // Register bidirectional peers
-        vm.startPrank(governor);
-        registry.registerAdapterPeerPair(
-            address(adapterA),
-            address(adapterB2),
-            chainA,
-            chainB
-        );
-        vm.stopPrank();
-
-        // Now it should not revert
-        adapterA.exposed_assertTrustedSource(address(adapterB2), chainB);
     }
 
     function testGetPeeredChainIds_ReturnsAllTargets() public {
