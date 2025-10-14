@@ -346,25 +346,6 @@ contract StargateAdapter is
         sendParam.minAmountLD = oftReceipt.amountReceivedLD;
     }
 
-    /**
-     * @dev Determines transport mode based on adapter params
-     */
-    function _getTransportMode(
-        BridgeTypes.BridgeOptions calldata,
-        bool
-    ) internal pure returns (bytes memory) {
-        // Always use taxi mode for cross-chain asset transfers
-        // This aligns with the pattern shown in Stargate V2 examples
-        // Taxi mode is more reliable and required for compose functionality
-        return OftCmdHelper.taxi(); // Returns ""
-    }
-
-    /**
-     * @dev Helper function to check if transport mode is taxi
-     */
-    function _isTaxiMode(bytes memory oftCmd) internal pure returns (bool) {
-        return oftCmd.length == 0; // taxi() returns empty bytes, bus() returns bytes with length 1
-    }
     /// @inheritdoc IBridgeAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
