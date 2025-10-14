@@ -98,7 +98,7 @@ sequenceDiagram
 
 #### MEV Protection in Cross-Chain Operations
 
-The CrossChainFleetCommander implements cooldown-based MEV protection:
+The FleetCommander implements cooldown-based MEV protection:
 
 **Deposit Phase:**
 - User deposits trigger timestamp recording via `_updateLastDepositTimestamp()`
@@ -107,7 +107,7 @@ The CrossChainFleetCommander implements cooldown-based MEV protection:
 **Withdrawal Phase:**
 - Users cannot withdraw/redeem until cooldown period has elapsed
 - `cooldownEnforced` modifier checks `lastDepositTimestamp[user] + cooldownPeriod`
-- Reverts with `CrossChainFleetCommanderCooldownNotMet` if cooldown not satisfied
+- Reverts with `FleetCommanderCooldownNotMet` if cooldown not satisfied
 
 **Key Protection Mechanisms:**
 - Prevents immediate withdrawal after deposit (sandwich attack protection)

@@ -1,8 +1,8 @@
-# CrossChain FleetCommander - MEV Protection Solution
+# FleetCommander - MEV Protection Solution
 
 ## Overview
 
-The `CrossChainFleetCommander` is a specialized variant of the standard `FleetCommander` designed to prevent the critical MEV vulnerability identified in the protocol. This vulnerability allows arbitrageurs to extract 5-20% of TVL annually through timing-based attacks on cross-chain operations.
+The `FleetCommander` now includes built-in MEV protection mechanisms designed to prevent the critical MEV vulnerability identified in the protocol. This vulnerability allows arbitrageurs to extract 5-20% of TVL annually through timing-based attacks on cross-chain operations.
 
 ## The MEV Problem
 
@@ -18,7 +18,7 @@ The `CrossChainFleetCommander` is a specialized variant of the standard `FleetCo
 
 ## Solution: Cooldown-Based MEV Protection
 
-The `CrossChainFleetCommander` implements a cooldown-based system that prevents immediate withdrawal or redemption after deposits, eliminating the ability for arbitrageurs to exploit timing-based attacks.
+The `FleetCommander` implements a cooldown-based system that prevents immediate withdrawal or redemption after deposits, eliminating the ability for arbitrageurs to exploit timing-based attacks.
 
 ### Key Components
 
@@ -56,7 +56,7 @@ User Deposit → Record Timestamp → Cooldown Period → Withdrawal/Redemption
 
 ### 1. State Variables
 
-**Added to `CrossChainFleetCommander.sol`:**
+**Added to `FleetCommander.sol`:**
 ```solidity
 /// @notice Mapping of user address to their last deposit timestamp
 mapping(address => uint256) public lastDepositTimestamp;
@@ -66,12 +66,13 @@ mapping(address => uint256) public lastDepositTimestamp;
 
 **Constructor Parameters:**
 ```solidity
-CrossChainFleetCommanderParams memory params
+FleetCommanderParams memory params
+// Now includes userCooldownPeriod field
 ```
 
 The cooldown period is configurable through the `initialCooldownPeriod` parameter in the constructor and stored in the `FleetConfig`. After deployment, the cooldown period can be updated by curators using the `setCooldownPeriod()` function.
 
-### 3. CrossChain FleetCommander Features
+### 3. FleetCommander Features
 
 #### Cooldown Functions
 - `getCooldownPeriod()` - Get the current cooldown period
@@ -131,8 +132,8 @@ uint256 assets = fleetCommander.withdraw(500e6, user, user);
 
 ## Configuration Parameters
 
-### CrossChainFleetCommanderParams
-- `initialCooldownPeriod`: Initial cooldown period between deposits and withdrawals (in seconds)
+### FleetCommanderParams
+- `userCooldownPeriod`: Initial cooldown period between deposits and withdrawals (in seconds)
 - Standard FleetCommander parameters (name, symbol, asset, etc.)
 
 ### Governance Updates
@@ -216,7 +217,7 @@ uint256 assets = fleetCommander.withdraw(500e6, user, user);
 
 ## Conclusion
 
-The `CrossChainFleetCommander` provides a robust solution to the MEV vulnerability by implementing a cooldown-based system that prevents immediate withdrawal after deposits. This prevents arbitrageurs from exploiting timing-based attacks while maintaining the core functionality of the protocol.
+The `FleetCommander` provides a robust solution to the MEV vulnerability by implementing a cooldown-based system that prevents immediate withdrawal after deposits. This prevents arbitrageurs from exploiting timing-based attacks while maintaining the core functionality of the protocol.
 
 The solution is designed to be:
 - **Secure**: Eliminates MEV opportunities through cooldown enforcement

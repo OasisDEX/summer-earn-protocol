@@ -19,7 +19,7 @@ This document provides a practical runbook for keepers and operators.
 - Destination chain: adapter delivery events, router delivery, FleetProxy deposit events.
 - Alert on: delivery failures, registry validation failures, pause state changes, abnormal fee quotes.
 - **MEV Protection Monitoring**:
-  - Track `CrossChainFleetCommanderCooldownNotMet` errors for potential attack attempts
+  - Track `FleetCommanderCooldownNotMet` errors for potential attack attempts
   - Monitor deposit/withdrawal patterns for unusual activity
   - Alert on high frequency of cooldown violations from same addresses
   - Track cooldown period effectiveness and user experience metrics

@@ -58,7 +58,7 @@ sequenceDiagram
   adapter peer mappings via the registry during delivery.
 - Pausing and governance-controlled emergency actions at routers/proxies.
 - Reentrancy protection on critical entry points.
-- **MEV Protection**: CrossChainFleetCommander implements cooldown periods between deposits and withdrawals to prevent MEV attacks and sandwich attacks on cross-chain operations.
+- **MEV Protection**: FleetCommander implements cooldown periods between deposits and withdrawals to prevent MEV attacks and sandwich attacks on cross-chain operations.
 
 Operational requirement:
 - All cross-chain operations include explicit `BridgeOptions` with a non-zero `gasLimit`. There is no registry-level default gas limit.
@@ -76,7 +76,7 @@ Note on withdrawals:
 
 #### MEV Protection Mechanism
 
-The CrossChainFleetCommander implements a cooldown-based MEV protection system:
+The FleetCommander implements a cooldown-based MEV protection system:
 
 - **Cooldown Period**: Configurable time delay between user deposits and withdrawals/redeems
 - **Deposit Tracking**: Each user's last deposit timestamp is recorded

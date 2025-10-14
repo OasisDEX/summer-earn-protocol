@@ -7,30 +7,6 @@ import "./ICooldownEnforcerErrors.sol";
 import "./ICooldownEnforcerEvents.sol";
 
 /**
- * @notice Error thrown when cooldown period has not been met for withdraw/redeem operations
- * @param user The address of the user attempting the operation
- * @param currentTime The current block timestamp
- * @param cooldownEndTime The timestamp when cooldown period ends
- */
-error FleetCommanderCooldownNotMet(
-    address user,
-    uint256 currentTime,
-    uint256 cooldownEndTime
-);
-
-/**
- * @notice Emitted when cooldown timestamp is propagated from sender to recipient
- * @param from The address that sent the shares
- * @param to The address that received the shares
- * @param cooldownTimestamp The cooldown timestamp that was propagated
- */
-event UserCooldownPropagated(
-    address indexed from,
-    address indexed to,
-    uint256 cooldownTimestamp
-);
-
-/**
  * @title CooldownEnforcer
  * @custom:see ICooldownEnforcer
  * @notice Handles both rebalance cooldowns and user deposit cooldowns
@@ -59,7 +35,7 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
      * Mapping of user addresses to their last deposit timestamp
      * @dev Used to enforce cooldown periods between deposits and withdrawals
      */
-    mapping(address => uint256) public lastDepositTimestamp;
+    mapping(address user => uint256 timestamp) public lastDepositTimestamp;
 
     /**
      * @notice The minimum duration that the contract must remain paused
@@ -145,7 +121,7 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
                 lastDeposit > 0 &&
                 block.timestamp <= lastDeposit + _userDepositCooldown
             ) {
-                revert FleetCommanderCooldownNotMet(
+                revert UserDepositCooldownNotMet(
                     user,
                     block.timestamp,
                     lastDeposit + _userDepositCooldown
