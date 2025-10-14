@@ -183,26 +183,13 @@ interface ICrossChainRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Get the target contract and chain for a given source contract and relationship type
-     * @dev This function returns the first registered relationship. Use getTargetsForSource for multiple relationships.
-     * @param sourceContract The address of the source contract
-     * @param relationshipType The type of relationship
-     * @return targetContract The address of the target contract
-     * @return targetChainId The chain ID where the target contract is deployed
-     */
-    function getTargetForSource(
-        address sourceContract,
-        bytes32 relationshipType
-    ) external view returns (address targetContract, uint16 targetChainId);
-
-    /**
      * @notice Get all target contracts and chains for a given source contract and relationship type
      * @param sourceContract The address of the source contract
      * @param relationshipType The type of relationship
      * @return targetContracts Array of target contract addresses
      * @return targetChainIds Array of target chain IDs
      */
-    function getTargetsForSource(
+    function getAllTargetsForSource(
         address sourceContract,
         bytes32 relationshipType
     )

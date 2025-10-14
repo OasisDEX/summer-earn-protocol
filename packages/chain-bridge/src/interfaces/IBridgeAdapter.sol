@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {Bps} from "../helpers/Bps.sol";
 
 /**
  * @title IBridgeAdapter
@@ -46,7 +47,7 @@ interface IBridgeAdapter {
     error SlippageExceedsTolerance(
         uint256 expectedAmount,
         uint256 receivedAmount,
-        uint256 toleranceBps
+        Bps toleranceBps
     );
 
     /// @notice Error for untrusted Stargate pool contract
