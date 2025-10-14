@@ -70,23 +70,21 @@ FleetCommanderParams memory params
 // Now includes userCooldownPeriod field
 ```
 
-The cooldown period is configurable through the `initialCooldownPeriod` parameter in the constructor and stored in the `FleetConfig`. After deployment, the cooldown period can be updated by curators using the `setCooldownPeriod()` function.
+The cooldown period is configurable through the `userCooldownPeriod` parameter in the constructor and stored in the `FleetConfig`. After deployment, the rebalance cooldown period can be updated by curators using the `updateRebalanceCooldown()` function.
 
 ### 3. FleetCommander Features
 
 #### Cooldown Functions
-- `getCooldownPeriod()` - Get the current cooldown period
-- `getNextWithdrawTimestamp(address user)` - Get when user can next withdraw
-- `canWithdraw(address user)` - Check if user can withdraw now
-- `setCooldownPeriod(uint256 newCooldownPeriod)` - Update cooldown period (curator only)
-
-#### Sync Status Functions
-- `areAllArksSynced()` - Check if all arks in the fleet are synced
-- `getUnsyncedArks()` - Get list of arks that are not synced
+- `getCooldown()` - Get the current rebalance cooldown period
+- `getUserDepositCooldown()` - Get the current user deposit cooldown period
+- `getLastActionTimestamp()` - Get the last rebalance timestamp
+- `lastDepositTimestamp[user]` - Public mapping showing user's last deposit timestamp
+- `updateRebalanceCooldown(uint256 newCooldown)` - Update rebalance cooldown period (curator only)
 
 #### Cooldown Enforcement
-- `cooldownEnforced` modifier - Enforces cooldown on withdrawals/redemptions
-- `_updateLastDepositTimestamp()` - Internal function to track deposits
+- `enforceUserDepositCooldown(user)` modifier - Enforces cooldown on withdrawals/redemptions
+- `_recordDepositTimestamp(user)` - Internal function to track deposits
+- `_propagateCooldownTimestamp(from, to)` - Internal function to propagate cooldown on transfers
 
 ### 4. MEV Protection Mechanisms
 
@@ -116,11 +114,14 @@ uint256 shares = fleetCommander.deposit(1000e6, user);
 
 ### 2. Cooldown Check
 ```solidity
-// Check if user can withdraw
-bool canWithdraw = fleetCommander.canWithdraw(user);
+// Check user's last deposit timestamp
+uint256 lastDeposit = fleetCommander.lastDepositTimestamp(user);
 
-// Get next withdraw timestamp
-uint256 nextWithdrawTime = fleetCommander.getNextWithdrawTimestamp(user);
+// Get user deposit cooldown period
+uint256 cooldownPeriod = fleetCommander.getUserDepositCooldown();
+
+// Calculate when user can withdraw
+uint256 nextWithdrawTime = lastDeposit + cooldownPeriod;
 ```
 
 ### 3. User Withdrawals
@@ -134,11 +135,12 @@ uint256 assets = fleetCommander.withdraw(500e6, user, user);
 
 ### FleetCommanderParams
 - `userCooldownPeriod`: Initial cooldown period between deposits and withdrawals (in seconds)
+- `initialRebalanceCooldown`: Initial cooldown period between rebalance operations (in seconds)
 - Standard FleetCommander parameters (name, symbol, asset, etc.)
 
 ### Governance Updates
-- `setCooldownPeriod(newCooldownPeriod)`: Update cooldown period after deployment (curator only)
-- Emits `FleetCommanderCooldownPeriodUpdated` event when updated
+- `updateRebalanceCooldown(newCooldown)`: Update rebalance cooldown period after deployment (curator only)
+- Emits `CooldownUpdated` event when updated
 - Can only be called when contract is not paused
 
 ## Benefits
@@ -154,11 +156,11 @@ uint256 assets = fleetCommander.withdraw(500e6, user, user);
 - **Access control**: Modifier-based enforcement
 
 ### 3. User Experience
-- **Immediate deposits**: Users can deposit immediately (when arks are synced)
-- **Clear cooldown status**: Users can check when they can withdraw
+- **Immediate deposits**: Users can deposit immediately
+- **Clear cooldown status**: Users can check their last deposit timestamp and cooldown period
 - **Transparency**: Simple cooldown mechanism is easy to understand
-- **Adaptive protection**: Cooldown period can be adjusted based on market conditions
-- **Fund access**: Users can always withdraw their funds regardless of sync status
+- **Adaptive protection**: Rebalance cooldown period can be adjusted based on market conditions
+- **Fund access**: Users can always withdraw their funds after cooldown period expires
 
 ## Trade-offs
 
@@ -166,13 +168,11 @@ uint256 assets = fleetCommander.withdraw(500e6, user, user);
 - Withdrawals/redemptions are delayed after deposits (by design)
 - Users must wait for cooldown period to pass
 - May impact users who need immediate liquidity
-- Deposits may be blocked when arks are not synced (for safety)
 
 ### 2. Complexity
 - Slightly more complex than standard FleetCommander
 - Requires tracking deposit timestamps
 - Additional state management
-- Sync status monitoring adds operational complexity
 
 ### 3. Gas Costs
 - Minimal additional gas for timestamp tracking
@@ -192,10 +192,10 @@ uint256 assets = fleetCommander.withdraw(500e6, user, user);
 - Users can check cooldown status
 
 ### 3. Fallback Mechanisms
-- Users can check cooldown status before attempting withdrawals
-- Clear error messages when cooldown not met
+- Users can check their last deposit timestamp and cooldown period before attempting withdrawals
+- Clear error messages when cooldown not met (`UserDepositCooldownNotMet`)
 - Configurable cooldown period for different use cases
-- Governance can adjust cooldown period based on operational needs
+- Governance can adjust rebalance cooldown period based on operational needs
 
 ## Security Considerations
 
@@ -203,7 +203,7 @@ uint256 assets = fleetCommander.withdraw(500e6, user, user);
 - Cooldown period must be set appropriately for the use case
 - Too short: May not prevent all MEV attacks
 - Too long: May impact user experience
-- Governance can adjust period based on market conditions and security requirements
+- Governance can adjust rebalance cooldown period based on market conditions and security requirements
 
 ### 2. Timestamp Manipulation
 - Block timestamp manipulation is not a concern (uses block.timestamp)
@@ -224,6 +224,6 @@ The solution is designed to be:
 - **Simple**: Minimal complexity with efficient state management
 - **User-friendly**: Clear cooldown status and familiar interfaces
 - **Maintainable**: Straightforward implementation with clear logic
-- **Adaptive**: Configurable cooldown period allows for operational flexibility
+- **Adaptive**: Configurable rebalance cooldown period allows for operational flexibility
 
-This implementation addresses the fundamental protocol-level issue that could make the system economically unviable at scale, ensuring the long-term sustainability of the protocol. The governance-controlled cooldown period provides the flexibility to adapt to changing market conditions while maintaining security.
+This implementation addresses the fundamental protocol-level issue that could make the system economically unviable at scale, ensuring the long-term sustainability of the protocol. The governance-controlled rebalance cooldown period provides the flexibility to adapt to changing market conditions while maintaining security.

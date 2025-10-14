@@ -85,10 +85,11 @@ The FleetCommander implements a cooldown-based MEV protection system:
 - **Governance Control**: Cooldown period can be updated by curators to adapt to changing market conditions
 
 Key functions:
-- `getCooldownPeriod()`: Returns the configured cooldown duration
-- `getNextWithdrawTimestamp(user)`: Shows when a user can next withdraw
-- `canWithdraw(user)`: Checks if cooldown has passed for a user
-- `setCooldownPeriod(newPeriod)`: Updates the cooldown period (curator only)
+- `getCooldown()`: Returns the rebalance cooldown duration
+- `getUserDepositCooldown()`: Returns the user deposit cooldown duration
+- `getLastActionTimestamp()`: Returns the last rebalance timestamp
+- `lastDepositTimestamp[user]`: Public mapping showing user's last deposit timestamp
+- `updateRebalanceCooldown(newPeriod)`: Updates the rebalance cooldown period (curator only)
 
 This mechanism ensures that cross-chain rebalancing operations cannot be immediately exploited by MEV bots, providing protection for both users and the protocol. The configurable nature allows for operational flexibility while maintaining security.
 

@@ -116,6 +116,7 @@ The FleetCommander implements cooldown-based MEV protection:
 - Configurable cooldown period per fleet deployment
 
 **Monitoring Functions:**
-- `getCooldownPeriod()`: Returns the configured cooldown duration
-- `getNextWithdrawTimestamp(user)`: Shows when user can next withdraw
-- `canWithdraw(user)`: Boolean check for withdrawal eligibility
+- `getCooldown()`: Returns the rebalance cooldown duration
+- `getUserDepositCooldown()`: Returns the user deposit cooldown duration
+- `getLastActionTimestamp()`: Returns the last rebalance timestamp
+- `lastDepositTimestamp[user]`: Public mapping showing user's last deposit timestamp
