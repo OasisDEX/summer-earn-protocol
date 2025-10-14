@@ -5,6 +5,7 @@ import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol"
 
 contract MockCrossChainRegistry is ICrossChainRegistry {
     address private _bridgeRouter;
+    mapping(address => mapping(uint16 => address)) private _adapterPeers;
     mapping(address => bool) private _isExecutor;
 
     // Constants getters
@@ -117,8 +118,19 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
     function currentChainId() external view returns (uint16) {
         return 0;
     }
-    function getAdapterPeer(address, uint16) external view returns (address) {
-        return address(0);
+    function getAdapterPeer(
+        address adapter,
+        uint16 chainId
+    ) external view returns (address) {
+        return _adapterPeers[adapter][chainId];
+    }
+
+    function setAdapterPeer(
+        address adapter,
+        uint16 chainId,
+        address peer
+    ) external {
+        _adapterPeers[adapter][chainId] = peer;
     }
     function isValidAdapterPeer(
         address,

@@ -409,7 +409,7 @@ contract LayerZeroAdapter is
         bytes calldata /* _extraData */
     ) external payable override nonReentrant {
         // Verify caller is LayerZero endpoint
-        if (msg.sender != endpoint) revert Unauthorized();
+        if (msg.sender != address(endpoint)) revert Unauthorized();
 
         // Decode OFT compose payload
         (

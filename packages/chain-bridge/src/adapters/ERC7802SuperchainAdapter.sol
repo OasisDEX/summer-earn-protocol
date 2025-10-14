@@ -2,7 +2,14 @@
 pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {BaseERC7802Adapter} from "./BaseERC7802Adapter.sol";
+import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
+import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
+import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
+import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
+import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISuperchainTokenBridge} from "../interfaces/ISuperchainTokenBridge.sol";
 
 /**
@@ -21,76 +28,177 @@ import {ISuperchainTokenBridge} from "../interfaces/ISuperchainTokenBridge.sol";
  * The OP Stack autorelayer only handles message delivery and token minting - it does NOT
  * call the adapter's finalize() function. This must be done by an authorized keeper.
  */
-contract ERC7802SuperchainAdapter is BaseERC7802Adapter {
+contract ERC7802SuperchainAdapter is
+    BaseBridgeAdapter,
+    IAssetAdapter,
+    IMessageAdapter,
+    IBridgeAdapter
+{
+    using SafeERC20 for IERC20;
     ISuperchainTokenBridge public immutable superchainBridge;
+
+    /// @notice Mapping of supported assets
+    mapping(address asset => bool supported) public supportedAssets;
+
+    /// @notice Event emitted when asset support is updated
+    event AssetSupportUpdated(address indexed asset, bool supported);
 
     constructor(
         address _crossChainRegistry,
         address _accessManager,
         address _superchainBridge
-    ) BaseERC7802Adapter(_crossChainRegistry, _accessManager) {
+    ) BaseBridgeAdapter(_crossChainRegistry, _accessManager) {
         if (_superchainBridge == address(0)) revert InvalidParams();
         superchainBridge = ISuperchainTokenBridge(_superchainBridge);
     }
 
-    function _sendTransport(
-        bytes32,
-        address token,
-        uint16 dstChainId,
-        address dstAdapter,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata,
-        BridgeTypes.ExecuteTransferParams calldata,
-        address
-    ) internal override returns (uint256 feeUsed) {
-        superchainBridge.sendERC20(
-            token,
-            _externalIdForChain(dstChainId),
-            dstAdapter,
-            amount
+    /*//////////////////////////////////////////////////////////////
+                        ASSET ADAPTER IMPLEMENTATION
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IAssetAdapter
+    function transferAsset(
+        bytes32 operationId,
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        payable
+        onlyTrustedDestination(params.destinationChainId)
+        onlyRouter
+    {
+        if (!supportedAssets[params.asset])
+            revert IBridgeAdapter.UnsupportedAsset();
+        if (params.amount == 0) revert IBaseBridgeAdapterErrors.InvalidAmount();
+
+        // Pull tokens from router
+        IERC20(params.asset).safeTransferFrom(
+            msg.sender,
+            address(this),
+            params.amount
         );
-        return 0; // initiation is a regular L2 tx; keeper must call finalize() on destination
+
+        // Get destination adapter peer
+        address dstAdapter = _getAdapterPeer(params.destinationChainId);
+
+        // Send via Superchain bridge
+        superchainBridge.sendERC20(
+            params.asset,
+            _externalIdForChain(params.destinationChainId),
+            dstAdapter,
+            params.amount
+        );
+
+        emit TransferInitiated(
+            operationId,
+            params.destinationChainId,
+            params.asset,
+            params.amount,
+            params.target
+        );
     }
 
-    function _estimateTransport(
-        bytes32,
-        address,
-        uint16,
-        address,
-        uint256,
-        BridgeTypes.BridgeOptions calldata,
-        BridgeTypes.ExecuteTransferParams calldata
-    ) internal view override returns (uint256 nativeFee, uint256 tokenFee) {
+    /// @inheritdoc IBridgeAdapter
+    function estimateTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+        if (!supportedAssets[params.asset])
+            revert IBridgeAdapter.UnsupportedAsset();
+        if (params.amount == 0) revert IBaseBridgeAdapterErrors.InvalidAmount();
+        if (!_hasTrustedDestination(params.destinationChainId)) {
+            revert IBaseBridgeAdapterErrors.UntrustedDestinationChain(
+                params.destinationChainId
+            );
+        }
+
+        // Superchain bridge transfers are free (just L2 gas)
         return (0, 0);
+    }
+
+    /// @inheritdoc IAssetAdapter
+    function supportsAssetTransfer(
+        uint16 destinationChainId,
+        address asset
+    ) external view returns (bool) {
+        return
+            supportedAssets[asset] &&
+            _hasTrustedDestination(destinationChainId);
+    }
+
+    /// @notice Set asset support (governance function)
+    function setAssetSupport(
+        address asset,
+        bool supported
+    ) external onlyGovernor {
+        if (asset == address(0)) revert InvalidParams();
+        supportedAssets[asset] = supported;
+        emit AssetSupportUpdated(asset, supported);
+    }
+
+    /// @notice Check if an asset is supported
+    function supportedAsset(address asset) external view returns (bool) {
+        return supportedAssets[asset];
     }
 
     /*//////////////////////////////////////////////////////////////
                         MESSAGE ADAPTER IMPLEMENTATION
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Read state from a contract on a source chain (not supported by Superchain adapter)
-    function readState(
-        bytes32,
-        BridgeTypes.ExecuteReadStateParams calldata,
-        BridgeTypes.BridgeOptions calldata
-    ) external payable {
-        revert OperationNotSupported();
-    }
-
-    /// @notice Send a message to a destination chain (not supported by Superchain adapter)
+    /// @inheritdoc IMessageAdapter
     function sendMessage(
-        bytes32,
-        BridgeTypes.ExecuteSendMessageParams calldata,
-        BridgeTypes.BridgeOptions calldata
+        bytes32 operationId,
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     ) external payable {
-        revert OperationNotSupported();
+        revert IBridgeAdapter.OperationNotSupported();
     }
 
-    /// @notice Check if the adapter supports a specific message operation type
+    /// @inheritdoc IMessageAdapter
     function supportsMessageOperation(
         uint16,
         BridgeTypes.OperationType operationType
     ) external pure returns (bool) {
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        BRIDGE ADAPTER IMPLEMENTATION
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) external pure returns (bool) {
+        return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function estimateSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata,
+        BridgeTypes.BridgeOptions calldata
+    ) external pure returns (uint256 nativeFee, uint256 tokenFee) {
+        revert IBridgeAdapter.OperationNotSupported();
+    }
+
+    /// @notice Finalize a transfer (called by keeper after OP Stack autorelayer delivers)
+    /// @dev This function must be called by an authorized keeper after the OP Stack autorelayer
+    ///      has delivered the message and minted tokens to this adapter
+    function finalize(
+        bytes32 operationId,
+        BridgeTypes.ExecuteTransferParams calldata params
+    ) external onlyAuthorizedExecutor {
+        if (!supportedAssets[params.asset])
+            revert IBridgeAdapter.UnsupportedAsset();
+        if (params.amount == 0) revert IBaseBridgeAdapterErrors.InvalidAmount();
+
+        // Transfer tokens to router
+        IERC20(params.asset).safeTransfer(bridgeRouter(), params.amount);
+
+        // Deliver to router
+        IBridgeRouter(bridgeRouter()).deliver(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(params)
+        );
     }
 }
