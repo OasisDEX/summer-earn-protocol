@@ -224,13 +224,13 @@ contract StargateAdapter is
             revert OperationNotSupported();
         }
 
-        // Check if asset is supported on current chain
-        if (assetToStargateContract[params.asset] == address(0)) {
-            revert UnsupportedAsset();
-        }
-
         // Get the source chain Stargate contract
         address stargateContract = assetToStargateContract[params.asset];
+
+        // Check if asset is supported on current chain
+        if (stargateContract == address(0)) {
+            revert UnsupportedAsset();
+        }
 
         // Use dummy operationId for estimation
         bytes32 dummyOperationId = bytes32(uint256(uint160(params.target)));
