@@ -329,7 +329,9 @@ contract StargateAdapter is
         // ---------------------------------------------------------------
         BridgeTypes.RelayedTransferParams
             memory atm = _decodeRelayedTransferParams(composeMsg);
-        _assertTrustedSource(srcSender, uint16(atm.sourceChainId));
+        if (!_validateTrustedSource(srcSender, uint16(atm.sourceChainId))) {
+            revert UntrustedSourceAdapter(srcSender, uint16(atm.sourceChainId));
+        }
 
         // Use the minted amount from OFT compose header as authoritative
         atm.amount = amountLD;

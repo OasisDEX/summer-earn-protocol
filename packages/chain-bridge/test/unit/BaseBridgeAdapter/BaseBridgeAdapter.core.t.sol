@@ -28,6 +28,13 @@ contract ExposedAdapter is BaseBridgeAdapter {
         _assertTrustedSource(srcAdapter, srcChain);
     }
 
+    function exposed_validateTrustedSource(
+        address srcAdapter,
+        uint16 srcChain
+    ) external view returns (bool) {
+        return _validateTrustedSource(srcAdapter, srcChain);
+    }
+
     function exposed_validateSourceChainId(
         uint16 sourceChainId,
         uint16 expected

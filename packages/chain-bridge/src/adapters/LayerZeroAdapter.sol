@@ -131,10 +131,17 @@ contract LayerZeroAdapter is
         // Defense-in-depth: bind the source OApp identity to the registry-declared peer.
         // LayerZero's Origin.sender is the remote OApp address proven by DVNs.
         // Ensure governance has registered that OApp as our peer for the source chain.
-        _assertTrustedSource(
-            Bytes32AddressLib.fromLast20Bytes(_origin.sender),
-            relayedMessageParams.sourceChainId
-        );
+        if (
+            !_validateTrustedSource(
+                Bytes32AddressLib.fromLast20Bytes(_origin.sender),
+                relayedMessageParams.sourceChainId
+            )
+        ) {
+            revert UntrustedSourceAdapter(
+                Bytes32AddressLib.fromLast20Bytes(_origin.sender),
+                relayedMessageParams.sourceChainId
+            );
+        }
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.MESSAGE,
             _payload

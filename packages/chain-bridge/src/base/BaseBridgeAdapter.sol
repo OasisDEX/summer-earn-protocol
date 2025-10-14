@@ -219,21 +219,18 @@ abstract contract BaseBridgeAdapter is
         }
     }
 
-    /// @dev Reverts if `srcAdapter` is **not** the registry-declared peer for `srcChain`.
-    function _assertTrustedSource(
+    /// @dev Returns true if `srcAdapter` is the registry-declared peer for `srcChain`.
+    function _validateTrustedSource(
         address srcAdapter,
         uint16 srcChain
-    ) internal view {
-        if (
-            !CROSS_CHAIN_REGISTRY.isValidAdapterPeer(
+    ) internal view returns (bool) {
+        return
+            CROSS_CHAIN_REGISTRY.isValidAdapterPeer(
                 srcAdapter,
                 address(this), // <-- this adapter (dst)
                 srcChain,
                 THIS_CHAIN
-            )
-        ) {
-            revert UntrustedSourceAdapter(srcAdapter, srcChain);
-        }
+            );
     }
 
     function _validateSourceChainId(
