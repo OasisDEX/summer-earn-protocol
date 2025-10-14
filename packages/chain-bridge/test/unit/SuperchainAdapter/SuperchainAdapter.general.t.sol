@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC7802SuperchainAdapter} from "../../../src/adapters/ERC7802SuperchainAdapter.sol";
+import {SuperchainAdapter} from "../../../src/adapters/SuperchainAdapter.sol";
 import {MockCrossChainRegistry} from "../../mocks/MockCrossChainRegistry.sol";
 import {MockSuperchainTokenBridge} from "../../mocks/MockSuperchainTokenBridge.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
@@ -10,8 +10,8 @@ import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapt
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
-contract ERC7802SuperchainAdapterGeneralTest is Test {
-    ERC7802SuperchainAdapter public adapter;
+contract SuperchainAdapterGeneralTest is Test {
+    SuperchainAdapter public adapter;
     MockCrossChainRegistry public registry;
     MockSuperchainTokenBridge public superchainBridge;
     ProtocolAccessManager public accessManager;
@@ -30,7 +30,7 @@ contract ERC7802SuperchainAdapterGeneralTest is Test {
         superchainBridge = new MockSuperchainTokenBridge();
 
         vm.prank(governor);
-        adapter = new ERC7802SuperchainAdapter(
+        adapter = new SuperchainAdapter(
             address(registry),
             address(accessManager),
             address(superchainBridge)
@@ -58,7 +58,7 @@ contract ERC7802SuperchainAdapterGeneralTest is Test {
     function testConstructor_RevertWhenZeroSuperchainBridge() public {
         vm.prank(governor);
         vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
-        new ERC7802SuperchainAdapter(
+        new SuperchainAdapter(
             address(registry),
             address(accessManager),
             address(0)

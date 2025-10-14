@@ -70,7 +70,7 @@ There are two distinct execution models for cross-chain delivery:
 - No keeper intervention required on destination chain
 - Tokens are delivered directly to the end recipient through the router
 
-**Manual Finalization Adapters** (ERC7802OFTAdapter, ERC7802SuperchainAdapter):
+**Manual Finalization Adapters** (ERC7802OFTAdapter, SuperchainAdapter):
 - Require keeper to call `finalize()` after tokens are minted to the adapter
 - Transport protocol (e.g., OP Stack) delivers message and mints tokens to adapter
 - Keeper must monitor for minted tokens and call `finalize(operationId, params)` to complete delivery

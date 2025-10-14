@@ -13,7 +13,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ISuperchainTokenBridge} from "../interfaces/ISuperchainTokenBridge.sol";
 
 /**
- * @title ERC7802SuperchainAdapter
+ * @title SuperchainAdapter
  * @notice ERC-7802 adapter using OP Superchain Token Bridge predeploy
  * @dev See: https://docs.optimism.io/interop/superchain-erc20
  *
@@ -28,7 +28,7 @@ import {ISuperchainTokenBridge} from "../interfaces/ISuperchainTokenBridge.sol";
  * The OP Stack autorelayer only handles message delivery and token minting - it does NOT
  * call the adapter's finalize() function. This must be done by an authorized keeper.
  */
-contract ERC7802SuperchainAdapter is
+contract SuperchainAdapter is
     BaseBridgeAdapter,
     IAssetAdapter,
     IMessageAdapter,

@@ -24,7 +24,7 @@ This document provides a practical runbook for keepers and operators.
 
 #### ERC7802 Adapter Operations
 
-For ERC7802 adapters (ERC7802OFTAdapter, ERC7802SuperchainAdapter), additional monitoring and finalization steps are required:
+For ERC7802 adapters (ERC7802OFTAdapter, SuperchainAdapter), additional monitoring and finalization steps are required:
 
 - Monitor for tokens minted to ERC7802 adapters on destination chains
 - Call `finalize(operationId, params)` to complete delivery after tokens are minted
