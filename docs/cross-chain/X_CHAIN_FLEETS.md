@@ -37,11 +37,6 @@ The `FleetCommander` implements a cooldown-based system that prevents immediate 
 - Prevents timing-based arbitrage attacks
 - Maintains ERC4626 interface compatibility
 
-#### 4. Sync Status Monitoring
-- Monitors sync status of all arks in the fleet
-- Prevents deposits when arks are not properly synced with remote state
-- Allows withdrawals/redemptions even when arks are unsynced (user fund access)
-- Provides diagnostic functions to identify unsynced arks
 
 ### Architecture
 
