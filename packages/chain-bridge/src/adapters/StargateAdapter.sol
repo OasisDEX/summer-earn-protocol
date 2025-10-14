@@ -182,6 +182,7 @@ contract StargateAdapter is
         external
         payable
         onlyTrustedDestination(params.destinationChainId)
+        withSupportedOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         onlyRouter
         nonReentrant
     {
@@ -219,6 +220,7 @@ contract StargateAdapter is
         external
         view
         onlyTrustedDestination(params.destinationChainId)
+        withSupportedOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
         if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
@@ -269,6 +271,17 @@ contract StargateAdapter is
     function supportsOperation(
         BridgeTypes.OperationType operationType
     ) external pure override returns (bool) {
+        return _supportsOperation(operationType);
+    }
+
+    /**
+     * @notice Override the base class implementation to define Stargate-specific operation support
+     * @param operationType The operation type to check
+     * @return true if the operation is supported
+     */
+    function _supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) internal pure override returns (bool) {
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
 

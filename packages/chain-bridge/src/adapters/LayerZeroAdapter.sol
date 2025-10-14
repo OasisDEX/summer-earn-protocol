@@ -33,6 +33,22 @@ contract LayerZeroAdapter is
     using EnumerableSet for EnumerableSet.UintSet;
 
     /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Error thrown when the LayerZero endpoint is invalid
+    error InvalidEndpoint();
+
+    /// @notice Error thrown when the initial owner is invalid
+    error InvalidOwner();
+
+    /// @notice Error thrown when array lengths don't match
+    error ArrayLengthMismatch();
+
+    /// @notice Error thrown when an endpoint ID is invalid
+    error InvalidEndpointId();
+
+    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
@@ -66,14 +82,14 @@ contract LayerZeroAdapter is
         Ownable(_initialOwner)
         BaseBridgeAdapter(_crossChainRegistry, _accessManager)
     {
-        if (_endpoint == address(0)) revert InvalidParams();
-        if (_initialOwner == address(0)) revert InvalidParams();
+        if (_endpoint == address(0)) revert InvalidEndpoint();
+        if (_initialOwner == address(0)) revert InvalidOwner();
         if (_endpointChains.length != _endpointIds.length)
-            revert InvalidParams();
+            revert ArrayLengthMismatch();
 
         // Setup chain ID to LayerZero EID mappings using base functionality
         for (uint256 i = 0; i < _endpointChains.length; i++) {
-            if (_endpointIds[i] == 0) revert InvalidParams();
+            if (_endpointIds[i] == 0) revert InvalidEndpointId();
             _mapChainExternalId(_endpointChains[i], _endpointIds[i]);
         }
     }
@@ -149,7 +165,7 @@ contract LayerZeroAdapter is
     }
 
     /*//////////////////////////////////////////////////////////////
-                          ADAPTER INTERFACE
+                        EXTERNAL INTERFACE
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeAdapter
@@ -168,12 +184,9 @@ contract LayerZeroAdapter is
         external
         view
         onlyTrustedDestination(params.destinationChainId)
+        withSupportedOperation(BridgeTypes.OperationType.MESSAGE)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        if (!supportsOperation(BridgeTypes.OperationType.MESSAGE)) {
-            revert OperationNotSupported();
-        }
-
         uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
         bytes32 dummyBytes32 = bytes32(uint256(uint160(params.target)));
 
@@ -250,7 +263,32 @@ contract LayerZeroAdapter is
     }
 
     /*//////////////////////////////////////////////////////////////
-                            HELPER FUNCTIONS
+                        PUBLIC INTERFACE
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) public pure override returns (bool) {
+        return _supportsOperation(operationType);
+    }
+
+    /// @inheritdoc IMessageAdapter
+    function supportsMessageOperation(
+        uint16 destinationChainId,
+        BridgeTypes.OperationType operationType
+    ) external view returns (bool) {
+        // First check if the destination chain is supported
+        if (chainToExternalId[destinationChainId] == 0) {
+            return false;
+        }
+
+        // Only MESSAGE is supported
+        return operationType == BridgeTypes.OperationType.MESSAGE;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -268,7 +306,8 @@ contract LayerZeroAdapter is
     /**
      * @notice Creates LayerZero options with appropriate gas limits
      * @param options User-provided bridge options
-     * @return lzOptions The prepared LayerZero options
+     * 
+     @return lzOptions The prepared LayerZero options
      */
     function _createLzOptions(
         BridgeTypes.BridgeOptions memory options
@@ -288,25 +327,15 @@ contract LayerZeroAdapter is
         return _encodeRelayedMessageParamsWithType(params);
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function supportsOperation(
+    /**
+     * @notice Override the base class implementation to define LayerZero-specific operation support
+     * @param operationType The operation type to check
+     * @return true if the operation is supported
+     */
+    function _supportsOperation(
         BridgeTypes.OperationType operationType
-    ) public pure override returns (bool) {
+    ) internal pure override returns (bool) {
         // LayerZero adapter now only supports messaging operations
-        return operationType == BridgeTypes.OperationType.MESSAGE;
-    }
-
-    /// @inheritdoc IMessageAdapter
-    function supportsMessageOperation(
-        uint16 destinationChainId,
-        BridgeTypes.OperationType operationType
-    ) external view returns (bool) {
-        // First check if the destination chain is supported
-        if (chainToExternalId[destinationChainId] == 0) {
-            return false;
-        }
-
-        // Only MESSAGE is supported
         return operationType == BridgeTypes.OperationType.MESSAGE;
     }
 
