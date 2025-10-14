@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
+import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
@@ -13,6 +14,12 @@ import {OApp} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Bytes32AddressLib} from "solmate/src/utils/Bytes32AddressLib.sol";
+import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
+
+import {IOFT} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
+import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -27,10 +34,14 @@ contract LayerZeroAdapter is
     OApp,
     IMessageAdapter,
     IBridgeAdapter,
+    IAssetAdapter,
+    ILayerZeroComposer,
     BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
+    using AddressCast for address;
+    using AddressCast for bytes32;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -38,6 +49,11 @@ contract LayerZeroAdapter is
 
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
+
+    /// @notice OFT contract address per token on THIS chain
+    mapping(address token => address oft) public oftForToken;
+
+    event OftSet(address indexed token, address indexed oft);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -76,6 +92,27 @@ contract LayerZeroAdapter is
             if (_endpointIds[i] == 0) revert InvalidParams();
             _mapChainExternalId(_endpointChains[i], _endpointIds[i]);
         }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                             GOVERNANCE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Set the OFT contract address for a token
+     * @param token The ERC20 token address
+     * @param oft The LayerZero OFT contract address for this token
+     */
+    function setOftForToken(address token, address oft) external onlyGovernor {
+        if (token == address(0) || oft == address(0)) revert InvalidParams();
+        // Validate that the OFT contract is properly configured for this token
+        try IOFT(oft).token() returns (address t) {
+            if (t != token) revert InvalidParams();
+        } catch {
+            revert InvalidParams();
+        }
+        oftForToken[token] = oft;
+        emit OftSet(token, oft);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -145,12 +182,124 @@ contract LayerZeroAdapter is
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IAssetAdapter
+    function transferAsset(
+        bytes32 operationId,
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        payable
+        onlyTrustedDestination(params.destinationChainId)
+        onlyRouter
+        nonReentrant
+    {
+        if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
+            revert OperationNotSupported();
+        }
+
+        address oft = oftForToken[params.asset];
+        if (oft == address(0)) revert UnsupportedAsset();
+        if (params.amount == 0) revert InvalidParams();
+
+        // Pull tokens from BridgeRouter to this adapter
+        IERC20(params.asset).safeTransferFrom(
+            msg.sender,
+            address(this),
+            params.amount
+        );
+
+        // Resolve destination peer adapter via registry
+        address dstAdapter = _getAdapterPeer(params.destinationChainId);
+        if (dstAdapter == address(0)) revert UnsupportedChain();
+
+        // Approve the OFT contract to spend tokens
+        IERC20(params.asset).forceApprove(oft, params.amount);
+
+        // Encode compose message if message is provided
+        bytes memory composeMsg = bytes("");
+        if (params.message.length > 0) {
+            composeMsg = _encodeComposeTransferParams(operationId, params);
+        }
+
+        SendParam memory sendParam = SendParam({
+            dstEid: _externalIdForChain(params.destinationChainId),
+            to: dstAdapter.toBytes32(),
+            amountLD: params.amount,
+            minAmountLD: params.amount, // Require exact amount (no slippage for stablecoins)
+            extraOptions: bytes(""),
+            composeMsg: composeMsg,
+            oftCmd: bytes("")
+        });
+
+        MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
+        if (msg.value < fee.nativeFee) {
+            revert InsufficientFee(fee.nativeFee, msg.value);
+        }
+
+        IOFT(oft).send{value: fee.nativeFee}(
+            sendParam,
+            fee,
+            params.refundAddress
+        );
+
+        // Refund any excess native back to the designated refund address
+        if (msg.value > fee.nativeFee) {
+            (bool ok, ) = params.refundAddress.call{
+                value: (msg.value - fee.nativeFee)
+            }("");
+            if (!ok) revert InsufficientBalance();
+        }
+
+        emit TransferInitiated(
+            operationId,
+            params.destinationChainId,
+            params.asset,
+            params.amount,
+            params.target
+        );
+    }
+
     /// @inheritdoc IBridgeAdapter
     function estimateTransferAssets(
-        BridgeTypes.ExecuteTransferParams calldata /* params */,
-        BridgeTypes.BridgeOptions calldata /* options */
-    ) external pure returns (uint256, /* nativeFee */ uint256 /* tokenFee */) {
-        revert OperationNotSupported();
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        view
+        onlyTrustedDestination(params.destinationChainId)
+        returns (uint256 nativeFee, uint256 tokenFee)
+    {
+        if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
+            revert OperationNotSupported();
+        }
+
+        address oft = oftForToken[params.asset];
+        if (oft == address(0)) revert UnsupportedAsset();
+        if (params.amount == 0) revert InvalidParams();
+
+        // Resolve destination adapter via registry
+        address dstAdapter = _getAdapterPeer(params.destinationChainId);
+        if (dstAdapter == address(0)) revert UnsupportedChain();
+
+        // Encode compose message if message is provided
+        bytes memory composeMsg = bytes("");
+        if (params.message.length > 0) {
+            composeMsg = _encodeComposeTransferParams(bytes32(0), params);
+        }
+
+        SendParam memory sendParam = SendParam({
+            dstEid: _externalIdForChain(params.destinationChainId),
+            to: dstAdapter.toBytes32(),
+            amountLD: params.amount,
+            minAmountLD: params.amount, // Require exact amount (no slippage for stablecoins)
+            extraOptions: bytes(""),
+            composeMsg: composeMsg,
+            oftCmd: bytes("")
+        });
+
+        MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
+        return (fee.nativeFee, fee.lzTokenFee);
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -243,6 +392,66 @@ contract LayerZeroAdapter is
     }
 
     /*//////////////////////////////////////////////////////////////
+                             LAYERZERO COMPOSE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Handles composed messages from LayerZero after OFT token delivery
+     * @dev Called by LayerZero endpoint after tokens are delivered via OFT
+     * @param _from The originating OApp (should be destination OFT contract)
+     * @param _message OFT-encoded compose message from OFT
+     */
+    function lzCompose(
+        address _from,
+        bytes32 /* _guid */,
+        bytes calldata _message,
+        address /* _caller */,
+        bytes calldata /* _extraData */
+    ) external payable override nonReentrant {
+        // Verify caller is LayerZero endpoint
+        if (msg.sender != endpoint) revert Unauthorized();
+
+        // Decode OFT compose payload
+        (
+            uint32 srcEid,
+            uint256 amountLD,
+            address composeFrom,
+            bytes memory composeMsg
+        ) = _decodeOFTCompose(_message);
+
+        // Decode transfer parameters from compose message
+        BridgeTypes.RelayedTransferParams
+            memory params = _decodeRelayedTransferParams(composeMsg);
+
+        // Ensure the LayerZero srcEid maps to the same chain as encoded in the payload
+        uint16 chainFromEid = _chainIdFromExternalId(srcEid);
+
+        // Validate the source adapter relationship using the mapped chain ID
+        _assertTrustedSource(composeFrom, chainFromEid);
+
+        _validateSourceChainId(params.sourceChainId, chainFromEid);
+
+        // Use the minted amount from OFT compose header as authoritative
+        params.amount = amountLD;
+
+        // Ensure the asset is supported
+        if (oftForToken[params.asset] == address(0)) revert UnsupportedAsset();
+
+        // Check that we have the expected amount of tokens
+        uint256 bal = IERC20(params.asset).balanceOf(address(this));
+        if (bal < params.amount) revert InsufficientBalance();
+
+        // Move tokens to router, which will forward to recipient during deliver
+        IERC20(params.asset).safeTransfer(bridgeRouter(), params.amount);
+
+        // Deliver through router
+        IBridgeRouter(bridgeRouter()).deliver(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            _encodeRelayedTransferParams(params)
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -285,8 +494,20 @@ contract LayerZeroAdapter is
     function supportsOperation(
         BridgeTypes.OperationType operationType
     ) public pure override returns (bool) {
-        // LayerZero adapter now only supports messaging operations
-        return operationType == BridgeTypes.OperationType.MESSAGE;
+        // LayerZero adapter supports both messaging and asset transfer operations
+        return
+            operationType == BridgeTypes.OperationType.MESSAGE ||
+            operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
+    }
+
+    /// @inheritdoc IAssetAdapter
+    function supportsAssetTransfer(
+        uint16 destinationChainId,
+        address asset
+    ) external view returns (bool) {
+        return
+            oftForToken[asset] != address(0) &&
+            _hasTrustedDestination(destinationChainId);
     }
 
     /// @inheritdoc IMessageAdapter
@@ -320,5 +541,69 @@ contract LayerZeroAdapter is
                 originator: address(0),
                 sourceChainId: uint16(0)
             });
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                             COMPOSE HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Decode OFT compose message header and payload
+     * @param message The OFT-encoded compose message
+     * @return srcEid Source endpoint ID
+     * @return amountLD Amount in local decimals
+     * @return composeFrom Address that sent the compose message
+     * @return composeMsg The composed message payload
+     */
+    function _decodeOFTCompose(
+        bytes calldata message
+    )
+        internal
+        pure
+        returns (
+            uint32 srcEid,
+            uint256 amountLD,
+            address composeFrom,
+            bytes memory composeMsg
+        )
+    {
+        // Sanity-check the OFT compose header is fully present before decoding.
+        // Layout (ABI-aligned as produced by OFTComposeMsgCodec):
+        //  - 8B nonce | 4B srcEid                                   (total so far: 12 bytes)
+        //  - 32B amountLD                                           (total so far: 44 bytes)
+        //  - 32B composeFrom (left-padded address, present when composeMsg != empty)
+        // Minimum length when composeFrom is present: 12 + 32 + 32 = 76 bytes.
+        // A valid message must have additional compose message data beyond the header.
+        if (message.length <= 76) revert InvalidMessage();
+
+        // Use official codec for extraction
+        srcEid = OFTComposeMsgCodec.srcEid(message);
+        amountLD = OFTComposeMsgCodec.amountLD(message);
+        composeMsg = OFTComposeMsgCodec.composeMsg(message);
+        composeFrom = OFTComposeMsgCodec.composeFrom(message).toAddress();
+    }
+
+    /**
+     * @dev Encode transfer parameters for OFT compose message
+     * @param operationId Router-provided operation ID
+     * @param params Transfer parameters
+     * @return Encoded compose message payload
+     */
+    function _encodeComposeTransferParams(
+        bytes32 operationId,
+        BridgeTypes.ExecuteTransferParams calldata params
+    ) internal view returns (bytes memory) {
+        BridgeTypes.RelayedTransferParams memory relayedParams = BridgeTypes
+            .RelayedTransferParams({
+                operationId: operationId,
+                originator: params.originator,
+                sourceChainId: uint16(block.chainid),
+                recipient: params.target,
+                asset: params.asset,
+                amount: params.amount,
+                message: params.message
+            });
+
+        return abi.encode(relayedParams);
     }
 }
