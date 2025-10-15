@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import "forge-std/Test.sol";
+import "forge-std/console.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
 import {IArkErrors} from "../../src/errors/IArkErrors.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
@@ -50,14 +51,18 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 balance,
         uint16 sourceChainId,
         bytes32 latestOutgoingTransferId
-    ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
+    ) internal view returns (BridgeTypes.RelayedMessageParams memory) {
         return
             BridgeTypes.RelayedMessageParams({
                 operationId: operationId,
                 originator: originator,
                 sourceChainId: sourceChainId,
                 recipient: arkAddress,
-                message: abi.encode(balance, latestOutgoingTransferId)
+                message: abi.encode(
+                    balance,
+                    latestOutgoingTransferId,
+                    block.timestamp
+                )
             });
     }
 
@@ -547,6 +552,77 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(ark.lastRemoteAssetBalance(), initialRemoteBalance - amount);
     }
 
+    //----------------- Satellite Receipt Notify (Ark → Proxy) -----------------//
+
+    function test_NotifySatelliteReceipt_SendsAckMessage() public {
+        // Simulate receiving a withdrawal from satellite so that latestIncomingTransferId is set
+        uint256 amount = 500;
+        bytes32 opId = keccak256("withdrawal-op");
+        bytes memory message = abi.encode(uint256(1000));
+
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: opId,
+                originator: proxy,
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                asset: address(mockToken),
+                amount: amount,
+                message: message
+            });
+
+        // deliver transfer from router
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(params)
+        );
+
+        // Ensure latestIncomingTransferId set
+        bytes32 latestIn = ark.latestIncomingTransferId();
+        assertEq(latestIn, opId);
+
+        // Call notifySatelliteReceipt as keeper
+        vm.deal(keeper, 1 ether);
+        vm.prank(keeper);
+        ark.notifySatelliteReceipt{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 200000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // The mock router records messageCalls, check count increased
+        uint256 count = router.getMessageCallCount();
+        assertEq(count, 1, "one message should be sent");
+
+        // Verify payload contains opId
+        (, , bytes memory sentMessage) = router.messageCalls(count - 1);
+        bytes32 decodedOpId = abi.decode(sentMessage, (bytes32));
+        assertEq(decodedOpId, opId, "ACK payload should contain opId");
+    }
+
+    function test_NotifySatelliteReceipt_RequiresLatestIncomingTransferId()
+        public
+    {
+        // Without prior inbound transfer, calling notify should revert
+        vm.deal(keeper, 1 ether);
+        vm.prank(keeper);
+        vm.expectRevert(ICrossChainArk.InvalidRequestor.selector);
+        ark.notifySatelliteReceipt{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 200000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+    }
+
     // ========================================================================
     // ENHANCED READ DELIVERY TESTS
     // ========================================================================
@@ -930,5 +1006,71 @@ contract CrossChainArkTest is Test, ArkTestBase {
             "Should have swept otherToken"
         );
         assertGt(sweptAmounts[0], 0, "Should have swept some amount");
+    }
+
+    function testStaleNotificationProtection() public {
+        uint256 initialBalance = 1000;
+        uint256 newBalance = 2000;
+        bytes32 requestId1 = keccak256("stale-test-1");
+        bytes32 requestId2 = keccak256("stale-test-2");
+
+        // First, set up a valid notification
+        BridgeTypes.RelayedMessageParams memory params1 = _encodeMessage(
+            requestId1,
+            address(proxy),
+            address(ark),
+            initialBalance,
+            TARGET_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
+        );
+
+        // Process the first notification
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params1)
+        );
+
+        assertEq(ark.lastRemoteAssetBalance(), initialBalance);
+        assertEq(ark.lastNotificationTimestamp(), block.timestamp);
+
+        // Now try to send a stale notification with an older timestamp
+        vm.warp(block.timestamp + 100); // Advance time to 101
+
+        // Create the stale message directly without using _encodeMessage
+        uint256 staleTimestamp = 0; // This should be 0, which is older than 1
+
+        bytes memory staleMessage = abi.encode(
+            newBalance,
+            bytes32(0),
+            staleTimestamp
+        );
+
+        BridgeTypes.RelayedMessageParams memory params2 = BridgeTypes
+            .RelayedMessageParams({
+                operationId: requestId2,
+                originator: address(proxy),
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                message: staleMessage
+            });
+
+        // Expect the StaleNotification event
+        vm.expectEmit(true, true, true, true);
+        emit ICrossChainArk.StaleNotification(
+            staleTimestamp, // 0
+            1 // lastNotificationTimestamp was 1
+        );
+
+        // Process the stale notification - should be rejected
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params2)
+        );
+
+        // Verify the balance wasn't updated
+        assertEq(ark.lastRemoteAssetBalance(), initialBalance);
+        assertEq(ark.lastNotificationTimestamp(), 1);
     }
 }

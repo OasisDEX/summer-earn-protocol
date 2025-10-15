@@ -197,7 +197,6 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         freshAdapter.configureReadDVNs(
             READ_LIB_1002_BASE,
             readDVNs,
-            15,
             EXECUTOR_BASE
         );
 

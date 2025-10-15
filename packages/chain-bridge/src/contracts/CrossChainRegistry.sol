@@ -47,6 +47,9 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     address public bridgeRouter;
 
     /// @notice Constants for relationship types
+    /// @dev Note: PEER_RELATIONSHIP requires use of pair registration methods (registerAdapterPeerPair/unregisterAdapterPeerPair)
+    /// to ensure bidirectional relationships. Other newly added relationship types that require bijective mapping
+    /// will require careful configuration as there is no enforcement for those - they may get misconfigured.
     bytes32 public constant PEER_RELATIONSHIP = keccak256("PEER_RELATIONSHIP");
     bytes32 public constant EXECUTOR_RELATIONSHIP =
         keccak256("EXECUTOR_RELATIONSHIP");
@@ -80,6 +83,11 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 targetChainId,
         bytes32 relationshipType
     ) public onlyGovernor {
+        // PEER_RELATIONSHIP requires use of pair registration methods
+        if (relationshipType == PEER_RELATIONSHIP) {
+            revert UsePairRegistrationMethods(relationshipType);
+        }
+
         // Delegate to internal registration logic with validation and storage
         _registerRelationship(
             sourceContract,
@@ -96,6 +104,11 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         bytes32 relationshipType,
         uint16 targetChainId
     ) public onlyGovernor {
+        // PEER_RELATIONSHIP requires use of pair registration methods
+        if (relationshipType == PEER_RELATIONSHIP) {
+            revert UsePairRegistrationMethods(relationshipType);
+        }
+
         _unregisterRelationship(
             sourceContract,
             relationshipType,
