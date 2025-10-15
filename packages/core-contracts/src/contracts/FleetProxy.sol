@@ -16,6 +16,7 @@ import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReceiptNotifier} from "./common/ReceiptNotifier.sol";
 
 /**
  * @title FleetProxy
@@ -28,7 +29,8 @@ contract FleetProxy is
     CrossChainReceiverBase,
     IFleetProxy,
     Pausable,
-    ReentrancyGuard
+    ReentrancyGuard,
+    ReceiptNotifier
 {
     using SafeERC20 for IERC20;
 
@@ -47,6 +49,9 @@ contract FleetProxy is
 
     /// @notice The latest incoming transfer ID
     bytes32 public latestIncomingTransferId;
+
+    /// @notice The latest outgoing transfer ID
+    bytes32 public latestOutgoingTransferId;
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -185,7 +190,7 @@ contract FleetProxy is
             .ExecuteTransferParams({
                 originator: address(this),
                 destinationChainId: hubChainId,
-                target: _getSourceChainArk(hubChainId),
+                target: _getHubChainArk(hubChainId),
                 asset: asset,
                 amount: amount,
                 message: abi.encode(fleetAssets),
@@ -198,6 +203,7 @@ contract FleetProxy is
             options
         );
 
+        latestOutgoingTransferId = opId;
         emit InflightSet(inflightWithdrawals, opId);
 
         emit AssetsWithdrawnAndTransferred(
@@ -208,12 +214,17 @@ contract FleetProxy is
     }
 
     /**
-     * @notice Notifies the source chain that assets have been received
+     * @notice Notifies the hub chain that assets have been received
      */
-    function notifySourceChain(
+    function notifyHubChain(
         BridgeTypes.BridgeOptions calldata options
     ) external payable whenNotPaused nonReentrant onlyKeeper {
-        IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
+        _notifyHubChain(options);
+    }
+
+    function _notifyHubChain(
+        BridgeTypes.BridgeOptions calldata options
+    ) internal {
         // Security: ensure the ARK relationship is currently valid in the registry
         if (!_isValidSourceChain(hubChainId)) revert InvalidSourceChain();
         // Security: include replay guard context - require we have a non-zero last transfer id
@@ -224,19 +235,13 @@ contract FleetProxy is
         uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
             fleetShares
         );
-        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
-            .ExecuteSendMessageParams({
-                originator: address(this),
-                destinationChainId: hubChainId,
-                target: _getSourceChainArk(hubChainId),
-                message: abi.encode(
-                    fleetAssets,
-                    latestIncomingTransferId,
-                    block.timestamp
-                ),
-                refundAddress: msg.sender
-            });
-        bridgeRouter.executeSendMessage{value: msg.value}(params, options);
+        _sendNotification(
+            hubChainId,
+            _getHubChainArk(hubChainId),
+            abi.encode(fleetAssets, latestIncomingTransferId),
+            options,
+            msg.sender
+        );
     }
 
     /// @inheritdoc IERC165
@@ -246,6 +251,10 @@ contract FleetProxy is
         return
             interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
+    }
+
+    function _notifierBridgeRouter() internal view override returns (address) {
+        return bridgeRouter();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -272,8 +281,9 @@ contract FleetProxy is
         override
         returns (BridgeTypes.OperationType[] memory supportedTypes)
     {
-        supportedTypes = new BridgeTypes.OperationType[](1);
+        supportedTypes = new BridgeTypes.OperationType[](2);
         supportedTypes[0] = BridgeTypes.OperationType.TRANSFER_ASSET;
+        supportedTypes[1] = BridgeTypes.OperationType.MESSAGE;
     }
 
     /**
@@ -300,7 +310,7 @@ contract FleetProxy is
         if (params.amount == 0) {
             revert NoAssets();
         }
-        if (params.originator != _getSourceChainArk(params.sourceChainId)) {
+        if (params.originator != _getHubChainArk(params.sourceChainId)) {
             revert InvalidRequestor();
         }
         _handleReceiveAssets(params.asset, params.amount, params.sourceChainId);
@@ -309,17 +319,41 @@ contract FleetProxy is
         latestIncomingTransferId = params.operationId;
     }
 
+    /**
+     * @notice Handles MESSAGE operation type (ACK from CrossChainArk confirming receipt of withdrawal)
+     * @param params Decoded message parameters
+     */
+    function _handleMessage(
+        BridgeTypes.RelayedMessageParams memory params
+    ) internal override whenNotPaused {
+        if (params.sourceChainId != hubChainId) revert InvalidSourceChain();
+        if (params.originator != _getHubChainArk(params.sourceChainId)) {
+            revert InvalidRequestor();
+        }
+
+        bytes32 ackOpId = abi.decode(params.message, (bytes32));
+
+        uint256 previous = inflightWithdrawals;
+        if (previous == 0) revert InvalidOperation();
+        if (ackOpId == bytes32(0)) revert InvalidOperation();
+        if (ackOpId != latestOutgoingTransferId) revert InvalidOperation();
+
+        inflightWithdrawals = 0;
+        latestOutgoingTransferId = bytes32(0);
+        emit InflightCleared(ackOpId, previous);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Gets the source chain ark address from the registry
-     * @param _hubChainId The chain ID where the ark is deployed
-     * @return arkAddress The source chain ark address
-     * @dev Reverts if no valid relationship exists for the source chain
+     * @notice Gets the hub-chain Ark address from the registry
+     * @param _hubChainId The chain ID where the Ark is deployed (hub)
+     * @return arkAddress The hub-chain Ark address
+     * @dev Reverts if no valid relationship exists for the hub chain
      */
-    function _getSourceChainArk(
+    function _getHubChainArk(
         uint16 _hubChainId
     ) internal view returns (address arkAddress) {
         return
@@ -332,9 +366,9 @@ contract FleetProxy is
     }
 
     /**
-     * @notice Validates if the source chain is valid for this proxy
-     * @param _hubChainId The chain ID to validate
-     * @return isValid True if the source chain is valid
+     * @notice Validates if the hub chain is valid for this proxy
+     * @param _hubChainId The hub chain ID to validate
+     * @return isValid True if the hub chain is valid
      */
     function _isValidSourceChain(
         uint16 _hubChainId
