@@ -1,15 +1,15 @@
 ### Cross-Chain Registry and Security
 
-This document outlines the `CrossChainRegistry` model and how validation is performed on hub and
+This document outlines the `CrossChainRegistry` model and how validation is performed on source and
 destination chains.
 
 #### Registry Model
 
-- Governance-controlled registry that records valid relationships between the hub-chain Ark and a
+- Governance-controlled registry that records valid relationships between a source Ark and a
   destination FleetProxy for a specific source/target chain pair and relationship type.
 - Registry state must be identical across all participating chains.
 
-#### Hub-Side Validation (Ark)
+#### Source-Side Validation (Ark)
 
 - Before initiating a cross-chain transfer, the CrossChain Ark queries the registry for the target
   relationship.
@@ -34,8 +34,7 @@ require(proxy != address(0), "No relationship");
 - Upon delivery, the FleetProxy validates:
   - Caller is the local BridgeRouter (FleetProxy trusts only the router; the router authenticates
     adapters and peer relationships).
-  - The hub chain and Ark match an active registry relationship for this FleetProxy.
-  - The message originates from the hub chain and the originator equals the hub-chain Ark.
+  - The source chain and Ark match an active registry relationship for this FleetProxy.
 - If either check fails, the call reverts and funds are not deposited into the local fleet.
 
 Example pattern:
@@ -48,11 +47,11 @@ require(msg.sender == bridgeRouter, "Only router");
 // - onlyRegisteredAdapter(adapter)
 // - peer relationship exists for (sourceChainId, adapter)
 
-// Recipient validates hub-chain Ark + chain via registry
+// Recipient validates source Ark + chain via registry
 bool ok = crossChainRegistry.isValidCrossChainPair(
-    hubArk,
+    sourceArk,
     address(this),
-    hubChainId,
+    sourceChainId,
     uint16(block.chainid),
     ARK_FLEET_RELATIONSHIP
 );

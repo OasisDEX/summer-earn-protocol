@@ -46,18 +46,14 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint256 balance,
         uint16 sourceChainId,
         bytes32 latestOutgoingTransferId
-    ) internal view returns (BridgeTypes.RelayedMessageParams memory) {
+    ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
         return
             BridgeTypes.RelayedMessageParams({
                 operationId: operationId,
                 originator: originator,
                 sourceChainId: sourceChainId,
                 recipient: arkAddress,
-                message: abi.encode(
-                    balance,
-                    latestOutgoingTransferId,
-                    block.timestamp
-                )
+                message: abi.encode(balance, latestOutgoingTransferId)
             });
     }
 
