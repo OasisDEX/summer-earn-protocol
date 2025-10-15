@@ -13,7 +13,6 @@ import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
-import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {LayerZeroComposeHelper} from "../../../src/helpers/LayerZeroComposeHelper.sol";
 

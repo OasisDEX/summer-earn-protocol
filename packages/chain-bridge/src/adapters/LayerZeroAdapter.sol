@@ -447,9 +447,9 @@ contract LayerZeroAdapter is
         uint16 chainFromEid = _chainIdFromExternalId(srcEid);
 
         // Validate the source adapter relationship using the mapped chain ID
-        _assertTrustedSource(composeFrom, chainFromEid);
-
-        _validateSourceChainId(params.sourceChainId, chainFromEid);
+        if (!_validateTrustedSource(composeFrom, chainFromEid)) {
+            revert UntrustedSourceAdapter(composeFrom, chainFromEid);
+        }
 
         // Use the minted amount from OFT compose header as authoritative
         params.amount = amountLD;

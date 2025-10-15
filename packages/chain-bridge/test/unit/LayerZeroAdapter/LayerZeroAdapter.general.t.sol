@@ -115,7 +115,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         assertTrue(
             adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE)
         );
-        assertFalse(
+        assertTrue(
             adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         );
     }
@@ -147,17 +147,15 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                         ESTIMATION & VALIDATION TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_estimateTransferAssets_reverts_OperationNotSupported()
-        public
-    {
+    function test_estimateTransferAssets_reverts_UnsupportedAsset() public {
         useNetworkA();
-        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
         adapterA.estimateTransferAssets(
             BridgeTypes.ExecuteTransferParams({
                 originator: address(this),
                 destinationChainId: CHAIN_ID_B,
                 target: address(this),
-                asset: address(0),
+                asset: address(0), // Unsupported asset
                 amount: 0,
                 message: bytes(""),
                 refundAddress: address(this)
