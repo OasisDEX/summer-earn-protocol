@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ITipJar} from "../interfaces/ITipJar.sol";
+import {ITipJarWhitelist} from "./interfaces/ITipJarWhitelist.sol";
 
-import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+import {IFleetCommanderWhitelist} from "./interfaces/IFleetCommanderWhitelist.sol";
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ProtocolAccessManagedWhitelist} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedWhitelist.sol";
 
-import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
-import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {IHarborCommandWhitelist} from "./interfaces/IHarborCommandWhitelist.sol";
+import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManaged.sol";
 
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
@@ -19,12 +19,12 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 /**
  * @title TipJar
  * @notice Manages tip streams for distributing rewards from FleetCommanders
- * @dev Implements ITipJar interface and inherits from ProtocolAccessManaged and ConfigurationManaged
- * @custom:see ITipJar
+ * @dev Implements ITipJarWhitelist interface and inherits from ProtocolAccessManaged and ConfigurationManaged
+ * @custom:see ITipJarWhitelist
  */
 
-contract TipJar is
-    ITipJar,
+contract TipJarWhitelist is
+    ITipJarWhitelist,
     ProtocolAccessManagedWhitelist,
     ConfigurationManaged,
     Pausable
@@ -66,7 +66,7 @@ contract TipJar is
                         EXTERNAL GOVERNOR FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ITipJar
+    /// @inheritdoc ITipJarWhitelist
     function addTipStream(
         TipStream memory tipStream
     ) external onlyGovernor returns (uint256 lockedUntilEpoch) {
@@ -96,7 +96,7 @@ contract TipJar is
         return tipStream.lockedUntilEpoch;
     }
 
-    /// @inheritdoc ITipJar
+    /// @inheritdoc ITipJarWhitelist
     function removeTipStream(address recipient) external onlyGovernor {
         _validateTipStream(recipient);
 
@@ -118,7 +118,7 @@ contract TipJar is
     /// before updating a tip stream to ensure all accumulated rewards
     /// are distributed using the current allocation.
     /// @dev Warning: A global shake can be gas expensive if there are many fleet commanders
-    /// @inheritdoc ITipJar
+    /// @inheritdoc ITipJarWhitelist
     function updateTipStream(
         TipStream memory tipStream,
         bool shakeAllFleetCommanders
@@ -148,12 +148,12 @@ contract TipJar is
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ITipJar
+    /// @inheritdoc ITipJarWhitelist
     function shake(address fleetCommander_) external whenNotPaused {
         _shake(fleetCommander_);
     }
 
-    /// @inheritdoc ITipJar
+    /// @inheritdoc ITipJarWhitelist
     function shakeMultiple(address[] calldata fleetCommanders) external {
         _shakeMultiple(fleetCommanders);
     }
@@ -162,13 +162,14 @@ contract TipJar is
     /// @dev This function can be called to distribute rewards from all active fleet commanders
     /// @dev Warning: This operation can be gas expensive if there are many fleet commanders
     function shakeAll() public {
-        address[] memory activeFleetCommanders = IHarborCommand(harborCommand())
-            .getActiveFleetCommanders();
+        address[] memory activeFleetCommanders = IHarborCommandWhitelist(
+            harborCommand()
+        ).getActiveFleetCommanders();
         _shakeMultiple(activeFleetCommanders);
     }
 
     /**
-     * @inheritdoc ITipJar
+     * @inheritdoc ITipJarWhitelist
      * @dev Only callable by addresses with the GUARDIAN_ROLE
      */
     function pause() external onlyGovernor {
@@ -177,7 +178,7 @@ contract TipJar is
     }
 
     /**
-     * @inheritdoc ITipJar
+     * @inheritdoc ITipJarWhitelist
      * @dev Only callable by addresses with the GOVERNOR_ROLE
      */
     function unpause() external onlyGovernor {
@@ -189,14 +190,14 @@ contract TipJar is
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ITipJar
+    /// @inheritdoc ITipJarWhitelist
     function getTipStream(
         address recipient
     ) external view returns (TipStream memory) {
         return tipStreams[recipient];
     }
 
-    /// @inheritdoc ITipJar
+    /// @inheritdoc ITipJarWhitelist
     function getAllTipStreams()
         external
         view
@@ -208,7 +209,7 @@ contract TipJar is
         }
     }
 
-    /// @inheritdoc ITipJar
+    /// @inheritdoc ITipJarWhitelist
     function getTotalAllocation() public view returns (Percentage total) {
         total = toPercentage(0);
         for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
@@ -240,14 +241,16 @@ contract TipJar is
      */
     function _shake(address fleetCommander_) internal {
         if (
-            !IHarborCommand(harborCommand()).activeFleetCommanders(
+            !IHarborCommandWhitelist(harborCommand()).activeFleetCommanders(
                 fleetCommander_
             )
         ) {
             revert InvalidFleetCommanderAddress();
         }
 
-        IFleetCommander fleetCommander = IFleetCommander(fleetCommander_);
+        IFleetCommanderWhitelist fleetCommander = IFleetCommanderWhitelist(
+            fleetCommander_
+        );
 
         uint256 shares = fleetCommander.balanceOf(address(this));
         if (shares == 0) {

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IAccessControlErrors} from "../interfaces/IAccessControlErrors.sol";
-import {ContractSpecificRoles, IProtocolAccessManagerWhitelist} from "../interfaces/IProtocolAccessManagerWhitelist.sol";
+import {IAccessControlErrors} from "./interfaces/IAccessControlErrors.sol";
+import {ContractSpecificRoles, IProtocolAccessManagerWhitelist} from "./interfaces/IProtocolAccessManagerWhitelist.sol";
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";

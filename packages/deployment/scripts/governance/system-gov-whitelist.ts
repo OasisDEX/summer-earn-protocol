@@ -6,7 +6,6 @@ import { GovContracts, GovWhitelistModule } from '../../ignition/modules/gov-whi
 import { BaseConfig } from '../../types/config-types'
 import { ADDRESS_ZERO } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
-import { ModuleLogger } from '../helpers/module-logger'
 import { updateIndexJson } from '../helpers/update-json'
 
 export async function deployGov(config: BaseConfig, useBummerConfig?: boolean) {

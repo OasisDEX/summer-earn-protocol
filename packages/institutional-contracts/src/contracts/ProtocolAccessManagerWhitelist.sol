@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ContractSpecificRoles, IProtocolAccessManagerWhitelist} from "../interfaces/IProtocolAccessManagerWhitelist.sol";
-import {LimitedAccessControl} from "./LimitedAccessControl.sol";
+import {ContractSpecificRoles, IProtocolAccessManagerWhitelist} from "./interfaces/IProtocolAccessManagerWhitelist.sol";
+import {LimitedAccessControl} from "@summerfi/access-contracts/contracts/LimitedAccessControl.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**

@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IArk} from "../interfaces/IArk.sol";
-import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
-import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
+import {IArk} from "@summerfi/earn-protocol-contracts/interfaces/IArk.sol";
+import {FleetCommanderParams} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
+import {FleetCommanderPausable} from "@summerfi/earn-protocol-contracts/contracts/FleetCommanderPausable.sol";
 
-import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
+import {IFleetCommanderConfigProviderWhitelist} from "./interfaces/IFleetCommanderConfigProviderWhitelist.sol";
 
-import {IFleetCommanderRewardsManagerFactory} from "../interfaces/IFleetCommanderRewardsManagerFactory.sol";
-import {FleetConfig} from "../types/FleetCommanderTypes.sol";
-import {ConfigurationManaged} from "./ConfigurationManaged.sol";
-import {FleetCommanderRewardsManager} from "./FleetCommanderRewardsManager.sol";
-import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
+import {FleetConfig} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
+import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManaged.sol";
+import {FleetCommanderRewardsManager} from "@summerfi/earn-protocol-contracts/contracts/FleetCommanderRewardsManager.sol";
+import {ArkParams, BufferArk} from "@summerfi/earn-protocol-contracts/contracts/arks/BufferArk.sol";
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -30,7 +29,7 @@ contract FleetCommanderConfigProviderWhitelist is
     ProtocolAccessManagedWhitelist,
     FleetCommanderPausable,
     ConfigurationManaged,
-    IFleetCommanderConfigProvider
+    IFleetCommanderConfigProviderWhitelist
 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -95,7 +94,7 @@ contract FleetCommanderConfigProviderWhitelist is
         _;
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function isArkActiveOrBufferArk(
         address arkAddress
     ) public view returns (bool) {
@@ -104,39 +103,39 @@ contract FleetCommanderConfigProviderWhitelist is
             arkAddress == address(config.bufferArk);
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function arks(uint256 index) public view returns (address) {
         return _activeArks.at(index);
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function getActiveArks() public view returns (address[] memory) {
         return _activeArks.values();
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function getConfig() external view override returns (FleetConfig memory) {
         return config;
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function bufferArk() external view returns (address) {
         return address(config.bufferArk);
     }
 
     // ARK MANAGEMENT
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function addArk(address ark) external onlyGovernor whenNotPaused {
         _addArk(ark);
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function removeArk(address ark) external onlyGovernor whenNotPaused {
         _removeArk(ark);
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function setArkDepositCap(
         address ark,
         uint256 newDepositCap
@@ -144,7 +143,7 @@ contract FleetCommanderConfigProviderWhitelist is
         IArk(ark).setDepositCap(newDepositCap);
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function setArkMaxDepositPercentageOfTVL(
         address ark,
         Percentage newMaxDepositPercentageOfTVL
@@ -152,7 +151,7 @@ contract FleetCommanderConfigProviderWhitelist is
         IArk(ark).setMaxDepositPercentageOfTVL(newMaxDepositPercentageOfTVL);
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function setArkMaxRebalanceOutflow(
         address ark,
         uint256 newMaxRebalanceOutflow
@@ -160,7 +159,7 @@ contract FleetCommanderConfigProviderWhitelist is
         IArk(ark).setMaxRebalanceOutflow(newMaxRebalanceOutflow);
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function setArkMaxRebalanceInflow(
         address ark,
         uint256 newMaxRebalanceInflow
@@ -168,7 +167,7 @@ contract FleetCommanderConfigProviderWhitelist is
         IArk(ark).setMaxRebalanceInflow(newMaxRebalanceInflow);
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function setMinimumBufferBalance(
         uint256 newMinimumBalance
     ) external onlyCurator(address(this)) whenNotPaused {
@@ -176,7 +175,7 @@ contract FleetCommanderConfigProviderWhitelist is
         emit FleetCommanderminimumBufferBalanceUpdated(newMinimumBalance);
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function setFleetDepositCap(
         uint256 newCap
     ) external onlyCurator(address(this)) whenNotPaused {
@@ -184,19 +183,7 @@ contract FleetCommanderConfigProviderWhitelist is
         emit FleetCommanderDepositCapUpdated(newCap);
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
-    function updateStakingRewardsManager()
-        external
-        onlyCurator(address(this))
-        whenNotPaused
-    {
-        config.stakingRewardsManager = IFleetCommanderRewardsManagerFactory(
-            fleetCommanderRewardsManagerFactory()
-        ).createRewardsManager(address(_accessManager), address(this));
-        emit FleetCommanderStakingRewardsUpdated(config.stakingRewardsManager);
-    }
-
-    ///@inheritdoc IFleetCommanderConfigProvider
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function setMaxRebalanceOperations(
         uint256 newMaxRebalanceOperations
     ) external onlyCurator(address(this)) whenNotPaused {
@@ -265,7 +252,7 @@ contract FleetCommanderConfigProviderWhitelist is
      * @custom:security-considerations
      * - Ensures only active arks can be removed
      * - Validates ark state before removal to prevent inconsistencies
-     * - Only callable internally, typically by privileged roles
+     * - Critical for maintaining the integrity of the fleet
      */
     function _removeArk(address ark) internal onlyActiveArk(ark) {
         _validateArkRemoval(ark);

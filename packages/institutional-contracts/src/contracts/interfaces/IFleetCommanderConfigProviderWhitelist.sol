@@ -12,7 +12,7 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
  * @title IFleetCommander Interface
  * @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
  */
-interface IFleetCommanderConfigProvider is
+interface IFleetCommanderConfigProviderWhitelist is
     IFleetCommanderConfigProviderErrors,
     IFleetCommanderConfigProviderEvents
 {
@@ -117,9 +117,4 @@ interface IFleetCommanderConfigProvider is
         address ark,
         uint256 newMaxRebalanceInflow
     ) external;
-
-    /**
-     * @notice Deploys and sets the staking rewards manager contract address
-     */
-    function updateStakingRewardsManager() external;
 }

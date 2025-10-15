@@ -2,13 +2,13 @@
 pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
-import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
+import {FleetCommanderParams} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
 import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
 
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 
 import {IFleetCommanderRewardsManagerFactory} from "../interfaces/IFleetCommanderRewardsManagerFactory.sol";
-import {FleetConfig} from "../types/FleetCommanderTypes.sol";
+import {FleetConfig} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {FleetCommanderRewardsManager} from "./FleetCommanderRewardsManager.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
@@ -215,7 +215,17 @@ contract FleetCommanderConfigProvider is
         );
     }
 
-
+    ///@inheritdoc IFleetCommanderConfigProvider
+    function setFleetTokenTransferability()
+        external
+        onlyGovernor
+        whenNotPaused
+    {
+        if (!transfersEnabled) {
+            transfersEnabled = true;
+            emit TransfersEnabled();
+        }
+    }
 
     // INTERNAL FUNCTIONS
     /**

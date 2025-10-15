@@ -11,7 +11,10 @@ import {ProtocolAccessManagedWhitelist} from "@summerfi/access-contracts/contrac
  * @notice Manages system-wide configuration parameters for the protocol
  * @custom:see IConfigurationManager
  */
-contract ConfigurationManager is IConfigurationManager, ProtocolAccessManagedWhitelist {
+contract ConfigurationManager is
+    IConfigurationManager,
+    ProtocolAccessManagedWhitelist
+{
     bool public initialized;
 
     /// @inheritdoc IConfigurationManager
@@ -33,7 +36,9 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManagedWhi
      * @notice Constructs the ConfigurationManager contract
      * @param _accessManager The address of the ProtocolAccessManager contract
      */
-    constructor(address _accessManager) ProtocolAccessManagedWhitelist(_accessManager) {}
+    constructor(
+        address _accessManager
+    ) ProtocolAccessManagedWhitelist(_accessManager) {}
 
     /// @inheritdoc IConfigurationManager
     function initializeConfiguration(
@@ -45,7 +50,7 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManagedWhi
         if (
             params.raft == address(0) ||
             params.tipJar == address(0) ||
-            params.treasury == address(0) 
+            params.treasury == address(0)
             // params.harborCommand == address(0) ||
             // params.fleetCommanderRewardsManagerFactory == address(0)
         ) {

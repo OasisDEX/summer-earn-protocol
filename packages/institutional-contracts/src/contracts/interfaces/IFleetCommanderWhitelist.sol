@@ -5,7 +5,7 @@ import {IFleetCommanderErrors} from "../errors/IFleetCommanderErrors.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
 import {RebalanceData} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
 
-import {IFleetCommanderConfigProvider} from "./IFleetCommanderConfigProvider.sol";
+import {IFleetCommanderConfigProviderWhitelist} from "./IFleetCommanderConfigProviderWhitelist.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
@@ -13,11 +13,11 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
  * @title IFleetCommander Interface
  * @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
  */
-interface IFleetCommander is
+interface IFleetCommanderWhitelist is
     IERC4626,
     IFleetCommanderEvents,
     IFleetCommanderErrors,
-    IFleetCommanderConfigProvider
+    IFleetCommanderConfigProviderWhitelist
 {
     /**
      * @notice Returns the total assets that are currently withdrawable from the FleetCommander.

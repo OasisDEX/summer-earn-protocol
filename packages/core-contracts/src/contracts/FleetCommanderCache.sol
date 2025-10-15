@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {StorageSlot} from "@summerfi/dependencies/openzeppelin-next/StorageSlot.sol";
 
 import {IArk} from "../interfaces/IArk.sol";
-import {ArkData} from "../types/FleetCommanderTypes.sol";
+import {ArkData} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
 import {StorageSlots} from "./libraries/StorageSlots.sol";
 
 /**

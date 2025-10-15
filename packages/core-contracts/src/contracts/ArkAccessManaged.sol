@@ -21,7 +21,9 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManagedWhitelist {
      * @notice Initializes the ArkAccessManaged contract.
      * @param accessManager The address of the access manager contract.
      */
-    constructor(address accessManager) ProtocolAccessManagedWhitelist(accessManager) {}
+    constructor(
+        address accessManager
+    ) ProtocolAccessManagedWhitelist(accessManager) {}
 
     /**
      * @notice Checks if the caller is authorized to board funds.

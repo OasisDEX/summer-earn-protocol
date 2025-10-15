@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IHarborCommandEvents} from "../events/IHarborCommandEvents.sol";
-import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
+import {IHarborCommandEvents} from "./events/IHarborCommandEvents.sol";
+import {IHarborCommandWhitelist} from "./interfaces/IHarborCommandWhitelist.sol";
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManagedWhitelist} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedWhitelist.sol";
 
 /**
  * @title HarborCommand - Fleet Commander Management System
@@ -25,12 +25,12 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
  *
  * This contract plays a crucial role in maintaining the integrity and security of the fleet management system
  * by providing a reliable source of truth for official fleet verification.
- * @custom:see IHarborCommand
+ * @custom:see IHarborCommandWhitelist
  */
-contract HarborCommand is
-    ProtocolAccessManaged,
+contract HarborCommandWhitelist is
+    ProtocolAccessManagedWhitelist,
     IHarborCommandEvents,
-    IHarborCommand
+    IHarborCommandWhitelist
 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -49,13 +49,15 @@ contract HarborCommand is
      * @notice Initializes the HarborCommand contract
      * @param _accessManager Address of the access manager contract
      */
-    constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
+    constructor(
+        address _accessManager
+    ) ProtocolAccessManagedWhitelist(_accessManager) {}
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL GOVERNOR FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IHarborCommand
+    /// @inheritdoc IHarborCommandWhitelist
     function enlistFleetCommander(
         address _fleetCommander
     ) external onlyGovernor {
@@ -65,7 +67,7 @@ contract HarborCommand is
         emit FleetCommanderEnlisted(_fleetCommander);
     }
 
-    /// @inheritdoc IHarborCommand
+    /// @inheritdoc IHarborCommandWhitelist
     function decommissionFleetCommander(
         address _fleetCommander
     ) external onlyGovernor {
@@ -79,7 +81,7 @@ contract HarborCommand is
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IHarborCommand
+    /// @inheritdoc IHarborCommandWhitelist
     function getActiveFleetCommanders()
         external
         view
@@ -89,14 +91,14 @@ contract HarborCommand is
         return _activeFleetCommanders.values();
     }
 
-    /// @inheritdoc IHarborCommand
+    /// @inheritdoc IHarborCommandWhitelist
     function activeFleetCommanders(
         address _fleetCommander
     ) external view returns (bool) {
         return _activeFleetCommanders.contains(_fleetCommander);
     }
 
-    /// @inheritdoc IHarborCommand
+    /// @inheritdoc IHarborCommandWhitelist
     function fleetCommandersList(
         uint256 index
     ) external view returns (address) {

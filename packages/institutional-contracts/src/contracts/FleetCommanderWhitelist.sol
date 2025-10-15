@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IArk} from "../interfaces/IArk.sol";
-import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {IArk} from "@summerfi/earn-protocol-contracts/interfaces/IArk.sol";
+import {IFleetCommanderWhitelist} from "./interfaces/IFleetCommanderWhitelist.sol";
+import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
 
-import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
+import {CooldownEnforcer} from "@summerfi/earn-protocol-contracts/utils/CooldownEnforcer/CooldownEnforcer.sol";
 
-import {FleetCommanderCache} from "./FleetCommanderCache.sol";
+import {FleetCommanderCache} from "@summerfi/earn-protocol-contracts/contracts/FleetCommanderCache.sol";
 import {FleetCommanderConfigProviderWhitelist} from "./FleetCommanderConfigProviderWhitelist.sol";
 
-import {Tipper} from "./Tipper.sol";
+import {Tipper} from "@summerfi/earn-protocol-contracts/contracts/Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
@@ -22,10 +21,10 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 /**
  * @title FleetCommanderWhitelist
  * @notice Manages a fleet of Arks, coordinating deposits, withdrawals, and rebalancing operations
- * @dev Implements IFleetCommander interface and inherits from various utility contracts
+ * @dev Implements IFleetCommanderWhitelist interface and inherits from various utility contracts
  */
 contract FleetCommanderWhitelist is
-    IFleetCommander,
+    IFleetCommanderWhitelist,
     FleetCommanderConfigProviderWhitelist,
     ERC4626,
     Tipper,
@@ -99,12 +98,19 @@ contract FleetCommanderWhitelist is
                         PUBLIC USER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function withdrawFromBuffer(
         uint256 assets,
         address receiver,
         address owner
-    ) public onlyWhitelisted(address(this)) whenNotPaused collectTip useCache returns (uint256 shares) {
+    )
+        public
+        onlyWhitelisted(address(this))
+        whenNotPaused
+        collectTip
+        useCache
+        returns (uint256 shares)
+    {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -120,14 +126,14 @@ contract FleetCommanderWhitelist is
         );
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function redeem(
         uint256 shares,
         address receiver,
         address owner
     )
         public
-        override(ERC4626, IFleetCommander)
+        override(ERC4626, IFleetCommanderWhitelist)
         onlyWhitelisted(address(this))
         collectTip
         useCache
@@ -148,12 +154,19 @@ contract FleetCommanderWhitelist is
         }
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function redeemFromBuffer(
         uint256 shares,
         address receiver,
         address owner
-    ) public onlyWhitelisted(address(this)) collectTip useCache whenNotPaused returns (uint256 assets) {
+    )
+        public
+        onlyWhitelisted(address(this))
+        collectTip
+        useCache
+        whenNotPaused
+        returns (uint256 assets)
+    {
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -169,14 +182,14 @@ contract FleetCommanderWhitelist is
         );
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function withdraw(
         uint256 assets,
         address receiver,
         address owner
     )
         public
-        override(ERC4626, IFleetCommander)
+        override(ERC4626, IFleetCommanderWhitelist)
         onlyWhitelisted(address(this))
         collectTip
         useCache
@@ -197,14 +210,14 @@ contract FleetCommanderWhitelist is
         }
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function withdrawFromArks(
         uint256 assets,
         address receiver,
         address owner
     )
         public
-        override(IFleetCommander)
+        override(IFleetCommanderWhitelist)
         onlyWhitelisted(address(this))
         collectTip
         useWithdrawCache
@@ -222,14 +235,14 @@ contract FleetCommanderWhitelist is
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function redeemFromArks(
         uint256 shares,
         address receiver,
         address owner
     )
         public
-        override(IFleetCommander)
+        override(IFleetCommanderWhitelist)
         onlyWhitelisted(address(this))
         collectTip
         useWithdrawCache
@@ -273,7 +286,7 @@ contract FleetCommanderWhitelist is
         );
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function deposit(
         uint256 assets,
         address receiver,
@@ -311,7 +324,7 @@ contract FleetCommanderWhitelist is
         );
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function tip() public whenNotPaused returns (uint256) {
         return _accrueTip(tipJar(), totalSupply());
     }
@@ -344,17 +357,17 @@ contract FleetCommanderWhitelist is
         return _totalSupply + previewTip(tipJar(), _totalSupply);
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function totalAssets()
         public
         view
-        override(IFleetCommander, ERC4626)
+        override(IFleetCommanderWhitelist, ERC4626)
         returns (uint256)
     {
         return _totalAssets(config.bufferArk);
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function withdrawableTotalAssets() public view returns (uint256) {
         return _withdrawableTotalAssets(config.bufferArk);
     }
@@ -384,7 +397,7 @@ contract FleetCommanderWhitelist is
         );
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function maxBufferWithdraw(
         address owner
     ) public view returns (uint256 _maxBufferWithdraw) {
@@ -414,7 +427,7 @@ contract FleetCommanderWhitelist is
         );
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function maxBufferRedeem(
         address owner
     ) public view returns (uint256 _maxBufferRedeem) {
@@ -428,7 +441,7 @@ contract FleetCommanderWhitelist is
                         EXTERNAL KEEPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
@@ -441,7 +454,7 @@ contract FleetCommanderWhitelist is
                         EXTERNAL GOVERNOR FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function setTipRate(
         Percentage newTipRate
     ) external onlyGovernor whenNotPaused {
@@ -451,21 +464,21 @@ contract FleetCommanderWhitelist is
         _setTipRate(newTipRate, tipJar(), totalSupply());
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function setMinimumPauseTime(
         uint256 _newMinimumPauseTime
     ) public onlyGovernor whenNotPaused {
         _setMinimumPauseTime(_newMinimumPauseTime);
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function updateRebalanceCooldown(
         uint256 newCooldown
     ) external onlyCurator(address(this)) whenNotPaused {
         _updateCooldown(newCooldown);
     }
 
-    // /// @inheritdoc IFleetCommander
+    // /// @inheritdoc IFleetCommanderWhitelist
     // function forceRebalance(
     //     RebalanceData[] calldata rebalanceData
     // ) external onlyGovernor collectTip whenNotPaused {
@@ -474,12 +487,12 @@ contract FleetCommanderWhitelist is
     //     _reallocateAllAssets(rebalanceData);
     // }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function pause() external onlyGovernor {
         _pause();
     }
 
-    /// @inheritdoc IFleetCommander
+    /// @inheritdoc IFleetCommanderWhitelist
     function unpause() external onlyGovernor {
         _unpause();
     }
@@ -487,9 +500,6 @@ contract FleetCommanderWhitelist is
     /*//////////////////////////////////////////////////////////////
                         PUBLIC ERC20 FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-
-
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
@@ -654,6 +664,7 @@ contract FleetCommanderWhitelist is
      * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
      * @custom:error FleetCommanderNoExcessFunds Thrown when trying to move funds out of an already minimum buffer
      * @custom:error FleetCommanderInsufficientBuffer Thrown when trying to move more funds than available excess
+     * in the buffer
      * @custom:error FleetCommanderCantUseMaxUintMovingFromBuffer Thrown when trying to use MAX_UINT256 amount when
      * moving from buffer
      */
