@@ -337,8 +337,6 @@ contract CrossChainArk is
     error InvalidSender();
     /// @notice Error thrown when trying to start a new outbound while inflight > 0
     error InFlight();
-    /// @notice Error thrown when trying to sweep the underlying asset
-    error CannotSweepUnderlyingAsset();
 
     /**
      * @notice Ensures ready for executing a pending transfer: no inflight and has pending
@@ -436,32 +434,4 @@ contract CrossChainArk is
         rewardAmounts = new uint256[](0);
     }
 
-    /**
-     * @notice Sweeps tokens from the CrossChainArk
-     * @dev Overrides the base Ark sweep function to prevent sweeping the underlying asset
-     * @param tokens The addresses of the tokens to sweep
-     * @return sweptTokens The addresses of the tokens that were swept
-     * @return sweptAmounts The amounts of the tokens that were swept
-     * @custom:security-considerations
-     * - Prevents sweeping the underlying asset to maintain cross-chain transfer integrity
-     * - Allows sweeping of other tokens (rewards, etc.) that don't affect cross-chain operations
-     */
-    function sweep(
-        address[] memory tokens
-    )
-        public
-        override
-        onlyRaft
-        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
-    {
-        // Check if any token is the underlying asset - always prevent this
-        for (uint256 i = 0; i < tokens.length; i++) {
-            if (tokens[i] == address(config.asset)) {
-                revert CannotSweepUnderlyingAsset();
-            }
-        }
-
-        // Call the parent sweep function for other tokens
-        return super.sweep(tokens);
-    }
 }

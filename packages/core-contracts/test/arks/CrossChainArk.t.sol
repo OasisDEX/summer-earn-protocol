@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import "forge-std/Test.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
+import {IArkErrors} from "../../src/errors/IArkErrors.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
@@ -883,7 +884,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         vm.prank(address(raft));
         vm.expectRevert(
             abi.encodeWithSelector(
-                CrossChainArk.CannotSweepUnderlyingAsset.selector
+                IArkErrors.CannotSweepUnderlyingAsset.selector
             )
         );
         ark.sweep(underlyingAssetToSweep);
