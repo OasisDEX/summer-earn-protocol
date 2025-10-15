@@ -34,12 +34,12 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         );
 
         // Check relationship was created
-        (address targetContract, uint16 chainId) = registry.getTargetForSource(
-            ark1,
-            peerType
-        );
-        assertEq(targetContract, proxy1);
-        assertEq(chainId, TARGET_CHAIN_ID);
+        (address[] memory targetContracts, uint16[] memory chainIds) = registry
+            .getAllTargetsForSource(ark1, peerType);
+        assertEq(targetContracts.length, 1);
+        assertEq(targetContracts[0], proxy1);
+        assertEq(chainIds.length, 1);
+        assertEq(chainIds[0], TARGET_CHAIN_ID);
 
         // Check reverse mapping
         address sourceContract = registry.getSourceForTarget(
@@ -138,12 +138,12 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
             peerType
         );
 
-        (address tgt, uint16 chainId) = registry.getTargetForSource(
+        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(
             ark1,
             peerType
         );
-        assertEq(tgt, proxy1);
-        assertEq(chainId, CURRENT_CHAIN_ID);
+        assertEq(relation.targetContract, proxy1);
+        assertEq(relation.targetChainId, CURRENT_CHAIN_ID);
         assertTrue(
             registry.isValidCrossChainPair(
                 ark1,
@@ -194,12 +194,10 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         );
 
         // Verify relationship was created
-        (address targetContract, uint16 chainId) = registry.getTargetForSource(
-            ark1,
-            peerType
-        );
-        assertEq(targetContract, proxy1);
-        assertEq(chainId, CURRENT_CHAIN_ID);
+        (address[] memory targetContracts, uint16[] memory chainIds) = registry
+            .getAllTargetsForSource(ark1, peerType);
+        assertEq(targetContracts[0], proxy1);
+        assertEq(chainIds[0], CURRENT_CHAIN_ID);
     }
 
     function test_registerRelationship_whenDuplicate_reverts() public {
@@ -301,16 +299,13 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         assertFalse(registry.isSourceContractRegistered(ark1, peerType));
         assertEq(registry.getRelationshipCount(peerType), 0);
 
-        // Should revert when trying to access
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                ark1,
-                PEER_RELATIONSHIP,
-                0
-            )
-        );
-        registry.getTargetForSource(ark1, peerType);
+        // Should return empty relationship when trying to access
+        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(ark1, peerType);
+        assertEq(relation.sourceContract, address(0));
+        assertEq(relation.targetContract, address(0));
+        assertEq(relation.sourceChainId, 0);
+        assertEq(relation.targetChainId, 0);
+        assertEq(relation.relationshipType, bytes32(0));
     }
 
     function test_unregisterCrossChainRelationship_revertNotExists() public {
@@ -353,24 +348,18 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
             peerType
         );
 
-        (address targetContract, uint16 chainId) = registry.getTargetForSource(
-            ark1,
-            peerType
-        );
-        assertEq(targetContract, proxy1);
-        assertEq(chainId, TARGET_CHAIN_ID);
+        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(ark1, peerType);
+        assertEq(relation.targetContract, proxy1);
+        assertEq(relation.targetChainId, TARGET_CHAIN_ID);
     }
 
-    function test_getTargetForSource_revertNotExists() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                ark1,
-                peerType,
-                0
-            )
-        );
-        registry.getTargetForSource(ark1, peerType);
+    function test_getTargetForSource_returnsEmptyWhenNotExists() public {
+        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(ark1, peerType);
+        assertEq(relation.sourceContract, address(0));
+        assertEq(relation.targetContract, address(0));
+        assertEq(relation.sourceChainId, 0);
+        assertEq(relation.targetChainId, 0);
+        assertEq(relation.relationshipType, bytes32(0));
     }
 
     function test_getSourceForTarget() public {
@@ -392,21 +381,14 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         assertEq(sourceContract, ark1);
     }
 
-    function test_getSourceForTarget_revertNotExists() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(0),
-                peerType,
-                TARGET_CHAIN_ID
-            )
-        );
-        registry.getSourceForTarget(
+    function test_getSourceForTarget_returnsZeroWhenNotExists() public {
+        address sourceContract = registry.getSourceForTarget(
             CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
             proxy1,
             peerType
         );
+        assertEq(sourceContract, address(0));
     }
 
     function test_isValidCrossChainPair() public {
@@ -521,22 +503,20 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         assertEq(registry.getRelationshipCount(peerType), 3);
 
         // Check first relationship
-        (address targetContract, uint16 chainId) = registry.getTargetForSource(
-            ark1,
-            peerType
-        );
-        assertEq(targetContract, proxy1);
-        assertEq(chainId, TARGET_CHAIN_ID);
+        (address[] memory targetContracts, uint16[] memory chainIds) = registry
+            .getAllTargetsForSource(ark1, peerType);
+        assertEq(targetContracts[0], proxy1);
+        assertEq(chainIds[0], TARGET_CHAIN_ID);
 
         // Check second relationship
-        (targetContract, chainId) = registry.getTargetForSource(ark2, peerType);
-        assertEq(targetContract, proxy2);
-        assertEq(chainId, TARGET_CHAIN_ID);
+        ICrossChainRegistry.CrossChainRelation memory relation2 = registry.getRelationship(ark2, peerType);
+        assertEq(relation2.targetContract, proxy2);
+        assertEq(relation2.targetChainId, TARGET_CHAIN_ID);
 
         // Check third relationship
-        (targetContract, chainId) = registry.getTargetForSource(ark3, peerType);
-        assertEq(targetContract, proxy3);
-        assertEq(chainId, TARGET_CHAIN_ID);
+        ICrossChainRegistry.CrossChainRelation memory relation3 = registry.getRelationship(ark3, peerType);
+        assertEq(relation3.targetContract, proxy3);
+        assertEq(relation3.targetChainId, TARGET_CHAIN_ID);
 
         // Check reverse mappings
         assertEq(
@@ -646,12 +626,10 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
             peerType
         );
 
-        (address targetContract, uint16 chainId) = registry.getTargetForSource(
-            ark1,
-            peerType
-        );
-        assertEq(targetContract, proxy2);
-        assertEq(chainId, TARGET_CHAIN_ID);
+        (address[] memory targetContracts, uint16[] memory chainIds) = registry
+            .getAllTargetsForSource(ark1, peerType);
+        assertEq(targetContracts[0], proxy2);
+        assertEq(chainIds[0], TARGET_CHAIN_ID);
     }
 
     function test_multipleRelationshipTypes() public {
@@ -677,15 +655,15 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         );
 
         // Check both relationships exist
-        (address targetContract1, uint16 chainId1) = registry
-            .getTargetForSource(ark1, peerTypeLocal);
-        assertEq(targetContract1, proxy1);
-        assertEq(chainId1, TARGET_CHAIN_ID);
+        ICrossChainRegistry.CrossChainRelation memory relation1 = registry
+            .getRelationship(ark1, peerTypeLocal);
+        assertEq(relation1.targetContract, proxy1);
+        assertEq(relation1.targetChainId, TARGET_CHAIN_ID);
 
-        (address targetContract2, uint16 chainId2) = registry
-            .getTargetForSource(ark1, executorTypeLocal);
-        assertEq(targetContract2, proxy2);
-        assertEq(chainId2, CURRENT_CHAIN_ID);
+        ICrossChainRegistry.CrossChainRelation memory relation2 = registry
+            .getRelationship(ark1, executorTypeLocal);
+        assertEq(relation2.targetContract, proxy2);
+        assertEq(relation2.targetChainId, CURRENT_CHAIN_ID);
 
         // Check counts
         assertEq(registry.getRelationshipCount(peerTypeLocal), 1);
@@ -873,12 +851,12 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
             localRelationship
         );
 
-        (address target, uint16 chainId) = registry.getTargetForSource(
+        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(
             src,
             localRelationship
         );
-        assertEq(target, dst);
-        assertEq(chainId, CURRENT_CHAIN_ID);
+        assertEq(relation.targetContract, dst);
+        assertEq(relation.targetChainId, CURRENT_CHAIN_ID);
 
         assertTrue(
             registry.isValidCrossChainPair(

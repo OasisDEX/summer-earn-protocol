@@ -54,7 +54,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     uint256 public constant NETWORK_A_CHAIN_ID = 31337;
     uint256 public constant NETWORK_B_CHAIN_ID = 31338;
 
-
     function setUp() public virtual override {
         super.setUp();
         _setupEndpoints();

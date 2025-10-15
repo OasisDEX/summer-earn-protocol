@@ -212,7 +212,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     function testConstructor_RevertWhenZeroEndpoint() public {
         useNetworkA();
         vm.prank(governor);
-        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
+        vm.expectRevert(StargateAdapter.InvalidLzEndpoint.selector);
         // lzEndpoint zero should revert in adapter constructor
         new StargateAdapter(
             address(registryA),

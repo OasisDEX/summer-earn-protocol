@@ -33,13 +33,7 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         _bridgeRouter = newBridgeRouter;
     }
 
-    function getTargetForSource(
-        address,
-        bytes32
-    ) external view returns (address, uint16) {
-        return (address(0), 0);
-    }
-    function getTargetsForSource(
+    function getAllTargetsForSource(
         address,
         bytes32
     ) external view returns (address[] memory, uint16[] memory) {

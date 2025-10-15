@@ -31,7 +31,7 @@ contract CrossChainRegistryEnumerationTest is BaseCrossChainRegistryTest {
         vm.stopPrank();
 
         (address[] memory targets, uint16[] memory chains) = registry
-            .getTargetsForSource(ark1, peerType);
+            .getAllTargetsForSource(ark1, peerType);
         assertEq(targets.length, 3);
         assertEq(chains.length, 3);
     }

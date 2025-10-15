@@ -163,6 +163,41 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
+     * @notice Modifier to check if an operation is supported by the adapter
+     * @param operationType The operation type to validate
+     */
+    modifier withSupportedOperation(BridgeTypes.OperationType operationType) {
+        if (!_supportsOperation(operationType)) {
+            revert IBridgeAdapter.OperationNotSupported();
+        }
+        _;
+    }
+
+    /**
+     * @notice Modifier to check if a destination chain has an external ID mapping
+     * @param destinationChainId The chain ID to validate
+     */
+    modifier withSupportedDestinationChain(uint16 destinationChainId) {
+        if (chainToExternalId[destinationChainId] == 0) {
+            revert IBridgeAdapter.UnsupportedChain();
+        }
+        _;
+    }
+
+    /**
+     * @notice Internal virtual function to check if an operation is supported
+     * @dev Must be overridden by concrete adapters to implement their specific operation support logic
+     * @param operationType The operation type to check
+     * @return true if the operation is supported
+     */
+    function _supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) internal view virtual returns (bool) {
+        // Default implementation - should be overridden by concrete adapters
+        return false;
+    }
+
+    /**
      * @notice Get the list of chain IDs that governance has registered as having trusted peer adapters
      * @dev This queries the CrossChainRegistry for chains we are authorized to talk to
      * @return chains Array of chain IDs with registered peer adapters
@@ -173,7 +208,7 @@ abstract contract BaseBridgeAdapter is
         returns (uint16[] memory chains)
     {
         (, uint16[] memory targetChainIds) = CROSS_CHAIN_REGISTRY
-            .getTargetsForSource(
+            .getAllTargetsForSource(
                 address(this),
                 CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
             );
@@ -219,21 +254,18 @@ abstract contract BaseBridgeAdapter is
         }
     }
 
-    /// @dev Reverts if `srcAdapter` is **not** the registry-declared peer for `srcChain`.
-    function _assertTrustedSource(
+    /// @dev Returns true if `srcAdapter` is the registry-declared peer for `srcChain`.
+    function _validateTrustedSource(
         address srcAdapter,
         uint16 srcChain
-    ) internal view {
-        if (
-            !CROSS_CHAIN_REGISTRY.isValidAdapterPeer(
+    ) internal view returns (bool) {
+        return
+            CROSS_CHAIN_REGISTRY.isValidAdapterPeer(
                 srcAdapter,
                 address(this), // <-- this adapter (dst)
                 srcChain,
                 THIS_CHAIN
-            )
-        ) {
-            revert UntrustedSourceAdapter(srcAdapter, srcChain);
-        }
+            );
     }
 
     function _validateSourceChainId(
