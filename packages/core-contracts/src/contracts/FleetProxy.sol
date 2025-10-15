@@ -238,7 +238,7 @@ contract FleetProxy is
         _sendNotification(
             hubChainId,
             _getHubChainArk(hubChainId),
-            abi.encode(fleetAssets, latestIncomingTransferId),
+            abi.encode(fleetAssets, latestIncomingTransferId, block.timestamp),
             options,
             msg.sender
         );
