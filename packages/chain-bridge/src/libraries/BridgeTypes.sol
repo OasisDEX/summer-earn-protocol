@@ -23,7 +23,7 @@ library BridgeTypes {
         bytes options; // Additional adapter-specific parameters
         // --- Protocol token fee support (optional) ---
         bool payInProtocolToken; // If true, pay fees in protocol token when supported
-        address feeToken; // Optional explicit fee token address (adapter-specific)
+        uint256 feeTokenAmount; // Amount of fee token to pay (when payInProtocolToken is true)
     }
 
     // Enum for operation types

@@ -237,7 +237,8 @@ contract StargateAdapter is
                 stargate,
                 sendParam,
                 messagingFee,
-                providedFee
+                providedFee,
+                options.feeTokenAmount
             );
         } else {
             _executeNativePayment(
@@ -265,21 +266,26 @@ contract StargateAdapter is
         IStargateV2 stargate,
         SendParam memory sendParam,
         MessagingFee memory messagingFee,
-        uint256 providedFee
+        uint256 providedFee,
+        uint256 feeTokenAmount
     ) internal {
         // Enforce that native fee should be zero in token mode
         if (messagingFee.nativeFee != 0)
             revert InsufficientFee(0, messagingFee.nativeFee);
 
+        // Validate that provided fee token amount matches required amount
+        if (feeTokenAmount != messagingFee.lzTokenFee)
+            revert InsufficientFee(messagingFee.lzTokenFee, feeTokenAmount);
+
         // Use base contract functionality for protocol token fee collection
         _collectProtocolTokenFee(
             operationId,
-            params.originator,
-            messagingFee.lzTokenFee
+            params.refundAddress,
+            feeTokenAmount
         );
 
         // Ensure sufficient allowance for the LayerZero endpoint
-        _ensureSufficientAllowance(messagingFee.lzTokenFee, LZ_ENDPOINT);
+        _ensureSufficientAllowance(feeTokenAmount, LZ_ENDPOINT);
 
         // No native value required when paying in token
         stargate.sendToken{value: 0}(
@@ -501,6 +507,12 @@ contract StargateAdapter is
             sendParam,
             payInToken
         );
+
+        // If paying in protocol token, validate that provided amount matches required amount
+        if (payInToken && options.feeTokenAmount != msgFee.lzTokenFee) {
+            revert InsufficientFee(msgFee.lzTokenFee, options.feeTokenAmount);
+        }
+
         return (msgFee.nativeFee, msgFee.lzTokenFee);
     }
 

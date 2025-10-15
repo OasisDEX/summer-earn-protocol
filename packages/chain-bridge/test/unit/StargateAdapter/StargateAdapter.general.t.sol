@@ -257,7 +257,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
                 msgValue: 0,
                 options: "",
                 payInProtocolToken: false,
-                feeToken: address(0)
+                feeTokenAmount: 0
             })
         );
     }

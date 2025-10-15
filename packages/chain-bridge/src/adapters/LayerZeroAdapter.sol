@@ -237,7 +237,7 @@ contract LayerZeroAdapter is
 
             _collectProtocolTokenFee(
                 operationId,
-                params.originator,
+                params.refundAddress,
                 tokenFeeRequired
             );
             _ensureSufficientAllowance(tokenFeeRequired, address(endpoint));

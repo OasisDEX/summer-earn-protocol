@@ -95,7 +95,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
             msgValue: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes

@@ -86,7 +86,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
             msgValue: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         // Get fee estimate first (for keeper execution)
@@ -146,7 +146,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
             msgValue: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         vm.stopPrank(); // User stops queueing

@@ -66,7 +66,7 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             calldataSize: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         vm.startPrank(user);
@@ -123,7 +123,7 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             msgValue: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         bytes memory message = abi.encode(messageContent);

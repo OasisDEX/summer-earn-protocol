@@ -192,7 +192,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
             msgValue: 0,
             options: "",
             payInProtocolToken: true,
-            feeToken: address(0)
+            feeTokenAmount: 0
         });
 
         (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateTransferAssets(
@@ -478,7 +478,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
             msgValue: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+            feeTokenAmount: 0
         });
 
         // Test with 1 wei less than required - should fail
@@ -630,7 +630,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
             msgValue: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+            feeTokenAmount: 0
         });
 
         // Transfer tokens to router and approve

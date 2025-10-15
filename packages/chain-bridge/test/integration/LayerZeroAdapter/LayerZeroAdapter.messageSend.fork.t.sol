@@ -24,7 +24,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             msgValue: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         bytes memory message = abi.encode("Hello Cross-Chain!");
@@ -70,7 +70,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             calldataSize: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateSendMessage(
@@ -117,7 +117,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             calldataSize: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         // Direct call should fail (not from router)
@@ -151,7 +151,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             calldataSize: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter

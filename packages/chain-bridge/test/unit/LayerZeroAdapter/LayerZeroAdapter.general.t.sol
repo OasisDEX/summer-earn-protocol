@@ -93,7 +93,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             calldataSize: 0,
             options: bytes(""),
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         // Call estimateSendMessage directly on the adapter
@@ -164,7 +164,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             msgValue: 0,
             options: bytes(""),
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
@@ -192,7 +192,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             msgValue: 0,
             options: bytes(""),
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);

@@ -402,12 +402,12 @@ abstract contract BaseBridgeAdapter is
     /**
      * @notice Handles protocol token fee collection and validation
      * @param operationId The operation ID for this transaction
-     * @param originator The address that initiated the transaction
+     * @param feePayer The address that will pay the protocol token fees
      * @param tokenFeeRequired The amount of protocol tokens required
      */
     function _collectProtocolTokenFee(
         bytes32 operationId,
-        address originator,
+        address feePayer,
         uint256 tokenFeeRequired
     ) internal {
         if (protocolFeeToken == address(0)) {
@@ -416,14 +416,14 @@ abstract contract BaseBridgeAdapter is
 
         if (tokenFeeRequired > 0) {
             IERC20(protocolFeeToken).safeTransferFrom(
-                originator,
+                feePayer,
                 address(this),
                 tokenFeeRequired
             );
 
             emit ProtocolFeeCollected(
                 operationId,
-                originator,
+                feePayer,
                 protocolFeeToken,
                 tokenFeeRequired
             );

@@ -275,7 +275,7 @@ contract BridgeRouterMessageTest is BridgeRouterSetup {
             msgValue: 0,
             options: "",
             payInProtocolToken: false,
-            feeToken: address(0)
+                feeTokenAmount: 0
         });
 
         BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
