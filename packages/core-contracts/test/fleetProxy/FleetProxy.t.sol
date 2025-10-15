@@ -339,7 +339,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 100,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
 
@@ -459,7 +461,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 100,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
 
@@ -691,7 +695,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 100,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
     }
@@ -734,7 +740,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 100,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
     }
@@ -770,7 +778,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 0,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
 
@@ -832,7 +842,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 100,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
 
@@ -862,7 +874,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 100,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
 
@@ -917,7 +931,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 100,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
     }
@@ -940,7 +956,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 100,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
 
@@ -986,7 +1004,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 0,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
 
@@ -1027,7 +1047,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 0,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
 
@@ -1069,7 +1091,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 0,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
 
@@ -1105,7 +1129,9 @@ contract CrossChainFleetProxyTest is Test {
                 gasLimit: 100000,
                 calldataSize: 0,
                 msgValue: 0,
-                options: ""
+                options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
             })
         );
 

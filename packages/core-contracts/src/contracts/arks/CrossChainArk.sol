@@ -443,7 +443,9 @@ contract CrossChainArk is
             gasLimit: 0,
             calldataSize: 0,
             msgValue: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
     }
 

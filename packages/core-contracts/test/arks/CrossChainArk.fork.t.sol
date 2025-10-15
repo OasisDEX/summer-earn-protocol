@@ -273,7 +273,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory executeTransferParams = abi.encode(params, options);
 
@@ -301,7 +303,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             uint256 gasLimit,
             uint256 msgValue,
             uint256 calldataSize,
-            bytes memory opts
+            bytes memory opts,
+            bool payInProtocolToken,
+            uint256 feeTokenAmount
         ) = ark.pendingTransferOptions();
 
         assertEq(
@@ -361,7 +365,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         BridgeTypes.ExecuteTransferParams memory transferParams = BridgeTypes
@@ -411,7 +417,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             uint256 gasLimit,
             uint256 msgValue,
             uint256 calldataSize,
-            bytes memory opts
+            bytes memory opts,
+            bool payInProtocolToken,
+            uint256 feeTokenAmount
         ) = ark.pendingTransferOptions();
 
         assertEq(
@@ -509,7 +517,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             uint256 gasLimit2,
             uint256 msgValue2,
             uint256 calldataSize2,
-            bytes memory opts2
+            bytes memory opts2,
+            bool payInProtocolToken2,
+            uint256 feeTokenAmount2
         ) = ark.pendingTransferOptions();
         assertEq(
             clearedChainId,
@@ -571,7 +581,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
@@ -617,9 +629,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         address recipient
     );
 
-
-
-
     function test_FullLayerZeroIntegration_ActualAdapterResponse() public {
         // This test goes one step further and actually simulates LayerZero calling the adapter
         // which then delivers the response to BridgeRouter, which then calls CrossChainArk
@@ -651,7 +660,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             gasLimit: 700000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         // Get quote for the read operation
@@ -806,7 +817,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             gasLimit: 700000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         (uint256 fee, , ) = bridgeRouter.quoteSendMessage(
@@ -878,7 +891,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory executeTransferParams = abi.encode(params, options);
 
