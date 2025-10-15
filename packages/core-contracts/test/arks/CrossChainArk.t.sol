@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import "forge-std/Test.sol";
-import "forge-std/console.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
 import {IArkErrors} from "../../src/errors/IArkErrors.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
@@ -51,18 +50,14 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 balance,
         uint16 sourceChainId,
         bytes32 latestOutgoingTransferId
-    ) internal view returns (BridgeTypes.RelayedMessageParams memory) {
+    ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
         return
             BridgeTypes.RelayedMessageParams({
                 operationId: operationId,
                 originator: originator,
                 sourceChainId: sourceChainId,
                 recipient: arkAddress,
-                message: abi.encode(
-                    balance,
-                    latestOutgoingTransferId,
-                    block.timestamp
-                )
+                message: abi.encode(balance, latestOutgoingTransferId)
             });
     }
 
@@ -550,77 +545,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Check state was updated correctly
         assertEq(ark.lastRemoteAssetBalance(), initialRemoteBalance - amount);
-    }
-
-    //----------------- Satellite Receipt Notify (Ark → Proxy) -----------------//
-
-    function test_NotifySatelliteReceipt_SendsAckMessage() public {
-        // Simulate receiving a withdrawal from satellite so that latestIncomingTransferId is set
-        uint256 amount = 500;
-        bytes32 opId = keccak256("withdrawal-op");
-        bytes memory message = abi.encode(uint256(1000));
-
-        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
-            .RelayedTransferParams({
-                operationId: opId,
-                originator: proxy,
-                sourceChainId: TARGET_CHAIN_ID,
-                recipient: address(ark),
-                asset: address(mockToken),
-                amount: amount,
-                message: message
-            });
-
-        // deliver transfer from router
-        vm.prank(address(router));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.TRANSFER_ASSET,
-            abi.encode(params)
-        );
-
-        // Ensure latestIncomingTransferId set
-        bytes32 latestIn = ark.latestIncomingTransferId();
-        assertEq(latestIn, opId);
-
-        // Call notifySatelliteReceipt as keeper
-        vm.deal(keeper, 1 ether);
-        vm.prank(keeper);
-        ark.notifySatelliteReceipt{value: 0.1 ether}(
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(mockAdapter),
-                gasLimit: 200000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            })
-        );
-
-        // The mock router records messageCalls, check count increased
-        uint256 count = router.getMessageCallCount();
-        assertEq(count, 1, "one message should be sent");
-
-        // Verify payload contains opId
-        (, , bytes memory sentMessage) = router.messageCalls(count - 1);
-        bytes32 decodedOpId = abi.decode(sentMessage, (bytes32));
-        assertEq(decodedOpId, opId, "ACK payload should contain opId");
-    }
-
-    function test_NotifySatelliteReceipt_RequiresLatestIncomingTransferId()
-        public
-    {
-        // Without prior inbound transfer, calling notify should revert
-        vm.deal(keeper, 1 ether);
-        vm.prank(keeper);
-        vm.expectRevert(ICrossChainArk.InvalidRequestor.selector);
-        ark.notifySatelliteReceipt{value: 0.1 ether}(
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(mockAdapter),
-                gasLimit: 200000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            })
-        );
     }
 
     // ========================================================================
