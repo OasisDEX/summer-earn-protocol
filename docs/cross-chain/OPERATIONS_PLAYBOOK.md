@@ -24,9 +24,16 @@ This document provides a practical runbook for keepers and operators.
 
 #### ERC7802 Adapter Operations
 
-For ERC7802 adapters (ERC7802OFTAdapter, SuperchainAdapter), additional monitoring and finalization steps are required:
+For ERC7802 adapters, different monitoring requirements apply based on the adapter type:
 
-- Monitor for tokens minted to ERC7802 adapters on destination chains
+**SuperchainAdapter (Automated):**
+- Uses OP Stack's concatenated action pattern with automatic delivery
+- No manual finalization required - delivery completes automatically via `relayMessage()` callback
+- Monitor for successful message relay and token delivery events
+- Alert on failed message relay or delivery failures
+
+**ERC7802OFTAdapter (Manual Finalization):**
+- Monitor for tokens minted to the adapter on destination chains
 - Call `finalize(operationId, params)` to complete delivery after tokens are minted
 - Alert on pending finalizations that exceed time thresholds (e.g., >30 minutes)
 - Track finalization success/failure events and adapter balance changes

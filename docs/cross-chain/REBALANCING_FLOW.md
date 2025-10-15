@@ -15,8 +15,8 @@ to destination fleets.
    registered adapter.
 6. The adapter bridges the tokens plus a small operation message to the destination chain.
 7. The destination adapter calls its local BridgeRouter.
-   - **Automated adapters** (StargateAdapter, LayerZeroAdapter): Delivery completes automatically via protocol callbacks
-   - **ERC7802 adapters** (ERC7802OFTAdapter, SuperchainAdapter): Keeper must monitor for minted tokens and call `finalize()` to complete delivery
+   - **Automated adapters** (StargateAdapter, LayerZeroAdapter, SuperchainAdapter): Delivery completes automatically via protocol callbacks
+   - **Manual finalization adapters** (ERC7802OFTAdapter): Keeper must monitor for minted tokens and call `finalize()` to complete delivery
 8. The destination BridgeRouter calls the FleetProxy corresponding to the target local fleet.
 9. The FleetProxy deposits into the local fleet.
 

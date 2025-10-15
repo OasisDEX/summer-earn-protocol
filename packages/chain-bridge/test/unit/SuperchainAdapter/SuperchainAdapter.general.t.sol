@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {SuperchainAdapter} from "../../../src/adapters/SuperchainAdapter.sol";
 import {MockCrossChainRegistry} from "../../mocks/MockCrossChainRegistry.sol";
 import {MockSuperchainTokenBridge} from "../../mocks/MockSuperchainTokenBridge.sol";
+import {MockL2ToL2CrossDomainMessenger} from "../../mocks/MockL2ToL2CrossDomainMessenger.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
@@ -14,6 +15,7 @@ contract SuperchainAdapterGeneralTest is Test {
     SuperchainAdapter public adapter;
     MockCrossChainRegistry public registry;
     MockSuperchainTokenBridge public superchainBridge;
+    MockL2ToL2CrossDomainMessenger public l2ToL2Messenger;
     ProtocolAccessManager public accessManager;
 
     address public governor = address(0x1);
@@ -28,12 +30,14 @@ contract SuperchainAdapterGeneralTest is Test {
         accessManager = new ProtocolAccessManager(governor);
         registry = new MockCrossChainRegistry();
         superchainBridge = new MockSuperchainTokenBridge();
+        l2ToL2Messenger = new MockL2ToL2CrossDomainMessenger();
 
         vm.prank(governor);
         adapter = new SuperchainAdapter(
             address(registry),
             address(accessManager),
-            address(superchainBridge)
+            address(superchainBridge),
+            address(l2ToL2Messenger)
         );
 
         // Setup chain mapping
@@ -61,6 +65,18 @@ contract SuperchainAdapterGeneralTest is Test {
         new SuperchainAdapter(
             address(registry),
             address(accessManager),
+            address(0),
+            address(l2ToL2Messenger)
+        );
+    }
+
+    function testConstructor_RevertWhenZeroL2ToL2Messenger() public {
+        vm.prank(governor);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
+        new SuperchainAdapter(
+            address(registry),
+            address(accessManager),
+            address(superchainBridge),
             address(0)
         );
     }
@@ -286,5 +302,26 @@ contract SuperchainAdapterGeneralTest is Test {
             )
         );
         adapter.sendMessage(bytes32(0), params, options);
+    }
+
+    function testRelayMessage_RevertWhenUnauthorizedCaller() public {
+        // Create test parameters
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: bytes32(uint256(123)),
+                originator: address(0x999),
+                sourceChainId: CHAIN_ID_B,
+                recipient: user,
+                asset: token,
+                amount: 1000e18,
+                message: "test message"
+            });
+
+        bytes memory message = abi.encode(params);
+
+        // Call from unauthorized address (not L2ToL2Messenger)
+        vm.prank(user);
+        vm.expectRevert(IBaseBridgeAdapterErrors.Unauthorized.selector);
+        adapter.relayMessage(message);
     }
 }

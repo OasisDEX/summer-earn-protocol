@@ -11,22 +11,22 @@ import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.s
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISuperchainTokenBridge} from "../interfaces/ISuperchainTokenBridge.sol";
+import {IL2ToL2CrossDomainMessenger} from "../interfaces/IL2ToL2CrossDomainMessenger.sol";
 
 /**
  * @title SuperchainAdapter
- * @notice ERC-7802 adapter using OP Superchain Token Bridge predeploy
+ * @notice ERC-7802 adapter using OP Superchain Token Bridge predeploy with L2ToL2CrossDomainMessenger
  * @dev See: https://docs.optimism.io/interop/superchain-erc20
  *
- * IMPORTANT EXECUTION MODEL:
- * Unlike other adapters (for example, StargateAdapter which uses automated lzCompose execution), this adapter requires
- * manual keeper intervention on the destination chain:
+ * EXECUTION MODEL:
+ * This adapter uses the OP Stack's recommended concatenated action pattern:
  *
- * 1. Source chain: sendERC20() burns tokens and initiates cross-chain message
- * 2. Destination chain: OP Stack autorelayer delivers message and mints tokens to adapter
- * 3. Destination chain: KEEPER MUST call finalize() to complete delivery to end recipient
+ * 1. Source chain: sendERC20() burns tokens and sendMessage() sends delivery instruction
+ * 2. Destination chain: OP Stack autorelayer delivers both token minting and message
+ * 3. Destination chain: relayMessage() callback automatically completes delivery
  *
- * The OP Stack autorelayer only handles message delivery and token minting - it does NOT
- * call the adapter's finalize() function. This must be done by an authorized keeper.
+ * This eliminates the need for manual keeper intervention, providing automated delivery
+ * similar to StargateAdapter's lzCompose pattern.
  */
 contract SuperchainAdapter is
     BaseBridgeAdapter,
@@ -36,6 +36,7 @@ contract SuperchainAdapter is
 {
     using SafeERC20 for IERC20;
     ISuperchainTokenBridge public immutable superchainBridge;
+    IL2ToL2CrossDomainMessenger public immutable l2ToL2Messenger;
 
     /// @notice Mapping of supported assets
     mapping(address asset => bool supported) public supportedAssets;
@@ -43,13 +44,21 @@ contract SuperchainAdapter is
     /// @notice Event emitted when asset support is updated
     event AssetSupportUpdated(address indexed asset, bool supported);
 
+    /// @notice Initialize the SuperchainAdapter
+    /// @param _crossChainRegistry Address of the CrossChainRegistry contract
+    /// @param _accessManager Address of the AccessManager contract
+    /// @param _superchainBridge Address of the SuperchainTokenBridge predeploy
+    /// @param _l2ToL2Messenger Address of the L2ToL2CrossDomainMessenger predeploy
     constructor(
         address _crossChainRegistry,
         address _accessManager,
-        address _superchainBridge
+        address _superchainBridge,
+        address _l2ToL2Messenger
     ) BaseBridgeAdapter(_crossChainRegistry, _accessManager) {
         if (_superchainBridge == address(0)) revert InvalidParams();
+        if (_l2ToL2Messenger == address(0)) revert InvalidParams();
         superchainBridge = ISuperchainTokenBridge(_superchainBridge);
+        l2ToL2Messenger = IL2ToL2CrossDomainMessenger(_l2ToL2Messenger);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -81,12 +90,31 @@ contract SuperchainAdapter is
         // Get destination adapter peer
         address dstAdapter = _getAdapterPeer(params.destinationChainId);
 
-        // Send via Superchain bridge
+        // Send via Superchain bridge (mints tokens to destination adapter)
         superchainBridge.sendERC20(
             params.asset,
             _externalIdForChain(params.destinationChainId),
             dstAdapter,
             params.amount
+        );
+
+        // Send message via L2ToL2CrossDomainMessenger to trigger delivery
+        bytes memory message = _encodeRelayedTransferParams(
+            BridgeTypes.RelayedTransferParams({
+                operationId: operationId,
+                originator: params.originator,
+                sourceChainId: uint16(block.chainid),
+                recipient: params.target,
+                asset: params.asset,
+                amount: params.amount,
+                message: params.message
+            })
+        );
+
+        l2ToL2Messenger.sendMessage(
+            _externalIdForChain(params.destinationChainId),
+            dstAdapter,
+            message
         );
 
         emit TransferInitiated(
@@ -181,13 +209,37 @@ contract SuperchainAdapter is
         revert IBridgeAdapter.OperationNotSupported();
     }
 
-    /// @notice Finalize a transfer (called by keeper after OP Stack autorelayer delivers)
-    /// @dev This function must be called by an authorized keeper after the OP Stack autorelayer
-    ///      has delivered the message and minted tokens to this adapter
-    function finalize(
-        bytes32 operationId,
-        BridgeTypes.ExecuteTransferParams calldata params
-    ) external onlyAuthorizedExecutor {
+    /// @notice Handle relayed message from L2ToL2CrossDomainMessenger
+    /// @dev Called by L2ToL2CrossDomainMessenger after message is relayed from source chain
+    /// @param _message Encoded RelayedTransferParams from source chain
+    function relayMessage(bytes calldata _message) external {
+        // Validate caller is L2ToL2CrossDomainMessenger
+        if (msg.sender != address(l2ToL2Messenger)) revert Unauthorized();
+
+        // Decode the relayed transfer parameters
+        BridgeTypes.RelayedTransferParams
+            memory params = _decodeRelayedTransferParams(_message);
+
+        // Validate source adapter is trusted peer
+        if (
+            !_validateTrustedSource(
+                l2ToL2Messenger.crossDomainMessageSender(),
+                uint16(l2ToL2Messenger.crossDomainMessageSource())
+            )
+        ) {
+            revert UntrustedSourceAdapter(
+                l2ToL2Messenger.crossDomainMessageSender(),
+                uint16(l2ToL2Messenger.crossDomainMessageSource())
+            );
+        }
+
+        // Validate source chain ID matches
+        _validateSourceChainId(
+            params.sourceChainId,
+            uint16(l2ToL2Messenger.crossDomainMessageSource())
+        );
+
+        // Validate asset is supported
         if (!supportedAssets[params.asset])
             revert IBridgeAdapter.UnsupportedAsset();
         if (params.amount == 0) revert IBaseBridgeAdapterErrors.InvalidAmount();
@@ -198,7 +250,7 @@ contract SuperchainAdapter is
         // Deliver to router
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.TRANSFER_ASSET,
-            abi.encode(params)
+            _message
         );
     }
 }

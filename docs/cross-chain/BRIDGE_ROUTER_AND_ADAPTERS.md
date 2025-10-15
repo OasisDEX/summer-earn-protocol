@@ -65,16 +65,23 @@ router.executeTransferAssets{ value: nativeFee }(params, opts);
 
 There are two distinct execution models for cross-chain delivery:
 
-**Automated Adapters** (StargateAdapter, LayerZeroAdapter):
-- Delivery completes automatically via protocol callbacks (e.g., `lzCompose`)
+**Automated Adapters** (StargateAdapter, LayerZeroAdapter, SuperchainAdapter):
+- Delivery completes automatically via protocol callbacks (e.g., `lzCompose`, `relayMessage`)
 - No keeper intervention required on destination chain
 - Tokens are delivered directly to the end recipient through the router
 
-**Manual Finalization Adapters** (ERC7802OFTAdapter, SuperchainAdapter):
+**Manual Finalization Adapters** (ERC7802OFTAdapter):
 - Require keeper to call `finalize()` after tokens are minted to the adapter
-- Transport protocol (e.g., OP Stack) delivers message and mints tokens to adapter
+- Transport protocol delivers message and mints tokens to adapter
 - Keeper must monitor for minted tokens and call `finalize(operationId, params)` to complete delivery
 - This is a keeper responsibility, not a protocol limitation
+
+**OP Stack Concatenated Actions** (SuperchainAdapter):
+- Uses OP Stack's recommended dual-message pattern: token transfer + message delivery
+- `SuperchainTokenBridge.sendERC20()` mints tokens to destination adapter
+- `L2ToL2CrossDomainMessenger.sendMessage()` sends delivery instruction
+- `relayMessage()` callback automatically completes delivery when message is relayed
+- Eliminates need for manual keeper intervention while maintaining security
 
 #### Delivery to Recipients
 
