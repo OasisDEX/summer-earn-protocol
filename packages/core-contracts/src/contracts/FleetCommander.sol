@@ -123,7 +123,7 @@ contract FleetCommander is
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
 
         // Handle withdrawal fee (re-board to buffer and emit event)
-        _handleWithdrawalFee(owner, assets, feeAmount);
+        _handleWithdrawalFee(owner, assets, feeAmount, false);
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -182,7 +182,7 @@ contract FleetCommander is
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
 
         // Handle withdrawal fee (re-board to buffer and emit event)
-        _handleWithdrawalFee(owner, assets, feeAmount);
+        _handleWithdrawalFee(owner, assets, feeAmount, false);
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -249,7 +249,7 @@ contract FleetCommander is
         );
 
         // Re-deposit fee to buffer if fee was applied
-        _handleWithdrawalFee(owner, assets, feeAmount);
+        _handleWithdrawalFee(owner, assets, feeAmount, true);
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
@@ -279,7 +279,7 @@ contract FleetCommander is
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
 
         // Re-deposit fee to buffer if fee was applied
-        _handleWithdrawalFee(owner, totalAssetsToWithdraw, feeAmount);
+        _handleWithdrawalFee(owner, totalAssetsToWithdraw, feeAmount, true);
 
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
@@ -1018,6 +1018,7 @@ contract FleetCommander is
      * @param owner The address of the user withdrawing
      * @param assetsAmount The total assets being withdrawn (before fee)
      * @param feeAmount The fee amount to collect
+     * @param isArkWithdrawal Whether this is an ark withdrawal (true) or buffer withdrawal (false)
      * @dev This function:
      *      1. Re-boards the fee to the buffer ark (only needed for ark withdrawals)
      *      2. Emits the WithdrawalFeeCollected event
@@ -1026,10 +1027,15 @@ contract FleetCommander is
     function _handleWithdrawalFee(
         address owner,
         uint256 assetsAmount,
-        uint256 feeAmount
+        uint256 feeAmount,
+        bool isArkWithdrawal
     ) internal {
         if (feeAmount > 0) {
-            _board(address(config.bufferArk), feeAmount);
+            // Only re-board fee for ark withdrawals
+            // For buffer withdrawals, fee naturally stays in buffer
+            if (isArkWithdrawal) {
+                _board(address(config.bufferArk), feeAmount);
+            }
             emit WithdrawalFeeCollected(owner, assetsAmount, feeAmount);
         }
     }

@@ -9,7 +9,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * @title WithdrawalFee
  * @custom:see IWithdrawalFee
  * @notice Abstract contract that provides withdrawal fee functionality
- * @dev The default fee of 0.025% is based on protecting against arbitrage on a 5% APY over ~48 hours.
+ * @dev A recommended initial fee of 0.025% is based on protecting against arbitrage on a 5% APY over ~48 hours.
  *      Calculation: 5% annual / 365 days * 2 days / 2 (as deterrent) ≈ 0.0274% → rounded to 0.025%
  *      This fee serves as MEV/flash loan attack protection and benefits remaining vault participants.
  */
@@ -38,8 +38,8 @@ abstract contract WithdrawalFee is IWithdrawalFee {
 
     /**
      * @notice Initializes the withdrawal fee
-     * @param initialFee The initial withdrawal fee percentage (default: 0.025%)
-     * @dev Default fee of 0.025% = 25000000000000000 (0.00025 * 1e18)
+     * @param initialFee The initial withdrawal fee percentage (recommended: 0.025%)
+     * @dev Recommended initial fee of 0.025% = 25000000000000000 (0.00025 * 1e18)
      */
     constructor(Percentage initialFee) {
         _validateWithdrawalFee(initialFee);

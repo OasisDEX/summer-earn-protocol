@@ -61,7 +61,7 @@ struct FleetConfig {
     /**
      * @notice The withdrawal fee percentage applied to user withdrawals
      * @dev This fee serves as MEV/flash loan attack protection and benefits remaining vault participants
-     *      Default is 0.025% based on protecting against arbitrage on a 5% APY over ~48 hours
+     *      Recommended value is 0.025% based on protecting against arbitrage on a 5% APY over ~48 hours
      */
     Percentage withdrawalFee;
 }
