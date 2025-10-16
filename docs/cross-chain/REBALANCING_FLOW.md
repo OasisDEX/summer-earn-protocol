@@ -61,8 +61,7 @@ sequenceDiagram
 - When `executeTransferAssets()` is called, Ark sets `inflightAssets = amount` and emits
   `InflightSet(amount, operationId)` after the router returns the operation ID.
 - Ark clears inflight on receipt of the next successful remote balance update corresponding to the
-  latest outgoing operation, emitting `InflightCleared(operationId, amount)`. It also resets
-  `lastSentAmount`.
+  latest outgoing operation, emitting `InflightCleared(operationId, amount)`.
 - FleetProxy enforces single-flight on withdrawals: it rejects a new withdraw-and-transfer while a
   previous withdrawal is inflight (`InFlight`). On initiating a withdrawal, it sets
   `inflightWithdrawals = amount` and emits `InflightSet(amount, operationId)`.
