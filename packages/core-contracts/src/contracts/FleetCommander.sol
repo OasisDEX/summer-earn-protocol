@@ -122,10 +122,8 @@ contract FleetCommander is
         _disembark(address(config.bufferArk), assetsAfterFee);
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
 
-        // Emit fee collection event if fee was applied
-        if (feeAmount > 0) {
-            emit WithdrawalFeeCollected(owner, assets, feeAmount);
-        }
+        // Handle withdrawal fee (re-board to buffer and emit event)
+        _handleWithdrawalFee(owner, assets, feeAmount);
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
