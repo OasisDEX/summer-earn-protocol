@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {NotWhitelisted} from "./IWhitelistErrors.sol";
-import "./IWhitelistEvents.sol";
+import {IWhitelistEvents} from "./IWhitelistEvents.sol";
 
 /**
  * @title Whitelist
@@ -11,7 +11,7 @@ import "./IWhitelistEvents.sol";
  *      `_setWhitelisted` or `_setWhitelistedBatch`. If `address(0)` is set to
  *      allowed, the whitelist becomes open and all accounts are considered allowed.
  */
-abstract contract Whitelist {
+abstract contract Whitelist is IWhitelistEvents {
     /**
      * STATE
      */
