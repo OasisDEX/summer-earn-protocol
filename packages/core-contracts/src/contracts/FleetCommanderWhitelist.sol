@@ -3,9 +3,7 @@ pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommanderWhitelist} from "../interfaces/IFleetCommanderWhitelist.sol";
-import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
-
-import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
+import {ArkData, FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {FleetCommanderCache} from "./FleetCommanderCache.sol";
 import {FleetCommanderConfigProviderWhitelist} from "./FleetCommanderConfigProviderWhitelist.sol";

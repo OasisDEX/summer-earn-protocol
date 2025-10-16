@@ -4,11 +4,11 @@ pragma solidity 0.8.28;
 import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
 
 import {IAdmiralsQuartersWhitelist} from "../interfaces/IAdmiralsQuartersWhitelist.sol";
+import {ISummerRewardsRedeemer} from "@summerfi/rewards-contracts/interfaces/ISummerRewardsRedeemer.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-
-import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
-
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAToken} from "../interfaces/aave-v3/IAtoken.sol";
 import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
 import {IComet} from "../interfaces/compound-v3/IComet.sol";
@@ -17,13 +17,8 @@ import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
-
 import {ProtectedMulticallWhitelist} from "./ProtectedMulticallWhitelist.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import {ISummerRewardsRedeemer} from "@summerfi/rewards-contracts/interfaces/ISummerRewardsRedeemer.sol";
 
 /**
  * @title AdmiralsQuarters
@@ -161,34 +156,7 @@ contract AdmiralsQuartersWhitelist is
 
         emit FleetEntered(_msgSender(), fleetCommander, assets, shares);
     }
-    /// @inheritdoc IAdmiralsQuartersWhitelist
-    function enterFleet(
-        address fleetCommander,
-        uint256 assets,
-        address receiver,
-        bytes calldata referralCode
-    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
-        _validateFleetCommander(fleetCommander);
 
-        IFleetCommander fleet = IFleetCommander(fleetCommander);
-        IERC20 fleetAsset = IERC20(fleet.asset());
-
-        uint256 balance = fleetAsset.balanceOf(address(this));
-        assets = assets == 0 ? balance : assets;
-        receiver = receiver == address(0) ? _msgSender() : receiver;
-        if (assets > balance) revert InsufficientOutputAmount();
-
-        fleetAsset.forceApprove(address(fleet), assets);
-        shares = fleet.deposit(assets, receiver, referralCode);
-
-        emit FleetEnteredWithReferral(
-            _msgSender(),
-            fleetCommander,
-            assets,
-            shares,
-            referralCode
-        );
-    }
     /// @inheritdoc IAdmiralsQuartersWhitelist
     function exitFleet(
         address fleetCommander,
