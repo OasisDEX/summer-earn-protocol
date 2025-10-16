@@ -118,31 +118,28 @@ contract CrossChainFleetProxyTest is Test {
             SOURCE_CHAIN_ID
         );
 
-        // Register cross-chain relationships in registry
-        registry.registerRelationship(
+        // Register cross-chain relationships in registry using peer pair registration
+        registry.registerAdapterPeerPair(
             address(bufferArkMock), // Use the ArkMock as the source
             ARB_STARGATE_PROXY, // Different target for Stargate
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
-        // Register LayerZero adapter with different target
-        registry.registerRelationship(
+        // Register LayerZero adapter with different target using peer pair registration
+        registry.registerAdapterPeerPair(
             address(mockAdapter), // Use the mockAdapter as the source
             ARB_LAYERZERO_PROXY, // Different target for LayerZero
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
-        // Register the ark-proxy relationship
-        registry.registerRelationship(
+        // Register the ark-proxy relationship using peer pair registration
+        registry.registerAdapterPeerPair(
             SOURCE_ARK_ADDRESS,
             address(proxy),
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
         accessManager.grantKeeperRole(address(proxy), governor);
