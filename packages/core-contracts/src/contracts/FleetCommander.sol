@@ -130,8 +130,8 @@ contract FleetCommander is
 
         // Emit withdrawal fee event
         if (feeShares > 0) {
-            uint256 feeAssets = previewRedeem(feeShares);
-            emit WithdrawalFeeCollected(owner, assetsAfterFee, feeAssets);
+            uint256 feeAssets = _calculateWithdrawalFee(assets);
+            emit WithdrawalFeeCollected(owner, assets, feeAssets);
         }
 
         emit FundsBufferBalanceUpdated(
@@ -196,7 +196,7 @@ contract FleetCommander is
 
         // Emit withdrawal fee event
         if (feeShares > 0) {
-            uint256 feeAssets = previewRedeem(feeShares);
+            uint256 feeAssets = _calculateWithdrawalFee(assets);
             emit WithdrawalFeeCollected(owner, assets, feeAssets);
         }
 
@@ -268,8 +268,8 @@ contract FleetCommander is
 
         // Emit withdrawal fee event
         if (feeShares > 0) {
-            uint256 feeAssets = previewRedeem(feeShares);
-            emit WithdrawalFeeCollected(owner, assetsAfterFee, feeAssets);
+            uint256 feeAssets = _calculateWithdrawalFee(assets);
+            emit WithdrawalFeeCollected(owner, assets, feeAssets);
         }
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
@@ -309,8 +309,12 @@ contract FleetCommander is
 
         // Emit withdrawal fee event
         if (feeShares > 0) {
-            uint256 feeAssets = previewRedeem(feeShares);
-            emit WithdrawalFeeCollected(owner, assetsAfterFee, feeAssets);
+            uint256 feeAssets = _calculateWithdrawalFee(totalAssetsToWithdraw);
+            emit WithdrawalFeeCollected(
+                owner,
+                totalAssetsToWithdraw,
+                feeAssets
+            );
         }
 
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
