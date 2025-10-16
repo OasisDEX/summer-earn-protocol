@@ -25,7 +25,7 @@ abstract contract WithdrawalFee is IWithdrawalFee {
      * @notice The current withdrawal fee percentage
      * @dev Stored as a Percentage type with 18 decimals of precision
      */
-    Percentage private _withdrawalFee;
+    Percentage internal _withdrawalFee;
 
     /**
      * @notice The maximum allowed withdrawal fee (10%)
@@ -52,7 +52,7 @@ abstract contract WithdrawalFee is IWithdrawalFee {
      */
 
     /// @inheritdoc IWithdrawalFee
-    function getWithdrawalFee() public view virtual returns (Percentage) {
+    function getWithdrawalFee() external view virtual returns (Percentage) {
         return _withdrawalFee;
     }
 

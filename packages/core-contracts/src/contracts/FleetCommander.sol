@@ -201,26 +201,7 @@ contract FleetCommander is
 
         _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
 
-        // Calculate withdrawal fee in shares
-        uint256 feeShares = _calculateWithdrawalFeeShares(totalSharesToRedeem);
-        uint256 userShares = totalSharesToRedeem - feeShares;
-
-        // Transfer fee shares to tipJar
-        if (feeShares > 0) {
-            _transfer(owner, tipJar(), feeShares);
-        }
-
-        // Calculate assets based on user's shares (after fee)
-        uint256 assetsAfterFee = previewRedeem(userShares);
-
-        _forceDisembarkFromSortedArks(assets);
-        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, userShares);
-
-        // Emit withdrawal fee event
-        if (feeShares > 0) {
-            uint256 feeAssets = _calculateWithdrawalFee(assets);
-            emit WithdrawalFeeCollected(owner, assets, feeAssets);
-        }
+        _executeArksWithdrawal(totalSharesToRedeem, assets, receiver, owner);
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
@@ -242,30 +223,7 @@ contract FleetCommander is
 
         totalAssetsToWithdraw = previewRedeem(shares);
 
-        // Calculate withdrawal fee in shares
-        uint256 feeShares = _calculateWithdrawalFeeShares(shares);
-        uint256 userShares = shares - feeShares;
-
-        // Transfer fee shares to tipJar
-        if (feeShares > 0) {
-            _transfer(owner, tipJar(), feeShares);
-        }
-
-        // Calculate assets based on user's shares (after fee)
-        uint256 assetsAfterFee = previewRedeem(userShares);
-
-        _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
-        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, userShares);
-
-        // Emit withdrawal fee event
-        if (feeShares > 0) {
-            uint256 feeAssets = _calculateWithdrawalFee(totalAssetsToWithdraw);
-            emit WithdrawalFeeCollected(
-                owner,
-                totalAssetsToWithdraw,
-                feeAssets
-            );
-        }
+        _executeArksWithdrawal(shares, totalAssetsToWithdraw, receiver, owner);
 
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
@@ -486,16 +444,6 @@ contract FleetCommander is
         Percentage newFee
     ) external onlyGovernor whenNotPaused {
         _updateWithdrawalFee(newFee);
-    }
-
-    /// @inheritdoc IFleetCommander
-    function getWithdrawalFee()
-        public
-        view
-        override(IFleetCommander, WithdrawalFee)
-        returns (Percentage)
-    {
-        return WithdrawalFee.getWithdrawalFee();
     }
 
     /// @inheritdoc IFleetCommander
@@ -729,6 +677,42 @@ contract FleetCommander is
             previousFundsBufferBalance,
             config.bufferArk.totalAssets()
         );
+    }
+
+    /**
+     * @notice Executes the common arks withdrawal logic
+     * @dev This function handles fee calculation, asset disembarkment from arks, and withdrawal execution
+     * @param shares The number of shares to redeem
+     * @param totalAssets The total amount of assets to withdraw from arks
+     * @param receiver The address to receive the assets
+     * @param owner The address of the owner of the shares
+     */
+    function _executeArksWithdrawal(
+        uint256 shares,
+        uint256 totalAssets,
+        address receiver,
+        address owner
+    ) internal {
+        // Calculate withdrawal fee in shares
+        uint256 feeShares = _calculateWithdrawalFeeShares(shares);
+        uint256 userShares = shares - feeShares;
+
+        // Transfer fee shares to tipJar
+        if (feeShares > 0) {
+            _transfer(owner, tipJar(), feeShares);
+        }
+
+        // Calculate assets based on user's shares (after fee)
+        uint256 assetsAfterFee = previewRedeem(userShares);
+
+        _forceDisembarkFromSortedArks(totalAssets);
+        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, userShares);
+
+        // Emit withdrawal fee event
+        if (feeShares > 0) {
+            uint256 feeAssets = _calculateWithdrawalFee(totalAssets);
+            emit WithdrawalFeeCollected(owner, totalAssets, feeAssets);
+        }
     }
 
     /* INTERNAL - VALIDATIONS */
