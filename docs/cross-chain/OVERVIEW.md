@@ -58,7 +58,7 @@ sequenceDiagram
   adapter peer mappings via the registry during delivery.
 - Pausing and governance-controlled emergency actions at routers/proxies.
 - Reentrancy protection on critical entry points.
-- **MEV Protection**: FleetCommander implements withdrawal fees to prevent MEV attacks and sandwich attacks on cross-chain operations. Users burn full shares but receive reduced assets, with the fee remaining in the vault to benefit remaining shareholders.
+- **MEV Protection**: FleetCommander implements withdrawal fees to prevent MEV attacks and sandwich attacks on cross-chain operations. Users burn full shares but receive reduced assets, with the fee shares transferred to the tipJar.
 
 Operational requirement:
 - All cross-chain operations include explicit `BridgeOptions` with a non-zero `gasLimit`. There is no registry-level default gas limit.
@@ -81,14 +81,11 @@ The FleetCommander implements a withdrawal fee-based MEV protection system:
 - **Withdrawal Fee**: Configurable fee percentage applied to withdrawals and redemptions
 - **Share Burning**: Users burn the full amount of shares corresponding to their withdrawal
 - **Asset Reduction**: Users receive assets minus the fee amount
-- **Fee Retention**: The fee amount remains in the vault, increasing value for remaining shareholders
+- **Fee Collection**: The fee shares are transferred to the tipJar
 - **MEV Attack Prevention**: Prevents sandwich attacks and front-running on cross-chain operations
 - **Governance Control**: Withdrawal fee can be updated by curators to adapt to changing market conditions
 
 Key functions:
-- `getCooldown()`: Returns the rebalance cooldown duration
-- `getLastActionTimestamp()`: Returns the last rebalance timestamp
-- `updateRebalanceCooldown(newPeriod)`: Updates the rebalance cooldown period (curator only)
 - `_calculateWithdrawalFee(assets)`: Calculates the withdrawal fee for a given amount of assets
 - `WithdrawalFeeCollected` event: Emitted when withdrawal fees are collected
 

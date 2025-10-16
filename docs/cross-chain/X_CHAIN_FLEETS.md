@@ -18,7 +18,7 @@ The `FleetCommander` now includes built-in MEV protection mechanisms designed to
 
 ## Solution: Withdrawal Fee-Based MEV Protection
 
-The `FleetCommander` implements a withdrawal fee-based system that provides economic disincentives for MEV attacks while maintaining ERC4626 compliance. Users burn full shares but receive reduced assets, with the fee remaining in the vault to benefit remaining shareholders.
+The `FleetCommander` implements a withdrawal fee-based system that provides economic disincentives for MEV attacks while maintaining ERC4626 compliance. Users burn full shares but receive reduced assets, with the fee shares transferred to the tipJar.
 
 ### Key Components
 
@@ -30,11 +30,10 @@ The `FleetCommander` implements a withdrawal fee-based system that provides econ
 #### 2. Share Burning and Asset Reduction
 - Users burn the full amount of shares corresponding to their withdrawal
 - Users receive assets minus the calculated fee amount
-- Fee amount remains in the vault, increasing value for remaining shareholders
+- Fee shares are transferred to the tipJar
 
-#### 3. Fee Collection and Re-boarding
-- For ark withdrawals: fees are re-boarded to the buffer ark
-- For buffer withdrawals: fees naturally stay in the buffer
+#### 3. Fee Collection
+- Withdrawal fees are collected as shares and transferred to the tipJar
 - `WithdrawalFeeCollected` event tracks fee collection
 
 
@@ -44,7 +43,7 @@ The `FleetCommander` implements a withdrawal fee-based system that provides econ
 User Withdrawal → Calculate Fee → Burn Full Shares → Receive Reduced Assets
      ↓                ↓                ↓                    ↓
   Request         Fee Applied      Share Burning        Asset Transfer
-  (Any Time)      (MEV Protected)  (ERC4626 Compliant)  (Fee Stays in Vault)
+  (Any Time)      (MEV Protected)  (ERC4626 Compliant)  (Fee Goes to TipJar)
 ```
 
 ## Implementation Details
@@ -66,15 +65,12 @@ FleetCommanderParams memory params
 // Now includes initialWithdrawalFee field
 ```
 
-The withdrawal fee is configurable through the `initialWithdrawalFee` parameter in the constructor and stored in the `FleetConfig`. After deployment, the rebalance cooldown period can be updated by curators using the `updateRebalanceCooldown()` function.
+The withdrawal fee is configurable through the `initialWithdrawalFee` parameter in the constructor and stored in the `FleetConfig`.
 
 ### 3. FleetCommander Features
 
 #### Withdrawal Fee Functions
-- `getCooldown()` - Get the current rebalance cooldown period
-- `getLastActionTimestamp()` - Get the last rebalance timestamp
 - `_calculateWithdrawalFee(assets)` - Calculate withdrawal fee for given assets
-- `updateRebalanceCooldown(uint256 newCooldown)` - Update rebalance cooldown period (curator only)
 
 #### Withdrawal Fee Enforcement
 - `_handleWithdrawalFee(owner, totalAssets, feeAmount)` - Internal helper for fee collection and re-boarding
@@ -95,8 +91,7 @@ The withdrawal fee is configurable through the `initialWithdrawalFee` parameter 
 
 #### Fee Collection
 - Automatic fee calculation and collection
-- Re-boarding of fees to buffer ark for ark withdrawals
-- Natural fee retention for buffer withdrawals
+- Fee shares transferred to tipJar for all withdrawals
 
 ## Usage Example
 
@@ -104,7 +99,7 @@ The withdrawal fee is configurable through the `initialWithdrawalFee` parameter 
 ```solidity
 // User calls deposit (no restrictions)
 uint256 shares = fleetCommander.deposit(1000e6, user);
-// Returns shares immediately, no cooldown period
+// Returns shares immediately
 ```
 
 ### 2. Withdrawal Fee Calculation
@@ -121,21 +116,16 @@ uint256 assetsReceived = assets - feeAmount;
 ```solidity
 // Withdrawal applies fee automatically
 uint256 assets = fleetCommander.withdraw(500e6, user, user);
-// User receives reduced assets, fee stays in vault
-// Full shares are burned, fee benefits remaining shareholders
+// User receives reduced assets, fee shares go to tipJar
+// Full shares are burned, fee shares transferred to tipJar
 ```
 
 ## Configuration Parameters
 
 ### FleetCommanderParams
 - `initialWithdrawalFee`: Initial withdrawal fee percentage applied to withdrawals/redemptions
-- `initialRebalanceCooldown`: Initial cooldown period between rebalance operations (in seconds)
 - Standard FleetCommander parameters (name, symbol, asset, etc.)
 
-### Governance Updates
-- `updateRebalanceCooldown(newCooldown)`: Update rebalance cooldown period after deployment (curator only)
-- Emits `CooldownUpdated` event when updated
-- Can only be called when contract is not paused
 
 ## Benefits
 
@@ -147,7 +137,7 @@ uint256 assets = fleetCommander.withdraw(500e6, user, user);
 ### 2. Protocol Security
 - **Fee enforcement**: Automatic fee calculation and collection
 - **ERC4626 compliance**: Standard withdrawal fee mechanism
-- **Benefit distribution**: Fees benefit remaining shareholders
+- **Fee collection**: Fees are collected as shares and transferred to tipJar
 
 ### 3. User Experience
 - **Immediate deposits**: Users can deposit immediately without restrictions

@@ -102,12 +102,11 @@ The FleetCommander implements withdrawal fee-based MEV protection:
 
 **Deposit Phase:**
 - User deposits are processed immediately without restrictions
-- No cooldown periods or timestamp tracking required
 
 **Withdrawal Phase:**
 - Withdrawal fees are calculated and applied to all withdrawals/redemptions
 - Users burn full shares but receive reduced assets (assets minus fee)
-- Fee amount remains in the vault, benefiting remaining shareholders
+- Fee shares are transferred to the tipJar
 - `_calculateWithdrawalFee()` function computes the fee based on configured parameters
 
 **Key Protection Mechanisms:**
@@ -118,7 +117,5 @@ The FleetCommander implements withdrawal fee-based MEV protection:
 - ERC4626 compliant fee mechanism
 
 **Monitoring Functions:**
-- `getCooldown()`: Returns the rebalance cooldown duration
-- `getLastActionTimestamp()`: Returns the last rebalance timestamp
 - `_calculateWithdrawalFee(assets)`: Calculates withdrawal fee for given assets
 - `WithdrawalFeeCollected` event: Tracks fee collection events
