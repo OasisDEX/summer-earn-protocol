@@ -60,9 +60,14 @@ abstract contract WithdrawalFee is IWithdrawalFee {
      */
 
     /**
-     * @notice Calculates the withdrawal fee amount for a given asset amount
-     * @param assets The amount of assets being withdrawn
-     * @return The fee amount in asset units
+     * @notice Calculates the withdrawal fee for a given amount of assets
+     * @param assets The total amount of assets for which to calculate the fee
+     * @return The calculated fee amount
+     * @dev The fee mechanism works by:
+     *      1. User burns the full amount of shares corresponding to their withdrawal
+     *      2. User receives assets minus the fee amount
+     *      3. The fee amount remains in the vault, increasing value for remaining shareholders
+     *      This is standard ERC4626 behavior for withdrawal fees and ensures proper MEV protection.
      */
     function _calculateWithdrawalFee(
         uint256 assets

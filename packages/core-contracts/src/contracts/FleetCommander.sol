@@ -117,6 +117,8 @@ contract FleetCommander is
         uint256 assetsAfterFee = assets - feeAmount;
 
         // Only disembark the amount after fee (fee stays in buffer)
+        // Note: The full shares are burned, but user receives reduced assets.
+        // The fee remains in the buffer, benefiting remaining vault participants.
         _disembark(address(config.bufferArk), assetsAfterFee);
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
 
@@ -176,6 +178,8 @@ contract FleetCommander is
         uint256 assetsAfterFee = assets - feeAmount;
 
         // Only disembark the amount after fee (fee stays in buffer)
+        // Note: The full shares are burned, but user receives reduced assets.
+        // The fee remains in the buffer, benefiting remaining vault participants.
         _disembark(address(config.bufferArk), assetsAfterFee);
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
 
@@ -249,10 +253,7 @@ contract FleetCommander is
         );
 
         // Re-deposit fee to buffer if fee was applied
-        if (feeAmount > 0) {
-            _board(address(config.bufferArk), feeAmount);
-            emit WithdrawalFeeCollected(owner, assets, feeAmount);
-        }
+        _handleWithdrawalFee(owner, assets, feeAmount);
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
@@ -282,14 +283,7 @@ contract FleetCommander is
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
 
         // Re-deposit fee to buffer if fee was applied
-        if (feeAmount > 0) {
-            _board(address(config.bufferArk), feeAmount);
-            emit WithdrawalFeeCollected(
-                owner,
-                totalAssetsToWithdraw,
-                feeAmount
-            );
-        }
+        _handleWithdrawalFee(owner, totalAssetsToWithdraw, feeAmount);
 
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
@@ -1020,6 +1014,27 @@ contract FleetCommander is
         uint256 maxShares = maxRedeem(owner);
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
+        }
+    }
+
+    /**
+     * @notice Handles fee collection and re-boarding for ark withdrawals
+     * @param owner The address of the user withdrawing
+     * @param assetsAmount The total assets being withdrawn (before fee)
+     * @param feeAmount The fee amount to collect
+     * @dev This function:
+     *      1. Re-boards the fee to the buffer ark (only needed for ark withdrawals)
+     *      2. Emits the WithdrawalFeeCollected event
+     *      Note: For buffer withdrawals, the fee naturally stays in the buffer, so no re-boarding is needed.
+     */
+    function _handleWithdrawalFee(
+        address owner,
+        uint256 assetsAmount,
+        uint256 feeAmount
+    ) internal {
+        if (feeAmount > 0) {
+            _board(address(config.bufferArk), feeAmount);
+            emit WithdrawalFeeCollected(owner, assetsAmount, feeAmount);
         }
     }
 
