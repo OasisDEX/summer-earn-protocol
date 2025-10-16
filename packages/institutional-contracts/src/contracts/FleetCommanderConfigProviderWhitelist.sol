@@ -9,13 +9,12 @@ import {IFleetCommanderConfigProviderWhitelist} from "./interfaces/IFleetCommand
 
 import {FleetConfig} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
 import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManaged.sol";
-import {FleetCommanderRewardsManager} from "@summerfi/earn-protocol-contracts/contracts/FleetCommanderRewardsManager.sol";
 import {ArkParams, BufferArk} from "@summerfi/earn-protocol-contracts/contracts/arks/BufferArk.sol";
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManagedWhitelist} from "./ProtocolAccessManagedWhitelist.sol";
-import {ContractSpecificRoles, IProtocolAccessManagerWhitelist} from "./interfaces/IProtocolAccessManagerWhitelist.sol";
+import {ContractSpecificRoles} from "./interfaces/IProtocolAccessManagerWhitelist.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
@@ -259,7 +258,7 @@ contract FleetCommanderConfigProviderWhitelist is
         _activeArks.remove(ark);
 
         IArk(ark).unregisterFleetCommander();
-        _accessManager.selfRevokeContractSpecificRole(
+        ACCESS_MANAGER.selfRevokeContractSpecificRole(
             ContractSpecificRoles.COMMANDER_ROLE,
             address(ark)
         );

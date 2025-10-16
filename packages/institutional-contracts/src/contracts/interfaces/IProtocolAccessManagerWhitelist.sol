@@ -203,18 +203,6 @@ interface IProtocolAccessManagerWhitelist {
                             ROLE CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Role identifier for the Governor role
-    function GOVERNOR_ROLE() external pure returns (bytes32);
-
-    /// @notice Role identifier for the Super Keeper role
-    function SUPER_KEEPER_ROLE() external pure returns (bytes32);
-
-    /// @notice Role identifier for the Decay Controller role
-    function DECAY_CONTROLLER_ROLE() external pure returns (bytes32);
-
-    /// @notice Role identifier for the Admirals Quarters role
-    function ADMIRALS_QUARTERS_ROLE() external pure returns (bytes32);
-
     /**
      * @notice Checks if an account has a specific role
      * @param role The role identifier to check

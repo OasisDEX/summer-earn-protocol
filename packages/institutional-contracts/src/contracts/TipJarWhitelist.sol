@@ -14,7 +14,7 @@ import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 import {Constants} from "@summerfi/constants/Constants.sol";
-import {PERCENTAGE_100, Percentage, fromPercentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_100, Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 /**
  * @title TipJar

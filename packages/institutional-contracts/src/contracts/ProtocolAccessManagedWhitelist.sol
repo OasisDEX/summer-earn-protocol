@@ -27,7 +27,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
  * Usage:
  * - Inherit from this contract to gain access to role-checking modifiers
  * - Use modifiers like onlyGovernor, onlyKeeper, etc. to protect functions
- * - Access the internal _accessManager to perform custom role checks
+ * - Access the internal ACCESS_MANAGER to perform custom role checks
  *
  * Security Considerations:
  * - The contract validates the access manager address during construction
@@ -58,7 +58,7 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The ProtocolAccessManager instance used for access control
-    IProtocolAccessManagerWhitelist internal immutable _accessManager;
+    IProtocolAccessManagerWhitelist internal immutable ACCESS_MANAGER;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -67,22 +67,22 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
     /**
      * @notice Initializes the ProtocolAccessManaged contract
      * @param accessManager Address of the ProtocolAccessManager contract
-     * @dev Validates the provided accessManager address and initializes the _accessManager
+     * @dev Validates the provided accessManager address and initializes the ACCESS_MANAGER
      */
     constructor(address accessManager) {
         if (accessManager == address(0)) {
             revert InvalidAccessManagerAddress(address(0));
         }
 
-        // if (
-        //     !IERC165(accessManager).supportsInterface(
-        //         type(IProtocolAccessManagerWhitelist).interfaceId
-        //     )
-        // ) {
-        //     revert InvalidAccessManagerAddress(accessManager);
-        // }
+        if (
+            !IERC165(accessManager).supportsInterface(
+                type(IProtocolAccessManagerWhitelist).interfaceId
+            )
+        ) {
+            revert InvalidAccessManagerAddress(accessManager);
+        }
 
-        _accessManager = IProtocolAccessManagerWhitelist(accessManager);
+        ACCESS_MANAGER = IProtocolAccessManagerWhitelist(accessManager);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -103,7 +103,7 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlyGovernor() {
-        if (!_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)) {
+        if (!ACCESS_MANAGER.hasRole(GOVERNOR_ROLE, msg.sender)) {
             revert CallerIsNotGovernor(msg.sender);
         }
         _;
@@ -111,7 +111,7 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
 
     modifier onlyWhitelisted(address fleetCommanderAddress) {
         if (
-            !_accessManager.hasRole(
+            !ACCESS_MANAGER.hasRole(
                 generateRole(
                     ContractSpecificRoles.WHITELISTED_ROLE,
                     fleetCommanderAddress
@@ -139,10 +139,10 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
      */
     modifier onlyKeeper() {
         if (
-            !_accessManager.hasRole(
+            !ACCESS_MANAGER.hasRole(
                 generateRole(ContractSpecificRoles.KEEPER_ROLE, address(this)),
                 msg.sender
-            ) && !_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)
+            ) && !ACCESS_MANAGER.hasRole(SUPER_KEEPER_ROLE, msg.sender)
         ) {
             revert CallerIsNotKeeper(msg.sender);
         }
@@ -162,7 +162,7 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlySuperKeeper() {
-        if (!_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)) {
+        if (!ACCESS_MANAGER.hasRole(SUPER_KEEPER_ROLE, msg.sender)) {
             revert CallerIsNotSuperKeeper(msg.sender);
         }
         _;
@@ -176,7 +176,7 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
     modifier onlyCurator(address fleetAddress) {
         if (
             fleetAddress == address(0) ||
-            !_accessManager.hasRole(
+            !ACCESS_MANAGER.hasRole(
                 generateRole(ContractSpecificRoles.CURATOR_ROLE, fleetAddress),
                 msg.sender
             )
@@ -214,6 +214,6 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
      * @return bool True if the address has the Governor role
      */
     function _isGovernor(address account) internal view returns (bool) {
-        return _accessManager.hasRole(GOVERNOR_ROLE, account);
+        return ACCESS_MANAGER.hasRole(GOVERNOR_ROLE, account);
     }
 }
