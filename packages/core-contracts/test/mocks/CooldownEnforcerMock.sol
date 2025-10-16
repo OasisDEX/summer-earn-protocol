@@ -10,7 +10,7 @@ contract CooldownEnforcerMock is CooldownEnforcer {
     constructor(
         uint256 cooldown_,
         bool enforceFromNow
-    ) CooldownEnforcer(cooldown_, 0, enforceFromNow) {
+    ) CooldownEnforcer(cooldown_, enforceFromNow) {
         // no-op
     }
 

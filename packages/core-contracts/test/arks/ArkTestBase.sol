@@ -18,6 +18,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
@@ -99,7 +100,7 @@ contract ArkTestBase is TestHelpers {
                 symbol: "TEST-SUM",
                 initialTipRate: toPercentage(0),
                 depositCap: type(uint256).max,
-                userCooldownPeriod: 0
+                initialWithdrawalFee: Percentage.wrap(0)
             });
         FleetCommander fleetCommander = new FleetCommander(
             fleetCommanderParams
@@ -128,7 +129,7 @@ contract ArkTestBase is TestHelpers {
                 symbol: "TEST-SUM",
                 initialTipRate: initialTipRate,
                 depositCap: type(uint256).max,
-                userCooldownPeriod: 0
+                initialWithdrawalFee: Percentage.wrap(0)
             });
         FleetCommander fleetCommander = new FleetCommander(
             fleetCommanderParams

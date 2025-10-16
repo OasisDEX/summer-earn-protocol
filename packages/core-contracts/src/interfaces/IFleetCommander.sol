@@ -191,6 +191,18 @@ interface IFleetCommander is
     function updateRebalanceCooldown(uint256 newCooldown) external;
 
     /**
+     * @notice Updates the withdrawal fee percentage
+     * @param newFee The new withdrawal fee as a Percentage
+     */
+    function updateWithdrawalFee(Percentage newFee) external;
+
+    /**
+     * @notice Returns the current withdrawal fee percentage
+     * @return The current withdrawal fee as a Percentage
+     */
+    function getWithdrawalFee() external view returns (Percentage);
+
+    /**
      * @notice Forces a rebalance operation
      * @param data Array of typed rebalance data struct
      * @dev has no cooldown enforced but only callable by privileged role

@@ -1,0 +1,98 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.28;
+
+import {IWithdrawalFee} from "./IWithdrawalFee.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
+/**
+ * @title WithdrawalFee
+ * @custom:see IWithdrawalFee
+ * @notice Abstract contract that provides withdrawal fee functionality
+ * @dev The default fee of 0.025% is based on protecting against arbitrage on a 5% APY over ~48 hours.
+ *      Calculation: 5% annual / 365 days * 2 days / 2 (as deterrent) ≈ 0.0274% → rounded to 0.025%
+ *      This fee serves as MEV/flash loan attack protection and benefits remaining vault participants.
+ */
+abstract contract WithdrawalFee is IWithdrawalFee {
+    using PercentageUtils for uint256;
+
+    /**
+     * STATE VARIABLES
+     */
+
+    /**
+     * @notice The current withdrawal fee percentage
+     * @dev Stored as a Percentage type with 18 decimals of precision
+     */
+    Percentage private _withdrawalFee;
+
+    /**
+     * @notice The maximum allowed withdrawal fee (10%)
+     * @dev Prevents governance abuse by capping the maximum fee
+     */
+    uint256 private constant MAXIMUM_WITHDRAWAL_FEE = 100000000000000000000; // 10% = 10 * 1e18
+
+    /**
+     * CONSTRUCTOR
+     */
+
+    /**
+     * @notice Initializes the withdrawal fee
+     * @param initialFee The initial withdrawal fee percentage (default: 0.025%)
+     * @dev Default fee of 0.025% = 25000000000000000 (0.00025 * 1e18)
+     */
+    constructor(Percentage initialFee) {
+        _validateWithdrawalFee(initialFee);
+        _withdrawalFee = initialFee;
+    }
+
+    /**
+     * VIEW FUNCTIONS
+     */
+
+    /// @inheritdoc IWithdrawalFee
+    function getWithdrawalFee() public view virtual returns (Percentage) {
+        return _withdrawalFee;
+    }
+
+    /**
+     * INTERNAL FUNCTIONS
+     */
+
+    /**
+     * @notice Calculates the withdrawal fee amount for a given asset amount
+     * @param assets The amount of assets being withdrawn
+     * @return The fee amount in asset units
+     */
+    function _calculateWithdrawalFee(
+        uint256 assets
+    ) public view returns (uint256) {
+        if (Percentage.unwrap(_withdrawalFee) == 0) {
+            return 0;
+        }
+        return assets.applyPercentage(_withdrawalFee);
+    }
+
+    /**
+     * @notice Updates the withdrawal fee
+     * @param newFee The new withdrawal fee percentage
+     * @dev The function is internal so it can be wrapped with access modifiers if needed
+     */
+    function _updateWithdrawalFee(Percentage newFee) internal {
+        _validateWithdrawalFee(newFee);
+        Percentage previousFee = _withdrawalFee;
+        _withdrawalFee = newFee;
+        emit WithdrawalFeeUpdated(previousFee, newFee);
+    }
+
+    /**
+     * @notice Validates that the withdrawal fee is within acceptable bounds
+     * @param fee The withdrawal fee to validate
+     * @dev Reverts if the fee exceeds the maximum allowed fee
+     */
+    function _validateWithdrawalFee(Percentage fee) private pure {
+        if (Percentage.unwrap(fee) > MAXIMUM_WITHDRAWAL_FEE) {
+            revert WithdrawalFeeTooHigh();
+        }
+    }
+}

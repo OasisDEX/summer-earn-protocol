@@ -6,6 +6,7 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
+import {WithdrawalFee} from "../utils/WithdrawalFee/WithdrawalFee.sol";
 
 import {FleetCommanderCache} from "./FleetCommanderCache.sol";
 import {FleetCommanderConfigProvider} from "./FleetCommanderConfigProvider.sol";
@@ -29,7 +30,8 @@ contract FleetCommander is
     ERC4626,
     Tipper,
     FleetCommanderCache,
-    CooldownEnforcer
+    CooldownEnforcer,
+    WithdrawalFee
 {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
@@ -50,11 +52,8 @@ contract FleetCommander is
         ERC20(params.name, params.symbol)
         FleetCommanderConfigProvider(params)
         Tipper(params.initialTipRate)
-        CooldownEnforcer(
-            params.initialRebalanceCooldown,
-            params.userCooldownPeriod,
-            false
-        )
+        CooldownEnforcer(params.initialRebalanceCooldown, false)
+        WithdrawalFee(params.initialWithdrawalFee)
     {}
 
     /*//////////////////////////////////////////////////////////////
@@ -107,21 +106,24 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    )
-        public
-        whenNotPaused
-        collectTip
-        useCache
-        enforceUserDepositCooldown(owner)
-        returns (uint256 shares)
-    {
+    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
         uint256 prevQueueBalance = config.bufferArk.totalAssets();
 
-        _disembark(address(config.bufferArk), assets);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
+        // Calculate and apply withdrawal fee
+        uint256 feeAmount = _calculateWithdrawalFee(assets);
+        uint256 assetsAfterFee = assets - feeAmount;
+
+        // Only disembark the amount after fee (fee stays in buffer)
+        _disembark(address(config.bufferArk), assetsAfterFee);
+        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
+
+        // Emit fee collection event if fee was applied
+        if (feeAmount > 0) {
+            emit WithdrawalFeeCollected(owner, assets, feeAmount);
+        }
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -141,7 +143,6 @@ contract FleetCommander is
         collectTip
         useCache
         whenNotPaused
-        enforceUserDepositCooldown(owner)
         returns (uint256 assets)
     {
         uint256 bufferBalance = config.bufferArk.totalAssets();
@@ -163,21 +164,25 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    )
-        public
-        collectTip
-        useCache
-        whenNotPaused
-        enforceUserDepositCooldown(owner)
-        returns (uint256 assets)
-    {
+    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
 
         assets = previewRedeem(shares);
-        _disembark(address(config.bufferArk), assets);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
+
+        // Calculate and apply withdrawal fee
+        uint256 feeAmount = _calculateWithdrawalFee(assets);
+        uint256 assetsAfterFee = assets - feeAmount;
+
+        // Only disembark the amount after fee (fee stays in buffer)
+        _disembark(address(config.bufferArk), assetsAfterFee);
+        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
+
+        // Emit fee collection event if fee was applied
+        if (feeAmount > 0) {
+            emit WithdrawalFeeCollected(owner, assets, feeAmount);
+        }
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -197,7 +202,6 @@ contract FleetCommander is
         collectTip
         useCache
         whenNotPaused
-        enforceUserDepositCooldown(owner)
         returns (uint256 shares)
     {
         uint256 bufferBalance = config.bufferArk.totalAssets();
@@ -225,15 +229,30 @@ contract FleetCommander is
         collectTip
         useWithdrawCache
         whenNotPaused
-        enforceUserDepositCooldown(owner)
         returns (uint256 totalSharesToRedeem)
     {
         totalSharesToRedeem = previewWithdraw(assets);
 
         _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
 
+        // Calculate and apply withdrawal fee
+        uint256 feeAmount = _calculateWithdrawalFee(assets);
+        uint256 assetsAfterFee = assets - feeAmount;
+
         _forceDisembarkFromSortedArks(assets);
-        _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
+        _withdraw(
+            _msgSender(),
+            receiver,
+            owner,
+            assetsAfterFee,
+            totalSharesToRedeem
+        );
+
+        // Re-deposit fee to buffer if fee was applied
+        if (feeAmount > 0) {
+            _board(address(config.bufferArk), feeAmount);
+            emit WithdrawalFeeCollected(owner, assets, feeAmount);
+        }
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
@@ -249,15 +268,29 @@ contract FleetCommander is
         collectTip
         useWithdrawCache
         whenNotPaused
-        enforceUserDepositCooldown(owner)
         returns (uint256 totalAssetsToWithdraw)
     {
         _validateRedeemFromArks(shares, owner);
 
         totalAssetsToWithdraw = previewRedeem(shares);
 
+        // Calculate and apply withdrawal fee
+        uint256 feeAmount = _calculateWithdrawalFee(totalAssetsToWithdraw);
+        uint256 assetsAfterFee = totalAssetsToWithdraw - feeAmount;
+
         _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
-        _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
+        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
+
+        // Re-deposit fee to buffer if fee was applied
+        if (feeAmount > 0) {
+            _board(address(config.bufferArk), feeAmount);
+            emit WithdrawalFeeCollected(
+                owner,
+                totalAssetsToWithdraw,
+                feeAmount
+            );
+        }
+
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
 
@@ -280,9 +313,6 @@ contract FleetCommander is
         shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
         _board(address(config.bufferArk), assets);
-
-        // Update the receiver's last deposit timestamp
-        _recordDepositTimestamp(receiver);
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -476,6 +506,23 @@ contract FleetCommander is
     }
 
     /// @inheritdoc IFleetCommander
+    function updateWithdrawalFee(
+        Percentage newFee
+    ) external onlyGovernor whenNotPaused {
+        _updateWithdrawalFee(newFee);
+    }
+
+    /// @inheritdoc IFleetCommander
+    function getWithdrawalFee()
+        public
+        view
+        override(IFleetCommander, WithdrawalFee)
+        returns (Percentage)
+    {
+        return WithdrawalFee.getWithdrawalFee();
+    }
+
+    /// @inheritdoc IFleetCommander
     function forceRebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyGovernor collectTip whenNotPaused {
@@ -514,11 +561,6 @@ contract FleetCommander is
     ) internal override {
         // Call parent _update to handle the actual transfer
         super._update(from, to, value);
-
-        // Only propagate cooldown for transfers between non-zero addresses (not mint/burn)
-        if (from != address(0) && to != address(0)) {
-            _propagateCooldownTimestamp(from, to);
-        }
     }
 
     /**

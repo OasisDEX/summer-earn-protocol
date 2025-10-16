@@ -19,7 +19,7 @@ struct FleetCommanderParams {
     uint256 initialRebalanceCooldown;
     uint256 depositCap;
     Percentage initialTipRate;
-    uint256 userCooldownPeriod;
+    Percentage initialWithdrawalFee;
 }
 
 /**
@@ -59,11 +59,11 @@ struct FleetConfig {
      */
     uint256 rebalanceCooldown;
     /**
-     * @notice The cooldown period between deposit and withdraw/redeem (in seconds)
-     * @dev This value is used to prevent MEV attacks and sandwich attacks on cross-chain operations
-     *      Default is 0 (no cooldown), can be set to any value to enable cooldown protection
+     * @notice The withdrawal fee percentage applied to user withdrawals
+     * @dev This fee serves as MEV/flash loan attack protection and benefits remaining vault participants
+     *      Default is 0.025% based on protecting against arbitrage on a 5% APY over ~48 hours
      */
-    uint256 userCooldownPeriod;
+    Percentage withdrawalFee;
 }
 
 /**

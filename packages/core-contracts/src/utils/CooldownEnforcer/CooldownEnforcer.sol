@@ -22,20 +22,9 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
     uint256 private _rebalanceCooldown;
 
     /**
-     * Cooldown between user deposits and withdrawals in seconds
-     */
-    uint256 private _userDepositCooldown;
-
-    /**
      * Timestamp of the last rebalance action in Epoch time (block timestamp)
      */
     uint256 private _lastRebalanceTimestamp;
-
-    /**
-     * Mapping of user addresses to their last deposit timestamp
-     * @dev Used to enforce cooldown periods between deposits and withdrawals
-     */
-    mapping(address user => uint256 timestamp) public lastDepositTimestamp;
 
     /**
      * @notice The minimum duration that the contract must remain paused
@@ -52,22 +41,17 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
      */
 
     /**
-     * @notice Initializes the cooldown periods and sets the last action timestamp to the current block timestamp
+     * @notice Initializes the rebalance cooldown period and sets the last action timestamp to the current block timestamp
      *         if required
      *
      * @param rebalanceCooldown_ The cooldown period for rebalance operations in seconds.
-     * @param userDepositCooldown_ The cooldown period for user deposits in seconds.
      * @param enforceFromNow If true, the last action timestamp is set to the current block timestamp.
      *
      * @dev The last action timestamp is set to the current block timestamp if enforceFromNow is true,
      *      otherwise it is set to 0 signaling that the cooldown period has not started yet.
-     *      User deposit cooldown can be 0 (no cooldown), but rebalance cooldown must meet minimum requirements.
+     *      Rebalance cooldown must meet minimum requirements.
      */
-    constructor(
-        uint256 rebalanceCooldown_,
-        uint256 userDepositCooldown_,
-        bool enforceFromNow
-    ) {
+    constructor(uint256 rebalanceCooldown_, bool enforceFromNow) {
         if (rebalanceCooldown_ < MINIMUM_COOLDOWN_TIME_SECONDS) {
             revert CooldownEnforcerCooldownTooShort();
         }
@@ -76,7 +60,6 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
         }
 
         _rebalanceCooldown = rebalanceCooldown_;
-        _userDepositCooldown = userDepositCooldown_;
 
         if (enforceFromNow) {
             _lastRebalanceTimestamp = block.timestamp;
@@ -110,28 +93,6 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
     }
 
     /**
-     * @notice Modifier to enforce user deposit cooldown period
-     * @dev Reverts if the user's last deposit was within the cooldown period
-     * @param user The address of the user for whom the cooldown is being enforced
-     */
-    modifier enforceUserDepositCooldown(address user) {
-        if (_userDepositCooldown > 0) {
-            uint256 lastDeposit = lastDepositTimestamp[user];
-            if (
-                lastDeposit > 0 &&
-                block.timestamp <= lastDeposit + _userDepositCooldown
-            ) {
-                revert UserDepositCooldownNotMet(
-                    user,
-                    block.timestamp,
-                    lastDeposit + _userDepositCooldown
-                );
-            }
-        }
-        _;
-    }
-
-    /**
      * VIEW FUNCTIONS
      */
 
@@ -143,14 +104,6 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
     /// @inheritdoc ICooldownEnforcer
     function getLastActionTimestamp() public view returns (uint256) {
         return _lastRebalanceTimestamp;
-    }
-
-    /**
-     * @notice Gets the current user deposit cooldown period
-     * @return The current user deposit cooldown period in seconds
-     */
-    function getUserDepositCooldown() public view returns (uint256) {
-        return _userDepositCooldown;
     }
 
     /**
@@ -177,43 +130,10 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
     }
 
     /**
-     * @notice Updates the user deposit cooldown period.
-     *
-     * @param newCooldown The new user deposit cooldown period in seconds.
-     *
-     * @dev The function is internal so it can be wrapped with access modifiers if needed
-     *      User deposit cooldown can be 0 (no cooldown)
-     */
-    function _updateUserDepositCooldown(uint256 newCooldown) internal {
-        _userDepositCooldown = newCooldown;
-    }
-
-    /**
      * @notice Resets the last rebalance timestamp
      * @dev Allows for cooldown period to be skipped (IE after force withdrawal)
      */
     function _resetLastRebalanceTimestamp() internal {
         _lastRebalanceTimestamp = 0;
-    }
-
-    /**
-     * @notice Records the deposit timestamp for a user
-     * @param user The address of the user who made the deposit
-     */
-    function _recordDepositTimestamp(address user) internal {
-        lastDepositTimestamp[user] = block.timestamp;
-    }
-
-    /**
-     * @notice Propagates cooldown timestamp from sender to recipient during transfers
-     * @param from The address that sent the shares
-     * @param to The address that received the shares
-     */
-    function _propagateCooldownTimestamp(address from, address to) internal {
-        uint256 fromCooldownTimestamp = lastDepositTimestamp[from];
-        if (fromCooldownTimestamp > 0) {
-            lastDepositTimestamp[to] = fromCooldownTimestamp;
-            emit UserCooldownPropagated(from, to, fromCooldownTimestamp);
-        }
     }
 }
