@@ -22,3 +22,4 @@ cbor_metadata = true
   wrap_comments = true
   sort_imports = true
   contract_new_lines = true
+

@@ -217,3 +217,4 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
         return _accessManager.hasRole(GOVERNOR_ROLE, account);
     }
 }
+

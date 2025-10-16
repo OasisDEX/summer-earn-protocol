@@ -318,3 +318,4 @@ contract ProtocolAccessManagerWhitelist is
         return super.hasRole(role, account);
     }
 }
+
