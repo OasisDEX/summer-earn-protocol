@@ -29,7 +29,20 @@ export function ensureInstitutionIndexExists(institutionId: string, useBummer: b
 
 export function readInstitutionIndex(institutionId: string, useBummer: boolean): InstitutionIndex {
   const idxPath = ensureInstitutionIndexExists(institutionId, useBummer)
-  const content = JSON.parse(fs.readFileSync(idxPath, 'utf8'))
+  const raw = fs.readFileSync(idxPath, 'utf8')
+  let content: unknown = {}
+  if (raw && raw.trim().length > 0) {
+    try {
+      content = JSON.parse(raw)
+    } catch (e: any) {
+      throw new Error(
+        `Invalid JSON in institution index file at ${idxPath}. ${e?.message ?? ''}`,
+      )
+    }
+  } else {
+    // Initialize empty JSON for empty files
+    fs.writeFileSync(idxPath, JSON.stringify({}, null, 2))
+  }
   const parsed = InstitutionIndexSchema.safeParse(content)
   if (!parsed.success) {
     console.error(kleur.red('Invalid institution index.json schema'), parsed.error)
@@ -59,8 +72,8 @@ export function updateInstitutionDeployedContracts(
 ) {
   writeInstitutionIndex(institutionId, useBummer, (current) => {
     const next: InstitutionIndex = { ...current }
-    const net = next[network] ?? {}
-    const deployedContracts = { ...(net as any).deployedContracts } ?? {}
+    const net = (next[network] as any) || {}
+    const deployedContracts = (net.deployedContracts as any) || {}
     deployedContracts[module] = { ...contracts }
     ;(net as any).deployedContracts = deployedContracts
     next[network] = net
@@ -79,8 +92,8 @@ export function updateInstitutionFleetEntry(
   InstitutionFleetEntrySchema.parse(entry)
   writeInstitutionIndex(institutionId, useBummer, (current) => {
     const next: InstitutionIndex = { ...current }
-    const net = next[network] ?? {}
-    const fleets = { ...(net as any).fleets } ?? {}
+    const net = (next[network] as any) || {}
+    const fleets = (net.fleets as any) || {}
     fleets[fleetName] = entry
     ;(net as any).fleets = fleets
     next[network] = net
