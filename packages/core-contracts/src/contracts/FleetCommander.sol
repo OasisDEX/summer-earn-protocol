@@ -110,35 +110,7 @@ contract FleetCommander is
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
-        uint256 prevQueueBalance = config.bufferArk.totalAssets();
-
-        // Calculate withdrawal fee in shares
-        uint256 feeShares = _calculateWithdrawalFeeShares(shares);
-        uint256 userShares = shares - feeShares;
-
-        // Transfer fee shares to tipJar
-        if (feeShares > 0) {
-            _transfer(owner, tipJar(), feeShares);
-        }
-
-        // Calculate assets based on user's shares (after fee)
-        uint256 assetsAfterFee = previewRedeem(userShares);
-
-        // Disembark assets and burn only user's shares
-        _disembark(address(config.bufferArk), assetsAfterFee);
-        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, userShares);
-
-        // Emit withdrawal fee event
-        if (feeShares > 0) {
-            uint256 feeAssets = _calculateWithdrawalFee(assets);
-            emit WithdrawalFeeCollected(owner, assets, feeAssets);
-        }
-
-        emit FundsBufferBalanceUpdated(
-            _msgSender(),
-            prevQueueBalance,
-            config.bufferArk.totalAssets()
-        );
+        _executeBufferWithdrawal(shares, receiver, owner, assets);
     }
 
     /// @inheritdoc IFleetCommander
@@ -176,34 +148,12 @@ contract FleetCommander is
     ) public collectTip useCache whenNotPaused returns (uint256 assets) {
         _validateBufferRedeem(shares, owner);
 
-        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
-
-        // Calculate withdrawal fee in shares
-        uint256 feeShares = _calculateWithdrawalFeeShares(shares);
-        uint256 userShares = shares - feeShares;
-
-        // Transfer fee shares to tipJar
-        if (feeShares > 0) {
-            _transfer(owner, tipJar(), feeShares);
-        }
-
-        // Calculate assets based on user's shares (after fee)
-        assets = previewRedeem(userShares);
-
-        // Disembark assets and burn only user's shares
-        _disembark(address(config.bufferArk), assets);
-        _withdraw(_msgSender(), receiver, owner, assets, userShares);
-
-        // Emit withdrawal fee event
-        if (feeShares > 0) {
-            uint256 feeAssets = _calculateWithdrawalFee(assets);
-            emit WithdrawalFeeCollected(owner, assets, feeAssets);
-        }
-
-        emit FundsBufferBalanceUpdated(
-            _msgSender(),
-            previousFundsBufferBalance,
-            config.bufferArk.totalAssets()
+        uint256 originalAssets = previewRedeem(shares);
+        assets = _executeBufferWithdrawal(
+            shares,
+            receiver,
+            owner,
+            originalAssets
         );
     }
 
@@ -732,6 +682,53 @@ contract FleetCommander is
                 assets -= assetsInArk;
             }
         }
+    }
+
+    /* INTERNAL - BUFFER WITHDRAWAL */
+
+    /**
+     * @notice Executes the common buffer withdrawal logic
+     * @dev This function handles fee calculation, asset disembarkment, and withdrawal execution
+     * @param shares The number of shares to redeem
+     * @param receiver The address to receive the assets
+     * @param owner The address of the owner of the shares
+     * @return assets The amount of assets withdrawn
+     */
+    function _executeBufferWithdrawal(
+        uint256 shares,
+        address receiver,
+        address owner,
+        uint256 originalAssets
+    ) internal returns (uint256 assets) {
+        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
+
+        // Calculate withdrawal fee in shares
+        uint256 feeShares = _calculateWithdrawalFeeShares(shares);
+        uint256 userShares = shares - feeShares;
+
+        // Transfer fee shares to tipJar
+        if (feeShares > 0) {
+            _transfer(owner, tipJar(), feeShares);
+        }
+
+        // Calculate assets based on user's shares (after fee)
+        assets = previewRedeem(userShares);
+
+        // Disembark assets and burn only user's shares
+        _disembark(address(config.bufferArk), assets);
+        _withdraw(_msgSender(), receiver, owner, assets, userShares);
+
+        // Emit withdrawal fee event
+        if (feeShares > 0) {
+            uint256 feeAssets = _calculateWithdrawalFee(originalAssets);
+            emit WithdrawalFeeCollected(owner, originalAssets, feeAssets);
+        }
+
+        emit FundsBufferBalanceUpdated(
+            _msgSender(),
+            previousFundsBufferBalance,
+            config.bufferArk.totalAssets()
+        );
     }
 
     /* INTERNAL - VALIDATIONS */
