@@ -122,7 +122,7 @@ contract FleetCommander is
         _disembark(address(config.bufferArk), assetsAfterFee);
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
 
-        // Handle withdrawal fee (re-board to buffer and emit event)
+        // Handle withdrawal fee (emit event - fee naturally stays in buffer)
         _handleWithdrawalFee(owner, assets, feeAmount, false);
 
         emit FundsBufferBalanceUpdated(
@@ -181,7 +181,7 @@ contract FleetCommander is
         _disembark(address(config.bufferArk), assetsAfterFee);
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
 
-        // Handle withdrawal fee (re-board to buffer and emit event)
+        // Handle withdrawal fee (emit event - fee naturally stays in buffer)
         _handleWithdrawalFee(owner, assets, feeAmount, false);
 
         emit FundsBufferBalanceUpdated(
@@ -248,7 +248,7 @@ contract FleetCommander is
             totalSharesToRedeem
         );
 
-        // Re-deposit fee to buffer if fee was applied
+        // Re-board fee to buffer and emit event (fee was pulled from arks)
         _handleWithdrawalFee(owner, assets, feeAmount, true);
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
@@ -278,7 +278,7 @@ contract FleetCommander is
         _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
 
-        // Re-deposit fee to buffer if fee was applied
+        // Re-board fee to buffer and emit event (fee was pulled from arks)
         _handleWithdrawalFee(owner, totalAssetsToWithdraw, feeAmount, true);
 
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
