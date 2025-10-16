@@ -58,6 +58,10 @@ contract LayerZeroAdapter is
     /// @notice Active read channel ID for sending read requests
     uint32 public readChannelId;
 
+    /// @notice Number of block confirmations required for read operations
+    /// @dev Set via configureReadDVNs and used in _createReadStatePayload
+    uint64 public readConfirmations;
+
     /// @notice Governance cap for number of DVNs allowed in read config
     /// @dev Practical deployments typically use a small DVN set (e.g. 1-3).
     ///      This cap avoids overly large configurations and removes magic numbers.
@@ -222,10 +226,13 @@ contract LayerZeroAdapter is
             config: encodedConfig
         });
 
+        // Store confirmations for use in read operations
+        readConfirmations = confirmations;
+
         // Configure read library for read channel
         endpoint.setConfig(address(this), readLib1002Address, params);
 
-        emit ReadDVNsConfigured(readChannelId, readDVNs);
+        emit ReadDVNsConfigured(readChannelId, readDVNs, confirmations);
     }
 
     /**
@@ -624,7 +631,7 @@ contract LayerZeroAdapter is
             targetEid: lzDstEid,
             isBlockNum: false,
             blockNumOrTimestamp: uint64(block.timestamp),
-            confirmations: 15,
+            confirmations: readConfirmations,
             to: target,
             callData: callData
         });
