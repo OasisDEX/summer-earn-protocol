@@ -240,7 +240,10 @@ contract StargateAdapter is
         // Refund any unused native value (buffer) back to the designated refund address
         uint256 refundAmount = providedFee - messagingFee.nativeFee;
         if (refundAmount > 0) {
-            (bool ok, ) = params.refundAddress.call{value: refundAmount}("");
+            (bool ok, ) = params.refundAddress.call{
+                value: refundAmount,
+                gas: 2300
+            }("");
             if (!ok) revert RefundFailed(params.refundAddress, refundAmount);
         }
     }
