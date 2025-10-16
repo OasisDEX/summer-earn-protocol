@@ -46,8 +46,8 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
             params.raft == address(0) ||
             params.tipJar == address(0) ||
             params.treasury == address(0)
-            // params.harborCommand == address(0) ||
-            // params.fleetCommanderRewardsManagerFactory == address(0)
+            params.harborCommand == address(0) ||
+            params.fleetCommanderRewardsManagerFactory == address(0)
         ) {
             revert AddressZero();
         }

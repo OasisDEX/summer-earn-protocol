@@ -171,7 +171,7 @@ contract TipJar is
      * @inheritdoc ITipJar
      * @dev Only callable by addresses with the GUARDIAN_ROLE
      */
-    function pause() external onlyGovernor {
+    function pause() external onlyGuardian {
         _pause();
         emit TipJarPaused(msg.sender);
     }

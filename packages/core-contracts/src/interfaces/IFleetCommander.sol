@@ -197,12 +197,12 @@ interface IFleetCommander is
      */
     function updateRebalanceCooldown(uint256 newCooldown) external;
 
-    // /**
-    //  * @notice Forces a rebalance operation
-    //  * @param data Array of typed rebalance data struct
-    //  * @dev has no cooldown enforced but only callable by privileged role
-    //  */
-    // function forceRebalance(RebalanceData[] calldata data) external;
+    /**
+     * @notice Forces a rebalance operation
+     * @param data Array of typed rebalance data struct
+     * @dev has no cooldown enforced but only callable by privileged role
+     */
+    function forceRebalance(RebalanceData[] calldata data) external;
 
     /**
      * @notice Pauses the FleetCommander

@@ -1,6 +1,6 @@
 {
-  "fleetName": "LazyVault_Whitelist_LowerRisk_USDC",
-  "symbol": "LVUSDC",
+  "fleetName": "LazyVault_Institutional_TestA_USDC",
+  "symbol": "LVIUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "600",
