@@ -20,7 +20,8 @@ import {Constants} from "@summerfi/constants/Constants.sol";
  * Test coverage:
  * - Withdrawal fee calculation and application
  * - Fee collection on all withdrawal methods
- * - Fee goes to buffer (increases buffer balance)
+ * - Fee shares go to tipJar (protocol treasury)
+ * - Share price remains constant (no MEV opportunity)
  * - Governance can update fee
  * - Fee caps are enforced
  * - Zero fee disables mechanism
@@ -82,6 +83,19 @@ contract FleetCommanderWithdrawalFeeTest is
         );
     }
 
+    function test_CalculateWithdrawalFeeShares() public {
+        uint256 shares = 1000 * 10 ** 6;
+        uint256 expectedFee = (shares * DEFAULT_WITHDRAWAL_FEE) /
+            (100 * Constants.WAD);
+
+        uint256 calculatedFee = feeFleet._calculateWithdrawalFeeShares(shares);
+        assertEq(
+            calculatedFee,
+            expectedFee,
+            "Share-based fee calculation should be correct"
+        );
+    }
+
     function test_WithdrawFromBufferAppliesFee() public {
         uint256 amount = DEPOSIT_AMOUNT;
         uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) /
@@ -100,6 +114,7 @@ contract FleetCommanderWithdrawalFeeTest is
 
         uint256 initialBufferBalance = IArk(feeFleet.bufferArk()).totalAssets();
         uint256 initialUserBalance = mockToken.balanceOf(mockUser);
+        uint256 initialTipJarShares = feeFleet.balanceOf(feeFleet.tipJar());
 
         // Withdraw from buffer
         vm.startPrank(mockUser);
@@ -115,7 +130,7 @@ contract FleetCommanderWithdrawalFeeTest is
             "User should receive assets minus fee"
         );
 
-        // Check that buffer balance decreased by less than requested (fee stayed in buffer)
+        // Check that buffer balance decreased by assets after fee
         uint256 finalBufferBalance = IArk(feeFleet.bufferArk()).totalAssets();
         uint256 bufferDecrease = initialBufferBalance - finalBufferBalance;
         assertEq(
@@ -123,6 +138,11 @@ contract FleetCommanderWithdrawalFeeTest is
             expectedAssetsAfterFee,
             "Buffer should decrease by assets minus fee"
         );
+
+        // Check that tipJar received fee shares
+        uint256 finalTipJarShares = feeFleet.balanceOf(feeFleet.tipJar());
+        uint256 tipJarIncrease = finalTipJarShares - initialTipJarShares;
+        assertGt(tipJarIncrease, 0, "TipJar should receive fee shares");
     }
 
     function test_RedeemFromBufferAppliesFee() public {
@@ -143,6 +163,7 @@ contract FleetCommanderWithdrawalFeeTest is
 
         uint256 initialBufferBalance = IArk(feeFleet.bufferArk()).totalAssets();
         uint256 initialUserBalance = mockToken.balanceOf(mockUser);
+        uint256 initialTipJarShares = feeFleet.balanceOf(feeFleet.tipJar());
 
         // Redeem from buffer
         vm.startPrank(mockUser);
@@ -158,7 +179,7 @@ contract FleetCommanderWithdrawalFeeTest is
             "User should receive assets minus fee"
         );
 
-        // Check that buffer balance decreased by less than requested (fee stayed in buffer)
+        // Check that buffer balance decreased by assets after fee
         uint256 finalBufferBalance = IArk(feeFleet.bufferArk()).totalAssets();
         uint256 bufferDecrease = initialBufferBalance - finalBufferBalance;
         assertEq(
@@ -166,6 +187,11 @@ contract FleetCommanderWithdrawalFeeTest is
             expectedAssetsAfterFee,
             "Buffer should decrease by assets minus fee"
         );
+
+        // Check that tipJar received fee shares
+        uint256 finalTipJarShares = feeFleet.balanceOf(feeFleet.tipJar());
+        uint256 tipJarIncrease = finalTipJarShares - initialTipJarShares;
+        assertGt(tipJarIncrease, 0, "TipJar should receive fee shares");
     }
 
     function test_WithdrawFromArksAppliesFee() public {
@@ -186,6 +212,7 @@ contract FleetCommanderWithdrawalFeeTest is
         vm.stopPrank();
 
         uint256 initialUserBalance = mockToken.balanceOf(mockUser);
+        uint256 initialTipJarShares = feeFleet.balanceOf(feeFleet.tipJar());
 
         // Withdraw from arks
         vm.startPrank(mockUser);
@@ -201,13 +228,10 @@ contract FleetCommanderWithdrawalFeeTest is
             "User should receive assets minus fee"
         );
 
-        // Check that fee was re-deposited to buffer
-        uint256 finalBufferBalance = IArk(feeFleet.bufferArk()).totalAssets();
-        assertEq(
-            finalBufferBalance,
-            expectedFee,
-            "Buffer should contain exactly the fee amount after withdrawal"
-        );
+        // Check that tipJar received fee shares
+        uint256 finalTipJarShares = feeFleet.balanceOf(feeFleet.tipJar());
+        uint256 tipJarIncrease = finalTipJarShares - initialTipJarShares;
+        assertGt(tipJarIncrease, 0, "TipJar should receive fee shares");
     }
 
     function test_RedeemFromArksAppliesFee() public {
@@ -228,6 +252,7 @@ contract FleetCommanderWithdrawalFeeTest is
         vm.stopPrank();
 
         uint256 initialUserBalance = mockToken.balanceOf(mockUser);
+        uint256 initialTipJarShares = feeFleet.balanceOf(feeFleet.tipJar());
 
         // Redeem from arks
         vm.startPrank(mockUser);
@@ -243,12 +268,147 @@ contract FleetCommanderWithdrawalFeeTest is
             "User should receive assets minus fee"
         );
 
-        // Check that fee was re-deposited to buffer
-        uint256 finalBufferBalance = IArk(feeFleet.bufferArk()).totalAssets();
+        // Check that tipJar received fee shares
+        uint256 finalTipJarShares = feeFleet.balanceOf(feeFleet.tipJar());
+        uint256 tipJarIncrease = finalTipJarShares - initialTipJarShares;
+        assertGt(tipJarIncrease, 0, "TipJar should receive fee shares");
+    }
+
+    function test_NoMEVOpportunityWithWithdrawalFee() public {
+        uint256 whaleAmount = 10000 * 10 ** 6; // 10,000 USDC
+        uint256 attackerAmount = 1000 * 10 ** 6; // 1,000 USDC
+
+        address whale = makeAddr("whale");
+        address attacker = makeAddr("attacker");
+
+        _mockArkTotalAssets(ark1, 0);
+        _mockArkTotalAssets(ark2, 0);
+
+        // Setup: Both users deposit
+        mockToken.mint(whale, whaleAmount * 2);
+        mockToken.mint(attacker, attackerAmount * 2);
+
+        vm.startPrank(whale);
+        mockToken.approve(address(feeFleet), whaleAmount);
+        feeFleet.deposit(whaleAmount, whale);
+        vm.stopPrank();
+
+        vm.startPrank(attacker);
+        mockToken.approve(address(feeFleet), attackerAmount);
+        feeFleet.deposit(attackerAmount, attacker);
+        vm.stopPrank();
+
+        // Record share price before
+        uint256 sharePriceBefore = feeFleet.convertToAssets(1e18);
+
+        // Whale withdraws
+        vm.startPrank(whale);
+        feeFleet.withdrawFromBuffer(whaleAmount, whale, whale);
+        vm.stopPrank();
+
+        // Verify share price unchanged
+        uint256 sharePriceAfter = feeFleet.convertToAssets(1e18);
         assertEq(
-            finalBufferBalance,
-            expectedFee,
-            "Buffer should contain exactly the fee amount after redemption"
+            sharePriceBefore,
+            sharePriceAfter,
+            "Share price should not change"
+        );
+
+        // Attacker tries to profit by withdrawing immediately
+        uint256 attackerBalanceBefore = mockToken.balanceOf(attacker);
+        vm.startPrank(attacker);
+        feeFleet.withdrawFromBuffer(attackerAmount, attacker, attacker);
+        vm.stopPrank();
+        uint256 attackerBalanceAfter = mockToken.balanceOf(attacker);
+
+        // Verify attacker didn't profit beyond normal fee
+        uint256 attackerFee = (attackerAmount * DEFAULT_WITHDRAWAL_FEE) /
+            (100 * Constants.WAD);
+        uint256 expectedAttackerReceived = attackerAmount - attackerFee;
+        uint256 actualAttackerReceived = attackerBalanceAfter -
+            attackerBalanceBefore;
+        assertEq(
+            actualAttackerReceived,
+            expectedAttackerReceived,
+            "Attacker should not profit from whale's withdrawal"
+        );
+    }
+
+    function test_TipJarReceivesFeesFromAllWithdrawalMethods() public {
+        uint256 amount = DEPOSIT_AMOUNT;
+
+        _mockArkTotalAssets(ark1, amount);
+        _mockArkTotalAssets(ark2, 0);
+
+        mockToken.mint(mockUser, amount * 10);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(feeFleet), amount);
+        uint256 shares = feeFleet.deposit(amount, mockUser);
+        vm.stopPrank();
+
+        uint256 initialTipJarShares = feeFleet.balanceOf(feeFleet.tipJar());
+        uint256 cumulativeFees = 0;
+
+        // Test withdrawFromBuffer
+        vm.startPrank(mockUser);
+        feeFleet.withdrawFromBuffer(amount / 4, mockUser, mockUser);
+        vm.stopPrank();
+        uint256 tipJarAfterBuffer = feeFleet.balanceOf(feeFleet.tipJar());
+        uint256 bufferFee = tipJarAfterBuffer - initialTipJarShares;
+        cumulativeFees += bufferFee;
+        assertGt(
+            bufferFee,
+            0,
+            "TipJar should receive fee from withdrawFromBuffer"
+        );
+
+        // Test redeemFromBuffer
+        vm.startPrank(mockUser);
+        feeFleet.redeemFromBuffer(shares / 4, mockUser, mockUser);
+        vm.stopPrank();
+        uint256 tipJarAfterRedeem = feeFleet.balanceOf(feeFleet.tipJar());
+        uint256 redeemFee = tipJarAfterRedeem - tipJarAfterBuffer;
+        cumulativeFees += redeemFee;
+        assertGt(
+            redeemFee,
+            0,
+            "TipJar should receive fee from redeemFromBuffer"
+        );
+
+        // Test withdrawFromArks
+        vm.startPrank(mockUser);
+        feeFleet.withdrawFromArks(amount / 4, mockUser, mockUser);
+        vm.stopPrank();
+        uint256 tipJarAfterArksWithdraw = feeFleet.balanceOf(feeFleet.tipJar());
+        uint256 arksWithdrawFee = tipJarAfterArksWithdraw - tipJarAfterRedeem;
+        cumulativeFees += arksWithdrawFee;
+        assertGt(
+            arksWithdrawFee,
+            0,
+            "TipJar should receive fee from withdrawFromArks"
+        );
+
+        // Test redeemFromArks
+        vm.startPrank(mockUser);
+        feeFleet.redeemFromArks(shares / 4, mockUser, mockUser);
+        vm.stopPrank();
+        uint256 tipJarAfterArksRedeem = feeFleet.balanceOf(feeFleet.tipJar());
+        uint256 arksRedeemFee = tipJarAfterArksRedeem - tipJarAfterArksWithdraw;
+        cumulativeFees += arksRedeemFee;
+        assertGt(
+            arksRedeemFee,
+            0,
+            "TipJar should receive fee from redeemFromArks"
+        );
+
+        // Verify cumulative fees are correct
+        uint256 totalTipJarIncrease = tipJarAfterArksRedeem -
+            initialTipJarShares;
+        assertEq(
+            totalTipJarIncrease,
+            cumulativeFees,
+            "Cumulative fees should match total tipJar increase"
         );
     }
 

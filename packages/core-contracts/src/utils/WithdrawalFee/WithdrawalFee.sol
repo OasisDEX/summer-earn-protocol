@@ -80,6 +80,26 @@ abstract contract WithdrawalFee is IWithdrawalFee {
     }
 
     /**
+     * @notice Calculates the withdrawal fee for a given amount of shares
+     * @param shares The total amount of shares for which to calculate the fee
+     * @return The calculated fee amount in shares
+     * @dev The fee mechanism works by:
+     *      1. Fee is calculated as a percentage of the shares being redeemed
+     *      2. Fee shares are transferred to the tipJar
+     *      3. User burns only the remaining shares (shares - feeShares)
+     *      4. This approach eliminates MEV opportunities by not affecting share price
+     *      and properly routes protocol fees to the tipJar.
+     */
+    function _calculateWithdrawalFeeShares(
+        uint256 shares
+    ) public view returns (uint256) {
+        if (Percentage.unwrap(_withdrawalFee) == 0) {
+            return 0;
+        }
+        return shares.applyPercentage(_withdrawalFee);
+    }
+
+    /**
      * @notice Updates the withdrawal fee
      * @param newFee The new withdrawal fee percentage
      * @dev The function is internal so it can be wrapped with access modifiers if needed

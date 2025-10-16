@@ -112,18 +112,27 @@ contract FleetCommander is
 
         uint256 prevQueueBalance = config.bufferArk.totalAssets();
 
-        // Calculate and apply withdrawal fee
-        uint256 feeAmount = _calculateWithdrawalFee(assets);
-        uint256 assetsAfterFee = assets - feeAmount;
+        // Calculate withdrawal fee in shares
+        uint256 feeShares = _calculateWithdrawalFeeShares(shares);
+        uint256 userShares = shares - feeShares;
 
-        // Only disembark the amount after fee (fee stays in buffer)
-        // Note: The full shares are burned, but user receives reduced assets.
-        // The fee remains in the buffer, benefiting remaining vault participants.
+        // Transfer fee shares to tipJar
+        if (feeShares > 0) {
+            _transfer(owner, tipJar(), feeShares);
+        }
+
+        // Calculate assets based on user's shares (after fee)
+        uint256 assetsAfterFee = previewRedeem(userShares);
+
+        // Disembark assets and burn only user's shares
         _disembark(address(config.bufferArk), assetsAfterFee);
-        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
+        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, userShares);
 
-        // Handle withdrawal fee (emit event - fee naturally stays in buffer)
-        _handleWithdrawalFee(owner, assets, feeAmount, false);
+        // Emit withdrawal fee event
+        if (feeShares > 0) {
+            uint256 feeAssets = previewRedeem(feeShares);
+            emit WithdrawalFeeCollected(owner, assetsAfterFee, feeAssets);
+        }
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -169,20 +178,27 @@ contract FleetCommander is
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
 
-        assets = previewRedeem(shares);
+        // Calculate withdrawal fee in shares
+        uint256 feeShares = _calculateWithdrawalFeeShares(shares);
+        uint256 userShares = shares - feeShares;
 
-        // Calculate and apply withdrawal fee
-        uint256 feeAmount = _calculateWithdrawalFee(assets);
-        uint256 assetsAfterFee = assets - feeAmount;
+        // Transfer fee shares to tipJar
+        if (feeShares > 0) {
+            _transfer(owner, tipJar(), feeShares);
+        }
 
-        // Only disembark the amount after fee (fee stays in buffer)
-        // Note: The full shares are burned, but user receives reduced assets.
-        // The fee remains in the buffer, benefiting remaining vault participants.
-        _disembark(address(config.bufferArk), assetsAfterFee);
-        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
+        // Calculate assets based on user's shares (after fee)
+        assets = previewRedeem(userShares);
 
-        // Handle withdrawal fee (emit event - fee naturally stays in buffer)
-        _handleWithdrawalFee(owner, assets, feeAmount, false);
+        // Disembark assets and burn only user's shares
+        _disembark(address(config.bufferArk), assets);
+        _withdraw(_msgSender(), receiver, owner, assets, userShares);
+
+        // Emit withdrawal fee event
+        if (feeShares > 0) {
+            uint256 feeAssets = previewRedeem(feeShares);
+            emit WithdrawalFeeCollected(owner, assets, feeAssets);
+        }
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -235,21 +251,26 @@ contract FleetCommander is
 
         _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
 
-        // Calculate and apply withdrawal fee
-        uint256 feeAmount = _calculateWithdrawalFee(assets);
-        uint256 assetsAfterFee = assets - feeAmount;
+        // Calculate withdrawal fee in shares
+        uint256 feeShares = _calculateWithdrawalFeeShares(totalSharesToRedeem);
+        uint256 userShares = totalSharesToRedeem - feeShares;
+
+        // Transfer fee shares to tipJar
+        if (feeShares > 0) {
+            _transfer(owner, tipJar(), feeShares);
+        }
+
+        // Calculate assets based on user's shares (after fee)
+        uint256 assetsAfterFee = previewRedeem(userShares);
 
         _forceDisembarkFromSortedArks(assets);
-        _withdraw(
-            _msgSender(),
-            receiver,
-            owner,
-            assetsAfterFee,
-            totalSharesToRedeem
-        );
+        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, userShares);
 
-        // Re-board fee to buffer and emit event (fee was pulled from arks)
-        _handleWithdrawalFee(owner, assets, feeAmount, true);
+        // Emit withdrawal fee event
+        if (feeShares > 0) {
+            uint256 feeAssets = previewRedeem(feeShares);
+            emit WithdrawalFeeCollected(owner, assetsAfterFee, feeAssets);
+        }
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
@@ -271,15 +292,26 @@ contract FleetCommander is
 
         totalAssetsToWithdraw = previewRedeem(shares);
 
-        // Calculate and apply withdrawal fee
-        uint256 feeAmount = _calculateWithdrawalFee(totalAssetsToWithdraw);
-        uint256 assetsAfterFee = totalAssetsToWithdraw - feeAmount;
+        // Calculate withdrawal fee in shares
+        uint256 feeShares = _calculateWithdrawalFeeShares(shares);
+        uint256 userShares = shares - feeShares;
+
+        // Transfer fee shares to tipJar
+        if (feeShares > 0) {
+            _transfer(owner, tipJar(), feeShares);
+        }
+
+        // Calculate assets based on user's shares (after fee)
+        uint256 assetsAfterFee = previewRedeem(userShares);
 
         _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
-        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, shares);
+        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, userShares);
 
-        // Re-board fee to buffer and emit event (fee was pulled from arks)
-        _handleWithdrawalFee(owner, totalAssetsToWithdraw, feeAmount, true);
+        // Emit withdrawal fee event
+        if (feeShares > 0) {
+            uint256 feeAssets = previewRedeem(feeShares);
+            emit WithdrawalFeeCollected(owner, assetsAfterFee, feeAssets);
+        }
 
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
@@ -1010,33 +1042,6 @@ contract FleetCommander is
         uint256 maxShares = maxRedeem(owner);
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
-        }
-    }
-
-    /**
-     * @notice Handles fee collection and re-boarding for ark withdrawals
-     * @param owner The address of the user withdrawing
-     * @param assetsAmount The total assets being withdrawn (before fee)
-     * @param feeAmount The fee amount to collect
-     * @param isArkWithdrawal Whether this is an ark withdrawal (true) or buffer withdrawal (false)
-     * @dev This function:
-     *      1. Re-boards the fee to the buffer ark (only needed for ark withdrawals)
-     *      2. Emits the WithdrawalFeeCollected event
-     *      Note: For buffer withdrawals, the fee naturally stays in the buffer, so no re-boarding is needed.
-     */
-    function _handleWithdrawalFee(
-        address owner,
-        uint256 assetsAmount,
-        uint256 feeAmount,
-        bool isArkWithdrawal
-    ) internal {
-        if (feeAmount > 0) {
-            // Only re-board fee for ark withdrawals
-            // For buffer withdrawals, fee naturally stays in buffer
-            if (isArkWithdrawal) {
-                _board(address(config.bufferArk), feeAmount);
-            }
-            emit WithdrawalFeeCollected(owner, assetsAmount, feeAmount);
         }
     }
 
