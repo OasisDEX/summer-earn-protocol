@@ -863,6 +863,85 @@ contract CrossChainArkTest is Test, ArkTestBase {
         deal(address(mockToken), address(fleetCommander), amount);
         vm.prank(address(fleetCommander));
         mockToken.approve(address(ark), type(uint256).max);
+
+        // Create pending transfer params
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: TARGET_CHAIN_ID,
+                asset: address(mockToken),
+                amount: amount,
+                target: proxy,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory executeTransferParams = abi.encode(params, options);
+
+        // Board the transfer (this queues it but doesn't execute)
+        vm.prank(address(fleetCommander));
+        ark.board(amount, executeTransferParams);
+
+        // Record initial balances
+        uint256 initialArkBalance = mockToken.balanceOf(address(ark));
+        uint256 initialBufferBalance = mockToken.balanceOf(
+            fleetCommander.bufferArk()
+        );
+
+        // Verify pending transfer is queued
+        (
+            address originator,
+            uint16 destinationChainId,
+            address target,
+            address asset,
+            uint256 pendingAmount,
+            bytes memory message,
+            address refundAddress
+        ) = ark.pendingTransferParams();
+
+        assertTrue(asset != address(0), "Pending transfer should be queued");
+        assertEq(pendingAmount, amount, "Pending amount should match");
+
+        // Cancel the pending transfer
+        vm.prank(keeper);
+        ark.cancelPendingTransfer();
+
+        // Verify assets were returned to buffer ark
+        uint256 finalArkBalance = mockToken.balanceOf(address(ark));
+        uint256 finalBufferBalance = mockToken.balanceOf(
+            fleetCommander.bufferArk()
+        );
+
+        assertEq(
+            finalArkBalance,
+            initialArkBalance - amount,
+            "Ark balance should decrease by transfer amount"
+        );
+        assertEq(
+            finalBufferBalance,
+            initialBufferBalance + amount,
+            "Buffer balance should increase by transfer amount"
+        );
+
+        // Verify pending transfer params are reset
+        (
+            address originatorAfter,
+            uint16 destinationChainIdAfter,
+            address targetAfter,
+            address assetAfter,
+            uint256 pendingAmountAfter,
+            bytes memory messageAfter,
+            address refundAddressAfter
+        ) = ark.pendingTransferParams();
+
+        assertEq(assetAfter, address(0), "Pending transfer should be cleared");
+        assertEq(pendingAmountAfter, 0, "Pending amount should be zero");
     }
 
     function testDisembarkWhileTransferPendingVulnerability() public {
