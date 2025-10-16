@@ -6,7 +6,7 @@ import {ITipJarWhitelist} from "./interfaces/ITipJarWhitelist.sol";
 import {IFleetCommanderWhitelist} from "./interfaces/IFleetCommanderWhitelist.sol";
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ProtocolAccessManagedWhitelist} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedWhitelist.sol";
+import {ProtocolAccessManagedWhitelist} from "./ProtocolAccessManagedWhitelist.sol";
 
 import {IHarborCommandWhitelist} from "./interfaces/IHarborCommandWhitelist.sol";
 import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManaged.sol";

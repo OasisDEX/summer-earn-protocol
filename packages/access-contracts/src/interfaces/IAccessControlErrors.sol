@@ -93,9 +93,4 @@ interface IAccessControlErrors {
      * @param caller The address that attempted the operation
      */
     error CallerIsNotFoundation(address caller);
-
-    /**
-     * @notice Thrown when a caller is not whitelisted.
-     */
-    error CallerIsNotWhitelisted(address caller);
 }

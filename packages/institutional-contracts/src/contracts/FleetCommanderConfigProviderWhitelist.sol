@@ -14,8 +14,8 @@ import {ArkParams, BufferArk} from "@summerfi/earn-protocol-contracts/contracts/
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ProtocolAccessManagedWhitelist} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedWhitelist.sol";
-import {ContractSpecificRoles, IProtocolAccessManagerWhitelist} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerWhitelist.sol";
+import {ProtocolAccessManagedWhitelist} from "./ProtocolAccessManagedWhitelist.sol";
+import {ContractSpecificRoles, IProtocolAccessManagerWhitelist} from "./interfaces/IProtocolAccessManagerWhitelist.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 

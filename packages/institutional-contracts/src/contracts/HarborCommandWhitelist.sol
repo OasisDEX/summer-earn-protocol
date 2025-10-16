@@ -5,7 +5,7 @@ import {IHarborCommandEvents} from "./events/IHarborCommandEvents.sol";
 import {IHarborCommandWhitelist} from "./interfaces/IHarborCommandWhitelist.sol";
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ProtocolAccessManagedWhitelist} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedWhitelist.sol";
+import {ProtocolAccessManagedWhitelist} from "./ProtocolAccessManagedWhitelist.sol";
 
 /**
  * @title HarborCommand - Fleet Commander Management System
