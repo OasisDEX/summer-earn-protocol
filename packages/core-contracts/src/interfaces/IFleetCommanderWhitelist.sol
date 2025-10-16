@@ -3,14 +3,14 @@ pragma solidity 0.8.28;
 
 import {IFleetCommanderErrors} from "../errors/IFleetCommanderErrors.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
-import {RebalanceData} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
+import {RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {IFleetCommanderConfigProviderWhitelist} from "./IFleetCommanderConfigProviderWhitelist.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
- * @title IFleetCommander Interface
+ * @title IFleetCommanderWhitelist Interface
  * @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
  */
 interface IFleetCommanderWhitelist is
@@ -196,13 +196,6 @@ interface IFleetCommanderWhitelist is
      * @param newCooldown The new cooldown period in seconds
      */
     function updateRebalanceCooldown(uint256 newCooldown) external;
-
-    // /**
-    //  * @notice Forces a rebalance operation
-    //  * @param data Array of typed rebalance data struct
-    //  * @dev has no cooldown enforced but only callable by privileged role
-    //  */
-    // function forceRebalance(RebalanceData[] calldata data) external;
 
     /**
      * @notice Pauses the FleetCommander

@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IArk} from "@summerfi/earn-protocol-contracts/interfaces/IArk.sol";
-import {FleetCommanderParams} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
-import {FleetCommanderPausable} from "@summerfi/earn-protocol-contracts/contracts/FleetCommanderPausable.sol";
+import {IArk} from "../interfaces/IArk.sol";
+import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
+import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
 
-import {IFleetCommanderConfigProviderWhitelist} from "./interfaces/IFleetCommanderConfigProviderWhitelist.sol";
+import {IFleetCommanderConfigProviderWhitelist} from "../interfaces/IFleetCommanderConfigProviderWhitelist.sol";
 
-import {FleetConfig} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
-import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManaged.sol";
-import {ArkParams, BufferArk} from "@summerfi/earn-protocol-contracts/contracts/arks/BufferArk.sol";
+import {FleetConfig} from "../types/FleetCommanderTypes.sol";
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ProtocolAccessManagedWhitelist} from "./ProtocolAccessManagedWhitelist.sol";
-import {ContractSpecificRoles} from "./interfaces/IProtocolAccessManagerWhitelist.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
@@ -22,10 +22,10 @@ import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contract
  * @title FleetCommanderConfigProviderWhitelist
  * @author SummerFi
  * @notice This contract provides configuration management for the FleetCommander
- * @custom:see FleetCommanderConfigProviderWhitelist
+ * @custom:see IFleetCommanderConfigProviderWhitelist
  */
 contract FleetCommanderConfigProviderWhitelist is
-    ProtocolAccessManagedWhitelist,
+    ProtocolAccessManaged,
     FleetCommanderPausable,
     ConfigurationManaged,
     IFleetCommanderConfigProviderWhitelist
@@ -39,10 +39,12 @@ contract FleetCommanderConfigProviderWhitelist is
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
     uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
 
+    bool public transfersEnabled;
+
     constructor(
         FleetCommanderParams memory params
     )
-        ProtocolAccessManagedWhitelist(params.accessManager)
+        ProtocolAccessManaged(params.accessManager)
         FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
         ConfigurationManaged(params.configurationManager)
     {
@@ -67,6 +69,7 @@ contract FleetCommanderConfigProviderWhitelist is
             minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
+            // stakingRewardsManager is set to address(0) in the constructor - not used anymore in the whitelist version
             stakingRewardsManager: address(0)
         });
         details = params.details;
@@ -197,6 +200,18 @@ contract FleetCommanderConfigProviderWhitelist is
         );
     }
 
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
+    function setFleetTokenTransferability()
+        external
+        onlyGovernor
+        whenNotPaused
+    {
+        if (!transfersEnabled) {
+            transfersEnabled = true;
+            emit TransfersEnabled();
+        }
+    }
+
     // INTERNAL FUNCTIONS
     /**
      * @dev Internal function to add a new Ark to the fleet
@@ -251,14 +266,14 @@ contract FleetCommanderConfigProviderWhitelist is
      * @custom:security-considerations
      * - Ensures only active arks can be removed
      * - Validates ark state before removal to prevent inconsistencies
-     * - Critical for maintaining the integrity of the fleet
+     * - Only callable internally, typically by privileged roles
      */
     function _removeArk(address ark) internal onlyActiveArk(ark) {
         _validateArkRemoval(ark);
         _activeArks.remove(ark);
 
         IArk(ark).unregisterFleetCommander();
-        ACCESS_MANAGER.selfRevokeContractSpecificRole(
+        _accessManager.selfRevokeContractSpecificRole(
             ContractSpecificRoles.COMMANDER_ROLE,
             address(ark)
         );

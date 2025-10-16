@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IArk} from "@summerfi/earn-protocol-contracts/interfaces/IArk.sol";
-import {IFleetCommanderWhitelist} from "./interfaces/IFleetCommanderWhitelist.sol";
-import {ArkData, FleetCommanderParams, RebalanceData} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
+import {IArk} from "../interfaces/IArk.sol";
+import {IFleetCommanderWhitelist} from "../interfaces/IFleetCommanderWhitelist.sol";
+import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
-import {CooldownEnforcer} from "@summerfi/earn-protocol-contracts/utils/CooldownEnforcer/CooldownEnforcer.sol";
+import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 
-import {FleetCommanderCache} from "@summerfi/earn-protocol-contracts/contracts/FleetCommanderCache.sol";
+import {FleetCommanderCache} from "./FleetCommanderCache.sol";
 import {FleetCommanderConfigProviderWhitelist} from "./FleetCommanderConfigProviderWhitelist.sol";
 
-import {Tipper} from "@summerfi/earn-protocol-contracts/contracts/Tipper.sol";
+import {Tipper} from "./Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -19,7 +19,7 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
- * @title FleetCommanderWhitelist
+ * @title FleetCommander
  * @notice Manages a fleet of Arks, coordinating deposits, withdrawals, and rebalancing operations
  * @dev Implements IFleetCommanderWhitelist interface and inherits from various utility contracts
  */
@@ -103,14 +103,7 @@ contract FleetCommanderWhitelist is
         uint256 assets,
         address receiver,
         address owner
-    )
-        public
-        onlyWhitelisted(address(this))
-        whenNotPaused
-        collectTip
-        useCache
-        returns (uint256 shares)
-    {
+    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -134,7 +127,6 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
-        onlyWhitelisted(address(this))
         collectTip
         useCache
         whenNotPaused
@@ -159,14 +151,7 @@ contract FleetCommanderWhitelist is
         uint256 shares,
         address receiver,
         address owner
-    )
-        public
-        onlyWhitelisted(address(this))
-        collectTip
-        useCache
-        whenNotPaused
-        returns (uint256 assets)
-    {
+    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -190,7 +175,6 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
-        onlyWhitelisted(address(this))
         collectTip
         useCache
         whenNotPaused
@@ -218,7 +202,6 @@ contract FleetCommanderWhitelist is
     )
         public
         override(IFleetCommanderWhitelist)
-        onlyWhitelisted(address(this))
         collectTip
         useWithdrawCache
         whenNotPaused
@@ -243,7 +226,6 @@ contract FleetCommanderWhitelist is
     )
         public
         override(IFleetCommanderWhitelist)
-        onlyWhitelisted(address(this))
         collectTip
         useWithdrawCache
         whenNotPaused
@@ -265,7 +247,6 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
-        onlyWhitelisted(address(this))
         collectTip
         useCache
         whenNotPaused
@@ -291,7 +272,7 @@ contract FleetCommanderWhitelist is
         uint256 assets,
         address receiver,
         bytes memory referralCode
-    ) external onlyWhitelisted(address(this)) returns (uint256) {
+    ) external returns (uint256) {
         emit FleetCommanderReferral(receiver, referralCode);
         return deposit(assets, receiver);
     }
@@ -303,7 +284,6 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
-        onlyWhitelisted(address(this))
         collectTip
         useCache
         whenNotPaused
@@ -478,15 +458,6 @@ contract FleetCommanderWhitelist is
         _updateCooldown(newCooldown);
     }
 
-    // /// @inheritdoc IFleetCommanderWhitelist
-    // function forceRebalance(
-    //     RebalanceData[] calldata rebalanceData
-    // ) external onlyGovernor collectTip whenNotPaused {
-    //     _validateReallocateAllAssets(rebalanceData);
-    //     _validateAdjustBuffer(rebalanceData);
-    //     _reallocateAllAssets(rebalanceData);
-    // }
-
     /// @inheritdoc IFleetCommanderWhitelist
     function pause() external onlyGovernor {
         _pause();
@@ -500,6 +471,30 @@ contract FleetCommanderWhitelist is
     /*//////////////////////////////////////////////////////////////
                         PUBLIC ERC20 FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IERC20
+    function transfer(
+        address to,
+        uint256 amount
+    ) public override(IERC20, ERC20) returns (bool) {
+        if (transfersEnabled) {
+            return super.transfer(to, amount);
+        }
+
+        revert FleetCommanderTransfersDisabled();
+    }
+
+    /// @inheritdoc IERC20
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public override(IERC20, ERC20) returns (bool) {
+        if (transfersEnabled) {
+            return super.transferFrom(from, to, amount);
+        }
+        revert FleetCommanderTransfersDisabled();
+    }
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
@@ -664,7 +659,6 @@ contract FleetCommanderWhitelist is
      * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
      * @custom:error FleetCommanderNoExcessFunds Thrown when trying to move funds out of an already minimum buffer
      * @custom:error FleetCommanderInsufficientBuffer Thrown when trying to move more funds than available excess
-     * in the buffer
      * @custom:error FleetCommanderCantUseMaxUintMovingFromBuffer Thrown when trying to use MAX_UINT256 amount when
      * moving from buffer
      */

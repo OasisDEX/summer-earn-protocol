@@ -5,12 +5,12 @@ import {IFleetCommanderConfigProviderErrors} from "../errors/IFleetCommanderConf
 
 import {IFleetCommanderConfigProviderEvents} from "../events/IFleetCommanderConfigProviderEvents.sol";
 
-import {FleetConfig} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
+import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
- * @title IFleetCommander Interface
- * @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
+ * @title IFleetCommanderConfigProviderWhitelist Interface
+ * @notice Interface for the FleetCommanderConfigProviderWhitelist contract, which manages asset allocation across multiple Arks
  */
 interface IFleetCommanderConfigProviderWhitelist is
     IFleetCommanderConfigProviderErrors,
@@ -117,4 +117,10 @@ interface IFleetCommanderConfigProviderWhitelist is
         address ark,
         uint256 newMaxRebalanceInflow
     ) external;
+
+    /**
+     * @notice Enables or disables transfers of fleet commander shares
+     * @dev Only callable by the governor when not paused
+     */
+    function setFleetTokenTransferability() external;
 }

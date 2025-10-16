@@ -170,6 +170,9 @@ importers:
       hardhat:
         specifier: 2.22.8
         version: 2.22.8(ts-node@10.9.2)(typescript@5.4.5)
+      hardhat-contract-sizer:
+        specifier: 2.10.0
+        version: 2.10.0(hardhat@2.22.8)
       kleur:
         specifier: 4.1.5
         version: 4.1.5
@@ -485,6 +488,12 @@ importers:
       '@summerfi/dependencies':
         specifier: workspace:*
         version: link:../external-dependencies
+      '@summerfi/dutch-auction':
+        specifier: workspace:*
+        version: link:../dutch-auction
+      '@summerfi/earn-gov-contracts':
+        specifier: workspace:*
+        version: link:../gov-contracts
       '@summerfi/earn-protocol-contracts':
         specifier: workspace:*
         version: link:../core-contracts
@@ -11541,6 +11550,17 @@ packages:
       chalk: 4.1.2
       cli-table3: 0.6.5
       hardhat: 2.22.14(ts-node@10.9.2)(typescript@5.4.5)
+      strip-ansi: 6.0.1
+    dev: true
+
+  /hardhat-contract-sizer@2.10.0(hardhat@2.22.8):
+    resolution: {integrity: sha512-QiinUgBD5MqJZJh1hl1jc9dNnpJg7eE/w4/4GEnrcmZJJTDbVFNe3+/3Ep24XqISSkYxRz36czcPHKHd/a0dwA==}
+    peerDependencies:
+      hardhat: ^2.0.0
+    dependencies:
+      chalk: 4.1.2
+      cli-table3: 0.6.5
+      hardhat: 2.22.8(ts-node@10.9.2)(typescript@5.4.5)
       strip-ansi: 6.0.1
     dev: true
 
