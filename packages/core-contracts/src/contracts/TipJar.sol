@@ -6,7 +6,7 @@ import {ITipJar} from "../interfaces/ITipJar.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ProtocolAccessManagedWhitelist} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedWhitelist.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
@@ -25,7 +25,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 
 contract TipJar is
     ITipJar,
-    ProtocolAccessManagedWhitelist,
+    ProtocolAccessManaged,
     ConfigurationManaged,
     Pausable
 {
@@ -58,7 +58,7 @@ contract TipJar is
         address _accessManager,
         address _configurationManager
     )
-        ProtocolAccessManagedWhitelist(_accessManager)
+        ProtocolAccessManaged(_accessManager)
         ConfigurationManaged(_configurationManager)
     {}
 

@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
+import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 

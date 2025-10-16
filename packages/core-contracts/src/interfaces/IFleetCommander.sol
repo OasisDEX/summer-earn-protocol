@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IFleetCommanderErrors} from "../errors/IFleetCommanderErrors.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
-import {RebalanceData} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
+import {RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {IFleetCommanderConfigProvider} from "./IFleetCommanderConfigProvider.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";

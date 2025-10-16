@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {RebalanceData} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
+import {RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 interface IFleetCommanderEvents {
     /* EVENTS */

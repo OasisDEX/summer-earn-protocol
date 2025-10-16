@@ -5,7 +5,7 @@ import {IFleetCommanderConfigProviderErrors} from "../errors/IFleetCommanderConf
 
 import {IFleetCommanderConfigProviderEvents} from "../events/IFleetCommanderConfigProviderEvents.sol";
 
-import {FleetConfig} from "@summerfi/earn-protocol-contracts/types/FleetCommanderTypes.sol";
+import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
@@ -122,4 +122,10 @@ interface IFleetCommanderConfigProvider is
      * @notice Deploys and sets the staking rewards manager contract address
      */
     function updateStakingRewardsManager() external;
+
+    /**
+     * @notice Enables or disables transfers of fleet commander shares
+     * @dev Only callable by the governor when not paused
+     */
+    function setFleetTokenTransferability() external;
 }
