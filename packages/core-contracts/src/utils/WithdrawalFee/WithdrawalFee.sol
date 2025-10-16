@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {IWithdrawalFee} from "./IWithdrawalFee.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 
 /**
  * @title WithdrawalFee
@@ -30,7 +31,7 @@ abstract contract WithdrawalFee is IWithdrawalFee {
      * @notice The maximum allowed withdrawal fee (10%)
      * @dev Prevents governance abuse by capping the maximum fee
      */
-    uint256 private constant MAXIMUM_WITHDRAWAL_FEE = 100000000000000000000; // 10% = 10 * 1e18
+    uint256 private constant MAXIMUM_WITHDRAWAL_FEE = 10 * Constants.WAD; // 10% = 10 * 1e18
 
     /**
      * CONSTRUCTOR

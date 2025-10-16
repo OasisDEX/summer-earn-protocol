@@ -66,7 +66,7 @@ contract FleetCommanderConfigProvider is
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
             rebalanceCooldown: params.initialRebalanceCooldown,
-            withdrawalFee: params.initialWithdrawalFee // Withdrawal fee percentage, default 0.025%
+            withdrawalFee: params.initialWithdrawalFee // Withdrawal fee percentage (must be explicitly set)
         });
         details = params.details;
     }

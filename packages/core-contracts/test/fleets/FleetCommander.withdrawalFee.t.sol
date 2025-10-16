@@ -11,6 +11,7 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {IWithdrawalFee} from "../../src/utils/WithdrawalFee/IWithdrawalFee.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 
 /**
  * @title Withdrawal Fee test suite for FleetCommander
@@ -29,13 +30,13 @@ contract FleetCommanderWithdrawalFeeTest is
     TestHelpers,
     FleetCommanderTestBase
 {
-    uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
-    uint256 constant MAX_DEPOSIT_CAP = 100000 * 10 ** 6;
+    uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6; // 1000 USDC (6 decimals)
+    uint256 constant MAX_DEPOSIT_CAP = 100000 * 10 ** 6; // 100,000 USDC (6 decimals)
 
-    // Default withdrawal fee: 0.025% = 0.00025 * 1e18
+    // Default withdrawal fee: 0.025% = 0.00025 * WAD
     uint256 constant DEFAULT_WITHDRAWAL_FEE = 25000000000000000; // 0.025%
-    uint256 constant HIGH_WITHDRAWAL_FEE = 1000000000000000000; // 1%
-    uint256 constant MAX_WITHDRAWAL_FEE = 100000000000000000000; // 10%
+    uint256 constant HIGH_WITHDRAWAL_FEE = (1 * Constants.WAD) / 100; // 1%
+    uint256 constant MAX_WITHDRAWAL_FEE = 10 * Constants.WAD; // 10%
 
     FleetCommander public feeFleet;
 
@@ -59,7 +60,8 @@ contract FleetCommanderWithdrawalFeeTest is
 
     function test_WithdrawalFeeCalculation() public {
         uint256 amount = DEPOSIT_AMOUNT;
-        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) / (100 * 1e18);
+        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) /
+            (100 * Constants.WAD);
 
         _mockArkTotalAssets(ark1, 0);
         _mockArkTotalAssets(ark2, 0);
@@ -82,7 +84,8 @@ contract FleetCommanderWithdrawalFeeTest is
 
     function test_WithdrawFromBufferAppliesFee() public {
         uint256 amount = DEPOSIT_AMOUNT;
-        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) / (100 * 1e18);
+        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) /
+            (100 * Constants.WAD);
         uint256 expectedAssetsAfterFee = amount - expectedFee;
 
         _mockArkTotalAssets(ark1, 0);
@@ -124,7 +127,8 @@ contract FleetCommanderWithdrawalFeeTest is
 
     function test_RedeemFromBufferAppliesFee() public {
         uint256 amount = DEPOSIT_AMOUNT;
-        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) / (100 * 1e18);
+        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) /
+            (100 * Constants.WAD);
         uint256 expectedAssetsAfterFee = amount - expectedFee;
 
         _mockArkTotalAssets(ark1, 0);
@@ -166,7 +170,8 @@ contract FleetCommanderWithdrawalFeeTest is
 
     function test_WithdrawFromArksAppliesFee() public {
         uint256 amount = DEPOSIT_AMOUNT;
-        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) / (100 * 1e18);
+        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) /
+            (100 * Constants.WAD);
         uint256 expectedAssetsAfterFee = amount - expectedFee;
 
         // Set up arks with assets
@@ -180,7 +185,6 @@ contract FleetCommanderWithdrawalFeeTest is
         feeFleet.deposit(amount, mockUser);
         vm.stopPrank();
 
-        uint256 initialBufferBalance = IArk(feeFleet.bufferArk()).totalAssets();
         uint256 initialUserBalance = mockToken.balanceOf(mockUser);
 
         // Withdraw from arks
@@ -199,17 +203,17 @@ contract FleetCommanderWithdrawalFeeTest is
 
         // Check that fee was re-deposited to buffer
         uint256 finalBufferBalance = IArk(feeFleet.bufferArk()).totalAssets();
-        uint256 bufferIncrease = finalBufferBalance - initialBufferBalance;
         assertEq(
-            bufferIncrease,
+            finalBufferBalance,
             expectedFee,
-            "Fee should be re-deposited to buffer"
+            "Buffer should contain exactly the fee amount after withdrawal"
         );
     }
 
     function test_RedeemFromArksAppliesFee() public {
         uint256 amount = DEPOSIT_AMOUNT;
-        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) / (100 * 1e18);
+        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) /
+            (100 * Constants.WAD);
         uint256 expectedAssetsAfterFee = amount - expectedFee;
 
         // Set up arks with assets
@@ -223,7 +227,6 @@ contract FleetCommanderWithdrawalFeeTest is
         uint256 shares = feeFleet.deposit(amount, mockUser);
         vm.stopPrank();
 
-        uint256 initialBufferBalance = IArk(feeFleet.bufferArk()).totalAssets();
         uint256 initialUserBalance = mockToken.balanceOf(mockUser);
 
         // Redeem from arks
@@ -242,11 +245,10 @@ contract FleetCommanderWithdrawalFeeTest is
 
         // Check that fee was re-deposited to buffer
         uint256 finalBufferBalance = IArk(feeFleet.bufferArk()).totalAssets();
-        uint256 bufferIncrease = finalBufferBalance - initialBufferBalance;
         assertEq(
-            bufferIncrease,
+            finalBufferBalance,
             expectedFee,
-            "Fee should be re-deposited to buffer"
+            "Buffer should contain exactly the fee amount after redemption"
         );
     }
 
@@ -319,7 +321,8 @@ contract FleetCommanderWithdrawalFeeTest is
 
     function test_WithdrawalFeeEventEmitted() public {
         uint256 amount = DEPOSIT_AMOUNT;
-        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) / (100 * 1e18);
+        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) /
+            (100 * Constants.WAD);
 
         _mockArkTotalAssets(ark1, 0);
         _mockArkTotalAssets(ark2, 0);
@@ -363,7 +366,7 @@ contract FleetCommanderWithdrawalFeeTest is
     function test_DustAmountWithdrawalFee() public {
         uint256 dustAmount = 1; // Very small amount
         uint256 expectedFee = (dustAmount * DEFAULT_WITHDRAWAL_FEE) /
-            (100 * 1e18);
+            (100 * Constants.WAD);
 
         _mockArkTotalAssets(ark1, 0);
         _mockArkTotalAssets(ark2, 0);
@@ -389,7 +392,8 @@ contract FleetCommanderWithdrawalFeeTest is
 
     function test_MaxWithdrawalWithFee() public {
         uint256 amount = DEPOSIT_AMOUNT;
-        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) / (100 * 1e18);
+        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) /
+            (100 * Constants.WAD);
         uint256 expectedAssetsAfterFee = amount - expectedFee;
 
         _mockArkTotalAssets(ark1, 0);
@@ -419,9 +423,10 @@ contract FleetCommanderWithdrawalFeeTest is
         );
     }
 
-    function test_AutoRoutingWithdrawWithFeesCorrect() public {
+    function test_WithdrawWithFeesCorrect() public {
         uint256 amount = DEPOSIT_AMOUNT;
-        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) / (100 * 1e18);
+        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) /
+            (100 * Constants.WAD);
         uint256 expectedAssetsAfterFee = amount - expectedFee;
 
         _mockArkTotalAssets(ark1, 0);
@@ -434,7 +439,7 @@ contract FleetCommanderWithdrawalFeeTest is
         uint256 shares = feeFleet.deposit(amount, mockUser);
         vm.stopPrank();
 
-        // Test main withdraw() function (should route to buffer)
+        // Test main withdraw() function (automatically routes to buffer or arks)
         uint256 initialUserBalance = mockToken.balanceOf(mockUser);
         vm.startPrank(mockUser);
         feeFleet.withdraw(amount, mockUser, mockUser);
@@ -445,13 +450,14 @@ contract FleetCommanderWithdrawalFeeTest is
         assertEq(
             autoWithdrawReceived,
             expectedAssetsAfterFee,
-            "Auto-routed withdraw should apply correct fee"
+            "Withdraw should apply correct fee"
         );
     }
 
-    function test_AutoRoutingRedeemWithFeesCorrect() public {
+    function test_RedeemWithFeesCorrect() public {
         uint256 amount = DEPOSIT_AMOUNT;
-        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) / (100 * 1e18);
+        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) /
+            (100 * Constants.WAD);
         uint256 expectedAssetsAfterFee = amount - expectedFee;
 
         _mockArkTotalAssets(ark1, 0);
@@ -464,7 +470,7 @@ contract FleetCommanderWithdrawalFeeTest is
         uint256 shares = feeFleet.deposit(amount, mockUser);
         vm.stopPrank();
 
-        // Test main redeem() function (should route to buffer)
+        // Test main redeem() function (automatically routes to buffer or arks)
         uint256 initialUserBalance = mockToken.balanceOf(mockUser);
         vm.startPrank(mockUser);
         feeFleet.redeem(shares, mockUser, mockUser);
@@ -475,7 +481,7 @@ contract FleetCommanderWithdrawalFeeTest is
         assertEq(
             autoRedeemReceived,
             expectedAssetsAfterFee,
-            "Auto-routed redeem should apply correct fee"
+            "Redeem should apply correct fee"
         );
     }
 }
