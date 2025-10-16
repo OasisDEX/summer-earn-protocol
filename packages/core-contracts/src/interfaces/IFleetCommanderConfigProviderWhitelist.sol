@@ -11,7 +11,17 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
 /**
  * @title IFleetCommanderConfigProviderWhitelist Interface
  * @notice Interface for the FleetCommanderConfigProviderWhitelist contract, which manages asset allocation across multiple Arks
+ * @notice Whitelist administration
+ * @dev This contract inherits `Whitelist` which provides:
+ *      - `onlyWhitelisted(account)` modifier to gate functionality
+ *      - `_setWhitelisted(account, allowed)` and batch variant for admin control
+ *      - Open mode when `address(0)` is whitelisted; all accounts are treated as whitelisted
+ *
+ * Governor-facing wrappers:
+ * - {setWhitelisted}: set a single account's whitelist status (including `address(0)` to toggle open mode)
+ * - {setWhitelistedBatch}: batch update multiple accounts (including `address(0)`)
  */
+
 interface IFleetCommanderConfigProviderWhitelist is
     IFleetCommanderConfigProviderErrors,
     IFleetCommanderConfigProviderEvents
@@ -123,4 +133,32 @@ interface IFleetCommanderConfigProviderWhitelist is
      * @dev Only callable by the governor when not paused
      */
     function setFleetTokenTransferability() external;
+
+    /**
+     * @notice Sets the whitelist status for an account
+     * @dev Only callable by the governor when not paused
+     * @param account The account to set the whitelist status for
+     * @param allowed The whitelist status to set
+     */
+    function setWhitelisted(address account, bool allowed) external;
+
+    /**
+     * @notice Sets the whitelist status for a batch of accounts
+     * @dev Only callable by the governor when not paused
+     * @param accounts The accounts to set the whitelist status for
+     * @param allowed The whitelist status to set
+     */
+    function setWhitelistedBatch(
+        address[] memory accounts,
+        bool[] memory allowed
+    ) external;
+
+    /**
+     * @notice Checks if an account is whitelisted
+     * @param account The account to check the whitelist status for
+     * @return isWhitelisted Returns true if the account is whitelisted, false otherwise
+     */
+    function isWhitelisted(
+        address account
+    ) external view returns (bool isWhitelisted);
 }

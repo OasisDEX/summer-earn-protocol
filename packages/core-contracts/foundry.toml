@@ -10,6 +10,7 @@ cache_path  = 'cache_forge'
 solc = "0.8.28"
 evm_version = "cancun"
 cbor_metadata = true
+via_ir = true
 optimizer = true
 optimizer_runs = 50
 

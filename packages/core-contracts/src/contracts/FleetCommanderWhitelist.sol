@@ -21,15 +21,17 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 /**
  * @title FleetCommander
  * @notice Manages a fleet of Arks, coordinating deposits, withdrawals, and rebalancing operations
- * @dev Implements IFleetCommanderWhitelist interface and inherits from various utility contracts
+ * @dev Implements IFleetCommanderWhitelist interface and inherits from various utility contracts.
+ *      State-changing user operations such as deposit, mint and ERC20 transfers are gated by
+ *      `onlyWhitelisted(_msgSender())` via the inherited Whitelist utility. When the whitelist
+ *      is open (i.e., `address(0)` is whitelisted), all callers are allowed.
  */
 contract FleetCommanderWhitelist is
     IFleetCommanderWhitelist,
     FleetCommanderConfigProviderWhitelist,
     ERC4626,
     Tipper,
-    FleetCommanderCache,
-    CooldownEnforcer
+    FleetCommanderCache
 {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
@@ -50,7 +52,6 @@ contract FleetCommanderWhitelist is
         ERC20(params.name, params.symbol)
         FleetCommanderConfigProviderWhitelist(params)
         Tipper(params.initialTipRate)
-        CooldownEnforcer(params.initialRebalanceCooldown, false)
     {}
 
     /*//////////////////////////////////////////////////////////////
@@ -63,7 +64,6 @@ contract FleetCommanderWhitelist is
     modifier collectTip() {
         _setIsCollectingTip(true);
         _accrueTip(tipJar(), totalSupply());
-
         _;
         _setIsCollectingTip(false);
     }
@@ -213,7 +213,6 @@ contract FleetCommanderWhitelist is
 
         _forceDisembarkFromSortedArks(assets);
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
-        _resetLastActionTimestamp();
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
@@ -236,7 +235,6 @@ contract FleetCommanderWhitelist is
         totalAssetsToWithdraw = previewRedeem(shares);
         _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
         _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
-        _resetLastActionTimestamp();
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
 
@@ -247,6 +245,7 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
+        onlyWhitelisted(_msgSender())
         collectTip
         useCache
         whenNotPaused
@@ -267,16 +266,6 @@ contract FleetCommanderWhitelist is
         );
     }
 
-    /// @inheritdoc IFleetCommanderWhitelist
-    function deposit(
-        uint256 assets,
-        address receiver,
-        bytes memory referralCode
-    ) external returns (uint256) {
-        emit FleetCommanderReferral(receiver, referralCode);
-        return deposit(assets, receiver);
-    }
-
     /// @inheritdoc IERC4626
     function mint(
         uint256 shares,
@@ -284,6 +273,7 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
+        onlyWhitelisted(_msgSender())
         collectTip
         useCache
         whenNotPaused
@@ -424,7 +414,7 @@ contract FleetCommanderWhitelist is
     /// @inheritdoc IFleetCommanderWhitelist
     function rebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
+    ) external onlyKeeper collectTip whenNotPaused {
         _validateReallocateAllAssets(rebalanceData);
         _validateAdjustBuffer(rebalanceData);
         _reallocateAllAssets(rebalanceData);
@@ -452,13 +442,6 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
-    function updateRebalanceCooldown(
-        uint256 newCooldown
-    ) external onlyCurator(address(this)) whenNotPaused {
-        _updateCooldown(newCooldown);
-    }
-
-    /// @inheritdoc IFleetCommanderWhitelist
     function pause() external onlyGovernor {
         _pause();
     }
@@ -476,7 +459,12 @@ contract FleetCommanderWhitelist is
     function transfer(
         address to,
         uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
+    )
+        public
+        override(IERC20, ERC20)
+        onlyWhitelisted(_msgSender())
+        returns (bool)
+    {
         if (transfersEnabled) {
             return super.transfer(to, amount);
         }
@@ -489,7 +477,12 @@ contract FleetCommanderWhitelist is
         address from,
         address to,
         uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
+    )
+        public
+        override(IERC20, ERC20)
+        onlyWhitelisted(_msgSender())
+        returns (bool)
+    {
         if (transfersEnabled) {
             return super.transferFrom(from, to, amount);
         }

@@ -18,6 +18,7 @@ import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-co
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
+import {Whitelist} from "../utils/Whitelist/Whitelist.sol";
 /**
  * @title FleetCommanderConfigProviderWhitelist
  * @author SummerFi
@@ -28,7 +29,8 @@ contract FleetCommanderConfigProviderWhitelist is
     ProtocolAccessManaged,
     FleetCommanderPausable,
     ConfigurationManaged,
-    IFleetCommanderConfigProviderWhitelist
+    IFleetCommanderConfigProviderWhitelist,
+    Whitelist
 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -210,6 +212,26 @@ contract FleetCommanderConfigProviderWhitelist is
             transfersEnabled = true;
             emit TransfersEnabled();
         }
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
+    function setWhitelisted(
+        address account,
+        bool allowed
+    ) external onlyGovernor whenNotPaused {
+        _setWhitelisted(account, allowed);
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
+    function setWhitelistedBatch(
+        address[] memory accounts,
+        bool[] memory allowed
+    ) external onlyGovernor whenNotPaused {
+        _setWhitelistedBatch(accounts, allowed);
+    }
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
+    function isWhitelisted(address account) external view returns (bool) {
+        return _isWhitelisted(account);
     }
 
     // INTERNAL FUNCTIONS

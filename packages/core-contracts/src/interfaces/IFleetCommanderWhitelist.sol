@@ -11,7 +11,10 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
 
 /**
  * @title IFleetCommanderWhitelist Interface
- * @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
+ * @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks.
+ * @dev Implementations should gate state-changing user calls using the `Whitelist` utility. When the
+ *      whitelist is in open mode (i.e., `address(0)` is whitelisted), all accounts are considered
+ *      whitelisted for the purposes of access-controlled operations.
  */
 interface IFleetCommanderWhitelist is
     IERC4626,
@@ -50,18 +53,6 @@ interface IFleetCommanderWhitelist is
     function maxBufferRedeem(address owner) external view returns (uint256);
 
     /* FUNCTIONS - PUBLIC - USER */
-    /**
-     * @notice Deposits a specified amount of assets into the contract for a given receiver.
-     * @param assets The amount of assets to be deposited.
-     * @param receiver The address of the receiver who will receive the deposited assets.
-     * @param referralCode An optional referral code that can be used for tracking or rewards.
-     */
-    function deposit(
-        uint256 assets,
-        address receiver,
-        bytes memory referralCode
-    ) external returns (uint256);
-
     /**
      * @notice Forces a withdrawal of assets from the FleetCommander
      * @param assets The amount of assets to forcefully withdraw
@@ -190,12 +181,6 @@ interface IFleetCommanderWhitelist is
      * @param newMinimumPauseTime The new minimum pause time in seconds
      */
     function setMinimumPauseTime(uint256 newMinimumPauseTime) external;
-
-    /**
-     * @notice Updates the rebalance cooldown period
-     * @param newCooldown The new cooldown period in seconds
-     */
-    function updateRebalanceCooldown(uint256 newCooldown) external;
 
     /**
      * @notice Pauses the FleetCommander

@@ -1,6 +1,6 @@
 import { default as dotenv } from 'dotenv'
-import { resolve } from 'path'
 import 'hardhat-contract-sizer'
+import { resolve } from 'path'
 
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
