@@ -99,14 +99,13 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         ark = new CrossChainArk(address(registry), TARGET_CHAIN_ID, params);
 
-        // Register the ark-proxy relationship in the registry
+        // Register the ark-proxy relationship in the registry using peer pair registration
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(ark),
             proxy,
             SOURCE_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            TARGET_CHAIN_ID
         );
         vm.stopPrank();
 

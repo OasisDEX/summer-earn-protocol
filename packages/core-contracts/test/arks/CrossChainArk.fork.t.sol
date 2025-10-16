@@ -175,41 +175,20 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint32 READ_CHANNEL_ID = 4294967295;
         layerZeroAdapter.activateReadChannel(READ_CHANNEL_ID);
 
-        // Register cross-chain relationships in registry
-        registry.registerRelationship(
+        // Register cross-chain relationships in registry using peer pair registration
+        registry.registerAdapterPeerPair(
             address(stargateAdapter),
             ARB_STARGATE_PROXY,
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
-        // Register LayerZero adapter with different proxy address
-        registry.registerRelationship(
+        // Register LayerZero adapter with different proxy address using peer pair registration
+        registry.registerAdapterPeerPair(
             address(layerZeroAdapter),
             ARB_LAYERZERO_PROXY,
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        // Register cross-chain relationships in registry
-        registry.registerRelationship(
-            ARB_STARGATE_PROXY,
-            address(stargateAdapter),
-            DEST_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-
-        // Register LayerZero adapter with different proxy address
-        // For MESSAGE delivery peer verification in BridgeRouter.deliver(),
-        // also register the reverse mapping so getSourceForTarget succeeds
-        registry.registerRelationship(
-            ARB_LAYERZERO_PROXY,
-            address(layerZeroAdapter),
-            DEST_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
         // Register the BridgeRouter as an executor
@@ -233,14 +212,13 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create CrossChainArk with the proper CrossChainConfigManager
         ark = new CrossChainArk(address(registry), DEST_CHAIN_ID, params);
 
-        // Register the ark-proxy relationship - use a different proxy address to avoid conflicts
+        // Register the ark-proxy relationship - use a different proxy address to avoid conflicts using peer pair registration
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(ark),
             ARK_PROXY,
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
         // Setup permissions
