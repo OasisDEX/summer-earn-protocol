@@ -45,7 +45,7 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         if (
             params.raft == address(0) ||
             params.tipJar == address(0) ||
-            params.treasury == address(0)
+            params.treasury == address(0) ||
             params.harborCommand == address(0) ||
             params.fleetCommanderRewardsManagerFactory == address(0)
         ) {
