@@ -8,6 +8,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
+import {ProtectedMulticallWhitelist} from "../../src/contracts/ProtectedMulticallWhitelist.sol";
 
 contract InstitutionalIntegrationWhitelistTest is
     FleetCommanderWhitelistInstitutionalTestBase
@@ -297,5 +299,88 @@ contract InstitutionalIntegrationWhitelistTest is
         assertGt(shares, 0, "AQ deposit should mint shares");
 
         _exitViaAQ(d, 200_000);
+    }
+
+    // Negative tests for ProtectedMulticallWhitelist and whitelist gating
+
+    function test_AQ_Multicall_Reverts_When_UserNotWhitelisted() public {
+        address user = address(0xBEEF);
+        Deployed memory d = _deploy(user);
+        // AQ closed, user not whitelisted, fleet open shouldn't matter for AQ
+        _configureWhitelists(WhitelistMode.FleetOnlyUser_NoAQ, d);
+
+        bytes[] memory calls = new bytes[](0);
+        vm.startPrank(user);
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, user));
+        d.aq.multicall(calls);
+        vm.stopPrank();
+    }
+
+    function test_AQ_FunctionDirectCall_Reverts_NotMulticall() public {
+        address user = address(0xBEEF);
+        Deployed memory d = _deploy(user);
+        // Whitelist user on AQ to isolate onlyMulticall guard
+        vm.prank(governor);
+        d.aq.setWhitelisted(user, true);
+
+        deal(d.usdc, user, 1000);
+        vm.startPrank(user);
+        IERC20(d.usdc).approve(address(d.aq), type(uint256).max);
+        vm.expectRevert(ProtectedMulticallWhitelist.NotMulticall.selector);
+        d.aq.depositTokens(IERC20(d.usdc), 1000);
+        vm.stopPrank();
+    }
+
+    function test_AQ_NestedMulticall_Reverts_MulticallAlreadyInProgress() public {
+        address user = address(0xBEEF);
+        Deployed memory d = _deploy(user);
+        // Allow user to use multicall
+        vm.prank(governor);
+        d.aq.setWhitelisted(user, true);
+
+        // Build inner multicall payload (empty)
+        bytes[] memory empty = new bytes[](0);
+        bytes[] memory outer = new bytes[](1);
+        outer[0] = abi.encodeWithSelector(d.aq.multicall.selector, empty);
+
+        vm.startPrank(user);
+        vm.expectRevert(ProtectedMulticallWhitelist.MulticallAlreadyInProgress.selector);
+        d.aq.multicall(outer);
+        vm.stopPrank();
+    }
+
+    function test_Fleet_Direct_Deposit_Reverts_When_UserNotWhitelisted() public {
+        address user = address(0xBEEF);
+        Deployed memory d = _deploy(user);
+        // Fleet only trusts AQ; user is not whitelisted
+        vm.prank(governor);
+        d.fleet.setWhitelisted(address(d.aq), true);
+
+        deal(d.usdc, user, 1000);
+        vm.startPrank(user);
+        IERC20(d.usdc).approve(address(d.fleet), type(uint256).max);
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, user));
+        d.fleet.deposit(1000, user);
+        vm.stopPrank();
+    }
+
+    function test_AQ_ExitFleet_DirectCall_Reverts_NotMulticall() public {
+        address user = address(0xBEEF);
+        Deployed memory d = _deploy(user);
+        // Whitelist user and AQ so deposit via AQ works, then try calling exitFleet directly
+        vm.startPrank(governor);
+        d.aq.setWhitelisted(user, true);
+        d.fleet.setWhitelisted(address(d.aq), true);
+        vm.stopPrank();
+
+        // fund and enter via AQ properly
+        _depositViaAQ(d, 1000);
+
+        // now user attempts to call exitFleet directly: should revert NotMulticall
+        vm.startPrank(user);
+        IERC20(address(d.fleet)).approve(address(d.aq), type(uint256).max);
+        vm.expectRevert(ProtectedMulticallWhitelist.NotMulticall.selector);
+        d.aq.exitFleet(address(d.fleet), 100);
+        vm.stopPrank();
     }
 }
