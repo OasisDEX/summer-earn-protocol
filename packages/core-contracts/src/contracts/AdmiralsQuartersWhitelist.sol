@@ -14,6 +14,7 @@ import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
 import {IComet} from "../interfaces/compound-v3/IComet.sol";
 import {IWETH} from "../interfaces/misc/IWETH.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 
@@ -72,6 +73,7 @@ contract AdmiralsQuartersWhitelist is
     ProtectedMulticallWhitelist,
     ReentrancyGuardTransient,
     IAdmiralsQuartersWhitelist,
+    ProtocolAccessManaged,
     ConfigurationManaged
 {
     using SafeERC20 for IERC20;
@@ -85,8 +87,13 @@ contract AdmiralsQuartersWhitelist is
     constructor(
         address _oneInchRouter,
         address _configurationManager,
+        address _protocolAccessManager,
         address _wrappedNative
-    ) Ownable(_msgSender()) ConfigurationManaged(_configurationManager) {
+    )
+        Ownable(_msgSender())
+        ConfigurationManaged(_configurationManager)
+        ProtocolAccessManaged(_protocolAccessManager)
+    {
         if (_oneInchRouter == address(0)) revert InvalidRouterAddress();
         ONE_INCH_ROUTER = _oneInchRouter;
         if (_wrappedNative == address(0)) revert InvalidNativeTokenAddress();
@@ -253,7 +260,7 @@ contract AdmiralsQuartersWhitelist is
     function setWhitelisted(
         address account,
         bool allowed
-    ) external onlyGovernor whenNotPaused {
+    ) external onlyGovernor {
         _setWhitelisted(account, allowed);
     }
 
@@ -261,7 +268,7 @@ contract AdmiralsQuartersWhitelist is
     function setWhitelistedBatch(
         address[] memory accounts,
         bool[] memory allowed
-    ) external onlyGovernor whenNotPaused {
+    ) external onlyGovernor {
         _setWhitelistedBatch(accounts, allowed);
     }
     ///@inheritdoc IAdmiralsQuartersWhitelist
