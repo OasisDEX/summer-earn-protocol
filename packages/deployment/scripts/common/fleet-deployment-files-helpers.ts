@@ -6,6 +6,7 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { FleetConfig, FleetDeployment } from '../../types/config-types'
+import { FleetConfigSchema } from '../helpers/zod-schemas'
 
 /**
  * Retrieves available fleets for the current network from the deployments folder.
@@ -106,21 +107,11 @@ export function loadFleetConfig(filePath: string): FleetConfig {
   }
 
   const fileContent = fs.readFileSync(fullPath, 'utf8')
-  const fleetConfig = JSON.parse(fileContent) as FleetConfig
-  if (
-    !fleetConfig.fleetName ||
-    !fleetConfig.symbol ||
-    !fleetConfig.assetSymbol ||
-    !fleetConfig.initialMinimumBufferBalance ||
-    !fleetConfig.initialRebalanceCooldown ||
-    !fleetConfig.depositCap ||
-    !fleetConfig.initialTipRate ||
-    !fleetConfig.network ||
-    fleetConfig.details === undefined
-  ) {
-    throw new Error(`Fleet config file is missing required fields: ${fullPath}`)
+  const parsed = FleetConfigSchema.safeParse(JSON.parse(fileContent))
+  if (!parsed.success) {
+    throw new Error(`Invalid Fleet config schema: ${fullPath} -> ${parsed.error.message}`)
   }
-  return fleetConfig
+  return parsed.data as unknown as FleetConfig
 }
 
 /**

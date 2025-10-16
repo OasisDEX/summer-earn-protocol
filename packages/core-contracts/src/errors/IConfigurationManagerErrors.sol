@@ -41,4 +41,9 @@ interface IConfigurationManagerErrors {
      * @notice Thrown when the HarborCommand address is not set.
      */
     error HarborCommandNotSet();
+
+    /**
+     * @notice Thrown when a feature is not supported.
+     */
+    error NotSupported();
 }

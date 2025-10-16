@@ -331,7 +331,9 @@ contract InstitutionalIntegrationWhitelistTest is
         vm.stopPrank();
     }
 
-    function test_AQ_NestedMulticall_Reverts_MulticallAlreadyInProgress() public {
+    function test_AQ_NestedMulticall_Reverts_MulticallAlreadyInProgress()
+        public
+    {
         address user = address(0xBEEF);
         Deployed memory d = _deploy(user);
         // Allow user to use multicall
@@ -344,12 +346,16 @@ contract InstitutionalIntegrationWhitelistTest is
         outer[0] = abi.encodeWithSelector(d.aq.multicall.selector, empty);
 
         vm.startPrank(user);
-        vm.expectRevert(ProtectedMulticallWhitelist.MulticallAlreadyInProgress.selector);
+        vm.expectRevert(
+            ProtectedMulticallWhitelist.MulticallAlreadyInProgress.selector
+        );
         d.aq.multicall(outer);
         vm.stopPrank();
     }
 
-    function test_Fleet_Direct_Deposit_Reverts_When_UserNotWhitelisted() public {
+    function test_Fleet_Direct_Deposit_Reverts_When_UserNotWhitelisted()
+        public
+    {
         address user = address(0xBEEF);
         Deployed memory d = _deploy(user);
         // Fleet only trusts AQ; user is not whitelisted

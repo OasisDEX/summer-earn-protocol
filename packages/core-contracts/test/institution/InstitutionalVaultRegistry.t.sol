@@ -76,3 +76,4 @@ contract InstitutionalVaultRegistryTest is Test {
         assertFalse(registry.isActive(id1));
     }
 }
+
