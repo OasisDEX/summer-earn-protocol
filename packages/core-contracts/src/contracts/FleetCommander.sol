@@ -657,6 +657,9 @@ contract FleetCommander is
         // Transfer fee shares to tipJar
         if (feeShares > 0) {
             _transfer(owner, tipJar(), feeShares);
+            // Emit withdrawal fee event
+            uint256 feeAssets = _calculateWithdrawalFee(originalAssets);
+            emit WithdrawalFeeCollected(owner, originalAssets, feeAssets);
         }
 
         // Calculate assets based on user's shares (after fee)
@@ -665,12 +668,6 @@ contract FleetCommander is
         // Disembark assets and burn only user's shares
         _disembark(address(config.bufferArk), assets);
         _withdraw(_msgSender(), receiver, owner, assets, userShares);
-
-        // Emit withdrawal fee event
-        if (feeShares > 0) {
-            uint256 feeAssets = _calculateWithdrawalFee(originalAssets);
-            emit WithdrawalFeeCollected(owner, originalAssets, feeAssets);
-        }
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -700,6 +697,9 @@ contract FleetCommander is
         // Transfer fee shares to tipJar
         if (feeShares > 0) {
             _transfer(owner, tipJar(), feeShares);
+            // Emit withdrawal fee event
+            uint256 feeAssets = _calculateWithdrawalFee(totalAssets);
+            emit WithdrawalFeeCollected(owner, totalAssets, feeAssets);
         }
 
         // Calculate assets based on user's shares (after fee)
@@ -707,12 +707,6 @@ contract FleetCommander is
 
         _forceDisembarkFromSortedArks(totalAssets);
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, userShares);
-
-        // Emit withdrawal fee event
-        if (feeShares > 0) {
-            uint256 feeAssets = _calculateWithdrawalFee(totalAssets);
-            emit WithdrawalFeeCollected(owner, totalAssets, feeAssets);
-        }
     }
 
     /* INTERNAL - VALIDATIONS */
