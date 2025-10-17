@@ -38,7 +38,8 @@
         "asset": "USDC",
         "protocol": "moonwell"
       }
-    }  ,  {
+    },
+    {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",

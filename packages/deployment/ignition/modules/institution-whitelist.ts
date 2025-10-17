@@ -45,9 +45,10 @@ export const InstitutionWhitelistModule = buildModule('InstitutionWhitelistModul
   m.call(configurationManager, 'initializeConfiguration', [configurationManagerParams])
 
   // AdmiralsQuarters depends on configuration being set
-  const admiralsQuarters = m.contract('AdmiralsQuarters', [
+  const admiralsQuarters = m.contract('AdmiralsQuartersWhitelist', [
     swapProvider,
     configurationManager,
+    protocolAccessManager,
     weth,
   ])
 

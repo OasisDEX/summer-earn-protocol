@@ -1,7 +1,10 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { InstitutionRegistryContracts, InstitutionRegistryModule } from '../ignition/modules/institution-registry'
+import {
+  InstitutionRegistryContracts,
+  InstitutionRegistryModule,
+} from '../ignition/modules/institution-registry'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
@@ -10,7 +13,11 @@ async function main() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
 
   const useBummerConfig = await promptForConfigType()
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: false, core: false }, useBummerConfig)
+  const config = getConfigByNetwork(
+    hre.network.name,
+    { common: true, gov: false, core: false },
+    useBummerConfig,
+  )
 
   const { owner } = await prompts({
     type: 'text',
@@ -25,13 +32,21 @@ async function main() {
     parameters: { InstitutionRegistryModule: { owner } },
   })) as InstitutionRegistryContracts
 
-  console.log(kleur.green().bold('InstitutionalVaultRegistry deployed at:'), deployed.institutionalVaultRegistry.address)
+  console.log(
+    kleur.green().bold('InstitutionalVaultRegistry deployed at:'),
+    deployed.institutionalVaultRegistry.address,
+  )
 
   // Update the main index.json only (one registry per network)
-  await updateIndexJson('core', hre.network.name, {
-    ...config.deployedContracts.core,
-    institutionalVaultRegistry: { address: deployed.institutionalVaultRegistry.address },
-  } as any, useBummerConfig)
+  await updateIndexJson(
+    'core',
+    hre.network.name,
+    {
+      ...config.deployedContracts.core,
+      institutionalVaultRegistry: { address: deployed.institutionalVaultRegistry.address },
+    } as any,
+    useBummerConfig,
+  )
 }
 
 if (require.main === module) {
@@ -40,5 +55,3 @@ if (require.main === module) {
     process.exit(1)
   })
 }
-
-

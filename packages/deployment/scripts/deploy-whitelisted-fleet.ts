@@ -4,10 +4,10 @@ import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
 import { Address, Address as ViemAddress } from 'viem'
+import { createFleetWhitelistModule } from '../ignition/modules/fleet-whitelist'
 import { FleetConfig } from '../types/config-types'
 import { saveFleetDeploymentJson } from './common/fleet-deployment-files-helpers'
 import { logDeploymentResults } from './fleets/fleet-contracts'
-import { createFleetWhitelistModule } from '../ignition/modules/fleet-whitelist'
 import {
   deployArks,
   getRewardsManagerAddress,
