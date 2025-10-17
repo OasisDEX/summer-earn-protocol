@@ -43,21 +43,12 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        // Register fleetProxy -> mockReceiver relationship (source chain -> current chain)
-        registry.registerRelationship(
+        // Register bijective peer relationship
+        registry.registerAdapterPeerPair(
             fleetProxy,
             address(mockReceiver),
             SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        // Register mockReceiver -> fleetProxy relationship (current chain -> source chain)
-        registry.registerRelationship(
-            address(mockReceiver),
-            fleetProxy,
-            CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            CURRENT_CHAIN_ID
         );
         vm.stopPrank();
     }
@@ -463,33 +454,19 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         // Unregister the existing relationship for mockReceiver first
         address fleetProxy = address(0x1002);
         vm.startPrank(governor);
-        registry.unregisterRelationship(
+        registry.unregisterAdapterPeerPair(
             address(mockReceiver),
-            registry.PEER_RELATIONSHIP(),
-            SOURCE_CHAIN_ID
-        );
-        registry.unregisterRelationship(
             fleetProxy,
-            registry.PEER_RELATIONSHIP(),
-            CURRENT_CHAIN_ID
+            CURRENT_CHAIN_ID,
+            SOURCE_CHAIN_ID
         );
 
         // Register the new receiver in the peer relationship
-        // Register fleetProxy -> newReceiver relationship (source chain -> current chain)
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             fleetProxy,
             address(newReceiver),
             SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        // Register newReceiver -> fleetProxy relationship (current chain -> source chain)
-        registry.registerRelationship(
-            address(newReceiver),
-            fleetProxy,
-            CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            CURRENT_CHAIN_ID
         );
         vm.stopPrank();
 
