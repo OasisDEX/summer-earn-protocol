@@ -60,29 +60,6 @@ interface IAdmiralsQuarters is
     ) external payable returns (uint256 shares);
 
     /**
-     * @notice Stakes shares in a FleetCommander
-     * @dev If zero shares are provided, the full balance of the FleetCommander is staked
-     * @param fleetCommander The address of the FleetCommander contract
-     * @param shares The amount of shares to stake
-     * @dev Emits a FleetSharesStaked event
-     */
-    function stake(address fleetCommander, uint256 shares) external payable;
-
-    /**
-     * @notice Unstakes shares from a FleetCommander and withdraws assets to user wallet
-     * @dev If zero shares are provided, the full balance of the FleetCommander is unstaked
-     * @param fleetCommander The address of the FleetCommander contract
-     * @param shares The amount of shares to unstake
-     * @param claimRewards Whether to claim rewards before unstaking
-     * @dev Emits a FleetSharesUnstaked event
-     */
-    function unstakeAndWithdrawAssets(
-        address fleetCommander,
-        uint256 shares,
-        bool claimRewards
-    ) external;
-
-    /**
      * @notice Exits a FleetCommander by withdrawing tokens
      * @param fleetCommander The address of the FleetCommander contract
      * @param assets The amount of shares to withdraw (0 for all)
@@ -189,16 +166,6 @@ interface IAdmiralsQuarters is
      */
     function claimGovernanceRewards(
         address govRewardsManager,
-        address rewardToken
-    ) external;
-
-    /**
-     * @notice Claims rewards from fleet commanders
-     * @param fleetCommanders Array of FleetCommander addresses
-     * @param rewardToken Address of the reward token to claim
-     */
-    function claimFleetRewards(
-        address[] calldata fleetCommanders,
         address rewardToken
     ) external;
 

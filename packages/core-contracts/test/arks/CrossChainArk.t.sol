@@ -140,6 +140,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(address(ark.crossChainRegistry()), address(registry));
         assertEq(ark.satelliteChainId(), TARGET_CHAIN_ID);
         assertEq(ark.getTargetProxy(), proxy); // Uses registry lookup
+        assertEq(ark.getLastRemoteBalanceUpdateTime(), 0); // Should be 0 initially
     }
 
     function test_RegistryRelationshipIntegration() public {

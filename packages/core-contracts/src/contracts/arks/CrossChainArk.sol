@@ -38,6 +38,9 @@ contract CrossChainArk is
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
 
+    /// @notice Timestamp when lastRemoteAssetBalance was last updated
+    uint256 public lastRemoteBalanceUpdateTime;
+
     /// @notice Amount of assets currently in-flight (being bridged)
     uint256 public inflightAssets;
 
@@ -117,6 +120,15 @@ contract CrossChainArk is
      */
     function getTargetProxy() external view returns (address) {
         return _getTargetProxy();
+    }
+
+    /**
+     * @notice Gets the timestamp of the last remote balance update
+     * @return The timestamp when the last remote balance update was received
+     * @dev Returns 0 if no remote balance update has been received yet
+     */
+    function getLastRemoteBalanceUpdateTime() external view returns (uint256) {
+        return lastRemoteBalanceUpdateTime;
     }
 
     /**
@@ -302,6 +314,7 @@ contract CrossChainArk is
         lastNotificationTimestamp = timestamp;
 
         lastRemoteAssetBalance = newRemoteBalance;
+        lastRemoteBalanceUpdateTime = block.timestamp;
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
@@ -346,6 +359,7 @@ contract CrossChainArk is
         // Update the remote asset tracking
 
         lastRemoteAssetBalance = remoteBalance;
+        lastRemoteBalanceUpdateTime = block.timestamp;
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId

@@ -33,13 +33,8 @@ interface IFleetCommanderConfigProviderEvents {
     );
 
     /**
-     * @notice Emitted when the staking rewards contract address is updated
-     * @param newStakingRewards The address of the new staking rewards contract
+     * @notice Emitted when the cooldown period is updated
+     * @param newCooldownPeriod The new cooldown period in seconds
      */
-    event FleetCommanderStakingRewardsUpdated(address newStakingRewards);
-
-    /**
-     * @notice Emitted when the transfer enabled status is updated
-     */
-    event TransfersEnabled();
+    event FleetCommanderCooldownPeriodUpdated(uint256 newCooldownPeriod);
 }

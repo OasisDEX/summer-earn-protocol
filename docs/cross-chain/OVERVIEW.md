@@ -64,6 +64,7 @@ sequenceDiagram
   adapter peer mappings via the registry during delivery.
 - Pausing and governance-controlled emergency actions at routers/proxies.
 - Reentrancy protection on critical entry points.
+- **MEV Protection**: FleetCommander implements withdrawal fees to prevent MEV attacks and sandwich attacks on cross-chain operations. Users burn full shares but receive reduced assets, with the fee shares transferred to the tipJar.
 
 Operational requirement:
 - All cross-chain operations include explicit `BridgeOptions` with a non-zero `gasLimit`. There is no registry-level default gas limit.
@@ -79,6 +80,23 @@ Note on withdrawals:
   via a hub → satellite MESSAGE ACK from `CrossChainArk.notifySatelliteReceipt(...)` when the
   transfer ID matches. Fallback: SuperKeeper can call `acknowledgeHubReceipt(operationId)`, and
   governance retains emergency controls.
+
+#### MEV Protection Mechanism
+
+The FleetCommander implements a withdrawal fee-based MEV protection system:
+
+- **Withdrawal Fee**: Configurable fee percentage applied to withdrawals and redemptions
+- **Share Burning**: Users burn the full amount of shares corresponding to their withdrawal
+- **Asset Reduction**: Users receive assets minus the fee amount
+- **Fee Collection**: The fee shares are transferred to the tipJar
+- **MEV Attack Prevention**: Prevents sandwich attacks and front-running on cross-chain operations
+- **Governance Control**: Withdrawal fee can be updated by curators to adapt to changing market conditions
+
+Key functions:
+- `_calculateWithdrawalFee(assets)`: Calculates the withdrawal fee for a given amount of assets
+- `WithdrawalFeeCollected` event: Emitted when withdrawal fees are collected
+
+This mechanism ensures that cross-chain rebalancing operations cannot be immediately exploited by MEV bots, providing protection for both users and the protocol. The fee-based approach maintains ERC4626 compliance while providing economic disincentives for MEV attacks.
 
 #### Where to go next
 
