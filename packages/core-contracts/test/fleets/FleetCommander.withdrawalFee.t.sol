@@ -7,6 +7,7 @@ import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {FleetCommanderWithdrawalFeeTestHarness} from "./FleetCommanderWithdrawalFeeTestHarness.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {IWithdrawalFee} from "../../src/utils/WithdrawalFee/IWithdrawalFee.sol";
@@ -40,6 +41,7 @@ contract FleetCommanderWithdrawalFeeTest is
     uint256 constant MAX_WITHDRAWAL_FEE = 10 * Constants.WAD; // 10%
 
     FleetCommander public feeFleet;
+    FleetCommanderWithdrawalFeeTestHarness public feeFleetHarness;
 
     function setUp() public {
         uint256 initialTipRate = 0;
@@ -57,6 +59,10 @@ contract FleetCommanderWithdrawalFeeTest is
 
         vm.prank(governor);
         feeFleet = new FleetCommander(feeParams);
+
+        // Create test harness for testing internal functions
+        vm.prank(governor);
+        feeFleetHarness = new FleetCommanderWithdrawalFeeTestHarness(feeParams);
     }
 
     function test_WithdrawalFeeCalculation() public {
@@ -75,7 +81,7 @@ contract FleetCommanderWithdrawalFeeTest is
         vm.stopPrank();
 
         // Check fee calculation
-        uint256 calculatedFee = feeFleet._calculateWithdrawalFee(amount);
+        uint256 calculatedFee = feeFleetHarness.calculateWithdrawalFee(amount);
         assertEq(
             calculatedFee,
             expectedFee,
@@ -88,7 +94,9 @@ contract FleetCommanderWithdrawalFeeTest is
         uint256 expectedFee = (shares * DEFAULT_WITHDRAWAL_FEE) /
             (100 * Constants.WAD);
 
-        uint256 calculatedFee = feeFleet._calculateWithdrawalFeeShares(shares);
+        uint256 calculatedFee = feeFleetHarness.calculateWithdrawalFeeShares(
+            shares
+        );
         assertEq(
             calculatedFee,
             expectedFee,
@@ -525,8 +533,6 @@ contract FleetCommanderWithdrawalFeeTest is
 
     function test_DustAmountWithdrawalFee() public {
         uint256 dustAmount = 1; // Very small amount
-        uint256 expectedFee = (dustAmount * DEFAULT_WITHDRAWAL_FEE) /
-            (100 * Constants.WAD);
 
         _mockArkTotalAssets(ark1, 0);
         _mockArkTotalAssets(ark2, 0);
@@ -539,7 +545,7 @@ contract FleetCommanderWithdrawalFeeTest is
         vm.stopPrank();
 
         // For dust amounts, fee might be 0 due to rounding
-        uint256 calculatedFee = feeFleet._calculateWithdrawalFee(dustAmount);
+        feeFleetHarness.calculateWithdrawalFee(dustAmount);
 
         // Withdraw from buffer
         vm.startPrank(mockUser);
@@ -552,9 +558,6 @@ contract FleetCommanderWithdrawalFeeTest is
 
     function test_MaxWithdrawalWithFee() public {
         uint256 amount = DEPOSIT_AMOUNT;
-        uint256 expectedFee = (amount * DEFAULT_WITHDRAWAL_FEE) /
-            (100 * Constants.WAD);
-        uint256 expectedAssetsAfterFee = amount - expectedFee;
 
         _mockArkTotalAssets(ark1, 0);
         _mockArkTotalAssets(ark2, 0);
@@ -596,7 +599,7 @@ contract FleetCommanderWithdrawalFeeTest is
 
         vm.startPrank(mockUser);
         mockToken.approve(address(feeFleet), amount);
-        uint256 shares = feeFleet.deposit(amount, mockUser);
+        feeFleet.deposit(amount, mockUser);
         vm.stopPrank();
 
         // Test main withdraw() function (automatically routes to buffer or arks)

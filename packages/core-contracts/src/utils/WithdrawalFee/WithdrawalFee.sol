@@ -72,7 +72,7 @@ abstract contract WithdrawalFee is IWithdrawalFee {
      */
     function _calculateWithdrawalFee(
         uint256 assets
-    ) public view returns (uint256) {
+    ) internal view returns (uint256) {
         if (Percentage.unwrap(_withdrawalFee) == 0) {
             return 0;
         }
