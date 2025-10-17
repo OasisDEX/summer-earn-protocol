@@ -52,6 +52,7 @@ export const InstitutionWhitelistModule = buildModule('InstitutionWhitelistModul
     weth,
   ])
 
+
   return {
     protocolAccessManager,
     configurationManager,
