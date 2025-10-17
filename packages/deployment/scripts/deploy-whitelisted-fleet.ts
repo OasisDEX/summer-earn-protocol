@@ -16,6 +16,7 @@ import {
 import { getConfigByNetwork } from './helpers/config-handler'
 import {
   getInstitutionFleetConfigDir,
+  readInstitutionIndex,
   updateInstitutionFleetEntry,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
@@ -87,11 +88,25 @@ async function main() {
   // Deploy via whitelist module (FleetCommanderWhitelist)
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
   const fleetModule = createFleetWhitelistModule(`FleetWhitelist_${name}`)
+
+  // Load institution-scoped deployed contracts for this network
+  const institutionIndex = readInstitutionIndex(institutionId, useBummerConfig)
+  const institutionNet = institutionIndex[network] as any
+  const instProtocolAccessManager = institutionNet?.deployedContracts?.gov?.protocolAccessManager?.address
+  const instConfigurationManager = institutionNet?.deployedContracts?.core?.configurationManager?.address
+
+  if (!instProtocolAccessManager || !instConfigurationManager) {
+    throw new Error(
+      `Missing institution deployed contracts for network '${network}'. ` +
+        `Required: gov.protocolAccessManager.address and core.configurationManager.address in ` +
+        `packages/deployment/config/institutions/${institutionId}/${useBummerConfig ? 'index.test.json' : 'index.json'}`,
+    )
+  }
   const deployedFleet = await hre.ignition.deploy(fleetModule, {
     parameters: {
       [`FleetWhitelist_${name}`]: {
-        configurationManager: config.deployedContracts.core.configurationManager.address,
-        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
+        configurationManager: instConfigurationManager,
+        protocolAccessManager: instProtocolAccessManager,
         fleetName: fleetDefinition.fleetName,
         fleetSymbol: fleetDefinition.symbol,
         fleetDetails: fleetDefinition.details,
