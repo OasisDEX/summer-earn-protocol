@@ -457,17 +457,14 @@ contract FleetCommanderWhitelist is
     function transfer(
         address to,
         uint256 amount
-    )
-        public
-        override(IERC20, ERC20)
-        onlyWhitelisted(_msgSender())
-        returns (bool)
-    {
-        if (transfersEnabled || _isWhitelisted(to)) {
-            return super.transfer(to, amount);
+    ) public override(IERC20, ERC20) returns (bool) {
+        if (!transfersEnabled) {
+            revert FleetCommanderTransfersDisabled();
         }
+        _revertIfNotWhitelisted(_msgSender());
+        _revertIfNotWhitelisted(to);
 
-        revert FleetCommanderTransfersDisabled();
+        return super.transfer(to, amount);
     }
 
     /// @inheritdoc IERC20
@@ -475,16 +472,14 @@ contract FleetCommanderWhitelist is
         address from,
         address to,
         uint256 amount
-    )
-        public
-        override(IERC20, ERC20)
-        onlyWhitelisted(_msgSender())
-        returns (bool)
-    {
-        if (transfersEnabled || _isWhitelisted(to)) {
-            return super.transferFrom(from, to, amount);
+    ) public override(IERC20, ERC20) returns (bool) {
+        if (!transfersEnabled) {
+            revert FleetCommanderTransfersDisabled();
         }
-        revert FleetCommanderTransfersDisabled();
+        _revertIfNotWhitelisted(from);
+        _revertIfNotWhitelisted(to);
+
+        return super.transferFrom(from, to, amount);
     }
 
     /*//////////////////////////////////////////////////////////////

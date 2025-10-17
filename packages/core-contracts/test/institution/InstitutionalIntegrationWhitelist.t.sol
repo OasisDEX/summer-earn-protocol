@@ -10,6 +10,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
 import {ProtectedMulticallWhitelist} from "../../src/contracts/ProtectedMulticallWhitelist.sol";
+import {IFleetCommanderErrors} from "../../src/errors/IFleetCommanderErrors.sol";
 
 contract InstitutionalIntegrationWhitelistTest is
     FleetCommanderWhitelistInstitutionalTestBase
@@ -23,14 +24,16 @@ contract InstitutionalIntegrationWhitelistTest is
         AQUser_FleetOnlyAQ
     }
 
-    struct Deployed {
+    struct DeployedSytem {
         address user;
         address usdc;
         FleetCommanderWhitelist fleet;
         AdmiralsQuartersWhitelist aq;
     }
 
-    function _deploy(address user) internal returns (Deployed memory d) {
+    function _deploy(
+        address user
+    ) internal returns (DeployedSytem memory deployedSystem) {
         _setupCore();
 
         address usdc = address(new MockERC20());
@@ -54,118 +57,171 @@ contract InstitutionalIntegrationWhitelistTest is
             address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2)
         );
 
-        d = Deployed({user: user, usdc: usdc, fleet: fleet, aq: aq});
+        deployedSystem = DeployedSytem({
+            user: user,
+            usdc: usdc,
+            fleet: fleet,
+            aq: aq
+        });
     }
 
     function _configureWhitelists(
         WhitelistMode mode,
-        Deployed memory d
+        DeployedSytem memory deployedSystem
     ) internal {
         vm.startPrank(governor);
         if (mode == WhitelistMode.BothOpen) {
-            d.fleet.setWhitelisted(address(0), true);
-            d.aq.setWhitelisted(address(0), true);
+            deployedSystem.fleet.setWhitelisted(address(0), true);
+            deployedSystem.aq.setWhitelisted(address(0), true);
         } else if (mode == WhitelistMode.AQOpen_FleetOnlyAQ) {
-            d.fleet.setWhitelisted(address(d.aq), true);
-            d.aq.setWhitelisted(address(0), true);
+            deployedSystem.fleet.setWhitelisted(
+                address(deployedSystem.aq),
+                true
+            );
+            deployedSystem.aq.setWhitelisted(address(0), true);
         } else if (mode == WhitelistMode.FleetOnlyUser_NoAQ) {
-            d.fleet.setWhitelisted(d.user, true);
+            deployedSystem.fleet.setWhitelisted(deployedSystem.user, true);
         } else if (mode == WhitelistMode.AQUser_FleetOnlyAQ) {
-            d.fleet.setWhitelisted(address(d.aq), true);
-            d.aq.setWhitelisted(d.user, true);
+            deployedSystem.fleet.setWhitelisted(
+                address(deployedSystem.aq),
+                true
+            );
+            deployedSystem.aq.setWhitelisted(deployedSystem.user, true);
         }
         vm.stopPrank();
     }
 
     function _depositViaAQ(
-        Deployed memory d,
+        DeployedSytem memory deployedSystem,
         uint256 assets
     ) internal returns (uint256 shares) {
         // user approves AQ and executes multicall: depositTokens -> enterFleet
-        deal(d.usdc, d.user, assets);
-        vm.startPrank(d.user);
-        IERC20(d.usdc).approve(address(d.aq), type(uint256).max);
-        bytes[] memory calls = new bytes[](2);
-        calls[0] = abi.encodeCall(d.aq.depositTokens, (IERC20(d.usdc), assets));
-        calls[1] = abi.encodeWithSelector(
-            d.aq.enterFleet.selector,
-            address(d.fleet),
-            assets,
-            d.user
+        deal(deployedSystem.usdc, deployedSystem.user, assets);
+        vm.startPrank(deployedSystem.user);
+        IERC20(deployedSystem.usdc).approve(
+            address(deployedSystem.aq),
+            type(uint256).max
         );
-        d.aq.multicall(calls);
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = abi.encodeCall(
+            deployedSystem.aq.depositTokens,
+            (IERC20(deployedSystem.usdc), assets)
+        );
+        calls[1] = abi.encodeWithSelector(
+            deployedSystem.aq.enterFleet.selector,
+            address(deployedSystem.fleet),
+            assets,
+            deployedSystem.user
+        );
+        deployedSystem.aq.multicall(calls);
         vm.stopPrank();
-        shares = IERC20(address(d.fleet)).balanceOf(d.user);
+        shares = IERC20(address(deployedSystem.fleet)).balanceOf(
+            deployedSystem.user
+        );
     }
 
     function _depositDirect(
-        Deployed memory d,
+        DeployedSytem memory deployedSystem,
         uint256 assets
     ) internal returns (uint256 shares) {
-        deal(d.usdc, d.user, assets);
-        vm.startPrank(d.user);
-        IERC20(d.usdc).approve(address(d.fleet), type(uint256).max);
-        shares = d.fleet.deposit(assets, d.user);
+        deal(deployedSystem.usdc, deployedSystem.user, assets);
+        vm.startPrank(deployedSystem.user);
+        IERC20(deployedSystem.usdc).approve(
+            address(deployedSystem.fleet),
+            type(uint256).max
+        );
+        shares = deployedSystem.fleet.deposit(assets, deployedSystem.user);
         vm.stopPrank();
     }
 
     function _mintDirect(
-        Deployed memory d,
+        DeployedSytem memory deployedSystem,
         uint256 targetShares
     ) internal returns (uint256 assetsPaid) {
         // preview assets needed and approve
-        assetsPaid = d.fleet.previewMint(targetShares);
-        deal(d.usdc, d.user, assetsPaid);
-        vm.startPrank(d.user);
-        IERC20(d.usdc).approve(address(d.fleet), type(uint256).max);
-        d.fleet.mint(targetShares, d.user);
+        assetsPaid = deployedSystem.fleet.previewMint(targetShares);
+        deal(deployedSystem.usdc, deployedSystem.user, assetsPaid);
+        vm.startPrank(deployedSystem.user);
+        IERC20(deployedSystem.usdc).approve(
+            address(deployedSystem.fleet),
+            type(uint256).max
+        );
+        deployedSystem.fleet.mint(targetShares, deployedSystem.user);
         vm.stopPrank();
     }
 
     function _withdrawDirect(
-        Deployed memory d,
+        DeployedSytem memory deployedSystem,
         uint256 assets
     ) internal returns (uint256 sharesBurned) {
-        uint256 balBefore = IERC20(d.usdc).balanceOf(d.user);
-        vm.prank(d.user);
-        sharesBurned = d.fleet.withdraw(assets, d.user, d.user);
-        uint256 balAfter = IERC20(d.usdc).balanceOf(d.user);
+        uint256 balBefore = IERC20(deployedSystem.usdc).balanceOf(
+            deployedSystem.user
+        );
+        vm.prank(deployedSystem.user);
+        sharesBurned = deployedSystem.fleet.withdraw(
+            assets,
+            deployedSystem.user,
+            deployedSystem.user
+        );
+        uint256 balAfter = IERC20(deployedSystem.usdc).balanceOf(
+            deployedSystem.user
+        );
         assertGt(balAfter, balBefore, "withdraw did not transfer assets");
     }
 
     function _redeemDirect(
-        Deployed memory d,
+        DeployedSytem memory deployedSystem,
         uint256 shares
     ) internal returns (uint256 assetsOut) {
-        uint256 balBefore = IERC20(d.usdc).balanceOf(d.user);
-        vm.prank(d.user);
-        assetsOut = d.fleet.redeem(shares, d.user, d.user);
-        uint256 balAfter = IERC20(d.usdc).balanceOf(d.user);
+        uint256 balBefore = IERC20(deployedSystem.usdc).balanceOf(
+            deployedSystem.user
+        );
+        vm.prank(deployedSystem.user);
+        assetsOut = deployedSystem.fleet.redeem(
+            shares,
+            deployedSystem.user,
+            deployedSystem.user
+        );
+        uint256 balAfter = IERC20(deployedSystem.usdc).balanceOf(
+            deployedSystem.user
+        );
         assertGt(balAfter, balBefore, "redeem did not transfer assets");
     }
 
     function _exitViaAQ(
-        Deployed memory d,
+        DeployedSytem memory deployedSystem,
         uint256 assets
     ) internal returns (uint256 sharesBurned) {
         // user must approve AQ to spend fleet shares; AQ will withdraw to itself, then forward underlying to user
-        uint256 beforeBal = IERC20(d.usdc).balanceOf(d.user);
-        uint256 expectedShares = d.fleet.previewWithdraw(
-            assets == 0 ? d.fleet.maxWithdraw(d.user) : assets
+        uint256 beforeBal = IERC20(deployedSystem.usdc).balanceOf(
+            deployedSystem.user
         );
-        vm.startPrank(d.user);
-        IERC20(address(d.fleet)).approve(address(d.aq), type(uint256).max);
+        uint256 expectedShares = deployedSystem.fleet.previewWithdraw(
+            assets == 0
+                ? deployedSystem.fleet.maxWithdraw(deployedSystem.user)
+                : assets
+        );
+        vm.startPrank(deployedSystem.user);
+        IERC20(address(deployedSystem.fleet)).approve(
+            address(deployedSystem.aq),
+            type(uint256).max
+        );
         bytes[] memory calls = new bytes[](2);
         calls[0] = abi.encodeWithSelector(
-            d.aq.exitFleet.selector,
-            address(d.fleet),
+            deployedSystem.aq.exitFleet.selector,
+            address(deployedSystem.fleet),
             assets
         );
         // withdraw all of the underlying the AQ received from exit to the user
-        calls[1] = abi.encodeCall(d.aq.withdrawTokens, (IERC20(d.usdc), 0));
-        d.aq.multicall(calls);
+        calls[1] = abi.encodeCall(
+            deployedSystem.aq.withdrawTokens,
+            (IERC20(deployedSystem.usdc), 0)
+        );
+        deployedSystem.aq.multicall(calls);
         vm.stopPrank();
-        uint256 afterBal = IERC20(d.usdc).balanceOf(d.user);
+        uint256 afterBal = IERC20(deployedSystem.usdc).balanceOf(
+            deployedSystem.user
+        );
         assertGt(afterBal, beforeBal, "AQ exit did not pay assets");
         sharesBurned = expectedShares;
     }
@@ -232,102 +288,107 @@ contract InstitutionalIntegrationWhitelistTest is
 
     function test_Flow_DepositDirect_WithdrawDirect_FleetOnlyUser() public {
         address user = address(0xBEEF);
-        Deployed memory d = _deploy(user);
-        _configureWhitelists(WhitelistMode.FleetOnlyUser_NoAQ, d);
+        DeployedSytem memory deployedSystem = _deploy(user);
+        _configureWhitelists(WhitelistMode.FleetOnlyUser_NoAQ, deployedSystem);
 
-        uint256 shares = _depositDirect(d, 500_000);
+        uint256 shares = _depositDirect(deployedSystem, 500_000);
         assertGt(shares, 0, "deposit should mint shares");
 
-        uint256 burned = _withdrawDirect(d, 200_000);
+        uint256 burned = _withdrawDirect(deployedSystem, 200_000);
         assertGt(burned, 0, "withdraw should burn shares");
     }
 
     function test_Flow_MintDirect_RedeemDirect_BothOpen() public {
         address user = address(0xBEEF);
-        Deployed memory d = _deploy(user);
-        _configureWhitelists(WhitelistMode.BothOpen, d);
+        DeployedSytem memory deployedSystem = _deploy(user);
+        _configureWhitelists(WhitelistMode.BothOpen, deployedSystem);
 
-        _mintDirect(d, 100_000);
-        uint256 userShares = IERC20(address(d.fleet)).balanceOf(user);
+        _mintDirect(deployedSystem, 100_000);
+        uint256 userShares = IERC20(address(deployedSystem.fleet)).balanceOf(
+            user
+        );
         assertGt(userShares, 0, "mint should grant shares");
 
         uint256 half = userShares / 2;
-        uint256 assetsOut = _redeemDirect(d, half);
+        uint256 assetsOut = _redeemDirect(deployedSystem, half);
         assertGt(assetsOut, 0, "redeem should return assets");
     }
 
     function test_Flow_DepositViaAQ_WithdrawDirect_AQOpen_FleetOnlyAQ() public {
         address user = address(0xBEEF);
-        Deployed memory d = _deploy(user);
-        _configureWhitelists(WhitelistMode.AQOpen_FleetOnlyAQ, d);
+        DeployedSytem memory deployedSystem = _deploy(user);
+        _configureWhitelists(WhitelistMode.AQOpen_FleetOnlyAQ, deployedSystem);
 
-        uint256 shares = _depositViaAQ(d, 500_000);
+        uint256 shares = _depositViaAQ(deployedSystem, 500_000);
         assertGt(shares, 0, "AQ deposit should mint shares");
 
-        uint256 burned = _withdrawDirect(d, 100_000);
+        uint256 burned = _withdrawDirect(deployedSystem, 100_000);
         assertGt(burned, 0, "direct withdraw should burn shares");
     }
 
     function test_Flow_DepositViaAQ_ExitViaAQ_AQUser_FleetOnlyAQ() public {
         address user = address(0xBEEF);
-        Deployed memory d = _deploy(user);
-        _configureWhitelists(WhitelistMode.AQUser_FleetOnlyAQ, d);
+        DeployedSytem memory deployedSystem = _deploy(user);
+        _configureWhitelists(WhitelistMode.AQUser_FleetOnlyAQ, deployedSystem);
 
-        uint256 shares = _depositViaAQ(d, 500_000);
+        uint256 shares = _depositViaAQ(deployedSystem, 500_000);
         assertGt(shares, 0, "AQ deposit should mint shares");
 
-        _exitViaAQ(d, 150_000);
+        _exitViaAQ(deployedSystem, 150_000);
     }
 
     function test_Flow_DepositDirect_ExitViaAQ_BothOpen() public {
         address user = address(0xBEEF);
-        Deployed memory d = _deploy(user);
-        _configureWhitelists(WhitelistMode.BothOpen, d);
+        DeployedSytem memory deployedSystem = _deploy(user);
+        _configureWhitelists(WhitelistMode.BothOpen, deployedSystem);
 
-        uint256 shares = _depositDirect(d, 500_000);
+        uint256 shares = _depositDirect(deployedSystem, 500_000);
         assertGt(shares, 0, "direct deposit should mint shares");
 
-        _exitViaAQ(d, 150_000);
+        _exitViaAQ(deployedSystem, 150_000);
     }
 
     function test_Flow_DepositViaAQ_ExitViaAQ_BothOpen() public {
         address user = address(0xBEEF);
-        Deployed memory d = _deploy(user);
-        _configureWhitelists(WhitelistMode.BothOpen, d);
+        DeployedSytem memory deployedSystem = _deploy(user);
+        _configureWhitelists(WhitelistMode.BothOpen, deployedSystem);
 
-        uint256 shares = _depositViaAQ(d, 400_000);
+        uint256 shares = _depositViaAQ(deployedSystem, 400_000);
         assertGt(shares, 0, "AQ deposit should mint shares");
 
-        _exitViaAQ(d, 200_000);
+        _exitViaAQ(deployedSystem, 200_000);
     }
 
     // Negative tests for ProtectedMulticallWhitelist and whitelist gating
 
     function test_AQ_Multicall_Reverts_When_UserNotWhitelisted() public {
         address user = address(0xBEEF);
-        Deployed memory d = _deploy(user);
+        DeployedSytem memory deployedSystem = _deploy(user);
         // AQ closed, user not whitelisted, fleet open shouldn't matter for AQ
-        _configureWhitelists(WhitelistMode.FleetOnlyUser_NoAQ, d);
+        _configureWhitelists(WhitelistMode.FleetOnlyUser_NoAQ, deployedSystem);
 
         bytes[] memory calls = new bytes[](0);
         vm.startPrank(user);
         vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, user));
-        d.aq.multicall(calls);
+        deployedSystem.aq.multicall(calls);
         vm.stopPrank();
     }
 
     function test_AQ_FunctionDirectCall_Reverts_NotMulticall() public {
         address user = address(0xBEEF);
-        Deployed memory d = _deploy(user);
+        DeployedSytem memory deployedSystem = _deploy(user);
         // Whitelist user on AQ to isolate onlyMulticall guard
         vm.prank(governor);
-        d.aq.setWhitelisted(user, true);
+        deployedSystem.aq.setWhitelisted(user, true);
 
-        deal(d.usdc, user, 1000);
+        deal(deployedSystem.usdc, user, 1000);
         vm.startPrank(user);
-        IERC20(d.usdc).approve(address(d.aq), type(uint256).max);
+        IERC20(deployedSystem.usdc).approve(
+            address(deployedSystem.aq),
+            type(uint256).max
+        );
         vm.expectRevert(ProtectedMulticallWhitelist.NotMulticall.selector);
-        d.aq.depositTokens(IERC20(d.usdc), 1000);
+        deployedSystem.aq.depositTokens(IERC20(deployedSystem.usdc), 1000);
         vm.stopPrank();
     }
 
@@ -335,21 +396,24 @@ contract InstitutionalIntegrationWhitelistTest is
         public
     {
         address user = address(0xBEEF);
-        Deployed memory d = _deploy(user);
+        DeployedSytem memory deployedSystem = _deploy(user);
         // Allow user to use multicall
         vm.prank(governor);
-        d.aq.setWhitelisted(user, true);
+        deployedSystem.aq.setWhitelisted(user, true);
 
         // Build inner multicall payload (empty)
         bytes[] memory empty = new bytes[](0);
         bytes[] memory outer = new bytes[](1);
-        outer[0] = abi.encodeWithSelector(d.aq.multicall.selector, empty);
+        outer[0] = abi.encodeWithSelector(
+            deployedSystem.aq.multicall.selector,
+            empty
+        );
 
         vm.startPrank(user);
         vm.expectRevert(
             ProtectedMulticallWhitelist.MulticallAlreadyInProgress.selector
         );
-        d.aq.multicall(outer);
+        deployedSystem.aq.multicall(outer);
         vm.stopPrank();
     }
 
@@ -357,36 +421,227 @@ contract InstitutionalIntegrationWhitelistTest is
         public
     {
         address user = address(0xBEEF);
-        Deployed memory d = _deploy(user);
+        DeployedSytem memory deployedSystem = _deploy(user);
         // Fleet only trusts AQ; user is not whitelisted
         vm.prank(governor);
-        d.fleet.setWhitelisted(address(d.aq), true);
+        deployedSystem.fleet.setWhitelisted(address(deployedSystem.aq), true);
 
-        deal(d.usdc, user, 1000);
+        deal(deployedSystem.usdc, user, 1000);
         vm.startPrank(user);
-        IERC20(d.usdc).approve(address(d.fleet), type(uint256).max);
+        IERC20(deployedSystem.usdc).approve(
+            address(deployedSystem.fleet),
+            type(uint256).max
+        );
         vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, user));
-        d.fleet.deposit(1000, user);
+        deployedSystem.fleet.deposit(1000, user);
         vm.stopPrank();
     }
 
     function test_AQ_ExitFleet_DirectCall_Reverts_NotMulticall() public {
         address user = address(0xBEEF);
-        Deployed memory d = _deploy(user);
+        DeployedSytem memory deployedSystem = _deploy(user);
         // Whitelist user and AQ so deposit via AQ works, then try calling exitFleet directly
         vm.startPrank(governor);
-        d.aq.setWhitelisted(user, true);
-        d.fleet.setWhitelisted(address(d.aq), true);
+        deployedSystem.aq.setWhitelisted(user, true);
+        deployedSystem.fleet.setWhitelisted(address(deployedSystem.aq), true);
         vm.stopPrank();
 
         // fund and enter via AQ properly
-        _depositViaAQ(d, 1000);
+        _depositViaAQ(deployedSystem, 1000);
 
         // now user attempts to call exitFleet directly: should revert NotMulticall
         vm.startPrank(user);
-        IERC20(address(d.fleet)).approve(address(d.aq), type(uint256).max);
+        IERC20(address(deployedSystem.fleet)).approve(
+            address(deployedSystem.aq),
+            type(uint256).max
+        );
         vm.expectRevert(ProtectedMulticallWhitelist.NotMulticall.selector);
-        d.aq.exitFleet(address(d.fleet), 100);
+        deployedSystem.aq.exitFleet(address(deployedSystem.fleet), 100);
+        vm.stopPrank();
+    }
+
+    // ------------------------------------------------------------
+    // ERC20 transfers: whitelist gating and transfersEnabled toggle
+    // ------------------------------------------------------------
+
+    function test_Transfer_Reverts_When_Disabled_EvenIfBothWhitelisted()
+        public
+    {
+        address alice = address(0xA11CE);
+        address bob = address(0xB0B);
+        DeployedSytem memory deployedSystem = _deploy(alice);
+
+        // Whitelist both sender and recipient; transfers disabled by default
+        vm.startPrank(governor);
+        deployedSystem.fleet.setWhitelisted(alice, true);
+        deployedSystem.fleet.setWhitelisted(bob, true);
+        vm.stopPrank();
+
+        // Fund sender with shares
+        _depositDirect(deployedSystem, 500_000);
+
+        vm.prank(alice);
+        vm.expectRevert(
+            IFleetCommanderErrors.FleetCommanderTransfersDisabled.selector
+        );
+        deployedSystem.fleet.transfer(bob, 100_000);
+    }
+
+    function test_Transfer_Reverts_When_Enabled_RecipientNotWhitelisted()
+        public
+    {
+        address alice = address(0xA11CE);
+        address bob = address(0xB0B);
+        DeployedSytem memory deployedSystem = _deploy(alice);
+
+        // Enable transfers; whitelist only sender
+        vm.startPrank(governor);
+        deployedSystem.fleet.setFleetTokenTransferability();
+        deployedSystem.fleet.setWhitelisted(alice, true);
+        vm.stopPrank();
+
+        _depositDirect(deployedSystem, 300_000);
+
+        vm.startPrank(alice);
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, bob));
+        deployedSystem.fleet.transfer(bob, 120_000);
+        vm.stopPrank();
+    }
+
+    function test_Transfer_Reverts_When_SenderNotWhitelisted() public {
+        address alice = address(0xA11CE);
+        address bob = address(0xB0B);
+        DeployedSytem memory deployedSystem = _deploy(alice);
+
+        // Enable transfers; whitelist only recipient
+        vm.startPrank(governor);
+        deployedSystem.fleet.setFleetTokenTransferability();
+        deployedSystem.fleet.setWhitelisted(bob, true);
+        deployedSystem.fleet.setWhitelisted(alice, true);
+        vm.stopPrank();
+
+        _depositDirect(deployedSystem, 100_000);
+
+        vm.startPrank(governor);
+        deployedSystem.fleet.setWhitelisted(alice, false);
+        vm.stopPrank();
+
+        // Alice is not whitelisted as sender
+        vm.startPrank(alice);
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, alice));
+        deployedSystem.fleet.transfer(bob, 10_000);
+        vm.stopPrank();
+    }
+
+    function test_TransferFrom_Reverts_When_Disabled_EvenIfFromAndToWhitelisted()
+        public
+    {
+        address from = address(0xF00D);
+        address to = address(0xB0B);
+        address spender = address(0x5050);
+        DeployedSytem memory deployedSystem = _deploy(from);
+
+        vm.startPrank(governor);
+        deployedSystem.fleet.setWhitelisted(from, true);
+        deployedSystem.fleet.setWhitelisted(to, true);
+        vm.stopPrank();
+
+        _depositDirect(deployedSystem, 400_000);
+
+        vm.prank(from);
+        IERC20(address(deployedSystem.fleet)).approve(spender, 150_000);
+
+        vm.prank(spender);
+        vm.expectRevert(
+            IFleetCommanderErrors.FleetCommanderTransfersDisabled.selector
+        );
+        deployedSystem.fleet.transferFrom(from, to, 150_000);
+    }
+
+    function test_TransferFrom_Reverts_When_Enabled_ToNotWhitelisted() public {
+        address from = address(0xF00D);
+        address to = address(0xB0B);
+        address spender = address(0x5050);
+        DeployedSytem memory deployedSystem = _deploy(from);
+
+        vm.startPrank(governor);
+        deployedSystem.fleet.setFleetTokenTransferability();
+        deployedSystem.fleet.setWhitelisted(from, true);
+        vm.stopPrank();
+
+        _depositDirect(deployedSystem, 250_000);
+
+        vm.prank(from);
+        IERC20(address(deployedSystem.fleet)).approve(spender, 70_000);
+
+        vm.startPrank(spender);
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, to));
+        deployedSystem.fleet.transferFrom(from, to, 70_000);
+        vm.stopPrank();
+    }
+
+    function test_TransferFrom_Succeeds_When_Enabled_FromAndToWhitelisted()
+        public
+    {
+        address from = address(0xF00D);
+        address to = address(0xB0B);
+        address spender = address(0x5050);
+        DeployedSytem memory deployedSystem = _deploy(from);
+
+        vm.startPrank(governor);
+        deployedSystem.fleet.setFleetTokenTransferability();
+        deployedSystem.fleet.setWhitelisted(from, true);
+        deployedSystem.fleet.setWhitelisted(to, true);
+        vm.stopPrank();
+
+        _depositDirect(deployedSystem, 180_000);
+
+        vm.prank(from);
+        IERC20(address(deployedSystem.fleet)).approve(spender, 80_000);
+
+        uint256 fromBefore = IERC20(address(deployedSystem.fleet)).balanceOf(
+            from
+        );
+        vm.prank(spender);
+        bool ok = deployedSystem.fleet.transferFrom(from, to, 80_000);
+        assertTrue(
+            ok,
+            "transferFrom should succeed when enabled and both whitelisted"
+        );
+        assertEq(
+            IERC20(address(deployedSystem.fleet)).balanceOf(from),
+            fromBefore - 80_000,
+            "from balance should decrease"
+        );
+        assertEq(IERC20(address(deployedSystem.fleet)).balanceOf(to), 80_000);
+    }
+
+    function test_TransferFrom_Reverts_When_Enabled_FromNotWhitelisted()
+        public
+    {
+        address from = address(0xF00D);
+        address to = address(0xB0B);
+        address spender = address(0x5050);
+        DeployedSytem memory deployedSystem = _deploy(from);
+
+        vm.startPrank(governor);
+        deployedSystem.fleet.setFleetTokenTransferability();
+        deployedSystem.fleet.setWhitelisted(to, true);
+        deployedSystem.fleet.setWhitelisted(from, true);
+        vm.stopPrank();
+
+        _depositDirect(deployedSystem, 120_000);
+
+        vm.prank(from);
+        IERC20(address(deployedSystem.fleet)).approve(spender, 40_000);
+
+        vm.startPrank(governor);
+        deployedSystem.fleet.setWhitelisted(from, false);
+        vm.stopPrank();
+
+        vm.startPrank(spender);
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, from));
+        deployedSystem.fleet.transferFrom(from, to, 40_000);
         vm.stopPrank();
     }
 }
