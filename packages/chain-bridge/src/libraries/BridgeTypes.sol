@@ -20,10 +20,9 @@ library BridgeTypes {
         uint64 gasLimit; // Gas limit for execution on destination chain
         uint32 calldataSize; // Size of expected return calldata (for read operations)
         uint128 msgValue; // Native value to forward (for operations requiring value)
-        bytes options; // Additional adapter-specific parameters
-        // --- Protocol token fee support (optional) ---
-        bool payInProtocolToken; // If true, pay fees in protocol token when supported
         uint256 feeTokenAmount; // Amount of fee token to pay (when payInProtocolToken is true)
+        bool payInProtocolToken; // If true, pay fees in protocol token when supported
+        bytes options; // Additional adapter-specific parameters
     }
 
     // Enum for operation types

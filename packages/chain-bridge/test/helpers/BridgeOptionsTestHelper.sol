@@ -30,9 +30,9 @@ library BridgeOptionsTestHelper {
                 gasLimit: DEFAULT_GAS_LIMIT,
                 calldataSize: DEFAULT_CALLDATA_SIZE,
                 msgValue: DEFAULT_MSG_VALUE,
-                options: DEFAULT_OPTIONS,
+                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT,
                 payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
-                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT
+                options: DEFAULT_OPTIONS
             });
     }
 
@@ -52,9 +52,9 @@ library BridgeOptionsTestHelper {
                 gasLimit: gasLimit,
                 calldataSize: DEFAULT_CALLDATA_SIZE,
                 msgValue: DEFAULT_MSG_VALUE,
-                options: DEFAULT_OPTIONS,
+                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT,
                 payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
-                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT
+                options: DEFAULT_OPTIONS
             });
     }
 
@@ -73,9 +73,9 @@ library BridgeOptionsTestHelper {
                 gasLimit: DEFAULT_GAS_LIMIT,
                 calldataSize: DEFAULT_CALLDATA_SIZE,
                 msgValue: DEFAULT_MSG_VALUE,
-                options: DEFAULT_OPTIONS,
+                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT,
                 payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
-                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT
+                options: DEFAULT_OPTIONS
             });
     }
 
@@ -101,9 +101,9 @@ library BridgeOptionsTestHelper {
                 gasLimit: gasLimit,
                 calldataSize: calldataSize,
                 msgValue: msgValue,
-                options: options,
+                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT,
                 payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
-                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT
+                options: options
             });
     }
 
@@ -123,9 +123,9 @@ library BridgeOptionsTestHelper {
                 gasLimit: DEFAULT_GAS_LIMIT,
                 calldataSize: DEFAULT_CALLDATA_SIZE,
                 msgValue: DEFAULT_MSG_VALUE,
-                options: DEFAULT_OPTIONS,
+                feeTokenAmount: feeTokenAmount,
                 payInProtocolToken: true,
-                feeTokenAmount: feeTokenAmount
+                options: DEFAULT_OPTIONS
             });
     }
 }
