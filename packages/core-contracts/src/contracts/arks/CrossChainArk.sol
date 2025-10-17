@@ -110,20 +110,11 @@ contract CrossChainArk is
     }
 
     /**
-     * @notice Gets the target proxy address from the registry
-     * @return The target proxy address
-     * @dev Reverts if no relationship exists for the satellite chain
-     */
-    function getTargetProxy() external view returns (address) {
-        return _getTargetProxy();
-    }
-
-    /**
      * @notice Alias using hub/satellite terminology
      * @return The satellite proxy address
      */
     function getSatelliteProxy() external view returns (address) {
-        return _getTargetProxy();
+        return _getSatelliteProxy();
     }
 
     /**
@@ -155,8 +146,8 @@ contract CrossChainArk is
         uint256 amount,
         bytes calldata executeTransferParams
     ) internal override {
-        _assertCanBoardOrDisembark();
-        address proxyAddress = _getTargetProxy();
+        _validateCanBoardOrDisembark();
+        address proxyAddress = _getSatelliteProxy();
 
         (
             BridgeTypes.ExecuteTransferParams memory params,
@@ -225,7 +216,7 @@ contract CrossChainArk is
      * FleetProxy.withdrawAndTransfer() which transfers assets back to this contract
      */
     function _disembark(uint256 amount, bytes calldata) internal view override {
-        _assertCanBoardOrDisembark();
+        _validateCanBoardOrDisembark();
         // Ensure we have enough assets on the contract
         uint256 availableAssets = config.asset.balanceOf(address(this));
         if (availableAssets < amount) {
@@ -274,7 +265,7 @@ contract CrossChainArk is
     ) internal override {
         if (params.sourceChainId != satelliteChainId)
             revert InvalidSourceChain();
-        if (params.originator != _getTargetProxy()) revert InvalidSender();
+        if (params.originator != _getSatelliteProxy()) revert InvalidSender();
 
         // Decode the remote asset balance
         (uint256 newRemoteBalance, bytes32 latestReceivedTransferId) = abi
@@ -304,10 +295,10 @@ contract CrossChainArk is
     }
 
     /**
-     * @notice Asserts that the board or disembark can be performed
-     * @dev This function asserts that no inflight transfer exists and no pending transfer is queued
+     * @notice Validates that the board or disembark can be performed
+     * @dev This function validates that no inflight transfer exists and no pending transfer is queued
      */
-    function _assertCanBoardOrDisembark() internal view {
+    function _validateCanBoardOrDisembark() internal view {
         if (inflightAssets != 0) revert InFlight();
         if (pendingTransferParams.asset != address(0)) {
             revert PendingTransferAlreadyQueued();
@@ -328,7 +319,8 @@ contract CrossChainArk is
         if (params.sourceChainId != satelliteChainId)
             revert InvalidSourceChain();
         if (params.asset != address(config.asset)) revert InvalidAsset();
-        if (params.originator != _getTargetProxy()) revert InvalidRequestor();
+        if (params.originator != _getSatelliteProxy())
+            revert InvalidRequestor();
 
         uint256 remoteBalance = abi.decode(params.message, (uint256));
         // Update the remote asset tracking
@@ -353,7 +345,7 @@ contract CrossChainArk is
         if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
         _sendNotification(
             satelliteChainId,
-            _getTargetProxy(),
+            _getSatelliteProxy(),
             abi.encode(latestIncomingTransferId),
             options,
             msg.sender
@@ -381,11 +373,11 @@ contract CrossChainArk is
     }
 
     /**
-     * @notice Gets the target proxy address from the registry
-     * @return proxyAddress The target proxy address
+     * @notice Gets the satellite proxy address from the registry
+     * @return proxyAddress The satellite proxy address
      * @dev Reverts if no relationship exists for the satellite chain
      */
-    function _getTargetProxy() internal view returns (address proxyAddress) {
+    function _getSatelliteProxy() internal view returns (address proxyAddress) {
         ICrossChainRegistry.CrossChainRelation
             memory relation = ICrossChainRegistry(crossChainRegistry())
                 .getRelationshipByTarget(
@@ -394,6 +386,11 @@ contract CrossChainArk is
                         .PEER_RELATIONSHIP(),
                     satelliteChainId
                 );
+
+        if (relation.targetContract == address(0)) {
+            revert InvalidSatelliteChain();
+        }
+
         return relation.targetContract;
     }
 

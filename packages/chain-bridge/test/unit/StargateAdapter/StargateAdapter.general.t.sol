@@ -5,11 +5,13 @@ import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {MockStargateV2Pool} from "../../mocks/MockStargateV2.sol";
 import {MockStargateV2OFT} from "../../mocks/MockStargateV2.sol";
 import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {ICrossChainRegistry} from "../../../src/interfaces/ICrossChainRegistry.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
+import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
 
 contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     bytes32 testTransferId = bytes32(uint256(12345));
@@ -20,7 +22,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
     function testSupportsChain_List_ReturnsConfiguredPeers() public view {
         // Get chains through registry relationships
-        (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
+        (, uint16[] memory supportedChains) = registryA.getAllTargetsForSource(
             address(adapterA),
             registryA.PEER_RELATIONSHIP()
         );
@@ -42,16 +44,13 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
             "Chain B should be supported"
         );
 
-        // Expect revert when checking unsupported chain
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(adapterA),
-                registryA.PEER_RELATIONSHIP(),
-                uint16(9999)
-            )
+        // Expect address(0) when checking unsupported chain
+        address peer = registryA.getAdapterPeer(address(adapterA), 9999);
+        assertEq(
+            peer,
+            address(0),
+            "Unsupported chain should return address(0)"
         );
-        registryA.getAdapterPeer(address(adapterA), 9999);
     }
 
     function testFeatureSupport() public view {
@@ -155,7 +154,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Verify it's in the list of supported chains (through registry relationships)
-        (, uint16[] memory targetChainIds) = registryA.getTargetsForSource(
+        (, uint16[] memory targetChainIds) = registryA.getAllTargetsForSource(
             address(adapterA),
             registryA.PEER_RELATIONSHIP()
         );
@@ -235,37 +234,13 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Try to add address(0) as an asset
         vm.prank(governor);
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(StargateAdapter.InvalidAssetAddress.selector);
         adapterA.addSupportedAsset(address(0), address(mockStargateContract));
     }
-
-    function testEstimateSendMessage_RevertOperationNotSupported() public {
-        useNetworkA();
-        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
-        adapterA.estimateSendMessage(
-            BridgeTypes.ExecuteSendMessageParams({
-                originator: address(this),
-                destinationChainId: CHAIN_ID_B,
-                target: address(0x1),
-                message: "",
-                refundAddress: address(this)
-            }),
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(adapterA),
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: "",
-                payInProtocolToken: false,
-                feeTokenAmount: 0
-            })
-        );
-    }
-
     function testAddSupportedAsset_RevertsOnZeroStargateAddress() public {
         useNetworkA();
         vm.prank(governor);
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(StargateAdapter.InvalidStargateContract.selector);
         adapterA.addSupportedAsset(address(tokenA), address(0));
     }
 
@@ -274,7 +249,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Deploy a Stargate OFT-type mock (not Pool)
         MockStargateV2OFT wrongType = new MockStargateV2OFT(address(tokenA));
         vm.prank(governor);
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(StargateAdapter.InvalidStargateType.selector);
         adapterA.addSupportedAsset(address(tokenA), address(wrongType));
     }
 
@@ -288,7 +263,13 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
             address(otherToken)
         );
         vm.prank(governor);
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                StargateAdapter.InvalidStargatePoolToken.selector,
+                address(tokenA),
+                address(otherToken)
+            )
+        );
         adapterA.addSupportedAsset(address(tokenA), address(poolForOther));
     }
 

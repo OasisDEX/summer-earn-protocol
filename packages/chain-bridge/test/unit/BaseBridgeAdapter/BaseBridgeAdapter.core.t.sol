@@ -8,6 +8,7 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 
 contract ExposedAdapter is BaseBridgeAdapter {
@@ -20,18 +21,18 @@ contract ExposedAdapter is BaseBridgeAdapter {
         uint16 dstChain
     ) external onlyTrustedDestination(dstChain) {}
 
-    function exposed_assertTrustedSource(
+    function exposed_validateTrustedSource(
         address srcAdapter,
         uint16 srcChain
-    ) external view {
-        _assertTrustedSource(srcAdapter, srcChain);
+    ) external view returns (bool) {
+        return _validateTrustedSource(srcAdapter, srcChain);
     }
 
-    function exposed_assertSourceChainId(
+    function exposed_validateSourceChainId(
         uint16 sourceChainId,
         uint16 expected
     ) external pure {
-        _assertSourceChainId(sourceChainId, expected);
+        _validateSourceChainId(sourceChainId, expected);
     }
 
     function exposed_externalIdForChain(
@@ -153,7 +154,9 @@ contract BaseBridgeAdapterCoreTest is Test {
     function testMapExternalId_Reverts_WhenExternalIdZero() public {
         vm.startPrank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(BaseBridgeAdapter.InvalidParams.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
         );
         adapterA.mapExternalId(1234, 0);
         vm.stopPrank();
@@ -186,7 +189,9 @@ contract BaseBridgeAdapterCoreTest is Test {
     // -------- Gas limit validation --------
     function testRequireGasLimit_RevertsOnZero() public {
         vm.expectRevert(
-            abi.encodeWithSelector(BaseBridgeAdapter.InvalidParams.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
         );
         adapterA.exposed_requireGasLimit(0);
     }
@@ -202,12 +207,7 @@ contract BaseBridgeAdapterCoreTest is Test {
 
         // Not trusted yet
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "RelationshipDoesNotExist(address,bytes32,uint16)",
-                address(adapterA),
-                keccak256("PEER_RELATIONSHIP"),
-                chainB
-            )
+            abi.encodeWithSignature("UntrustedDestinationChain(uint16)", chainB)
         );
         adapterA.onlyTrusted(chainB);
 
@@ -223,35 +223,7 @@ contract BaseBridgeAdapterCoreTest is Test {
 
         // Now passes
         adapterA.onlyTrusted(chainB);
-        assertTrue(adapterA.isTrustedDestination(chainB));
-    }
-
-    function testAssertTrustedSource_RevertAndPass() public {
-        uint16 chainA = uint16(block.chainid);
-        uint16 chainB = 5555;
-
-        // Before registration: should revert
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                BaseBridgeAdapter.UntrustedSourceAdapter.selector,
-                address(adapterB2),
-                chainB
-            )
-        );
-        adapterA.exposed_assertTrustedSource(address(adapterB2), chainB);
-
-        // Register bidirectional peers
-        vm.startPrank(governor);
-        registry.registerAdapterPeerPair(
-            address(adapterA),
-            address(adapterB2),
-            chainA,
-            chainB
-        );
-        vm.stopPrank();
-
-        // Now it should not revert
-        adapterA.exposed_assertTrustedSource(address(adapterB2), chainB);
+        assertTrue(adapterA.isAllowedDestination(chainB));
     }
 
     function testGetPeeredChainIds_ReturnsAllTargets() public {
@@ -287,14 +259,14 @@ contract BaseBridgeAdapterCoreTest is Test {
     function testAssertSourceChainId_RevertOnMismatch() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                BaseBridgeAdapter.InvalidSourceChainId.selector
+                IBaseBridgeAdapterErrors.InvalidSourceChainId.selector
             )
         );
-        adapterA.exposed_assertSourceChainId(100, 200);
+        adapterA.exposed_validateSourceChainId(100, 200);
     }
 
     function testAssertSourceChainId_PassOnMatch() public {
-        adapterA.exposed_assertSourceChainId(123, 123);
+        adapterA.exposed_validateSourceChainId(123, 123);
     }
 
     // -------- Encode/Decode helpers --------

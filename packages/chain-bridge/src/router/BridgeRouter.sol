@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
+import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
@@ -131,13 +132,20 @@ contract BridgeRouter is
     function _assertPeerMappingExistsForChain(
         uint16 sourceChainId
     ) internal view {
-        // Will revert if (srcChainId, msg.sender) is NOT a registered pair
-        CROSS_CHAIN_REGISTRY.getSourceForTarget(
+        address sourceContract = CROSS_CHAIN_REGISTRY.getSourceForTarget(
             sourceChainId,
             uint16(block.chainid),
             msg.sender,
             CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
         );
+
+        if (sourceContract == address(0)) {
+            revert ICrossChainRegistry.RelationshipDoesNotExist(
+                address(0),
+                CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP(),
+                uint16(block.chainid)
+            );
+        }
     }
 
     /**
@@ -148,12 +156,20 @@ contract BridgeRouter is
         uint16 sourceChainId,
         address adapter
     ) internal view {
-        CROSS_CHAIN_REGISTRY.getSourceForTarget(
+        address sourceContract = CROSS_CHAIN_REGISTRY.getSourceForTarget(
             sourceChainId,
             uint16(block.chainid),
             adapter,
             CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
         );
+
+        if (sourceContract == address(0)) {
+            revert ICrossChainRegistry.RelationshipDoesNotExist(
+                address(0),
+                CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP(),
+                uint16(block.chainid)
+            );
+        }
     }
 
     /*//////////////////////////////////////////////////////////////

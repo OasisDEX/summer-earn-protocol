@@ -10,6 +10,7 @@ import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {Errors} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Errors.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
@@ -19,7 +20,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
     function testGetSupportedChains() public view {
         // Get chains through registry relationships
-        (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
+        (, uint16[] memory supportedChains) = registryA.getAllTargetsForSource(
             address(adapterA),
             registryA.PEER_RELATIONSHIP()
         );
@@ -38,19 +39,16 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             "Chain B should be supported"
         );
 
-        // Expect revert when unsupported chain is queried
+        // Expect address(0) when unsupported chain is queried
         ICrossChainRegistry registryA = ICrossChainRegistry(
             address(adapterA.CROSS_CHAIN_REGISTRY())
         );
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(adapterA),
-                registryA.PEER_RELATIONSHIP(),
-                2
-            )
+        address peer = registryA.getAdapterPeer(address(adapterA), 2);
+        assertEq(
+            peer,
+            address(0),
+            "Unsupported chain should return address(0)"
         );
-        registryA.getAdapterPeer(address(adapterA), 2);
     }
 
     // Update test for UnsupportedMessageType error: use a valid but unsupported op (TRANSFER_ASSET)
@@ -93,7 +91,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             calldataSize: 0,
             options: bytes(""),
             payInProtocolToken: false,
-                feeTokenAmount: 0
+            feeTokenAmount: 0
         });
 
         // Call estimateSendMessage directly on the adapter
@@ -164,7 +162,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             msgValue: 0,
             options: bytes(""),
             payInProtocolToken: false,
-                feeTokenAmount: 0
+            feeTokenAmount: 0
         });
 
         vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
@@ -192,10 +190,10 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             msgValue: 0,
             options: bytes(""),
             payInProtocolToken: false,
-                feeTokenAmount: 0
+            feeTokenAmount: 0
         });
 
-        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         adapterA.estimateSendMessage(
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: CHAIN_ID_B,
@@ -235,7 +233,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             nonce: 1
         });
 
-        vm.expectRevert(BaseBridgeAdapter.InvalidSourceChainId.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidSourceChainId.selector);
         adapterA.lzReceiveTest(
             origin,
             bytes32(uint256(1)),
@@ -270,7 +268,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                BaseBridgeAdapter.UntrustedSourceAdapter.selector,
+                IBaseBridgeAdapterErrors.UntrustedSourceAdapter.selector,
                 address(0x1234),
                 CHAIN_ID_B
             )
