@@ -7,7 +7,7 @@ import {
 } from '../../generated/InstitutionalVaultRegistry/InstitutionalVaultRegistry'
 import { Institution } from '../../generated/schema'
 import { HarborCommand as HarborCommandTemplate } from '../../generated/templates'
-import { getOrCreateVault } from '../common/initializers'
+import { getOrCreateAccessController, getOrCreateVault } from '../common/initializers'
 
 export function handleInstitutionAdded(event: InstitutionAdded): void {
   let institution = new Institution(event.params.id.toHex())
@@ -15,6 +15,8 @@ export function handleInstitutionAdded(event: InstitutionAdded): void {
   HarborCommandTemplate.create(harborCommand)
   institution.protocolAccessManager = event.params.protocolAccessManager.toHexString()
   institution.admiralsQuarters = event.params.admiralsQuarters.toHexString()
+  getOrCreateAccessController(event.params.protocolAccessManager.toHexString(), institution.id)
+  getOrCreateAccessController(event.params.admiralsQuarters.toHexString(), institution.id)
   institution.harborCommand = harborCommand.toHexString()
   institution.configurationManager = event.params.configurationManager.toHexString()
   institution.createdTimestamp = event.block.timestamp
@@ -30,7 +32,7 @@ export function handleInstitutionAdded(event: InstitutionAdded): void {
   const fleets = maybeFleets.value
   for (let i = 0; i < fleets.length; i++) {
     const fleet = fleets[i]
-    getOrCreateVault(fleet, event.block)
+    getOrCreateVault(fleet, event.block, institution.id)
   }
 }
 
@@ -39,6 +41,7 @@ export function handleInstitutionAdmiralsQuartersUpdated(
 ): void {
   let institution = new Institution(event.params.id.toHex())
   institution.admiralsQuarters = event.params.newAdmiralsQuarters.toHexString()
+  getOrCreateAccessController(event.params.newAdmiralsQuarters.toHexString())
   institution.save()
 }
 

@@ -2,9 +2,11 @@ import {
   RoleGranted,
   RoleRevoked,
 } from '../../generated/InstitutionalVaultRegistry/ProtocolAccessManager'
-import { Role } from '../../generated/schema'
+import { WhitelistStatusUpdated } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import { getOrCreateAccessController, getOrCreateRole } from '../common/initializers'
 
-function handleRoleGranted(event: RoleGranted): void {
+export function handleRoleGranted(event: RoleGranted): void {
+  const accessController = getOrCreateAccessController(event.address.toHexString())
   const id = `${event.address.toHexString()}-${event.params.role.toHexString()}-${event.params.account.toHexString()}`
   const role = getOrCreateRole(id)
   role.name = event.params.role.toString()
@@ -12,11 +14,12 @@ function handleRoleGranted(event: RoleGranted): void {
   role.role = 'ALLOWED'
   role.createdTimestamp = event.block.timestamp
   role.createdBlockNumber = event.block.number
-  role.institution = event.address.toHexString()
+  role.institution = accessController.institution
   role.save()
 }
 
-function handleRoleRevoked(event: RoleRevoked): void {
+export function handleRoleRevoked(event: RoleRevoked): void {
+  const accessController = getOrCreateAccessController(event.address.toHexString())
   const id = `${event.address.toHexString()}-${event.params.role.toHexString()}-${event.params.account.toHexString()}`
   const role = getOrCreateRole(id)
   role.name = event.params.role.toString()
@@ -24,14 +27,21 @@ function handleRoleRevoked(event: RoleRevoked): void {
   role.role = 'NOT_ALLOWED'
   role.createdTimestamp = event.block.timestamp
   role.createdBlockNumber = event.block.number
-  role.institution = event.address.toHexString()
+  role.institution = accessController.institution
   role.save()
 }
 
-export function getOrCreateRole(id: string): Role {
-  let role = Role.load(id)
-  if (!role) {
-    role = new Role(id)
-  }
-  return role
+export function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): void {
+  const accessController = getOrCreateAccessController(event.address.toHexString())
+  // role id is: fleetAddress-accountAddress
+  const id = `${event.address.toHexString()}-${event.params.account.toHexString()}`
+  const role = getOrCreateRole(id)
+
+  role.name = 'Whitelist'
+  role.accessController = event.address.toHexString()
+  role.role = event.params.allowed ? 'ALLOWED' : 'NOT_ALLOWED'
+  role.createdTimestamp = event.block.timestamp
+  role.createdBlockNumber = event.block.number
+  role.institution = accessController.institution
+  role.save()
 }

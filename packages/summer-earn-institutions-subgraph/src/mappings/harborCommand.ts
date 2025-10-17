@@ -3,6 +3,7 @@ import { FleetCommanderEnlisted } from '../../generated/HarborCommand/HarborComm
 import { Vault, YieldAggregator } from '../../generated/schema'
 import { BigDecimalConstants, BigIntConstants } from '../common/constants'
 import {
+  getOrCreateAccessController,
   getOrCreateArksDailySnapshots,
   getOrCreateArksHourlySnapshots,
   getOrCreatePosition,
@@ -28,7 +29,9 @@ import { updateVault } from './entities/vault'
 import { updateAccountStakingRewards } from './governanceRewardsManager'
 
 export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): void {
-  getOrCreateVault(event.params.fleetCommander, event.block)
+  const accessController = getOrCreateAccessController(event.address.toHexString())
+
+  getOrCreateVault(event.params.fleetCommander, event.block, accessController.institution)
 }
 
 function updateArkData(vault: Vault, arkAddress: Address, block: ethereum.Block): void {

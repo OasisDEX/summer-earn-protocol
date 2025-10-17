@@ -1,6 +1,7 @@
 import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { ERC20 as ERC20Contract } from '../../generated/HarborCommand/ERC20'
 import {
+  AccessController,
   Account,
   Ark,
   ArkDailySnapshot,
@@ -17,6 +18,7 @@ import {
   PostActionVaultSnapshot,
   RewardToken,
   RewardsManager,
+  Role,
   Token,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
@@ -402,12 +404,20 @@ export function getOrCreateVaultsHourlySnapshots(
   return vaultSnapshots
 }
 
-export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): VaultStore {
+export function getOrCreateVault(
+  vaultAddress: Address,
+  block: ethereum.Block,
+  institutionId: string | null = null,
+): VaultStore {
   let vault = VaultStore.load(vaultAddress.toHexString())
 
   if (!vault) {
     vault = new VaultStore(vaultAddress.toHexString())
-
+    if (institutionId) {
+      getOrCreateAccessController(vaultAddress.toHexString(), institutionId)
+      vault.institution = institutionId
+      vault.save()
+    }
     const vaultContract = FleetCommanderContract.bind(vaultAddress)
     vault.name = utils.readValue<string>(vaultContract.try_name(), '')
     vault.symbol = utils.readValue<string>(vaultContract.try_symbol(), '')
@@ -961,4 +971,24 @@ export function getOrCreatePositionRewards(
     positionRewards.claimedNormalized = constants.BigDecimalConstants.ZERO
   }
   return positionRewards
+}
+
+export function getOrCreateRole(id: string): Role {
+  let role = Role.load(id)
+  if (!role) {
+    role = new Role(id)
+  }
+  return role
+}
+
+export function getOrCreateAccessController(id: string, institutionId: string | null = null): AccessController {
+  let accessController = AccessController.load(id)
+  if (!accessController) {
+    accessController = new AccessController(id)
+    if (institutionId) {
+      accessController.institution = institutionId
+      accessController.save()
+    }
+  }
+  return accessController
 }

@@ -1,5 +1,5 @@
 import { Address, BigDecimal, BigInt } from '@graphprotocol/graph-ts'
-import { Role, VaultFee } from '../../generated/schema'
+import { VaultFee } from '../../generated/schema'
 import {
   RewardAdded,
   RewardPaid,
@@ -29,11 +29,13 @@ import { addresses } from '../common/addressProvider'
 import * as constants from '../common/constants'
 import { ADDRESS_ZERO, BigIntConstants, VaultFeeType } from '../common/constants'
 import {
+  getOrCreateAccessController,
   getOrCreateAccount,
   getOrCreateArk,
   getOrCreatePosition,
   getOrCreatePositionRewards,
   getOrCreateRewardsManager,
+  getOrCreateRole,
   getOrCreateToken,
   getOrCreateVault,
 } from '../common/initializers'
@@ -335,8 +337,8 @@ export function handleRewardPaid(event: RewardPaid): void {
   }
 }
 
-function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): void {
-  const vault = getOrCreateVault(event.address, event.block)
+export function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): void {
+  const accessController = getOrCreateAccessController(event.address.toHexString())
   // role id is: fleetAddress-accountAddress
   const id = `${event.address.toHexString()}-${event.params.account.toHexString()}`
   const role = getOrCreateRole(id)
@@ -346,14 +348,6 @@ function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): void {
   role.role = event.params.allowed ? 'ALLOWED' : 'NOT_ALLOWED'
   role.createdTimestamp = event.block.timestamp
   role.createdBlockNumber = event.block.number
-  role.institution = vault.institution
+  role.institution = accessController.institution
   role.save()
-}
-
-export function getOrCreateRole(id: string): Role {
-  let role = Role.load(id)
-  if (!role) {
-    role = new Role(id)
-  }
-  return role
 }

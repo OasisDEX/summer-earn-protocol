@@ -1695,3 +1695,8 @@ type Role @entity {
   createdBlockNumber: BigInt!
   institution: Institution!
 }
+
+type AccessController @entity {
+  id: ID!
+  institution: Institution!
+}
