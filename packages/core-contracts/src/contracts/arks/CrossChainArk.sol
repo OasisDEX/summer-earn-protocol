@@ -490,4 +490,5 @@ contract CrossChainArk is
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
     }
+
 }
