@@ -6,7 +6,8 @@ import prompts from 'prompts'
 import { Address, Address as ViemAddress } from 'viem'
 import { FleetConfig } from '../types/config-types'
 import { saveFleetDeploymentJson } from './common/fleet-deployment-files-helpers'
-import { deployFleetContracts, logDeploymentResults } from './fleets/fleet-contracts'
+import { logDeploymentResults } from './fleets/fleet-contracts'
+import { createFleetWhitelistModule } from '../ignition/modules/fleet-whitelist'
 import {
   deployArks,
   getRewardsManagerAddress,
@@ -83,13 +84,36 @@ async function main() {
     return
   }
 
-  const deployedFleet = await deployFleetContracts(fleetDefinition, config, assetAddress)
-  const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
+  // Deploy via whitelist module (FleetCommanderWhitelist)
+  const name = fleetDefinition.fleetName.replace(/\W/g, '')
+  const fleetModule = createFleetWhitelistModule(`FleetWhitelist_${name}`)
+  const deployedFleet = await hre.ignition.deploy(fleetModule, {
+    parameters: {
+      [`FleetWhitelist_${name}`]: {
+        configurationManager: config.deployedContracts.core.configurationManager.address,
+        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
+        fleetName: fleetDefinition.fleetName,
+        fleetSymbol: fleetDefinition.symbol,
+        fleetDetails: fleetDefinition.details,
+        asset: assetAddress,
+        initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
+        initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
+        depositCap: fleetDefinition.depositCap,
+        initialTipRate: fleetDefinition.initialTipRate,
+        fleetCommanderRewardsManagerFactory: '0x0000000000000000000000000000000000000000',
+      },
+    },
+  })
+
+  const bufferArkAddress = await deployedFleet.fleetCommanderWhitelist.read.bufferArk()
   const deployedArks = await deployArks(fleetDefinition, config)
+
+  // Wrap to match saver/logger expected shape
+  const deployedCompat = { fleetCommander: deployedFleet.fleetCommanderWhitelist } as any
 
   saveFleetDeploymentJson(
     fleetDefinition,
-    deployedFleet,
+    deployedCompat,
     bufferArkAddress as Address,
     deployedArks,
     useBummerConfig,
@@ -98,7 +122,7 @@ async function main() {
   // Persist institution-scoped fleet entry using the fleet config filename (requested: same name as config)
   const fleetNameKey = fleetDefinition.fleetName
   updateInstitutionFleetEntry(institutionId, useBummerConfig, network, fleetNameKey, {
-    fleetCommander: deployedFleet.fleetCommander.address as ViemAddress,
+    fleetCommander: deployedFleet.fleetCommanderWhitelist.address as ViemAddress,
     bufferArk: bufferArkAddress as ViemAddress,
     arks: deployedArks as ViemAddress[],
   })
@@ -111,7 +135,7 @@ async function main() {
   ) {
     try {
       const rewardsManagerAddress = await getRewardsManagerAddress(
-        deployedFleet.fleetCommander.address as ViemAddress,
+        deployedFleet.fleetCommanderWhitelist.address as ViemAddress,
       )
       await setupFleetRewards(
         rewardsManagerAddress,
@@ -126,7 +150,7 @@ async function main() {
     }
   }
 
-  logDeploymentResults(deployedFleet)
+  logDeploymentResults(deployedCompat)
   console.log(kleur.green().bold('Whitelisted fleet deployed for institution.'))
 }
 

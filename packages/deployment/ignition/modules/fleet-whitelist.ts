@@ -3,21 +3,21 @@ import { Address } from 'viem'
 /**
  * Type definition for the returned contract addresses
  */
-export type FleetContracts = {
+export type FleetWhitelistContracts = {
   fleetCommander: { address: Address }
 }
 
 /**
- * Factory function to create a FleetModule for deploying a FleetCommander and its associated BufferArk
+ * Factory function to create a FleetWhitelistModule for deploying a FleetCommanderWhitelist and its associated BufferArk
  *
- * This function creates a module that deploys the FleetCommander contract and its associated BufferArk contract.
+ * This function creates a module that deploys the FleetCommanderWhitelist contract and its associated BufferArk contract.
  *
  * @param {string} moduleName - Name of the module
  * @returns {Function} A function that builds the module
  */
-export function createFleetModule(moduleName: string) {
+export function createFleetWhitelistModule(moduleName: string) {
   return buildModule(moduleName, (m) => {
-    // Fleet module params exc. BufferArk
+    // FleetWhitelist module params exc. BufferArk
     const configurationManager = m.getParameter<string>('configurationManager')
     const protocolAccessManager = m.getParameter<string>('protocolAccessManager')
     const fleetName = m.getParameter<string>('fleetName')
@@ -32,7 +32,7 @@ export function createFleetModule(moduleName: string) {
       'fleetCommanderRewardsManagerFactory',
     )
 
-    const fleetCommander = m.contract('FleetCommander', [
+    const fleetCommanderWhitelist = m.contract('FleetCommanderWhitelist', [
       {
         name: fleetName,
         symbol: fleetSymbol,
@@ -47,6 +47,6 @@ export function createFleetModule(moduleName: string) {
         fleetCommanderRewardsManagerFactory: fleetCommanderRewardsManagerFactory,
       },
     ])
-    return { fleetCommander }
+    return { fleetCommanderWhitelist }
   })
 }
