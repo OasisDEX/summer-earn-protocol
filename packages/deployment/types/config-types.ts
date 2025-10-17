@@ -1,6 +1,6 @@
 import { Address } from 'viem'
 import { BuyAndBurnContracts } from '../ignition/modules/buy-and-burn'
-import { CoreContracts } from '../ignition/modules/core'
+import { CoreContracts as CoreContractsBase } from '../ignition/modules/core'
 import { GovContracts } from '../ignition/modules/gov'
 
 export enum SupportedNetworks {
@@ -253,4 +253,9 @@ export interface FleetDeployment {
   bufferArkAddress: Address
   network: string
   arks: Address[]
+}
+
+// Extend CoreContracts to include InstitutionalVaultRegistry for networks
+export interface CoreContracts extends CoreContractsBase {
+  institutionalVaultRegistry?: { address: Address }
 }
