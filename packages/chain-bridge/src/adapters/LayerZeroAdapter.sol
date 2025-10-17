@@ -655,18 +655,18 @@ contract LayerZeroAdapter is
             return false;
         }
 
-        // Check if the adapter supports this operation type in general
-        if (!supportsOperation(operationType)) {
-            return false;
-        }
-
         // For READ_STATE operations, check both global config and chain-specific support
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
             return readChannelId != 0 && chainSupportsRead[destinationChainId];
         }
 
         // For MESSAGE operations, no additional requirements beyond chain support
-        return true;
+        if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            return true;
+        }
+
+        // For any other operation type, return false
+        return false;
     }
 
     /**
