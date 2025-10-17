@@ -16,35 +16,34 @@ The `FleetCommander` now includes built-in MEV protection mechanisms designed to
 1. **Loss Realization Arbitrage**: Withdraw before loss, deposit after
 2. **Reward Distribution Sandwich**: Capture rewards before they're distributed
 
-## Solution: Cooldown-Based MEV Protection
+## Solution: Withdrawal Fee-Based MEV Protection
 
-The `FleetCommander` implements a cooldown-based system that prevents immediate withdrawal or redemption after deposits, eliminating the ability for arbitrageurs to exploit timing-based attacks.
+The `FleetCommander` implements a withdrawal fee-based system that provides economic disincentives for MEV attacks while maintaining ERC4626 compliance. Users burn full shares but receive reduced assets, with the fee shares transferred to the tipJar.
 
 ### Key Components
 
-#### 1. Cooldown Period Enforcement
-- Configurable cooldown period between deposits and withdrawals/redemptions
-- Prevents immediate withdrawal after deposit to eliminate MEV opportunities
-- Tracks last deposit timestamp per user
+#### 1. Withdrawal Fee Calculation
+- Configurable withdrawal fee percentage applied to all withdrawals/redemptions
+- Fee calculation based on total assets being withdrawn
+- ERC4626 compliant fee mechanism
 
-#### 2. Deposit Tracking
-- Records timestamp of each user's last deposit
-- Enforces cooldown period before allowing withdrawals/redemptions
-- Simple and efficient state management
+#### 2. Share Burning and Asset Reduction
+- Users burn the full amount of shares corresponding to their withdrawal
+- Users receive assets minus the calculated fee amount
+- Fee shares are transferred to the tipJar
 
-#### 3. Access Control
-- Cooldown enforcement through modifiers
-- Prevents timing-based arbitrage attacks
-- Maintains ERC4626 interface compatibility
+#### 3. Fee Collection
+- Withdrawal fees are collected as shares and transferred to the tipJar
+- `WithdrawalFeeCollected` event tracks fee collection
 
 
 ### Architecture
 
 ```
-User Deposit → Record Timestamp → Cooldown Period → Withdrawal/Redemption
-     ↓              ↓                    ↓                    ↓
-  Immediate      Track Last        Enforce Wait        Safe Execution
-  Response       Deposit Time      (MEV Protected)     (No MEV)
+User Withdrawal → Calculate Fee → Burn Full Shares → Receive Reduced Assets
+     ↓                ↓                ↓                    ↓
+  Request         Fee Applied      Share Burning        Asset Transfer
+  (Any Time)      (MEV Protected)  (ERC4626 Compliant)  (Fee Goes to TipJar)
 ```
 
 ## Implementation Details
@@ -53,125 +52,115 @@ User Deposit → Record Timestamp → Cooldown Period → Withdrawal/Redemption
 
 **Added to `FleetCommander.sol`:**
 ```solidity
-/// @notice Mapping of user address to their last deposit timestamp
-mapping(address => uint256) public lastDepositTimestamp;
+/// @notice Withdrawal fee configuration and calculation
+/// @dev Fee is applied to withdrawals/redemptions to prevent MEV attacks
+uint256 public initialWithdrawalFee;
 ```
 
-### 2. Cooldown Configuration
+### 2. Withdrawal Fee Configuration
 
 **Constructor Parameters:**
 ```solidity
 FleetCommanderParams memory params
-// Now includes userCooldownPeriod field
+// Now includes initialWithdrawalFee field
 ```
 
-The cooldown period is configurable through the `userCooldownPeriod` parameter in the constructor and stored in the `FleetConfig`. After deployment, the rebalance cooldown period can be updated by curators using the `updateRebalanceCooldown()` function.
+The withdrawal fee is configurable through the `initialWithdrawalFee` parameter in the constructor and stored in the `FleetConfig`.
 
 ### 3. FleetCommander Features
 
-#### Cooldown Functions
-- `getCooldown()` - Get the current rebalance cooldown period
-- `getUserDepositCooldown()` - Get the current user deposit cooldown period
-- `getLastActionTimestamp()` - Get the last rebalance timestamp
-- `lastDepositTimestamp[user]` - Public mapping showing user's last deposit timestamp
-- `updateRebalanceCooldown(uint256 newCooldown)` - Update rebalance cooldown period (curator only)
+#### Withdrawal Fee Functions
+- `_calculateWithdrawalFee(assets)` - Calculate withdrawal fee for given assets
 
-#### Cooldown Enforcement
-- `enforceUserDepositCooldown(user)` modifier - Enforces cooldown on withdrawals/redemptions
-- `_recordDepositTimestamp(user)` - Internal function to track deposits
-- `_propagateCooldownTimestamp(from, to)` - Internal function to propagate cooldown on transfers
+#### Withdrawal Fee Enforcement
+- `_handleWithdrawalFee(owner, totalAssets, feeAmount)` - Internal helper for fee collection and re-boarding
+- `WithdrawalFeeCollected` event - Emitted when withdrawal fees are collected
+- Fee calculation applied in all withdrawal/redemption functions
 
 ### 4. MEV Protection Mechanisms
 
-#### Timing Attack Prevention
-- Cooldown period prevents immediate withdrawal after deposit
-- Eliminates ability to exploit timing-based arbitrage
+#### Economic Disincentive
+- Withdrawal fees create economic cost for MEV attacks
+- Eliminates profitability of timing-based arbitrage
 - Prevents sandwich attacks on reward distributions
 
-#### Deposit Tracking
-- Records exact timestamp of each user's last deposit
-- Enforces waiting period before withdrawals/redemptions
-- Simple and efficient state management
+#### ERC4626 Compliance
+- Standard withdrawal fee mechanism
+- Users burn full shares but receive reduced assets
+- Fee remains in vault, benefiting remaining shareholders
 
-#### Access Control
-- Cooldown enforcement through modifiers
-- Prevents manipulation of timing-based attacks
-- Maintains ERC4626 interface compatibility
+#### Fee Collection
+- Automatic fee calculation and collection
+- Fee shares transferred to tipJar for all withdrawals
 
 ## Usage Example
 
 ### 1. User Deposits
 ```solidity
-// User calls deposit (timestamp is recorded)
+// User calls deposit (no restrictions)
 uint256 shares = fleetCommander.deposit(1000e6, user);
-// Returns shares immediately, cooldown period starts
+// Returns shares immediately
 ```
 
-### 2. Cooldown Check
+### 2. Withdrawal Fee Calculation
 ```solidity
-// Check user's last deposit timestamp
-uint256 lastDeposit = fleetCommander.lastDepositTimestamp(user);
+// Calculate withdrawal fee for given assets
+uint256 assets = 500e6;
+uint256 feeAmount = fleetCommander._calculateWithdrawalFee(assets);
 
-// Get user deposit cooldown period
-uint256 cooldownPeriod = fleetCommander.getUserDepositCooldown();
-
-// Calculate when user can withdraw
-uint256 nextWithdrawTime = lastDeposit + cooldownPeriod;
+// User will receive: assets - feeAmount
+uint256 assetsReceived = assets - feeAmount;
 ```
 
 ### 3. User Withdrawals
 ```solidity
-// Withdrawal will revert if cooldown not met
+// Withdrawal applies fee automatically
 uint256 assets = fleetCommander.withdraw(500e6, user, user);
-// Only succeeds if cooldown period has passed
+// User receives reduced assets, fee shares go to tipJar
+// Full shares are burned, fee shares transferred to tipJar
 ```
 
 ## Configuration Parameters
 
 ### FleetCommanderParams
-- `userCooldownPeriod`: Initial cooldown period between deposits and withdrawals (in seconds)
-- `initialRebalanceCooldown`: Initial cooldown period between rebalance operations (in seconds)
+- `initialWithdrawalFee`: Initial withdrawal fee percentage applied to withdrawals/redemptions
 - Standard FleetCommander parameters (name, symbol, asset, etc.)
 
-### Governance Updates
-- `updateRebalanceCooldown(newCooldown)`: Update rebalance cooldown period after deployment (curator only)
-- Emits `CooldownUpdated` event when updated
-- Can only be called when contract is not paused
 
 ## Benefits
 
 ### 1. MEV Protection
-- **Eliminates timing attacks**: Cooldown prevents immediate withdrawal after deposit
-- **Prevents arbitrage**: Users cannot exploit timing-based opportunities
+- **Eliminates timing attacks**: Withdrawal fees create economic disincentive for MEV attacks
+- **Prevents arbitrage**: Fees make timing-based opportunities unprofitable
 - **Reduces value extraction**: From 5-20% annually to near zero
 
 ### 2. Protocol Security
-- **Cooldown enforcement**: Prevents manipulation of timing-based attacks
-- **Simple state management**: Efficient tracking of deposit timestamps
-- **Access control**: Modifier-based enforcement
+- **Fee enforcement**: Automatic fee calculation and collection
+- **ERC4626 compliance**: Standard withdrawal fee mechanism
+- **Fee collection**: Fees are collected as shares and transferred to tipJar
 
 ### 3. User Experience
-- **Immediate deposits**: Users can deposit immediately
-- **Clear cooldown status**: Users can check their last deposit timestamp and cooldown period
-- **Transparency**: Simple cooldown mechanism is easy to understand
+- **Immediate deposits**: Users can deposit immediately without restrictions
+- **Transparent fees**: Clear fee calculation and application
+- **ERC4626 standard**: Familiar withdrawal fee mechanism
 - **Adaptive protection**: Rebalance cooldown period can be adjusted based on market conditions
-- **Fund access**: Users can always withdraw their funds after cooldown period expires
+- **Fund access**: Users can always withdraw their funds (with fee applied)
 
 ## Trade-offs
 
 ### 1. User Experience
-- Withdrawals/redemptions are delayed after deposits (by design)
-- Users must wait for cooldown period to pass
-- May impact users who need immediate liquidity
+- Withdrawals/redemptions have fees applied (by design)
+- Users receive reduced assets due to fee
+- May impact users who need full liquidity immediately
 
 ### 2. Complexity
 - Slightly more complex than standard FleetCommander
-- Requires tracking deposit timestamps
-- Additional state management
+- Requires fee calculation and collection logic
+- Additional state management for fee handling
 
 ### 3. Gas Costs
-- Minimal additional gas for timestamp tracking
-- Cooldown checks are very efficient
+- Minimal additional gas for fee calculation
+- Fee collection is very efficient
 - Overall minimal gas impact
 
 ## Migration Strategy
@@ -187,38 +176,38 @@ uint256 assets = fleetCommander.withdraw(500e6, user, user);
 - Users can check cooldown status
 
 ### 3. Fallback Mechanisms
-- Users can check their last deposit timestamp and cooldown period before attempting withdrawals
-- Clear error messages when cooldown not met (`UserDepositCooldownNotMet`)
-- Configurable cooldown period for different use cases
+- Users can check withdrawal fee calculation before attempting withdrawals
+- Clear fee application in all withdrawal functions
+- Configurable withdrawal fee for different use cases
 - Governance can adjust rebalance cooldown period based on operational needs
 
 ## Security Considerations
 
-### 1. Cooldown Period Configuration
-- Cooldown period must be set appropriately for the use case
-- Too short: May not prevent all MEV attacks
-- Too long: May impact user experience
+### 1. Withdrawal Fee Configuration
+- Withdrawal fee must be set appropriately for the use case
+- Too low: May not prevent all MEV attacks
+- Too high: May impact user experience
 - Governance can adjust rebalance cooldown period based on market conditions and security requirements
 
-### 2. Timestamp Manipulation
-- Block timestamp manipulation is not a concern (uses block.timestamp)
-- Cooldown enforcement is deterministic
-- No external dependencies for timing
+### 2. Fee Calculation
+- Fee calculation is deterministic and transparent
+- No external dependencies for fee computation
+- ERC4626 standard ensures consistent behavior
 
 ### 3. State Management
-- Simple timestamp tracking reduces attack surface
+- Simple fee calculation reduces attack surface
 - No complex queue management required
 - Minimal state to maintain
 
 ## Conclusion
 
-The `FleetCommander` provides a robust solution to the MEV vulnerability by implementing a cooldown-based system that prevents immediate withdrawal after deposits. This prevents arbitrageurs from exploiting timing-based attacks while maintaining the core functionality of the protocol.
+The `FleetCommander` provides a robust solution to the MEV vulnerability by implementing a withdrawal fee-based system that creates economic disincentives for MEV attacks. This prevents arbitrageurs from exploiting timing-based attacks while maintaining ERC4626 compliance and core functionality of the protocol.
 
 The solution is designed to be:
-- **Secure**: Eliminates MEV opportunities through cooldown enforcement
-- **Simple**: Minimal complexity with efficient state management
-- **User-friendly**: Clear cooldown status and familiar interfaces
+- **Secure**: Eliminates MEV opportunities through economic disincentives
+- **Simple**: Minimal complexity with efficient fee calculation
+- **User-friendly**: Standard ERC4626 withdrawal fee mechanism
 - **Maintainable**: Straightforward implementation with clear logic
 - **Adaptive**: Configurable rebalance cooldown period allows for operational flexibility
 
-This implementation addresses the fundamental protocol-level issue that could make the system economically unviable at scale, ensuring the long-term sustainability of the protocol. The governance-controlled rebalance cooldown period provides the flexibility to adapt to changing market conditions while maintaining security.
+This implementation addresses the fundamental protocol-level issue that could make the system economically unviable at scale, ensuring the long-term sustainability of the protocol. The withdrawal fee mechanism provides economic protection while the governance-controlled rebalance cooldown period provides operational flexibility.

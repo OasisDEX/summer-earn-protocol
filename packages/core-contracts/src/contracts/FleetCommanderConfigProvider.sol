@@ -66,7 +66,7 @@ contract FleetCommanderConfigProvider is
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
             rebalanceCooldown: params.initialRebalanceCooldown,
-            userCooldownPeriod: params.userCooldownPeriod // User cooldown period, default 0 (no cooldown)
+            withdrawalFee: params.initialWithdrawalFee // Withdrawal fee percentage (must be explicitly set)
         });
         details = params.details;
     }

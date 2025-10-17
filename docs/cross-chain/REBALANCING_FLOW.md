@@ -6,7 +6,7 @@ to destination fleets.
 #### High-Level Steps
 
 1. Users deposit into the CrossChain Fleet (hub chain) via the standard fleet interface.
-   - **MEV Protection**: User's deposit timestamp is recorded to enforce cooldown period
+   - **MEV Protection**: Withdrawal fees are applied to prevent MEV attacks and sandwich attacks
 2. Assets accrue in the Buffer Ark.
 3. Keepers decide target allocations per destination chain and queue transfers (including full
    ExecuteTransferParams and BridgeOptions) from the Buffer Ark to the respective CrossChain Ark(s).
@@ -98,25 +98,24 @@ sequenceDiagram
 
 #### MEV Protection in Cross-Chain Operations
 
-The FleetCommander implements cooldown-based MEV protection:
+The FleetCommander implements withdrawal fee-based MEV protection:
 
 **Deposit Phase:**
-- User deposits trigger timestamp recording via `_updateLastDepositTimestamp()`
-- Cooldown period starts immediately after deposit confirmation
+- User deposits are processed immediately without restrictions
 
 **Withdrawal Phase:**
-- Users cannot withdraw/redeem until cooldown period has elapsed
-- `cooldownEnforced` modifier checks `lastDepositTimestamp[user] + cooldownPeriod`
-- Reverts with `FleetCommanderCooldownNotMet` if cooldown not satisfied
+- Withdrawal fees are calculated and applied to all withdrawals/redemptions
+- Users burn full shares but receive reduced assets (assets minus fee)
+- Fee shares are transferred to the tipJar
+- `_calculateWithdrawalFee()` function computes the fee based on configured parameters
 
 **Key Protection Mechanisms:**
-- Prevents immediate withdrawal after deposit (sandwich attack protection)
-- Blocks front-running of cross-chain rebalancing operations
+- Economic disincentive for MEV attacks through withdrawal fees
+- Prevents sandwich attacks on cross-chain rebalancing operations
 - Ensures keeper-led rebalancing cannot be exploited by MEV bots
-- Configurable cooldown period per fleet deployment
+- Configurable withdrawal fee percentage per fleet deployment
+- ERC4626 compliant fee mechanism
 
 **Monitoring Functions:**
-- `getCooldown()`: Returns the rebalance cooldown duration
-- `getUserDepositCooldown()`: Returns the user deposit cooldown duration
-- `getLastActionTimestamp()`: Returns the last rebalance timestamp
-- `lastDepositTimestamp[user]`: Public mapping showing user's last deposit timestamp
+- `_calculateWithdrawalFee(assets)`: Calculates withdrawal fee for given assets
+- `WithdrawalFeeCollected` event: Tracks fee collection events

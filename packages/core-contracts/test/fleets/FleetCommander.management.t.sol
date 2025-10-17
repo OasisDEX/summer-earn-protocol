@@ -43,7 +43,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             details: "Mock details",
             depositCap: 10000,
             initialTipRate: Percentage.wrap(0),
-            userCooldownPeriod: 0
+            initialWithdrawalFee: Percentage.wrap(0)
         });
 
         FleetCommander newFleetCommander = new FleetCommander(params);

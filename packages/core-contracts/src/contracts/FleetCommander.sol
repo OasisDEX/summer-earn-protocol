@@ -6,6 +6,7 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
+import {WithdrawalFee} from "../utils/WithdrawalFee/WithdrawalFee.sol";
 
 import {FleetCommanderCache} from "./FleetCommanderCache.sol";
 import {FleetCommanderConfigProvider} from "./FleetCommanderConfigProvider.sol";
@@ -29,7 +30,8 @@ contract FleetCommander is
     ERC4626,
     Tipper,
     FleetCommanderCache,
-    CooldownEnforcer
+    CooldownEnforcer,
+    WithdrawalFee
 {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
@@ -50,11 +52,8 @@ contract FleetCommander is
         ERC20(params.name, params.symbol)
         FleetCommanderConfigProvider(params)
         Tipper(params.initialTipRate)
-        CooldownEnforcer(
-            params.initialRebalanceCooldown,
-            params.userCooldownPeriod,
-            false
-        )
+        CooldownEnforcer(params.initialRebalanceCooldown, false)
+        WithdrawalFee(params.initialWithdrawalFee)
     {}
 
     /*//////////////////////////////////////////////////////////////
@@ -107,27 +106,11 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    )
-        public
-        whenNotPaused
-        collectTip
-        useCache
-        enforceUserDepositCooldown(owner)
-        returns (uint256 shares)
-    {
+    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
-        uint256 prevQueueBalance = config.bufferArk.totalAssets();
-
-        _disembark(address(config.bufferArk), assets);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
-
-        emit FundsBufferBalanceUpdated(
-            _msgSender(),
-            prevQueueBalance,
-            config.bufferArk.totalAssets()
-        );
+        _executeBufferWithdrawal(shares, receiver, owner, assets);
     }
 
     /// @inheritdoc IFleetCommander
@@ -141,7 +124,6 @@ contract FleetCommander is
         collectTip
         useCache
         whenNotPaused
-        enforceUserDepositCooldown(owner)
         returns (uint256 assets)
     {
         uint256 bufferBalance = config.bufferArk.totalAssets();
@@ -163,26 +145,15 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    )
-        public
-        collectTip
-        useCache
-        whenNotPaused
-        enforceUserDepositCooldown(owner)
-        returns (uint256 assets)
-    {
+    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
         _validateBufferRedeem(shares, owner);
 
-        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
-
-        assets = previewRedeem(shares);
-        _disembark(address(config.bufferArk), assets);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
-
-        emit FundsBufferBalanceUpdated(
-            _msgSender(),
-            previousFundsBufferBalance,
-            config.bufferArk.totalAssets()
+        uint256 originalAssets = previewRedeem(shares);
+        assets = _executeBufferWithdrawal(
+            shares,
+            receiver,
+            owner,
+            originalAssets
         );
     }
 
@@ -197,7 +168,6 @@ contract FleetCommander is
         collectTip
         useCache
         whenNotPaused
-        enforceUserDepositCooldown(owner)
         returns (uint256 shares)
     {
         uint256 bufferBalance = config.bufferArk.totalAssets();
@@ -225,15 +195,13 @@ contract FleetCommander is
         collectTip
         useWithdrawCache
         whenNotPaused
-        enforceUserDepositCooldown(owner)
         returns (uint256 totalSharesToRedeem)
     {
         totalSharesToRedeem = previewWithdraw(assets);
 
         _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
 
-        _forceDisembarkFromSortedArks(assets);
-        _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
+        _executeArksWithdrawal(totalSharesToRedeem, assets, receiver, owner);
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
@@ -249,15 +217,14 @@ contract FleetCommander is
         collectTip
         useWithdrawCache
         whenNotPaused
-        enforceUserDepositCooldown(owner)
         returns (uint256 totalAssetsToWithdraw)
     {
         _validateRedeemFromArks(shares, owner);
 
         totalAssetsToWithdraw = previewRedeem(shares);
 
-        _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
-        _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
+        _executeArksWithdrawal(shares, totalAssetsToWithdraw, receiver, owner);
+
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
 
@@ -280,9 +247,6 @@ contract FleetCommander is
         shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
         _board(address(config.bufferArk), assets);
-
-        // Update the receiver's last deposit timestamp
-        _recordDepositTimestamp(receiver);
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -476,6 +440,13 @@ contract FleetCommander is
     }
 
     /// @inheritdoc IFleetCommander
+    function updateWithdrawalFee(
+        Percentage newFee
+    ) external onlyGovernor whenNotPaused {
+        _updateWithdrawalFee(newFee);
+    }
+
+    /// @inheritdoc IFleetCommander
     function forceRebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyGovernor collectTip whenNotPaused {
@@ -514,11 +485,6 @@ contract FleetCommander is
     ) internal override {
         // Call parent _update to handle the actual transfer
         super._update(from, to, value);
-
-        // Only propagate cooldown for transfers between non-zero addresses (not mint/burn)
-        if (from != address(0) && to != address(0)) {
-            _propagateCooldownTimestamp(from, to);
-        }
     }
 
     /**
@@ -664,6 +630,83 @@ contract FleetCommander is
                 assets -= assetsInArk;
             }
         }
+    }
+
+    /* INTERNAL - BUFFER WITHDRAWAL */
+
+    /**
+     * @notice Executes the common buffer withdrawal logic
+     * @dev This function handles fee calculation, asset disembarkment, and withdrawal execution
+     * @param shares The number of shares to redeem
+     * @param receiver The address to receive the assets
+     * @param owner The address of the owner of the shares
+     * @return assets The amount of assets withdrawn
+     */
+    function _executeBufferWithdrawal(
+        uint256 shares,
+        address receiver,
+        address owner,
+        uint256 originalAssets
+    ) internal returns (uint256 assets) {
+        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
+
+        // Calculate withdrawal fee in shares
+        uint256 feeShares = _calculateWithdrawalFeeShares(shares);
+        uint256 userShares = shares - feeShares;
+
+        // Transfer fee shares to tipJar
+        if (feeShares > 0) {
+            _transfer(owner, tipJar(), feeShares);
+            // Emit withdrawal fee event
+            uint256 feeAssets = _calculateWithdrawalFee(originalAssets);
+            emit WithdrawalFeeCollected(owner, originalAssets, feeAssets);
+        }
+
+        // Calculate assets based on user's shares (after fee)
+        assets = previewRedeem(userShares);
+
+        // Disembark assets and burn only user's shares
+        _disembark(address(config.bufferArk), assets);
+        _withdraw(_msgSender(), receiver, owner, assets, userShares);
+
+        emit FundsBufferBalanceUpdated(
+            _msgSender(),
+            previousFundsBufferBalance,
+            config.bufferArk.totalAssets()
+        );
+    }
+
+    /**
+     * @notice Executes the common arks withdrawal logic
+     * @dev This function handles fee calculation, asset disembarkment from arks, and withdrawal execution
+     * @param shares The number of shares to redeem
+     * @param totalAssets The total amount of assets to withdraw from arks
+     * @param receiver The address to receive the assets
+     * @param owner The address of the owner of the shares
+     */
+    function _executeArksWithdrawal(
+        uint256 shares,
+        uint256 totalAssets,
+        address receiver,
+        address owner
+    ) internal {
+        // Calculate withdrawal fee in shares
+        uint256 feeShares = _calculateWithdrawalFeeShares(shares);
+        uint256 userShares = shares - feeShares;
+
+        // Transfer fee shares to tipJar
+        if (feeShares > 0) {
+            _transfer(owner, tipJar(), feeShares);
+            // Emit withdrawal fee event
+            uint256 feeAssets = _calculateWithdrawalFee(totalAssets);
+            emit WithdrawalFeeCollected(owner, totalAssets, feeAssets);
+        }
+
+        // Calculate assets based on user's shares (after fee)
+        uint256 assetsAfterFee = previewRedeem(userShares);
+
+        _forceDisembarkFromSortedArks(totalAssets);
+        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, userShares);
     }
 
     /* INTERNAL - VALIDATIONS */

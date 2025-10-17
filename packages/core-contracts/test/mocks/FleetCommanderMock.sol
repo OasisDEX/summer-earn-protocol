@@ -209,7 +209,15 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function unstake(uint256 shares) external {}
 
-    function setCooldownPeriod(uint256 newCooldownPeriod) external {
-        config.userCooldownPeriod = newCooldownPeriod;
+    function setWithdrawalFee(Percentage newWithdrawalFee) external {
+        config.withdrawalFee = newWithdrawalFee;
+    }
+
+    function updateWithdrawalFee(Percentage newFee) external override {
+        config.withdrawalFee = newFee;
+    }
+
+    function getWithdrawalFee() external view override returns (Percentage) {
+        return config.withdrawalFee;
     }
 }
