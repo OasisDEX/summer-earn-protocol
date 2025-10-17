@@ -495,7 +495,7 @@ contract CrossChainArk is
     function sweep(
         address[] memory tokens
     )
-        public
+        external
         override
         onlyRaft
         nonReentrant
