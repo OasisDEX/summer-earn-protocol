@@ -14,8 +14,6 @@ import {IArk} from "../../src/interfaces/IArk.sol";
 contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     using PercentageUtils for uint256;
 
-    bool public transfersEnabled;
-
     FleetConfig public config;
     address[] public arks;
     mapping(address => bool) public isArkActiveOrBufferArk;
@@ -192,8 +190,6 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function unpause() external {}
 
-    function setMinimumPauseTime(uint256 newMinimumPauseTime) external {}
-
     function depositAndStake(
         uint256 assets,
         address receiver
@@ -213,7 +209,15 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function unstake(uint256 shares) external {}
 
-    function setFleetTokenTransferability() external {
-        transfersEnabled = true;
+    function setWithdrawalFee(Percentage newWithdrawalFee) external {
+        config.withdrawalFee = newWithdrawalFee;
+    }
+
+    function updateWithdrawalFee(Percentage newFee) external override {
+        config.withdrawalFee = newFee;
+    }
+
+    function getWithdrawalFee() external view override returns (Percentage) {
+        return config.withdrawalFee;
     }
 }

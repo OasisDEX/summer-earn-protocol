@@ -118,31 +118,28 @@ contract CrossChainFleetProxyTest is Test {
             SOURCE_CHAIN_ID
         );
 
-        // Register cross-chain relationships in registry
-        registry.registerRelationship(
+        // Register cross-chain relationships in registry using peer pair registration
+        registry.registerAdapterPeerPair(
             address(bufferArkMock), // Use the ArkMock as the source
             ARB_STARGATE_PROXY, // Different target for Stargate
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
-        // Register LayerZero adapter with different target
-        registry.registerRelationship(
+        // Register LayerZero adapter with different target using peer pair registration
+        registry.registerAdapterPeerPair(
             address(mockAdapter), // Use the mockAdapter as the source
             ARB_LAYERZERO_PROXY, // Different target for LayerZero
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
-        // Register the ark-proxy relationship
-        registry.registerRelationship(
+        // Register the ark-proxy relationship using peer pair registration
+        registry.registerAdapterPeerPair(
             SOURCE_ARK_ADDRESS,
             address(proxy),
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
         accessManager.grantKeeperRole(address(proxy), governor);
@@ -728,7 +725,7 @@ contract CrossChainFleetProxyTest is Test {
 
         // Call notifySourceChain
         vm.prank(governor);
-        proxy.notifySourceChain{value: 0.1 ether}(
+        proxy.notifyHubChain{value: 0.1 ether}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,
@@ -856,7 +853,7 @@ contract CrossChainFleetProxyTest is Test {
 
         // Call notifySourceChain
         vm.prank(governor);
-        proxy.notifySourceChain{value: 0.1 ether}(
+        proxy.notifyHubChain{value: 0.1 ether}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,
@@ -880,10 +877,8 @@ contract CrossChainFleetProxyTest is Test {
         );
 
         // Decode and verify the message content
-        (uint256 fleetAssets, bytes32 transferId) = abi.decode(
-            message,
-            (uint256, bytes32)
-        );
+        (uint256 fleetAssets, bytes32 transferId, uint256 timestamp) = abi
+            .decode(message, (uint256, bytes32, uint256));
 
         // Verify the fleet assets amount is zero
         assertEq(fleetAssets, 0, "Message should contain zero fleet assets");
@@ -898,6 +893,13 @@ contract CrossChainFleetProxyTest is Test {
             transferId != bytes32(0),
             "Transfer ID should be set from the deposit operation"
         );
+
+        // Verify the timestamp is reasonable (should be current block timestamp)
+        assertEq(
+            timestamp,
+            block.timestamp,
+            "Timestamp should match current block timestamp"
+        );
     }
 
     function test_NotifySourceChain_UnauthorizedCaller() public {
@@ -911,7 +913,7 @@ contract CrossChainFleetProxyTest is Test {
                 unauthorizedCaller
             )
         );
-        proxy.notifySourceChain{value: 0.1 ether}(
+        proxy.notifyHubChain{value: 0.1 ether}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,
@@ -934,7 +936,7 @@ contract CrossChainFleetProxyTest is Test {
         // Try to call notifySourceChain when paused
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
-        proxy.notifySourceChain{value: 0.1 ether}(
+        proxy.notifyHubChain{value: 0.1 ether}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,
@@ -980,7 +982,7 @@ contract CrossChainFleetProxyTest is Test {
         // Act
         uint256 value = 0.5 ether;
         vm.prank(governor);
-        proxy.notifySourceChain{value: value}(
+        proxy.notifyHubChain{value: value}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,
@@ -1007,6 +1009,125 @@ contract CrossChainFleetProxyTest is Test {
             "target should be source-chain Ark"
         );
         assertGt(mockBridgeRouter.lastMsgValue(), 0, "msg.value forwarded");
+    }
+
+    //----------------- MESSAGE ACK from Ark → Proxy -----------------//
+
+    function test_AckMessage_ClearsInflight() public {
+        // Arrange: give FleetCommander underlying and shares to proxy so withdraw works
+        uint256 assets = 1_000 ether;
+        mockToken.mint(address(fleetCommanderMock), assets);
+        fleetCommanderMock.testMint(address(proxy), assets);
+
+        // Withdraw some amount to create inflight and set latestOutgoingTransferId
+        vm.deal(governor, 1 ether);
+        vm.prank(governor);
+        proxy.withdrawAndTransfer{value: 0.1 ether}(
+            200,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        bytes32 opId = proxy.latestOutgoingTransferId();
+        assertTrue(opId != bytes32(0), "expected non-zero outgoing opId");
+        assertEq(proxy.inflightWithdrawals(), 200, "inflight set");
+
+        // Act: deliver ACK MESSAGE from Ark on source chain
+        BridgeTypes.RelayedMessageParams memory msgParams = BridgeTypes
+            .RelayedMessageParams({
+                operationId: bytes32("ack"),
+                originator: SOURCE_ARK_ADDRESS,
+                sourceChainId: SOURCE_CHAIN_ID,
+                recipient: address(proxy),
+                message: abi.encode(opId)
+            });
+
+        vm.prank(address(mockBridgeRouter));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(msgParams)
+        );
+
+        // Assert: inflight cleared and latestOutgoingTransferId reset
+        assertEq(proxy.inflightWithdrawals(), 0, "inflight cleared");
+        assertEq(proxy.latestOutgoingTransferId(), bytes32(0), "opId reset");
+    }
+
+    function test_AckMessage_WrongOriginator_Reverts() public {
+        // Arrange inflight with an outgoing id
+        uint256 assets = 1000;
+        mockToken.mint(address(fleetCommanderMock), assets);
+        fleetCommanderMock.testMint(address(proxy), assets);
+        vm.prank(governor);
+        proxy.withdrawAndTransfer(
+            100,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        bytes32 opId = proxy.latestOutgoingTransferId();
+
+        // Build message with wrong originator
+        BridgeTypes.RelayedMessageParams memory msgParams = BridgeTypes
+            .RelayedMessageParams({
+                operationId: bytes32("ack"),
+                originator: address(0x1234),
+                sourceChainId: SOURCE_CHAIN_ID,
+                recipient: address(proxy),
+                message: abi.encode(opId)
+            });
+
+        vm.prank(address(mockBridgeRouter));
+        vm.expectRevert(abi.encodeWithSignature("InvalidRequestor()"));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(msgParams)
+        );
+    }
+
+    function test_AckMessage_WrongSourceChain_Reverts() public {
+        uint256 assets = 1000;
+        mockToken.mint(address(fleetCommanderMock), assets);
+        fleetCommanderMock.testMint(address(proxy), assets);
+        vm.prank(governor);
+        proxy.withdrawAndTransfer(
+            100,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        bytes32 opId = proxy.latestOutgoingTransferId();
+
+        BridgeTypes.RelayedMessageParams memory msgParams = BridgeTypes
+            .RelayedMessageParams({
+                operationId: bytes32("ack"),
+                originator: SOURCE_ARK_ADDRESS,
+                sourceChainId: 9999, // wrong
+                recipient: address(proxy),
+                message: abi.encode(opId)
+            });
+
+        vm.prank(address(mockBridgeRouter));
+        vm.expectRevert(abi.encodeWithSignature("InvalidSourceChain()"));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(msgParams)
+        );
     }
 
     //----------------- Miscellaneous -----------------//

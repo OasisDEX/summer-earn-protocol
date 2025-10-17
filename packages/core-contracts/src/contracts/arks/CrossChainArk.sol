@@ -6,6 +6,7 @@ import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossCha
 import {CrossChainReceiverBase} from "@summerfi/chain-bridge/base/CrossChainReceiverBase.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
+import {ReceiptNotifier} from "../common/ReceiptNotifier.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
@@ -22,7 +23,8 @@ contract CrossChainArk is
     Ark,
     CrossChainConfigManaged,
     CrossChainReceiverBase,
-    ICrossChainArk
+    ICrossChainArk,
+    ReceiptNotifier
 {
     using SafeERC20 for IERC20;
 
@@ -36,14 +38,20 @@ contract CrossChainArk is
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
 
+    /// @notice Timestamp when lastRemoteAssetBalance was last updated
+    uint256 public lastRemoteBalanceUpdateTime;
+
     /// @notice Amount of assets currently in-flight (being bridged)
     uint256 public inflightAssets;
 
     /// @notice The latest outgoing transfer ID
     bytes32 public latestOutgoingTransferId;
 
-    /// @notice The last amount sent in the latest outgoing transfer
-    uint256 public lastSentAmount;
+    /// @notice The latest incoming transfer ID received from the satellite proxy
+    bytes32 public latestIncomingTransferId;
+
+    /// @notice Timestamp of the last processed balance notification
+    uint256 public lastNotificationTimestamp;
 
     /// @notice Pending transfer params for the cross-chain transfer
     BridgeTypes.ExecuteTransferParams public pendingTransferParams;
@@ -86,7 +94,6 @@ contract CrossChainArk is
     /// in case of bridge failures or accounting discrepancies
     function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
         inflightAssets = amount;
-        lastSentAmount = amount;
         emit InflightSet(amount, bytes32(0));
     }
 
@@ -116,6 +123,23 @@ contract CrossChainArk is
     }
 
     /**
+     * @notice Gets the timestamp of the last remote balance update
+     * @return The timestamp when the last remote balance update was received
+     * @dev Returns 0 if no remote balance update has been received yet
+     */
+    function getLastRemoteBalanceUpdateTime() external view returns (uint256) {
+        return lastRemoteBalanceUpdateTime;
+    }
+
+    /**
+     * @notice Alias using hub/satellite terminology
+     * @return The satellite proxy address
+     */
+    function getSatelliteProxy() external view returns (address) {
+        return _getTargetProxy();
+    }
+
+    /**
      * @inheritdoc IERC165
      */
     function supportsInterface(
@@ -125,6 +149,10 @@ contract CrossChainArk is
             interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(ICrossChainArk).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
+    }
+
+    function _notifierBridgeRouter() internal view override returns (address) {
+        return bridgeRouter();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -177,7 +205,6 @@ contract CrossChainArk is
         );
         // Set inflight before initiating the transfer
         inflightAssets = pendingTransferParams.amount;
-        lastSentAmount = pendingTransferParams.amount;
         bytes32 operationId = bridgeRouter.executeTransferAssets{
             value: msg.value
         }(pendingTransferParams, pendingTransferOptions);
@@ -262,9 +289,12 @@ contract CrossChainArk is
             revert InvalidSourceChain();
         if (params.originator != _getTargetProxy()) revert InvalidSender();
 
-        // Decode the remote asset balance
-        (uint256 newRemoteBalance, bytes32 latestReceivedTransferId) = abi
-            .decode(params.message, (uint256, bytes32));
+        // Decode the remote asset balance with timestamp
+        (
+            uint256 newRemoteBalance,
+            bytes32 latestReceivedTransferId,
+            uint256 timestamp
+        ) = abi.decode(params.message, (uint256, bytes32, uint256));
         if (latestReceivedTransferId != latestOutgoingTransferId) {
             // we skip updating the remote balance if the transfer id (received in FleetProxy) is not the latest
             // sent by this Ark
@@ -275,7 +305,16 @@ contract CrossChainArk is
             return;
         }
 
+        // Reject stale notifications to prevent race conditions
+        if (timestamp < lastNotificationTimestamp) {
+            emit StaleNotification(timestamp, lastNotificationTimestamp);
+            return;
+        }
+
+        lastNotificationTimestamp = timestamp;
+
         lastRemoteAssetBalance = newRemoteBalance;
+        lastRemoteBalanceUpdateTime = block.timestamp;
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
@@ -283,9 +322,9 @@ contract CrossChainArk is
 
         // Reset inflight assets as the state read now reflects the current remote balance
         if (inflightAssets > 0) {
+            uint256 clearedAmount = inflightAssets;
             inflightAssets = 0;
-            emit InflightCleared(params.operationId, lastSentAmount);
-            lastSentAmount = 0;
+            emit InflightCleared(params.operationId, clearedAmount);
         }
     }
 
@@ -320,18 +359,38 @@ contract CrossChainArk is
         // Update the remote asset tracking
 
         lastRemoteAssetBalance = remoteBalance;
+        lastRemoteBalanceUpdateTime = block.timestamp;
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
         );
 
         emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
+
+        // Track the latest incoming transfer id to ACK back to satellite
+        latestIncomingTransferId = params.operationId;
+    }
+
+    /// @notice Notifies the satellite chain proxy that assets have been received on the hub
+    /// @dev Keeper-triggered message to clear inflight on FleetProxy via ACK
+    function notifySatelliteChain(
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable onlyKeeper {
+        if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
+        _sendNotification(
+            satelliteChainId,
+            _getTargetProxy(),
+            abi.encode(latestIncomingTransferId),
+            options,
+            msg.sender
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
                         HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Error thrown when the sender is invalid
     error InvalidSender();
     /// @notice Error thrown when trying to start a new outbound while inflight > 0
     error InFlight();

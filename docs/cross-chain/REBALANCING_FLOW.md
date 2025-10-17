@@ -6,11 +6,12 @@ to destination fleets.
 #### High-Level Steps
 
 1. Users deposit into the CrossChain Fleet (hub chain) via the standard fleet interface.
+   - **MEV Protection**: Withdrawal fees are applied to prevent MEV attacks and sandwich attacks
 2. Assets accrue in the Buffer Ark.
 3. Keepers decide target allocations per destination chain and queue transfers (including full
    ExecuteTransferParams and BridgeOptions) from the Buffer Ark to the respective CrossChain Ark(s).
 4. A registered executor (keeper) executes the queued transfers by calling the CrossChain Ark on the
-   source chain.
+   hub chain.
 5. The CrossChain Ark routes the transfer to the BridgeRouter, which forwards to a selected,
    registered adapter.
 6. The adapter bridges the tokens plus a small operation message to the destination chain.
@@ -25,7 +26,7 @@ sequenceDiagram
   participant User as User
   participant Fleet as CrossChain Fleet (Hub)
   participant Buffer as Buffer Ark
-  participant Ark as CrossChain Ark (Source)
+  participant Ark as CrossChain Ark (Hub)
   participant RouterS as BridgeRouter (Source)
   participant AdapterS as Adapter (Source)
   participant AdapterD as Adapter (Destination)
@@ -52,7 +53,7 @@ sequenceDiagram
   relationship for the target chain. Router execution is gated by `onlyAuthorizedExecutor` (keepers
   must be registered executors).
 - Destination chain: Router authenticates adapters and peer mappings; FleetProxy trusts only the
-  router, then validates the source Ark + chain pair via the registry before depositing.
+  router, then validates the hub-chain Ark + chain pair via the registry before depositing.
 
 #### Single-Flight Gating and Inflight Accounting
 
@@ -61,8 +62,7 @@ sequenceDiagram
 - When `executeTransferAssets()` is called, Ark sets `inflightAssets = amount` and emits
   `InflightSet(amount, operationId)` after the router returns the operation ID.
 - Ark clears inflight on receipt of the next successful remote balance update corresponding to the
-  latest outgoing operation, emitting `InflightCleared(operationId, amount)`. It also resets
-  `lastSentAmount`.
+  latest outgoing operation, emitting `InflightCleared(operationId, amount)`.
 - FleetProxy enforces single-flight on withdrawals: it rejects a new withdraw-and-transfer while a
   previous withdrawal is inflight (`InFlight`). On initiating a withdrawal, it sets
   `inflightWithdrawals = amount` and emits `InflightSet(amount, operationId)`.
@@ -94,3 +94,27 @@ sequenceDiagram
   from the local fleet and bridge assets back to the Ark on the hub chain.
 - Single-flight applies; a new withdrawal cannot be initiated until inflight is cleared via
   `acknowledgeHubReceipt` or governance override.
+
+#### MEV Protection in Cross-Chain Operations
+
+The FleetCommander implements withdrawal fee-based MEV protection:
+
+**Deposit Phase:**
+- User deposits are processed immediately without restrictions
+
+**Withdrawal Phase:**
+- Withdrawal fees are calculated and applied to all withdrawals/redemptions
+- Users burn full shares but receive reduced assets (assets minus fee)
+- Fee shares are transferred to the tipJar
+- `_calculateWithdrawalFee()` function computes the fee based on configured parameters
+
+**Key Protection Mechanisms:**
+- Economic disincentive for MEV attacks through withdrawal fees
+- Prevents sandwich attacks on cross-chain rebalancing operations
+- Ensures keeper-led rebalancing cannot be exploited by MEV bots
+- Configurable withdrawal fee percentage per fleet deployment
+- ERC4626 compliant fee mechanism
+
+**Monitoring Functions:**
+- `_calculateWithdrawalFee(assets)`: Calculates withdrawal fee for given assets
+- `WithdrawalFeeCollected` event: Tracks fee collection events
