@@ -1493,6 +1493,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         uint256 amount1 = 1000 * 10 ** 18;
         uint256 amount2 = 500 * 10 ** 18;
+        deal(address(mockPaymentToken), address(mockArk1), amount1);
         deal(address(mockToken1), address(mockArk1), amount1);
         deal(address(mockToken2), address(mockArk1), amount2);
 
@@ -1529,7 +1530,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             "Swept amount of mockToken2 should match"
         );
 
-        // Verify the tokens were transferred to the Raft
+        // Verify the tokens were transferred to the BufferArk
         assertEq(
             mockToken1.balanceOf(address(raftContract)),
             amount1,
@@ -1539,6 +1540,11 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             mockToken2.balanceOf(address(raftContract)),
             amount2,
             "Raft should have received all mockToken2"
+        );
+        assertEq(
+            mockPaymentToken.balanceOf(address(bufferArk)),
+            amount1,
+            "Buffer Ark should have received all mockToken1"
         );
 
         // Verify the Ark's balances are now zero

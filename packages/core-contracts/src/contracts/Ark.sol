@@ -92,8 +92,7 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     function sweep(
         address[] memory tokens
     )
-        public
-        virtual
+        external
         onlyRaft
         nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
@@ -102,13 +101,14 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
         sweptAmounts = new uint256[](tokens.length);
         IERC20 asset = config.asset;
 
-        // Check if any token is the underlying asset - always prevent this
-        for (uint256 i = 0; i < tokens.length; i++) {
-            if (tokens[i] == address(asset)) {
-                revert CannotSweepUnderlyingAsset();
-            }
-        }
+        address bufferArk = address(
+            IFleetCommander(config.commander).bufferArk()
+        );
 
+        if (asset.balanceOf(address(this)) > 0 && address(this) != bufferArk) {
+            asset.forceApprove(bufferArk, asset.balanceOf(address(this)));
+            IArk(bufferArk).board(asset.balanceOf(address(this)), bytes(""));
+        }
         for (uint256 i = 0; i < tokens.length; i++) {
             uint256 amount = IERC20(tokens[i]).balanceOf(address(this));
             if (amount > 0) {
