@@ -181,7 +181,6 @@ contract CrossChainArk is
 
         if (amount == 0) revert InvalidAmount();
         if (amount != params.amount) revert InvalidAmount();
-        if (params.asset == address(0)) revert InvalidAsset();
         if (params.asset != address(config.asset)) revert InvalidAsset();
         if (params.target != proxyAddress) revert InvalidRecipient();
         if (params.originator != address(this)) revert InvalidRequestor();
@@ -455,22 +454,8 @@ contract CrossChainArk is
      * @dev This function is used to reset the pending transfer params after the transfer has been executed
      */
     function _resetPendingTransferParams() internal {
-        pendingTransferParams = BridgeTypes.ExecuteTransferParams({
-            destinationChainId: 0,
-            asset: address(0),
-            amount: 0,
-            target: address(0),
-            originator: address(0),
-            refundAddress: address(0),
-            message: ""
-        });
-        pendingTransferOptions = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0),
-            gasLimit: 0,
-            calldataSize: 0,
-            msgValue: 0,
-            options: bytes("")
-        });
+        delete pendingTransferParams;
+        delete pendingTransferOptions;
     }
 
     /**

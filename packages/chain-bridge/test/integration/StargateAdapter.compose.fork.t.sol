@@ -277,11 +277,11 @@ contract StargateAdapterComposeForkTest is Test {
 
         // Test endpoint ID mapping
         assertEq(
-            adapterMainnet.getEndpointId(CHAIN_ID_MAINNET),
+            adapterMainnet.chainToExternalId(CHAIN_ID_MAINNET),
             LZ_EID_MAINNET
         );
         assertEq(
-            adapterMainnet.getEndpointId(CHAIN_ID_ARBITRUM),
+            adapterMainnet.chainToExternalId(CHAIN_ID_ARBITRUM),
             LZ_EID_ARBITRUM
         );
     }
