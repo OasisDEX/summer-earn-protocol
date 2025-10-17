@@ -133,32 +133,4 @@ interface IFleetCommanderConfigProviderWhitelist is
      * @dev Only callable by the governor when not paused
      */
     function setFleetTokenTransferability() external;
-
-    /**
-     * @notice Sets the whitelist status for an account
-     * @dev Only callable by the governor when not paused
-     * @param account The account to set the whitelist status for
-     * @param allowed The whitelist status to set
-     */
-    function setWhitelisted(address account, bool allowed) external;
-
-    /**
-     * @notice Sets the whitelist status for a batch of accounts
-     * @dev Only callable by the governor when not paused
-     * @param accounts The accounts to set the whitelist status for
-     * @param allowed The whitelist status to set
-     */
-    function setWhitelistedBatch(
-        address[] memory accounts,
-        bool[] memory allowed
-    ) external;
-
-    /**
-     * @notice Checks if an account is whitelisted
-     * @param account The account to check the whitelist status for
-     * @return isWhitelisted Returns true if the account is whitelisted, false otherwise
-     */
-    function isWhitelisted(
-        address account
-    ) external view returns (bool isWhitelisted);
 }

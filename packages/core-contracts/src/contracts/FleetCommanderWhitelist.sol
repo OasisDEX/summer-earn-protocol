@@ -463,7 +463,7 @@ contract FleetCommanderWhitelist is
         onlyWhitelisted(_msgSender())
         returns (bool)
     {
-        if (transfersEnabled) {
+        if (transfersEnabled || _isWhitelisted(to)) {
             return super.transfer(to, amount);
         }
 
@@ -481,7 +481,7 @@ contract FleetCommanderWhitelist is
         onlyWhitelisted(_msgSender())
         returns (bool)
     {
-        if (transfersEnabled) {
+        if (transfersEnabled || _isWhitelisted(to)) {
             return super.transferFrom(from, to, amount);
         }
         revert FleetCommanderTransfersDisabled();

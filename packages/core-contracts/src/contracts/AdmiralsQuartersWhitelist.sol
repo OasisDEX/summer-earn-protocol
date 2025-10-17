@@ -19,6 +19,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ProtectedMulticallWhitelist} from "./ProtectedMulticallWhitelist.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IWhitelist} from "../utils/Whitelist/IWhitelist.sol";
 
 /**
  * @title AdmiralsQuarters
@@ -224,24 +225,20 @@ contract AdmiralsQuartersWhitelist is
 
     /// ADMIN
 
-    ///@inheritdoc IAdmiralsQuartersWhitelist
+    ///@inheritdoc IWhitelist
     function setWhitelisted(
         address account,
         bool allowed
-    ) external onlyGovernor {
+    ) external override onlyGovernor {
         _setWhitelisted(account, allowed);
     }
 
-    ///@inheritdoc IAdmiralsQuartersWhitelist
+    ///@inheritdoc IWhitelist
     function setWhitelistedBatch(
         address[] memory accounts,
         bool[] memory allowed
-    ) external onlyGovernor {
+    ) external override onlyGovernor {
         _setWhitelistedBatch(accounts, allowed);
-    }
-    ///@inheritdoc IAdmiralsQuartersWhitelist
-    function isWhitelisted(address account) external view returns (bool) {
-        return _isWhitelisted(account);
     }
 
     /**

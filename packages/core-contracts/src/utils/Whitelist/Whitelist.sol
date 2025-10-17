@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {IWhitelist} from "./IWhitelist.sol";
 import {NotWhitelisted} from "./IWhitelistErrors.sol";
-import {IWhitelistEvents} from "./IWhitelistEvents.sol";
 
 /**
  * @title Whitelist
@@ -11,7 +11,7 @@ import {IWhitelistEvents} from "./IWhitelistEvents.sol";
  *      `_setWhitelisted` or `_setWhitelistedBatch`. If `address(0)` is set to
  *      allowed, the whitelist becomes open and all accounts are considered allowed.
  */
-abstract contract Whitelist is IWhitelistEvents {
+abstract contract Whitelist is IWhitelist {
     /**
      * STATE
      */
@@ -37,6 +37,24 @@ abstract contract Whitelist is IWhitelistEvents {
         _;
     }
 
+    ///@inheritdoc IWhitelist
+    function isWhitelisted(address account) external view returns (bool) {
+        return _isWhitelisted(account);
+    }
+
+    ///@inheritdoc IWhitelist
+    function setWhitelisted(address account, bool allowed) external virtual {
+        _setWhitelisted(account, allowed);
+    }
+
+    ///@inheritdoc IWhitelist
+    function setWhitelistedBatch(
+        address[] memory accounts,
+        bool[] memory allowed
+    ) external virtual {
+        _setWhitelistedBatch(accounts, allowed);
+    }
+
     /**
      * INTERNAL VIEW / VALIDATION
      */
@@ -46,10 +64,7 @@ abstract contract Whitelist is IWhitelistEvents {
      * @dev Returns true for any account when the whitelist is open.
      */
     function _isWhitelisted(address account) internal view returns (bool) {
-        if (_whitelisted[address(0)]) {
-            return true;
-        }
-        return _whitelisted[account];
+        return _isWhitelistOpen() || _whitelisted[account];
     }
 
     /**
@@ -57,10 +72,7 @@ abstract contract Whitelist is IWhitelistEvents {
      * @dev No-op when the whitelist is open.
      */
     function _revertIfNotWhitelisted(address account) internal view {
-        if (_whitelisted[address(0)]) {
-            return;
-        }
-        if (!_whitelisted[account]) {
+        if (!_isWhitelisted(account)) {
             revert NotWhitelisted(account);
         }
     }

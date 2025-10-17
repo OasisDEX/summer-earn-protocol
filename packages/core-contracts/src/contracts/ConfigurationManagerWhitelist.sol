@@ -11,7 +11,10 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
  * @notice Manages system-wide configuration parameters for the protocol
  * @custom:see IConfigurationManager
  */
-contract ConfigurationManagerWhitelist is IConfigurationManager, ProtocolAccessManaged {
+contract ConfigurationManagerWhitelist is
+    IConfigurationManager,
+    ProtocolAccessManaged
+{
     bool public initialized;
 
     /// @inheritdoc IConfigurationManager
@@ -107,6 +110,6 @@ contract ConfigurationManagerWhitelist is IConfigurationManager, ProtocolAccessM
     function setFleetCommanderRewardsManagerFactory(
         address newFleetCommanderRewardsManagerFactory
     ) external onlyGovernor {
-       revert NotSupported();
+        revert NotSupported();
     }
 }

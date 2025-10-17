@@ -35,9 +35,7 @@ export function readInstitutionIndex(institutionId: string, useBummer: boolean):
     try {
       content = JSON.parse(raw)
     } catch (e: any) {
-      throw new Error(
-        `Invalid JSON in institution index file at ${idxPath}. ${e?.message ?? ''}`,
-      )
+      throw new Error(`Invalid JSON in institution index file at ${idxPath}. ${e?.message ?? ''}`)
     }
   } else {
     // Initialize empty JSON for empty files

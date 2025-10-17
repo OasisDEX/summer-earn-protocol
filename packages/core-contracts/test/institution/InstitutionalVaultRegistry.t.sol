@@ -7,6 +7,7 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import {IInstitutionalVaultRegistry} from "../../src/interfaces/IInstitutionalVaultRegistry.sol";
+import {IInstitutionalVaultRegistryErrors} from "../../src/interfaces/IInstitutionalVaultRegistryErrors.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 contract InstitutionalVaultRegistryTest is Test {
@@ -47,8 +48,8 @@ contract InstitutionalVaultRegistryTest is Test {
     }
 
     function test_Add_Get_Disable_Update() public {
-        bytes32 id1 = keccak256("inst-1");
-        bytes32 id2 = keccak256("inst-2");
+        bytes32 id1 = bytes32("inst-1");
+        bytes32 id2 = bytes32("inst-2");
 
         vm.prank(governor);
         registry.addInstitution(id1, _inst(address(0xA1)));
@@ -75,5 +76,159 @@ contract InstitutionalVaultRegistryTest is Test {
         assertTrue(registry.exists(id1));
         assertFalse(registry.isActive(id1));
     }
-}
 
+    function test_Exists_False_Initially() public {
+        bytes32 unknown = bytes32("unknown");
+        assertFalse(registry.exists(unknown), "exists should be false");
+    }
+
+    function test_AddInstitution_Reverts_On_ZeroAddress() public {
+        bytes32 id = bytes32("inst-zero");
+        IInstitutionalVaultRegistry.Institution
+            memory bad = IInstitutionalVaultRegistry.Institution({
+                configurationManager: address(configurationManager),
+                protocolAccessManager: address(accessManager),
+                admiralsQuarters: address(0),
+                active: true
+            });
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IInstitutionalVaultRegistryErrors.ZeroAddress.selector
+            )
+        );
+        registry.addInstitution(id, bad);
+    }
+
+    function test_AddInstitution_Reverts_On_Duplicate() public {
+        bytes32 id = bytes32("dup");
+        vm.prank(governor);
+        registry.addInstitution(id, _inst(address(0xAA)));
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IInstitutionalVaultRegistryErrors
+                    .InstitutionAlreadyExists
+                    .selector,
+                id
+            )
+        );
+        registry.addInstitution(id, _inst(address(0xAB)));
+    }
+
+    function test_IsActive_Reverts_When_NotFound() public {
+        bytes32 id = bytes32("nope");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IInstitutionalVaultRegistryErrors.InstitutionNotFound.selector,
+                id
+            )
+        );
+        registry.isActive(id);
+    }
+
+    function test_GetInstitution_Reverts_When_NotFound() public {
+        bytes32 id = bytes32("ghost");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IInstitutionalVaultRegistryErrors.InstitutionNotFound.selector,
+                id
+            )
+        );
+        registry.getInstitution(id);
+    }
+
+    function test_DisableInstitution_Reverts_When_NotFound() public {
+        bytes32 id = bytes32("missing");
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IInstitutionalVaultRegistryErrors.InstitutionNotFound.selector,
+                id
+            )
+        );
+        registry.disableInstitution(id);
+    }
+
+    function test_DisableInstitution_Reverts_When_AlreadyDisabled() public {
+        bytes32 id = bytes32("inst");
+        vm.prank(governor);
+        registry.addInstitution(id, _inst(address(0xA1)));
+
+        vm.prank(governor);
+        registry.disableInstitution(id);
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IInstitutionalVaultRegistryErrors
+                    .InstitutionIsDisabled
+                    .selector,
+                id
+            )
+        );
+        registry.disableInstitution(id);
+    }
+
+    function test_UpdateAdmiralsQuarters_Reverts_When_NotFound() public {
+        bytes32 id = bytes32("none");
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IInstitutionalVaultRegistryErrors.InstitutionNotFound.selector,
+                id
+            )
+        );
+        registry.updateAdmiralsQuarters(id, address(0xA2));
+    }
+
+    function test_UpdateAdmiralsQuarters_Reverts_When_Disabled() public {
+        bytes32 id = bytes32("disabled");
+        vm.prank(governor);
+        registry.addInstitution(id, _inst(address(0xA1)));
+
+        vm.prank(governor);
+        registry.disableInstitution(id);
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IInstitutionalVaultRegistryErrors
+                    .InstitutionIsDisabled
+                    .selector,
+                id
+            )
+        );
+        registry.updateAdmiralsQuarters(id, address(0xA2));
+    }
+
+    function test_UpdateAdmiralsQuarters_Reverts_When_ZeroAddress() public {
+        bytes32 id = bytes32("zero-update");
+        vm.prank(governor);
+        registry.addInstitution(id, _inst(address(0xA1)));
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IInstitutionalVaultRegistryErrors.ZeroAddress.selector
+            )
+        );
+        registry.updateAdmiralsQuarters(id, address(0));
+    }
+
+    function test_UpdateAdmiralsQuarters_Reverts_When_SameAddress() public {
+        bytes32 id = bytes32("same");
+        vm.prank(governor);
+        registry.addInstitution(id, _inst(address(0xA1)));
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IInstitutionalVaultRegistryErrors.SameAddress.selector
+            )
+        );
+        registry.updateAdmiralsQuarters(id, address(0xA1));
+    }
+}

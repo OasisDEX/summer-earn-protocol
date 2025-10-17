@@ -19,6 +19,8 @@ import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 import {Whitelist} from "../utils/Whitelist/Whitelist.sol";
+import {IWhitelist} from "../utils/Whitelist/IWhitelist.sol";
+
 /**
  * @title FleetCommanderConfigProviderWhitelist
  * @author SummerFi
@@ -214,24 +216,20 @@ contract FleetCommanderConfigProviderWhitelist is
         }
     }
 
-    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
+    ///@inheritdoc IWhitelist
     function setWhitelisted(
         address account,
         bool allowed
-    ) external onlyGovernor whenNotPaused {
+    ) external override onlyGovernor whenNotPaused {
         _setWhitelisted(account, allowed);
     }
 
-    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
+    ///@inheritdoc IWhitelist
     function setWhitelistedBatch(
         address[] memory accounts,
         bool[] memory allowed
-    ) external onlyGovernor whenNotPaused {
+    ) external override onlyGovernor whenNotPaused {
         _setWhitelistedBatch(accounts, allowed);
-    }
-    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
-    function isWhitelisted(address account) external view returns (bool) {
-        return _isWhitelisted(account);
     }
 
     // INTERNAL FUNCTIONS
