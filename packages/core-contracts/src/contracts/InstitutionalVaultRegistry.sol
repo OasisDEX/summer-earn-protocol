@@ -16,7 +16,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
     mapping(bytes32 => IInstitutionalVaultRegistry.Institution)
-        private _institutions;
+        public institutions;
 
     constructor(address owner) Ownable(owner) {}
 
@@ -25,12 +25,12 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
      */
 
     function exists(bytes32 id) public view returns (bool) {
-        return _institutions[id].configurationManager != address(0);
+        return institutions[id].configurationManager != address(0);
     }
 
     function isActive(bytes32 id) public view returns (bool) {
         if (!exists(id)) revert InstitutionNotFound(id);
-        return _institutions[id].active;
+        return institutions[id].active;
     }
 
     function getInstitution(
@@ -40,39 +40,37 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
         view
         returns (IInstitutionalVaultRegistry.Institution memory institution)
     {
-        institution = _institutions[id];
+        institution = institutions[id];
         if (institution.configurationManager == address(0))
             revert InstitutionNotFound(id);
     }
 
     function getConfigurationManager(bytes32 id) public view returns (address) {
-        IInstitutionalVaultRegistry.Institution memory inst = getInstitution(
-            id
-        );
-        return inst.configurationManager;
+        IInstitutionalVaultRegistry.Institution
+            memory institution = getInstitution(id);
+        return institution.configurationManager;
     }
 
     function getProtocolAccessManager(
         bytes32 id
     ) public view returns (address) {
-        IInstitutionalVaultRegistry.Institution memory inst = getInstitution(
-            id
-        );
-        return inst.protocolAccessManager;
+        IInstitutionalVaultRegistry.Institution
+            memory institution = getInstitution(id);
+        return institution.protocolAccessManager;
     }
 
     function getAdmiralsQuarters(bytes32 id) public view returns (address) {
-        IInstitutionalVaultRegistry.Institution memory inst = getInstitution(
-            id
-        );
-        return inst.admiralsQuarters;
+        IInstitutionalVaultRegistry.Institution
+            memory institution = getInstitution(id);
+        return institution.admiralsQuarters;
     }
 
     function getHarborCommand(bytes32 id) public view returns (address) {
-        IInstitutionalVaultRegistry.Institution memory inst = getInstitution(
-            id
-        );
-        return IConfigurationManager(inst.configurationManager).harborCommand();
+        IInstitutionalVaultRegistry.Institution
+            memory institution = getInstitution(id);
+        return
+            IConfigurationManager(institution.configurationManager)
+                .harborCommand();
     }
 
     /**
@@ -90,22 +88,21 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
             institution.admiralsQuarters == address(0)
         ) revert ZeroAddress();
 
-        IInstitutionalVaultRegistry.Institution memory toStore = institution;
-        toStore.active = true;
-        _institutions[id] = toStore;
+        institutions[id] = institution;
+        institutions[id].active = true;
 
         emit InstitutionAdded(
             id,
-            toStore.configurationManager,
-            toStore.protocolAccessManager,
-            toStore.admiralsQuarters
+            institution.configurationManager,
+            institution.protocolAccessManager,
+            institution.admiralsQuarters
         );
     }
 
     function disableInstitution(bytes32 id) external onlyOwner {
         if (!exists(id)) revert InstitutionNotFound(id);
-        if (!_institutions[id].active) revert InstitutionIsDisabled(id);
-        _institutions[id].active = false;
+        if (!institutions[id].active) revert InstitutionIsDisabled(id);
+        institutions[id].active = false;
         emit InstitutionDisabled(id);
     }
 
@@ -114,15 +111,15 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
         address newAdmiralsQuarters
     ) external onlyOwner {
         if (!exists(id)) revert InstitutionNotFound(id);
-        IInstitutionalVaultRegistry.Institution storage inst = _institutions[
-            id
-        ];
-        if (!inst.active) revert InstitutionIsDisabled(id);
+        IInstitutionalVaultRegistry.Institution
+            storage institution = institutions[id];
+        if (!institution.active) revert InstitutionIsDisabled(id);
         if (newAdmiralsQuarters == address(0)) revert ZeroAddress();
-        if (inst.admiralsQuarters == newAdmiralsQuarters) revert SameAddress();
+        if (institution.admiralsQuarters == newAdmiralsQuarters)
+            revert SameAddress();
 
-        address previous = inst.admiralsQuarters;
-        inst.admiralsQuarters = newAdmiralsQuarters;
+        address previous = institution.admiralsQuarters;
+        institution.admiralsQuarters = newAdmiralsQuarters;
         emit InstitutionAdmiralsQuartersUpdated(
             id,
             previous,
