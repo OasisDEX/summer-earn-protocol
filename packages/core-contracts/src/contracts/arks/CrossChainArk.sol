@@ -390,7 +390,6 @@ contract CrossChainArk is
                         HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-
     /**
      * @notice Ensures ready for executing a pending transfer: no inflight and has pending
      * @dev Used to gate executeTransferAssets

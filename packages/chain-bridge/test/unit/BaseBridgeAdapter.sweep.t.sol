@@ -98,7 +98,9 @@ contract BaseBridgeAdapterSweepTest is Test {
         token.mint(address(adapter), 1 ether);
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(IBaseBridgeAdapterErrors.InvalidParams.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
         );
         adapter.sweep(address(token), address(0), 1);
     }
@@ -168,7 +170,9 @@ contract BaseBridgeAdapterSweepTest is Test {
         vm.deal(address(adapter), 1 ether);
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(IBaseBridgeAdapterErrors.InvalidParams.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
         );
         adapter.sweep(address(0), address(0), 1 ether);
     }
@@ -180,7 +184,9 @@ contract BaseBridgeAdapterSweepTest is Test {
 
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(IBaseBridgeAdapterErrors.TransferFailed.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.TransferFailed.selector
+            )
         );
         adapter.sweep(address(0), address(rejectContract), 1 ether);
     }

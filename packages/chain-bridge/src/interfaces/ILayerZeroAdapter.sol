@@ -18,7 +18,11 @@ interface ILayerZeroAdapter {
     );
 
     /// @notice Emitted when read DVNs are configured
-    event ReadDVNsConfigured(uint32 indexed readChannelId, address[] readDVNs, uint16 confirmations);
+    event ReadDVNsConfigured(
+        uint32 indexed readChannelId,
+        address[] readDVNs,
+        uint16 confirmations
+    );
 
     /// @notice Emitted when a read channel is activated
     event ReadChannelActivated(uint32 indexed readChannelId);

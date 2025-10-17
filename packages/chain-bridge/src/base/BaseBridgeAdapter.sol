@@ -32,7 +32,6 @@ abstract contract BaseBridgeAdapter is
     /// @notice Reverse mapping of external bridge protocol IDs to chain IDs
     mapping(uint32 externalId => uint16 chainId) public externalIdToChainId;
 
-
     /**
      * @param _registry Address of the CrossChainRegistry contract
      * @param _accessManager Address of the AccessManager contract

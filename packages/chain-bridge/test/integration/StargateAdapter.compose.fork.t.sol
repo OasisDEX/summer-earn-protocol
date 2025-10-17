@@ -210,7 +210,9 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Check that it reverted with Unauthorized error
-        bytes4 unauthorizedSelector = IBaseBridgeAdapterErrors.Unauthorized.selector;
+        bytes4 unauthorizedSelector = IBaseBridgeAdapterErrors
+            .Unauthorized
+            .selector;
 
         // The return data should contain the revert reason
         assertTrue(returnData.length >= 4, "Should have revert data");

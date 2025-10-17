@@ -61,7 +61,6 @@ contract StargateAdapter is
     /// @notice Default slippage tolerance in basis points (0.5% = 50 basis points)
     uint256 public slippageToleranceBps = 50;
 
-
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
