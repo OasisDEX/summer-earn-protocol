@@ -1,0 +1,20 @@
+{
+  "fleetName": "LazyVault_Institutional_TestB_USDC",
+  "isBummer": true,
+  "fleetSymbol": "LVIUSDC",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0x25F2bc0ef6B116EA1504178fd692622558633Fb2",
+  "bufferArkAddress": "0xc6ed503C1F0c8bD995FeB0cE861a6007014D9540",
+  "network": "base",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "0",
+  "arks": [
+    "0x5053e962eA108C0D3840E03f9dE856e6fDc4f930",
+    "0x5520EdE865A55Fc600a869dE71587501C85a10CB",
+    "0xfA3622ab949Ea2DF3Af3d4F7A09554213D58578b",
+    "0x44b69d74e251cc738966845D5e7a7c223be26b5f",
+    "0x916F09Cc4F99De68b66EBAB07d92d4C9C8AA3e6e"
+  ]
+}
