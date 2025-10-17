@@ -436,6 +436,4 @@ contract FleetProxy is
         if (inflightWithdrawals != 0) revert InFlight();
     }
 
-    /// @notice Custom error for single-flight gating
-    error InFlight();
 }

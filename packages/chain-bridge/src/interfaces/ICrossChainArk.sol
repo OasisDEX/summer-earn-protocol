@@ -52,6 +52,12 @@ interface ICrossChainArk {
     /// @notice Thrown when there are pending transfer params already queued.
     error PendingTransferAlreadyQueued();
 
+    /// @notice Error thrown when the sender is invalid
+    error InvalidSender();
+
+    /// @notice Error thrown when trying to start a new outbound while inflight > 0
+    error InFlight();
+
     /// @notice Emitted when a message is not expected
     event MessageContentNotExpected();
 

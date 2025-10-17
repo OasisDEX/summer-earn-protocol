@@ -390,10 +390,6 @@ contract CrossChainArk is
                         HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Error thrown when the sender is invalid
-    error InvalidSender();
-    /// @notice Error thrown when trying to start a new outbound while inflight > 0
-    error InFlight();
 
     /**
      * @notice Ensures ready for executing a pending transfer: no inflight and has pending
