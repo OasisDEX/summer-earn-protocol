@@ -78,7 +78,6 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         );
     }
 
-
     function test_receive_with_short_payload_reverts_UnsupportedMessageType()
         public
     {

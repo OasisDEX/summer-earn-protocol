@@ -237,7 +237,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.expectRevert(StargateAdapter.InvalidAssetAddress.selector);
         adapterA.addSupportedAsset(address(0), address(mockStargateContract));
     }
-
     function testAddSupportedAsset_RevertsOnZeroStargateAddress() public {
         useNetworkA();
         vm.prank(governor);

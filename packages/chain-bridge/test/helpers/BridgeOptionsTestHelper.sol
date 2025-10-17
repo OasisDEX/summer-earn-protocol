@@ -13,6 +13,8 @@ library BridgeOptionsTestHelper {
     uint32 public constant DEFAULT_CALLDATA_SIZE = 0;
     uint128 public constant DEFAULT_MSG_VALUE = 0;
     bytes public constant DEFAULT_OPTIONS = "";
+    bool public constant DEFAULT_PAY_IN_PROTOCOL_TOKEN = false;
+    uint256 public constant DEFAULT_FEE_TOKEN_AMOUNT = 0;
 
     /**
      * @notice Creates BridgeOptions with sensible defaults
@@ -28,6 +30,8 @@ library BridgeOptionsTestHelper {
                 gasLimit: DEFAULT_GAS_LIMIT,
                 calldataSize: DEFAULT_CALLDATA_SIZE,
                 msgValue: DEFAULT_MSG_VALUE,
+                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT,
+                payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
                 options: DEFAULT_OPTIONS
             });
     }
@@ -48,6 +52,8 @@ library BridgeOptionsTestHelper {
                 gasLimit: gasLimit,
                 calldataSize: DEFAULT_CALLDATA_SIZE,
                 msgValue: DEFAULT_MSG_VALUE,
+                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT,
+                payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
                 options: DEFAULT_OPTIONS
             });
     }
@@ -67,6 +73,8 @@ library BridgeOptionsTestHelper {
                 gasLimit: DEFAULT_GAS_LIMIT,
                 calldataSize: DEFAULT_CALLDATA_SIZE,
                 msgValue: DEFAULT_MSG_VALUE,
+                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT,
+                payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
                 options: DEFAULT_OPTIONS
             });
     }
@@ -93,7 +101,31 @@ library BridgeOptionsTestHelper {
                 gasLimit: gasLimit,
                 calldataSize: calldataSize,
                 msgValue: msgValue,
+                feeTokenAmount: DEFAULT_FEE_TOKEN_AMOUNT,
+                payInProtocolToken: DEFAULT_PAY_IN_PROTOCOL_TOKEN,
                 options: options
+            });
+    }
+
+    /**
+     * @notice Creates BridgeOptions with protocol token fee payment
+     * @param specifiedAdapter The adapter address to use
+     * @param feeTokenAmount The amount of protocol tokens to pay
+     * @return options BridgeOptions struct with protocol token fee payment
+     */
+    function withProtocolTokenFee(
+        address specifiedAdapter,
+        uint256 feeTokenAmount
+    ) internal pure returns (BridgeTypes.BridgeOptions memory) {
+        return
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: specifiedAdapter,
+                gasLimit: DEFAULT_GAS_LIMIT,
+                calldataSize: DEFAULT_CALLDATA_SIZE,
+                msgValue: DEFAULT_MSG_VALUE,
+                feeTokenAmount: feeTokenAmount,
+                payInProtocolToken: true,
+                options: DEFAULT_OPTIONS
             });
     }
 }

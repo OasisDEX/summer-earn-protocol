@@ -64,7 +64,9 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             gasLimit: 500000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+                feeTokenAmount: 0
         });
 
         vm.startPrank(user);
@@ -119,7 +121,9 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+                feeTokenAmount: 0
         });
 
         bytes memory message = abi.encode(messageContent);

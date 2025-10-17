@@ -89,7 +89,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             gasLimit: 0,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         ark = new CrossChainArk(address(registry), TARGET_CHAIN_ID, params);
@@ -202,7 +204,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory executeTransferParams = abi.encode(params, options);
 
@@ -231,7 +235,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory executeTransferParams = abi.encode(params, options);
         vm.prank(address(fleetCommander));
@@ -266,7 +272,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory zeroAmountParams_encoded = abi.encode(
             zeroAmountParams,
@@ -293,7 +301,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory mismatchAmountParams_encoded = abi.encode(
             mismatchAmountParams,
@@ -320,7 +330,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory zeroAssetParams_encoded = abi.encode(
             zeroAssetParams,
@@ -348,7 +360,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory wrongAssetParams_encoded = abi.encode(
             wrongAssetParams,
@@ -376,7 +390,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory wrongRecipientParams_encoded = abi.encode(
             wrongRecipientParams,
@@ -404,7 +420,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory wrongOriginatorParams_encoded = abi.encode(
             wrongOriginatorParams,
@@ -432,7 +450,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory wrongChainParams_encoded = abi.encode(
             wrongChainParams,
@@ -572,7 +592,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 gasLimit: 200000,
                 calldataSize: 0,
                 msgValue: 0,
-                options: ""
+                options: "",
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
 
@@ -599,7 +621,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 gasLimit: 200000,
                 calldataSize: 0,
                 msgValue: 0,
-                options: ""
+                options: "",
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
     }
@@ -892,7 +916,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory executeTransferParams = abi.encode(params, options);
 

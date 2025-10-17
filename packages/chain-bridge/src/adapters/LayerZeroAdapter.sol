@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBridgeTokenFeeSupport} from "../interfaces/IBridgeTokenFeeSupport.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
@@ -242,13 +243,46 @@ contract LayerZeroAdapter is
 
         // Send message through OApp's _lzSend
         // Use params.refundAddress which is set to the keeper who initiated the transaction
-        MessagingReceipt memory receipt = _lzSend(
-            lzDstEid,
-            payload,
-            lzOptions,
-            EndpointFee(msg.value, 0),
-            payable(params.refundAddress)
-        );
+        MessagingReceipt memory receipt;
+        if (options.payInProtocolToken) {
+            EndpointFee memory quoted = _quote(
+                lzDstEid,
+                payload,
+                lzOptions,
+                true
+            );
+            if (quoted.nativeFee != 0)
+                revert InsufficientMsgValue(0, quoted.nativeFee);
+            uint256 tokenFeeRequired = quoted.lzTokenFee;
+
+            _collectProtocolTokenFee(
+                operationId,
+                params.refundAddress,
+                tokenFeeRequired
+            );
+            _ensureSufficientAllowance(tokenFeeRequired, address(endpoint));
+
+            receipt = _lzSend(
+                lzDstEid,
+                payload,
+                lzOptions,
+                EndpointFee(0, tokenFeeRequired),
+                payable(params.refundAddress)
+            );
+            emit ProtocolFeeSpent(
+                operationId,
+                protocolFeeToken,
+                tokenFeeRequired
+            );
+        } else {
+            receipt = _lzSend(
+                lzDstEid,
+                payload,
+                lzOptions,
+                EndpointFee(msg.value, 0),
+                payable(params.refundAddress)
+            );
+        }
 
         // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[receipt.guid] = operationId;

@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBridgeTokenFeeSupport} from "../interfaces/IBridgeTokenFeeSupport.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
@@ -212,6 +213,155 @@ contract StargateAdapter is
         );
     }
 
+    /**
+     * @dev Execute the actual sendToken call with consolidated logic
+     */
+    function _executeSendToken(
+        bytes32 operationId,
+        BridgeTypes.ExecuteTransferParams memory params,
+        uint256 providedFee,
+        BridgeTypes.BridgeOptions memory options
+    ) internal {
+        // Get the source chain Stargate contract
+        address stargateContract = assetToStargateContract[params.asset];
+        IStargateV2 stargate = IStargateV2(stargateContract);
+
+        // Approve Stargate contract to spend the tokens
+        IERC20(params.asset).forceApprove(stargateContract, params.amount);
+
+        // Prepare validated SendParam with slippage protection
+        (
+            SendParam memory sendParam,
+            OFTReceipt memory oftReceipt
+        ) = _prepareSendParamForTransfer(
+                params,
+                operationId,
+                options,
+                stargateContract
+            );
+
+        // Determine fee payment mode and get messaging fee
+        bool payInToken = options.payInProtocolToken &&
+            protocolFeeToken != address(0);
+        MessagingFee memory messagingFee = stargate.quoteSend(
+            sendParam,
+            payInToken
+        );
+
+        if (payInToken) {
+            _executeTokenPayment(
+                operationId,
+                params,
+                stargate,
+                sendParam,
+                messagingFee,
+                providedFee,
+                options.feeTokenAmount
+            );
+        } else {
+            _executeNativePayment(
+                params,
+                stargate,
+                sendParam,
+                messagingFee,
+                providedFee
+            );
+        }
+    }
+
+    /**
+     * @dev Execute token payment for Stargate transfer
+     * @param operationId The operation ID for this transfer
+     * @param params Transfer parameters
+     * @param stargate Stargate contract instance
+     * @param sendParam Send parameters for Stargate
+     * @param messagingFee Fee information from Stargate
+     * @param providedFee Native fee provided by caller
+     */
+    function _executeTokenPayment(
+        bytes32 operationId,
+        BridgeTypes.ExecuteTransferParams memory params,
+        IStargateV2 stargate,
+        SendParam memory sendParam,
+        MessagingFee memory messagingFee,
+        uint256 providedFee,
+        uint256 feeTokenAmount
+    ) internal {
+        // Enforce that native fee should be zero in token mode
+        if (messagingFee.nativeFee != 0)
+            revert InsufficientFee(0, messagingFee.nativeFee);
+
+        // Validate that provided fee token amount matches required amount
+        if (feeTokenAmount != messagingFee.lzTokenFee)
+            revert InsufficientFee(messagingFee.lzTokenFee, feeTokenAmount);
+
+        // Use base contract functionality for protocol token fee collection
+        _collectProtocolTokenFee(
+            operationId,
+            params.refundAddress,
+            feeTokenAmount
+        );
+
+        // Ensure sufficient allowance for the LayerZero endpoint
+        _ensureSufficientAllowance(feeTokenAmount, LZ_ENDPOINT);
+
+        // No native value required when paying in token
+        stargate.sendToken{value: 0}(
+            sendParam,
+            messagingFee,
+            params.refundAddress
+        );
+
+        // Refund any provided native buffer fully (since nativeFee == 0)
+        _refundExcessNative(params.refundAddress, providedFee);
+    }
+
+    /**
+     * @dev Execute native payment for Stargate transfer
+     * @param params Transfer parameters
+     * @param stargate Stargate contract instance
+     * @param sendParam Send parameters for Stargate
+     * @param messagingFee Fee information from Stargate
+     * @param providedFee Native fee provided by caller
+     */
+    function _executeNativePayment(
+        BridgeTypes.ExecuteTransferParams memory params,
+        IStargateV2 stargate,
+        SendParam memory sendParam,
+        MessagingFee memory messagingFee,
+        uint256 providedFee
+    ) internal {
+        // Native-fee path
+        if (providedFee < messagingFee.nativeFee) {
+            revert InsufficientFee(messagingFee.nativeFee, providedFee);
+        }
+
+        // Use exact fee amount from quote - Stargate handles refunds to keeper
+        stargate.sendToken{value: messagingFee.nativeFee}(
+            sendParam,
+            messagingFee,
+            params.refundAddress // Always refund to keeper who paid fees
+        );
+
+        // Refund any unused native value (buffer) back to the designated refund address
+        uint256 refundAmount = providedFee - messagingFee.nativeFee;
+        _refundExcessNative(params.refundAddress, refundAmount);
+    }
+
+    /**
+     * @dev Refund excess native tokens to the specified address
+     * @param refundAddress Address to receive the refund
+     * @param refundAmount Amount to refund
+     */
+    function _refundExcessNative(
+        address refundAddress,
+        uint256 refundAmount
+    ) internal {
+        if (refundAmount > 0) {
+            (bool ok, ) = refundAddress.call{value: refundAmount}("");
+            if (!ok) revert RefundFailed(refundAddress, refundAmount);
+        }
+    }
     /// @inheritdoc IBridgeAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
@@ -242,21 +392,23 @@ contract StargateAdapter is
         (SendParam memory sendParam, ) = _prepareSendParamForTransfer(
             params,
             dummyOperationId,
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: options.specifiedAdapter,
-                gasLimit: options.gasLimit,
-                calldataSize: options.calldataSize,
-                msgValue: options.msgValue,
-                options: options.options
-            }),
+            options,
             stargateContract
         );
 
+        bool payInToken = options.payInProtocolToken &&
+            protocolFeeToken != address(0);
         MessagingFee memory msgFee = IStargateV2(stargateContract).quoteSend(
             sendParam,
-            false
+            payInToken
         );
-        return (msgFee.nativeFee, 0);
+
+        // If paying in protocol token, validate that provided amount matches required amount
+        if (payInToken && options.feeTokenAmount != msgFee.lzTokenFee) {
+            revert InsufficientFee(msgFee.lzTokenFee, options.feeTokenAmount);
+        }
+
+        return (msgFee.nativeFee, msgFee.lzTokenFee);
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -372,56 +524,6 @@ contract StargateAdapter is
     /*//////////////////////////////////////////////////////////////
                         INTERNAL HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @dev Execute the actual sendToken call with consolidated logic
-     */
-    function _executeSendToken(
-        bytes32 operationId,
-        BridgeTypes.ExecuteTransferParams memory params,
-        uint256 providedFee,
-        BridgeTypes.BridgeOptions memory options
-    ) internal {
-        // Get the source chain Stargate contract
-        address stargateContract = assetToStargateContract[params.asset];
-        IStargateV2 stargate = IStargateV2(stargateContract);
-
-        // Approve Stargate contract to spend the tokens
-        IERC20(params.asset).forceApprove(stargateContract, params.amount);
-
-        // Prepare validated SendParam with slippage protection
-        (SendParam memory sendParam, ) = _prepareSendParamForTransfer(
-            params,
-            operationId,
-            options,
-            stargateContract
-        );
-
-        // Get messaging fee and perform transfer
-        MessagingFee memory messagingFee = stargate.quoteSend(sendParam, false);
-
-        if (providedFee < messagingFee.nativeFee) {
-            revert InsufficientFee(messagingFee.nativeFee, providedFee);
-        }
-
-        // Use exact fee amount from quote - Stargate handles refunds to keeper
-        stargate.sendToken{value: messagingFee.nativeFee}(
-            sendParam,
-            messagingFee,
-            params.refundAddress // Always refund to keeper who paid fees
-        );
-
-        // Refund any unused native value (buffer) back to the designated refund address
-        uint256 refundAmount = providedFee - messagingFee.nativeFee;
-        if (refundAmount > 0) {
-            (bool success, ) = params.refundAddress.call{value: refundAmount}(
-                ""
-            );
-            if (!success) {
-                revert RefundFailed(params.refundAddress, refundAmount);
-            }
-        }
-    }
 
     /**
      * @dev Helper function to create compose options with the given gas limit

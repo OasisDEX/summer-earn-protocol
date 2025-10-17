@@ -2,8 +2,8 @@
 pragma solidity 0.8.28;
 
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
-import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBridgeTokenFeeSupport} from "../interfaces/IBridgeTokenFeeSupport.sol";
 import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
 import {IBaseBridgeAdapterEvents} from "../interfaces/IBaseBridgeAdapterEvents.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -44,10 +44,14 @@ abstract contract BaseBridgeAdapter is
     ProtocolAccessManaged,
     TokenRecovery,
     IERC165,
+    IBridgeTokenFeeSupport,
     IBaseBridgeAdapterErrors,
     IBaseBridgeAdapterEvents
 {
     using SafeERC20 for IERC20;
+
+    /// @notice Thrown when payInProtocolToken is requested but protocolFeeToken is not configured
+    error ProtocolTokenNotConfigured();
 
     uint16 public immutable THIS_CHAIN;
 
@@ -57,6 +61,30 @@ abstract contract BaseBridgeAdapter is
     /// @notice Reverse mapping of external bridge protocol IDs to chain IDs
     mapping(uint32 externalId => uint16 chainId) public externalIdToChainId;
 
+    /// @notice ERC20 token used to pay LayerZero protocol fees (e.g., ZRO). Zero address disables token-fee mode.
+    address public protocolFeeToken;
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when the protocol fee token is configured
+    event ProtocolFeeTokenConfigured(address indexed feeToken);
+
+    /// @notice Emitted when protocol token fees are collected from the payer (keeper)
+    event ProtocolFeeCollected(
+        bytes32 indexed operationId,
+        address indexed payer,
+        address indexed token,
+        uint256 tokenFee
+    );
+
+    /// @notice Emitted when protocol token fees are spent for an operation
+    event ProtocolFeeSpent(
+        bytes32 indexed operationId,
+        address indexed token,
+        uint256 tokenFee
+    );
     /**
      * @notice Initializes the BaseBridgeAdapter with required dependencies
      * @dev Sets up the cross-chain registry and access management systems
@@ -124,6 +152,15 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
+     * @notice Sets the ERC20 token used to pay protocol fees
+     * @param token The ERC20 token address (e.g., ZRO). Use address(0) to disable token-fee mode.
+     */
+    function setProtocolFeeToken(address token) external onlyGovernor {
+        protocolFeeToken = token;
+        emit ProtocolFeeTokenConfigured(token);
+    }
+
+    /**
      * @notice Check if the caller is authorized to perform token recovery
      * @dev Implementation of TokenRecovery authorization - only governance can recover tokens
      * @custom:throws Unauthorized if caller is not governance
@@ -138,7 +175,6 @@ abstract contract BaseBridgeAdapter is
     /*//////////////////////////////////////////////////////////////
                             PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
         return (interfaceId == type(IBridgeAdapter).interfaceId ||
@@ -425,5 +461,61 @@ abstract contract BaseBridgeAdapter is
         returns (BridgeTypes.OperationType operationType, bytes memory data)
     {
         return BridgeMessagingHelper.decodePayload(payload);
+    }
+
+    /**
+     * @notice Handles protocol token fee collection and validation
+     * @param operationId The operation ID for this transaction
+     * @param feePayer The address that will pay the protocol token fees
+     * @param tokenFeeRequired The amount of protocol tokens required
+     */
+    function _collectProtocolTokenFee(
+        bytes32 operationId,
+        address feePayer,
+        uint256 tokenFeeRequired
+    ) internal {
+        if (protocolFeeToken == address(0)) {
+            revert ProtocolTokenNotConfigured();
+        }
+
+        if (tokenFeeRequired > 0) {
+            IERC20(protocolFeeToken).safeTransferFrom(
+                feePayer,
+                address(this),
+                tokenFeeRequired
+            );
+
+            emit ProtocolFeeCollected(
+                operationId,
+                feePayer,
+                protocolFeeToken,
+                tokenFeeRequired
+            );
+        }
+    }
+
+    /**
+     * @notice Ensures sufficient allowance for protocol fee token spending
+     * @param requiredAmount The amount of tokens needed for the operation
+     * @param endpoint The LayerZero endpoint address
+     */
+    function _ensureSufficientAllowance(
+        uint256 requiredAmount,
+        address endpoint
+    ) internal {
+        if (protocolFeeToken == address(0)) return;
+
+        uint256 currentAllowance = IERC20(protocolFeeToken).allowance(
+            address(this),
+            endpoint
+        );
+        if (currentAllowance < requiredAmount) {
+            IERC20(protocolFeeToken).forceApprove(endpoint, requiredAmount);
+        }
+    }
+
+    /// @inheritdoc IBridgeTokenFeeSupport
+    function supportsProtocolTokenFee() external pure returns (bool) {
+        return true;
     }
 }
