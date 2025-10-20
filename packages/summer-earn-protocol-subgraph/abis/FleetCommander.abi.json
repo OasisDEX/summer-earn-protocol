@@ -56,6 +56,11 @@
             "name": "initialTipRate",
             "type": "uint256",
             "internalType": "Percentage"
+          },
+          {
+            "name": "initialWithdrawalFee",
+            "type": "uint256",
+            "internalType": "Percentage"
           }
         ]
       }
@@ -116,19 +121,6 @@
   },
   {
     "type": "function",
-    "name": "INITIAL_MINIMUM_PAUSE_TIME",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "MAX_REBALANCE_OPERATIONS",
     "inputs": [],
     "outputs": [
@@ -149,6 +141,25 @@
         "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "_calculateWithdrawalFeeShares",
+    "inputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -304,9 +315,14 @@
         "internalType": "uint256"
       },
       {
-        "name": "stakingRewardsManager",
-        "type": "address",
-        "internalType": "address"
+        "name": "rebalanceCooldown",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "withdrawalFee",
+        "type": "uint256",
+        "internalType": "Percentage"
       }
     ],
     "stateMutability": "view"
@@ -443,19 +459,6 @@
   },
   {
     "type": "function",
-    "name": "fleetCommanderRewardsManagerFactory",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "forceRebalance",
     "inputs": [
       {
@@ -562,9 +565,14 @@
             "internalType": "uint256"
           },
           {
-            "name": "stakingRewardsManager",
-            "type": "address",
-            "internalType": "address"
+            "name": "rebalanceCooldown",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "withdrawalFee",
+            "type": "uint256",
+            "internalType": "Percentage"
           }
         ]
       }
@@ -612,6 +620,19 @@
         "name": "",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getWithdrawalFee",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "Percentage"
       }
     ],
     "stateMutability": "view"
@@ -788,19 +809,6 @@
     "outputs": [
       {
         "name": "_maxWithdraw",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "minimumPauseTime",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1217,13 +1225,6 @@
   },
   {
     "type": "function",
-    "name": "setFleetTokenTransferability",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "setMaxRebalanceOperations",
     "inputs": [
       {
@@ -1241,19 +1242,6 @@
     "inputs": [
       {
         "name": "newMinimumBalance",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setMinimumPauseTime",
-    "inputs": [
-      {
-        "name": "_newMinimumPauseTime",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1362,7 +1350,7 @@
         "internalType": "address"
       },
       {
-        "name": "amount",
+        "name": "value",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1391,7 +1379,7 @@
         "internalType": "address"
       },
       {
-        "name": "amount",
+        "name": "value",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1404,19 +1392,6 @@
       }
     ],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "transfersEnabled",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -1453,8 +1428,14 @@
   },
   {
     "type": "function",
-    "name": "updateStakingRewardsManager",
-    "inputs": [],
+    "name": "updateWithdrawalFee",
+    "inputs": [
+      {
+        "name": "newFee",
+        "type": "uint256",
+        "internalType": "Percentage"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -1674,6 +1655,19 @@
   },
   {
     "type": "event",
+    "name": "FleetCommanderCooldownPeriodUpdated",
+    "inputs": [
+      {
+        "name": "newCooldownPeriod",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "FleetCommanderDepositCapUpdated",
     "inputs": [
       {
@@ -1738,19 +1732,6 @@
         "type": "bytes",
         "indexed": true,
         "internalType": "bytes"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "FleetCommanderStakingRewardsUpdated",
-    "inputs": [
-      {
-        "name": "newStakingRewards",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -1855,19 +1836,6 @@
       },
       {
         "name": "newBalance",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "MinimumPauseTimeUpdated",
-    "inputs": [
-      {
-        "name": "newMinimumPauseTime",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -2025,12 +1993,6 @@
   },
   {
     "type": "event",
-    "name": "TransfersEnabled",
-    "inputs": [],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "Unpaused",
     "inputs": [
       {
@@ -2038,6 +2000,31 @@
         "type": "address",
         "indexed": false,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "UserCooldownPropagated",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "cooldownTimestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -2075,6 +2062,50 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WithdrawalFeeCollected",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "assets",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "feeAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WithdrawalFeeUpdated",
+    "inputs": [
+      {
+        "name": "previousFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "Percentage"
+      },
+      {
+        "name": "newFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "Percentage"
       }
     ],
     "anonymous": false
@@ -2559,6 +2590,27 @@
   },
   {
     "type": "error",
+    "name": "FleetCommanderCooldownNotMet",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "currentTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "cooldownEndTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "FleetCommanderEffectiveDepositCapExceeded",
     "inputs": [
       {
@@ -2679,11 +2731,6 @@
   },
   {
     "type": "error",
-    "name": "FleetCommanderPausableMinimumPauseTimeTooShort",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "FleetCommanderRebalanceAmountZero",
     "inputs": [
       {
@@ -2796,6 +2843,11 @@
   {
     "type": "error",
     "name": "WithdrawalAmountExceedsMaxBufferLimit",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WithdrawalFeeTooHigh",
     "inputs": []
   }
 ]

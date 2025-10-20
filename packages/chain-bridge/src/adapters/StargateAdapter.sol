@@ -131,7 +131,7 @@ contract StargateAdapter is
         assetToStargateContract[asset] = stargateContract;
         stargateContractToAsset[stargateContract] = asset;
 
-        emit AssetSupported(uint16(block.chainid), asset, stargateContract);
+        emit AssetSupported(asset, stargateContract);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -210,19 +210,12 @@ contract StargateAdapter is
             revert InsufficientFee(messagingFee.nativeFee, providedFee);
         }
 
-        // Use exact fee amount from quote - Stargate handles refunds to keeper
-        stargate.sendToken{value: messagingFee.nativeFee}(
+        // Forward the full provided fee to Stargate - it will handle refunds internally
+        stargate.sendToken{value: providedFee}(
             sendParam,
             messagingFee,
             params.refundAddress // Always refund to keeper who paid fees
         );
-
-        // Refund any unused native value (buffer) back to the designated refund address
-        uint256 refundAmount = providedFee - messagingFee.nativeFee;
-        if (refundAmount > 0) {
-            (bool ok, ) = params.refundAddress.call{value: refundAmount}("");
-            if (!ok) revert RefundFailed(params.refundAddress, refundAmount);
-        }
     }
 
     /**
@@ -336,10 +329,6 @@ contract StargateAdapter is
         onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
-            revert OperationNotSupported();
-        }
-
         // Check if asset is supported on current chain
         if (assetToStargateContract[params.asset] == address(0)) {
             revert UnsupportedAsset();
@@ -522,12 +511,5 @@ contract StargateAdapter is
         assetAddress = stargateContractToAsset[_from];
         if (assetAddress == address(0))
             revert Untrusted("Stargate pool", _from, address(0));
-    }
-
-    /**
-     * @notice Get the LayerZero Endpoint ID for a given chain
-     */
-    function getEndpointId(uint16 chainId) external view returns (uint32) {
-        return chainToExternalId[chainId];
     }
 }

@@ -359,7 +359,7 @@ contract FleetProxy is
         return
             ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
                 _hubChainId,
-                ICrossChainRegistry(crossChainRegistry()).currentChainId(),
+                uint16(block.chainid),
                 address(this),
                 ICrossChainRegistry(crossChainRegistry()).PEER_RELATIONSHIP()
             );
@@ -376,30 +376,25 @@ contract FleetProxy is
         try
             ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
                 _hubChainId,
-                ICrossChainRegistry(crossChainRegistry()).currentChainId(),
+                uint16(block.chainid),
                 address(this),
                 ICrossChainRegistry(crossChainRegistry()).PEER_RELATIONSHIP()
             )
         returns (address ark) {
-            if (ark != address(0)) {
-                try
+            try
+                ICrossChainRegistry(crossChainRegistry()).isValidCrossChainPair(
+                    ark,
+                    address(this),
+                    hubChainId,
+                    uint16(block.chainid),
                     ICrossChainRegistry(crossChainRegistry())
-                        .isValidCrossChainPair(
-                            ark,
-                            address(this),
-                            hubChainId,
-                            ICrossChainRegistry(crossChainRegistry())
-                                .currentChainId(),
-                            ICrossChainRegistry(crossChainRegistry())
-                                .PEER_RELATIONSHIP()
-                        )
-                returns (bool valid) {
-                    return valid;
-                } catch {
-                    return false;
-                }
+                        .PEER_RELATIONSHIP()
+                )
+            returns (bool valid) {
+                return valid;
+            } catch {
+                return false;
             }
-            return false;
         } catch {
             return false;
         }

@@ -119,7 +119,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.stopPrank();
 
         // Verify the endpoint was configured
-        assertEq(adapterA.getEndpointId(newChainId), newEndpointId);
+        assertEq(adapterA.chainToExternalId(newChainId), newEndpointId);
 
         // Verify the peer relationship was established
         assertEq(
