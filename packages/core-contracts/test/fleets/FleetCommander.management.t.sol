@@ -42,7 +42,8 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             symbol: "FC",
             details: "Mock details",
             depositCap: 10000,
-            initialTipRate: Percentage.wrap(0)
+            initialTipRate: Percentage.wrap(0),
+            initialWithdrawalFee: Percentage.wrap(0)
         });
 
         FleetCommander newFleetCommander = new FleetCommander(params);
@@ -87,20 +88,6 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
         FleetConfig memory config = fleetCommander.getConfig();
         assertEq(config.minimumBufferBalance, newBalance);
-    }
-
-    function test_TransferDisabled() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("FleetCommanderTransfersDisabled()")
-        );
-        fleetCommander.transfer(address(0x123), 100);
-    }
-
-    function test_TransferFromDisabled() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("FleetCommanderTransfersDisabled()")
-        );
-        fleetCommander.transferFrom(address(this), address(0x123), 100);
     }
 
     function test_RemoveArkWithNonZeroAllocation() public {
@@ -440,8 +427,8 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         );
         fleetCommander.unpause();
 
-        // Wait for minimum pause time
-        vm.warp(block.timestamp + fleetCommander.minimumPauseTime());
+        // Wait for minimum pause time (2 days)
+        vm.warp(block.timestamp + 2 days);
 
         // Now unpause should succeed
         vm.prank(governor);
@@ -461,19 +448,6 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             )
         );
         fleetCommander.unpause();
-    }
-
-    function test_SetMinimumPauseTime() public {
-        uint256 newMinimumPauseTime = 48 hours;
-
-        vm.prank(governor);
-        vm.expectEmit(false, false, false, true);
-        emit FleetCommanderPausable.MinimumPauseTimeUpdated(
-            newMinimumPauseTime
-        );
-        fleetCommander.setMinimumPauseTime(newMinimumPauseTime);
-
-        assertEq(fleetCommander.minimumPauseTime(), newMinimumPauseTime);
     }
 
     function test_PauseNonGovernor() public {
@@ -503,17 +477,6 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommander.unpause();
     }
 
-    function test_SetMinimumPauseTimeNonGovernor() public {
-        vm.prank(address(0x123));
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "CallerIsNotGovernor(address)",
-                address(0x123)
-            )
-        );
-        fleetCommander.setMinimumPauseTime(48 hours);
-    }
-
     function test_setDepositCapWhenPaused() public {
         vm.prank(governor);
         fleetCommander.pause();
@@ -521,57 +484,5 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         fleetCommander.setFleetDepositCap(1000);
-    }
-
-    function test_UpdateStakingRewardsManager() public {
-        address initialStakingRewardsManager = fleetCommander
-            .getConfig()
-            .stakingRewardsManager;
-
-        vm.prank(governor);
-        fleetCommander.updateStakingRewardsManager();
-
-        FleetConfig memory config = fleetCommander.getConfig();
-        assertNotEq(config.stakingRewardsManager, initialStakingRewardsManager);
-        assertNotEq(config.stakingRewardsManager, address(0));
-    }
-
-    function test_TransfersDisabledByDefault() public view {
-        assertEq(
-            fleetCommander.transfersEnabled(),
-            false,
-            "Transfers should be disabled by default"
-        );
-    }
-
-    function test_SetTransfersEnabled() public {
-        vm.prank(governor);
-        fleetCommander.setFleetTokenTransferability();
-
-        assertEq(
-            fleetCommander.transfersEnabled(),
-            true,
-            "Transfers should be enabled after setting"
-        );
-    }
-
-    function test_SetTransfersEnabled_EmitsEvent() public {
-        vm.prank(governor);
-
-        vm.expectEmit(true, true, true, true);
-        emit IFleetCommanderConfigProviderEvents.TransfersEnabled();
-        fleetCommander.setFleetTokenTransferability();
-    }
-
-    function test_SetTransfersEnabled_OnlyGovernor() public {
-        // Test non-governor cannot enable transfers
-        vm.prank(address(0x123));
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "CallerIsNotGovernor(address)",
-                address(0x123)
-            )
-        );
-        fleetCommander.setFleetTokenTransferability();
     }
 }

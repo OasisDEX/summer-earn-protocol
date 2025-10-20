@@ -118,31 +118,28 @@ contract CrossChainFleetProxyTest is Test {
             SOURCE_CHAIN_ID
         );
 
-        // Register cross-chain relationships in registry
-        registry.registerRelationship(
+        // Register cross-chain relationships in registry using peer pair registration
+        registry.registerAdapterPeerPair(
             address(bufferArkMock), // Use the ArkMock as the source
             ARB_STARGATE_PROXY, // Different target for Stargate
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
-        // Register LayerZero adapter with different target
-        registry.registerRelationship(
+        // Register LayerZero adapter with different target using peer pair registration
+        registry.registerAdapterPeerPair(
             address(mockAdapter), // Use the mockAdapter as the source
             ARB_LAYERZERO_PROXY, // Different target for LayerZero
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
-        // Register the ark-proxy relationship
-        registry.registerRelationship(
+        // Register the ark-proxy relationship using peer pair registration
+        registry.registerAdapterPeerPair(
             SOURCE_ARK_ADDRESS,
             address(proxy),
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
         accessManager.grantKeeperRole(address(proxy), governor);
@@ -340,8 +337,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 100,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
 
@@ -462,8 +459,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 100,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
 
@@ -696,8 +693,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 100,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
     }
@@ -741,8 +738,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 100,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
     }
@@ -779,8 +776,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 0,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
 
@@ -843,8 +840,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 100,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
 
@@ -875,8 +872,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 100,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
 
@@ -894,10 +891,8 @@ contract CrossChainFleetProxyTest is Test {
         );
 
         // Decode and verify the message content
-        (uint256 fleetAssets, bytes32 transferId) = abi.decode(
-            message,
-            (uint256, bytes32)
-        );
+        (uint256 fleetAssets, bytes32 transferId, uint256 timestamp) = abi
+            .decode(message, (uint256, bytes32, uint256));
 
         // Verify the fleet assets amount is zero
         assertEq(fleetAssets, 0, "Message should contain zero fleet assets");
@@ -911,6 +906,13 @@ contract CrossChainFleetProxyTest is Test {
         assertTrue(
             transferId != bytes32(0),
             "Transfer ID should be set from the deposit operation"
+        );
+
+        // Verify the timestamp is reasonable (should be current block timestamp)
+        assertEq(
+            timestamp,
+            block.timestamp,
+            "Timestamp should match current block timestamp"
         );
     }
 
@@ -932,8 +934,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 100,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
     }
@@ -957,8 +959,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 100,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
 
@@ -1005,8 +1007,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 0,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
 
@@ -1048,8 +1050,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 0,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
 
@@ -1092,8 +1094,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 0,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
 
@@ -1130,8 +1132,8 @@ contract CrossChainFleetProxyTest is Test {
                 calldataSize: 0,
                 msgValue: 0,
                 options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
+                payInProtocolToken: false,
+                feeTokenAmount: 0
             })
         );
 

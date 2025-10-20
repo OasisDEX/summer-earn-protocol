@@ -7,8 +7,11 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeTokenFeeSupport} from "../interfaces/IBridgeTokenFeeSupport.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
+import {IStargateAdapter} from "../interfaces/IStargateAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 import {MessagingFee, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
@@ -27,6 +30,7 @@ import {LayerZeroComposeHelper} from "../helpers/LayerZeroComposeHelper.sol";
 contract StargateAdapter is
     IAssetAdapter,
     IBridgeAdapter,
+    IStargateAdapter,
     ILayerZeroComposer,
     BaseBridgeAdapter
 {
@@ -59,44 +63,6 @@ contract StargateAdapter is
 
     /// @notice Default slippage tolerance in basis points (0.5% = 50 basis points)
     Bps public slippageToleranceBps = Bps.wrap(50);
-
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when an asset support is added
-    event AssetSupported(
-        uint16 chainId,
-        address asset,
-        address stargateContract
-    );
-
-    /// @notice Emitted when slippage tolerance is updated
-    event SlippageToleranceUpdated(Bps newSlippageBps);
-
-    /*//////////////////////////////////////////////////////////////
-                                 ERRORS
-    //////////////////////////////////////////////////////////////*/
-    /// @notice Thrown when refunding excess native fee to `refundAddress` fails
-    error RefundFailed(address recipient, uint256 amount);
-
-    /// @notice Thrown when LayerZero endpoint address is invalid
-    error InvalidLzEndpoint();
-
-    /// @notice Thrown when slippage tolerance is outside valid range
-    error InvalidSlippageTolerance(uint256 provided);
-
-    /// @notice Thrown when asset address is invalid
-    error InvalidAssetAddress();
-
-    /// @notice Thrown when Stargate contract address is invalid
-    error InvalidStargateContract();
-
-    /// @notice Thrown when Stargate contract type is invalid
-    error InvalidStargateType();
-
-    /// @notice Thrown when Stargate pool token doesn't match expected asset
-    error InvalidStargatePoolToken(address expected, address actual);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -167,7 +133,7 @@ contract StargateAdapter is
         assetToStargateContract[asset] = stargateContract;
         stargateContractToAsset[stargateContract] = asset;
 
-        emit AssetSupported(uint16(block.chainid), asset, stargateContract);
+        emit AssetSupported(asset, stargateContract);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -336,7 +302,7 @@ contract StargateAdapter is
             revert InsufficientFee(messagingFee.nativeFee, providedFee);
         }
 
-        // Use exact fee amount from quote - Stargate handles refunds to keeper
+        // Pay Stargate exactly the required native fee; refund any surplus locally
         stargate.sendToken{value: messagingFee.nativeFee}(
             sendParam,
             messagingFee,
@@ -358,10 +324,10 @@ contract StargateAdapter is
         uint256 refundAmount
     ) internal {
         if (refundAmount > 0) {
-            (bool ok, ) = refundAddress.call{value: refundAmount}("");
-            if (!ok) revert RefundFailed(refundAddress, refundAmount);
+            Address.sendValue(payable(params.refundAddress), refundAmount);
         }
     }
+
     /// @inheritdoc IBridgeAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
@@ -373,8 +339,9 @@ contract StargateAdapter is
         withSupportedOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
-            revert OperationNotSupported();
+        // Check if asset is supported on current chain
+        if (assetToStargateContract[params.asset] == address(0)) {
+            revert UnsupportedAsset();
         }
 
         // Get the source chain Stargate contract
@@ -671,12 +638,5 @@ contract StargateAdapter is
         assetAddress = stargateContractToAsset[_from];
         if (assetAddress == address(0))
             revert Untrusted("Stargate pool", _from, address(0));
-    }
-
-    /**
-     * @notice Get the LayerZero Endpoint ID for a given chain
-     */
-    function getEndpointId(uint16 chainId) external view returns (uint32) {
-        return chainToExternalId[chainId];
     }
 }

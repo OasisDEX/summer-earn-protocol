@@ -28,7 +28,7 @@ interface IBridgeRouter is IERC165 {
     /// @notice Emitted when an adapter is removed
     event AdapterRemoved(address indexed adapter);
 
-    /// @notice Emitted when a transfer is initiated by the BridgeQueue
+    /// @notice Emitted when a transfer is initiated
     event TransferInitiated(
         bytes32 indexed operationId,
         uint16 destinationChainId,
@@ -38,7 +38,7 @@ interface IBridgeRouter is IERC165 {
         address adapter
     );
 
-    /// @notice Emitted when a message is initiated by the BridgeQueue
+    /// @notice Emitted when a message is initiated
     event MessageInitiated(
         bytes32 indexed operationId,
         uint16 destinationChainId,

@@ -44,12 +44,4 @@ abstract contract ConfigurationManaged is IConfigurationManaged {
     }
 
     /// @inheritdoc IConfigurationManaged
-    function fleetCommanderRewardsManagerFactory()
-        public
-        view
-        virtual
-        returns (address)
-    {
-        return configurationManager.fleetCommanderRewardsManagerFactory();
-    }
 }

@@ -133,6 +133,9 @@ interface IFleetProxy is ICrossChainReceiver {
     /// @notice Error thrown when registry address is invalid
     error InvalidRegistry();
 
+    /// @notice Error thrown when trying to start a new outbound while inflight > 0
+    error InFlight();
+
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/

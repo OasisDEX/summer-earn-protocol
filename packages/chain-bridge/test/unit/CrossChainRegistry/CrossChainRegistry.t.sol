@@ -25,12 +25,11 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         );
 
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         // Check relationship was created
@@ -61,9 +60,10 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
             )
         );
         assertTrue(registry.isSourceContractRegistered(ark1, peerType));
+        assertTrue(registry.isSourceContractRegistered(proxy1, peerType));
 
-        // Check count
-        assertEq(registry.getRelationshipCount(peerType), 1);
+        // Check count (both directions registered)
+        assertEq(registry.getRelationshipCount(peerType), 2);
     }
 
     function test_registerRelationship_whenSourceIsZero_reverts() public {
@@ -74,12 +74,11 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
                 address(0)
             )
         );
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(0),
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
     }
 
@@ -91,12 +90,11 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
                 address(0)
             )
         );
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             address(0),
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
     }
 
@@ -108,13 +106,7 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
                 0
             )
         );
-        registry.registerRelationship(
-            ark1,
-            proxy1,
-            0,
-            TARGET_CHAIN_ID,
-            peerType
-        );
+        registry.registerAdapterPeerPair(ark1, proxy1, 0, TARGET_CHAIN_ID);
     }
 
     function test_registerRelationship_whenSourceAndTargetOnSameChain_succeeds()
@@ -130,12 +122,11 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         );
 
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            peerType
+            CURRENT_CHAIN_ID
         );
 
         ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(
@@ -170,12 +161,11 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
                 CURRENT_CHAIN_ID
             )
         );
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             otherChain1,
-            otherChain2,
-            peerType
+            otherChain2
         );
     }
 
@@ -185,12 +175,11 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         uint16 otherChain = 137; // Polygon
 
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             otherChain,
-            CURRENT_CHAIN_ID,
-            peerType
+            CURRENT_CHAIN_ID
         );
 
         // Verify relationship was created
@@ -202,12 +191,11 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
 
     function test_registerRelationship_whenDuplicate_reverts() public {
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         vm.prank(governor);
@@ -219,12 +207,11 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
                 TARGET_CHAIN_ID
             )
         );
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
     }
 
@@ -232,12 +219,11 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         public
     {
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         vm.prank(governor);
@@ -251,36 +237,33 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
                 ark1
             )
         );
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark2,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
     }
 
     function test_registerRelationship_whenCallerNotGovernor_reverts() public {
         vm.prank(user);
         vm.expectRevert();
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
     }
 
     function test_unregisterCrossChainRelationship() public {
         // First register
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            PEER_RELATIONSHIP
+            TARGET_CHAIN_ID
         );
 
         vm.expectEmit(true, true, true, true, address(registry));
@@ -293,10 +276,16 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         );
 
         vm.prank(governor);
-        registry.unregisterRelationship(ark1, peerType, TARGET_CHAIN_ID);
+        registry.unregisterAdapterPeerPair(
+            ark1,
+            proxy1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID
+        );
 
-        // Check relationship was removed
+        // Check relationship was removed (both directions)
         assertFalse(registry.isSourceContractRegistered(ark1, peerType));
+        assertFalse(registry.isSourceContractRegistered(proxy1, peerType));
         assertEq(registry.getRelationshipCount(peerType), 0);
 
         // Should return empty relationship when trying to access
@@ -318,34 +307,42 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
                 TARGET_CHAIN_ID
             )
         );
-        registry.unregisterRelationship(ark1, peerType, TARGET_CHAIN_ID);
+        registry.unregisterAdapterPeerPair(
+            ark1,
+            proxy1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID
+        );
     }
 
     function test_unregisterRelationship_whenCallerNotGovernor_reverts()
         public
     {
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         vm.prank(user);
         vm.expectRevert();
-        registry.unregisterRelationship(ark1, peerType, TARGET_CHAIN_ID);
+        registry.unregisterAdapterPeerPair(
+            ark1,
+            proxy1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID
+        );
     }
 
     function test_getTargetForSource() public {
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(ark1, peerType);
@@ -364,12 +361,11 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
 
     function test_getSourceForTarget() public {
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         address sourceContract = registry.getSourceForTarget(
@@ -404,12 +400,11 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         );
 
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            PEER_RELATIONSHIP
+            TARGET_CHAIN_ID
         );
 
         // Should be true after registration
@@ -474,33 +469,30 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
 
     function test_multipleRegistrations() public {
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark2,
             proxy2,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark3,
             proxy3,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
-        assertEq(registry.getRelationshipCount(peerType), 3);
+        assertEq(registry.getRelationshipCount(peerType), 6); // 3 pairs = 6 relationships
 
         // Check first relationship
         (address[] memory targetContracts, uint16[] memory chainIds) = registry
@@ -579,51 +571,59 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
 
     function test_unregisterOneOfMultiple() public {
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark2,
             proxy2,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         vm.prank(governor);
-        registry.unregisterRelationship(ark1, peerType, TARGET_CHAIN_ID);
+        registry.unregisterAdapterPeerPair(
+            ark1,
+            proxy1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID
+        );
 
-        assertEq(registry.getRelationshipCount(peerType), 1);
+        assertEq(registry.getRelationshipCount(peerType), 2); // 1 pair = 2 relationships
         assertFalse(registry.isSourceContractRegistered(ark1, peerType));
+        assertFalse(registry.isSourceContractRegistered(proxy1, peerType));
         assertTrue(registry.isSourceContractRegistered(ark2, peerType));
+        assertTrue(registry.isSourceContractRegistered(proxy2, peerType));
     }
 
     function test_reregisterAfterUnregister() public {
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         vm.prank(governor);
-        registry.unregisterRelationship(ark1, peerType, TARGET_CHAIN_ID);
+        registry.unregisterAdapterPeerPair(
+            ark1,
+            proxy1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID
+        );
 
         vm.prank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             ark1,
             proxy2,
             CURRENT_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            peerType
+            TARGET_CHAIN_ID
         );
 
         (address[] memory targetContracts, uint16[] memory chainIds) = registry
@@ -633,8 +633,15 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
     }
 
     function test_multipleRelationshipTypes() public {
-        bytes32 peerTypeLocal = keccak256("PEER_RELATIONSHIP");
-        bytes32 executorTypeLocal = keccak256("EXECUTOR_RELATIONSHIP");
+        bytes32 peerTypeLocal = keccak256("CUSTOM_PEER_RELATIONSHIP");
+        bytes32 executorTypeLocal = keccak256("CUSTOM_EXECUTOR_RELATIONSHIP");
+
+        // Add the relationship types first
+        vm.prank(governor);
+        registry.addSupportedRelationshipType(peerTypeLocal);
+
+        vm.prank(governor);
+        registry.addSupportedRelationshipType(executorTypeLocal);
 
         vm.prank(governor);
         registry.registerRelationship(
@@ -669,10 +676,10 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         assertEq(registry.getRelationshipCount(peerTypeLocal), 1);
         assertEq(registry.getRelationshipCount(executorTypeLocal), 1);
 
-        // Check supported types
+        // Check supported types (2 built-in + 2 custom = 4 total)
         bytes32[] memory supportedTypes = registry
             .getSupportedRelationshipTypes();
-        assertEq(supportedTypes.length, 2);
+        assertEq(supportedTypes.length, 4);
         // Note: The order might vary, so we check both types are present
         assertTrue(
             (supportedTypes[0] == peerType &&

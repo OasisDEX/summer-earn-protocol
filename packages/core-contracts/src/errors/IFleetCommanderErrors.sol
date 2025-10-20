@@ -143,4 +143,16 @@ interface IFleetCommanderErrors {
      * @notice Thrown when user attempts to deposit/mint or withdraw/redeem 0 units
      */
     error FleetCommanderZeroAmount();
+
+    /**
+     * @notice Thrown when cooldown period has not been met for withdraw/redeem operations
+     * @param user The address of the user attempting the operation
+     * @param currentTime The current block timestamp
+     * @param cooldownEndTime The timestamp when cooldown period ends
+     */
+    error FleetCommanderCooldownNotMet(
+        address user,
+        uint256 currentTime,
+        uint256 cooldownEndTime
+    );
 }

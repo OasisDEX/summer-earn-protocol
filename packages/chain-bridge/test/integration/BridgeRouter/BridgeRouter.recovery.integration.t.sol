@@ -145,21 +145,12 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        // Register recipient (current) <- originator (source)
-        registry.registerRelationship(
+        // Register bijective peer relationship
+        registry.registerAdapterPeerPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        // Register originator (source) -> recipient (current)
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -201,20 +192,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         MockCrossChainReceiver testReceiver = new MockCrossChainReceiver();
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(testReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        // Register reverse relationship for validation
-        registry.registerRelationship(
-            fleetProxy,
-            address(testReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -250,33 +232,19 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
 
         // Unregister the existing relationship for testReceiver first, then register goodReceiver with same fleetProxy
         vm.startPrank(governor);
-        registry.unregisterRelationship(
+        registry.unregisterAdapterPeerPair(
             address(testReceiver),
-            registry.PEER_RELATIONSHIP(),
-            SOURCE_CHAIN_ID
-        );
-        // Unregister reverse direction
-        registry.unregisterRelationship(
             fleetProxy,
-            registry.PEER_RELATIONSHIP(),
-            CURRENT_CHAIN_ID
+            CURRENT_CHAIN_ID,
+            SOURCE_CHAIN_ID
         );
 
         // Set up peer relationship for the new receiver with the same fleetProxy
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(goodReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        // Register reverse relationship for validation
-        registry.registerRelationship(
-            fleetProxy,
-            address(goodReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -297,19 +265,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -356,19 +316,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -405,12 +357,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address wrongFleet = address(0x9999);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -442,19 +393,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -484,19 +427,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address wrongFleet = address(0x9999);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -525,19 +460,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -592,12 +519,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             fleetProxy,
             address(mockReceiver),
             SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            CURRENT_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -633,20 +559,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         MockCrossChainReceiver testReceiver = new MockCrossChainReceiver();
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(testReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        // Register reverse relationship for validation
-        registry.registerRelationship(
-            fleetProxy,
-            address(testReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -667,34 +584,20 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
 
         // Unregister the existing relationship for testReceiver first
         vm.startPrank(governor);
-        registry.unregisterRelationship(
+        registry.unregisterAdapterPeerPair(
             address(testReceiver),
-            registry.PEER_RELATIONSHIP(),
-            SOURCE_CHAIN_ID
-        );
-        // Unregister reverse direction
-        registry.unregisterRelationship(
             fleetProxy,
-            registry.PEER_RELATIONSHIP(),
-            CURRENT_CHAIN_ID
+            CURRENT_CHAIN_ID,
+            SOURCE_CHAIN_ID
         );
 
         // Set up peer relationship for the new receiver with the same fleet proxy
         // as the original receiver (since we can't override the originator)
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(newReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        // Register reverse relationship for validation
-        registry.registerRelationship(
-            fleetProxy,
-            address(newReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 

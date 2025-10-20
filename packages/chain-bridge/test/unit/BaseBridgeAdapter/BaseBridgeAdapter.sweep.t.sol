@@ -87,7 +87,9 @@ contract BaseBridgeAdapterSweepTest is Test {
         // Adapter has 0 tokens initially
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(TokenRecovery.InsufficientBalance.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InsufficientBalance.selector
+            )
         );
         adapter.sweep(address(token), address(0xBEEF), 1 ether);
     }
@@ -96,7 +98,9 @@ contract BaseBridgeAdapterSweepTest is Test {
         token.mint(address(adapter), 1 ether);
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(TokenRecovery.InvalidRecoveryParams.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
         );
         adapter.sweep(address(token), address(0), 1);
     }
@@ -154,7 +158,9 @@ contract BaseBridgeAdapterSweepTest is Test {
         // Adapter has 0 ETH initially
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(TokenRecovery.InsufficientBalance.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InsufficientBalance.selector
+            )
         );
         adapter.sweep(address(0), address(0xBEEF), 1 ether);
     }
@@ -163,7 +169,9 @@ contract BaseBridgeAdapterSweepTest is Test {
         vm.deal(address(adapter), 1 ether);
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(TokenRecovery.InvalidRecoveryParams.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
         );
         adapter.sweep(address(0), address(0), 1 ether);
     }
@@ -174,9 +182,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         RejectETH rejectContract = new RejectETH();
 
         vm.prank(governor);
-        vm.expectRevert(
-            abi.encodeWithSelector(TokenRecovery.FailedCall.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(Errors.FailedCall.selector));
         adapter.sweep(address(0), address(rejectContract), 1 ether);
     }
 

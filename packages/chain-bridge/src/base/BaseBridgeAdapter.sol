@@ -50,6 +50,7 @@ abstract contract BaseBridgeAdapter is
 {
     using SafeERC20 for IERC20;
 
+    // TODO: move events and errors to the interfaces
     /// @notice Thrown when payInProtocolToken is requested but protocolFeeToken is not configured
     error ProtocolTokenNotConfigured();
 
@@ -491,6 +492,25 @@ abstract contract BaseBridgeAdapter is
                 protocolFeeToken,
                 tokenFeeRequired
             );
+        }
+    }
+
+    function sweep(
+        address asset,
+        address to,
+        uint256 amount
+    ) external onlyGovernor nonReentrant {
+        if (to == address(0)) revert InvalidParams();
+
+        if (asset == address(0)) {
+            // Handle native ETH
+            if (address(this).balance < amount) revert InsufficientBalance();
+            Address.sendValue(payable(to), amount);
+        } else {
+            // Handle ERC20 tokens
+            uint256 balance = IERC20(asset).balanceOf(address(this));
+            if (balance < amount) revert InsufficientBalance();
+            IERC20(asset).safeTransfer(to, amount);
         }
     }
 

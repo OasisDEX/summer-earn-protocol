@@ -368,7 +368,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
         );
     }
 
-    function testTransferAssetMsgValueConsistencyX() public {
+    function testTransferAssetMsgValueConsistency() public {
         useNetworkA();
         vm.deal(address(routerA), 10 ether); // Provide enough ETH
 

@@ -5,6 +5,7 @@ import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeTokenFeeSupport} from "../interfaces/IBridgeTokenFeeSupport.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
+import {ILayerZeroAdapter} from "../interfaces/ILayerZeroAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
@@ -28,6 +29,7 @@ contract LayerZeroAdapter is
     OApp,
     IMessageAdapter,
     IBridgeAdapter,
+    ILayerZeroAdapter,
     BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
@@ -55,6 +57,34 @@ contract LayerZeroAdapter is
 
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
+
+    /// @notice Binds a read response guid to the originally requested destination chain
+    /// @dev Used to enforce registry trust checks for read-channel responses
+    mapping(bytes32 guid => uint16 expectedChainId)
+        public expectedReadChainByGuid;
+
+    /// @notice Threshold used to distinguish LayerZero lzRead responses by `srcEid`
+    /// @dev LayerZero routes read responses through a reserved "read channel" range
+    ///      near the top of the uint32 EID space (commonly with READ_CHANNEL_ID at
+    ///      4294967295). Any `srcEid` strictly greater than this threshold is treated
+    ///      as a read response. This value is set at deploy time to allow
+    ///      forward-compatibility and testing across different environments.
+    uint32 public immutable readChannelThreshold;
+
+    /// @notice Active read channel ID for sending read requests
+    uint32 public readChannelId;
+
+    /// @notice Number of block confirmations required for read operations
+    /// @dev Set via configureReadDVNs and used in _createReadStatePayload
+    uint16 public readConfirmations;
+
+    /// @notice Governance cap for number of DVNs allowed in read config
+    /// @dev Practical deployments typically use a small DVN set (e.g. 1-3).
+    ///      This cap avoids overly large configurations and removes magic numbers.
+    uint8 public constant MAX_SUPPORTED_DVNS = 8;
+
+    /// @notice Mapping of chains that support read operations
+    mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -93,6 +123,129 @@ contract LayerZeroAdapter is
             if (_endpointIds[i] == 0) revert InvalidEndpointId();
             _mapChainExternalId(_endpointChains[i], _endpointIds[i]);
         }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          GOVERNANCE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Activates a read channel for state reading operations
+     * @param _readChannelId The ID of the read channel to activate
+     * @dev Requirements:
+     *      - `_readChannelId` must be non-zero
+     *      - `_readChannelId` must be strictly greater than `readChannelThreshold`
+     *      These checks prevent misconfiguration where read responses would not be
+     *      properly classified by `_lzReceive`.
+     */
+    function activateReadChannel(uint32 _readChannelId) external onlyGovernor {
+        if (_readChannelId == 0 || _readChannelId <= readChannelThreshold) {
+            revert InvalidParams();
+        }
+        setReadChannel(readChannelId, false);
+        readChannelId = _readChannelId;
+        setReadChannel(_readChannelId, true);
+        emit ReadChannelActivated(_readChannelId);
+    }
+
+    /**
+     * @notice Configures ReadLib1002 for read operations
+     * @param readLib1002Address Address of the ReadLib1002 contract
+     * @dev Must be called to enable read operations
+     */
+    function configureReadLibraries(
+        address readLib1002Address
+    ) external onlyGovernor {
+        if (readChannelId == 0) revert ReadChannelNotConfigured();
+        if (readLib1002Address == address(0)) revert InvalidParams();
+
+        // Set send library for read channel
+        endpoint.setSendLibrary(
+            address(this),
+            readChannelId,
+            readLib1002Address
+        );
+
+        // Set receive library for read channel
+        endpoint.setReceiveLibrary(
+            address(this),
+            readChannelId,
+            readLib1002Address,
+            0
+        );
+
+        emit ReadLibrariesConfigured(readLib1002Address, readChannelId);
+    }
+
+    /**
+     * @notice Configures DVN settings for read operations
+     * @param readLib1002Address Address of the ReadLib1002 contract
+     * @param readDVNs Array of DVN addresses for read operations (must be sorted alphabetically)
+     * @param executor Address of the executor for read operations
+     * @param confirmations Number of block confirmations required for read operations
+     * @dev Must be called to enable read operations with proper DVN and executor configuration
+     */
+    function configureReadDVNs(
+        address readLib1002Address,
+        address[] memory readDVNs,
+        address executor,
+        uint16 confirmations
+    ) external onlyGovernor {
+        if (readChannelId == 0) revert ReadChannelNotConfigured();
+        if (readDVNs.length == 0) revert InvalidParams();
+        if (readDVNs.length > MAX_SUPPORTED_DVNS) revert InvalidParams();
+        if (readLib1002Address == address(0)) revert InvalidParams();
+        if (executor == address(0)) revert InvalidParams();
+
+        // Verify DVNs are sorted (required by LayerZero)
+        for (uint256 i = 0; i < readDVNs.length; i++) {
+            if (readDVNs[i] == address(0)) revert InvalidParams();
+            if (i == 0) continue;
+            if (readDVNs[i] <= readDVNs[i - 1]) revert InvalidParams(); // Must be sorted
+        }
+
+        // Create ReadLibConfig for read operations (this includes BOTH DVNs AND executor)
+        ReadLibConfig memory readLibConfig = ReadLibConfig({
+            executor: executor,
+            requiredDVNCount: uint8(readDVNs.length),
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: readDVNs,
+            optionalDVNs: new address[](0)
+        });
+
+        // Encode the ReadLibConfig
+        bytes memory encodedConfig = abi.encode(readLibConfig);
+
+        // Create SetConfigParam array for the read channel
+        SetConfigParam[] memory params = new SetConfigParam[](1);
+        params[0] = SetConfigParam({
+            eid: readChannelId,
+            configType: 1, // CONFIG_TYPE_READ_LID_CONFIG
+            config: encodedConfig
+        });
+
+        // Store confirmations for use in read operations
+        readConfirmations = confirmations;
+
+        // Configure read library for read channel
+        endpoint.setConfig(address(this), readLib1002Address, params);
+
+        emit ReadDVNsConfigured(readChannelId, readDVNs, confirmations);
+    }
+
+    /**
+     * @notice Configure read support for specific chains
+     * @param chainId The chain ID to configure
+     * @param supported Whether read operations are supported on this chain
+     * @dev Can only be called by the governor
+     */
+    function setChainReadSupport(
+        uint16 chainId,
+        bool supported
+    ) external onlyGovernor {
+        chainSupportsRead[chainId] = supported;
+        emit ChainReadSupportUpdated(chainId, supported);
     }
 
     /*//////////////////////////////////////////////////////////////

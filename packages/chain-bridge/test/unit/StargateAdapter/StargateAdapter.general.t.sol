@@ -124,9 +124,11 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.startPrank(governor);
 
         // First unregister the existing peer relationship for CHAIN_ID_B
-        registryA.unregisterRelationship(
+        // Since PEER_RELATIONSHIP is bijective, we need to use pair unregistration
+        registryA.unregisterAdapterPeerPair(
             address(adapterA),
-            registryA.PEER_RELATIONSHIP(),
+            address(adapterB),
+            CHAIN_ID_A,
             CHAIN_ID_B
         );
 
@@ -144,7 +146,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.stopPrank();
 
         // Verify the endpoint was configured
-        assertEq(adapterA.getEndpointId(newChainId), newEndpointId);
+        assertEq(adapterA.chainToExternalId(newChainId), newEndpointId);
 
         // Verify the peer relationship was established
         assertEq(
@@ -234,7 +236,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Try to add address(0) as an asset
         vm.prank(governor);
-        vm.expectRevert(StargateAdapter.InvalidAssetAddress.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         adapterA.addSupportedAsset(address(0), address(mockStargateContract));
     }
     function testAddSupportedAsset_RevertsOnZeroStargateAddress() public {

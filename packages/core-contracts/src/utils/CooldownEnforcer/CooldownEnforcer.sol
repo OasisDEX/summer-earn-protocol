@@ -9,6 +9,7 @@ import "./ICooldownEnforcerEvents.sol";
 /**
  * @title CooldownEnforcer
  * @custom:see ICooldownEnforcer
+ * @notice Handles both rebalance cooldowns and user deposit cooldowns
  */
 abstract contract CooldownEnforcer is ICooldownEnforcer {
     /**
@@ -16,14 +17,14 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
      */
 
     /**
-     * Cooldown between actions in seconds
+     * Cooldown between rebalance actions in seconds
      */
-    uint256 private _cooldown;
+    uint256 private _rebalanceCooldown;
 
     /**
-     * Timestamp of the last action in Epoch time (block timestamp)
+     * Timestamp of the last rebalance action in Epoch time (block timestamp)
      */
-    uint256 private _lastActionTimestamp;
+    uint256 private _lastRebalanceTimestamp;
 
     /**
      * @notice The minimum duration that the contract must remain paused
@@ -40,27 +41,28 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
      */
 
     /**
-     * @notice Initializes the cooldown period and sets the last action timestamp to the current block timestamp
+     * @notice Initializes the rebalance cooldown period and sets the last action timestamp to the current block timestamp
      *         if required
      *
-     * @param cooldown_ The cooldown period in seconds.
+     * @param rebalanceCooldown_ The cooldown period for rebalance operations in seconds.
      * @param enforceFromNow If true, the last action timestamp is set to the current block timestamp.
      *
      * @dev The last action timestamp is set to the current block timestamp if enforceFromNow is true,
      *      otherwise it is set to 0 signaling that the cooldown period has not started yet.
+     *      Rebalance cooldown must meet minimum requirements.
      */
-    constructor(uint256 cooldown_, bool enforceFromNow) {
-        if (cooldown_ < MINIMUM_COOLDOWN_TIME_SECONDS) {
+    constructor(uint256 rebalanceCooldown_, bool enforceFromNow) {
+        if (rebalanceCooldown_ < MINIMUM_COOLDOWN_TIME_SECONDS) {
             revert CooldownEnforcerCooldownTooShort();
         }
-        if (cooldown_ > MAXIMUM_COOLDOWN_TIME_SECONDS) {
+        if (rebalanceCooldown_ > MAXIMUM_COOLDOWN_TIME_SECONDS) {
             revert CooldownEnforcerCooldownTooLong();
         }
 
-        _cooldown = cooldown_;
+        _rebalanceCooldown = rebalanceCooldown_;
 
         if (enforceFromNow) {
-            _lastActionTimestamp = block.timestamp;
+            _lastRebalanceTimestamp = block.timestamp;
         }
     }
 
@@ -69,24 +71,24 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
      */
 
     /**
-     * @notice Modifier to enforce the cooldown period between actions.
+     * @notice Modifier to enforce the rebalance cooldown period between rebalance actions.
      *
      * @dev If the cooldown period has not elapsed, the function call will revert.
-     *      Otherwise, the last action timestamp is updated to the current block timestamp.
+     *      Otherwise, the last rebalance timestamp is updated to the current block timestamp.
      */
-    modifier enforceCooldown() {
-        if (block.timestamp - _lastActionTimestamp < _cooldown) {
+    modifier enforceRebalanceCooldown() {
+        if (block.timestamp - _lastRebalanceTimestamp < _rebalanceCooldown) {
             revert CooldownNotElapsed(
-                _lastActionTimestamp,
-                _cooldown,
+                _lastRebalanceTimestamp,
+                _rebalanceCooldown,
                 block.timestamp
             );
         }
 
-        // Update the last action timestamp to the current block timestamp
+        // Update the last rebalance timestamp to the current block timestamp
         // before executing the function so it acts as a reentrancy guard
         // by not allowing a second call to execute
-        _lastActionTimestamp = block.timestamp;
+        _lastRebalanceTimestamp = block.timestamp;
         _;
     }
 
@@ -96,12 +98,12 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
 
     /// @inheritdoc ICooldownEnforcer
     function getCooldown() public view returns (uint256) {
-        return _cooldown;
+        return _rebalanceCooldown;
     }
 
     /// @inheritdoc ICooldownEnforcer
     function getLastActionTimestamp() public view returns (uint256) {
-        return _lastActionTimestamp;
+        return _lastRebalanceTimestamp;
     }
 
     /**
@@ -109,29 +111,29 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
      */
 
     /**
-     * @notice Updates the cooldown period.
+     * @notice Updates the rebalance cooldown period.
      *
-     * @param newCooldown The new cooldown period in seconds.
+     * @param newCooldown The new rebalance cooldown period in seconds.
      *
      * @dev The function is internal so it can be wrapped with access modifiers if needed
      */
-    function _updateCooldown(uint256 newCooldown) internal {
+    function _updateRebalanceCooldown(uint256 newCooldown) internal {
         if (newCooldown < MINIMUM_COOLDOWN_TIME_SECONDS) {
             revert CooldownEnforcerCooldownTooShort();
         }
         if (newCooldown > MAXIMUM_COOLDOWN_TIME_SECONDS) {
             revert CooldownEnforcerCooldownTooLong();
         }
-        emit CooldownUpdated(_cooldown, newCooldown);
+        emit CooldownUpdated(_rebalanceCooldown, newCooldown);
 
-        _cooldown = newCooldown;
+        _rebalanceCooldown = newCooldown;
     }
 
     /**
-     * @notice Resets the last action timestamp
+     * @notice Resets the last rebalance timestamp
      * @dev Allows for cooldown period to be skipped (IE after force withdrawal)
      */
-    function _resetLastActionTimestamp() internal {
-        _lastActionTimestamp = 0;
+    function _resetLastRebalanceTimestamp() internal {
+        _lastRebalanceTimestamp = 0;
     }
 }

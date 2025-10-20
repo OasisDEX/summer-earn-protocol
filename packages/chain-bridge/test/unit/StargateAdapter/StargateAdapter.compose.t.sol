@@ -448,8 +448,8 @@ contract StargateAdapterComposeTest is
         // Create an OFT message that is too short (< 96 bytes)
         bytes memory invalidOFTMessage = hex"01"; // too short
 
-        // Should revert with InvalidComposeMessage due to header length
-        vm.expectRevert(LayerZeroComposeHelper.InvalidComposeMessage.selector);
+        // Should revert with InvalidMessage due to header length
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidMessage.selector);
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
@@ -477,8 +477,8 @@ contract StargateAdapterComposeTest is
             uint256(1 ether)
         );
 
-        // Should revert with InvalidComposeMessage during OFT header decoding
-        vm.expectRevert(LayerZeroComposeHelper.InvalidComposeMessage.selector);
+        // Should revert with InvalidMessage during OFT header decoding
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidMessage.selector);
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
