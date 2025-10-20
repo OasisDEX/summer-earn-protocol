@@ -197,7 +197,8 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         freshAdapter.configureReadDVNs(
             READ_LIB_1002_BASE,
             readDVNs,
-            EXECUTOR_BASE
+            EXECUTOR_BASE,
+            1
         );
 
         vm.stopPrank();
