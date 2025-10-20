@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
+import {ILayerZeroAdapter} from "../../src/interfaces/ILayerZeroAdapter.sol";
 
 import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
@@ -51,11 +52,11 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         registryA.getAdapterPeer(address(adapterA), 2);
     }
 
-    // Update test for UnsupportedMessageType error since type 5 is now COMPOSE
-    function testUnsupportedMessageType() public {
-        // Create a message with an unsupported type (9 - which doesn't exist)
+    // Update test for UnsupportedMessageType error: use a valid but unsupported op (TRANSFER_ASSET)
+    function test_reverts_on_unsupported_operation_type_in_receive() public {
+        // Create a payload where op type is TRANSFER_ASSET (unsupported by LZ receive path)
         bytes memory invalidPayload = abi.encodePacked(
-            uint16(2),
+            uint16(BridgeTypes.OperationType.TRANSFER_ASSET),
             bytes("test payload")
         );
 
@@ -79,6 +80,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         );
     }
 
+    // Duplicate of send suite fee estimate; keep single assertion in send tests
     function testAdapterDirectEstimateFee() public {
         useNetworkA();
 
@@ -134,13 +136,13 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
         vm.startPrank(governor);
         vm.expectEmit(true, false, false, true);
-        emit LayerZeroAdapter.ReadChannelActivated(firstChannelId);
+        emit ILayerZeroAdapter.ReadChannelActivated(firstChannelId);
         adapterA.activateReadChannel(firstChannelId);
         assertEq(adapterA.readChannelId(), firstChannelId);
 
         // Update to a new read channel
         vm.expectEmit(true, false, false, true);
-        emit LayerZeroAdapter.ReadChannelActivated(secondChannelId);
+        emit ILayerZeroAdapter.ReadChannelActivated(secondChannelId);
         adapterA.activateReadChannel(secondChannelId);
         assertEq(adapterA.readChannelId(), secondChannelId);
         assertEq(adapterA.peers(firstChannelId), bytes32(0));

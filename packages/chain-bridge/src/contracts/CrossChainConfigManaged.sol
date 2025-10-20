@@ -16,6 +16,7 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
     /**
      * @notice Constructs the CrossChainConfigManaged contract
      * @param _crossChainRegistry The address of the CrossChainRegistry contract
+     * @custom:reverts CrossChainRegistryZeroAddress if `_crossChainRegistry` is address(0)
      */
     constructor(address _crossChainRegistry) {
         if (_crossChainRegistry == address(0)) {

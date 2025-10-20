@@ -24,11 +24,6 @@ library LayerZeroOptionsHelper {
     ) internal pure returns (bytes memory) {
         bytes memory lzOptions;
 
-        // Ensure gas limit meets minimum requirements
-        uint128 gasLimit = options.gasLimit < minGasLimit
-            ? minGasLimit
-            : options.gasLimit;
-
         // Start with user-provided options or create new empty options
         if (options.options.length > 0) {
             // Use the user's options as the base if provided
@@ -39,10 +34,11 @@ library LayerZeroOptionsHelper {
         }
 
         // Add our LzReceive option to the existing or new options
+        // Use minGasLimit directly if options.gasLimit is lower
         return
             OptionsBuilder.addExecutorLzReceiveOption(
                 lzOptions,
-                gasLimit,
+                options.gasLimit < minGasLimit ? minGasLimit : options.gasLimit,
                 options.msgValue
             );
     }
@@ -59,11 +55,6 @@ library LayerZeroOptionsHelper {
     ) internal pure returns (bytes memory) {
         bytes memory lzOptions;
 
-        // Ensure gas limit meets minimum requirements
-        uint128 gasLimit = options.gasLimit < minGasLimit
-            ? minGasLimit
-            : options.gasLimit;
-
         // Start with user-provided options or create new empty options
         if (options.options.length > 0) {
             lzOptions = options.options;
@@ -78,14 +69,13 @@ library LayerZeroOptionsHelper {
             : 1024; // Default to 1KB for read responses
 
         // Add our LzRead option to the existing or new options
+        // Use minGasLimit directly if options.gasLimit is lower
         return
             OptionsBuilder.addExecutorLzReadOption(
                 lzOptions,
-                gasLimit,
+                options.gasLimit < minGasLimit ? minGasLimit : options.gasLimit,
                 calldataSize, // ✅ Use proper calldata size (uint32)
                 options.msgValue
             );
     }
-
-    function testSkipper() public {}
 }

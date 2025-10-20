@@ -139,12 +139,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         /// forge-lint: disable-start(mixed-case-variable)
         address[] memory readDVNs = new address[](1);
         readDVNs[0] = readDvn;
-        layerZeroAdapter.configureReadDVNs(
-            readLib1002,
-            readDVNs,
-            confirmations,
-            executor
-        );
+        layerZeroAdapter.configureReadDVNs(readLib1002, readDVNs, executor, 1);
         /// forge-lint: disable-end(mixed-case-variable)
 
         // Step 5: Set up peer for cross-chain communication to Arbitrum

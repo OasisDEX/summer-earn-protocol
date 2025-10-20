@@ -2,7 +2,9 @@
 pragma solidity 0.8.28;
 
 import "forge-std/Test.sol";
+import "forge-std/console.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
+import {IArkErrors} from "../../src/errors/IArkErrors.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
@@ -20,7 +22,8 @@ import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAcces
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
-import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
+import {Raft} from "../../src/contracts/Raft.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
     event InflightCleared(bytes32 operationId, uint256 amount);
@@ -48,14 +51,18 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 balance,
         uint16 sourceChainId,
         bytes32 latestOutgoingTransferId
-    ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
+    ) internal view returns (BridgeTypes.RelayedMessageParams memory) {
         return
             BridgeTypes.RelayedMessageParams({
                 operationId: operationId,
                 originator: originator,
                 sourceChainId: sourceChainId,
                 recipient: arkAddress,
-                message: abi.encode(balance, latestOutgoingTransferId)
+                message: abi.encode(
+                    balance,
+                    latestOutgoingTransferId,
+                    block.timestamp
+                )
             });
     }
 
@@ -94,14 +101,13 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         ark = new CrossChainArk(address(registry), TARGET_CHAIN_ID, params);
 
-        // Register the ark-proxy relationship in the registry
+        // Register the ark-proxy relationship in the registry using peer pair registration
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(ark),
             proxy,
             SOURCE_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            TARGET_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -117,9 +123,21 @@ contract CrossChainArkTest is Test, ArkTestBase {
         vm.prank(governor);
         accessManager.grantCommanderRole(address(ark), address(fleetCommander));
 
+        // Grant curator role to curator for the fleet commander
+        vm.prank(governor);
+        accessManager.grantCuratorRole(address(fleetCommander), curator);
+
+        // Grant the ark authorization to board the buffer ark
+        vm.prank(governor);
+        accessManager.grantCommanderRole(address(fleetCommander), address(ark));
+
         // Activate the Ark
         vm.prank(governor);
         fleetCommander.addArk(address(ark));
+
+        // Approve the ark to spend its own tokens (needed for sweep function)
+        vm.prank(address(ark));
+        mockToken.approve(address(ark), type(uint256).max);
 
         // Deploy mock adapter
         mockAdapter = new MockAdapter(
@@ -136,6 +154,48 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(address(ark.crossChainRegistry()), address(registry));
         assertEq(ark.satelliteChainId(), TARGET_CHAIN_ID);
         assertEq(ark.getTargetProxy(), proxy); // Uses registry lookup
+        assertEq(ark.getLastRemoteBalanceUpdateTime(), 0); // Should be 0 initially
+    }
+
+    function test_RegistryRelationshipIntegration() public {
+        // This test verifies the integration between CrossChainArk and CrossChainRegistry
+        // The contract MUST use registry.PEER_RELATIONSHIP() rather than hardcoded constants
+        // to ensure maintainability and consistency with registry relationship types
+
+        // Verify the ark can find its target proxy via registry lookup
+        address proxyFromRegistry = ark.getTargetProxy();
+        assertEq(proxyFromRegistry, proxy);
+
+        // Test that the ark can receive assets back from the proxy
+        uint256 amount = 500;
+        deal(address(mockToken), address(ark), amount);
+
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: keccak256("test-receive"),
+                originator: proxy,
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                asset: address(mockToken),
+                amount: amount,
+                message: abi.encode(ark.lastRemoteAssetBalance())
+            });
+
+        vm.expectEmit(true, true, true, true);
+        emit ICrossChainArk.AssetsReceived(
+            address(mockToken),
+            amount,
+            TARGET_CHAIN_ID
+        );
+
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(params)
+        );
+
+        // Verify the transfer was accepted (relationship validation passed)
+        assertEq(mockToken.balanceOf(address(ark)), amount);
     }
 
     function testBoardCallsQueueTransferAssets() public {
@@ -492,6 +552,77 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(ark.lastRemoteAssetBalance(), initialRemoteBalance - amount);
     }
 
+    //----------------- Satellite Receipt Notify (Ark → Proxy) -----------------//
+
+    function test_NotifySatelliteReceipt_SendsAckMessage() public {
+        // Simulate receiving a withdrawal from satellite so that latestIncomingTransferId is set
+        uint256 amount = 500;
+        bytes32 opId = keccak256("withdrawal-op");
+        bytes memory message = abi.encode(uint256(1000));
+
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: opId,
+                originator: proxy,
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                asset: address(mockToken),
+                amount: amount,
+                message: message
+            });
+
+        // deliver transfer from router
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(params)
+        );
+
+        // Ensure latestIncomingTransferId set
+        bytes32 latestIn = ark.latestIncomingTransferId();
+        assertEq(latestIn, opId);
+
+        // Call notifySatelliteChain as keeper
+        vm.deal(keeper, 1 ether);
+        vm.prank(keeper);
+        ark.notifySatelliteChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 200000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // The mock router records messageCalls, check count increased
+        uint256 count = router.getMessageCallCount();
+        assertEq(count, 1, "one message should be sent");
+
+        // Verify payload contains opId
+        (, , bytes memory sentMessage) = router.messageCalls(count - 1);
+        bytes32 decodedOpId = abi.decode(sentMessage, (bytes32));
+        assertEq(decodedOpId, opId, "ACK payload should contain opId");
+    }
+
+    function test_NotifySatelliteReceipt_RequiresLatestIncomingTransferId()
+        public
+    {
+        // Without prior inbound transfer, calling notify should revert
+        vm.deal(keeper, 1 ether);
+        vm.prank(keeper);
+        vm.expectRevert(ICrossChainArk.InvalidRequestor.selector);
+        ark.notifySatelliteChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 200000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+    }
+
     // ========================================================================
     // ENHANCED READ DELIVERY TESTS
     // ========================================================================
@@ -746,6 +877,85 @@ contract CrossChainArkTest is Test, ArkTestBase {
         deal(address(mockToken), address(fleetCommander), amount);
         vm.prank(address(fleetCommander));
         mockToken.approve(address(ark), type(uint256).max);
+
+        // Create pending transfer params
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: TARGET_CHAIN_ID,
+                asset: address(mockToken),
+                amount: amount,
+                target: proxy,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory executeTransferParams = abi.encode(params, options);
+
+        // Board the transfer (this queues it but doesn't execute)
+        vm.prank(address(fleetCommander));
+        ark.board(amount, executeTransferParams);
+
+        // Record initial balances
+        uint256 initialArkBalance = mockToken.balanceOf(address(ark));
+        uint256 initialBufferBalance = mockToken.balanceOf(
+            fleetCommander.bufferArk()
+        );
+
+        // Verify pending transfer is queued
+        (
+            address originator,
+            uint16 destinationChainId,
+            address target,
+            address asset,
+            uint256 pendingAmount,
+            bytes memory message,
+            address refundAddress
+        ) = ark.pendingTransferParams();
+
+        assertTrue(asset != address(0), "Pending transfer should be queued");
+        assertEq(pendingAmount, amount, "Pending amount should match");
+
+        // Cancel the pending transfer
+        vm.prank(keeper);
+        ark.cancelPendingTransfer();
+
+        // Verify assets were returned to buffer ark
+        uint256 finalArkBalance = mockToken.balanceOf(address(ark));
+        uint256 finalBufferBalance = mockToken.balanceOf(
+            fleetCommander.bufferArk()
+        );
+
+        assertEq(
+            finalArkBalance,
+            initialArkBalance - amount,
+            "Ark balance should decrease by transfer amount"
+        );
+        assertEq(
+            finalBufferBalance,
+            initialBufferBalance + amount,
+            "Buffer balance should increase by transfer amount"
+        );
+
+        // Verify pending transfer params are reset
+        (
+            address originatorAfter,
+            uint16 destinationChainIdAfter,
+            address targetAfter,
+            address assetAfter,
+            uint256 pendingAmountAfter,
+            bytes memory messageAfter,
+            address refundAddressAfter
+        ) = ark.pendingTransferParams();
+
+        assertEq(assetAfter, address(0), "Pending transfer should be cleared");
+        assertEq(pendingAmountAfter, 0, "Pending amount should be zero");
     }
 
     function testDisembarkWhileTransferPendingVulnerability() public {
@@ -808,5 +1018,138 @@ contract CrossChainArkTest is Test, ArkTestBase {
             assetAfterExecution == address(0),
             "Transfer should have succeeded"
         );
+    }
+
+    function test_SweepPreventedForUnderlyingAsset() public {
+        // Setup: Create a different token (not the ark's main asset) to sweep
+        ERC20Mock otherToken = new ERC20Mock();
+        deal(address(otherToken), address(ark), 1000e18);
+
+        // Setup sweepable token in Raft for both tokens
+        vm.prank(curator);
+        Raft(raft).setSweepableToken(address(ark), address(otherToken), true);
+        vm.prank(curator);
+        Raft(raft).setSweepableToken(address(ark), address(mockToken), true);
+
+        // Step 1: Try to sweep the underlying asset (should fail)
+        address[] memory underlyingAssetToSweep = new address[](1);
+        underlyingAssetToSweep[0] = address(mockToken);
+
+        // This should revert because we're trying to sweep the underlying asset
+        vm.prank(address(raft));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IArkErrors.CannotSweepUnderlyingAsset.selector
+            )
+        );
+        ark.sweep(underlyingAssetToSweep);
+
+        // Step 2: Try to sweep other tokens (should work)
+        address[] memory otherTokensToSweep = new address[](1);
+        otherTokensToSweep[0] = address(otherToken);
+
+        vm.prank(address(raft));
+        (address[] memory sweptTokens, uint256[] memory sweptAmounts) = ark
+            .sweep(otherTokensToSweep);
+
+        assertEq(sweptTokens.length, 1, "Should have swept 1 token");
+        assertEq(
+            sweptTokens[0],
+            address(otherToken),
+            "Should have swept otherToken"
+        );
+        assertGt(sweptAmounts[0], 0, "Should have swept some amount");
+    }
+
+    function test_SweepAllowsOtherTokens() public {
+        // Setup: Create a different token (not the ark's main asset) to sweep
+        ERC20Mock otherToken = new ERC20Mock();
+        deal(address(otherToken), address(ark), 1000e18);
+
+        // Setup sweepable token in Raft
+        vm.prank(curator);
+        Raft(raft).setSweepableToken(address(ark), address(otherToken), true);
+
+        // Step 1: Try to sweep other tokens (should work)
+        address[] memory tokensToSweep = new address[](1);
+        tokensToSweep[0] = address(otherToken);
+
+        vm.prank(address(raft));
+        (address[] memory sweptTokens, uint256[] memory sweptAmounts) = ark
+            .sweep(tokensToSweep);
+
+        assertEq(sweptTokens.length, 1, "Should have swept 1 token");
+        assertEq(
+            sweptTokens[0],
+            address(otherToken),
+            "Should have swept otherToken"
+        );
+        assertGt(sweptAmounts[0], 0, "Should have swept some amount");
+    }
+
+    function testStaleNotificationProtection() public {
+        uint256 initialBalance = 1000;
+        uint256 newBalance = 2000;
+        bytes32 requestId1 = keccak256("stale-test-1");
+        bytes32 requestId2 = keccak256("stale-test-2");
+
+        // First, set up a valid notification
+        BridgeTypes.RelayedMessageParams memory params1 = _encodeMessage(
+            requestId1,
+            address(proxy),
+            address(ark),
+            initialBalance,
+            TARGET_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
+        );
+
+        // Process the first notification
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params1)
+        );
+
+        assertEq(ark.lastRemoteAssetBalance(), initialBalance);
+        assertEq(ark.lastNotificationTimestamp(), block.timestamp);
+
+        // Now try to send a stale notification with an older timestamp
+        vm.warp(block.timestamp + 100); // Advance time to 101
+
+        // Create the stale message directly without using _encodeMessage
+        uint256 staleTimestamp = 0; // This should be 0, which is older than 1
+
+        bytes memory staleMessage = abi.encode(
+            newBalance,
+            bytes32(0),
+            staleTimestamp
+        );
+
+        BridgeTypes.RelayedMessageParams memory params2 = BridgeTypes
+            .RelayedMessageParams({
+                operationId: requestId2,
+                originator: address(proxy),
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                message: staleMessage
+            });
+
+        // Expect the StaleNotification event
+        vm.expectEmit(true, true, true, true);
+        emit ICrossChainArk.StaleNotification(
+            staleTimestamp, // 0
+            1 // lastNotificationTimestamp was 1
+        );
+
+        // Process the stale notification - should be rejected
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params2)
+        );
+
+        // Verify the balance wasn't updated
+        assertEq(ark.lastRemoteAssetBalance(), initialBalance);
+        assertEq(ark.lastNotificationTimestamp(), 1);
     }
 }

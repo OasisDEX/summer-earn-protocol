@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
+import {ILayerZeroAdapter} from "../interfaces/ILayerZeroAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
@@ -30,6 +31,7 @@ contract LayerZeroAdapter is
     OAppRead,
     IMessageAdapter,
     IBridgeAdapter,
+    ILayerZeroAdapter,
     BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
@@ -58,29 +60,14 @@ contract LayerZeroAdapter is
     /// @notice Active read channel ID for sending read requests
     uint32 public readChannelId;
 
+    /// @notice Number of block confirmations required for read operations
+    /// @dev Set via configureReadDVNs and used in _createReadStatePayload
+    uint16 public readConfirmations;
+
     /// @notice Governance cap for number of DVNs allowed in read config
     /// @dev Practical deployments typically use a small DVN set (e.g. 1-3).
     ///      This cap avoids overly large configurations and removes magic numbers.
     uint8 public constant MAX_SUPPORTED_DVNS = 8;
-
-    /// @notice Emitted when read libraries are configured
-    event ReadLibrariesConfigured(
-        address indexed readLib1002,
-        uint32 indexed readChannelId
-    );
-
-    /// @notice Emitted when read DVNs are configured
-    event ReadDVNsConfigured(
-        uint32 indexed readChannelId,
-        address[] readDVNs,
-        uint64 confirmations
-    );
-
-    /// @notice Emitted when a read channel is activated
-    event ReadChannelActivated(uint32 indexed readChannelId);
-
-    /// @notice Emitted when per-chain read support is updated
-    event ChainReadSupportUpdated(uint16 indexed chainId, bool supported);
 
     /// @notice Mapping of chains that support read operations
     mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
@@ -184,15 +171,15 @@ contract LayerZeroAdapter is
      * @notice Configures DVN settings for read operations
      * @param readLib1002Address Address of the ReadLib1002 contract
      * @param readDVNs Array of DVN addresses for read operations (must be sorted alphabetically)
-     * @param confirmations Number of block confirmations required
      * @param executor Address of the executor for read operations
+     * @param confirmations Number of block confirmations required for read operations
      * @dev Must be called to enable read operations with proper DVN and executor configuration
      */
     function configureReadDVNs(
         address readLib1002Address,
         address[] memory readDVNs,
-        uint64 confirmations,
-        address executor
+        address executor,
+        uint16 confirmations
     ) external onlyGovernor {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
         if (readDVNs.length == 0) revert InvalidParams();
@@ -227,6 +214,9 @@ contract LayerZeroAdapter is
             configType: 1, // CONFIG_TYPE_READ_LID_CONFIG
             config: encodedConfig
         });
+
+        // Store confirmations for use in read operations
+        readConfirmations = confirmations;
 
         // Configure read library for read channel
         endpoint.setConfig(address(this), readLib1002Address, params);
@@ -381,10 +371,6 @@ contract LayerZeroAdapter is
         onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        if (!supportsOperation(BridgeTypes.OperationType.READ_STATE)) {
-            revert OperationNotSupported();
-        }
-
         // Ensure read channel is configured
         if (readChannelId == 0) revert ReadChannelNotConfigured();
 
@@ -427,10 +413,6 @@ contract LayerZeroAdapter is
         onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        if (!supportsOperation(BridgeTypes.OperationType.MESSAGE)) {
-            revert OperationNotSupported();
-        }
-
         uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
         bytes32 dummyBytes32 = bytes32(uint256(uint160(params.target)));
 
@@ -630,7 +612,7 @@ contract LayerZeroAdapter is
             targetEid: lzDstEid,
             isBlockNum: false,
             blockNumOrTimestamp: uint64(block.timestamp),
-            confirmations: 15,
+            confirmations: readConfirmations,
             to: target,
             callData: callData
         });
@@ -669,18 +651,18 @@ contract LayerZeroAdapter is
             return false;
         }
 
-        // Check if the adapter supports this operation type in general
-        if (!supportsOperation(operationType)) {
-            return false;
-        }
-
         // For READ_STATE operations, check both global config and chain-specific support
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
             return readChannelId != 0 && chainSupportsRead[destinationChainId];
         }
 
         // For MESSAGE operations, no additional requirements beyond chain support
-        return true;
+        if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            return true;
+        }
+
+        // For any other operation type, return false
+        return false;
     }
 
     /**

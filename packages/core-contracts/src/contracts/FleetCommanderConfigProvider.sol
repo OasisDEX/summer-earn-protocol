@@ -7,10 +7,8 @@ import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
 
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 
-import {IFleetCommanderRewardsManagerFactory} from "../interfaces/IFleetCommanderRewardsManagerFactory.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
-import {FleetCommanderRewardsManager} from "./FleetCommanderRewardsManager.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
@@ -39,15 +37,11 @@ contract FleetCommanderConfigProvider is
     EnumerableSet.AddressSet private _activeArks;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
-    uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
-
-    bool public transfersEnabled;
 
     constructor(
         FleetCommanderParams memory params
     )
         ProtocolAccessManaged(params.accessManager)
-        FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
         ConfigurationManaged(params.configurationManager)
     {
         BufferArk _bufferArk = new BufferArk(
@@ -71,9 +65,8 @@ contract FleetCommanderConfigProvider is
             minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-            stakingRewardsManager: IFleetCommanderRewardsManagerFactory(
-                fleetCommanderRewardsManagerFactory()
-            ).createRewardsManager(address(_accessManager), address(this))
+            rebalanceCooldown: params.initialRebalanceCooldown,
+            withdrawalFee: params.initialWithdrawalFee // Withdrawal fee percentage (must be explicitly set)
         });
         details = params.details;
     }
@@ -189,18 +182,6 @@ contract FleetCommanderConfigProvider is
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
-    function updateStakingRewardsManager()
-        external
-        onlyCurator(address(this))
-        whenNotPaused
-    {
-        config.stakingRewardsManager = IFleetCommanderRewardsManagerFactory(
-            fleetCommanderRewardsManagerFactory()
-        ).createRewardsManager(address(_accessManager), address(this));
-        emit FleetCommanderStakingRewardsUpdated(config.stakingRewardsManager);
-    }
-
-    ///@inheritdoc IFleetCommanderConfigProvider
     function setMaxRebalanceOperations(
         uint256 newMaxRebalanceOperations
     ) external onlyCurator(address(this)) whenNotPaused {
@@ -213,18 +194,6 @@ contract FleetCommanderConfigProvider is
         emit FleetCommanderMaxRebalanceOperationsUpdated(
             newMaxRebalanceOperations
         );
-    }
-
-    ///@inheritdoc IFleetCommanderConfigProvider
-    function setFleetTokenTransferability()
-        external
-        onlyGovernor
-        whenNotPaused
-    {
-        if (!transfersEnabled) {
-            transfersEnabled = true;
-            emit TransfersEnabled();
-        }
     }
 
     // INTERNAL FUNCTIONS

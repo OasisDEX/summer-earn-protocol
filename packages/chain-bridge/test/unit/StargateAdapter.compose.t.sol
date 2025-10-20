@@ -10,8 +10,10 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
 contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     MockFleetProxy public fleetProxyA;
@@ -107,7 +109,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         useNetworkA();
     }
 
-    function testLzComposeUnauthorizedCaller() public {
+    function testLzCompose_Reverts_WhenCallerNotEndpoint() public {
         useNetworkB();
 
         // Create proper RelayedTransferParams
@@ -130,7 +132,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // Should revert when called by non-endpoint
-        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.Unauthorized.selector);
         adapterB.lzCompose(
             address(adapterA),
             bytes32("test-guid"),
@@ -140,7 +142,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
     }
 
-    function testTransferAssetWithCompose() public {
+    function testTransferAsset_WithCompose_Succeeds() public {
         useNetworkA();
         vm.deal(address(routerA), 1 ether);
 
@@ -227,7 +229,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         assertTrue(stargateA.composeMsgWasSet());
     }
 
-    function testLzComposeWithInvalidMessage() public {
+    function testLzCompose_Reverts_OnInvalidComposeMessage() public {
         useNetworkB();
 
         // Invalid composeMsg (wrong encoding - not RelayedTransferParams struct)
@@ -246,10 +248,18 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             invalidMessage
         );
 
-        vm.expectRevert(); // Should revert on decode
+        // Create a mock Stargate pool first so it passes pool validation
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
+        );
+
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
+        vm.expectRevert(); // Reverts on decode - no specific revert reason
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
-            address(adapterA),
+            address(mockStargateFrom),
             bytes32("test-guid"),
             oftMessage,
             address(0),
@@ -257,7 +267,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
     }
 
-    function testLzComposeWithRealMessage() public {
+    function testLzCompose_RealMessage_Informational() public {
         useNetworkB();
 
         // The actual message from your example
@@ -348,7 +358,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         }
     }
 
-    function testLzComposeInsufficientAdapterBalance() public {
+    function testLzCompose_Reverts_WhenAdapterInsufficientBalance() public {
         useNetworkB();
 
         uint256 testAmount = 1 ether;
@@ -383,7 +393,14 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Should revert with InsufficientBalance - but contract emits event first
         vm.prank(lzEndpointB);
-        vm.expectRevert(); // Just expect any revert for now
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                address(adapterB),
+                0,
+                testAmount
+            )
+        );
         adapterB.lzCompose(
             address(mockStargateFrom),
             bytes32("test-guid"),
@@ -393,7 +410,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
     }
 
-    function testLzComposeInvalidDecodedParams() public {
+    function testLzCompose_RecordsFailure_WhenDecodedParamsInvalid() public {
         useNetworkB();
 
         uint256 testAmount = 1 ether;
@@ -465,7 +482,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         assertEq(tokenB.balanceOf(address(routerB)), routerBefore + testAmount);
     }
 
-    function testLzComposeInvalidMessageTooShort() public {
+    function testLzCompose_Reverts_WhenMessageHeaderTooShort() public {
         useNetworkB();
 
         // Create a mock Stargate pool first so it passes pool validation
@@ -479,7 +496,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         bytes memory invalidOFTMessage = hex"01"; // too short
 
         // Should revert with InvalidMessage due to header length
-        vm.expectRevert("InvalidMessage()");
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidMessage.selector);
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
@@ -490,7 +507,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
     }
 
-    function testLzComposeInvalidMessageBadHeader() public {
+    function testLzCompose_Reverts_WhenMessageHeaderMalformed() public {
         useNetworkB();
 
         // Create a mock Stargate pool first so it passes pool validation
@@ -508,7 +525,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // Should revert with InvalidMessage during OFT header decoding
-        vm.expectRevert();
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidMessage.selector);
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
@@ -519,7 +536,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
     }
 
-    function testSystemTransactionFailureTokensHeld() public {
+    function testLzCompose_FailurePath_RouterRetainsTokens() public {
         useNetworkB();
 
         uint256 testAmount = 1 ether;
@@ -609,7 +626,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         assertGt(failedAt2, 0);
     }
 
-    function testSystemTransactionSuccessTokensDelivered() public {
+    function testLzCompose_SuccessPath_TokensDelivered() public {
         useNetworkB();
 
         uint256 testAmount = 1 ether;
@@ -693,7 +710,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
     }
 
-    function testLzComposeWithTenderlyCalldata_DoesNotRevert() public {
+    function testLzCompose_TenderlyCalldata_DoesNotRevert() public {
         useNetworkB();
 
         // Tenderly-captured call args

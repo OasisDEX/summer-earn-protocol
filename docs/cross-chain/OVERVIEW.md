@@ -14,12 +14,12 @@ internal, keeper-led rebalancing process.
 
 - **CrossChain Fleet (Hub)**: User entry point and strategy accounting.
 - **Buffer Ark**: Staging area for new capital prior to cross-chain deployment.
-- **CrossChain Ark (Source)**: Per-target-chain vehicle that executes cross-chain transfers.
+- **CrossChain Ark (Hub)**: Hub-chain Ark that executes cross-chain transfers to destination chains.
 - **BridgeRouter**: Bridge coordination contract that validates adapters and forwards operations.
 - **Bridge Adapters**: Protocol-specific adapters (e.g., Stargate, LayerZero) that bridge tokens and
   messages.
 - **FleetProxy (Destination)**: Gatekeeper on the destination chain that accepts calls only from the
-  local BridgeRouter and deposits into the local fleet after registry validation of the source.
+  local BridgeRouter and deposits into the local fleet after registry validation of the hub-chain Ark.
 - **CrossChainRegistry**: Authoritative mapping of valid Ark ↔ Proxy pairs across chains; checked
   on both source and destination.
 - **Keepers**: Off-chain agents that plan and execute rebalances (queue and execute transfers).
@@ -31,7 +31,7 @@ sequenceDiagram
   participant User as User
   participant Fleet as CrossChain Fleet (Hub)
   participant Buffer as Buffer Ark
-  participant Ark as CrossChain Ark (Source)
+  participant Ark as CrossChain Ark (Hub)
   participant RouterS as BridgeRouter (Source)
   participant AdapterS as Adapter (Source)
   participant AdapterD as Adapter (Destination)
@@ -51,6 +51,12 @@ sequenceDiagram
   Proxy->>Local: deposit()
 ```
 
+#### Notifications (standardized)
+
+- FleetProxy → Hub (MESSAGE): After receiving assets on the satellite, the destination `FleetProxy` can notify the hub-chain Ark using `notifyHubChain(options)`. The MESSAGE payload is `(fleetAssets, latestIncomingTransferId)` and is used by the Ark to update `lastRemoteAssetBalance` and clear inflight when the transfer ID matches.
+- Hub → FleetProxy (MESSAGE): After a hub-side withdrawal completes, the Ark can ACK back to the satellite using `notifySatelliteReceipt(options)`. The MESSAGE payload contains `latestIncomingTransferId`, allowing `FleetProxy` to clear `inflightWithdrawals` when it matches `latestOutgoingTransferId`.
+- Operational requirement: both notifications use `BridgeOptions` and require a non-zero `gasLimit`.
+
 #### Security at a Glance
 
 - Registry-first validation on source and destination: invalid relationships revert immediately.
@@ -58,6 +64,7 @@ sequenceDiagram
   adapter peer mappings via the registry during delivery.
 - Pausing and governance-controlled emergency actions at routers/proxies.
 - Reentrancy protection on critical entry points.
+- **MEV Protection**: FleetCommander implements withdrawal fees to prevent MEV attacks and sandwich attacks on cross-chain operations. Users burn full shares but receive reduced assets, with the fee shares transferred to the tipJar.
 
 Operational requirement:
 - All cross-chain operations include explicit `BridgeOptions` with a non-zero `gasLimit`. There is no registry-level default gas limit.
@@ -65,13 +72,31 @@ Operational requirement:
 Note on withdrawals:
 
 - Disembark (withdraw) checks ensure sufficient local assets. Cross-chain withdrawals are initiated
-  on the destination by keepers via `FleetProxy.withdrawAndTransfer(...)` and delivered back to the
+  on the satellite by keepers via `FleetProxy.withdrawAndTransfer(...)` and delivered back to the
   Ark on the hub chain.
-- Single-flight semantics apply to both Ark (outbound) and FleetProxy (withdrawals). Ark clears its
-  inflight state when the next remote balance update tied to the latest outgoing transfer is
-  confirmed. FleetProxy clears inflight via an off-chain acknowledgment path
-  (`acknowledgeHubReceipt(operationId)` by SuperKeeper) once receipt is verified on the hub, or via
-  governance emergency functions.
+- Single-flight semantics apply to both Ark (outbound) and FleetProxy (withdrawals). Ark typically
+  clears its inflight state upon processing the MESSAGE from `FleetProxy.notifyHubChain(...)` that
+  contains the latest received transfer ID and remote balance. FleetProxy clears withdrawal inflight
+  via a hub → satellite MESSAGE ACK from `CrossChainArk.notifySatelliteReceipt(...)` when the
+  transfer ID matches. Fallback: SuperKeeper can call `acknowledgeHubReceipt(operationId)`, and
+  governance retains emergency controls.
+
+#### MEV Protection Mechanism
+
+The FleetCommander implements a withdrawal fee-based MEV protection system:
+
+- **Withdrawal Fee**: Configurable fee percentage applied to withdrawals and redemptions
+- **Share Burning**: Users burn the full amount of shares corresponding to their withdrawal
+- **Asset Reduction**: Users receive assets minus the fee amount
+- **Fee Collection**: The fee shares are transferred to the tipJar
+- **MEV Attack Prevention**: Prevents sandwich attacks and front-running on cross-chain operations
+- **Governance Control**: Withdrawal fee can be updated by curators to adapt to changing market conditions
+
+Key functions:
+- `_calculateWithdrawalFee(assets)`: Calculates the withdrawal fee for a given amount of assets
+- `WithdrawalFeeCollected` event: Emitted when withdrawal fees are collected
+
+This mechanism ensures that cross-chain rebalancing operations cannot be immediately exploited by MEV bots, providing protection for both users and the protocol. The fee-based approach maintains ERC4626 compliance while providing economic disincentives for MEV attacks.
 
 #### Where to go next
 

@@ -15,10 +15,10 @@ contract CooldownEnforcerMock is CooldownEnforcer {
     }
 
     function updateCooldown(uint256 cooldown_) external {
-        _updateCooldown(cooldown_);
+        _updateRebalanceCooldown(cooldown_);
     }
 
-    function doEnforceCooldown() external enforceCooldown {
+    function doEnforceCooldown() external enforceRebalanceCooldown {
         // no-op
     }
 }

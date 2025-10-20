@@ -54,6 +54,9 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     uint256 public constant NETWORK_A_CHAIN_ID = 31337;
     uint256 public constant NETWORK_B_CHAIN_ID = 31338;
 
+    // Shared read-channel threshold constant for unit tests
+    uint32 public constant READ_CHANNEL_THRESHOLD = 4294965694;
+
     function setUp() public virtual override {
         super.setUp();
         _setupEndpoints();
@@ -111,7 +114,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             chains,
             lzEids,
             governor,
-            4294965694
+            READ_CHANNEL_THRESHOLD
         );
 
         // Final configuration
@@ -159,7 +162,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             chains,
             lzEids,
             governor,
-            4294965694
+            READ_CHANNEL_THRESHOLD
         );
 
         // Final configuration
@@ -233,10 +236,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         vm.stopPrank();
     }
 
-    function aTest() public {
-        useNetworkA();
-    }
-
     // Helper functions for switching networks
     function useNetworkA() public {
         vm.chainId(NETWORK_A_CHAIN_ID);
@@ -245,6 +244,4 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     function useNetworkB() public {
         vm.chainId(NETWORK_B_CHAIN_ID);
     }
-
-    function testSkipper() public {}
 }

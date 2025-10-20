@@ -6,6 +6,7 @@ import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossCha
 import {CrossChainReceiverBase} from "@summerfi/chain-bridge/base/CrossChainReceiverBase.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
+import {ReceiptNotifier} from "../common/ReceiptNotifier.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
@@ -22,11 +23,9 @@ contract CrossChainArk is
     Ark,
     CrossChainConfigManaged,
     CrossChainReceiverBase,
-    ICrossChainArk
+    ICrossChainArk,
+    ReceiptNotifier
 {
-    /// @notice Relationship type constant for ARK-PEER relationships
-    bytes32 private constant ARK_PEER_RELATIONSHIP =
-        keccak256("PEER_RELATIONSHIP");
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -39,14 +38,20 @@ contract CrossChainArk is
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
 
+    /// @notice Timestamp when lastRemoteAssetBalance was last updated
+    uint256 public lastRemoteBalanceUpdateTime;
+
     /// @notice Amount of assets currently in-flight (being bridged)
     uint256 public inflightAssets;
 
     /// @notice The latest outgoing transfer ID
     bytes32 public latestOutgoingTransferId;
 
-    /// @notice The last amount sent in the latest outgoing transfer
-    uint256 public lastSentAmount;
+    /// @notice The latest incoming transfer ID received from the satellite proxy
+    bytes32 public latestIncomingTransferId;
+
+    /// @notice Timestamp of the last processed balance notification
+    uint256 public lastNotificationTimestamp;
 
     /// @notice Pending transfer params for the cross-chain transfer
     BridgeTypes.ExecuteTransferParams public pendingTransferParams;
@@ -62,8 +67,6 @@ contract CrossChainArk is
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
-
-    // singleFlight modifier removed in favor of explicit assertions for clarity
 
     /**
      * @notice Constructor to set up the CrossChainArk
@@ -91,7 +94,6 @@ contract CrossChainArk is
     /// in case of bridge failures or accounting discrepancies
     function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
         inflightAssets = amount;
-        lastSentAmount = amount;
         emit InflightSet(amount, bytes32(0));
     }
 
@@ -121,6 +123,23 @@ contract CrossChainArk is
     }
 
     /**
+     * @notice Gets the timestamp of the last remote balance update
+     * @return The timestamp when the last remote balance update was received
+     * @dev Returns 0 if no remote balance update has been received yet
+     */
+    function getLastRemoteBalanceUpdateTime() external view returns (uint256) {
+        return lastRemoteBalanceUpdateTime;
+    }
+
+    /**
+     * @notice Alias using hub/satellite terminology
+     * @return The satellite proxy address
+     */
+    function getSatelliteProxy() external view returns (address) {
+        return _getTargetProxy();
+    }
+
+    /**
      * @inheritdoc IERC165
      */
     function supportsInterface(
@@ -130,6 +149,10 @@ contract CrossChainArk is
             interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(ICrossChainArk).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
+    }
+
+    function _notifierBridgeRouter() internal view override returns (address) {
+        return bridgeRouter();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -158,7 +181,6 @@ contract CrossChainArk is
 
         if (amount == 0) revert InvalidAmount();
         if (amount != params.amount) revert InvalidAmount();
-        if (params.asset == address(0)) revert InvalidAsset();
         if (params.asset != address(config.asset)) revert InvalidAsset();
         if (params.target != proxyAddress) revert InvalidRecipient();
         if (params.originator != address(this)) revert InvalidRequestor();
@@ -176,13 +198,12 @@ contract CrossChainArk is
     function executeTransferAssets() external payable onlyKeeper {
         _assertCanExecuteTransfer();
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
-        config.asset.approve(
+        config.asset.forceApprove(
             address(bridgeRouter),
             pendingTransferParams.amount
         );
         // Set inflight before initiating the transfer
         inflightAssets = pendingTransferParams.amount;
-        lastSentAmount = pendingTransferParams.amount;
         bytes32 operationId = bridgeRouter.executeTransferAssets{
             value: msg.value
         }(pendingTransferParams, pendingTransferOptions);
@@ -202,9 +223,24 @@ contract CrossChainArk is
 
     /// @notice Cancels a queued pending transfer
     /// @dev Resets pending transfer params and options; callable by keeper
+    /// @dev Returns the pending transfer amount back to the buffer ark
     function cancelPendingTransfer() external onlyKeeper {
         if (pendingTransferParams.asset == address(0))
             revert NoPendingTransferQueued();
+
+        // Get the amount to return to buffer
+        uint256 amount = pendingTransferParams.amount;
+
+        // Get buffer ark address from FleetCommander
+        address bufferArk = IFleetCommander(config.commander).bufferArk();
+
+        // Approve buffer ark to spend the assets
+        config.asset.forceApprove(bufferArk, amount);
+
+        // Return assets to buffer ark
+        IArk(bufferArk).board(amount, bytes(""));
+
+        // Reset pending transfer params
         _resetPendingTransferParams();
     }
 
@@ -267,9 +303,12 @@ contract CrossChainArk is
             revert InvalidSourceChain();
         if (params.originator != _getTargetProxy()) revert InvalidSender();
 
-        // Decode the remote asset balance
-        (uint256 newRemoteBalance, bytes32 latestReceivedTransferId) = abi
-            .decode(params.message, (uint256, bytes32));
+        // Decode the remote asset balance with timestamp
+        (
+            uint256 newRemoteBalance,
+            bytes32 latestReceivedTransferId,
+            uint256 timestamp
+        ) = abi.decode(params.message, (uint256, bytes32, uint256));
         if (latestReceivedTransferId != latestOutgoingTransferId) {
             // we skip updating the remote balance if the transfer id (received in FleetProxy) is not the latest
             // sent by this Ark
@@ -280,7 +319,16 @@ contract CrossChainArk is
             return;
         }
 
+        // Reject stale notifications to prevent race conditions
+        if (timestamp < lastNotificationTimestamp) {
+            emit StaleNotification(timestamp, lastNotificationTimestamp);
+            return;
+        }
+
+        lastNotificationTimestamp = timestamp;
+
         lastRemoteAssetBalance = newRemoteBalance;
+        lastRemoteBalanceUpdateTime = block.timestamp;
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
@@ -288,9 +336,9 @@ contract CrossChainArk is
 
         // Reset inflight assets as the state read now reflects the current remote balance
         if (inflightAssets > 0) {
+            uint256 clearedAmount = inflightAssets;
             inflightAssets = 0;
-            emit InflightCleared(params.operationId, lastSentAmount);
-            lastSentAmount = 0;
+            emit InflightCleared(params.operationId, clearedAmount);
         }
     }
 
@@ -325,21 +373,36 @@ contract CrossChainArk is
         // Update the remote asset tracking
 
         lastRemoteAssetBalance = remoteBalance;
+        lastRemoteBalanceUpdateTime = block.timestamp;
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
         );
 
         emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
+
+        // Track the latest incoming transfer id to ACK back to satellite
+        latestIncomingTransferId = params.operationId;
+    }
+
+    /// @notice Notifies the satellite chain proxy that assets have been received on the hub
+    /// @dev Keeper-triggered message to clear inflight on FleetProxy via ACK
+    function notifySatelliteChain(
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable onlyKeeper {
+        if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
+        _sendNotification(
+            satelliteChainId,
+            _getTargetProxy(),
+            abi.encode(latestIncomingTransferId),
+            options,
+            msg.sender
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
                         HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    error InvalidSender();
-    /// @notice Error thrown when trying to start a new outbound while inflight > 0
-    error InFlight();
 
     /**
      * @notice Ensures ready for executing a pending transfer: no inflight and has pending
@@ -362,7 +425,8 @@ contract CrossChainArk is
             memory relation = ICrossChainRegistry(crossChainRegistry())
                 .getRelationshipByTarget(
                     address(this),
-                    ARK_PEER_RELATIONSHIP,
+                    ICrossChainRegistry(crossChainRegistry())
+                        .PEER_RELATIONSHIP(),
                     satelliteChainId
                 );
         return relation.targetContract;
@@ -400,22 +464,8 @@ contract CrossChainArk is
      * @dev This function is used to reset the pending transfer params after the transfer has been executed
      */
     function _resetPendingTransferParams() internal {
-        pendingTransferParams = BridgeTypes.ExecuteTransferParams({
-            destinationChainId: 0,
-            asset: address(0),
-            amount: 0,
-            target: address(0),
-            originator: address(0),
-            refundAddress: address(0),
-            message: ""
-        });
-        pendingTransferOptions = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0),
-            gasLimit: 0,
-            calldataSize: 0,
-            msgValue: 0,
-            options: bytes("")
-        });
+        delete pendingTransferParams;
+        delete pendingTransferOptions;
     }
 
     /**
@@ -434,5 +484,40 @@ contract CrossChainArk is
     {
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
+    }
+
+    /// @inheritdoc IArk
+    function sweep(
+        address[] memory tokens
+    )
+        external
+        override
+        onlyRaft
+        nonReentrant
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        sweptTokens = new address[](tokens.length);
+        sweptAmounts = new uint256[](tokens.length);
+        IERC20 asset = config.asset;
+
+        // Check if any token is the underlying asset - always prevent this
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (tokens[i] == address(asset)) {
+                revert CannotSweepUnderlyingAsset();
+            }
+        }
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 amount = IERC20(tokens[i]).balanceOf(address(this));
+            if (amount > 0) {
+                IERC20(tokens[i]).safeTransfer(
+                    raft(),
+                    IERC20(tokens[i]).balanceOf(address(this))
+                );
+                sweptTokens[i] = tokens[i];
+                sweptAmounts[i] = amount;
+            }
+        }
+        emit ArkSwept(sweptTokens, sweptAmounts);
     }
 }

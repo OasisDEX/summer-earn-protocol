@@ -4,10 +4,10 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
+import {IStargateAdapter} from "../interfaces/IStargateAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
@@ -28,6 +28,7 @@ import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
 contract StargateAdapter is
     IAssetAdapter,
     IBridgeAdapter,
+    IStargateAdapter,
     ILayerZeroComposer,
     BaseBridgeAdapter
 {
@@ -59,27 +60,6 @@ contract StargateAdapter is
 
     /// @notice Default slippage tolerance in basis points (0.5% = 50 basis points)
     uint256 public slippageToleranceBps = 50;
-
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when an asset support is added
-    event AssetSupported(
-        uint16 chainId,
-        address asset,
-        address stargateContract
-    );
-
-    /// @notice Emitted when slippage tolerance is updated
-    event SlippageToleranceUpdated(uint256 newSlippageBps);
-
-    /*//////////////////////////////////////////////////////////////
-                                 ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Thrown when refunding excess native fee to `refundAddress` fails
-    error RefundFailed(address recipient, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -151,7 +131,7 @@ contract StargateAdapter is
         assetToStargateContract[asset] = stargateContract;
         stargateContractToAsset[stargateContract] = asset;
 
-        emit AssetSupported(uint16(block.chainid), asset, stargateContract);
+        emit AssetSupported(asset, stargateContract);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -230,19 +210,12 @@ contract StargateAdapter is
             revert InsufficientFee(messagingFee.nativeFee, providedFee);
         }
 
-        // Use exact fee amount from quote - Stargate handles refunds to keeper
-        stargate.sendToken{value: messagingFee.nativeFee}(
+        // Forward the full provided fee to Stargate - it will handle refunds internally
+        stargate.sendToken{value: providedFee}(
             sendParam,
             messagingFee,
             params.refundAddress // Always refund to keeper who paid fees
         );
-
-        // Refund any unused native value (buffer) back to the designated refund address
-        uint256 refundAmount = providedFee - messagingFee.nativeFee;
-        if (refundAmount > 0) {
-            (bool ok, ) = params.refundAddress.call{value: refundAmount}("");
-            if (!ok) revert RefundFailed(params.refundAddress, refundAmount);
-        }
     }
 
     /**
@@ -346,26 +319,6 @@ contract StargateAdapter is
         sendParam.minAmountLD = oftReceipt.amountReceivedLD;
     }
 
-    /**
-     * @dev Determines transport mode based on adapter params
-     */
-    function _getTransportMode(
-        BridgeTypes.BridgeOptions calldata,
-        bool
-    ) internal pure returns (bytes memory) {
-        // Always use taxi mode for cross-chain asset transfers
-        // This aligns with the pattern shown in Stargate V2 examples
-        // Taxi mode is more reliable and required for compose functionality
-        return OftCmdHelper.taxi(); // Returns ""
-    }
-
-    /**
-     * @dev Helper function to check if transport mode is taxi
-     */
-    function _isTaxiMode(bytes memory oftCmd) internal pure returns (bool) {
-        return oftCmd.length == 0; // taxi() returns empty bytes, bus() returns bytes with length 1
-    }
-
     /*//////////////////////////////////////////////////////////////
                         GOVERNOR RECOVERY PATHS
     //////////////////////////////////////////////////////////////*/
@@ -401,10 +354,6 @@ contract StargateAdapter is
         onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
-            revert OperationNotSupported();
-        }
-
         // Check if asset is supported on current chain
         if (assetToStargateContract[params.asset] == address(0)) {
             revert UnsupportedAsset();
@@ -587,12 +536,5 @@ contract StargateAdapter is
         assetAddress = stargateContractToAsset[_from];
         if (assetAddress == address(0))
             revert Untrusted("Stargate pool", _from, address(0));
-    }
-
-    /**
-     * @notice Get the LayerZero Endpoint ID for a given chain
-     */
-    function getEndpointId(uint16 chainId) external view returns (uint32) {
-        return chainToExternalId[chainId];
     }
 }

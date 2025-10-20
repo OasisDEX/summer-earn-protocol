@@ -17,12 +17,6 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         super.setUp();
     }
 
-    function testAdapterConfiguration() public view {
-        console.log("=== Testing Adapter Configuration ===");
-        _verifyAdapterConfiguration();
-        console.log("[SUCCESS] Adapter properly configured");
-    }
-
     function testFullBridgeWorkflow() public {
         console.log("=== Testing Full Bridge Workflow ===");
 
@@ -203,8 +197,8 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         freshAdapter.configureReadDVNs(
             READ_LIB_1002_BASE,
             readDVNs,
-            15,
-            EXECUTOR_BASE
+            EXECUTOR_BASE,
+            1
         );
 
         vm.stopPrank();
@@ -287,7 +281,5 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             }),
             options
         );
-
-        // todo: expect calls to lz endpoint to be made
     }
 }

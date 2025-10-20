@@ -11,7 +11,7 @@ import {console} from "forge-std/console.sol";
 contract BridgeRouterReadStateTest is BridgeRouterSetup {
     // ---- READ STATE TESTS ----
 
-    function testReadState() public {
+    function testExecuteReadState_Succeeds() public {
         address targetContract = address(token); // Use a valid address for setup
         bytes4 targetSelector = bytes4(keccak256("getBalance(address)"));
         bytes memory targetCalldata = abi.encode(user);
@@ -68,7 +68,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // Endpoint expectations are asserted in integration tests where a real endpoint is available
     }
 
-    function testDeliverReadResponse() public {
+    function testDeliver_ReadStateResponse_Succeeds() public {
         bytes32 operationId; // Declare operationId outside prank scope
         address targetContract = address(0x123);
         bytes4 targetSelector = bytes4(keccak256("getBalance(address)"));
@@ -157,7 +157,9 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         assertEq(mockReceiver.lastSourceChainId(), DEST_CHAIN_ID);
     }
 
-    function testDeliverReadResponseUnauthorized() public {
+    function testDeliver_ReadStateResponse_RecordsFailure_WhenUnauthorizedAdapter()
+        public
+    {
         bytes32 operationId; // Declare operationId
         address targetContract = address(0x123);
         bytes4 targetSelector = bytes4(keccak256("getBalance(address)"));
@@ -244,7 +246,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         assertGt(failedAt, 0);
     }
 
-    function testExecuteReadState_ZeroGasLimitReverts() public {
+    function testExecuteReadState_ZeroGasLimit_Reverts() public {
         address targetContract = address(token);
         bytes4 targetSelector = bytes4(keccak256("symbol()"));
         bytes memory targetCalldata = bytes("");
@@ -275,7 +277,9 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testDeliverReadResponseReceiverRejects() public {
+    function testDeliver_ReadStateResponse_RecordsFailure_WhenReceiverReverts()
+        public
+    {
         bytes32 operationId; // Declare operationId
         address targetContract = address(0x123);
         bytes4 targetSelector = bytes4(keccak256("getBalance(address)"));

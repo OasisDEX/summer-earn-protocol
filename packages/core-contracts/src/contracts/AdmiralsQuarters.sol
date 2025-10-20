@@ -6,7 +6,6 @@ import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next
 import {IAdmiralsQuarters} from "../interfaces/IAdmiralsQuarters.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 
-import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 
 import {IAToken} from "../interfaces/aave-v3/IAtoken.sol";
@@ -201,50 +200,6 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function stake(
-        address fleetCommander,
-        uint256 shares
-    ) external payable onlyMulticall nonReentrant {
-        _validateFleetCommander(fleetCommander);
-
-        IFleetCommander fleet = IFleetCommander(fleetCommander);
-        address rewardsManager = fleet.getConfig().stakingRewardsManager;
-
-        uint256 balance = IERC20(fleetCommander).balanceOf(address(this));
-        shares = shares == 0 ? balance : shares;
-        if (shares > balance) revert InsufficientOutputAmount();
-
-        IERC20(fleetCommander).forceApprove(rewardsManager, shares);
-        IFleetCommanderRewardsManager(rewardsManager).stakeOnBehalfOf(
-            _msgSender(),
-            shares
-        );
-
-        emit FleetSharesStaked(_msgSender(), fleetCommander, shares);
-    }
-
-    function unstakeAndWithdrawAssets(
-        address fleetCommander,
-        uint256 shares,
-        bool claimRewards
-    ) external onlyMulticall nonReentrant {
-        _validateFleetCommander(fleetCommander);
-
-        IFleetCommander fleet = IFleetCommander(fleetCommander);
-        address rewardsManager = fleet.getConfig().stakingRewardsManager;
-
-        shares = shares == 0
-            ? IFleetCommanderRewardsManager(rewardsManager).balanceOf(
-                _msgSender()
-            )
-            : shares;
-        IFleetCommanderRewardsManager(rewardsManager)
-            .unstakeAndWithdrawOnBehalfOf(_msgSender(), shares, claimRewards);
-
-        emit FleetSharesUnstaked(_msgSender(), fleetCommander, shares);
-    }
-
-    /// @inheritdoc IAdmiralsQuarters
     function swap(
         IERC20 fromToken,
         IERC20 toToken,
@@ -299,14 +254,6 @@ contract AdmiralsQuarters is
         address rewardToken
     ) external onlyMulticall nonReentrant {
         _claimGovernanceRewards(govRewardsManager, rewardToken);
-    }
-
-    /// @inheritdoc IAdmiralsQuarters
-    function claimFleetRewards(
-        address[] calldata fleetCommanders,
-        address rewardToken
-    ) external onlyMulticall nonReentrant {
-        _claimFleetRewards(fleetCommanders, rewardToken);
     }
 
     /// @inheritdoc IAdmiralsQuarters
@@ -456,36 +403,6 @@ contract AdmiralsQuarters is
             _msgSender(),
             rewardToken
         );
-    }
-
-    /**
-     * @dev Claims rewards from fleet commanders
-     * @param fleetCommanders Array of FleetCommander addresses
-     * @param rewardToken Address of the reward token to claim
-     */
-    function _claimFleetRewards(
-        address[] calldata fleetCommanders,
-        address rewardToken
-    ) internal {
-        for (uint256 i = 0; i < fleetCommanders.length; ) {
-            address fleetCommander = fleetCommanders[i];
-
-            // Validate FleetCommander through HarborCommand
-            _validateFleetCommander(fleetCommander);
-
-            // Get rewards manager from FleetCommander and claim
-            address rewardsManager = IFleetCommander(fleetCommander)
-                .getConfig()
-                .stakingRewardsManager;
-            IFleetCommanderRewardsManager(rewardsManager).getRewardFor(
-                _msgSender(),
-                rewardToken
-            );
-
-            unchecked {
-                ++i;
-            }
-        }
     }
 
     /// @inheritdoc IAdmiralsQuarters

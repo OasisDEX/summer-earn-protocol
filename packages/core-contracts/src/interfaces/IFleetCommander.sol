@@ -8,6 +8,7 @@ import {RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderConfigProvider} from "./IFleetCommanderConfigProvider.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {IWithdrawalFee} from "../utils/WithdrawalFee/IWithdrawalFee.sol";
 
 /**
  * @title IFleetCommander Interface
@@ -17,7 +18,8 @@ interface IFleetCommander is
     IERC4626,
     IFleetCommanderEvents,
     IFleetCommanderErrors,
-    IFleetCommanderConfigProvider
+    IFleetCommanderConfigProvider,
+    IWithdrawalFee
 {
     /**
      * @notice Returns the total assets that are currently withdrawable from the FleetCommander.
@@ -185,17 +187,16 @@ interface IFleetCommander is
     function setTipRate(Percentage newTipRate) external;
 
     /**
-     * @notice Sets a new minimum pause time for the FleetCommander
-     * @dev Only callable by the governor
-     * @param newMinimumPauseTime The new minimum pause time in seconds
-     */
-    function setMinimumPauseTime(uint256 newMinimumPauseTime) external;
-
-    /**
      * @notice Updates the rebalance cooldown period
      * @param newCooldown The new cooldown period in seconds
      */
     function updateRebalanceCooldown(uint256 newCooldown) external;
+
+    /**
+     * @notice Updates the withdrawal fee percentage
+     * @param newFee The new withdrawal fee as a Percentage
+     */
+    function updateWithdrawalFee(Percentage newFee) external;
 
     /**
      * @notice Forces a rebalance operation

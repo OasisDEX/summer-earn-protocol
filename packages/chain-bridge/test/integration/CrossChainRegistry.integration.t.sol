@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.28;
+
+import {BaseCrossChainRegistryTest} from "../helpers/BaseCrossChainRegistry.t.sol";
+
+/**
+ * @title CrossChainRegistry.integration
+ * @notice End-to-end registry workflow happy-path
+ */
+contract CrossChainRegistryIntegrationTest is BaseCrossChainRegistryTest {
+    function test_endToEndRegistrationAndValidation() public {
+        address arkAddress = makeAddr("testArk");
+        address proxyAddress = makeAddr("testProxy");
+
+        // Since PEER_RELATIONSHIP is bijective, we need to use pair registration
+        // This will emit two events: one for each direction
+        vm.expectEmit(true, true, true, true, address(registry));
+        emit CrossChainRelationshipRegistered(
+            arkAddress,
+            proxyAddress,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            peerType
+        );
+
+        vm.expectEmit(true, true, true, true, address(registry));
+        emit CrossChainRelationshipRegistered(
+            proxyAddress,
+            arkAddress,
+            TARGET_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            peerType
+        );
+
+        vm.prank(governor);
+        registry.registerAdapterPeerPair(
+            arkAddress,
+            proxyAddress,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID
+        );
+
+        (address targetContract, uint16 chainId) = registry.getTargetForSource(
+            arkAddress,
+            peerType
+        );
+        assertEq(targetContract, proxyAddress);
+        assertEq(chainId, TARGET_CHAIN_ID);
+
+        address sourceContract = registry.getSourceForTarget(
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxyAddress,
+            peerType
+        );
+        assertEq(sourceContract, arkAddress);
+
+        assertTrue(
+            registry.isValidCrossChainPair(
+                arkAddress,
+                proxyAddress,
+                CURRENT_CHAIN_ID,
+                TARGET_CHAIN_ID,
+                peerType
+            )
+        );
+    }
+}

@@ -40,13 +40,13 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice Array of supported relationship types
     bytes32[] private supportedRelationshipTypes;
 
-    /// @notice Mapping to track if a relationship type is supported
-    mapping(bytes32 => bool) private relationshipTypeSupported;
-
     /// @notice The bridge router contract address
     address public bridgeRouter;
 
     /// @notice Constants for relationship types
+    /// @dev Note: PEER_RELATIONSHIP requires use of pair registration methods (registerAdapterPeerPair/unregisterAdapterPeerPair)
+    /// to ensure bidirectional relationships. Other newly added relationship types that require bijective mapping
+    /// will require careful configuration as there is no enforcement for those - they may get misconfigured.
     bytes32 public constant PEER_RELATIONSHIP = keccak256("PEER_RELATIONSHIP");
     bytes32 public constant EXECUTOR_RELATIONSHIP =
         keccak256("EXECUTOR_RELATIONSHIP");
@@ -80,6 +80,11 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 targetChainId,
         bytes32 relationshipType
     ) public onlyGovernor {
+        // PEER_RELATIONSHIP requires use of pair registration methods
+        if (relationshipType == PEER_RELATIONSHIP) {
+            revert UsePairRegistrationMethods(relationshipType);
+        }
+
         // Delegate to internal registration logic with validation and storage
         _registerRelationship(
             sourceContract,
@@ -96,6 +101,11 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         bytes32 relationshipType,
         uint16 targetChainId
     ) public onlyGovernor {
+        // PEER_RELATIONSHIP requires use of pair registration methods
+        if (relationshipType == PEER_RELATIONSHIP) {
+            revert UsePairRegistrationMethods(relationshipType);
+        }
+
         _unregisterRelationship(
             sourceContract,
             relationshipType,
@@ -147,7 +157,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     function getTargetForSource(
         address sourceContract,
         bytes32 relationshipType
-    ) public view returns (address targetContract, uint16 targetChainId) {
+    ) external view returns (address targetContract, uint16 targetChainId) {
         if (
             !registeredSourceContracts[relationshipType].contains(
                 sourceContract
@@ -239,8 +249,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             relationshipKey
         ];
         return (relation.targetContract == targetContract &&
-            relation.sourceChainId == sourceChainId &&
-            relation.targetChainId == targetChainId);
+            relation.sourceChainId == sourceChainId);
     }
 
     /// @inheritdoc ICrossChainRegistry
@@ -553,9 +562,17 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
      * @param relationshipType The relationship type to add
      */
     function _addRelationshipType(bytes32 relationshipType) internal {
-        if (!relationshipTypeSupported[relationshipType]) {
+        // Check if this relationship type already exists in the array
+        bool alreadyExists = false;
+        for (uint256 i = 0; i < supportedRelationshipTypes.length; i++) {
+            if (supportedRelationshipTypes[i] == relationshipType) {
+                alreadyExists = true;
+                break;
+            }
+        }
+
+        if (!alreadyExists) {
             supportedRelationshipTypes.push(relationshipType);
-            relationshipTypeSupported[relationshipType] = true;
             emit RelationshipTypeAdded(relationshipType);
         }
     }
@@ -624,6 +641,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             );
         }
 
+        // Read the relation after confirming it exists
         CrossChainRelation memory relation = crossChainRelations[
             relationshipKey
         ];
@@ -708,8 +726,18 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             revert InvalidRelationshipType(relationshipType);
 
         // enforce that relationship type must be supported
-        if (!relationshipTypeSupported[relationshipType]) {
-            revert UnsupportedRelationshipType(relationshipType);
+        if (registeredSourceContracts[relationshipType].length() == 0) {
+            // Check if this relationship type exists in the supported types array
+            bool isSupported = false;
+            for (uint256 i = 0; i < supportedRelationshipTypes.length; i++) {
+                if (supportedRelationshipTypes[i] == relationshipType) {
+                    isSupported = true;
+                    break;
+                }
+            }
+            if (!isSupported) {
+                revert UnsupportedRelationshipType(relationshipType);
+            }
         }
 
         bytes32 relationshipKey = _getRelationshipKey(

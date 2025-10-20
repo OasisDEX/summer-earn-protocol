@@ -12,6 +12,7 @@ import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 
 /**
  * @title StargateAdapterComposeForkTest
@@ -209,7 +210,9 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Check that it reverted with Unauthorized error
-        bytes4 unauthorizedSelector = BaseBridgeAdapter.Unauthorized.selector;
+        bytes4 unauthorizedSelector = IBaseBridgeAdapterErrors
+            .Unauthorized
+            .selector;
 
         // The return data should contain the revert reason
         assertTrue(returnData.length >= 4, "Should have revert data");
@@ -277,11 +280,11 @@ contract StargateAdapterComposeForkTest is Test {
 
         // Test endpoint ID mapping
         assertEq(
-            adapterMainnet.getEndpointId(CHAIN_ID_MAINNET),
+            adapterMainnet.chainToExternalId(CHAIN_ID_MAINNET),
             LZ_EID_MAINNET
         );
         assertEq(
-            adapterMainnet.getEndpointId(CHAIN_ID_ARBITRUM),
+            adapterMainnet.chainToExternalId(CHAIN_ID_ARBITRUM),
             LZ_EID_ARBITRUM
         );
     }
