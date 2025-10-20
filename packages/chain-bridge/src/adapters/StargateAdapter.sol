@@ -4,10 +4,10 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
+import {IStargateAdapter} from "../interfaces/IStargateAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
@@ -29,6 +29,7 @@ import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
 contract StargateAdapter is
     IAssetAdapter,
     IBridgeAdapter,
+    IStargateAdapter,
     ILayerZeroComposer,
     BaseBridgeAdapter
 {
@@ -60,24 +61,6 @@ contract StargateAdapter is
 
     /// @notice Default slippage tolerance in basis points (0.5% = 50 basis points)
     uint256 public slippageToleranceBps = 50;
-
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when an asset support is added
-    event AssetSupported(
-        uint16 chainId,
-        address asset,
-        address stargateContract
-    );
-
-    /// @notice Emitted when slippage tolerance is updated
-    event SlippageToleranceUpdated(uint256 newSlippageBps);
-
-    /*//////////////////////////////////////////////////////////////
-                                 ERRORS
-    //////////////////////////////////////////////////////////////*/
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -149,7 +132,7 @@ contract StargateAdapter is
         assetToStargateContract[asset] = stargateContract;
         stargateContractToAsset[stargateContract] = asset;
 
-        emit AssetSupported(uint16(block.chainid), asset, stargateContract);
+        emit AssetSupported(asset, stargateContract);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -228,8 +211,8 @@ contract StargateAdapter is
             revert InsufficientFee(messagingFee.nativeFee, providedFee);
         }
 
-        // Use exact fee amount from quote - Stargate handles refunds to keeper
-        stargate.sendToken{value: messagingFee.nativeFee}(
+        // Forward the full provided fee to Stargate - it will handle refunds internally
+        stargate.sendToken{value: providedFee}(
             sendParam,
             messagingFee,
             params.refundAddress // Always refund to keeper who paid fees
@@ -353,10 +336,6 @@ contract StargateAdapter is
         onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
-            revert OperationNotSupported();
-        }
-
         // Check if asset is supported on current chain
         if (assetToStargateContract[params.asset] == address(0)) {
             revert UnsupportedAsset();
@@ -539,12 +518,5 @@ contract StargateAdapter is
         assetAddress = stargateContractToAsset[_from];
         if (assetAddress == address(0))
             revert Untrusted("Stargate pool", _from, address(0));
-    }
-
-    /**
-     * @notice Get the LayerZero Endpoint ID for a given chain
-     */
-    function getEndpointId(uint16 chainId) external view returns (uint32) {
-        return chainToExternalId[chainId];
     }
 }

@@ -17,11 +17,7 @@ import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
-import {FleetCommanderRewardsManager} from "../../src/contracts/FleetCommanderRewardsManager.sol";
-
-import {FleetCommanderRewardsManagerFactory} from "../../src/contracts/FleetCommanderRewardsManagerFactory.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
-import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
@@ -61,8 +57,6 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     RestictedWithdrawalArkMock public mockArk4;
     BufferArk public bufferArk;
     HarborCommand public harborCommand;
-    FleetCommanderRewardsManagerFactory
-        public fleetCommanderRewardsManagerFactory;
 
     // Addresses
     address public governor = address(1);
@@ -86,7 +80,6 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     FleetCommanderParams public fleetCommanderParams;
 
     // New variables
-    IFleetCommanderRewardsManager public stakingRewardsManager;
     MockSummerGovernor public mockGovernor;
     ERC20Mock[] public rewardTokens;
 
@@ -125,11 +118,6 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         vm.label(address(mockArk2), "Ark2");
         vm.label(address(mockArk3), "Ark3");
         vm.label(address(mockArk4), "Ark4-nonWithdrawable");
-
-        FleetConfig memory config = fleetCommander.getConfig();
-        stakingRewardsManager = IFleetCommanderRewardsManager(
-            config.stakingRewardsManager
-        );
     }
 
     function initializeFleetCommanderWithoutArks(
@@ -150,9 +138,6 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         if (address(harborCommand) == address(0)) {
             harborCommand = new HarborCommand(address(accessManager));
         }
-        if (address(fleetCommanderRewardsManagerFactory) == address(0)) {
-            fleetCommanderRewardsManagerFactory = new FleetCommanderRewardsManagerFactory();
-        }
         if (address(configurationManager) == address(0)) {
             configurationManager = new ConfigurationManager(
                 address(accessManager)
@@ -163,10 +148,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                     raft: address(raft),
                     tipJar: address(tipJar),
                     treasury: treasury,
-                    harborCommand: address(harborCommand),
-                    fleetCommanderRewardsManagerFactory: address(
-                        fleetCommanderRewardsManagerFactory
-                    )
+                    harborCommand: address(harborCommand)
                 })
             );
         }
@@ -206,7 +188,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             symbol: "TEST-SUM",
             details: "TestFleet-details",
             initialTipRate: initialTipRate,
-            depositCap: type(uint256).max
+            depositCap: type(uint256).max,
+            initialWithdrawalFee: Percentage.wrap(0) // Default 0 (no fee) for tests
         });
         fleetCommander = new FleetCommander(fleetCommanderParams);
 

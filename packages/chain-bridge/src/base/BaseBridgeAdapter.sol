@@ -4,6 +4,8 @@ pragma solidity 0.8.28;
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
+import {IBaseBridgeAdapterEvents} from "../interfaces/IBaseBridgeAdapterEvents.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -12,44 +14,16 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeCodec} from "../libraries/BridgeCodec.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 
 abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
     ReentrancyGuard,
     ProtocolAccessManaged,
-    IERC165
+    IERC165,
+    IBaseBridgeAdapterErrors,
+    IBaseBridgeAdapterEvents
 {
     using SafeERC20 for IERC20;
-    /// @notice Error thrown when destination chain peer is not trusted by governance
-    error UntrustedDestinationChain(uint16 chainId);
-
-    /// @notice Error thrown when source adapter is not trusted
-    error UntrustedSourceAdapter(address srcAdapter, uint16 srcChain);
-
-    /// @notice Error thrown when the amount is invalid
-    error InvalidAmount();
-
-    /// @notice Error thrown when the source chain ID is invalid
-    error InvalidSourceChainId();
-
-    /// @notice Error thrown when chain ID exceeds uint16 max value
-    error ChainIdTooLarge(uint256 chainId);
-
-    /// @notice Thrown when a call is made by an unauthorized address
-    error Unauthorized();
-
-    /// @notice Error thrown when the message is invalid
-    error InvalidMessage();
-
-    /// @notice Error thrown when invalid parameters are provided
-    error InvalidParams();
-
-    /// @notice Thrown when the contract has insufficient balance
-    error InsufficientBalance();
-
-    /// @notice Thrown when a native token transfer fails
-    error TransferFailed();
 
     uint16 public immutable THIS_CHAIN;
 
@@ -58,23 +32,6 @@ abstract contract BaseBridgeAdapter is
 
     /// @notice Reverse mapping of external bridge protocol IDs to chain IDs
     mapping(uint32 externalId => uint16 chainId) public externalIdToChainId;
-
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when a chain external ID mapping is added
-    event ExternalIdMapped(uint16 indexed chainId, uint32 indexed externalId);
-
-    /// @notice Emitted when a chain external ID mapping is removed
-    event ExternalIdUnmapped(uint16 indexed chainId, uint32 indexed externalId);
-
-    /// @notice Emitted when stuck tokens are recovered via sweep
-    event TokensRecovered(
-        address indexed asset,
-        uint256 amount,
-        address indexed recipient
-    );
 
     /**
      * @param _registry Address of the CrossChainRegistry contract

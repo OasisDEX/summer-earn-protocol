@@ -261,16 +261,7 @@ contract BridgeRouter is
         uint256 currentNonce = _useNonce(address(this));
 
         operationId = keccak256(
-            abi.encode(
-                block.chainid,
-                destinationChainId,
-                asset,
-                amount,
-                target,
-                additionalData,
-                currentNonce,
-                operationType
-            )
+            abi.encode(block.chainid, currentNonce, address(this))
         );
 
         return operationId;

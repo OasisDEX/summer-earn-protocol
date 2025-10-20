@@ -37,8 +37,7 @@ contract ConfigurationManagerTest is Test {
             raft: initialRaft,
             tipJar: initialTipJar,
             treasury: initialTreasury,
-            harborCommand: initialHarborCommand,
-            fleetCommanderRewardsManagerFactory: initialFleetCommanderRewardsManagerFactory
+            harborCommand: initialHarborCommand
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
@@ -50,8 +49,7 @@ contract ConfigurationManagerTest is Test {
             raft: initialRaft,
             tipJar: initialTipJar,
             treasury: initialTreasury,
-            harborCommand: initialHarborCommand,
-            fleetCommanderRewardsManagerFactory: initialFleetCommanderRewardsManagerFactory
+            harborCommand: initialHarborCommand
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
@@ -78,8 +76,7 @@ contract ConfigurationManagerTest is Test {
             raft: initialRaft,
             tipJar: initialTipJar,
             treasury: initialTreasury,
-            harborCommand: address(0),
-            fleetCommanderRewardsManagerFactory: address(0)
+            harborCommand: address(0)
         });
         vm.prank(governor);
         vm.expectRevert(

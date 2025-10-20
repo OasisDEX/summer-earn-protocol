@@ -21,7 +21,10 @@ import {Test, console} from "forge-std/Test.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
-import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_100, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import {Raft} from "../../src/contracts/Raft.sol";
 
 contract ArkTest is Test, IArkEvents, ArkTestBase {
     ArkMock public ark;
@@ -419,6 +422,328 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
                 someAddress
             ),
             "Commander role not granted"
+        );
+    }
+
+    // ========================================================================
+    // SWEEP FUNCTIONALITY TESTS
+    // ========================================================================
+
+    function test_SweepBoardsUnderlyingAssetToBufferArk() public {
+        // Create a new FleetCommander with BufferArk for this test
+        (
+            address fleetCommanderAddress,
+            address bufferArkAddress
+        ) = setupFleetCommanderWithBufferArk(
+                address(mockToken),
+                PERCENTAGE_1,
+                "TestFleet"
+            );
+        FleetCommander fleetCommander = FleetCommander(fleetCommanderAddress);
+        BufferArk bufferArk = BufferArk(bufferArkAddress);
+
+        // Create a new ark for this test to avoid conflicts
+        ArkParams memory params = ArkParams({
+            name: "TestSweepArk",
+            details: "TestSweepArk details",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            asset: address(mockToken),
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
+        });
+        ArkMock testArk = new ArkMock(params);
+
+        // Grant commander role to FleetCommander for the test ark
+        vm.prank(governor);
+        accessManager.grantCommanderRole(
+            address(testArk),
+            address(fleetCommander)
+        );
+
+        // Add the test ark to the fleet
+        vm.prank(governor);
+        fleetCommander.addArk(address(testArk));
+
+        // Give the test ark some underlying asset balance
+        uint256 underlyingAmount = 1000e18;
+        deal(address(mockToken), address(testArk), underlyingAmount);
+
+        // Verify initial state
+        assertEq(mockToken.balanceOf(address(testArk)), underlyingAmount);
+        assertEq(mockToken.balanceOf(address(bufferArk)), 0);
+
+        // Call sweep with empty token array (should still board underlying asset)
+        address[] memory emptyTokens = new address[](0);
+
+        vm.prank(address(raft));
+        (address[] memory sweptTokens, uint256[] memory sweptAmounts) = testArk
+            .sweep(emptyTokens);
+
+        // Verify underlying asset was boarded to buffer ark
+        assertEq(
+            mockToken.balanceOf(address(testArk)),
+            0,
+            "Ark should have no underlying asset balance"
+        );
+        assertEq(
+            mockToken.balanceOf(address(bufferArk)),
+            underlyingAmount,
+            "Buffer ark should receive underlying asset"
+        );
+
+        // Verify sweep results
+        assertEq(sweptTokens.length, 0, "Should have swept 0 tokens");
+        assertEq(sweptAmounts.length, 0, "Should have swept 0 amounts");
+    }
+
+    function test_SweepDoesNotBoardWhenArkIsBufferArk() public {
+        // Create a new FleetCommander with BufferArk for this test
+        (
+            address fleetCommanderAddress,
+            address bufferArkAddress
+        ) = setupFleetCommanderWithBufferArk(
+                address(mockToken),
+                PERCENTAGE_1,
+                "TestFleet"
+            );
+        FleetCommander fleetCommander = FleetCommander(fleetCommanderAddress);
+        BufferArk bufferArk = BufferArk(bufferArkAddress);
+
+        // Give the buffer ark some underlying asset balance
+        uint256 underlyingAmount = 1000e18;
+        deal(address(mockToken), address(bufferArk), underlyingAmount);
+
+        // Verify initial state
+        assertEq(mockToken.balanceOf(address(bufferArk)), underlyingAmount);
+
+        // Call sweep on buffer ark (should not board to itself)
+        address[] memory emptyTokens = new address[](0);
+
+        vm.prank(address(raft));
+        (
+            address[] memory sweptTokens,
+            uint256[] memory sweptAmounts
+        ) = bufferArk.sweep(emptyTokens);
+
+        // Verify buffer ark still has its balance (didn't board to itself)
+        assertEq(
+            mockToken.balanceOf(address(bufferArk)),
+            underlyingAmount,
+            "Buffer ark should retain its balance"
+        );
+
+        // Verify sweep results
+        assertEq(sweptTokens.length, 0, "Should have swept 0 tokens");
+        assertEq(sweptAmounts.length, 0, "Should have swept 0 amounts");
+    }
+
+    function test_SweepSweepsOtherTokensToRaft() public {
+        // Create a new FleetCommander with BufferArk for this test
+        (
+            address fleetCommanderAddress,
+            address bufferArkAddress
+        ) = setupFleetCommanderWithBufferArk(
+                address(mockToken),
+                PERCENTAGE_1,
+                "TestFleet"
+            );
+        FleetCommander fleetCommander = FleetCommander(fleetCommanderAddress);
+        BufferArk bufferArk = BufferArk(bufferArkAddress);
+
+        // Create a new ark for this test to avoid conflicts
+        ArkParams memory params = ArkParams({
+            name: "TestSweepArk",
+            details: "TestSweepArk details",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            asset: address(mockToken),
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
+        });
+        ArkMock testArk = new ArkMock(params);
+
+        // Grant commander role to FleetCommander for the test ark
+        vm.prank(governor);
+        accessManager.grantCommanderRole(
+            address(testArk),
+            address(fleetCommander)
+        );
+
+        // Add the test ark to the fleet
+        vm.prank(governor);
+        fleetCommander.addArk(address(testArk));
+
+        // Create a different ERC20 token (not the ark's asset)
+        ERC20Mock otherToken = new ERC20Mock();
+        uint256 otherTokenAmount = 500e18;
+        deal(address(otherToken), address(testArk), otherTokenAmount);
+
+        // Grant curator role to curator for the fleet commander
+        vm.prank(governor);
+        accessManager.grantCuratorRole(address(fleetCommander), curator);
+
+        // Setup sweepable token in Raft
+        vm.prank(curator);
+        Raft(raft).setSweepableToken(
+            address(testArk),
+            address(otherToken),
+            true
+        );
+
+        // Verify initial state
+        assertEq(otherToken.balanceOf(address(testArk)), otherTokenAmount);
+        assertEq(otherToken.balanceOf(address(raft)), 0);
+
+        // Call sweep with the other token
+        address[] memory tokensToSweep = new address[](1);
+        tokensToSweep[0] = address(otherToken);
+
+        vm.prank(address(raft));
+        (address[] memory sweptTokens, uint256[] memory sweptAmounts) = testArk
+            .sweep(tokensToSweep);
+
+        // Verify other token went to raft
+        assertEq(
+            otherToken.balanceOf(address(testArk)),
+            0,
+            "Ark should have no other token balance"
+        );
+        assertEq(
+            otherToken.balanceOf(address(raft)),
+            otherTokenAmount,
+            "Raft should receive other token"
+        );
+
+        // Verify sweep results
+        assertEq(sweptTokens.length, 1, "Should have swept 1 token");
+        assertEq(
+            sweptTokens[0],
+            address(otherToken),
+            "Should have swept otherToken"
+        );
+        assertEq(
+            sweptAmounts[0],
+            otherTokenAmount,
+            "Should have swept correct amount"
+        );
+    }
+
+    function test_SweepHandlesBothUnderlyingAndOtherTokens() public {
+        // Setup FleetCommander with BufferArk
+        (
+            address fleetCommanderAddress,
+            address bufferArkAddress
+        ) = setupFleetCommanderWithBufferArk(
+                address(mockToken),
+                PERCENTAGE_1,
+                "TestFleet"
+            );
+        FleetCommander fleetCommander = FleetCommander(fleetCommanderAddress);
+        BufferArk bufferArk = BufferArk(bufferArkAddress);
+
+        // Create a new ark for this test to avoid conflicts
+        ArkParams memory params = ArkParams({
+            name: "TestSweepArk",
+            details: "TestSweepArk details",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            asset: address(mockToken),
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
+        });
+        ArkMock testArk = new ArkMock(params);
+
+        // Grant commander role to FleetCommander for the test ark
+        vm.prank(governor);
+        accessManager.grantCommanderRole(
+            address(testArk),
+            address(fleetCommander)
+        );
+
+        // Add the test ark to the fleet
+        vm.prank(governor);
+        fleetCommander.addArk(address(testArk));
+
+        // Give test ark both underlying asset and other tokens
+        uint256 underlyingAmount = 1000e18;
+        uint256 otherTokenAmount = 500e18;
+        deal(address(mockToken), address(testArk), underlyingAmount);
+
+        // Create a different ERC20 token
+        ERC20Mock otherToken = new ERC20Mock();
+        deal(address(otherToken), address(testArk), otherTokenAmount);
+
+        // Grant curator role to curator for the fleet commander
+        vm.prank(governor);
+        accessManager.grantCuratorRole(address(fleetCommander), curator);
+
+        // Setup sweepable token in Raft
+        vm.prank(curator);
+        Raft(raft).setSweepableToken(
+            address(testArk),
+            address(otherToken),
+            true
+        );
+
+        // Verify initial state
+        assertEq(mockToken.balanceOf(address(testArk)), underlyingAmount);
+        assertEq(otherToken.balanceOf(address(testArk)), otherTokenAmount);
+        assertEq(mockToken.balanceOf(address(bufferArk)), 0);
+        assertEq(otherToken.balanceOf(address(raft)), 0);
+
+        // Call sweep with the other token array (should board underlying to buffer ark)
+        address[] memory tokensToSweep = new address[](1);
+        tokensToSweep[0] = address(otherToken);
+
+        vm.prank(address(raft));
+        (address[] memory sweptTokens, uint256[] memory sweptAmounts) = testArk
+            .sweep(tokensToSweep);
+
+        // Verify underlying asset went to buffer ark
+        assertEq(
+            mockToken.balanceOf(address(testArk)),
+            0,
+            "Ark should have no underlying asset balance"
+        );
+        assertEq(
+            mockToken.balanceOf(address(bufferArk)),
+            underlyingAmount,
+            "Buffer ark should receive underlying asset"
+        );
+
+        // Verify other token went to raft
+        assertEq(
+            otherToken.balanceOf(address(testArk)),
+            0,
+            "Ark should have no other token balance"
+        );
+        assertEq(
+            otherToken.balanceOf(address(raft)),
+            otherTokenAmount,
+            "Raft should receive other token"
+        );
+
+        // Verify sweep results
+        assertEq(sweptTokens.length, 1, "Should have swept 1 token");
+        assertEq(
+            sweptTokens[0],
+            address(otherToken),
+            "Should have swept otherToken"
+        );
+        assertEq(
+            sweptAmounts[0],
+            otherTokenAmount,
+            "Should have swept correct amount"
         );
     }
 }
