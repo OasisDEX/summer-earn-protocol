@@ -247,12 +247,17 @@ export interface FleetConfig {
 
 export interface FleetDeployment {
   fleetName: string
+  isBummer?: boolean
   fleetSymbol: string
   assetSymbol: string
   fleetAddress: Address
   bufferArkAddress: Address
   network: string
   arks: Address[]
+  initialMinimumBufferBalance?: string
+  initialRebalanceCooldown?: string
+  depositCap?: string
+  initialTipRate?: string
 }
 
 // Extend CoreContracts to include InstitutionalVaultRegistry for networks

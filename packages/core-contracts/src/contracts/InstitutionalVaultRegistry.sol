@@ -24,6 +24,22 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
      * VIEW
      */
 
+    function getBytes32InsitutionId(
+        string calldata name
+    ) public pure returns (bytes32) {
+        return bytes32(bytes(name));
+    }
+
+    function getStringInsitutionId(
+        bytes32 id
+    ) public pure returns (string memory) {
+        bytes memory bytesArray = new bytes(32);
+        for (uint256 i; i < 32; i++) {
+            bytesArray[i] = id[i];
+        }
+        return string(bytesArray);
+    }
+
     function exists(bytes32 id) public view returns (bool) {
         return institutions[id].configurationManager != address(0);
     }

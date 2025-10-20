@@ -1,5 +1,5 @@
 {
-  "fleetName": "LazyVault_Institutional_TestA_USDC",
+  "fleetName": "LazyVault_Institutional_TestB_USDC",
   "symbol": "LVIUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "0",
@@ -38,21 +38,12 @@
         "asset": "USDC",
         "protocol": "moonwell"
       }
-    },
-    {
+    }  ,  {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
         "protocol": "morpho",
         "vaultName": "Moonwell_Flagship_USDC"
-      }
-    },
-    {
-      "type": "ERC4626Ark",
-      "params": {
-        "asset": "USDC",
-        "vaultName": "Fluid",
-        "protocol": "erc4626"
       }
     }
   ]

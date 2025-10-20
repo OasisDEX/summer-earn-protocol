@@ -6,7 +6,7 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { FleetConfig, FleetDeployment } from '../../types/config-types'
-import { FleetConfigSchema } from '../helpers/zod-schemas'
+import { FleetConfigSchema, FleetDeploymentSchema } from '../helpers/zod-schemas'
 
 /**
  * Retrieves available fleets for the current network from the deployments folder.
@@ -32,7 +32,11 @@ export function getAvailableFleets(networkName: string): FleetDeployment[] {
 export function loadFleetDeployment(filePath: string): FleetDeployment {
   const fullPath = path.resolve(filePath)
   const fileContent = fs.readFileSync(fullPath, 'utf8')
-  return JSON.parse(fileContent) as FleetDeployment
+  const parsed = FleetDeploymentSchema.safeParse(JSON.parse(fileContent))
+  if (!parsed.success) {
+    throw new Error(`Invalid Fleet deployment JSON: ${fullPath} -> ${parsed.error.message}`)
+  }
+  return parsed.data as unknown as FleetDeployment
 }
 
 /**
@@ -117,7 +121,9 @@ export function loadFleetConfig(filePath: string): FleetConfig {
 /**
  * Loads the fleet deployment JSON file for a given fleet definition
  */
-export async function loadFleetDeploymentJson(fleetDefinition: FleetConfig): Promise<any> {
+export async function loadFleetDeploymentJson(
+  fleetDefinition: FleetConfig,
+): Promise<FleetDeployment | null> {
   const fleetName = fleetDefinition.fleetName.replace(/\s+/g, '').replace(/\\/g, '')
   const network = hre.network.name
   const fileName = `${fleetName}_${network}_deployment.json`
@@ -127,7 +133,11 @@ export async function loadFleetDeploymentJson(fleetDefinition: FleetConfig): Pro
   try {
     if (fs.existsSync(filePath)) {
       const fileContent = fs.readFileSync(filePath, 'utf8')
-      return JSON.parse(fileContent)
+      const parsed = FleetDeploymentSchema.safeParse(JSON.parse(fileContent))
+      if (!parsed.success) {
+        throw new Error(`Invalid Fleet deployment JSON: ${filePath} -> ${parsed.error.message}`)
+      }
+      return parsed.data as unknown as FleetDeployment
     }
     return null
   } catch (error) {
@@ -163,6 +173,9 @@ export function saveFleetDeploymentJson(
     arks: deployedArks?.map((address) => address.toString()),
   }
 
+  // Validate before write
+  const validated = FleetDeploymentSchema.parse(deploymentInfo)
+
   const deploymentDir = getFleetDeploymentDir()
   if (!fs.existsSync(deploymentDir)) {
     fs.mkdirSync(deploymentDir, { recursive: true })
@@ -175,7 +188,7 @@ export function saveFleetDeploymentJson(
       kleur.red(`File ${filePath} already exists. Skipping overwriting fleet deployment JSON.`),
     )
   } else {
-    fs.writeFileSync(filePath, JSON.stringify(deploymentInfo, null, 2))
+    fs.writeFileSync(filePath, JSON.stringify(validated, null, 2))
   }
 
   console.log(kleur.green().bold(`Deployment information saved to: ${filePath}`))

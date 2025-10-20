@@ -27,7 +27,10 @@ export function ensureInstitutionIndexExists(institutionId: string, useBummer: b
   return idxPath
 }
 
-export function readInstitutionIndex(institutionId: string, useBummer: boolean): InstitutionIndex {
+export function readInstitutionConfigFile(
+  institutionId: string,
+  useBummer: boolean,
+): InstitutionIndex {
   const idxPath = ensureInstitutionIndexExists(institutionId, useBummer)
   const raw = fs.readFileSync(idxPath, 'utf8')
   let content: unknown = {}
@@ -55,7 +58,7 @@ export function writeInstitutionIndex(
   updater: (current: InstitutionIndex) => InstitutionIndex,
 ): void {
   const idxPath = ensureInstitutionIndexExists(institutionId, useBummer)
-  const current = readInstitutionIndex(institutionId, useBummer)
+  const current = readInstitutionConfigFile(institutionId, useBummer)
   const updated = updater(current)
   const rechecked = InstitutionIndexSchema.parse(updated)
   fs.writeFileSync(idxPath, JSON.stringify(rechecked, null, 2))
