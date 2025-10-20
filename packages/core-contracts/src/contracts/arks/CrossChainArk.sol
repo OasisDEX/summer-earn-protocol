@@ -490,4 +490,39 @@ contract CrossChainArk is
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
     }
+
+    /// @inheritdoc IArk
+    function sweep(
+        address[] memory tokens
+    )
+        external
+        override
+        onlyRaft
+        nonReentrant
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        sweptTokens = new address[](tokens.length);
+        sweptAmounts = new uint256[](tokens.length);
+        IERC20 asset = config.asset;
+
+        // Check if any token is the underlying asset - always prevent this
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (tokens[i] == address(asset)) {
+                revert CannotSweepUnderlyingAsset();
+            }
+        }
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 amount = IERC20(tokens[i]).balanceOf(address(this));
+            if (amount > 0) {
+                IERC20(tokens[i]).safeTransfer(
+                    raft(),
+                    IERC20(tokens[i]).balanceOf(address(this))
+                );
+                sweptTokens[i] = tokens[i];
+                sweptAmounts[i] = amount;
+            }
+        }
+        emit ArkSwept(sweptTokens, sweptAmounts);
+    }
 }

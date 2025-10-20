@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
+import {IArkErrors} from "../../src/errors/IArkErrors.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
@@ -21,7 +22,8 @@ import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAcces
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
-import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
+import {Raft} from "../../src/contracts/Raft.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
     event InflightCleared(bytes32 operationId, uint256 amount);
@@ -121,9 +123,21 @@ contract CrossChainArkTest is Test, ArkTestBase {
         vm.prank(governor);
         accessManager.grantCommanderRole(address(ark), address(fleetCommander));
 
+        // Grant curator role to curator for the fleet commander
+        vm.prank(governor);
+        accessManager.grantCuratorRole(address(fleetCommander), curator);
+
+        // Grant the ark authorization to board the buffer ark
+        vm.prank(governor);
+        accessManager.grantCommanderRole(address(fleetCommander), address(ark));
+
         // Activate the Ark
         vm.prank(governor);
         fleetCommander.addArk(address(ark));
+
+        // Approve the ark to spend its own tokens (needed for sweep function)
+        vm.prank(address(ark));
+        mockToken.approve(address(ark), type(uint256).max);
 
         // Deploy mock adapter
         mockAdapter = new MockAdapter(
@@ -925,6 +939,73 @@ contract CrossChainArkTest is Test, ArkTestBase {
             assetAfterExecution == address(0),
             "Transfer should have succeeded"
         );
+    }
+
+    function test_SweepPreventedForUnderlyingAsset() public {
+        // Setup: Create a different token (not the ark's main asset) to sweep
+        ERC20Mock otherToken = new ERC20Mock();
+        deal(address(otherToken), address(ark), 1000e18);
+
+        // Setup sweepable token in Raft for both tokens
+        vm.prank(curator);
+        Raft(raft).setSweepableToken(address(ark), address(otherToken), true);
+        vm.prank(curator);
+        Raft(raft).setSweepableToken(address(ark), address(mockToken), true);
+
+        // Step 1: Try to sweep the underlying asset (should fail)
+        address[] memory underlyingAssetToSweep = new address[](1);
+        underlyingAssetToSweep[0] = address(mockToken);
+
+        // This should revert because we're trying to sweep the underlying asset
+        vm.prank(address(raft));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IArkErrors.CannotSweepUnderlyingAsset.selector
+            )
+        );
+        ark.sweep(underlyingAssetToSweep);
+
+        // Step 2: Try to sweep other tokens (should work)
+        address[] memory otherTokensToSweep = new address[](1);
+        otherTokensToSweep[0] = address(otherToken);
+
+        vm.prank(address(raft));
+        (address[] memory sweptTokens, uint256[] memory sweptAmounts) = ark
+            .sweep(otherTokensToSweep);
+
+        assertEq(sweptTokens.length, 1, "Should have swept 1 token");
+        assertEq(
+            sweptTokens[0],
+            address(otherToken),
+            "Should have swept otherToken"
+        );
+        assertGt(sweptAmounts[0], 0, "Should have swept some amount");
+    }
+
+    function test_SweepAllowsOtherTokens() public {
+        // Setup: Create a different token (not the ark's main asset) to sweep
+        ERC20Mock otherToken = new ERC20Mock();
+        deal(address(otherToken), address(ark), 1000e18);
+
+        // Setup sweepable token in Raft
+        vm.prank(curator);
+        Raft(raft).setSweepableToken(address(ark), address(otherToken), true);
+
+        // Step 1: Try to sweep other tokens (should work)
+        address[] memory tokensToSweep = new address[](1);
+        tokensToSweep[0] = address(otherToken);
+
+        vm.prank(address(raft));
+        (address[] memory sweptTokens, uint256[] memory sweptAmounts) = ark
+            .sweep(tokensToSweep);
+
+        assertEq(sweptTokens.length, 1, "Should have swept 1 token");
+        assertEq(
+            sweptTokens[0],
+            address(otherToken),
+            "Should have swept otherToken"
+        );
+        assertGt(sweptAmounts[0], 0, "Should have swept some amount");
     }
 
     function testStaleNotificationProtection() public {
