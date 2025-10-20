@@ -17,6 +17,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 /**
@@ -837,8 +838,7 @@ contract BridgeRouter is
         if (token == address(0)) {
             // Recover native ETH
             if (address(this).balance < amount) revert InsufficientBalance();
-            (bool success, ) = recipient.call{value: amount}("");
-            if (!success) revert TransferFailed();
+            Address.sendValue(payable(recipient), amount);
         } else {
             // Recover ERC20 using SafeERC20
             IERC20(token).safeTransfer(recipient, amount);

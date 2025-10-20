@@ -6,6 +6,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract MinimalAdapter is BaseBridgeAdapter {
@@ -178,9 +179,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         RejectETH rejectContract = new RejectETH();
 
         vm.prank(governor);
-        vm.expectRevert(
-            abi.encodeWithSelector(BaseBridgeAdapter.TransferFailed.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(Errors.FailedCall.selector));
         adapter.sweep(address(0), address(rejectContract), 1 ether);
     }
 

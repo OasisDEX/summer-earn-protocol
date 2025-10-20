@@ -9,6 +9,7 @@ import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
@@ -77,9 +78,6 @@ contract StargateAdapter is
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Thrown when refunding excess native fee to `refundAddress` fails
-    error RefundFailed(address recipient, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -240,11 +238,7 @@ contract StargateAdapter is
         // Refund any unused native value (buffer) back to the designated refund address
         uint256 refundAmount = providedFee - messagingFee.nativeFee;
         if (refundAmount > 0) {
-            (bool ok, ) = params.refundAddress.call{
-                value: refundAmount,
-                gas: 2300
-            }("");
-            if (!ok) revert RefundFailed(params.refundAddress, refundAmount);
+            Address.sendValue(payable(params.refundAddress), refundAmount);
         }
     }
 
