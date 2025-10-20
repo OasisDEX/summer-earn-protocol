@@ -12,11 +12,7 @@ interface IStargateAdapter {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when an asset support is added
-    event AssetSupported(
-        uint16 chainId,
-        address asset,
-        address stargateContract
-    );
+    event AssetSupported(address asset, address stargateContract);
 
     /// @notice Emitted when slippage tolerance is updated
     event SlippageToleranceUpdated(uint256 newSlippageBps);
