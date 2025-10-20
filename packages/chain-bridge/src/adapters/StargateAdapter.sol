@@ -211,8 +211,8 @@ contract StargateAdapter is
             revert InsufficientFee(messagingFee.nativeFee, providedFee);
         }
 
-        // Forward the full provided fee to Stargate - it will handle refunds internally
-        stargate.sendToken{value: providedFee}(
+        // Pay Stargate exactly the required native fee; refund any surplus locally
+        stargate.sendToken{value: messagingFee.nativeFee}(
             sendParam,
             messagingFee,
             params.refundAddress // Always refund to keeper who paid fees
