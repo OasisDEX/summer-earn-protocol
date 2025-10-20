@@ -3,7 +3,7 @@ import {
   RoleGranted,
   RoleRevoked,
 } from '../../generated/InstitutionalVaultRegistry/ProtocolAccessManager'
-import { Institution, Vault } from '../../generated/schema'
+import { Institution } from '../../generated/schema'
 import { WhitelistStatusUpdated } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { ContractSpecificRole, ROLE_MAP, getContractSpecificRoleName } from '../common/hashHelpers'
 import { getOrCreateAccessController, getOrCreateRole } from '../common/initializers'
@@ -28,7 +28,7 @@ export function handleRoleGranted(event: RoleGranted): void {
     }
     const vaults = institution!.vaults.load()
     if (vaults) {
-      const vaultAddresses = vaults.map<string>(vault => vault.id)
+      const vaultAddresses = vaults.map<string>((vault) => vault.id)
       const maybeCuratorForFleet = getContractSpecificRoleName(
         event.params.role.toHexString(),
         ContractSpecificRole.CURATOR_ROLE,
