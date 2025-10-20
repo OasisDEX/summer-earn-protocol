@@ -9,6 +9,7 @@ import { deployArmArk } from '../arks/deploy-arm-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployCrossChainArk } from '../arks/deploy-cross-chain-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
+import { deployFluidFTokenArk } from '../arks/deploy-fluid-ftoken-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { deployMorphoArk } from '../arks/deploy-morpho-ark'
@@ -118,6 +119,11 @@ export async function deployArk(
         vaultId: vaultAddress,
         vaultName: validatedVaultName,
       })
+      deployedArk = ark
+      break
+    }
+    case ArkType.FluidFTokenArk: {
+      const ark = await deployFluidFTokenArk(config, baseArkParams)
       deployedArk = ark
       break
     }
@@ -485,6 +491,15 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.SiUSDArk: {
       deployedArk = await deploySiUSDArk(config)
+      break
+    }
+
+    case ArkType.FluidFTokenArk: {
+      deployedArk = await deployFluidFTokenArk(config)
+      break
+    }
+    case ArkType.FluidLiteArk: {
+      deployedArk = await deployFluidLiteArk(config)
       break
     }
 

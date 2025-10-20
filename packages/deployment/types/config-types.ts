@@ -33,6 +33,7 @@ export enum ArkType {
   AeraArk = 'AeraArk',
   StargateV2PoolArk = 'StargateV2PoolArk',
   SiUSDArk = 'SiUSDArk',
+  FluidFTokenArk = 'FluidFTokenArk',
 }
 
 export const arkTypes = [
@@ -59,6 +60,7 @@ export const arkTypes = [
   { title: 'AeraArk', value: ArkType.AeraArk },
   { title: 'StargateV2PoolArk', value: ArkType.StargateV2PoolArk },
   { title: 'SiUSDArk', value: ArkType.SiUSDArk },
+  { title: 'FluidFTokenArk', value: ArkType.FluidFTokenArk },
 ]
 
 export interface Config {
@@ -119,16 +121,7 @@ export interface BaseConfig {
     }
   }
   tokens: {
-    usdc: string
-    dai: string
-    weth: string
-    usds: string
-    stakedUsds: string
-    morpho: string
-    reul: string
-    eurc: string
-    seam: string
-    ws: string
+    [key in Token]: Address
   }
   common: {
     chainId: string
@@ -211,6 +204,12 @@ export interface BaseConfig {
           withdrawalQueue: Address
         }
       }
+      fToken: {
+        [key in Token]: {
+          fToken: Address
+          merkleDistributor: Address
+        }
+      }
     }
     originETH: {
       originETH: Address
@@ -239,6 +238,20 @@ export interface BaseConfig {
     infinifi?: {
       gateway: Address
       siUSD: Address
+    }
+    pendle: {
+      router: Address
+      'lp-oracle': Address
+      markets: Record<
+        Token,
+        {
+          marketAddresses: Record<string, Address>
+          swapInTokens: {
+            token: Token
+            oracle: Address
+          }[]
+        }
+      >
     }
   }
   bridge?: DeployedBridge
