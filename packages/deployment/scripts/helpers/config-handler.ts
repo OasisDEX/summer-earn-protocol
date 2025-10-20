@@ -4,6 +4,7 @@ import path from 'path'
 import { CoreContracts } from '../../ignition/modules/core'
 import { GovContracts } from '../../ignition/modules/gov'
 import { BaseConfig, Config } from '../../types/config-types'
+import { readInstitutionConfigFile } from './institution-config'
 import { validateAddress, validateNumber } from './validation'
 
 type ValidateConfig = {
@@ -59,6 +60,56 @@ export function getConfigByNetwork(
     validateCoreDeployment(networkConfig)
   }
   return networkConfig
+}
+
+/**
+ * Loads the base network config and overlays institution-scoped deployedContracts
+ * from packages/deployment/config/institutions/<institutionId>/index(.test).json
+ * Only the deployedContracts.gov and deployedContracts.core sections are overridden.
+ */
+export function getInstitutionConfigByNetwork(
+  network: string,
+  institutionId: string,
+  validateConfig: ValidateConfig,
+  useBummerConfig: boolean = false,
+): BaseConfig {
+  const baseConfig = getConfigByNetwork(network, validateConfig, useBummerConfig)
+
+  // Clone to avoid mutating the cached/base object
+  const mergedConfig: BaseConfig = JSON.parse(JSON.stringify(baseConfig))
+
+  const index = readInstitutionConfigFile(institutionId, useBummerConfig)
+
+  // Normalize local network mapping consistent with getConfigByNetwork
+  const _network = network === 'hardhat' || network === 'local' ? 'base' : network
+  const institutionNet = (index as any)[_network] as any
+  const deployed = institutionNet?.deployedContracts as any
+
+  if (deployed?.gov) {
+    for (const k of Object.keys(deployed.gov)) {
+      const addressObj = deployed.gov[k]
+      if (addressObj?.address) {
+        ;(mergedConfig.deployedContracts.gov as any)[k] = { address: addressObj.address }
+      }
+    }
+  }
+
+  if (deployed?.core) {
+    for (const k of Object.keys(deployed.core)) {
+      const addressObj = deployed.core[k]
+      if (addressObj?.address) {
+        ;(mergedConfig.deployedContracts.core as any)[k] = { address: addressObj.address }
+      }
+    }
+  }
+
+  // Optionally re-run validations after merge
+  if (validateConfig.core) {
+    validateCoreDeployment(mergedConfig)
+  }
+  // if (validateConfig.gov) validateGovDeployment(mergedConfig)
+
+  return mergedConfig
 }
 
 export function validateCommonConfig(config: BaseConfig): void {

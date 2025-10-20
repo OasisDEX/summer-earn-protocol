@@ -56,3 +56,19 @@ export const FleetConfigSchema = z.object({
   details: z.unknown(),
   arks: z.array(z.any()).optional(),
 })
+
+export const FleetDeploymentSchema = z.object({
+  fleetName: z.string().min(1),
+  isBummer: z.boolean().optional(),
+  fleetSymbol: z.string().min(1),
+  assetSymbol: z.string().min(1),
+  fleetAddress: AddressSchema,
+  bufferArkAddress: AddressSchema,
+  network: z.string().min(1),
+  // Allow optional during initial save (filled later by addArkToFleet)
+  arks: z.array(AddressSchema).optional(),
+  initialMinimumBufferBalance: z.string().optional(),
+  initialRebalanceCooldown: z.string().optional(),
+  depositCap: z.string().optional(),
+  initialTipRate: z.string().optional(),
+})

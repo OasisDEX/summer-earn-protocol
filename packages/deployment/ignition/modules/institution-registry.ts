@@ -11,5 +11,3 @@ export const InstitutionRegistryModule = buildModule('InstitutionRegistryModule'
 export type InstitutionRegistryContracts = {
   institutionalVaultRegistry: { address: string }
 }
-
-

@@ -4,19 +4,25 @@ import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
 import { Address, Address as ViemAddress } from 'viem'
-import { FleetConfig } from '../types/config-types'
-import { saveFleetDeploymentJson } from './common/fleet-deployment-files-helpers'
-import { logDeploymentResults } from './fleets/fleet-contracts'
 import { createFleetWhitelistModule } from '../ignition/modules/fleet-whitelist'
+import { FleetConfig } from '../types/config-types'
+import { addArkToFleet } from './common/add-ark-to-fleet'
+import { GOVERNOR_ROLE } from './common/constants'
 import {
+  loadFleetDeploymentJson,
+  saveFleetDeploymentJson,
+} from './common/fleet-deployment-files-helpers'
+import { logDeploymentResults } from './fleets/fleet-contracts'
+import {
+  addFleetToHarbor,
   deployArks,
   getRewardsManagerAddress,
+  grantCuratorRole,
   setupFleetRewards,
 } from './fleets/fleet-deployment-helpers'
-import { getConfigByNetwork } from './helpers/config-handler'
+import { getInstitutionConfigByNetwork } from './helpers/config-handler'
 import {
   getInstitutionFleetConfigDir,
-  readInstitutionIndex,
   updateInstitutionFleetEntry,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
@@ -45,7 +51,17 @@ async function selectInstitutionFleetConfig(
   const full = path.join(dir, file)
   const data = JSON.parse(fs.readFileSync(full, 'utf8'))
   const parsed = FleetConfigSchema.parse(data)
-  return { ...parsed, details: JSON.stringify(parsed.details) } as unknown as FleetConfig
+  // Preserve optional curator if present in raw data (schema may not include it)
+  return {
+    ...parsed,
+    details: JSON.stringify(parsed.details),
+    ...(data.curator ? { curator: data.curator } : {}),
+  } as unknown as FleetConfig
+}
+
+enum WhitelistDeploymentMode {
+  NEW_FLEET = 'new_fleet',
+  ADD_ARK = 'add_ark',
 }
 
 async function main() {
@@ -64,10 +80,68 @@ async function main() {
     return
   }
 
-  const config = getConfigByNetwork(network, { gov: true, core: true }, useBummerConfig)
+  // Load base config, then overlay institution-scoped deployedContracts so downstream helpers get correct addresses
+  const config = getInstitutionConfigByNetwork(
+    network,
+    institutionId,
+    { gov: true, core: true },
+    useBummerConfig,
+  )
+
+  // Choose mode similar to deploy-fleet
+  const { mode } = await prompts({
+    type: 'select',
+    name: 'mode',
+    message: 'What would you like to do?',
+    choices: [
+      { title: 'Deploy New Whitelisted Fleet', value: WhitelistDeploymentMode.NEW_FLEET },
+      { title: 'Add Ark to Existing Whitelisted Fleet', value: WhitelistDeploymentMode.ADD_ARK },
+    ],
+  })
 
   const fleetDefinition = await selectInstitutionFleetConfig(institutionId, useBummerConfig)
   validateToken(config, fleetDefinition.assetSymbol)
+
+  if (mode === WhitelistDeploymentMode.ADD_ARK) {
+    // Load existing deployment for this fleet
+    const deploymentData = await loadFleetDeploymentJson(fleetDefinition)
+    if (!deploymentData || !deploymentData.fleetAddress) {
+      console.log(kleur.red('Error: Could not find deployment data for this fleet.'))
+      console.log(kleur.yellow('Please ensure you have deployed this fleet previously.'))
+      return
+    }
+
+    const existingArks: string[] = deploymentData.arks || []
+    const remainingArksToAdd = existingArks.length
+      ? (fleetDefinition.arks || []).slice(existingArks.length)
+      : fleetDefinition.arks || []
+
+    if (remainingArksToAdd.length === 0) {
+      console.log(kleur.yellow('No new arks to deploy. All arks from config are already deployed.'))
+      return
+    }
+
+    const newArkFleetDefinition = { ...fleetDefinition, arks: remainingArksToAdd }
+    const newlyDeployedArks = await deployArks(newArkFleetDefinition, config)
+
+    for (const arkAddress of newlyDeployedArks) {
+      await addArkToFleet(arkAddress as Address, config, hre, fleetDefinition)
+    }
+    const allArks = [...existingArks, ...newlyDeployedArks.map((ark) => ark.toString())]
+    updateInstitutionFleetEntry(
+      institutionId,
+      useBummerConfig,
+      network,
+      fleetDefinition.fleetName,
+      {
+        arks: allArks,
+        fleetCommander: deploymentData.fleetAddress,
+        bufferArk: deploymentData.bufferArkAddress,
+      },
+    )
+    console.log(kleur.green().bold('Completed Ark addition flow.'))
+    return
+  }
 
   console.log(kleur.blue('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
@@ -89,24 +163,12 @@ async function main() {
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
   const fleetModule = createFleetWhitelistModule(`FleetWhitelist_${name}`)
 
-  // Load institution-scoped deployed contracts for this network
-  const institutionIndex = readInstitutionIndex(institutionId, useBummerConfig)
-  const institutionNet = institutionIndex[network] as any
-  const instProtocolAccessManager = institutionNet?.deployedContracts?.gov?.protocolAccessManager?.address
-  const instConfigurationManager = institutionNet?.deployedContracts?.core?.configurationManager?.address
-
-  if (!instProtocolAccessManager || !instConfigurationManager) {
-    throw new Error(
-      `Missing institution deployed contracts for network '${network}'. ` +
-        `Required: gov.protocolAccessManager.address and core.configurationManager.address in ` +
-        `packages/deployment/config/institutions/${institutionId}/${useBummerConfig ? 'index.test.json' : 'index.json'}`,
-    )
-  }
+  // Use addresses directly from merged config (ensures propagation is correct)
   const deployedFleet = await hre.ignition.deploy(fleetModule, {
     parameters: {
       [`FleetWhitelist_${name}`]: {
-        configurationManager: instConfigurationManager,
-        protocolAccessManager: instProtocolAccessManager,
+        configurationManager: config.deployedContracts.core.configurationManager.address,
+        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         fleetName: fleetDefinition.fleetName,
         fleetSymbol: fleetDefinition.symbol,
         fleetDetails: fleetDefinition.details,
@@ -119,6 +181,15 @@ async function main() {
       },
     },
   })
+  // Config already contains institution overrides; debug prints kept terse
+  console.log(
+    'Using institution ProtocolAccessManager:',
+    config.deployedContracts.gov.protocolAccessManager.address,
+  )
+  console.log(
+    'Using institution ConfigurationManager:',
+    config.deployedContracts.core.configurationManager.address,
+  )
 
   const bufferArkAddress = await deployedFleet.fleetCommanderWhitelist.read.bufferArk()
   const deployedArks = await deployArks(fleetDefinition, config)
@@ -126,11 +197,12 @@ async function main() {
   // Wrap to match saver/logger expected shape
   const deployedCompat = { fleetCommander: deployedFleet.fleetCommanderWhitelist } as any
 
+  // Save initial deployment info without arks; arks will be appended by addArkToFleet calls
   saveFleetDeploymentJson(
     fleetDefinition,
     deployedCompat,
     bufferArkAddress as Address,
-    deployedArks,
+    undefined,
     useBummerConfig,
   )
 
@@ -141,6 +213,47 @@ async function main() {
     bufferArk: bufferArkAddress as ViemAddress,
     arks: deployedArks as ViemAddress[],
   })
+
+  // Mirror post-deploy role and harbor steps from deploy-fleet.ts
+  const protocolAccessManager = await hre.viem.getContractAt(
+    'ProtocolAccessManager' as string,
+    config.deployedContracts.gov.protocolAccessManager.address as Address,
+  )
+  const [deployer] = await hre.viem.getWalletClients()
+  const hasGovernorRole = await protocolAccessManager.read.hasRole([
+    GOVERNOR_ROLE,
+    deployer.account.address,
+  ])
+
+  if (hasGovernorRole) {
+    // Enlist fleet in Harbor
+    await addFleetToHarbor(
+      deployedFleet.fleetCommanderWhitelist.address as Address,
+      config.deployedContracts.core.harborCommand.address as Address,
+      config.deployedContracts.gov.protocolAccessManager.address as Address,
+    )
+
+    // Use unified helper to grant role, add ark to fleet, and update deployment JSON
+    for (const arkAddress of deployedArks) {
+      await addArkToFleet(arkAddress as Address, config, hre, fleetDefinition)
+    }
+
+    // Grant curator role if curator is specified
+    if (fleetDefinition.curator) {
+      await grantCuratorRole(
+        config.deployedContracts.gov.protocolAccessManager.address as Address,
+        deployedFleet.fleetCommanderWhitelist.address as Address,
+        fleetDefinition.curator as Address,
+        hre,
+      )
+    }
+  } else {
+    console.log(
+      kleur.yellow(
+        'Deployer does not have governor role. Please run governance flow to enlist fleet and grant commander roles.',
+      ),
+    )
+  }
 
   // Optional rewards setup
   if (

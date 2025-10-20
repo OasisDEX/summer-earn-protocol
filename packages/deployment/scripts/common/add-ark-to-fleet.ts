@@ -90,6 +90,7 @@ export async function addArkToFleet(
       const hash = await fleetContract.write.addArk([arkAddress])
       await publicClient.waitForTransactionReceipt({
         hash: hash,
+        confirmations: 2,
       })
     } else {
       console.log(kleur.red('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))

@@ -74,5 +74,3 @@ abstract contract FleetCommanderWhitelistInstitutionalTestBase is Test {
         registry.addInstitution(id, inst);
     }
 }
-
-
