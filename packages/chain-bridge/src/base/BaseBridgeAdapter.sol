@@ -6,13 +6,10 @@ import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeTokenFeeSupport} from "../interfaces/IBridgeTokenFeeSupport.sol";
 import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
 import {IBaseBridgeAdapterEvents} from "../interfaces/IBaseBridgeAdapterEvents.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {BridgeCodec} from "../libraries/BridgeCodec.sol";
 import {BridgeMessagingHelper} from "../libraries/BridgeMessagingHelper.sol";
 import {TokenRecovery} from "./TokenRecovery.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
@@ -50,10 +47,6 @@ abstract contract BaseBridgeAdapter is
 {
     using SafeERC20 for IERC20;
 
-    // TODO: move events and errors to the interfaces
-    /// @notice Thrown when payInProtocolToken is requested but protocolFeeToken is not configured
-    error ProtocolTokenNotConfigured();
-
     uint16 public immutable THIS_CHAIN;
 
     /// @notice Mapping of supported chains to their external bridge protocol IDs
@@ -65,27 +58,6 @@ abstract contract BaseBridgeAdapter is
     /// @notice ERC20 token used to pay LayerZero protocol fees (e.g., ZRO). Zero address disables token-fee mode.
     address public protocolFeeToken;
 
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when the protocol fee token is configured
-    event ProtocolFeeTokenConfigured(address indexed feeToken);
-
-    /// @notice Emitted when protocol token fees are collected from the payer (keeper)
-    event ProtocolFeeCollected(
-        bytes32 indexed operationId,
-        address indexed payer,
-        address indexed token,
-        uint256 tokenFee
-    );
-
-    /// @notice Emitted when protocol token fees are spent for an operation
-    event ProtocolFeeSpent(
-        bytes32 indexed operationId,
-        address indexed token,
-        uint256 tokenFee
-    );
     /**
      * @notice Initializes the BaseBridgeAdapter with required dependencies
      * @dev Sets up the cross-chain registry and access management systems
@@ -224,11 +196,11 @@ abstract contract BaseBridgeAdapter is
     /**
      * @notice Internal virtual function to check if an operation is supported
      * @dev Must be overridden by concrete adapters to implement their specific operation support logic
-     * @param operationType The operation type to check
+     * @param // operationType The operation type to check
      * @return true if the operation is supported
      */
     function _supportsOperation(
-        BridgeTypes.OperationType operationType
+        BridgeTypes.OperationType /* operationType */
     ) internal view virtual returns (bool) {
         // Default implementation - should be overridden by concrete adapters
         return false;
@@ -492,25 +464,6 @@ abstract contract BaseBridgeAdapter is
                 protocolFeeToken,
                 tokenFeeRequired
             );
-        }
-    }
-
-    function sweep(
-        address asset,
-        address to,
-        uint256 amount
-    ) external onlyGovernor nonReentrant {
-        if (to == address(0)) revert InvalidParams();
-
-        if (asset == address(0)) {
-            // Handle native ETH
-            if (address(this).balance < amount) revert InsufficientBalance();
-            Address.sendValue(payable(to), amount);
-        } else {
-            // Handle ERC20 tokens
-            uint256 balance = IERC20(asset).balanceOf(address(this));
-            if (balance < amount) revert InsufficientBalance();
-            IERC20(asset).safeTransfer(to, amount);
         }
     }
 

@@ -129,10 +129,8 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
             CURRENT_CHAIN_ID
         );
 
-        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(
-            ark1,
-            peerType
-        );
+        ICrossChainRegistry.CrossChainRelation memory relation = registry
+            .getRelationship(ark1, peerType);
         assertEq(relation.targetContract, proxy1);
         assertEq(relation.targetChainId, CURRENT_CHAIN_ID);
         assertTrue(
@@ -289,7 +287,8 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         assertEq(registry.getRelationshipCount(peerType), 0);
 
         // Should return empty relationship when trying to access
-        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(ark1, peerType);
+        ICrossChainRegistry.CrossChainRelation memory relation = registry
+            .getRelationship(ark1, peerType);
         assertEq(relation.sourceContract, address(0));
         assertEq(relation.targetContract, address(0));
         assertEq(relation.sourceChainId, 0);
@@ -345,13 +344,15 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
             TARGET_CHAIN_ID
         );
 
-        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(ark1, peerType);
+        ICrossChainRegistry.CrossChainRelation memory relation = registry
+            .getRelationship(ark1, peerType);
         assertEq(relation.targetContract, proxy1);
         assertEq(relation.targetChainId, TARGET_CHAIN_ID);
     }
 
-    function test_getTargetForSource_returnsEmptyWhenNotExists() public {
-        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(ark1, peerType);
+    function test_getTargetForSource_returnsEmptyWhenNotExists() public view {
+        ICrossChainRegistry.CrossChainRelation memory relation = registry
+            .getRelationship(ark1, peerType);
         assertEq(relation.sourceContract, address(0));
         assertEq(relation.targetContract, address(0));
         assertEq(relation.sourceChainId, 0);
@@ -377,7 +378,7 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         assertEq(sourceContract, ark1);
     }
 
-    function test_getSourceForTarget_returnsZeroWhenNotExists() public {
+    function test_getSourceForTarget_returnsZeroWhenNotExists() public view {
         address sourceContract = registry.getSourceForTarget(
             CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
@@ -501,12 +502,14 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
         assertEq(chainIds[0], TARGET_CHAIN_ID);
 
         // Check second relationship
-        ICrossChainRegistry.CrossChainRelation memory relation2 = registry.getRelationship(ark2, peerType);
+        ICrossChainRegistry.CrossChainRelation memory relation2 = registry
+            .getRelationship(ark2, peerType);
         assertEq(relation2.targetContract, proxy2);
         assertEq(relation2.targetChainId, TARGET_CHAIN_ID);
 
         // Check third relationship
-        ICrossChainRegistry.CrossChainRelation memory relation3 = registry.getRelationship(ark3, peerType);
+        ICrossChainRegistry.CrossChainRelation memory relation3 = registry
+            .getRelationship(ark3, peerType);
         assertEq(relation3.targetContract, proxy3);
         assertEq(relation3.targetChainId, TARGET_CHAIN_ID);
 
@@ -858,10 +861,8 @@ contract CrossChainRegistryTest is BaseCrossChainRegistryTest {
             localRelationship
         );
 
-        ICrossChainRegistry.CrossChainRelation memory relation = registry.getRelationship(
-            src,
-            localRelationship
-        );
+        ICrossChainRegistry.CrossChainRelation memory relation = registry
+            .getRelationship(src, localRelationship);
         assertEq(relation.targetContract, dst);
         assertEq(relation.targetChainId, CURRENT_CHAIN_ID);
 

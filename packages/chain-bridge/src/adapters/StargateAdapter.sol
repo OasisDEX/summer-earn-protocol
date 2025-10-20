@@ -5,7 +5,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
-import {IBridgeTokenFeeSupport} from "../interfaces/IBridgeTokenFeeSupport.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {IStargateAdapter} from "../interfaces/IStargateAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
@@ -19,7 +18,7 @@ import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/in
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {BpsUtils} from "../helpers/BpsUtils.sol";
-import {Bps, toBps, fromBps} from "../helpers/Bps.sol";
+import {Bps, fromBps} from "../helpers/Bps.sol";
 import {LayerZeroComposeHelper} from "../helpers/LayerZeroComposeHelper.sol";
 
 /**
@@ -324,7 +323,7 @@ contract StargateAdapter is
         uint256 refundAmount
     ) internal {
         if (refundAmount > 0) {
-            Address.sendValue(payable(params.refundAddress), refundAmount);
+            Address.sendValue(payable(refundAddress), refundAmount);
         }
     }
 

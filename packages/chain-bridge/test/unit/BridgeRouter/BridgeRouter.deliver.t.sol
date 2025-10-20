@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
 import {ICrossChainReceiver} from "../../../src/interfaces/ICrossChainReceiver.sol";
-import {ICrossChainRegistry} from "../../../src/interfaces/ICrossChainRegistry.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 

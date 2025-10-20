@@ -2,8 +2,6 @@
 pragma solidity 0.8.28;
 
 import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
-import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
-import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {MockHarborCommand} from "../../mocks/MockHarborCommand.sol";
 import {MockStargateV2Pool} from "../../mocks/MockStargateV2.sol";
@@ -12,6 +10,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockHarborCommand} from "../../mocks/MockHarborCommand.sol";
 import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
+import {IStargateAdapter} from "../../../src/interfaces/IStargateAdapter.sol";
 
 // Base test contract with common setup used by all Stargate adapter tests
 contract StargateAdapterSetupTest is TestHelperOz5 {
@@ -212,7 +211,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     function testConstructor_RevertWhenZeroEndpoint() public {
         useNetworkA();
         vm.prank(governor);
-        vm.expectRevert(StargateAdapter.InvalidLzEndpoint.selector);
+        vm.expectRevert(IStargateAdapter.InvalidLzEndpoint.selector);
         // lzEndpoint zero should revert in adapter constructor
         new StargateAdapter(
             address(registryA),

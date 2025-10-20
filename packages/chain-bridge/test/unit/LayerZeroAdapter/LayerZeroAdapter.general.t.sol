@@ -1,17 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {LayerZeroAdapter} from "../../../src/adapters/LayerZeroAdapter.sol";
-
 import {ICrossChainRegistry} from "../../../src/interfaces/ICrossChainRegistry.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
-import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
-import {Errors} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Errors.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
@@ -29,7 +25,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         assertEq(supportedChains[0], CHAIN_ID_B);
     }
 
-    function testSupportsChain() public {
+    function testSupportsChain() public view {
         // First check still works
         assertTrue(
             adapterA.CROSS_CHAIN_REGISTRY().getAdapterPeer(

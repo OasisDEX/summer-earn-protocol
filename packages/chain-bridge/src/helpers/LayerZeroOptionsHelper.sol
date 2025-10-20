@@ -59,7 +59,7 @@ library LayerZeroOptionsHelper {
         return
             OptionsBuilder.addExecutorLzReceiveOption(
                 lzOptions,
-                options.gasLimit < minGasLimit ? minGasLimit : options.gasLimit,
+                gasLimit,
                 options.msgValue
             );
     }

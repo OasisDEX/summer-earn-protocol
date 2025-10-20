@@ -312,7 +312,6 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         public
     {
         // Setup peer relationship
-        address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
@@ -352,7 +351,6 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         public
     {
         // Setup peer relationship
-        address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
         address wrongFleet = address(0x9999);
 
@@ -389,7 +387,6 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         public
     {
         // Setup peer relationship
-        address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
@@ -422,7 +419,6 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         public
     {
         // Setup peer relationship
-        address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
         address wrongFleet = address(0x9999);
 
@@ -456,7 +452,6 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         public
     {
         // Setup peer relationship
-        address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);

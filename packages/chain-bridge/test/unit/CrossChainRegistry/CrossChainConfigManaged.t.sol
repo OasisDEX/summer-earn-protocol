@@ -34,15 +34,15 @@ contract CrossChainConfigManagedTest is Test {
         new CrossChainConfigManagedHelper(address(0));
     }
 
-    function test_bridgeRouter_reads_from_registry() public {
+    function test_bridgeRouter_reads_from_registry() public view {
         assertEq(helper.bridgeRouter(), router);
     }
 
-    function test_crossChainRegistry_returns_address() public {
+    function test_crossChainRegistry_returns_address() public view {
         assertEq(helper.crossChainRegistry(), address(registry));
     }
 
-    function test_isExecutor_false_by_default() public {
+    function test_isExecutor_false_by_default() public view {
         assertFalse(helper.isExecutor(executor));
     }
 

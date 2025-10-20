@@ -5,11 +5,9 @@ import {BridgeRouter} from "../../../src/router/BridgeRouter.sol";
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
-import {RejectETH} from "../mocks/RejectETH.sol";
+import {RejectETH} from "../../mocks/RejectETH.sol";
+import {MockCrossChainReceiver} from "../../mocks/MockCrossChainReceiver.sol";
 import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
 
 // Reentrancy attack contract
@@ -148,7 +146,6 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
 
     function testRetryWithValidArkFleetRelationship_Succeeds() public {
         // Setup peer relationship with unique addresses
-        address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
@@ -201,7 +198,6 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
 
     function testRetryWithInvalidArkFleetRelationship_Reverts() public {
         // Setup peer relationship with unique addresses
-        address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
         address wrongFleet = address(0x9999);
 
@@ -279,7 +275,6 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
 
     function testRetryWithMessagePayload_ValidArkFleet_Succeeds() public {
         // Setup peer relationship with unique addresses
-        address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
@@ -324,7 +319,6 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
 
     function testRetryWithMessagePayload_InvalidArkFleet_Reverts() public {
         // Setup peer relationship with unique addresses
-        address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
         address wrongFleet = address(0x9999);
 
@@ -370,7 +364,6 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
 
     function testRetryWithOverridePayload_ValidArkFleet_Succeeds() public {
         // Setup peer relationship with unique addresses
-        address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);

@@ -31,9 +31,9 @@ interface IBaseBridgeAdapterErrors {
     /// @notice Error thrown when invalid parameters are provided
     error InvalidParams();
 
-    /// @notice Thrown when the contract has insufficient balance
-    error InsufficientBalance();
-
     /// @notice Thrown when a native token transfer fails
     error TransferFailed();
+
+    /// @notice Thrown when payInProtocolToken is requested but protocolFeeToken is not configured
+    error ProtocolTokenNotConfigured();
 }

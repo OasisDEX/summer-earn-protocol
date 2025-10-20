@@ -6,22 +6,16 @@ import {TokenRecovery} from "../../../src/base/TokenRecovery.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
 import {Test} from "forge-std/Test.sol";
+import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
+import {RejectETH} from "../../mocks/RejectETH.sol";
 
 contract MinimalAdapter is BaseBridgeAdapter {
     constructor(
         address _registry,
         address _accessManager
     ) BaseBridgeAdapter(_registry, _accessManager) {}
-}
-
-// Contract that rejects ETH transfers for testing
-contract RejectETH {
-    receive() external payable {
-        revert("Transfer rejected");
-    }
 }
 
 // Contract that accepts ETH transfers for testing
@@ -87,9 +81,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         // Adapter has 0 tokens initially
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IBaseBridgeAdapterErrors.InsufficientBalance.selector
-            )
+            abi.encodeWithSelector(TokenRecovery.InsufficientBalance.selector)
         );
         adapter.sweep(address(token), address(0xBEEF), 1 ether);
     }
@@ -98,9 +90,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         token.mint(address(adapter), 1 ether);
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IBaseBridgeAdapterErrors.InvalidParams.selector
-            )
+            abi.encodeWithSelector(TokenRecovery.InvalidRecoveryParams.selector)
         );
         adapter.sweep(address(token), address(0), 1);
     }
@@ -158,9 +148,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         // Adapter has 0 ETH initially
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IBaseBridgeAdapterErrors.InsufficientBalance.selector
-            )
+            abi.encodeWithSelector(TokenRecovery.InsufficientBalance.selector)
         );
         adapter.sweep(address(0), address(0xBEEF), 1 ether);
     }
@@ -169,9 +157,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         vm.deal(address(adapter), 1 ether);
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IBaseBridgeAdapterErrors.InvalidParams.selector
-            )
+            abi.encodeWithSelector(TokenRecovery.InvalidRecoveryParams.selector)
         );
         adapter.sweep(address(0), address(0), 1 ether);
     }

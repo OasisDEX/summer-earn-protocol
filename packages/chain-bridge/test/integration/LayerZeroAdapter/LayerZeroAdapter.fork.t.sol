@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {LayerZeroAdapterForkSetupTest} from "./LayerZeroAdapter.fork.setup.t.sol";
-import {LayerZeroAdapterTestHelper} from "../../helpers/LayerZeroAdapterTestHelper.sol";
 import {console} from "forge-std/Test.sol";
 
 /**
@@ -139,7 +138,7 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         );
         // Execute the operation (can be anyone, e.g., keeper or user) (PAYS FEE)
         vm.startPrank(keeper); // Or user
-        bytes32 operationId = router.executeSendMessage{value: nativeFee}(
+        router.executeSendMessage{value: nativeFee}(
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: DEST_CHAIN_ID,
                 target: user,
