@@ -6,7 +6,11 @@ import {
   InstitutionDisabled,
 } from '../../generated/InstitutionalVaultRegistry/InstitutionalVaultRegistry'
 import { Institution } from '../../generated/schema'
-import { HarborCommand as HarborCommandTemplate } from '../../generated/templates'
+import {
+  AdmiralsQuarters as AdmiralsQuartersTemplate,
+  HarborCommand as HarborCommandTemplate,
+  ProtocolAccessManager as ProtocolAccessManagerTemplate,
+} from '../../generated/templates'
 import { getOrCreateAccessController, getOrCreateVault } from '../common/initializers'
 
 export function handleInstitutionAdded(event: InstitutionAdded): void {
@@ -14,7 +18,10 @@ export function handleInstitutionAdded(event: InstitutionAdded): void {
   const harborCommand = ConfigurationManager.bind(event.params.configurationManager).harborCommand()
   HarborCommandTemplate.create(harborCommand)
   institution.protocolAccessManager = event.params.protocolAccessManager.toHexString()
+  ProtocolAccessManagerTemplate.create(event.params.protocolAccessManager)
   institution.admiralsQuarters = event.params.admiralsQuarters.toHexString()
+  AdmiralsQuartersTemplate.create(event.params.admiralsQuarters)
+  getOrCreateAccessController(harborCommand.toHexString(), institution.id)
   getOrCreateAccessController(event.params.protocolAccessManager.toHexString(), institution.id)
   getOrCreateAccessController(event.params.admiralsQuarters.toHexString(), institution.id)
   institution.harborCommand = harborCommand.toHexString()

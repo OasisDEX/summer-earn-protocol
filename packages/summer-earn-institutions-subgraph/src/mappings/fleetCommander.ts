@@ -1,5 +1,5 @@
-import { Address, BigDecimal, BigInt } from '@graphprotocol/graph-ts'
-import { VaultFee } from '../../generated/schema'
+import { Address, BigDecimal, BigInt, Bytes } from '@graphprotocol/graph-ts'
+import { Institution, VaultFee } from '../../generated/schema'
 import {
   RewardAdded,
   RewardPaid,
@@ -28,6 +28,7 @@ import {
 import { addresses } from '../common/addressProvider'
 import * as constants from '../common/constants'
 import { ADDRESS_ZERO, BigIntConstants, VaultFeeType } from '../common/constants'
+import { ContractSpecificRole, generateContractSpecificRole, hasRole } from '../common/hashHelpers'
 import {
   getOrCreateAccessController,
   getOrCreateAccount,
@@ -67,6 +68,24 @@ export function handleRebalance(event: Rebalanced): void {
 export function handleArkAdded(event: ArkAdded): void {
   const vault = getOrCreateVault(event.address, event.block)
   const ark = getOrCreateArk(event.params.ark, event.block)
+  const institution = Institution.load(vault.institution)
+  if (institution) {
+    const role = generateContractSpecificRole(
+      ContractSpecificRole.COMMANDER_ROLE,
+      event.address.toHexString(),
+    )
+    const roleApplied = hasRole(
+      Bytes.fromHexString(role),
+      event.address,
+      Address.fromString(institution.protocolAccessManager),
+    )
+    const id = `${institution.protocolAccessManager}-${role}-${event.address.toHexString()}`
+    const roleEntity = getOrCreateRole(id)
+    if (roleApplied) {
+      roleEntity.name = `CURATOR_ROLE_` + event.params.ark.toHexString()
+      roleEntity.save()
+    }
+  }
   ark.vault = vault.id
   ark.save()
 

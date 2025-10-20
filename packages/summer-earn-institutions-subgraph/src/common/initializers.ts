@@ -416,7 +416,6 @@ export function getOrCreateVault(
     if (institutionId) {
       getOrCreateAccessController(vaultAddress.toHexString(), institutionId)
       vault.institution = institutionId
-      vault.save()
     }
     const vaultContract = FleetCommanderContract.bind(vaultAddress)
     vault.name = utils.readValue<string>(vaultContract.try_name(), '')
@@ -981,7 +980,17 @@ export function getOrCreateRole(id: string): Role {
   return role
 }
 
-export function getOrCreateAccessController(id: string, institutionId: string | null = null): AccessController {
+/**
+ * @notice if no institution id is provided it will throw an error as te `insitution` ins non nullable
+ * @todo unify the behavior of all getters
+ * @param id id of the access controller - address of the contract
+ * @param institutionId - unique offchain generated institution id
+ * @returns AccessController enoty
+ */
+export function getOrCreateAccessController(
+  id: string,
+  institutionId: string | null = null,
+): AccessController {
   let accessController = AccessController.load(id)
   if (!accessController) {
     accessController = new AccessController(id)
