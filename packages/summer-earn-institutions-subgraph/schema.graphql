@@ -1690,9 +1690,8 @@ type Role @entity {
   id: ID!
   name: String!
   owner: String!
-    role: String!
   targetContract:String!
-    accessController: String!
+  accessController: String!
   createdTimestamp: BigInt!
   createdBlockNumber: BigInt!
   institution: Institution!
