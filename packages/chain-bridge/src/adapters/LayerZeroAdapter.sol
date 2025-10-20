@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
+import {ILayerZeroAdapter} from "../interfaces/ILayerZeroAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
@@ -30,6 +31,7 @@ contract LayerZeroAdapter is
     OAppRead,
     IMessageAdapter,
     IBridgeAdapter,
+    ILayerZeroAdapter,
     BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
@@ -66,25 +68,6 @@ contract LayerZeroAdapter is
     /// @dev Practical deployments typically use a small DVN set (e.g. 1-3).
     ///      This cap avoids overly large configurations and removes magic numbers.
     uint8 public constant MAX_SUPPORTED_DVNS = 8;
-
-    /// @notice Emitted when read libraries are configured
-    event ReadLibrariesConfigured(
-        address indexed readLib1002,
-        uint32 indexed readChannelId
-    );
-
-    /// @notice Emitted when read DVNs are configured
-    event ReadDVNsConfigured(
-        uint32 indexed readChannelId,
-        address[] readDVNs,
-        uint16 confirmations
-    );
-
-    /// @notice Emitted when a read channel is activated
-    event ReadChannelActivated(uint32 indexed readChannelId);
-
-    /// @notice Emitted when per-chain read support is updated
-    event ChainReadSupportUpdated(uint16 indexed chainId, bool supported);
 
     /// @notice Mapping of chains that support read operations
     mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;

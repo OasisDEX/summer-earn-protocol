@@ -10,6 +10,7 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
@@ -130,7 +131,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // Should revert when called by non-endpoint
-        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.Unauthorized.selector);
         adapterB.lzCompose(
             address(adapterA),
             bytes32("test-guid"),
@@ -494,7 +495,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         bytes memory invalidOFTMessage = hex"01"; // too short
 
         // Should revert with InvalidMessage due to header length
-        vm.expectRevert(BaseBridgeAdapter.InvalidMessage.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidMessage.selector);
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
@@ -523,7 +524,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // Should revert with InvalidMessage during OFT header decoding
-        vm.expectRevert(BaseBridgeAdapter.InvalidMessage.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InvalidMessage.selector);
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),

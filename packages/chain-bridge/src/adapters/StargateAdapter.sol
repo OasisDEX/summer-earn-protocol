@@ -4,10 +4,10 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
+import {IStargateAdapter} from "../interfaces/IStargateAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
@@ -28,6 +28,7 @@ import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
 contract StargateAdapter is
     IAssetAdapter,
     IBridgeAdapter,
+    IStargateAdapter,
     ILayerZeroComposer,
     BaseBridgeAdapter
 {
@@ -59,23 +60,6 @@ contract StargateAdapter is
 
     /// @notice Default slippage tolerance in basis points (0.5% = 50 basis points)
     uint256 public slippageToleranceBps = 50;
-
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when an asset support is added
-    event AssetSupported(address asset, address stargateContract);
-
-    /// @notice Emitted when slippage tolerance is updated
-    event SlippageToleranceUpdated(uint256 newSlippageBps);
-
-    /*//////////////////////////////////////////////////////////////
-                                 ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Thrown when refunding excess native fee to `refundAddress` fails
-    error RefundFailed(address recipient, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR

@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
+import {ILayerZeroAdapter} from "../../src/interfaces/ILayerZeroAdapter.sol";
 
 import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
@@ -135,13 +136,13 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
         vm.startPrank(governor);
         vm.expectEmit(true, false, false, true);
-        emit LayerZeroAdapter.ReadChannelActivated(firstChannelId);
+        emit ILayerZeroAdapter.ReadChannelActivated(firstChannelId);
         adapterA.activateReadChannel(firstChannelId);
         assertEq(adapterA.readChannelId(), firstChannelId);
 
         // Update to a new read channel
         vm.expectEmit(true, false, false, true);
-        emit LayerZeroAdapter.ReadChannelActivated(secondChannelId);
+        emit ILayerZeroAdapter.ReadChannelActivated(secondChannelId);
         adapterA.activateReadChannel(secondChannelId);
         assertEq(adapterA.readChannelId(), secondChannelId);
         assertEq(adapterA.peers(firstChannelId), bytes32(0));
