@@ -224,9 +224,24 @@ contract CrossChainArk is
 
     /// @notice Cancels a queued pending transfer
     /// @dev Resets pending transfer params and options; callable by keeper
+    /// @dev Returns the pending transfer amount back to the buffer ark
     function cancelPendingTransfer() external onlyKeeper {
         if (pendingTransferParams.asset == address(0))
             revert NoPendingTransferQueued();
+
+        // Get the amount to return to buffer
+        uint256 amount = pendingTransferParams.amount;
+
+        // Get buffer ark address from FleetCommander
+        address bufferArk = IFleetCommander(config.commander).bufferArk();
+
+        // Approve buffer ark to spend the assets
+        config.asset.forceApprove(bufferArk, amount);
+
+        // Return assets to buffer ark
+        IArk(bufferArk).board(amount, bytes(""));
+
+        // Reset pending transfer params
         _resetPendingTransferParams();
     }
 
