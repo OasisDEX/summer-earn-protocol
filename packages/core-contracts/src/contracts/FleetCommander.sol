@@ -679,34 +679,34 @@ contract FleetCommander is
     /**
      * @notice Executes the common arks withdrawal logic
      * @dev This function handles fee calculation, asset disembarkment from arks, and withdrawal execution
-     * @param shares The number of shares to redeem
-     * @param totalAssets The total amount of assets to withdraw from arks
-     * @param receiver The address to receive the assets
-     * @param owner The address of the owner of the shares
+     * @param _shares The number of shares to redeem
+     * @param _totalAssets The total amount of assets to withdraw from arks
+     * @param _receiver The address to receive the assets
+     * @param _owner The address of the owner of the shares
      */
     function _executeArksWithdrawal(
-        uint256 shares,
-        uint256 totalAssets,
-        address receiver,
-        address owner
+        uint256 _shares,
+        uint256 _totalAssets,
+        address _receiver,
+        address _owner
     ) internal {
         // Calculate withdrawal fee in shares
-        uint256 feeShares = _calculateWithdrawalFeeShares(shares);
-        uint256 userShares = shares - feeShares;
+        uint256 feeShares = _calculateWithdrawalFeeShares(_shares);
+        uint256 userShares = _shares - feeShares;
 
         // Transfer fee shares to tipJar
         if (feeShares > 0) {
-            _transfer(owner, tipJar(), feeShares);
+            _transfer(_owner, tipJar(), feeShares);
             // Emit withdrawal fee event
-            uint256 feeAssets = _calculateWithdrawalFee(totalAssets);
-            emit WithdrawalFeeCollected(owner, totalAssets, feeAssets);
+            uint256 feeAssets = _calculateWithdrawalFee(_totalAssets);
+            emit WithdrawalFeeCollected(_owner, _totalAssets, feeAssets);
         }
 
         // Calculate assets based on user's shares (after fee)
         uint256 assetsAfterFee = previewRedeem(userShares);
 
-        _forceDisembarkFromSortedArks(totalAssets);
-        _withdraw(_msgSender(), receiver, owner, assetsAfterFee, userShares);
+        _forceDisembarkFromSortedArks(_totalAssets);
+        _withdraw(_msgSender(), _receiver, _owner, assetsAfterFee, userShares);
     }
 
     /* INTERNAL - VALIDATIONS */

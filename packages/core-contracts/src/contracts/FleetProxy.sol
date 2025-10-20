@@ -338,7 +338,7 @@ contract FleetProxy is
 
         inflightWithdrawals = 0;
         latestOutgoingTransferId = bytes32(0);
-        emit InflightCleared(ackOpId, previous);
+        emit InflightCleared(previous, ackOpId);
     }
 
     /*//////////////////////////////////////////////////////////////

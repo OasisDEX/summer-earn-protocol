@@ -89,7 +89,7 @@ contract FleetCommanderWithdrawalFeeTest is
         );
     }
 
-    function test_CalculateWithdrawalFeeShares() public {
+    function test_CalculateWithdrawalFeeShares() public view {
         uint256 shares = 1000 * 10 ** 6;
         uint256 expectedFee = (shares * DEFAULT_WITHDRAWAL_FEE) /
             (100 * Constants.WAD);

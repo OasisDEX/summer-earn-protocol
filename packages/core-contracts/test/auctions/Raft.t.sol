@@ -1,26 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
 import "../../src/errors/IRaftErrors.sol";
 
-import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IRaftEvents} from "../../src/events/IRaftEvents.sol";
-import {IArk} from "../../src/interfaces/IArk.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
 import "./AuctionTestBase.sol";
 
-import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {DutchAuctionErrors} from "@summerfi/dutch-auction/DutchAuctionErrors.sol";
 
 import {DutchAuctionEvents} from "@summerfi/dutch-auction/DutchAuctionEvents.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.sol";
 import {TokenWithNoSelfTransfer} from "../mocks/TokenWithNoSelfTransfer.sol";
-
-import {console} from "forge-std/console.sol";
 
 contract RaftTest is AuctionTestBase, IRaftEvents {
     using PercentageUtils for uint256;

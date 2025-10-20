@@ -4,26 +4,20 @@ pragma solidity 0.8.28;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
-import {IArkErrors} from "../../src/errors/IArkErrors.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
-import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
-import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
-import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
-import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
-import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IArkErrors} from "../../src/errors/IArkErrors.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
     event InflightCleared(bytes32 operationId, uint256 amount);
@@ -495,8 +489,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
-        uint16 sourceChain = TARGET_CHAIN_ID;
-
         // Should emit the event and update the state
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(remoteBalance, requestId);
@@ -662,7 +654,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
             TARGET_CHAIN_ID,
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
-        uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Test the correct parameter order: (resultData, requestor, requestId, sourceChainId)
         vm.expectEmit(true, true, true, true);
@@ -685,7 +676,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
     function testReceiveStateReadResetsInflightAssets() public {
         uint256 remoteBalance = 2000;
         bytes32 requestId = keccak256("inflight-reset-test");
-        uint16 sourceChain = TARGET_CHAIN_ID;
 
         BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             requestId,
@@ -913,13 +903,17 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 refundAddress: commander,
                 message: ""
             });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter),
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
+
         bytes memory executeTransferParams = abi.encode(params, options);
 
         // Board the transfer (this queues it but doesn't execute)
@@ -933,15 +927,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
         );
 
         // Verify pending transfer is queued
-        (
-            address originator,
-            uint16 destinationChainId,
-            address target,
-            address asset,
-            uint256 pendingAmount,
-            bytes memory message,
-            address refundAddress
-        ) = ark.pendingTransferParams();
+        (, , , address asset, uint256 pendingAmount, , ) = ark
+            .pendingTransferParams();
 
         assertTrue(asset != address(0), "Pending transfer should be queued");
         assertEq(pendingAmount, amount, "Pending amount should match");
@@ -968,15 +955,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
         );
 
         // Verify pending transfer params are reset
-        (
-            address originatorAfter,
-            uint16 destinationChainIdAfter,
-            address targetAfter,
-            address assetAfter,
-            uint256 pendingAmountAfter,
-            bytes memory messageAfter,
-            address refundAddressAfter
-        ) = ark.pendingTransferParams();
+        (, , , address assetAfter, uint256 pendingAmountAfter, , ) = ark
+            .pendingTransferParams();
 
         assertEq(assetAfter, address(0), "Pending transfer should be cleared");
         assertEq(pendingAmountAfter, 0, "Pending amount should be zero");
