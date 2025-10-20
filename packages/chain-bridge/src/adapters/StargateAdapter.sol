@@ -356,10 +356,6 @@ contract StargateAdapter is
         onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
-            revert OperationNotSupported();
-        }
-
         // Check if asset is supported on current chain
         if (assetToStargateContract[params.asset] == address(0)) {
             revert UnsupportedAsset();
