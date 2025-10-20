@@ -5,6 +5,7 @@ import {
 } from '../../generated/InstitutionalVaultRegistry/ProtocolAccessManager'
 import { Institution } from '../../generated/schema'
 import { WhitelistStatusUpdated } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import { ADDRESS_ZERO } from '../common/constants'
 import { ContractSpecificRole, ROLE_MAP, getContractSpecificRoleName } from '../common/hashHelpers'
 import { getOrCreateAccessController, getOrCreateRole } from '../common/initializers'
 
@@ -12,9 +13,10 @@ export function handleRoleGranted(event: RoleGranted): void {
   const accessController = getOrCreateAccessController(event.address.toHexString())
   const id = `${event.address.toHexString()}-${event.params.role.toHexString()}-${event.params.account.toHexString()}`
   const role = getOrCreateRole(id)
+  role.owner = event.params.account.toHexString()
   role.name = event.params.role.toHexString()
+  role.targetContract = ADDRESS_ZERO.toHexString()
   role.accessController = event.address.toHexString()
-  role.role = 'ALLOWED'
   role.createdTimestamp = event.block.timestamp
   role.createdBlockNumber = event.block.number
   role.institution = accessController.institution
@@ -23,9 +25,6 @@ export function handleRoleGranted(event: RoleGranted): void {
     // if its a static role return early
     role.name = ROLE_MAP.get(event.params.role.toHexString())
   } else {
-    if (institution != null) {
-      role.save()
-    }
     const vaults = institution!.vaults.load()
     if (vaults) {
       const vaultAddresses = vaults.map<string>((vault) => vault.id)
@@ -35,7 +34,8 @@ export function handleRoleGranted(event: RoleGranted): void {
         vaultAddresses,
       )
       if (maybeCuratorForFleet) {
-        role.name = `CURATOR_ROLE_` + maybeCuratorForFleet
+        role.name = `CURATOR_ROLE`
+        role.targetContract = maybeCuratorForFleet
       }
       const maybeKeeperForFleet = getContractSpecificRoleName(
         event.params.role.toHexString(),
@@ -43,7 +43,8 @@ export function handleRoleGranted(event: RoleGranted): void {
         vaultAddresses,
       )
       if (maybeKeeperForFleet) {
-        role.name = `KEEPER_ROLE_` + maybeKeeperForFleet
+        role.name = `KEEPER_ROLE`
+        role.targetContract = maybeKeeperForFleet
       }
     }
   }
@@ -59,11 +60,15 @@ export function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): voi
   const accessController = getOrCreateAccessController(event.address.toHexString())
   // role id is: fleetAddress-accountAddress
   const id = `${event.address.toHexString()}-${event.params.account.toHexString()}`
+  if (!event.params.allowed) {
+    store.remove('Role', id)
+    return
+  }
   const role = getOrCreateRole(id)
-
-  role.name = 'Whitelist'
+  role.owner = event.params.account.toHexString()
+  role.name = 'WHITELIST_ROLE'
+  role.targetContract = event.address.toHexString()
   role.accessController = event.address.toHexString()
-  role.role = event.params.allowed ? 'ALLOWED' : 'NOT_ALLOWED'
   role.createdTimestamp = event.block.timestamp
   role.createdBlockNumber = event.block.number
   role.institution = accessController.institution

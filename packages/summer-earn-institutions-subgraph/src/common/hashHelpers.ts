@@ -1,4 +1,4 @@
-import { Address, ByteArray, Bytes, crypto, log } from '@graphprotocol/graph-ts'
+import { Address, ByteArray, Bytes, crypto } from '@graphprotocol/graph-ts'
 import { ProtocolAccessManager } from '../../generated/InstitutionalVaultRegistry/ProtocolAccessManager'
 export class ROLES {
   static GUARDIAN_ROLE: string = 'GUARDIAN_ROLE'
@@ -49,8 +49,6 @@ export function generateContractSpecificRole(
   for (let i = 0; i < addr.length; i++) {
     packed[1 + i] = addr[i]
   }
-  const hash = crypto.keccak256(packed).toHexString()
-  log.error(' role: {} address: {}, hash: {}', [role.toString(), contractAddress, hash])
   return crypto.keccak256(packed).toHexString()
 }
 
@@ -62,7 +60,7 @@ export function getContractSpecificRoleName(
 ): string | null {
   for (let i = 0; i < fleetAddresses.length; i++) {
     const fleetAddress = fleetAddresses[i]
-    log.error('role hash: {}', [roleHash])
+
     const roleName = generateContractSpecificRole(role, fleetAddress)
     if (roleName == roleHash) {
       return fleetAddress

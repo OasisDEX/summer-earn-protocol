@@ -1,4 +1,4 @@
-import { Address, BigDecimal, BigInt, Bytes } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, Bytes, store } from '@graphprotocol/graph-ts'
 import { Institution, VaultFee } from '../../generated/schema'
 import {
   RewardAdded,
@@ -72,7 +72,7 @@ export function handleArkAdded(event: ArkAdded): void {
   if (institution) {
     const role = generateContractSpecificRole(
       ContractSpecificRole.COMMANDER_ROLE,
-      event.address.toHexString(),
+      event.params.ark.toHexString(),
     )
     const roleApplied = hasRole(
       Bytes.fromHexString(role),
@@ -82,7 +82,8 @@ export function handleArkAdded(event: ArkAdded): void {
     const id = `${institution.protocolAccessManager}-${role}-${event.address.toHexString()}`
     const roleEntity = getOrCreateRole(id)
     if (roleApplied) {
-      roleEntity.name = `CURATOR_ROLE_` + event.params.ark.toHexString()
+      roleEntity.name = `COMMANDER_ROLE`
+      roleEntity.targetContract = event.address.toHexString()
       roleEntity.save()
     }
   }
@@ -360,11 +361,16 @@ export function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): voi
   const accessController = getOrCreateAccessController(event.address.toHexString())
   // role id is: fleetAddress-accountAddress
   const id = `${event.address.toHexString()}-${event.params.account.toHexString()}`
-  const role = getOrCreateRole(id)
 
-  role.name = 'Whitelist'
+  if (!event.params.allowed) {
+    store.remove('Role', id)
+    return
+  }
+  const role = getOrCreateRole(id)
+  role.owner = event.params.account.toHexString()
+  role.name = 'WHITELIST_ROLE'
+  role.targetContract = event.address.toHexString()
   role.accessController = event.address.toHexString()
-  role.role = event.params.allowed ? 'ALLOWED' : 'NOT_ALLOWED'
   role.createdTimestamp = event.block.timestamp
   role.createdBlockNumber = event.block.number
   role.institution = accessController.institution

@@ -89,6 +89,12 @@ templates:
       abis:
         - name: Ark
           file: ./abis/Ark.abi.json
+        - name: InstitutionalVaultRegistry
+          file: ./abis/InstitutionalVaultRegistry.abi.json
+        - name: ConfigurationManager
+          file: ./abis/ConfigurationManager.abi.json
+        - name: ProtocolAccessManager
+          file: ./abis/ProtocolAccessManager.abi.json          
         - name: FleetCommander
           file: ./abis/FleetCommander.abi.json
         - name: FleetCommanderRewardsManager
@@ -176,6 +182,12 @@ templates:
       entities:
         - Vault
       abis:
+        - name: InstitutionalVaultRegistry
+          file: ./abis/InstitutionalVaultRegistry.abi.json
+        - name: ConfigurationManager
+          file: ./abis/ConfigurationManager.abi.json
+        - name: ProtocolAccessManager
+          file: ./abis/ProtocolAccessManager.abi.json      
         - name: Ark
           file: ./abis/Ark.abi.json
         - name: FleetCommander
