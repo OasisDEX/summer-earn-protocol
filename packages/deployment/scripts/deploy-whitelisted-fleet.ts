@@ -5,9 +5,9 @@ import path from 'node:path'
 import prompts from 'prompts'
 import { Address, Address as ViemAddress } from 'viem'
 import { createFleetWhitelistModule } from '../ignition/modules/fleet-whitelist'
-import { FleetConfig } from '../types/config-types'
+import { BaseConfig, FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
-import { GOVERNOR_ROLE } from './common/constants'
+import { ADDRESS_ZERO, GOVERNOR_ROLE } from './common/constants'
 import {
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
@@ -23,6 +23,7 @@ import {
 import { getInstitutionConfigByNetwork } from './helpers/config-handler'
 import {
   getInstitutionFleetConfigDir,
+  promptForInstitutionId,
   updateInstitutionFleetEntry,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
@@ -69,12 +70,7 @@ async function main() {
   console.log(kleur.blue('Network:'), kleur.cyan(network))
 
   const useBummerConfig = await promptForConfigType()
-  const { institutionId } = await prompts({
-    type: 'text',
-    name: 'institutionId',
-    message: 'Enter institution id (folder name under config/institutions):',
-    validate: (v) => (v && /^[A-Za-z0-9_-]+$/.test(v) ? true : 'Invalid id'),
-  })
+  const institutionId = await promptForInstitutionId()
   if (!institutionId) {
     console.log(kleur.red('No institution id provided. Exiting.'))
     return
@@ -86,7 +82,7 @@ async function main() {
     institutionId,
     { gov: true, core: true },
     useBummerConfig,
-  )
+  ) as BaseConfig
 
   // Choose mode similar to deploy-fleet
   const { mode } = await prompts({
@@ -101,6 +97,42 @@ async function main() {
 
   const fleetDefinition = await selectInstitutionFleetConfig(institutionId, useBummerConfig)
   validateToken(config, fleetDefinition.assetSymbol)
+
+  // Gate by InstitutionalVaultRegistry: institution must be registered before continuing
+  const registryAddress = config.deployedContracts.core.institutionalVaultRegistry?.address
+  if (!registryAddress || registryAddress == ADDRESS_ZERO) {
+    console.log(
+      kleur.red(
+        'InstitutionalVaultRegistry address not found in base config. Please deploy and configure it before proceeding.',
+      ),
+    )
+    return
+  }
+  try {
+    const registry = await hre.viem.getContractAt(
+      'InstitutionalVaultRegistry' as string,
+      registryAddress,
+    )
+    const institutionBytes32 = (await registry.read.getBytes32InsitutionId([
+      institutionId,
+    ])) as Address
+    const exists = (await registry.read.exists([institutionBytes32])) as boolean
+    if (!exists) {
+      console.log(
+        kleur.red(
+          `Institution '${institutionId}' is not registered in InstitutionalVaultRegistry on this chain. Aborting fleet deployment.`,
+        ),
+      )
+      return
+    }
+  } catch (e) {
+    console.error(
+      kleur.red(
+        `Failed to verify institution registration in registry: ${e instanceof Error ? e.message : String(e)}`,
+      ),
+    )
+    return
+  }
 
   if (mode === WhitelistDeploymentMode.ADD_ARK) {
     // Load existing deployment for this fleet

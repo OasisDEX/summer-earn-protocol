@@ -3,37 +3,37 @@
     "deployedContracts": {
       "gov": {
         "protocolAccessManager": {
-          "address": "0x73f2fF5B94369906D2A9d9c4ED008A9ECCa2ED2F"
+          "address": "0x0b5B65cE71Bc450E25530C5A627Aa647447Bd050"
         }
       },
       "core": {
         "tipJar": {
-          "address": "0x4c943caE3fC822C03C028f2Cc13E6d5F183EFcc4"
+          "address": "0xD78C0d6fDAB370bB152874f635B575c0caE66Ce8"
         },
         "configurationManager": {
-          "address": "0x4e8266b6F212b9Be2ea652dcB7293Cdd84332e75"
+          "address": "0x2fb3686045249654e9fec9b9C79503f1fa0A7716"
         },
         "harborCommand": {
-          "address": "0x5e1A7e712bbC9452677232F8e78fA650EbD3bA9c"
+          "address": "0x8F947cdbdA349c793d2a48EB502e4Fe56c00b15D"
         },
         "admiralsQuarters": {
-          "address": "0x169C45bF9e563506287a8547d1E889d7d161555C"
+          "address": "0x7aCC2Cf7823688b2c5aA35d78B32Df22eA8e36eA"
         },
         "raft": {
-          "address": "0x8A6fdA55aAB70f9a3556C620c77EC95E17578AFf"
+          "address": "0xA633d0126AE7eD71b59F129c6b169Ad90EE4249C"
         }
       }
     },
     "fleets": {
       "LazyVault_Institutional_TestB_USDC": {
-        "fleetCommander": "0x458937aB81F04e2c849Af0a14D9CE5562204d4d7",
-        "bufferArk": "0xAC2E87c069305401E94a110406160E6af1295B0b",
+        "fleetCommander": "0x2aEB022253d3ad82A57600395e852160B8F5F4e4",
+        "bufferArk": "0x348afc6a14d204B8535f3949372d9cFeCa900A46",
         "arks": [
-          "0x0422b6664D6be246Acc7554799884cA44954A07F",
-          "0x742eF62F3d300cb552A57bbd6E17784d3287df29",
-          "0x5284Fd8a7C80F0F2967F339a2893e36a871b6580",
-          "0x9020f65C7C4B510e9Db6680F5F9855074c86D309",
-          "0x03F1D96189734e05197aD36c3eFFBD9B0dd667C2"
+          "0x22f212B0F2e8aCAAa8Ef4401bdD4CEdb321F6A59",
+          "0x635493BF26E6C479422eaBe5A0E75AE882FfdAfA",
+          "0xcf0DA784D7F516983B2bE5132f4E3878D1264D14",
+          "0x79588D78cDd8cbd9312d3d03c4DBa409b5396794",
+          "0xbf3AF392327b0760609f83d7CB601d9284A8C26A"
         ]
       }
     }
