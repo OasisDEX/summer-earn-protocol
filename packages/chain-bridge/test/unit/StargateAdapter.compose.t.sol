@@ -861,7 +861,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
                 message: ""
             });
         vm.prank(governor);
-        vm.expectRevert(BaseBridgeAdapter.InsufficientBalance.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.InsufficientBalance.selector);
         adapterB.forceRedeliverTransfer(params);
     }
 }

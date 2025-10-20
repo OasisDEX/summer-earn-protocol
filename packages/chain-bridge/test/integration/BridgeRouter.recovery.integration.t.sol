@@ -649,19 +649,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         newReceiver.setReceiveSuccess(true);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(newReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        registry.registerRelationship(
-            fleetProxy,
-            address(newReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -705,19 +697,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0xBEEF);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -856,20 +840,12 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address wrongFleet = address(0x29999);
 
         vm.startPrank(governor);
-        // Only register relationship for correct fleet, not wrongFleet
-        registry.registerRelationship(
+        // Register peer pair only for the correct fleet
+        registry.registerAdapterPeerPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -914,19 +890,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0x3002);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 

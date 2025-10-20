@@ -163,25 +163,16 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         vm.startPrank(governor);
         // Only register if not already registered
         try
-            registry.registerRelationship(
+            registry.registerAdapterPeerPair(
                 address(mockReceiver),
                 fleetProxy,
                 CURRENT_CHAIN_ID,
-                SOURCE_CHAIN_ID,
-                registry.PEER_RELATIONSHIP()
+                SOURCE_CHAIN_ID
             )
         {} catch {}
 
         // Register reverse relationship for validation
-        try
-            registry.registerRelationship(
-                fleetProxy,
-                address(mockReceiver),
-                SOURCE_CHAIN_ID,
-                CURRENT_CHAIN_ID,
-                registry.PEER_RELATIONSHIP()
-            )
-        {} catch {}
+        // pair already registered above
         vm.stopPrank();
 
         bytes32 opId = keccak256("valid-ark-fleet");
@@ -217,25 +208,16 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         vm.startPrank(governor);
         // Only register if not already registered
         try
-            registry.registerRelationship(
+            registry.registerAdapterPeerPair(
                 address(mockReceiver),
                 fleetProxy,
                 CURRENT_CHAIN_ID,
-                SOURCE_CHAIN_ID,
-                registry.PEER_RELATIONSHIP()
+                SOURCE_CHAIN_ID
             )
         {} catch {}
 
         // Register reverse relationship for validation
-        try
-            registry.registerRelationship(
-                fleetProxy,
-                address(mockReceiver),
-                SOURCE_CHAIN_ID,
-                CURRENT_CHAIN_ID,
-                registry.PEER_RELATIONSHIP()
-            )
-        {} catch {}
+        // pair already registered above
         vm.stopPrank();
 
         bytes32 opId = keccak256("invalid-ark-fleet");
@@ -294,24 +276,15 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         vm.startPrank(governor);
         // Register mockReceiver as ark proxy - only if not already registered
         try
-            registry.registerRelationship(
+            registry.registerAdapterPeerPair(
                 address(mockReceiver),
                 fleetProxy,
                 CURRENT_CHAIN_ID,
-                SOURCE_CHAIN_ID,
-                registry.PEER_RELATIONSHIP()
+                SOURCE_CHAIN_ID
             )
         {} catch {}
 
-        try
-            registry.registerRelationship(
-                fleetProxy,
-                address(mockReceiver),
-                SOURCE_CHAIN_ID,
-                CURRENT_CHAIN_ID,
-                registry.PEER_RELATIONSHIP()
-            )
-        {} catch {}
+        // pair already registered above
         vm.stopPrank();
 
         bytes32 opId = keccak256("valid-message-ark-fleet");
@@ -340,24 +313,15 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         vm.startPrank(governor);
         // Register mockReceiver as ark proxy - only if not already registered
         try
-            registry.registerRelationship(
+            registry.registerAdapterPeerPair(
                 address(mockReceiver),
                 fleetProxy,
                 CURRENT_CHAIN_ID,
-                SOURCE_CHAIN_ID,
-                registry.PEER_RELATIONSHIP()
+                SOURCE_CHAIN_ID
             )
         {} catch {}
 
-        try
-            registry.registerRelationship(
-                fleetProxy,
-                address(mockReceiver),
-                SOURCE_CHAIN_ID,
-                CURRENT_CHAIN_ID,
-                registry.PEER_RELATIONSHIP()
-            )
-        {} catch {}
+        // pair already registered above
         vm.stopPrank();
 
         bytes32 opId = keccak256("invalid-message-ark-fleet");
@@ -385,24 +349,15 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         vm.startPrank(governor);
         // Register mockReceiver as ark proxy - only if not already registered
         try
-            registry.registerRelationship(
+            registry.registerAdapterPeerPair(
                 address(mockReceiver),
                 fleetProxy,
                 CURRENT_CHAIN_ID,
-                SOURCE_CHAIN_ID,
-                registry.PEER_RELATIONSHIP()
+                SOURCE_CHAIN_ID
             )
         {} catch {}
 
-        try
-            registry.registerRelationship(
-                fleetProxy,
-                address(mockReceiver),
-                SOURCE_CHAIN_ID,
-                CURRENT_CHAIN_ID,
-                registry.PEER_RELATIONSHIP()
-            )
-        {} catch {}
+        // pair already registered above
         vm.stopPrank();
 
         bytes32 opId = keccak256("override-valid-ark-fleet");
@@ -824,29 +779,17 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
 
         address fleetProxy = address(0x1002);
         vm.startPrank(governor);
-        registry.unregisterRelationship(
+        registry.unregisterAdapterPeerPair(
             address(mockReceiver),
-            registry.PEER_RELATIONSHIP(),
+            fleetProxy,
+            CURRENT_CHAIN_ID,
             SOURCE_CHAIN_ID
         );
-        registry.unregisterRelationship(
-            fleetProxy,
-            registry.PEER_RELATIONSHIP(),
-            CURRENT_CHAIN_ID
-        );
-        registry.registerRelationship(
-            fleetProxy,
-            address(newReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(newReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -1103,16 +1046,12 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         address wrongFleet = address(0x29999);
 
         vm.startPrank(governor);
-        // Unregister both directions of the setUp relationships first to avoid conflicts
-        registry.unregisterRelationship(
+        // Unregister pair from setUp if present
+        registry.unregisterAdapterPeerPair(
             address(mockReceiver),
-            registry.PEER_RELATIONSHIP(),
+            address(0x1002),
+            CURRENT_CHAIN_ID,
             SOURCE_CHAIN_ID
-        );
-        registry.unregisterRelationship(
-            address(0x1002), // fleetProxy from setUp
-            registry.PEER_RELATIONSHIP(),
-            CURRENT_CHAIN_ID
         );
 
         // Register bidirectional peer relationship using the convenience function
