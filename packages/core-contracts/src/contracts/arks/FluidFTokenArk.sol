@@ -49,8 +49,9 @@ contract FluidFTokenArk is ERC4626Ark {
         ClaimData memory claimData = abi.decode(data, (ClaimData));
 
         // Basic validations
-        if (claimData.merkleClaimer == address(0))
+        if (claimData.merkleClaimer == address(0)) {
             revert InvalidMerkleClaimer();
+        }
         if (claimData.recipient != address(this)) {
             revert InvalidRecipient(address(this), claimData.recipient);
         }
@@ -85,14 +86,23 @@ contract FluidFTokenArk is ERC4626Ark {
         rewardAmounts[0] = claimedAmount;
     }
 
+    /// @notice Encapsulates inputs to IFluidMerkleDistributor.claim
     struct ClaimData {
+        /// @notice Address of the Fluid Merkle distributor contract to call
         address merkleClaimer;
+        /// @notice Address of the recipient
         address recipient;
+        /// @notice Cumulative amount of rewards to claim
         uint256 cumulativeAmount;
+        /// @notice Type of position (1 = lending, 2 = vaults, 3 = smart lending, etc.)
         uint8 positionType;
+        /// @notice ID of the position (fToken address for lending; vaultId for vaults)
         bytes32 positionId;
+        /// @notice Cycle of the rewards
         uint256 cycle;
+        /// @notice Merkle proof of the rewards
         bytes32[] merkleProof;
+        /// @notice Arbitrary metadata forwarded to the distributor
         bytes metadata;
     }
 
