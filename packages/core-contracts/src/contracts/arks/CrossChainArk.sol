@@ -224,9 +224,24 @@ contract CrossChainArk is
 
     /// @notice Cancels a queued pending transfer
     /// @dev Resets pending transfer params and options; callable by keeper
+    /// @dev Returns the pending transfer amount back to the buffer ark
     function cancelPendingTransfer() external onlyKeeper {
         if (pendingTransferParams.asset == address(0))
             revert NoPendingTransferQueued();
+
+        // Get the amount to return to buffer
+        uint256 amount = pendingTransferParams.amount;
+
+        // Get buffer ark address from FleetCommander
+        address bufferArk = IFleetCommander(config.commander).bufferArk();
+
+        // Approve buffer ark to spend the assets
+        config.asset.forceApprove(bufferArk, amount);
+
+        // Return assets to buffer ark
+        IArk(bufferArk).board(amount, bytes(""));
+
+        // Reset pending transfer params
         _resetPendingTransferParams();
     }
 
@@ -484,5 +499,40 @@ contract CrossChainArk is
     {
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
+    }
+
+    /// @inheritdoc IArk
+    function sweep(
+        address[] memory tokens
+    )
+        external
+        override
+        onlyRaft
+        nonReentrant
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        sweptTokens = new address[](tokens.length);
+        sweptAmounts = new uint256[](tokens.length);
+        IERC20 asset = config.asset;
+
+        // Check if any token is the underlying asset - always prevent this
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (tokens[i] == address(asset)) {
+                revert CannotSweepUnderlyingAsset();
+            }
+        }
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 amount = IERC20(tokens[i]).balanceOf(address(this));
+            if (amount > 0) {
+                IERC20(tokens[i]).safeTransfer(
+                    raft(),
+                    IERC20(tokens[i]).balanceOf(address(this))
+                );
+                sweptTokens[i] = tokens[i];
+                sweptAmounts[i] = amount;
+            }
+        }
+        emit ArkSwept(sweptTokens, sweptAmounts);
     }
 }

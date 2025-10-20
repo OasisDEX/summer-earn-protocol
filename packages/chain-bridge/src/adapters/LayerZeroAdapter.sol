@@ -69,6 +69,25 @@ contract LayerZeroAdapter is
     ///      This cap avoids overly large configurations and removes magic numbers.
     uint8 public constant MAX_SUPPORTED_DVNS = 8;
 
+    /// @notice Emitted when read libraries are configured
+    event ReadLibrariesConfigured(
+        address indexed readLib1002,
+        uint32 indexed readChannelId
+    );
+
+    /// @notice Emitted when read DVNs are configured
+    event ReadDVNsConfigured(
+        uint32 indexed readChannelId,
+        address[] readDVNs,
+        uint16 confirmations
+    );
+
+    /// @notice Emitted when a read channel is activated
+    event ReadChannelActivated(uint32 indexed readChannelId);
+
+    /// @notice Emitted when per-chain read support is updated
+    event ChainReadSupportUpdated(uint16 indexed chainId, bool supported);
+
     /// @notice Mapping of chains that support read operations
     mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
 
