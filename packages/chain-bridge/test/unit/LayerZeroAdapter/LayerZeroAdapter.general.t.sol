@@ -151,6 +151,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
         adapterA.estimateTransferAssets(
             BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
                 destinationChainId: CHAIN_ID_B,
                 target: address(this),
                 asset: address(0), // Unsupported asset
@@ -158,7 +159,15 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                 message: bytes(""),
                 refundAddress: address(this)
             }),
-            options
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                gasLimit: 100000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: bytes(""),
+                payInProtocolToken: false,
+                feeTokenAmount: 0
+            })
         );
     }
 

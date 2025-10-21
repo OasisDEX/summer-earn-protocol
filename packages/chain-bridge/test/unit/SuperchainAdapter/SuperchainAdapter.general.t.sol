@@ -81,7 +81,7 @@ contract SuperchainAdapterGeneralTest is Test {
         );
     }
 
-    function testSupportsOperation_TransferAsset() public {
+    function testSupportsOperation_TransferAsset() public view {
         assertTrue(
             adapter.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         );
@@ -137,7 +137,9 @@ contract SuperchainAdapterGeneralTest is Test {
             gasLimit: 100000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         (uint256 nativeFee, uint256 tokenFee) = adapter.estimateTransferAssets(
@@ -165,7 +167,9 @@ contract SuperchainAdapterGeneralTest is Test {
             gasLimit: 100000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         vm.expectRevert(
@@ -195,7 +199,9 @@ contract SuperchainAdapterGeneralTest is Test {
             gasLimit: 100000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         vm.expectRevert(IBaseBridgeAdapterErrors.InvalidAmount.selector);
@@ -225,7 +231,9 @@ contract SuperchainAdapterGeneralTest is Test {
             gasLimit: 100000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         vm.expectRevert(
@@ -237,7 +245,7 @@ contract SuperchainAdapterGeneralTest is Test {
         adapter.estimateTransferAssets(params, options);
     }
 
-    function testSupportsMessageOperation_OnlyTransferAsset() public {
+    function testSupportsMessageOperation_OnlyTransferAsset() public view {
         assertTrue(
             adapter.supportsMessageOperation(
                 CHAIN_ID_B,
@@ -267,7 +275,9 @@ contract SuperchainAdapterGeneralTest is Test {
             gasLimit: 100000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         vm.expectRevert(
@@ -293,7 +303,9 @@ contract SuperchainAdapterGeneralTest is Test {
             gasLimit: 100000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         vm.expectRevert(

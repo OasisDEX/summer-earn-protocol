@@ -8,7 +8,6 @@ import {MockStargateV2Pool} from "../../mocks/MockStargateV2.sol";
 import {MockStargateV2OFT} from "../../mocks/MockStargateV2.sol";
 import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {ICrossChainRegistry} from "../../../src/interfaces/ICrossChainRegistry.sol";
-import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
 import {IStargateAdapter} from "../../../src/interfaces/IStargateAdapter.sol";
 
 contract StargateAdapterGeneralTest is StargateAdapterSetupTest {

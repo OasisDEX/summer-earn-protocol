@@ -69,7 +69,7 @@ contract SuperchainAdapter is
     function transferAsset(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.BridgeOptions calldata /*options*/
     )
         external
         payable
@@ -129,8 +129,8 @@ contract SuperchainAdapter is
     /// @inheritdoc IBridgeAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+        BridgeTypes.BridgeOptions calldata /*options*/
+    ) external view returns (uint256, uint256) {
         if (!supportedAssets[params.asset])
             revert IBridgeAdapter.UnsupportedAsset();
         if (params.amount == 0) revert IBaseBridgeAdapterErrors.InvalidAmount();
@@ -175,9 +175,9 @@ contract SuperchainAdapter is
 
     /// @inheritdoc IMessageAdapter
     function sendMessage(
-        bytes32 operationId,
-        BridgeTypes.ExecuteSendMessageParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
+        bytes32 /*operationId*/,
+        BridgeTypes.ExecuteSendMessageParams calldata /*params*/,
+        BridgeTypes.BridgeOptions calldata /*options*/
     ) external payable {
         revert IBridgeAdapter.OperationNotSupported();
     }
@@ -205,7 +205,7 @@ contract SuperchainAdapter is
     function estimateSendMessage(
         BridgeTypes.ExecuteSendMessageParams calldata,
         BridgeTypes.BridgeOptions calldata
-    ) external pure returns (uint256 nativeFee, uint256 tokenFee) {
+    ) external pure returns (uint256, uint256) {
         revert IBridgeAdapter.OperationNotSupported();
     }
 
