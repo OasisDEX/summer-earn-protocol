@@ -48,13 +48,24 @@ export async function rolesGovV2(useBummerConfig = false) {
   console.log('[PROTOCOL ACCESS MANAGER] - Setting up governance...')
 
   // Handle timelock governor role
-  const hasGovernorRole = await protocolAccessManager.read.hasRole([
+  const hasTimelockGovernorRole = await protocolAccessManager.read.hasRole([
     GOVERNOR_ROLE,
     timelock.address,
   ])
-  if (!hasGovernorRole) {
+  if (!hasTimelockGovernorRole) {
     console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
     const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
+    await publicClient.waitForTransactionReceipt({ hash })
+  }
+
+  // Handle timelock governor role
+  const hasGovGovernorRole = await protocolAccessManager.read.hasRole([
+    GOVERNOR_ROLE,
+    summerGovernor.address,
+  ])
+  if (!hasGovGovernorRole) {
+    console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to SummerGovernor...')
+    const hash = await protocolAccessManager.write.grantGovernorRole([summerGovernor.address])
     await publicClient.waitForTransactionReceipt({ hash })
   }
 
