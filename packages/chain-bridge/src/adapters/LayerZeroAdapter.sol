@@ -10,6 +10,7 @@ import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {ILayerZeroAdapter} from "../interfaces/ILayerZeroAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {BridgeMessagingHelper} from "../libraries/BridgeMessagingHelper.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
@@ -150,7 +151,7 @@ contract LayerZeroAdapter is
         (
             BridgeTypes.OperationType operationType,
             bytes memory data
-        ) = _decodePayload(_payload);
+        ) = BridgeMessagingHelper.decodePayload(_payload);
 
         if (operationType == BridgeTypes.OperationType.MESSAGE) {
             _relayMessage(_origin, data);
@@ -174,7 +175,8 @@ contract LayerZeroAdapter is
         bytes memory _payload
     ) internal {
         BridgeTypes.RelayedMessageParams
-            memory relayedMessageParams = _decodeRelayedMessageParams(_payload);
+            memory relayedMessageParams = BridgeMessagingHelper
+                .decodeRelayedMessageParams(_payload);
         _validateSourceChainId(
             externalIdToChainId[_origin.srcEid],
             relayedMessageParams.sourceChainId
@@ -568,7 +570,7 @@ contract LayerZeroAdapter is
     function _createMessagePayload(
         BridgeTypes.RelayedMessageParams memory params
     ) internal pure returns (bytes memory payload) {
-        return _encodeRelayedMessageParamsWithType(params);
+        return BridgeMessagingHelper.encodeRelayedMessageParamsWithType(params);
     }
 
     /**

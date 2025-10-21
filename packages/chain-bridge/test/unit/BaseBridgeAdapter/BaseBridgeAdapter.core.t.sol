@@ -10,6 +10,7 @@ import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol"
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
+import {BridgeMessagingHelper} from "../../../src/libraries/BridgeMessagingHelper.sol";
 
 contract ExposedAdapter is BaseBridgeAdapter {
     constructor(
@@ -56,31 +57,31 @@ contract ExposedAdapter is BaseBridgeAdapter {
     function exposedDecodePayload(
         bytes calldata payload
     ) external pure returns (BridgeTypes.OperationType op, bytes memory data) {
-        return _decodePayload(payload);
+        return BridgeMessagingHelper.decodePayload(payload);
     }
 
     function exposedEncodeRelayedMessageParams(
         BridgeTypes.RelayedMessageParams memory p
     ) external pure returns (bytes memory) {
-        return _encodeRelayedMessageParams(p);
+        return BridgeMessagingHelper.encodeRelayedMessageParams(p);
     }
 
     function exposedEncodeRelayedTransferParams(
         BridgeTypes.RelayedTransferParams memory p
     ) external pure returns (bytes memory) {
-        return _encodeRelayedTransferParams(p);
+        return BridgeMessagingHelper.encodeRelayedTransferParams(p);
     }
 
     function exposedEncodeRelayedMessageParamsWithType(
         BridgeTypes.RelayedMessageParams memory p
     ) external pure returns (bytes memory) {
-        return _encodeRelayedMessageParamsWithType(p);
+        return BridgeMessagingHelper.encodeRelayedMessageParamsWithType(p);
     }
 
     function exposedEncodeRelayedTransferParamsWithType(
         BridgeTypes.RelayedTransferParams memory p
     ) external pure returns (bytes memory) {
-        return _encodeRelayedTransferParamsWithType(p);
+        return BridgeMessagingHelper.encodeRelayedTransferParamsWithType(p);
     }
 }
 
