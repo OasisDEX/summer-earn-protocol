@@ -485,10 +485,6 @@ contract SummerStaking is
                 "Lockup period cannot exceed 3 years"
             );
         }
-        // Enforce per-portfolio stake count bound and bucket caps on raw amount
-        if (stakesByOwner[_receiver].length >= MAX_AMOUNT_OF_STAKES) {
-            revert Staking_MaxStakesReached();
-        }
         if (_wouldExceedBucketCap(_lockupPeriod, _amount)) {
             revert Staking_BucketCapExceeded();
         }
@@ -509,6 +505,9 @@ contract SummerStaking is
             noLockupStake.lockupEndTime = block.timestamp;
             _stakeIndex = NO_LOCKUP_INDEX;
         } else {
+            if (stakesByOwner[_receiver].length >= MAX_AMOUNT_OF_STAKES) {
+                revert Staking_MaxStakesReached();
+            }
             // Append an independent lockup position
             _stakePortfolio.push(
                 UserStake({
