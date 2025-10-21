@@ -282,7 +282,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         assertEq(aStaking.getUserStakesCount(user1), 1000);
 
-        // Attempt to create an 1001st stake with no lockup should revert - uses the 0 slot
+        // Attempt to create an 1001st stake with no lockup should not revert - uses the 0 slot
         vm.startPrank(user1);
         aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
         aStaking.stakeLockup(STAKE_AMOUNT, 0);
