@@ -48,6 +48,28 @@ library LayerZeroMessagingHelper {
     }
 
     /**
+     * @notice Creates RelayedTransferParams from ExecuteTransferParams
+     * @param params ExecuteTransferParams from the bridge operation
+     * @param operationId The operation ID for this transaction
+     * @return RelayedTransferParams struct ready for encoding
+     */
+    function createRelayedTransferParams(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        bytes32 operationId
+    ) internal view returns (BridgeTypes.RelayedTransferParams memory) {
+        return
+            BridgeTypes.RelayedTransferParams({
+                operationId: operationId,
+                originator: params.originator,
+                sourceChainId: uint16(block.chainid),
+                recipient: params.target,
+                asset: params.asset,
+                amount: params.amount,
+                message: params.message
+            });
+    }
+
+    /**
      * @notice Creates dummy message parameters for fee estimation
      * @return params Dummy RelayedMessageParams for estimation purposes
      */

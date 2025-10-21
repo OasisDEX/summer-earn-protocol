@@ -24,6 +24,7 @@ import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfac
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -257,8 +258,9 @@ contract LayerZeroAdapter is
 
         // 7. Quote and send
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
-        if (msg.value < fee.nativeFee)
+        if (msg.value < fee.nativeFee) {
             revert InsufficientFee(fee.nativeFee, msg.value);
+        }
 
         IOFT(oft).send{value: fee.nativeFee}(
             sendParam,
@@ -556,8 +558,7 @@ contract LayerZeroAdapter is
     ) internal {
         if (provided > required) {
             uint256 excess = provided - required;
-            (bool success, ) = refundAddress.call{value: excess}("");
-            if (!success) revert TransferFailed();
+            Address.sendValue(payable(refundAddress), excess);
         }
     }
 
@@ -706,16 +707,9 @@ contract LayerZeroAdapter is
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params
     ) internal view returns (bytes memory) {
-        BridgeTypes.RelayedTransferParams memory relayedParams = BridgeTypes
-            .RelayedTransferParams({
-                operationId: operationId,
-                originator: params.originator,
-                sourceChainId: uint16(block.chainid),
-                recipient: params.target,
-                asset: params.asset,
-                amount: params.amount,
-                message: params.message
-            });
+        BridgeTypes.RelayedTransferParams
+            memory relayedParams = LayerZeroMessagingHelper
+                .createRelayedTransferParams(params, operationId);
 
         return abi.encode(relayedParams);
     }
