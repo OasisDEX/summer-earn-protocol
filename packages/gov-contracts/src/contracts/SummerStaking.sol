@@ -205,6 +205,7 @@ contract SummerStaking is
         bool _isAuthorized
     ) external {
         isAuthorized[_msgSender()][_authorizedCaller] = _isAuthorized;
+        emit AuthorizationSet(_msgSender(), _authorizedCaller, _isAuthorized);
     }
 
     // ============ EXTERNAL FUNCTIONS - ADMIN ============

@@ -346,6 +346,18 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      */
     event PenaltyEnabledUpdated(bool penaltyEnabled);
 
+    /**
+     * @notice Emitted when a caller is authorized or revoked for staking on behalf of another address
+     * @param owner The address that owns the authorization list
+     * @param authorizedCaller The address that was authorized or revoked
+     * @param isAuthorized True if authorized, false if revoked
+     */
+    event AuthorizationSet(
+        address indexed owner,
+        address indexed authorizedCaller,
+        bool isAuthorized
+    );
+
     // ============ ERRORS ============
 
     /**
@@ -406,8 +418,5 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     /**
      * @notice Thrown when trying to stake on behalf of an address that is not allowed
      */
-    error Staking_NotAllowedToStakeOnBehalf(
-        address caller,
-        address receiver
-    );
+    error Staking_NotAllowedToStakeOnBehalf(address caller, address receiver);
 }

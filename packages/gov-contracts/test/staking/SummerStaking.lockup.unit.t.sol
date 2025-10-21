@@ -1318,8 +1318,11 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 senderXSumrBalanceBefore = axSumr.balanceOf(sender);
         uint256 receiverXSumrBalanceBefore = axSumr.balanceOf(receiver);
 
+        vm.expectEmit(true, true, true, true);
+        emit ISummerStaking.AuthorizationSet(receiver, sender, true);
         vm.prank(receiver);
         aStaking.setAuthorization(sender, true);
+
         // Sender approves and stakes on behalf of receiver
         vm.startPrank(sender);
         aSummerToken.approve(address(aStaking), stakeAmount);
