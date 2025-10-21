@@ -3,8 +3,7 @@ pragma solidity 0.8.28;
 
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
-import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
-import {IBaseBridgeAdapterEvents} from "../interfaces/IBaseBridgeAdapterEvents.sol";
+import {IBaseBridgeAdapter} from "../interfaces/IBaseBridgeAdapter.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {TokenRecovery} from "./TokenRecovery.sol";
@@ -18,7 +17,28 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
  *      cross-chain communication and asset transfers. It handles chain ID mapping, peer validation,
  *      and provides common utilities for derived bridge implementations.
  *
- * ## Architecture Overview
+ * ## Interface Architecture
+ *
+ * The bridge adapter system follows a three-tier interface hierarchy:
+ *
+ * ### 1. Base Layer (`IBaseBridgeAdapter`)
+ * - **Purpose**: Consolidates error and event definitions for base functionality
+ * - **Contains**: `IBaseBridgeAdapterErrors` + `IBaseBridgeAdapterEvents`
+ * - **Used by**: All bridge adapters for common error handling and event emission
+ *
+ * ### 2. Core Layer (`IBridgeAdapter`)
+ * - **Purpose**: Defines core bridge functionality (estimation, operation support)
+ * - **Contains**: Core methods like `estimateTransferAssets()`, `supportsOperation()`
+ * - **Used by**: All bridge adapters + BridgeRouter for adapter registration
+ * - **ERC165**: Required for `BridgeRouter.registerAdapter()` security checks
+ *
+ * ### 3. Capability Layer (`IAssetAdapter`, `IMessageAdapter`)
+ * - **Purpose**: Defines specific capabilities (asset transfers vs messaging)
+ * - **IAssetAdapter**: For adapters that can transfer assets (e.g., StargateAdapter)
+ * - **IMessageAdapter**: For adapters that can send messages (e.g., LayerZeroAdapter)
+ * - **Used by**: BridgeRouter to determine which adapter to use for specific operations
+ *
+ * ## Security Model
  *
  * The BaseBridgeAdapter implements a two-layer security model:
  * 1. **Registry Check**: Validates that governance has authorized communication with peer adapters
@@ -30,6 +50,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
  * - **Peer Validation**: Ensures only trusted peer adapters can send cross-chain messages
  * - **Token Recovery**: Governance-controlled token recovery functionality for stuck assets
  * - **Message Encoding/Decoding**: Utilities for encoding and decoding cross-chain messages
+ * - **ERC165 Support**: Reports `IBridgeAdapter` and `IERC165` interfaces for runtime validation
  *
  * @dev This contract is abstract and must be extended by concrete bridge implementations
  */
@@ -39,8 +60,7 @@ abstract contract BaseBridgeAdapter is
     TokenRecovery,
     ProtocolFeeTokenHandler,
     IERC165,
-    IBaseBridgeAdapterErrors,
-    IBaseBridgeAdapterEvents
+    IBaseBridgeAdapter
 {
     uint16 public immutable THIS_CHAIN;
 
@@ -144,7 +164,9 @@ abstract contract BaseBridgeAdapter is
                             PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual returns (bool) {
         return (interfaceId == type(IBridgeAdapter).interfaceId ||
             interfaceId == type(IERC165).interfaceId);
     }
