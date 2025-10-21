@@ -18,8 +18,6 @@ import {Bytes32AddressLib} from "solmate/src/utils/Bytes32AddressLib.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
@@ -33,7 +31,6 @@ contract LayerZeroAdapter is
     BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.UintSet;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -80,9 +77,12 @@ contract LayerZeroAdapter is
             revert ArrayLengthMismatch();
 
         // Setup chain ID to LayerZero EID mappings using base functionality
-        for (uint256 i = 0; i < _endpointChains.length; i++) {
+        for (uint256 i = 0; i < _endpointChains.length; ) {
             if (_endpointIds[i] == 0) revert InvalidEndpointId();
             _mapChainExternalId(_endpointChains[i], _endpointIds[i]);
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -105,26 +105,33 @@ contract LayerZeroAdapter is
         address,
         bytes calldata
     ) internal override {
-        if (_payload.length >= 2) {
-            // Decode the payload to extract operation type and data
-            (
-                BridgeTypes.OperationType operationType,
-                bytes memory data
-            ) = _decodePayload(_payload);
-            if (operationType == BridgeTypes.OperationType.MESSAGE) {
-                _relayMessage(_origin, data);
-            } else {
-                revert UnsupportedMessageType();
-            }
+        // Payload must contain at least 2 bytes for operation type prefix
+        if (_payload.length < 2) {
+            revert UnsupportedMessageType();
+        }
+
+        // Decode the payload to extract operation type and data
+        (
+            BridgeTypes.OperationType operationType,
+            bytes memory data
+        ) = _decodePayload(_payload);
+
+        if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            _relayMessage(_origin, data);
         } else {
             revert UnsupportedMessageType();
         }
     }
 
     /**
-     * @dev Handles messages from LayerZero operations
-     * @param _origin Source chain information
-     * @param _payload Message payload
+     * @notice Handles incoming messages from LayerZero operations
+     * @dev Implements a two-layer security model for message validation:
+     *      1. Chain ID validation: Ensures the external endpoint ID maps to the expected source chain
+     *      2. Peer validation: Ensures the source adapter address is registered as a trusted peer in the CrossChainRegistry
+     *      This defense-in-depth approach protects against misconfigured endpoints and unauthorized adapters.
+     *      LayerZero's Origin.sender is the remote OApp address cryptographically proven by DVNs.
+     * @param _origin Source chain information from LayerZero (includes srcEid and sender address)
+     * @param _payload Decoded message payload containing RelayedMessageParams
      */
     function _relayMessage(
         Origin calldata _origin,
@@ -139,14 +146,15 @@ contract LayerZeroAdapter is
         // Defense-in-depth: bind the source OApp identity to the registry-declared peer.
         // LayerZero's Origin.sender is the remote OApp address proven by DVNs.
         // Ensure governance has registered that OApp as our peer for the source chain.
+        address srcAdapter = Bytes32AddressLib.fromLast20Bytes(_origin.sender);
         if (
             !_validateTrustedSource(
-                Bytes32AddressLib.fromLast20Bytes(_origin.sender),
+                srcAdapter,
                 relayedMessageParams.sourceChainId
             )
         ) {
             revert UntrustedSourceAdapter(
-                Bytes32AddressLib.fromLast20Bytes(_origin.sender),
+                srcAdapter,
                 relayedMessageParams.sourceChainId
             );
         }
