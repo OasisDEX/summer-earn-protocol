@@ -6,18 +6,15 @@ import {
   InstitutionWhitelistContracts,
   InstitutionWhitelistModule,
 } from '../ignition/modules/institution-whitelist'
+import { BaseConfig } from '../types/config-types'
+import { ADDRESS_ZERO } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import {
-  getInstitutionRootDir,
   promptForInstitutionId,
   updateInstitutionDeployedContracts,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { AddressSchema } from './helpers/zod-schemas'
-import fs from 'node:fs'
-import path from 'node:path'
-import { BaseConfig } from '../types/config-types'
-import { ADDRESS_ZERO, ZERO_STRING } from './common/constants'
 
 async function main() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
@@ -100,7 +97,9 @@ async function main() {
 
     const alreadyExists = (await registry.read.exists([institutionBytes32])) as boolean
     if (alreadyExists) {
-      console.log(kleur.yellow('Institution already registered in registry. Skipping registration.'))
+      console.log(
+        kleur.yellow('Institution already registered in registry. Skipping registration.'),
+      )
       return
     }
 
@@ -123,7 +122,7 @@ async function main() {
         configurationManager: deployed.configurationManager.address,
         protocolAccessManager: deployed.protocolAccessManager.address,
         admiralsQuarters: deployed.admiralsQuarters.address,
-        active:true
+        active: true,
       },
     ])
     await publicClient.waitForTransactionReceipt({ hash })
