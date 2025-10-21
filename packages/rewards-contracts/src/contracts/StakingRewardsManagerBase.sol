@@ -287,10 +287,11 @@ abstract contract StakingRewardsManagerBase is
         emit RewardTokenRemoved(address(rewardToken));
     }
 
+    /// @inheritdoc IStakingRewardsManagerBase
     function rescueToken(
         address _token,
         address _to
-    ) external virtual onlyGovernor {
+    ) public virtual onlyGovernor {
         // Sweep entire token balance to the target; used for emergency recovery only
         IERC20(_token).safeTransfer(
             _to,
