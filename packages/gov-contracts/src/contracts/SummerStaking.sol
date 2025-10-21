@@ -213,7 +213,14 @@ contract SummerStaking is
     }
 
     ///  @inheritdoc ISummerStaking
-    function rescueToken(address _token, address _to) external onlyGovernor {
+    function rescueToken(
+        address _token,
+        address _to
+    )
+        external
+        override(StakingRewardsManagerBase, ISummerStaking)
+        onlyGovernor
+    {
         if (_token == address(WRAPPED_SUMMER_TOKEN)) {
             revert Staking_InvalidAddress("Cannot rescue wrapped summer token");
         }
