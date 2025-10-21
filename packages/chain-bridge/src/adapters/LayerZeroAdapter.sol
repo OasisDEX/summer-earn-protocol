@@ -207,10 +207,6 @@ contract LayerZeroAdapter is
         onlyRouter
         nonReentrant
     {
-        if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
-            revert OperationNotSupported();
-        }
-
         address oft = oftForToken[params.asset];
         if (oft == address(0)) revert UnsupportedAsset();
         if (params.amount == 0) revert InvalidParams();
@@ -283,10 +279,6 @@ contract LayerZeroAdapter is
         onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
-            revert OperationNotSupported();
-        }
-
         address oft = oftForToken[params.asset];
         if (oft == address(0)) revert UnsupportedAsset();
         if (params.amount == 0) revert InvalidParams();
