@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {ICrossChainConfigManaged} from "../interfaces/ICrossChainConfigManaged.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
-import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 
 /**

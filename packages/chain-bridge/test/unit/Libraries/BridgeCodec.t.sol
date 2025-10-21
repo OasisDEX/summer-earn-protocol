@@ -27,7 +27,7 @@ contract BridgeCodecTest is Test {
         harness = new BridgeCodecHarness();
     }
 
-    function test_encodePayload_addsOpPrefixAndData() public {
+    function test_encodePayload_addsOpPrefixAndData() public view {
         bytes memory data = hex"deadbeef";
         bytes memory encoded = harness.encode(
             BridgeTypes.OperationType.READ_STATE,
@@ -46,7 +46,7 @@ contract BridgeCodecTest is Test {
         assertEq(decodedData, data);
     }
 
-    function test_decodePayload_success_paths() public {
+    function test_decodePayload_success_paths() public view {
         bytes memory data = hex"010203";
 
         // MESSAGE

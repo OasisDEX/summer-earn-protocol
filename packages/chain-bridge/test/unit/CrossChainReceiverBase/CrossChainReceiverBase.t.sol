@@ -135,18 +135,18 @@ contract CrossChainReceiverBaseTest is Test {
     /*                    supportsInterface & supported types                      */
     /* -------------------------------------------------------------------------- */
 
-    function test_supportsInterface_true_for_receiver_and_erc165() public {
+    function test_supportsInterface_true_for_receiver_and_erc165() public view {
         assertTrue(
             receiverAll.supportsInterface(type(ICrossChainReceiver).interfaceId)
         );
         assertTrue(receiverAll.supportsInterface(type(IERC165).interfaceId));
     }
 
-    function test_supportsInterface_false_for_unknown_interface() public {
+    function test_supportsInterface_false_for_unknown_interface() public view {
         assertFalse(receiverAll.supportsInterface(bytes4(0x12345678)));
     }
 
-    function test_getSupportedOperationTypes_returns_from_impl() public {
+    function test_getSupportedOperationTypes_returns_from_impl() public view {
         BridgeTypes.OperationType[] memory typesAll = receiverAll
             .getSupportedOperationTypes();
         assertEq(typesAll.length, 2);

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Percentage, PERCENTAGE_100, PERCENTAGE_FACTOR} from "@summerfi/percentage-solidity/Percentage.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/PercentageUtils.sol";
+import {Percentage, PERCENTAGE_FACTOR} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {Bps, BPS_FACTOR, toBps, fromBps} from "./Bps.sol";
 
 /**

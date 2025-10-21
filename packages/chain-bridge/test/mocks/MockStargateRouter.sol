@@ -20,7 +20,6 @@ contract MockStargateRouter {
     );
 
     // Mock implementation of swap
-    /// forge-lint: disable-start(mixed-case-variable)
     function swap(
         uint16 _dstChainId,
         uint256 _srcPoolId,
@@ -50,7 +49,6 @@ contract MockStargateRouter {
         // Return a mock value (e.g., nonce)
         return 12345;
     }
-    /// forge-lint: disable-end(mixed-case-variable)
 
     // Mock implementation of quoteLayerZeroFee
     function quoteLayerZeroFee(

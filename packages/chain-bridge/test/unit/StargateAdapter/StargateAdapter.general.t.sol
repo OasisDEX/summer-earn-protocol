@@ -4,13 +4,12 @@ pragma solidity 0.8.28;
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
-import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {MockStargateV2Pool} from "../../mocks/MockStargateV2.sol";
 import {MockStargateV2OFT} from "../../mocks/MockStargateV2.sol";
 import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {ICrossChainRegistry} from "../../../src/interfaces/ICrossChainRegistry.sol";
 import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
+import {IStargateAdapter} from "../../../src/interfaces/IStargateAdapter.sol";
 
 contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     bytes32 testTransferId = bytes32(uint256(12345));
@@ -32,6 +31,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
     function testSupportsChain_ReturnsTrueForConfiguredPeer_OtherwiseRevertsOnLookup()
         public
+        view
     {
         assertTrue(
             registryA.isValidAdapterPeer(
@@ -123,9 +123,11 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.startPrank(governor);
 
         // First unregister the existing peer relationship for CHAIN_ID_B
-        registryA.unregisterRelationship(
+        // Since PEER_RELATIONSHIP is bijective, we need to use pair unregistration
+        registryA.unregisterAdapterPeerPair(
             address(adapterA),
-            registryA.PEER_RELATIONSHIP(),
+            address(adapterB),
+            CHAIN_ID_A,
             CHAIN_ID_B
         );
 
@@ -143,7 +145,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.stopPrank();
 
         // Verify the endpoint was configured
-        assertEq(adapterA.getEndpointId(newChainId), newEndpointId);
+        assertEq(adapterA.chainToExternalId(newChainId), newEndpointId);
 
         // Verify the peer relationship was established
         assertEq(
@@ -233,14 +235,13 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Try to add address(0) as an asset
         vm.prank(governor);
-        vm.expectRevert(StargateAdapter.InvalidAssetAddress.selector);
+        vm.expectRevert(IStargateAdapter.InvalidAssetAddress.selector);
         adapterA.addSupportedAsset(address(0), address(mockStargateContract));
     }
-
     function testAddSupportedAsset_RevertsOnZeroStargateAddress() public {
         useNetworkA();
         vm.prank(governor);
-        vm.expectRevert(StargateAdapter.InvalidStargateContract.selector);
+        vm.expectRevert(IStargateAdapter.InvalidStargateContract.selector);
         adapterA.addSupportedAsset(address(tokenA), address(0));
     }
 
@@ -249,7 +250,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Deploy a Stargate OFT-type mock (not Pool)
         MockStargateV2OFT wrongType = new MockStargateV2OFT(address(tokenA));
         vm.prank(governor);
-        vm.expectRevert(StargateAdapter.InvalidStargateType.selector);
+        vm.expectRevert(IStargateAdapter.InvalidStargateType.selector);
         adapterA.addSupportedAsset(address(tokenA), address(wrongType));
     }
 
@@ -265,7 +266,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                StargateAdapter.InvalidStargatePoolToken.selector,
+                IStargateAdapter.InvalidStargatePoolToken.selector,
                 address(tokenA),
                 address(otherToken)
             )

@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ITokenRecovery} from "../interfaces/ITokenRecovery.sol";
 
 /**
  * @title TokenRecovery
@@ -13,24 +14,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
  *      to recover stuck tokens (ETH or ERC20). Access control is handled through
  *      abstract functions that must be implemented by derived contracts.
  */
-abstract contract TokenRecovery is ReentrancyGuard {
+abstract contract TokenRecovery is ReentrancyGuard, ITokenRecovery {
     using SafeERC20 for IERC20;
-
-    /// @notice Emitted when stuck tokens are recovered via sweep
-    event TokensRecovered(
-        address indexed asset,
-        uint256 amount,
-        address indexed recipient
-    );
-
-    /// @notice Thrown when the contract has insufficient balance
-    error InsufficientBalance();
-
-    /// @notice Thrown when a native token transfer fails
-    error FailedCall();
-
-    /// @notice Thrown when invalid parameters are provided
-    error InvalidRecoveryParams();
 
     /**
      * @notice Recover tokens held by this contract

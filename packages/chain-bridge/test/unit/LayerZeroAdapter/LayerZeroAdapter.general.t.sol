@@ -1,17 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {LayerZeroAdapter} from "../../../src/adapters/LayerZeroAdapter.sol";
-
 import {ICrossChainRegistry} from "../../../src/interfaces/ICrossChainRegistry.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
-import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
-import {Errors} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Errors.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
@@ -29,7 +25,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         assertEq(supportedChains[0], CHAIN_ID_B);
     }
 
-    function testSupportsChain() public {
+    function testSupportsChain() public view {
         // First check still works
         assertTrue(
             adapterA.CROSS_CHAIN_REGISTRY().getAdapterPeer(
@@ -89,7 +85,9 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             msgValue: 0,
             calldataSize: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         // Call estimateSendMessage directly on the adapter
@@ -120,16 +118,17 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         );
     }
 
-    // Note: Role enforcement for activating the read channel is covered elsewhere via access manager tests
     function test_supportsMessageOperation_false_when_chain_unmapped()
         public
         view
     {
-        bool supported = adapterA.supportsMessageOperation(
-            9999,
-            BridgeTypes.OperationType.MESSAGE
+        // Test with an unmapped chain ID
+        assertFalse(
+            adapterA.supportsMessageOperation(
+                999, // Unmapped chain
+                BridgeTypes.OperationType.MESSAGE
+            )
         );
-        assertFalse(supported);
     }
 
     function test_supportsMessageOperation_false_when_unsupported_operation()
@@ -152,7 +151,6 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
         adapterA.estimateTransferAssets(
             BridgeTypes.ExecuteTransferParams({
-                originator: address(this),
                 destinationChainId: CHAIN_ID_B,
                 target: address(this),
                 asset: address(0), // Unsupported asset
@@ -160,34 +158,33 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                 message: bytes(""),
                 refundAddress: address(this)
             }),
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(adapterA),
-                gasLimit: 100000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            })
+            options
         );
     }
 
     function test_estimateSendMessage_reverts_when_gasLimit_zero() public {
         useNetworkA();
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 0, // Zero gas limit should cause revert
+            calldataSize: 0,
+            msgValue: 0,
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeTokenAmount: 0
+        });
+
         vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         adapterA.estimateSendMessage(
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: CHAIN_ID_B,
                 target: address(0x1234),
-                message: bytes("hi"),
+                message: abi.encode("test"),
                 originator: address(this),
                 refundAddress: address(this)
             }),
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(adapterA),
-                gasLimit: 0,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            })
+            options
         );
     }
 
@@ -197,17 +194,17 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
     function test_receive_reverts_on_invalid_source_chain_id() public {
         useNetworkA();
-        bytes32 guid = keccak256("guid");
-        // Payload indicates sourceChainId = CHAIN_ID_A (wrong), while origin srcEid maps to CHAIN_ID_B
+
+        // Create a payload with MESSAGE type
         bytes memory payload = abi.encodePacked(
             uint16(BridgeTypes.OperationType.MESSAGE),
             abi.encode(
                 BridgeTypes.RelayedMessageParams({
-                    operationId: guid,
+                    operationId: bytes32(uint256(1)),
                     originator: address(this),
-                    sourceChainId: CHAIN_ID_A,
+                    sourceChainId: uint16(999), // Invalid source chain ID
                     recipient: address(this),
-                    message: bytes("x")
+                    message: abi.encode("test")
                 })
             )
         );
@@ -221,7 +218,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         vm.expectRevert(IBaseBridgeAdapterErrors.InvalidSourceChainId.selector);
         adapterA.lzReceiveTest(
             origin,
-            guid,
+            bytes32(uint256(1)),
             payload,
             address(adapterB),
             bytes("")
@@ -230,33 +227,39 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
     function test_receive_reverts_when_sender_untrusted() public {
         useNetworkA();
-        bytes32 guid = keccak256("guid2");
+
+        // Create a payload with MESSAGE type
         bytes memory payload = abi.encodePacked(
             uint16(BridgeTypes.OperationType.MESSAGE),
             abi.encode(
                 BridgeTypes.RelayedMessageParams({
-                    operationId: guid,
+                    operationId: bytes32(uint256(1)),
                     originator: address(this),
-                    sourceChainId: CHAIN_ID_B,
+                    sourceChainId: uint16(CHAIN_ID_B),
                     recipient: address(this),
-                    message: bytes("y")
+                    message: abi.encode("test")
                 })
             )
         );
 
-        // Use a wrong sender (not the registered peer for B)
         Origin memory origin = Origin({
             srcEid: LZ_EID_B,
-            sender: addressToBytes32(address(adapterA)),
+            sender: addressToBytes32(address(0x1234)), // Untrusted sender
             nonce: 1
         });
 
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.UntrustedSourceAdapter.selector,
+                address(0x1234),
+                CHAIN_ID_B
+            )
+        );
         adapterA.lzReceiveTest(
             origin,
-            guid,
+            bytes32(uint256(1)),
             payload,
-            address(adapterB),
+            address(0x1234),
             bytes("")
         );
     }

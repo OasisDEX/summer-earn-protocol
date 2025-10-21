@@ -220,7 +220,6 @@ async function configureDVNsAndExecutor(
   layerZeroAdapterAddress: Address,
   readLib1002Address: Address,
   readDVNs: Address[],
-  confirmations: number,
   executor: Address,
 ): Promise<void> {
   try {
@@ -233,7 +232,6 @@ async function configureDVNsAndExecutor(
     console.log(`- ReadLib1002: ${readLib1002Address}`)
     console.log(`- DVNs: ${readDVNs.join(', ')}`)
     console.log(`- Executor: ${executor}`)
-    console.log(`- Confirmations: ${confirmations}`)
 
     const hash = await walletClient.writeContract({
       address: getAddress(layerZeroAdapterAddress),
@@ -242,7 +240,6 @@ async function configureDVNsAndExecutor(
           inputs: [
             { internalType: 'address', name: 'readLib1002Address', type: 'address' },
             { internalType: 'address[]', name: 'readDVNs', type: 'address[]' },
-            { internalType: 'uint64', name: 'confirmations', type: 'uint64' },
             { internalType: 'address', name: 'executor', type: 'address' },
           ],
           name: 'configureReadDVNs',
@@ -252,7 +249,7 @@ async function configureDVNsAndExecutor(
         },
       ] as const,
       functionName: 'configureReadDVNs',
-      args: [readLib1002Address, readDVNs, confirmations, executor],
+      args: [readLib1002Address, readDVNs, executor],
     })
     console.log(kleur.green(`Read DVNs and executor configured successfully, tx: ${hash}`))
 
@@ -431,12 +428,7 @@ export async function configureLayerZeroAdapter(
   }
 
   // Step 3: Configure DVNs and executor
-  if (
-    chainConfig.readLib1002 &&
-    chainConfig.readDVNs &&
-    chainConfig.executor &&
-    chainConfig.confirmations
-  ) {
+  if (chainConfig.readLib1002 && chainConfig.readDVNs && chainConfig.executor) {
     await configureDVNsAndExecutor(
       layerZeroAdapter,
       walletClient,
@@ -444,7 +436,6 @@ export async function configureLayerZeroAdapter(
       layerZeroAdapterAddress,
       chainConfig.readLib1002,
       chainConfig.readDVNs,
-      chainConfig.confirmations,
       chainConfig.executor,
     )
   } else {
@@ -452,7 +443,6 @@ export async function configureLayerZeroAdapter(
     if (!chainConfig.readLib1002) console.log(kleur.yellow('  - Missing readLib1002'))
     if (!chainConfig.readDVNs) console.log(kleur.yellow('  - Missing readDVNs'))
     if (!chainConfig.executor) console.log(kleur.yellow('  - Missing executor'))
-    if (!chainConfig.confirmations) console.log(kleur.yellow('  - Missing confirmations'))
   }
 
   // Step 4: Set minimum gas limits

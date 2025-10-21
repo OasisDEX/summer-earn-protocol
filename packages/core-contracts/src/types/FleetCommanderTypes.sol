@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 
-import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
@@ -20,6 +19,7 @@ struct FleetCommanderParams {
     uint256 initialRebalanceCooldown;
     uint256 depositCap;
     Percentage initialTipRate;
+    Percentage initialWithdrawalFee;
 }
 
 /**
@@ -54,9 +54,16 @@ struct FleetConfig {
      */
     uint256 maxRebalanceOperations;
     /**
-     * @notice The address of the staking rewards contract
+     * @notice The cooldown period between rebalance operations (in seconds)
+     * @dev This value prevents too frequent rebalancing operations
      */
-    address stakingRewardsManager;
+    uint256 rebalanceCooldown;
+    /**
+     * @notice The withdrawal fee percentage applied to user withdrawals
+     * @dev This fee serves as MEV/flash loan attack protection and benefits remaining vault participants
+     *      Recommended value is 0.025% based on protecting against arbitrage on a 5% APY over ~48 hours
+     */
+    Percentage withdrawalFee;
 }
 
 /**

@@ -36,7 +36,7 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
     function getAllTargetsForSource(
         address,
         bytes32
-    ) external view returns (address[] memory, uint16[] memory) {
+    ) external pure returns (address[] memory, uint16[] memory) {
         address[] memory a;
         uint16[] memory b;
         return (a, b);
@@ -46,7 +46,7 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         uint16,
         address,
         bytes32
-    ) external view returns (address) {
+    ) external pure returns (address) {
         return address(0);
     }
     function isValidCrossChainPair(
@@ -55,13 +55,13 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         uint16,
         uint16,
         bytes32
-    ) external view returns (bool) {
+    ) external pure returns (bool) {
         return false;
     }
     function getRelationship(
         address,
         bytes32
-    ) external view returns (CrossChainRelation memory) {
+    ) external pure returns (CrossChainRelation memory) {
         return
             CrossChainRelation({
                 sourceContract: address(0),
@@ -75,7 +75,7 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         address,
         bytes32,
         uint16
-    ) external view returns (CrossChainRelation memory) {
+    ) external pure returns (CrossChainRelation memory) {
         return
             CrossChainRelation({
                 sourceContract: address(0),
@@ -87,29 +87,29 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
     }
     function getRegisteredSourceContracts(
         bytes32
-    ) external view returns (address[] memory) {
+    ) external pure returns (address[] memory) {
         address[] memory a;
         return a;
     }
     function isSourceContractRegistered(
         address,
         bytes32
-    ) external view returns (bool) {
+    ) external pure returns (bool) {
         return false;
     }
-    function getRelationshipCount(bytes32) external view returns (uint256) {
+    function getRelationshipCount(bytes32) external pure returns (uint256) {
         return 0;
     }
     function getSupportedRelationshipTypes()
         external
-        view
+        pure
         returns (bytes32[] memory)
     {
         bytes32[] memory a;
         return a;
     }
     function addSupportedRelationshipType(bytes32) external {}
-    function currentChainId() external view returns (uint16) {
+    function currentChainId() external pure returns (uint16) {
         return 0;
     }
     function getAdapterPeer(
@@ -126,12 +126,13 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
     ) external {
         _adapterPeers[adapter][chainId] = peer;
     }
+
     function isValidAdapterPeer(
         address,
         address,
         uint16,
         uint16
-    ) external view returns (bool) {
+    ) external pure returns (bool) {
         return false;
     }
 

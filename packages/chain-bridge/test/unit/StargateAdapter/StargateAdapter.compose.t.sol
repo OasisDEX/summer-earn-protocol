@@ -2,16 +2,11 @@
 pragma solidity 0.8.28;
 
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
-import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {MockStargateV2Pool} from "../../mocks/MockStargateV2.sol";
-import {console} from "forge-std/Test.sol";
 import {StargateOFTHelpers} from "../../helpers/StargateOFT.t.sol";
 import {MockFleetProxy} from "../../mocks/MockFleetProxy.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
-import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
-import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
-import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {LayerZeroComposeHelper} from "../../../src/helpers/LayerZeroComposeHelper.sol";
@@ -199,7 +194,9 @@ contract StargateAdapterComposeTest is
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         // Estimate fee

@@ -22,7 +22,9 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         bytes memory message = abi.encode("Hello Cross-Chain!");
@@ -42,7 +44,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         // 2. Execute the operation
         vm.startPrank(keeper);
 
-        bytes32 operationId = router.executeSendMessage{value: nativeFee}(
+        router.executeSendMessage{value: nativeFee}(
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: DEST_CHAIN_ID,
                 target: user,
@@ -66,7 +68,9 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             gasLimit: 500000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateSendMessage(
@@ -111,7 +115,9 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             gasLimit: 500000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         // Direct call should fail (not from router)
@@ -143,7 +149,9 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             gasLimit: 500000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter

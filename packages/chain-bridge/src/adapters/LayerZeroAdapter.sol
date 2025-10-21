@@ -5,6 +5,7 @@ import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
+import {ILayerZeroAdapter} from "../interfaces/ILayerZeroAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
@@ -36,6 +37,7 @@ contract LayerZeroAdapter is
     IBridgeAdapter,
     IAssetAdapter,
     ILayerZeroComposer,
+    ILayerZeroAdapter,
     BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
@@ -70,6 +72,10 @@ contract LayerZeroAdapter is
     mapping(address token => address oft) public oftForToken;
 
     event OftSet(address indexed token, address indexed oft);
+    /// @notice Governance cap for number of DVNs allowed in read config
+    /// @dev Practical deployments typically use a small DVN set (e.g. 1-3).
+    ///      This cap avoids overly large configurations and removes magic numbers.
+    uint8 public constant MAX_SUPPORTED_DVNS = 8;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -138,14 +144,14 @@ contract LayerZeroAdapter is
     /**
      * @dev Receives messages from LayerZero
      * @param _origin Source chain information
-     * @param _guid Global unique identifier for tracking the packet
+     * @param //_guid Global unique identifier for tracking the packet
      * @param _payload Message payload
      * @param // _executor Address of the executor
      * @param // _extraData Additional data provided by the executor
      */
     function _lzReceive(
         Origin calldata _origin,
-        bytes32 _guid,
+        bytes32 /* _guid */,
         bytes calldata _payload,
         address,
         bytes calldata
@@ -391,13 +397,46 @@ contract LayerZeroAdapter is
 
         // Send message through OApp's _lzSend
         // Use params.refundAddress which is set to the keeper who initiated the transaction
-        MessagingReceipt memory receipt = _lzSend(
-            lzDstEid,
-            payload,
-            lzOptions,
-            EndpointFee(msg.value, 0),
-            payable(params.refundAddress)
-        );
+        MessagingReceipt memory receipt;
+        if (options.payInProtocolToken) {
+            EndpointFee memory quoted = _quote(
+                lzDstEid,
+                payload,
+                lzOptions,
+                true
+            );
+            if (quoted.nativeFee != 0)
+                revert InsufficientMsgValue(0, quoted.nativeFee);
+            uint256 tokenFeeRequired = quoted.lzTokenFee;
+
+            _collectProtocolTokenFee(
+                operationId,
+                params.refundAddress,
+                tokenFeeRequired
+            );
+            _ensureSufficientAllowance(tokenFeeRequired, address(endpoint));
+
+            receipt = _lzSend(
+                lzDstEid,
+                payload,
+                lzOptions,
+                EndpointFee(0, tokenFeeRequired),
+                payable(params.refundAddress)
+            );
+            emit ProtocolFeeSpent(
+                operationId,
+                protocolFeeToken,
+                tokenFeeRequired
+            );
+        } else {
+            receipt = _lzSend(
+                lzDstEid,
+                payload,
+                lzOptions,
+                EndpointFee(msg.value, 0),
+                payable(params.refundAddress)
+            );
+        }
 
         // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[receipt.guid] = operationId;

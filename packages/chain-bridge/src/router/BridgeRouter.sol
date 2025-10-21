@@ -18,6 +18,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 /**
@@ -231,37 +232,15 @@ contract BridgeRouter is
     }
 
     /**
-     * @dev Internal function to generate a unique operation ID and set initial status
-     * @param operationType Type of operation being performed
-     * @param destinationChainId Target chain ID
-     * @param asset Asset address (address(0) for non-asset operations)
-     * @param amount Amount (0 for non-asset operations)
-     * @param target Recipient address
-     * @param additionalData Additional data for ID generation (contract address, selector, etc.)
+     * @dev Internal function to generate a unique operation ID
      * @return operationId The generated operation ID
      */
-    function _generateOperationId(
-        BridgeTypes.OperationType operationType,
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        address target,
-        bytes memory additionalData
-    ) internal returns (bytes32 operationId) {
+    function _generateOperationId() internal returns (bytes32 operationId) {
         // Use nonce for better uniqueness and collision resistance
         uint256 currentNonce = _useNonce(address(this));
 
         operationId = keccak256(
-            abi.encode(
-                block.chainid,
-                destinationChainId,
-                asset,
-                amount,
-                target,
-                additionalData,
-                currentNonce,
-                operationType
-            )
+            abi.encode(block.chainid, currentNonce, address(this))
         );
 
         return operationId;
@@ -404,14 +383,7 @@ contract BridgeRouter is
         IERC20(params.asset).forceApprove(specifiedAdapter, params.amount);
 
         // Generate the operation ID ONCE - Router is the source of truth
-        operationId = _generateOperationId(
-            BridgeTypes.OperationType.TRANSFER_ASSET,
-            params.destinationChainId,
-            params.asset,
-            params.amount,
-            params.target,
-            abi.encode(params.originator) // Additional data for uniqueness
-        );
+        operationId = _generateOperationId();
 
         // Call adapter with the full msg.value
         IAssetAdapter(specifiedAdapter).transferAsset{value: msg.value}(
@@ -457,14 +429,7 @@ contract BridgeRouter is
         address specifiedAdapter = options.specifiedAdapter;
 
         // Generate the operation ID ONCE - Router is the source of truth
-        operationId = _generateOperationId(
-            BridgeTypes.OperationType.MESSAGE,
-            params.destinationChainId,
-            address(0), // No asset
-            0, // No amount
-            params.target,
-            abi.encode(params.message, params.originator)
-        );
+        operationId = _generateOperationId();
 
         // Call adapter with the full msg.value
         IMessageAdapter(specifiedAdapter).sendMessage{value: msg.value}(
@@ -723,8 +688,7 @@ contract BridgeRouter is
         if (token == address(0)) {
             // Recover native ETH
             if (address(this).balance < amount) revert InsufficientBalance();
-            (bool success, ) = recipient.call{value: amount}("");
-            if (!success) revert TransferFailed();
+            Address.sendValue(payable(recipient), amount);
         } else {
             // Recover ERC20 using SafeERC20
             IERC20(token).safeTransfer(recipient, amount);

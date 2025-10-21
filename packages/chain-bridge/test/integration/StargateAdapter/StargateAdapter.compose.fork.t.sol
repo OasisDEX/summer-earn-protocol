@@ -11,7 +11,6 @@ import {MockFleetProxy} from "../../mocks/MockFleetProxy.sol";
 import {MockStargateV2Pool} from "../../mocks/MockStargateV2.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 
 /**
@@ -280,11 +279,11 @@ contract StargateAdapterComposeForkTest is Test {
 
         // Test endpoint ID mapping
         assertEq(
-            adapterMainnet.getEndpointId(CHAIN_ID_MAINNET),
+            adapterMainnet.chainToExternalId(CHAIN_ID_MAINNET),
             LZ_EID_MAINNET
         );
         assertEq(
-            adapterMainnet.getEndpointId(CHAIN_ID_ARBITRUM),
+            adapterMainnet.chainToExternalId(CHAIN_ID_ARBITRUM),
             LZ_EID_ARBITRUM
         );
     }

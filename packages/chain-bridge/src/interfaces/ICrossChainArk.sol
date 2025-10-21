@@ -52,6 +52,12 @@ interface ICrossChainArk {
     /// @notice Thrown when there are pending transfer params already queued.
     error PendingTransferAlreadyQueued();
 
+    /// @notice Error thrown when the sender is invalid
+    error InvalidSender();
+
+    /// @notice Error thrown when trying to start a new outbound while inflight > 0
+    error InFlight();
+
     /// @notice Emitted when a message is not expected
     event MessageContentNotExpected();
 
@@ -87,4 +93,7 @@ interface ICrossChainArk {
         bytes32 latestTransferReceivedInFleetProxy,
         bytes32 latestOutgoingTransferId
     );
+
+    /// @notice Emitted when a stale balance notification is rejected.
+    event StaleNotification(uint256 receivedTimestamp, uint256 lastTimestamp);
 }

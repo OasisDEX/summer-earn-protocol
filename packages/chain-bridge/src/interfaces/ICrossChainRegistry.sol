@@ -119,6 +119,9 @@ interface ICrossChainRegistry {
         address existingSourceContract
     );
 
+    /// @notice Thrown when trying to use singular registration methods for bijective relationship types
+    error UsePairRegistrationMethods(bytes32 relationshipType);
+
     /*//////////////////////////////////////////////////////////////
                             CONSTANTS GETTERS
     //////////////////////////////////////////////////////////////*/

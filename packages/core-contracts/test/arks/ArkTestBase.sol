@@ -18,7 +18,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
-import {FleetCommanderRewardsManagerFactory} from "../../src/contracts/FleetCommanderRewardsManagerFactory.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
@@ -26,7 +26,6 @@ import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 import {Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract ArkTestBase is TestHelpers {
     uint256 constant INITIAL_REBALANCE_COOLDOWN = 1000;
@@ -51,8 +50,6 @@ contract ArkTestBase is TestHelpers {
     ProtocolAccessManager public accessManager;
     ConfigurationManager public configurationManager;
     HarborCommand public harborCommand;
-    FleetCommanderRewardsManagerFactory
-        public fleetCommanderRewardsManagerFactory;
 
     function initializeCoreContracts() internal {
         mockToken = new ERC20Mock();
@@ -63,9 +60,6 @@ contract ArkTestBase is TestHelpers {
         }
         if (address(harborCommand) == address(0)) {
             harborCommand = new HarborCommand(address(accessManager));
-        }
-        if (address(fleetCommanderRewardsManagerFactory) == address(0)) {
-            fleetCommanderRewardsManagerFactory = new FleetCommanderRewardsManagerFactory();
         }
         if (address(raft) == address(0) || address(raft) == address(2)) {
             raft = address(new Raft(address(accessManager)));
@@ -80,10 +74,7 @@ contract ArkTestBase is TestHelpers {
                     tipJar: tipJar,
                     raft: raft,
                     treasury: treasury,
-                    harborCommand: address(harborCommand),
-                    fleetCommanderRewardsManagerFactory: address(
-                        fleetCommanderRewardsManagerFactory
-                    )
+                    harborCommand: address(harborCommand)
                 })
             );
         }
@@ -107,7 +98,8 @@ contract ArkTestBase is TestHelpers {
                 details: "TestArk details",
                 symbol: "TEST-SUM",
                 initialTipRate: toPercentage(0),
-                depositCap: type(uint256).max
+                depositCap: type(uint256).max,
+                initialWithdrawalFee: Percentage.wrap(0)
             });
         FleetCommander fleetCommander = new FleetCommander(
             fleetCommanderParams
@@ -135,7 +127,8 @@ contract ArkTestBase is TestHelpers {
                 details: "TestArk details",
                 symbol: "TEST-SUM",
                 initialTipRate: initialTipRate,
-                depositCap: type(uint256).max
+                depositCap: type(uint256).max,
+                initialWithdrawalFee: Percentage.wrap(0)
             });
         FleetCommander fleetCommander = new FleetCommander(
             fleetCommanderParams

@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
-import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {Test} from "forge-std/Test.sol";
 

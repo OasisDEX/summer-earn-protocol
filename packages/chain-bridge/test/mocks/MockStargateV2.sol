@@ -94,10 +94,14 @@ contract MockStargateV2Pool is IStargateV2 {
 
     function quoteSend(
         SendParam calldata,
-        bool
+        bool payInToken
     ) external pure returns (MessagingFee memory msgFee) {
-        // Return a mock fee
-        msgFee = MessagingFee({nativeFee: 0.01 ether, lzTokenFee: 0});
+        // Return different fees based on payment method
+        if (payInToken) {
+            msgFee = MessagingFee({nativeFee: 0, lzTokenFee: 1000e18});
+        } else {
+            msgFee = MessagingFee({nativeFee: 0.01 ether, lzTokenFee: 0});
+        }
     }
 
     /// forge-lint: disable-next-item(mixed-case-function)
@@ -206,10 +210,14 @@ contract MockStargateV2OFT is IStargateV2 {
 
     function quoteSend(
         SendParam calldata,
-        bool
+        bool payInToken
     ) external pure returns (MessagingFee memory msgFee) {
-        // Return a mock fee
-        msgFee = MessagingFee({nativeFee: 0.01 ether, lzTokenFee: 0});
+        // Return different fees based on payment method
+        if (payInToken) {
+            msgFee = MessagingFee({nativeFee: 0, lzTokenFee: 1000e18});
+        } else {
+            msgFee = MessagingFee({nativeFee: 0.01 ether, lzTokenFee: 0});
+        }
     }
 
     /// forge-lint: disable-next-item(mixed-case-function)

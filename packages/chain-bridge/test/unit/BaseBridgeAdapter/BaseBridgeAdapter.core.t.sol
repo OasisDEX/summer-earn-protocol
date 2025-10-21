@@ -128,7 +128,7 @@ contract BaseBridgeAdapterCoreTest is Test {
     }
 
     // -------- supportsInterface --------
-    function testSupportsInterface() public {
+    function testSupportsInterface() public view {
         assertTrue(
             adapterA.supportsInterface(type(IBridgeAdapter).interfaceId)
         );
@@ -196,7 +196,7 @@ contract BaseBridgeAdapterCoreTest is Test {
         adapterA.exposed_requireGasLimit(0);
     }
 
-    function testRequireGasLimit_ReturnsValue() public {
+    function testRequireGasLimit_ReturnsValue() public view {
         assertEq(adapterA.exposed_requireGasLimit(1234), 1234);
     }
 
@@ -265,12 +265,12 @@ contract BaseBridgeAdapterCoreTest is Test {
         adapterA.exposed_validateSourceChainId(100, 200);
     }
 
-    function testAssertSourceChainId_PassOnMatch() public {
+    function testAssertSourceChainId_PassOnMatch() public view {
         adapterA.exposed_validateSourceChainId(123, 123);
     }
 
     // -------- Encode/Decode helpers --------
-    function testEncodeDecode_Message_WithType() public {
+    function testEncodeDecode_Message_WithType() public view {
         BridgeTypes.RelayedMessageParams memory p = BridgeTypes
             .RelayedMessageParams({
                 operationId: keccak256("op1"),
@@ -298,7 +298,7 @@ contract BaseBridgeAdapterCoreTest is Test {
         assertEq(decoded.message, p.message);
     }
 
-    function testEncodeDecode_Transfer_WithType() public {
+    function testEncodeDecode_Transfer_WithType() public view {
         BridgeTypes.RelayedTransferParams memory p = BridgeTypes
             .RelayedTransferParams({
                 operationId: keccak256("op2"),

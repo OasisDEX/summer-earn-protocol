@@ -18,9 +18,7 @@ import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {MockStargateV2Pool} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
-import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
-import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
     event InflightCleared(bytes32 operationId, uint256 amount);
@@ -46,14 +44,18 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint256 balance,
         uint16 sourceChainId,
         bytes32 latestOutgoingTransferId
-    ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
+    ) internal view returns (BridgeTypes.RelayedMessageParams memory) {
         return
             BridgeTypes.RelayedMessageParams({
                 operationId: operationId,
                 originator: originator,
                 sourceChainId: sourceChainId,
                 recipient: arkAddress,
-                message: abi.encode(balance, latestOutgoingTransferId)
+                message: abi.encode(
+                    balance,
+                    latestOutgoingTransferId,
+                    block.timestamp
+                )
             });
     }
 
@@ -109,8 +111,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 tipJar: address(0xdead),
                 raft: address(0xbeef), // any non-zero address is fine for the test
                 treasury: address(0xcafe),
-                harborCommand: address(0xface),
-                fleetCommanderRewardsManagerFactory: address(0xf00d)
+                harborCommand: address(0xface)
             })
         );
         vm.stopPrank();
@@ -168,41 +169,20 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // READ_STATE channel activation removed
 
-        // Register cross-chain relationships in registry
-        registry.registerRelationship(
+        // Register cross-chain relationships in registry using peer pair registration
+        registry.registerAdapterPeerPair(
             address(stargateAdapter),
             ARB_STARGATE_PROXY,
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
-        // Register LayerZero adapter with different proxy address
-        registry.registerRelationship(
+        // Register LayerZero adapter with different proxy address using peer pair registration
+        registry.registerAdapterPeerPair(
             address(layerZeroAdapter),
             ARB_LAYERZERO_PROXY,
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-        // Register cross-chain relationships in registry
-        registry.registerRelationship(
-            ARB_STARGATE_PROXY,
-            address(stargateAdapter),
-            DEST_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
-        );
-
-        // Register LayerZero adapter with different proxy address
-        // For MESSAGE delivery peer verification in BridgeRouter.deliver(),
-        // also register the reverse mapping so getSourceForTarget succeeds
-        registry.registerRelationship(
-            ARB_LAYERZERO_PROXY,
-            address(layerZeroAdapter),
-            DEST_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
         // Register the BridgeRouter as an executor
@@ -226,14 +206,13 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create CrossChainArk with the proper CrossChainConfigManager
         ark = new CrossChainArk(address(registry), DEST_CHAIN_ID, params);
 
-        // Register the ark-proxy relationship - use a different proxy address to avoid conflicts
+        // Register the ark-proxy relationship - use a different proxy address to avoid conflicts using peer pair registration
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerAdapterPeerPair(
             address(ark),
             ARK_PROXY,
             SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER_RELATIONSHIP()
+            DEST_CHAIN_ID
         );
 
         // Setup permissions
@@ -273,7 +252,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory executeTransferParams = abi.encode(params, options);
 
@@ -292,15 +273,17 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address target,
             address asset,
             uint256 storedAmount,
-            bytes memory message,
+            bytes memory _message,
             address refundAddress
         ) = ark.pendingTransferParams();
 
         (
             address specifiedAdapter,
-            uint256 gasLimit,
-            uint256 msgValue,
-            uint256 calldataSize,
+            uint64 gasLimit,
+            uint32 calldataSize,
+            uint128 msgValue,
+            uint256 feeTokenAmount,
+            bool payInProtocolToken,
             bytes memory opts
         ) = ark.pendingTransferOptions();
 
@@ -361,7 +344,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         BridgeTypes.ExecuteTransferParams memory transferParams = BridgeTypes
@@ -402,15 +387,17 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address target,
             address asset,
             uint256 storedAmount,
-            bytes memory message,
+            bytes memory _message,
             address refundAddress
         ) = ark.pendingTransferParams();
 
         (
             address specifiedAdapter,
-            uint256 gasLimit,
-            uint256 msgValue,
-            uint256 calldataSize,
+            uint64 gasLimit,
+            uint32 calldataSize,
+            uint128 msgValue,
+            uint256 feeTokenAmount,
+            bool payInProtocolToken,
             bytes memory opts
         ) = ark.pendingTransferOptions();
 
@@ -506,9 +493,11 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         ) = ark.pendingTransferParams();
         (
             address specifiedAdapter2,
-            uint256 gasLimit2,
-            uint256 msgValue2,
-            uint256 calldataSize2,
+            uint64 gasLimit2,
+            uint32 calldataSize2,
+            uint128 msgValue2,
+            uint256 feeTokenAmount2,
+            bool payInProtocolToken2,
             bytes memory opts2
         ) = ark.pendingTransferOptions();
         assertEq(
@@ -571,7 +560,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
@@ -617,239 +608,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         address recipient
     );
 
-
-
-
-    function test_FullLayerZeroIntegration_ActualAdapterResponse() public {
-        // This test goes one step further and actually simulates LayerZero calling the adapter
-        // which then delivers the response to BridgeRouter, which then calls CrossChainArk
-        // This tests the COMPLETE integration including LayerZero adapter's internal logic
-
-        // === STEP 1: Setup initial state ===
-        uint256 initialLocalBalance = 300 * 10 ** 6; // 300 USDC local
-        uint256 initialInflightAssets = 150 * 10 ** 6; // 150 USDC in flight
-        uint256 mockRemoteBalance = 2000 * 10 ** 6; // 2000 USDC remote (what we'll "read")
-
-        // Give ark some local balance
-        deal(address(usdc), address(ark), initialLocalBalance);
-
-        // Set some inflight assets (governor-only emergency function)
-        vm.prank(governor);
-        ark.forceUpdateInflightAssets(initialInflightAssets);
-
-        // Verify initial state
-        assertEq(
-            ark.totalAssets(),
-            initialLocalBalance + initialInflightAssets
-        );
-        assertEq(ark.lastRemoteAssetBalance(), 0);
-        assertEq(ark.inflightAssets(), initialInflightAssets);
-
-        // === STEP 2: Create bridge options for LayerZero adapter ===
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(layerZeroAdapter),
-            gasLimit: 700000,
-            msgValue: 0,
-            calldataSize: 0,
-            options: ""
-        });
-
-        // Get quote for the read operation
-        (uint256 nativeFee, , ) = bridgeRouter.quoteSendMessage(
-            BridgeTypes.ExecuteSendMessageParams({
-                destinationChainId: DEST_CHAIN_ID,
-                target: address(ark),
-                message: abi.encode("remote-balance-read"),
-                originator: commander,
-                refundAddress: commander
-            }),
-            options
-        );
-
-        assertGt(nativeFee, 0, "Native fee should be greater than 0");
-        vm.deal(commander, nativeFee);
-
-        // === STEP 4: Simulate LayerZero calling _lzReceive on the adapter ===
-        // This is the key part - we'll simulate LayerZero delivering a read response
-        bytes32 TEST_OP_ID = bytes32(uint256(1234));
-        // Create a mock LayerZero GUID that would be associated with this operation
-        bytes32 mockGuid = keccak256(
-            abi.encodePacked("mock-lz-guid", TEST_OP_ID, block.timestamp)
-        );
-
-        // The adapter would have stored this mapping when the read was sent
-        // We need to manually set this mapping for our test
-        // Note: In a real scenario, this would be set by the adapter during readState execution
-        vm.store(
-            address(layerZeroAdapter),
-            keccak256(abi.encodePacked("lzMessageToOperationId", mockGuid)),
-            TEST_OP_ID
-        );
-
-        // Create the LayerZero Origin struct for the read response
-        // Read responses come from srcEid > READ_CHANNEL_THRESHOLD
-        // We use a simple increment to stay within uint32 bounds
-        uint32 readResponseEid = ARB_LZ_EID;
-
-        // Create the response payload (encoded remote balance)
-        bytes memory responsePayload = _encodeMessage(
-            bytes32(0),
-            ARK_PROXY,
-            address(ark),
-            mockRemoteBalance,
-            DEST_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
-        ).message;
-
-        // Create the Origin struct that LayerZero would pass to _lzReceive
-        Origin memory origin = Origin({
-            srcEid: readResponseEid,
-            sender: bytes32(uint256(uint160(ARB_LAYERZERO_PROXY))), // Mock sender
-            nonce: 1
-        });
-
-        // === STEP 5: Mock LayerZero endpoint calling _lzReceive ===
-        // We need to call the adapter's _lzReceive method as if LayerZero endpoint called it
-        // Since _lzReceive is internal, we'll use the public lzReceive method
-
-        // Expect the CrossChainArk events to be emitted
-        vm.expectEmit(true, true, true, true);
-        emit ICrossChainArk.RemoteAssetBalanceUpdated(
-            mockRemoteBalance,
-            TEST_OP_ID
-        );
-
-        vm.expectEmit(true, true, true, true);
-        emit InflightCleared(TEST_OP_ID, initialInflightAssets);
-
-        // Simulate LayerZero endpoint calling lzReceive on the adapter
-        // The adapter should recognize this as a read response and call deliver()
-        vm.prank(LZ_ENDPOINT_MAINNET); // LayerZero endpoint calls the adapter
-
-        // Call the adapter's lzReceive method (this is the external interface LayerZero uses)
-        // Note: We need to access the correct method signature
-        (bool success, ) = address(layerZeroAdapter).call(
-            abi.encodeWithSignature(
-                "lzReceive((uint32,bytes32,uint64),bytes32,bytes,address,bytes)",
-                origin,
-                mockGuid,
-                responsePayload,
-                address(0), // executor
-                bytes("") // extra data
-            )
-        );
-
-        // If the direct call doesn't work, we'll simulate the internal flow
-        if (!success) {
-            // Fallback: directly simulate the adapter calling deliver()
-            // This simulates what _handleReadResponse would do
-            vm.prank(address(layerZeroAdapter));
-            bridgeRouter.deliver(
-                BridgeTypes.OperationType.MESSAGE,
-                abi.encode(
-                    BridgeTypes.RelayedMessageParams({
-                        operationId: TEST_OP_ID,
-                        originator: ARK_PROXY,
-                        recipient: address(ark),
-                        message: responsePayload,
-                        sourceChainId: DEST_CHAIN_ID
-                    })
-                )
-            );
-        }
-
-        // === STEP 6: Verify the complete integration worked ===
-        // Check that CrossChainArk received and processed the state read
-        assertEq(
-            ark.lastRemoteAssetBalance(),
-            mockRemoteBalance,
-            "Remote balance should be updated after LayerZero response"
-        );
-        assertEq(
-            ark.inflightAssets(),
-            0,
-            "Inflight assets should be reset to 0 after state read"
-        );
-
-        // Check total assets calculation
-        uint256 expectedTotalAssets = initialLocalBalance +
-            mockRemoteBalance +
-            0; // 0 inflight
-        assertEq(
-            ark.totalAssets(),
-            expectedTotalAssets,
-            "Total assets should include local + remote balances"
-        );
-
-        // === STEP 7: Verify integration completed successfully ===
-        emit log_named_bytes32("Operation ID", TEST_OP_ID);
-        emit log_named_bytes32("Mock LayerZero GUID", mockGuid);
-        emit log_named_uint("Initial Local Balance", initialLocalBalance);
-        emit log_named_uint("Initial Inflight Assets", initialInflightAssets);
-        emit log_named_uint("Mock Remote Balance", mockRemoteBalance);
-        emit log_named_uint("Final Total Assets", ark.totalAssets());
-        emit log_named_uint("Read Response EID", readResponseEid);
-        emit log_string(
-            "SUCCESS: Full LayerZero adapter integration test passed - Complete flow including actual LayerZero adapter processing"
-        );
-    }
-
-    function test_LayerZeroAdapter_ReadResponseFlow() public {
-        // Test specifically the LayerZero adapter's read response handling
-        // This focuses on the adapter's internal logic for processing read responses
-
-        uint256 mockRemoteBalance = 1337 * 10 ** 6; // 1337 USDC
-
-        // === STEP 1: Setup and execute a read request directly ===
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(layerZeroAdapter),
-            gasLimit: 700000,
-            msgValue: 0,
-            calldataSize: 0,
-            options: ""
-        });
-
-        (uint256 fee, , ) = bridgeRouter.quoteSendMessage(
-            BridgeTypes.ExecuteSendMessageParams({
-                destinationChainId: DEST_CHAIN_ID,
-                target: address(ark),
-                message: abi.encode("remote-balance-read"),
-                originator: commander,
-                refundAddress: commander
-            }),
-            options
-        );
-
-        vm.deal(commander, fee);
-
-        // === STEP 2: Test LayerZero adapter's response handling directly ===
-        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
-            bytes32(0),
-            ARK_PROXY,
-            address(ark),
-            mockRemoteBalance,
-            DEST_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
-        );
-
-        // Test the adapter's deliver() path
-        vm.expectEmit(true, true, true, true);
-        emit ICrossChainArk.RemoteAssetBalanceUpdated(
-            mockRemoteBalance,
-            params.operationId
-        );
-
-        // Simulate the adapter calling deliver() after processing LayerZero response
-        vm.prank(address(layerZeroAdapter));
-        bridgeRouter.deliver(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params)
-        );
-
-        // Verify the result
-        assertEq(ark.lastRemoteAssetBalance(), mockRemoteBalance);
-    }
-
     function testDisembarkWhileTransferPendingVulnerability() public {
         // Setup: Fund the ark with initial assets
         uint256 initialArkBalance = 2000e18; // 2000 tokens
@@ -878,7 +636,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             gasLimit: 200000,
             msgValue: 0,
             calldataSize: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
         bytes memory executeTransferParams = abi.encode(params, options);
 

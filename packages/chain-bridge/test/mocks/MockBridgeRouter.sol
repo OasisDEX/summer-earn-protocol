@@ -555,5 +555,4 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         mockFee = _mockFee;
         // Note: We don't have mockSpecifiedAdapter in this version as we use MOCK_ADAPTER_ADDRESS
     }
-
 }

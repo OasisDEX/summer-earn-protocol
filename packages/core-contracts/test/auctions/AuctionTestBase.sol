@@ -11,7 +11,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DecayFunctions} from "@summerfi/dutch-auction/DecayFunctions.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {console} from "forge-std/console.sol";
 
 contract AuctionTestBase is FleetCommanderTestBase {
     using PercentageUtils for uint256;

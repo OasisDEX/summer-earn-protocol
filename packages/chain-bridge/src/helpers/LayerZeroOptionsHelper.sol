@@ -12,9 +12,6 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 library LayerZeroOptionsHelper {
     using OptionsBuilder for bytes;
 
-    /// @notice Default calldata size for lzRead operations (1KB)
-    uint32 private constant DEFAULT_CALLDATA_SIZE = 1024;
-
     /**
      * @notice Calculates the appropriate gas limit ensuring minimum requirements
      * @param optionsGasLimit Gas limit from options
@@ -47,20 +44,6 @@ library LayerZeroOptionsHelper {
     }
 
     /**
-     * @notice Calculates the appropriate calldata size for lzRead operations
-     * @param optionsCalldataSize Calldata size from options
-     * @return calldataSize The calculated calldata size
-     */
-    function _calculateCalldataSize(
-        uint32 optionsCalldataSize
-    ) private pure returns (uint32 calldataSize) {
-        return
-            optionsCalldataSize > 0
-                ? optionsCalldataSize
-                : DEFAULT_CALLDATA_SIZE;
-    }
-
-    /**
      * @notice Creates standard messaging options with appropriate gas limit
      * @param options Bridge options containing gas limit and other parameters
      * @param minGasLimit Minimum gas limit to enforce (if options gas limit is lower)
@@ -77,29 +60,6 @@ library LayerZeroOptionsHelper {
             OptionsBuilder.addExecutorLzReceiveOption(
                 lzOptions,
                 gasLimit,
-                options.msgValue
-            );
-    }
-
-    /**
-     * @notice Creates lzRead options with appropriate gas limit and calldata size
-     * @param options Bridge options containing gas limit and other parameters
-     * @param minGasLimit Minimum gas limit to enforce (if options gas limit is lower)
-     * @return Options bytes formatted for LayerZero lzRead operations
-     */
-    function createLzReadOptions(
-        BridgeTypes.BridgeOptions memory options,
-        uint128 minGasLimit
-    ) internal pure returns (bytes memory) {
-        uint128 gasLimit = _calculateGasLimit(options.gasLimit, minGasLimit);
-        bytes memory lzOptions = _createLzOptions(options);
-        uint32 calldataSize = _calculateCalldataSize(options.calldataSize);
-
-        return
-            OptionsBuilder.addExecutorLzReadOption(
-                lzOptions,
-                gasLimit,
-                calldataSize,
                 options.msgValue
             );
     }

@@ -96,4 +96,16 @@ interface IFleetCommanderEvents {
         address indexed referee,
         bytes indexed referralCode
     );
+
+    /**
+     * @notice Emitted when cooldown timestamp is propagated from sender to recipient
+     * @param from The address that sent the shares
+     * @param to The address that received the shares
+     * @param cooldownTimestamp The cooldown timestamp that was propagated
+     */
+    event UserCooldownPropagated(
+        address indexed from,
+        address indexed to,
+        uint256 cooldownTimestamp
+    );
 }

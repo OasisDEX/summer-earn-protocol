@@ -3,8 +3,8 @@ pragma solidity 0.8.28;
 
 /**
  * @title IBaseBridgeAdapterErrors
- * @notice Interface containing all custom errors for BaseBridgeAdapter
- * @dev This interface centralizes all error definitions for better organization and reusability
+ * @notice Interface containing all error definitions for BaseBridgeAdapter
+ * @dev Following the IArkErrors pattern for consistent error definitions
  */
 interface IBaseBridgeAdapterErrors {
     /// @notice Error thrown when destination chain peer is not trusted by governance
@@ -30,4 +30,10 @@ interface IBaseBridgeAdapterErrors {
 
     /// @notice Error thrown when invalid parameters are provided
     error InvalidParams();
+
+    /// @notice Thrown when a native token transfer fails
+    error TransferFailed();
+
+    /// @notice Thrown when payInProtocolToken is requested but protocolFeeToken is not configured
+    error ProtocolTokenNotConfigured();
 }

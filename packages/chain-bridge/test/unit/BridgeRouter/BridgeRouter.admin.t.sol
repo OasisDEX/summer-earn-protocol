@@ -2,15 +2,10 @@
 pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
-import {BridgeRouter} from "../../../src/router/BridgeRouter.sol";
 
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
-
-import {RejectETH} from "../../mocks/RejectETH.sol";
-
-// (moved) ReentrancyAttacker now lives in BridgeRouter.recovery.t.sol tests
 
 contract BridgeRouterAdminTest is BridgeRouterSetup {
     // ---- ADMIN FUNCTION TESTS ----
@@ -86,7 +81,9 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         // Get fee estimate first (for keeper execution)
@@ -129,8 +126,6 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    // READ_STATE paused test removed
-
     function testExecuteSendMessage_Reverts_WhenPaused() public {
         // Pause the router
         vm.prank(governor);
@@ -146,7 +141,9 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         vm.stopPrank(); // User stops queueing
@@ -168,6 +165,4 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         );
         vm.stopPrank();
     }
-
-    // recover assets tests moved to BridgeRouter.recovery.t.sol
 }

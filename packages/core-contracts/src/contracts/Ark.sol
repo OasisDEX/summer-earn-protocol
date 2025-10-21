@@ -93,6 +93,7 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
         address[] memory tokens
     )
         external
+        virtual
         onlyRaft
         nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)

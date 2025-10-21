@@ -236,7 +236,7 @@ contract FleetProxy is
         _sendNotification(
             hubChainId,
             _getHubChainArk(hubChainId),
-            abi.encode(fleetAssets, latestIncomingTransferId),
+            abi.encode(fleetAssets, latestIncomingTransferId, block.timestamp),
             options,
             msg.sender
         );
@@ -354,21 +354,13 @@ contract FleetProxy is
     function _getHubChainArk(
         uint16 _hubChainId
     ) internal view returns (address arkAddress) {
-        ICrossChainRegistry registry = ICrossChainRegistry(
-            crossChainRegistry()
-        );
-        address ark = registry.getSourceForTarget(
-            _hubChainId,
-            registry.currentChainId(),
-            address(this),
-            registry.PEER_RELATIONSHIP()
-        );
-
-        if (ark == address(0)) {
-            revert InvalidSourceChain();
-        }
-
-        return ark;
+        return
+            ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
+                _hubChainId,
+                uint16(block.chainid),
+                address(this),
+                ICrossChainRegistry(crossChainRegistry()).PEER_RELATIONSHIP()
+            );
     }
 
     /**
@@ -385,27 +377,25 @@ contract FleetProxy is
         try
             registry.getSourceForTarget(
                 _hubChainId,
-                registry.currentChainId(),
+                uint16(block.chainid),
                 address(this),
                 registry.PEER_RELATIONSHIP()
             )
         returns (address ark) {
-            if (ark != address(0)) {
-                try
-                    registry.isValidCrossChainPair(
-                        ark,
-                        address(this),
-                        hubChainId,
-                        registry.currentChainId(),
-                        registry.PEER_RELATIONSHIP()
-                    )
-                returns (bool valid) {
-                    return valid;
-                } catch {
-                    return false;
-                }
+            try
+                ICrossChainRegistry(crossChainRegistry()).isValidCrossChainPair(
+                    ark,
+                    address(this),
+                    hubChainId,
+                    uint16(block.chainid),
+                    ICrossChainRegistry(crossChainRegistry())
+                        .PEER_RELATIONSHIP()
+                )
+            returns (bool valid) {
+                return valid;
+            } catch {
+                return false;
             }
-            return false;
         } catch {
             return false;
         }
@@ -441,7 +431,4 @@ contract FleetProxy is
         if (amount == 0) revert NoAssets();
         if (inflightWithdrawals != 0) revert InFlight();
     }
-
-    /// @notice Custom error for single-flight gating
-    error InFlight();
 }

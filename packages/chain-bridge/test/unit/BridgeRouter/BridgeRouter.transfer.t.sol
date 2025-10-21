@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
-import {IAssetAdapter} from "../../../src/interfaces/IAssetAdapter.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 import {BridgeOptionsTestHelper} from "../../helpers/BridgeOptionsTestHelper.sol";
@@ -45,7 +43,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         // approve tokens for transfer
         token.approve(address(router), TRANSFER_AMOUNT);
         // Execute with value - Fixed: added options parameter
-        bytes32 operationId = router.executeTransferAssets{value: nativeFee}(
+        router.executeTransferAssets{value: nativeFee}(
             BridgeTypes.ExecuteTransferParams({
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(token),
@@ -93,7 +91,9 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
             gasLimit: 0,
             calldataSize: 0,
             msgValue: 0,
-            options: ""
+            options: "",
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes

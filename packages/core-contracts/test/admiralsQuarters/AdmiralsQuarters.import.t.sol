@@ -5,7 +5,6 @@ import {AdmiralsQuarters} from "../../src/contracts/AdmiralsQuarters.sol";
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {IAggregationRouterV6} from "../../src/interfaces/1inch/IAggregationRouterV6.sol";
-import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
 
 import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
 import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";
@@ -140,7 +139,7 @@ contract AdmiralsQuartersImportTest is
         // Approve tokens and import position
         IComet(CUSDC_ADDRESS).allow(address(admiralsQuarters), true);
 
-        bytes[] memory importCalls = new bytes[](3);
+        bytes[] memory importCalls = new bytes[](2);
         importCalls[0] = abi.encodeCall(
             admiralsQuarters.moveFromCompoundToAdmiralsQuarters,
             (CUSDC_ADDRESS, cTokenAmount)
@@ -152,11 +151,6 @@ contract AdmiralsQuartersImportTest is
             address(admiralsQuarters)
         );
 
-        importCalls[2] = abi.encodeCall(
-            admiralsQuarters.stake,
-            (address(usdcFleet), 0)
-        );
-
         admiralsQuarters.multicall(importCalls);
 
         // Verify results
@@ -164,13 +158,6 @@ contract AdmiralsQuartersImportTest is
             IERC20(CUSDC_ADDRESS).balanceOf(user1),
             balanceBefore - cTokenAmount - 1,
             "Should have no cUSDC left"
-        );
-        assertGt(
-            IFleetCommanderRewardsManager(
-                usdcFleet.getConfig().stakingRewardsManager
-            ).balanceOf(user1),
-            0,
-            "Should have USDC fleet shares"
         );
 
         vm.stopPrank();
@@ -186,7 +173,7 @@ contract AdmiralsQuartersImportTest is
         // Approve tokens and import position
         IERC20(AUSDC_ADDRESS).approve(address(admiralsQuarters), aTokenAmount);
 
-        bytes[] memory importCalls = new bytes[](3);
+        bytes[] memory importCalls = new bytes[](2);
         importCalls[0] = abi.encodeCall(
             admiralsQuarters.moveFromAaveToAdmiralsQuarters,
             (AUSDC_ADDRESS, aTokenAmount)
@@ -197,10 +184,6 @@ contract AdmiralsQuartersImportTest is
             0,
             address(admiralsQuarters)
         );
-        importCalls[2] = abi.encodeCall(
-            admiralsQuarters.stake,
-            (address(usdcFleet), 0)
-        );
 
         admiralsQuarters.multicall(importCalls);
 
@@ -209,13 +192,6 @@ contract AdmiralsQuartersImportTest is
             IERC20(AUSDC_ADDRESS).balanceOf(AUSDC_HOLDER),
             initialUserBalance - aTokenAmount - 1,
             "Should have no aUSDC left"
-        );
-        assertGt(
-            IFleetCommanderRewardsManager(
-                usdcFleet.getConfig().stakingRewardsManager
-            ).balanceOf(AUSDC_HOLDER),
-            0,
-            "Should have USDC fleet shares"
         );
 
         vm.stopPrank();
@@ -235,7 +211,7 @@ contract AdmiralsQuartersImportTest is
             sharesToRedeem
         );
 
-        bytes[] memory importCalls = new bytes[](3);
+        bytes[] memory importCalls = new bytes[](2);
         importCalls[0] = abi.encodeCall(
             admiralsQuarters.moveFromERC4626ToAdmiralsQuarters,
             (USDC_4626_VAULT, sharesToRedeem)
@@ -245,10 +221,6 @@ contract AdmiralsQuartersImportTest is
             address(usdcFleet),
             0,
             address(admiralsQuarters)
-        );
-        importCalls[2] = abi.encodeCall(
-            admiralsQuarters.stake,
-            (address(usdcFleet), 0)
         );
 
         admiralsQuarters.multicall(importCalls);
@@ -268,13 +240,6 @@ contract AdmiralsQuartersImportTest is
             IERC20(USDC_4626_VAULT).balanceOf(address(admiralsQuarters)),
             0,
             "AdmiralsQuarters should have no USDC 4626 vault tokens left"
-        );
-        assertGt(
-            IFleetCommanderRewardsManager(
-                usdcFleet.getConfig().stakingRewardsManager
-            ).balanceOf(user1),
-            0,
-            "Should have USDC fleet shares"
         );
 
         vm.stopPrank();
@@ -309,7 +274,7 @@ contract AdmiralsQuartersImportTest is
         );
 
         // Import all positions in one multicall
-        bytes[] memory importCalls = new bytes[](5);
+        bytes[] memory importCalls = new bytes[](4);
         importCalls[0] = abi.encodeCall(
             admiralsQuarters.moveFromCompoundToAdmiralsQuarters,
             (CUSDC_ADDRESS, cTokenAmount)
@@ -327,10 +292,6 @@ contract AdmiralsQuartersImportTest is
             address(usdcFleet),
             0,
             address(admiralsQuarters)
-        );
-        importCalls[4] = abi.encodeCall(
-            admiralsQuarters.stake,
-            (address(usdcFleet), 0)
         );
 
         admiralsQuarters.multicall(importCalls);
@@ -350,13 +311,6 @@ contract AdmiralsQuartersImportTest is
             IERC20(USDC_4626_VAULT).balanceOf(user1),
             erc4626sharesBefore - vaultSharesAmount,
             "Should have less shares left"
-        );
-        assertGt(
-            IFleetCommanderRewardsManager(
-                usdcFleet.getConfig().stakingRewardsManager
-            ).balanceOf(user1),
-            0,
-            "Should have USDC fleet shares"
         );
 
         vm.stopPrank();

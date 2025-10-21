@@ -5,10 +5,8 @@ import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {MockCrossChainReceiver} from "../../mocks/MockCrossChainReceiver.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
-import {Errors} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Errors.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {ICrossChainConfigManaged} from "../../../src/interfaces/ICrossChainConfigManaged.sol";
 
 contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
@@ -37,7 +35,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         // Generate a proper operation ID that matches BridgeRouter's logic
@@ -86,7 +86,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             msgValue: 0,
             calldataSize: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         // Call estimateSendMessage directly on the adapter
@@ -161,7 +163,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         // Generate a fake operation ID
@@ -203,7 +207,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0.5 ether,
-            options: bytes("")
+            options: bytes(""),
+            payInProtocolToken: false,
+            feeTokenAmount: 0
         });
 
         // Generate a fake operation ID
