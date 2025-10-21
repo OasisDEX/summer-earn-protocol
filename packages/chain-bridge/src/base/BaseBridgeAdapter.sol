@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
-import {IBridgeTokenFeeSupport} from "../interfaces/IBridgeTokenFeeSupport.sol";
 import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
 import {IBaseBridgeAdapterEvents} from "../interfaces/IBaseBridgeAdapterEvents.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -41,7 +40,6 @@ abstract contract BaseBridgeAdapter is
     ProtocolAccessManaged,
     TokenRecovery,
     IERC165,
-    IBridgeTokenFeeSupport,
     IBaseBridgeAdapterErrors,
     IBaseBridgeAdapterEvents
 {
@@ -485,10 +483,5 @@ abstract contract BaseBridgeAdapter is
         if (currentAllowance < requiredAmount) {
             IERC20(protocolFeeToken).forceApprove(endpoint, requiredAmount);
         }
-    }
-
-    /// @inheritdoc IBridgeTokenFeeSupport
-    function supportsProtocolTokenFee() external pure returns (bool) {
-        return true;
     }
 }
