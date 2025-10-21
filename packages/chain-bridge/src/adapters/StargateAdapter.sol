@@ -9,6 +9,7 @@ import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {IStargateAdapter} from "../interfaces/IStargateAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {BridgeMessagingHelper} from "../libraries/BridgeMessagingHelper.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
@@ -436,8 +437,8 @@ contract StargateAdapter is
         // ---------------------------------------------------------------
         // 2. Verify peer adapter relationship
         // ---------------------------------------------------------------
-        BridgeTypes.RelayedTransferParams
-            memory atm = _decodeRelayedTransferParams(composeMsg);
+        BridgeTypes.RelayedTransferParams memory atm = BridgeMessagingHelper
+            .decodeRelayedTransferParams(composeMsg);
         if (!_validateTrustedSource(srcSender, uint16(atm.sourceChainId))) {
             revert UntrustedSourceAdapter(srcSender, uint16(atm.sourceChainId));
         }
@@ -549,7 +550,7 @@ contract StargateAdapter is
             params.destinationChainId,
             destinationAdapter,
             params.amount,
-            _encodeRelayedTransferParams(
+            BridgeMessagingHelper.encodeRelayedTransferParams(
                 BridgeTypes.RelayedTransferParams({
                     recipient: params.target,
                     asset: params.asset,

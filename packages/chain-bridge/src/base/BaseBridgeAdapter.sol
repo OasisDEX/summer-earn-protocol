@@ -5,12 +5,10 @@ import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol"
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
 import {IBaseBridgeAdapterEvents} from "../interfaces/IBaseBridgeAdapterEvents.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {BridgeMessagingHelper} from "../libraries/BridgeMessagingHelper.sol";
 import {TokenRecovery} from "./TokenRecovery.sol";
+import {ProtocolFeeTokenHandler} from "./ProtocolFeeTokenHandler.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 /**
@@ -39,12 +37,11 @@ abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
     ProtocolAccessManaged,
     TokenRecovery,
+    ProtocolFeeTokenHandler,
     IERC165,
     IBaseBridgeAdapterErrors,
     IBaseBridgeAdapterEvents
 {
-    using SafeERC20 for IERC20;
-
     uint16 public immutable THIS_CHAIN;
 
     /// @notice Mapping of supported chains to their external bridge protocol IDs
@@ -52,9 +49,6 @@ abstract contract BaseBridgeAdapter is
 
     /// @notice Reverse mapping of external bridge protocol IDs to chain IDs
     mapping(uint32 externalId => uint16 chainId) public externalIdToChainId;
-
-    /// @notice ERC20 token used to pay LayerZero protocol fees (e.g., ZRO). Zero address disables token-fee mode.
-    address public protocolFeeToken;
 
     /**
      * @notice Initializes the BaseBridgeAdapter with required dependencies
@@ -123,20 +117,23 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
-     * @notice Sets the ERC20 token used to pay protocol fees
-     * @param token The ERC20 token address (e.g., ZRO). Use address(0) to disable token-fee mode.
-     */
-    function setProtocolFeeToken(address token) external onlyGovernor {
-        protocolFeeToken = token;
-        emit ProtocolFeeTokenConfigured(token);
-    }
-
-    /**
      * @notice Check if the caller is authorized to perform token recovery
      * @dev Implementation of TokenRecovery authorization - only governance can recover tokens
      * @custom:throws Unauthorized if caller is not governance
      */
     function _requireRecoveryAuthorization() internal view override {
+        // Check if caller has governor role
+        if (!_isGovernor(msg.sender)) {
+            revert Unauthorized();
+        }
+    }
+
+    /**
+     * @notice Authorization check for fee-related operations
+     * @dev Implementation of ProtocolFeeTokenHandler authorization - only governance can configure fees
+     * @custom:throws Unauthorized if caller is not governance
+     */
+    function _requireFeeAuthorization() internal view override {
         // Check if caller has governor role
         if (!_isGovernor(msg.sender)) {
             revert Unauthorized();
@@ -245,22 +242,6 @@ abstract contract BaseBridgeAdapter is
         return CROSS_CHAIN_REGISTRY.getAdapterPeer(address(this), dstChain);
     }
 
-    /**
-     * @notice Safe boolean probe for trusted destination without surfacing registry errors
-     * @dev Returns false if the registry lookup reverts due to missing relationship
-     */
-    function _hasTrustedDestination(
-        uint16 dstChain
-    ) internal view returns (bool) {
-        try
-            CROSS_CHAIN_REGISTRY.getAdapterPeer(address(this), dstChain)
-        returns (address peer) {
-            return peer != address(0);
-        } catch {
-            return false;
-        }
-    }
-
     /// @dev Returns true if `srcAdapter` is the registry-declared peer for `srcChain`.
     function _validateTrustedSource(
         address srcAdapter,
@@ -275,6 +256,12 @@ abstract contract BaseBridgeAdapter is
             );
     }
 
+    /**
+     * @notice Validates that the source chain ID matches the expected chain ID
+     * @param sourceChainId The source chain ID to validate
+     * @param expectedChainId The expected chain ID
+     * @custom:throws InvalidSourceChainId if the chain IDs don't match
+     */
     function _validateSourceChainId(
         uint16 sourceChainId,
         uint16 expectedChainId
@@ -348,140 +335,5 @@ abstract contract BaseBridgeAdapter is
     function _requireGasLimit(uint64 userGas) internal pure returns (uint64) {
         if (userGas == 0) revert InvalidParams();
         return userGas;
-    }
-
-    /**
-     * @notice Decode relayed message parameters from bytes
-     * @param _message Encoded message parameters
-     * @return Decoded RelayedMessageParams struct
-     */
-    function _decodeRelayedMessageParams(
-        bytes memory _message
-    ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
-        return BridgeMessagingHelper.decodeRelayedMessageParams(_message);
-    }
-
-    /**
-     * @notice Decode relayed transfer parameters from bytes
-     * @param _message Encoded transfer parameters
-     * @return Decoded RelayedTransferParams struct
-     */
-    function _decodeRelayedTransferParams(
-        bytes memory _message
-    ) internal pure returns (BridgeTypes.RelayedTransferParams memory) {
-        return BridgeMessagingHelper.decodeRelayedTransferParams(_message);
-    }
-
-    /**
-     * @notice Encode relayed message parameters to bytes
-     * @param _params RelayedMessageParams struct to encode
-     * @return Encoded message parameters
-     */
-    function _encodeRelayedMessageParams(
-        BridgeTypes.RelayedMessageParams memory _params
-    ) internal pure returns (bytes memory) {
-        return BridgeMessagingHelper.encodeRelayedMessageParams(_params);
-    }
-
-    /**
-     * @notice Encode relayed transfer parameters to bytes
-     * @param _params RelayedTransferParams struct to encode
-     * @return Encoded transfer parameters
-     */
-    function _encodeRelayedTransferParams(
-        BridgeTypes.RelayedTransferParams memory _params
-    ) internal pure returns (bytes memory) {
-        return BridgeMessagingHelper.encodeRelayedTransferParams(_params);
-    }
-
-    /**
-     * @notice Encode relayed message parameters with operation type prefix
-     * @param _params RelayedMessageParams struct to encode
-     * @return Encoded message parameters with operation type
-     */
-    function _encodeRelayedMessageParamsWithType(
-        BridgeTypes.RelayedMessageParams memory _params
-    ) internal pure returns (bytes memory) {
-        return
-            BridgeMessagingHelper.encodeRelayedMessageParamsWithType(_params);
-    }
-
-    /**
-     * @notice Encode relayed transfer parameters with operation type prefix
-     * @param _params RelayedTransferParams struct to encode
-     * @return Encoded transfer parameters with operation type
-     */
-    function _encodeRelayedTransferParamsWithType(
-        BridgeTypes.RelayedTransferParams memory _params
-    ) internal pure returns (bytes memory) {
-        return
-            BridgeMessagingHelper.encodeRelayedTransferParamsWithType(_params);
-    }
-
-    /**
-     * @notice Decode a payload to extract OperationType and data
-     * @param payload The encoded payload with OperationType prefix
-     * @return operationType The extracted operation type
-     * @return data The remaining payload data after removing the prefix
-     */
-    function _decodePayload(
-        bytes calldata payload
-    )
-        internal
-        pure
-        returns (BridgeTypes.OperationType operationType, bytes memory data)
-    {
-        return BridgeMessagingHelper.decodePayload(payload);
-    }
-
-    /**
-     * @notice Handles protocol token fee collection and validation
-     * @param operationId The operation ID for this transaction
-     * @param feePayer The address that will pay the protocol token fees
-     * @param tokenFeeRequired The amount of protocol tokens required
-     */
-    function _collectProtocolTokenFee(
-        bytes32 operationId,
-        address feePayer,
-        uint256 tokenFeeRequired
-    ) internal {
-        if (protocolFeeToken == address(0)) {
-            revert ProtocolTokenNotConfigured();
-        }
-
-        if (tokenFeeRequired > 0) {
-            IERC20(protocolFeeToken).safeTransferFrom(
-                feePayer,
-                address(this),
-                tokenFeeRequired
-            );
-
-            emit ProtocolFeeCollected(
-                operationId,
-                feePayer,
-                protocolFeeToken,
-                tokenFeeRequired
-            );
-        }
-    }
-
-    /**
-     * @notice Ensures sufficient allowance for protocol fee token spending
-     * @param requiredAmount The amount of tokens needed for the operation
-     * @param endpoint The LayerZero endpoint address
-     */
-    function _ensureSufficientAllowance(
-        uint256 requiredAmount,
-        address endpoint
-    ) internal {
-        if (protocolFeeToken == address(0)) return;
-
-        uint256 currentAllowance = IERC20(protocolFeeToken).allowance(
-            address(this),
-            endpoint
-        );
-        if (currentAllowance < requiredAmount) {
-            IERC20(protocolFeeToken).forceApprove(endpoint, requiredAmount);
-        }
     }
 }

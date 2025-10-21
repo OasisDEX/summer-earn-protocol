@@ -33,7 +33,4 @@ interface IBaseBridgeAdapterErrors {
 
     /// @notice Thrown when a native token transfer fails
     error TransferFailed();
-
-    /// @notice Thrown when payInProtocolToken is requested but protocolFeeToken is not configured
-    error ProtocolTokenNotConfigured();
 }
