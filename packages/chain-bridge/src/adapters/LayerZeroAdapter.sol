@@ -24,7 +24,6 @@ import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfac
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -269,7 +268,10 @@ contract LayerZeroAdapter is
         );
 
         // 8. Refund excess
-        _refundExcessNative(msg.value, fee.nativeFee, params.refundAddress);
+        uint256 excess = msg.value > fee.nativeFee
+            ? msg.value - fee.nativeFee
+            : 0;
+        _refundExcessNative(params.refundAddress, excess);
 
         // 9. Emit event
         emit TransferInitiated(
@@ -534,23 +536,6 @@ contract LayerZeroAdapter is
     }
 
     /**
-     * @notice Refunds excess native token to refund address
-     * @param provided Amount of native provided
-     * @param required Amount of native required
-     * @param refundAddress Address to receive refund
-     */
-    function _refundExcessNative(
-        uint256 provided,
-        uint256 required,
-        address refundAddress
-    ) internal {
-        if (provided > required) {
-            uint256 excess = provided - required;
-            Address.sendValue(payable(refundAddress), excess);
-        }
-    }
-
-    /**
      * @notice Converts a chain ID to a LayerZero endpoint ID
      * @param chainId Standard chain ID
      * @return lzEid LayerZero endpoint ID
@@ -600,15 +585,6 @@ contract LayerZeroAdapter is
             operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
 
-    /// @inheritdoc IAssetAdapter
-    function supportsAssetTransfer(
-        uint16 destinationChainId,
-        address asset
-    ) external view returns (bool) {
-        return
-            oftForToken[asset] != address(0) &&
-            _hasTrustedDestination(destinationChainId);
-    }
 
     /**
      * @notice Handles protocol token fee payment flow

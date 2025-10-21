@@ -90,14 +90,17 @@ contract SuperchainAdapterGeneralTest is Test {
         );
     }
 
-    function testSupportsAssetTransfer_SupportedAsset() public {
+    function testSupportsOperation_WithAssetSupport() public {
         // Add supported asset
         vm.prank(governor);
         adapter.setAssetSupport(token, true);
 
-        assertTrue(adapter.supportsAssetTransfer(CHAIN_ID_B, token));
-        assertFalse(adapter.supportsAssetTransfer(CHAIN_ID_B, address(0x4))); // unsupported asset
-        assertFalse(adapter.supportsAssetTransfer(CHAIN_ID_A, token)); // unsupported chain
+        assertTrue(
+            adapter.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
+        );
+        assertFalse(
+            adapter.supportsOperation(BridgeTypes.OperationType.MESSAGE)
+        );
     }
 
     function testSetAssetSupport_OnlyGovernor() public {
@@ -245,18 +248,12 @@ contract SuperchainAdapterGeneralTest is Test {
         adapter.estimateTransferAssets(params, options);
     }
 
-    function testSupportsMessageOperation_OnlyTransferAsset() public view {
+    function testSupportsOperation_MessageNotSupported() public view {
         assertTrue(
-            adapter.supportsMessageOperation(
-                CHAIN_ID_B,
-                BridgeTypes.OperationType.TRANSFER_ASSET
-            )
+            adapter.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         );
         assertFalse(
-            adapter.supportsMessageOperation(
-                CHAIN_ID_B,
-                BridgeTypes.OperationType.MESSAGE
-            )
+            adapter.supportsOperation(BridgeTypes.OperationType.MESSAGE)
         );
     }
 

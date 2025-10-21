@@ -144,15 +144,6 @@ contract SuperchainAdapter is
         return (0, 0);
     }
 
-    /// @inheritdoc IAssetAdapter
-    function supportsAssetTransfer(
-        uint16 destinationChainId,
-        address asset
-    ) external view returns (bool) {
-        return
-            supportedAssets[asset] &&
-            _hasTrustedDestination(destinationChainId);
-    }
 
     /// @notice Set asset support (governance function)
     function setAssetSupport(
@@ -182,13 +173,6 @@ contract SuperchainAdapter is
         revert IBridgeAdapter.OperationNotSupported();
     }
 
-    /// @inheritdoc IMessageAdapter
-    function supportsMessageOperation(
-        uint16,
-        BridgeTypes.OperationType operationType
-    ) external pure returns (bool) {
-        return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
-    }
 
     /*//////////////////////////////////////////////////////////////
                         BRIDGE ADAPTER IMPLEMENTATION

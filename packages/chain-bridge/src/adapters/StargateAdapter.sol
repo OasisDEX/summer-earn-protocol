@@ -3,14 +3,11 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {IStargateAdapter} from "../interfaces/IStargateAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 import {MessagingFee, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
@@ -37,7 +34,6 @@ contract StargateAdapter is
     using AddressCast for address;
     using AddressCast for bytes32;
     using OptionsBuilder for bytes;
-    using Address for address payable;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -308,20 +304,6 @@ contract StargateAdapter is
         // Refund any unused native value (buffer) back to the designated refund address
         uint256 refundAmount = providedFee - messagingFee.nativeFee;
         _refundExcessNative(params.refundAddress, refundAmount);
-    }
-
-    /**
-     * @dev Refund excess native tokens to the specified address
-     * @param refundAddress Address to receive the refund
-     * @param refundAmount Amount to refund
-     */
-    function _refundExcessNative(
-        address refundAddress,
-        uint256 refundAmount
-    ) internal {
-        if (refundAmount > 0) {
-            Address.sendValue(payable(refundAddress), refundAmount);
-        }
     }
 
     /// @inheritdoc IBridgeAdapter

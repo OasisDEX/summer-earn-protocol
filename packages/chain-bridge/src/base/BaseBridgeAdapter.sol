@@ -8,6 +8,7 @@ import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.s
 import {IBaseBridgeAdapterEvents} from "../interfaces/IBaseBridgeAdapterEvents.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeMessagingHelper} from "../libraries/BridgeMessagingHelper.sol";
@@ -490,6 +491,21 @@ abstract contract BaseBridgeAdapter is
         );
         if (currentAllowance < requiredAmount) {
             IERC20(protocolFeeToken).forceApprove(endpoint, requiredAmount);
+        }
+    }
+
+    /**
+     * @notice Refunds excess native tokens to the specified address
+     * @dev Internal helper for returning unused native fees to users
+     * @param refundAddress Address to receive the refund
+     * @param refundAmount Amount of native tokens to refund
+     */
+    function _refundExcessNative(
+        address refundAddress,
+        uint256 refundAmount
+    ) internal {
+        if (refundAmount > 0) {
+            Address.sendValue(payable(refundAddress), refundAmount);
         }
     }
 
