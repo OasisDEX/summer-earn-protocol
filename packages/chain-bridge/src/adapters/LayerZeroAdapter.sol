@@ -46,22 +46,6 @@ contract LayerZeroAdapter is
     using AddressCast for bytes32;
 
     /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Error thrown when the LayerZero endpoint is invalid
-    error InvalidEndpoint();
-
-    /// @notice Error thrown when the initial owner is invalid
-    error InvalidOwner();
-
-    /// @notice Error thrown when array lengths don't match
-    error ArrayLengthMismatch();
-
-    /// @notice Error thrown when an endpoint ID is invalid
-    error InvalidEndpointId();
-
-    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
