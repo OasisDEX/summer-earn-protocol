@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
-import {TokenRecovery} from "../../../src/base/TokenRecovery.sol";
+import {ITokenRecovery} from "../../../src/interfaces/ITokenRecovery.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
@@ -81,7 +81,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         // Adapter has 0 tokens initially
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(TokenRecovery.InsufficientBalance.selector)
+            abi.encodeWithSelector(ITokenRecovery.InsufficientBalance.selector)
         );
         adapter.sweep(address(token), address(0xBEEF), 1 ether);
     }
@@ -90,7 +90,9 @@ contract BaseBridgeAdapterSweepTest is Test {
         token.mint(address(adapter), 1 ether);
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(TokenRecovery.InvalidRecoveryParams.selector)
+            abi.encodeWithSelector(
+                ITokenRecovery.InvalidRecoveryParams.selector
+            )
         );
         adapter.sweep(address(token), address(0), 1);
     }
@@ -148,7 +150,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         // Adapter has 0 ETH initially
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(TokenRecovery.InsufficientBalance.selector)
+            abi.encodeWithSelector(ITokenRecovery.InsufficientBalance.selector)
         );
         adapter.sweep(address(0), address(0xBEEF), 1 ether);
     }
@@ -157,7 +159,9 @@ contract BaseBridgeAdapterSweepTest is Test {
         vm.deal(address(adapter), 1 ether);
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(TokenRecovery.InvalidRecoveryParams.selector)
+            abi.encodeWithSelector(
+                ITokenRecovery.InvalidRecoveryParams.selector
+            )
         );
         adapter.sweep(address(0), address(0), 1 ether);
     }
