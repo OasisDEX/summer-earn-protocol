@@ -6,8 +6,6 @@ import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockStargateV2Pool} from "../../mocks/MockStargateV2.sol";
 import {MockStargateV2OFT} from "../../mocks/MockStargateV2.sol";
-import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
-import {ICrossChainRegistry} from "../../../src/interfaces/ICrossChainRegistry.sol";
 import {IStargateAdapter} from "../../../src/interfaces/IStargateAdapter.sol";
 
 contract StargateAdapterGeneralTest is StargateAdapterSetupTest {

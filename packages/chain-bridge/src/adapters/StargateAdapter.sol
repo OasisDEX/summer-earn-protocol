@@ -195,15 +195,12 @@ contract StargateAdapter is
         IERC20(params.asset).forceApprove(stargateContract, params.amount);
 
         // Prepare validated SendParam with slippage protection
-        (
-            SendParam memory sendParam,
-            OFTReceipt memory oftReceipt
-        ) = _prepareSendParamForTransfer(
-                params,
-                operationId,
-                options,
-                stargateContract
-            );
+        (SendParam memory sendParam, ) = _prepareSendParamForTransfer(
+            params,
+            operationId,
+            options,
+            stargateContract
+        );
 
         // Determine fee payment mode and get messaging fee
         bool payInToken = options.payInProtocolToken &&

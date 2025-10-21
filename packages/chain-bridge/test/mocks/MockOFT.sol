@@ -12,7 +12,7 @@ import {MessagingFee, SendParam, MessagingReceipt, OFTReceipt} from "@layerzerol
 contract MockOFT {
     using SafeERC20 for IERC20;
 
-    address public immutable underlyingToken;
+    address public immutable UNDERLYING_TOKEN;
     address public owner;
     uint256 public quoteSendNativeFee = 0.1 ether;
     uint256 public quoteSendTokenFee = 0;
@@ -20,7 +20,7 @@ contract MockOFT {
     mapping(address => bool) public approvedSpenders;
 
     constructor(address _token) {
-        underlyingToken = _token;
+        UNDERLYING_TOKEN = _token;
         owner = msg.sender;
     }
 
@@ -34,7 +34,7 @@ contract MockOFT {
     }
 
     function token() external view returns (address) {
-        return underlyingToken;
+        return UNDERLYING_TOKEN;
     }
 
     function quoteSend(
@@ -57,7 +57,7 @@ contract MockOFT {
         require(msg.value >= fee.nativeFee, "Insufficient fee");
 
         // Transfer tokens from sender
-        IERC20(underlyingToken).safeTransferFrom(
+        IERC20(UNDERLYING_TOKEN).safeTransferFrom(
             msg.sender,
             address(this),
             sendParam.amountLD
@@ -82,7 +82,7 @@ contract MockOFT {
     }
 
     function forceApprove(address spender, uint256 amount) external {
-        IERC20(underlyingToken).approve(spender, amount);
+        IERC20(UNDERLYING_TOKEN).approve(spender, amount);
     }
 
     // Helper functions for testing
@@ -93,6 +93,6 @@ contract MockOFT {
 
     function burn(address from, uint256 amount) external {
         // Simplified burn for testing
-        IERC20(underlyingToken).safeTransferFrom(from, address(this), amount);
+        IERC20(UNDERLYING_TOKEN).safeTransferFrom(from, address(this), amount);
     }
 }

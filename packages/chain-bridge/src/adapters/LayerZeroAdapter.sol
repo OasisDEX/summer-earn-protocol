@@ -215,7 +215,7 @@ contract LayerZeroAdapter is
     function transferAsset(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.BridgeOptions calldata
     )
         external
         payable
@@ -292,7 +292,7 @@ contract LayerZeroAdapter is
     /// @inheritdoc IBridgeAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.BridgeOptions calldata
     )
         external
         view
@@ -457,11 +457,11 @@ contract LayerZeroAdapter is
     /**
      * @notice Handles composed messages from LayerZero after OFT token delivery
      * @dev Called by LayerZero endpoint after tokens are delivered via OFT
-     * @param _from The originating OApp (should be destination OFT contract)
+     * @param // _from The originating OApp (should be destination OFT contract)
      * @param _message OFT-encoded compose message from OFT
      */
     function lzCompose(
-        address _from,
+        address /* _from */,
         bytes32 /* _guid */,
         bytes calldata _message,
         address /* _caller */,

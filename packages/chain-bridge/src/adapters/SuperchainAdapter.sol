@@ -35,8 +35,8 @@ contract SuperchainAdapter is
     IBridgeAdapter
 {
     using SafeERC20 for IERC20;
-    ISuperchainTokenBridge public immutable superchainBridge;
-    IL2ToL2CrossDomainMessenger public immutable l2ToL2Messenger;
+    ISuperchainTokenBridge public immutable SUPERCHAIN_BRIDGE;
+    IL2ToL2CrossDomainMessenger public immutable L2_TO_L2_MESSENGER;
 
     /// @notice Mapping of supported assets
     mapping(address asset => bool supported) public supportedAssets;
@@ -57,8 +57,8 @@ contract SuperchainAdapter is
     ) BaseBridgeAdapter(_crossChainRegistry, _accessManager) {
         if (_superchainBridge == address(0)) revert InvalidParams();
         if (_l2ToL2Messenger == address(0)) revert InvalidParams();
-        superchainBridge = ISuperchainTokenBridge(_superchainBridge);
-        l2ToL2Messenger = IL2ToL2CrossDomainMessenger(_l2ToL2Messenger);
+        SUPERCHAIN_BRIDGE = ISuperchainTokenBridge(_superchainBridge);
+        L2_TO_L2_MESSENGER = IL2ToL2CrossDomainMessenger(_l2ToL2Messenger);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -91,7 +91,7 @@ contract SuperchainAdapter is
         address dstAdapter = _getAdapterPeer(params.destinationChainId);
 
         // Send via Superchain bridge (mints tokens to destination adapter)
-        superchainBridge.sendERC20(
+        SUPERCHAIN_BRIDGE.sendERC20(
             params.asset,
             _externalIdForChain(params.destinationChainId),
             dstAdapter,
@@ -111,7 +111,7 @@ contract SuperchainAdapter is
             })
         );
 
-        l2ToL2Messenger.sendMessage(
+        L2_TO_L2_MESSENGER.sendMessage(
             _externalIdForChain(params.destinationChainId),
             dstAdapter,
             message
@@ -214,7 +214,7 @@ contract SuperchainAdapter is
     /// @param _message Encoded RelayedTransferParams from source chain
     function relayMessage(bytes calldata _message) external {
         // Validate caller is L2ToL2CrossDomainMessenger
-        if (msg.sender != address(l2ToL2Messenger)) revert Unauthorized();
+        if (msg.sender != address(L2_TO_L2_MESSENGER)) revert Unauthorized();
 
         // Decode the relayed transfer parameters
         BridgeTypes.RelayedTransferParams
@@ -223,20 +223,20 @@ contract SuperchainAdapter is
         // Validate source adapter is trusted peer
         if (
             !_validateTrustedSource(
-                l2ToL2Messenger.crossDomainMessageSender(),
-                uint16(l2ToL2Messenger.crossDomainMessageSource())
+                L2_TO_L2_MESSENGER.crossDomainMessageSender(),
+                uint16(L2_TO_L2_MESSENGER.crossDomainMessageSource())
             )
         ) {
             revert UntrustedSourceAdapter(
-                l2ToL2Messenger.crossDomainMessageSender(),
-                uint16(l2ToL2Messenger.crossDomainMessageSource())
+                L2_TO_L2_MESSENGER.crossDomainMessageSender(),
+                uint16(L2_TO_L2_MESSENGER.crossDomainMessageSource())
             );
         }
 
         // Validate source chain ID matches
         _validateSourceChainId(
             params.sourceChainId,
-            uint16(l2ToL2Messenger.crossDomainMessageSource())
+            uint16(L2_TO_L2_MESSENGER.crossDomainMessageSource())
         );
 
         // Validate asset is supported

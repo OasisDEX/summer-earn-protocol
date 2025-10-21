@@ -15,7 +15,7 @@ contract SuperchainAdapterGeneralTest is Test {
     SuperchainAdapter public adapter;
     MockCrossChainRegistry public registry;
     MockSuperchainTokenBridge public superchainBridge;
-    MockL2ToL2CrossDomainMessenger public l2ToL2Messenger;
+    MockL2ToL2CrossDomainMessenger public L2_TO_L2_MESSENGER;
     ProtocolAccessManager public accessManager;
 
     address public governor = address(0x1);
@@ -30,14 +30,14 @@ contract SuperchainAdapterGeneralTest is Test {
         accessManager = new ProtocolAccessManager(governor);
         registry = new MockCrossChainRegistry();
         superchainBridge = new MockSuperchainTokenBridge();
-        l2ToL2Messenger = new MockL2ToL2CrossDomainMessenger();
+        L2_TO_L2_MESSENGER = new MockL2ToL2CrossDomainMessenger();
 
         vm.prank(governor);
         adapter = new SuperchainAdapter(
             address(registry),
             address(accessManager),
             address(superchainBridge),
-            address(l2ToL2Messenger)
+            address(L2_TO_L2_MESSENGER)
         );
 
         // Setup chain mapping
@@ -66,7 +66,7 @@ contract SuperchainAdapterGeneralTest is Test {
             address(registry),
             address(accessManager),
             address(0),
-            address(l2ToL2Messenger)
+            address(L2_TO_L2_MESSENGER)
         );
     }
 
