@@ -84,6 +84,10 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @dev SUMMER tokens are transferred from caller, but stake and xSUMR go to receiver
      * @dev Useful for protocol-level staking or delegation scenarios
      * @dev Same validation and mechanics as stakeLockup()
+     * @dev Authorization: the caller MUST be on the receiver-managed authorization list.
+     *      The receiver adds/removes callers via `setAuthorization(caller, isAuthorized)`.
+     *      If the caller is not authorized by `_receiver`, the call reverts with
+     *      `Staking_NotAllowedToStakeOnBehalf(caller, _receiver)`.
      */
     function stakeLockupOnBehalf(
         address _receiver,
@@ -112,6 +116,18 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @dev Reverts if amount is 0, stake index invalid, or insufficient balance
      */
     function unstakeLockup(uint256 _stakeIndex, uint256 _amount) external;
+
+    /**
+     * @notice Manage the caller authorization list for `stakeLockupOnBehalf`
+     * @param _authorizedCaller The address to authorize or revoke for acting on behalf of the caller (receiver)
+     * @param _isAuthorized True to authorize `_authorizedCaller`, false to revoke authorization
+     * @dev Only the list owner (msg.sender) can modify their own authorization list
+     * @dev When authorized, `_authorizedCaller` may call `stakeLockupOnBehalf(msg.sender, ...)`
+     */
+    function setAuthorization(
+        address _authorizedCaller,
+        bool _isAuthorized
+    ) external;
 
     // ============ VIEW FUNCTIONS - STAKE INFORMATION ============
 
@@ -386,4 +402,12 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @notice Thrown when trying to stake/unstake amount that is invalid
      */
     error Staking_InvalidAmount(string message);
+
+    /**
+     * @notice Thrown when trying to stake on behalf of an address that is not allowed
+     */
+    error Staking_NotAllowedToStakeOnBehalf(
+        address caller,
+        address receiver
+    );
 }

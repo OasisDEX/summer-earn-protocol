@@ -85,6 +85,8 @@ contract SummerStaking is
 
     mapping(address owner => uint256 weightedBalance) public weightedBalances;
     mapping(Bucket bucketId => BucketData bucketData) public bucketData;
+    mapping(address owner => mapping(address authorizedCaller => bool isAuthorized))
+        public isAuthorized;
     bool public penaltyEnabled = true;
 
     // ============ CONSTRUCTOR ============
@@ -131,6 +133,9 @@ contract SummerStaking is
         uint256 _amount,
         uint256 _lockupPeriod
     ) external nonReentrant {
+        if (!isAuthorized[_receiver][_msgSender()]) {
+            revert Staking_NotAllowedToStakeOnBehalf(_msgSender(), _receiver);
+        }
         _stakeLockup(_msgSender(), _receiver, _amount, _lockupPeriod);
     }
 
@@ -192,6 +197,14 @@ contract SummerStaking is
             _amount - unstakePenalty
         );
         emit Unstaked(_msgSender(), _msgSender(), _amount);
+    }
+
+    ///  @inheritdoc ISummerStaking
+    function setAuthorization(
+        address _authorizedCaller,
+        bool _isAuthorized
+    ) external {
+        isAuthorized[_msgSender()][_authorizedCaller] = _isAuthorized;
     }
 
     // ============ EXTERNAL FUNCTIONS - ADMIN ============

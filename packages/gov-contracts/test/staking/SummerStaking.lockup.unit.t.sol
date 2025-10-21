@@ -1281,19 +1281,21 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     }
 
     // ============ TOKEN TRANSFER TESTS ============
-    function test_StakeLockupOnBehalf_RevertOnZeroAddress() public {
-        uint256 stakeAmount = STAKE_AMOUNT;
-        uint256 lockupPeriod = aMinLockupPeriod;
+    function test_StakeLockupOnBehalf_RevertOnNotAuthorized() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISummerStaking.Staking_InvalidAddress.selector,
-                "Target address cannot be zero"
+                ISummerStaking.Staking_NotAllowedToStakeOnBehalf.selector,
+                address(this),
+                user1
             )
         );
-        aStaking.stakeLockupOnBehalf(address(0), stakeAmount, lockupPeriod);
+        aStaking.stakeLockupOnBehalf(user1, STAKE_AMOUNT, aMinLockupPeriod);
     }
 
     function test_StakeLockupOnBehalf_RevertOnZeroAmount() public {
+        vm.prank(user1);
+        aStaking.setAuthorization(address(this), true);
+
         uint256 lockupPeriod = aMinLockupPeriod;
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -1316,6 +1318,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 senderXSumrBalanceBefore = axSumr.balanceOf(sender);
         uint256 receiverXSumrBalanceBefore = axSumr.balanceOf(receiver);
 
+        vm.prank(receiver);
+        aStaking.setAuthorization(sender, true);
         // Sender approves and stakes on behalf of receiver
         vm.startPrank(sender);
         aSummerToken.approve(address(aStaking), stakeAmount);
