@@ -21,8 +21,8 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
     "sass": "^1.71.0",
-    "viem": "^2.0.0",
-    "wagmi": "^2.0.0"
+    "viem": ">=2.37.1",
+    "wagmi": ">=2.16.9"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
