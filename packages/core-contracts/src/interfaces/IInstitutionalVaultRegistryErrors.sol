@@ -24,7 +24,7 @@ interface IInstitutionalVaultRegistryErrors {
     /**
      * @notice Reverts when a provided address is zero
      */
-    error ZeroAddress();
+    error AddressZero();
 
     /**
      * @notice Reverts when attempting to update an immutable field for an institution

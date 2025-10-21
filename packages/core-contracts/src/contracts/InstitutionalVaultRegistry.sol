@@ -105,7 +105,7 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
             institution.configurationManager == address(0) ||
             institution.protocolAccessManager == address(0) ||
             institution.admiralsQuarters == address(0)
-        ) revert ZeroAddress();
+        ) revert AddressZero();
 
         institutions[id] = institution;
 

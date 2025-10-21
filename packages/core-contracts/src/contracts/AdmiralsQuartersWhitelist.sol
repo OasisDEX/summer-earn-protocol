@@ -294,7 +294,8 @@ contract AdmiralsQuartersWhitelist is
     ) internal view {
         if (amount != msgValue) revert InvalidNativeAmount();
         // https://github.com/Uniswap/v3-periphery/issues/52
-        if (msgValue > address(this).balance) revert InvalidNativeAmount();
+        if (msgValue > address(this).balance)
+            revert InsufficvientNativeAmount();
     }
 
     /// @inheritdoc IAdmiralsQuartersWhitelist

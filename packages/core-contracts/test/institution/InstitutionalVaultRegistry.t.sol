@@ -91,7 +91,7 @@ contract InstitutionalVaultRegistryTest is Test {
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IInstitutionalVaultRegistryErrors.ZeroAddress.selector
+                IInstitutionalVaultRegistryErrors.AddressZero.selector
             )
         );
         registry.addInstitution(id, bad);
@@ -193,7 +193,7 @@ contract InstitutionalVaultRegistryTest is Test {
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IInstitutionalVaultRegistryErrors.ZeroAddress.selector
+                IInstitutionalVaultRegistryErrors.AddressZero.selector
             )
         );
         registry.updateAdmiralsQuarters(id, address(0));

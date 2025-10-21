@@ -74,6 +74,11 @@ interface IAdmiralsQuartersErrors {
     error InvalidNativeAmount();
 
     /**
+     * @notice Thrown when the provided native amount is insufficient.
+     */
+    error InsufficvientNativeAmount();
+
+    /**
      * @notice Thrown when native token is not allowed.
      */
     error NativeTokenNotAllowed();
