@@ -195,15 +195,12 @@ contract StargateAdapter is
         IERC20(params.asset).forceApprove(stargateContract, params.amount);
 
         // Prepare validated SendParam with slippage protection
-        (
-            SendParam memory sendParam,
-            OFTReceipt memory oftReceipt
-        ) = _prepareSendParamForTransfer(
-                params,
-                operationId,
-                options,
-                stargateContract
-            );
+        (SendParam memory sendParam, ) = _prepareSendParamForTransfer(
+            params,
+            operationId,
+            options,
+            stargateContract
+        );
 
         // Determine fee payment mode and get messaging fee
         bool payInToken = options.payInProtocolToken &&
@@ -401,26 +398,6 @@ contract StargateAdapter is
         BridgeTypes.OperationType operationType
     ) internal pure override returns (bool) {
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
-    }
-
-    /// @inheritdoc IAssetAdapter
-    function supportsAssetTransfer(
-        uint16 destinationChainId,
-        address asset
-    ) external view returns (bool) {
-        if (destinationChainId == uint16(block.chainid)) {
-            // For current chain, check if asset has a Stargate contract
-            return assetToStargateContract[asset] != address(0);
-        }
-
-        // For remote chains, require BOTH:
-        // 1. Asset is supported locally (required for transferAsset to work)
-        // 2. Peer adapter exists (required for cross-chain routing)
-        // NOTE: This does NOT guarantee the destination adapter is configured properly.
-        // A misconfigured remote adapter will cause compose failures that require manual recovery.
-        return
-            assetToStargateContract[asset] != address(0) &&
-            _hasTrustedDestination(destinationChainId);
     }
 
     /*//////////////////////////////////////////////////////////////

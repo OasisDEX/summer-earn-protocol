@@ -62,33 +62,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
     }
 
-    function testSupportsAssetTransfer_LocalAndRemoteBranches() public {
-        useNetworkA();
-
-        // Local (same chain) – asset supported returns true; unknown returns false
-        assertTrue(adapterA.supportsAssetTransfer(CHAIN_ID_A, address(tokenA)));
-        assertFalse(
-            adapterA.supportsAssetTransfer(CHAIN_ID_A, address(0xdeadbeef))
-        );
-
-        // Remote (different chain) – requires local support AND trusted destination
-        // First, assert remote true for configured peer chain
-        assertTrue(adapterA.supportsAssetTransfer(CHAIN_ID_B, address(tokenA)));
-
-        // Untrusted remote chain: unregister peer then expect false
-        vm.startPrank(governor);
-        registryA.unregisterRelationship(
-            address(adapterA),
-            registryA.PEER_RELATIONSHIP(),
-            CHAIN_ID_B
-        );
-        vm.stopPrank();
-
-        assertFalse(
-            adapterA.supportsAssetTransfer(CHAIN_ID_B, address(tokenA))
-        );
-    }
-
     /*//////////////////////////////////////////////////////////////
                           CONFIG MANAGER INTEGRATION TESTS
     //////////////////////////////////////////////////////////////*/
@@ -191,9 +164,9 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
             address(mockStargateContract)
         );
 
-        // Check the asset directly:
+        // Check the asset directly via public mapping:
         assertTrue(
-            adapterA.supportsAssetTransfer(CHAIN_ID_A, address(newToken))
+            adapterA.assetToStargateContract(address(newToken)) != address(0)
         );
     }
 
@@ -218,8 +191,10 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
             address(newStargateContract)
         );
 
-        // Check the asset directly:
-        assertTrue(adapterA.supportsAssetTransfer(CHAIN_ID_A, address(tokenA)));
+        // Check the asset directly via public mapping:
+        assertTrue(
+            adapterA.assetToStargateContract(address(tokenA)) != address(0)
+        );
     }
 
     function testAddSupportedAsset_RevertsOnInvalidParams() public {

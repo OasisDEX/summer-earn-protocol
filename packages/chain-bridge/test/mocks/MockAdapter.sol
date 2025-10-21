@@ -261,25 +261,4 @@ contract MockAdapter is
         console.log("operationId:", uint256(operationId));
         console.log("destinationChainId:", destinationChainId);
     }
-
-    /// @inheritdoc IAssetAdapter
-    function supportsAssetTransfer(
-        uint16 destinationChainId,
-        address /* asset */
-    ) external view returns (bool) {
-        return
-            supportedChains[destinationChainId] &&
-            supportedOperations[BridgeTypes.OperationType.TRANSFER_ASSET];
-    }
-
-    /// @inheritdoc IMessageAdapter
-    function supportsMessageOperation(
-        uint16 destinationChainId,
-        BridgeTypes.OperationType operationType
-    ) external view returns (bool) {
-        return
-            supportedChains[destinationChainId] &&
-            supportedOperations[operationType] &&
-            (operationType == BridgeTypes.OperationType.MESSAGE);
-    }
 }
