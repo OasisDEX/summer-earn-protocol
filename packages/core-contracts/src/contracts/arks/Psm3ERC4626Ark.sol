@@ -92,7 +92,7 @@ contract Psm3ERC4626Ark is Ark {
         if (balance > 0) {
             assets = erc4626Vault.convertToAssets(balance);
             assets = psm.previewSwapExactIn(
-                address(shouldStake ? susds : usds),
+                address(_depositToken()),
                 address(config.asset),
                 assets
             );
@@ -106,7 +106,7 @@ contract Psm3ERC4626Ark is Ark {
      * @notice Validates that the vault's asset matches the expected token
      */
     function _validateVaultAsset() internal view {
-        address expectedAsset = shouldStake ? address(susds) : address(usds);
+        address expectedAsset = address(_depositToken());
         if (address(erc4626Vault.asset()) != expectedAsset) {
             revert ERC4626AssetMismatch();
         }
@@ -132,39 +132,23 @@ contract Psm3ERC4626Ark is Ark {
     }
 
     /**
-     * @notice Handles the boarding process for USDS
-     * @param usdsAmount Amount of USDS to deposit
-     */
-    function _handleUsdsBoarding(uint256 usdsAmount) internal {
-        usds.forceApprove(address(erc4626Vault), usdsAmount);
-        erc4626Vault.deposit(usdsAmount, address(this));
-    }
-
-    /**
      * @notice Handles the boarding process for sUSDS
-     * @param susdsAmount Amount of sUSDS to deposit
+     * @param token Token to board
+     * @param amount Amount of token to board
      */
-    function _handleSusdsBoarding(uint256 susdsAmount) internal {
-        susds.forceApprove(address(erc4626Vault), susdsAmount);
-        erc4626Vault.deposit(susdsAmount, address(this));
+    function _handleBoarding(IERC20 token, uint256 amount) internal {
+        token.forceApprove(address(erc4626Vault), amount);
+        erc4626Vault.deposit(amount, address(this));
     }
 
     /**
      * @notice Handles the disembarking process for USDS
-     * @param usdsAmount Amount of USDS to withdraw
+     * @param token Token to disembark
+     * @param amount Amount of token to disembark
      */
-    function _handleUsdsDisembarking(uint256 usdsAmount) internal {
-        erc4626Vault.withdraw(usdsAmount, address(this), address(this));
-        usds.forceApprove(address(psm), usdsAmount);
-    }
-
-    /**
-     * @notice Handles the disembarking process for sUSDS
-     * @param susdsAmount Amount of sUSDS to withdraw
-     */
-    function _handleSusdsDisembarking(uint256 susdsAmount) internal {
-        erc4626Vault.withdraw(susdsAmount, address(this), address(this));
-        susds.forceApprove(address(psm), susdsAmount);
+    function _handleDisembarking(IERC20 token, uint256 amount) internal {
+        erc4626Vault.withdraw(amount, address(this), address(this));
+        token.forceApprove(address(psm), amount);
     }
 
     /**
@@ -178,25 +162,21 @@ contract Psm3ERC4626Ark is Ark {
         // Preview swap to get expected token amount
         uint256 expectedTokenAmount = psm.previewSwapExactIn(
             address(config.asset),
-            address(shouldStake ? susds : usds),
+            address(_depositToken()),
             amount
         );
 
         // Perform swap with exact output as preview
         uint256 tokenAmount = psm.swapExactIn(
             address(config.asset),
-            address(shouldStake ? susds : usds),
+            address(_depositToken()),
             amount,
             expectedTokenAmount,
             address(this),
             0
         );
 
-        if (shouldStake) {
-            _handleSusdsBoarding(tokenAmount);
-        } else {
-            _handleUsdsBoarding(tokenAmount);
-        }
+        _handleBoarding(_depositToken(), tokenAmount);
     }
 
     /**
@@ -206,19 +186,15 @@ contract Psm3ERC4626Ark is Ark {
     function _disembark(uint256 amount, bytes calldata) internal override {
         // Preview swap to get required token amount for desired USDC output
         uint256 tokenNeeded = psm.previewSwapExactOut(
-            address(shouldStake ? susds : usds),
+            address(_depositToken()),
             address(config.asset),
             amount
         );
 
-        if (shouldStake) {
-            _handleSusdsDisembarking(tokenNeeded);
-        } else {
-            _handleUsdsDisembarking(tokenNeeded);
-        }
+        _handleDisembarking(_depositToken(), tokenNeeded);
 
         psm.swapExactOut(
-            address(shouldStake ? susds : usds),
+            address(_depositToken()),
             address(config.asset),
             amount,
             tokenNeeded,
@@ -226,8 +202,18 @@ contract Psm3ERC4626Ark is Ark {
             0
         );
     }
-
+    /**
+     * @notice Validates the board data
+     * @dev This Ark does not require any validation for board data
+     * @param /// data Additional data to validate (unused in this implementation)
+     */
     function _validateBoardData(bytes calldata) internal pure override {}
+
+    /**
+     * @notice Validates the disembark data
+     * @dev This Ark does not require any validation for disembark data
+     * @param /// data Additional data to validate (unused in this implementation)
+     */
     function _validateDisembarkData(bytes calldata) internal pure override {}
 
     /**
@@ -245,5 +231,13 @@ contract Psm3ERC4626Ark is Ark {
         rewardAmounts = new uint256[](1);
         rewardTokens[0] = address(0);
         rewardAmounts[0] = 0;
+    }
+
+    /**
+     * @notice Returns the token that is deposited in the ERC4626 vault
+     * @return token The token that is deposited in the ERC4626 vault
+     */
+    function _depositToken() internal view returns (IERC20) {
+        return shouldStake ? susds : usds;
     }
 }
