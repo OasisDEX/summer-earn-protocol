@@ -205,6 +205,13 @@ contract LayerZeroAdapter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IAssetAdapter
+    /**
+     * @dev Transfers assets cross-chain using LayerZero OFT protocol.
+     *      Flow: pull tokens → approve OFT → send via OFT → refund excess native.
+     *      If message is provided, encodes as OFT compose for post-delivery execution.
+     * @param operationId Unique identifier for this transfer operation
+     * @param params Transfer parameters (asset, amount, destination, optional message)
+     */
     function transferAsset(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params,
@@ -216,44 +223,42 @@ contract LayerZeroAdapter is
         onlyRouter
         nonReentrant
     {
-        address oft = oftForToken[params.asset];
-        if (oft == address(0)) revert UnsupportedAsset();
-        if (params.amount == 0) revert InvalidParams();
+        // 1. Validate and get OFT
+        address oft = _getOFTForAsset(params.asset, params.amount);
 
-        // Pull tokens from BridgeRouter to this adapter
+        // 2. Pull tokens
         IERC20(params.asset).safeTransferFrom(
             msg.sender,
             address(this),
             params.amount
         );
 
-        // Resolve destination peer adapter via registry
-        address dstAdapter = _getAdapterPeer(params.destinationChainId);
-        if (dstAdapter == address(0)) revert UnsupportedChain();
+        // 3. Get destination and cache EID
+        uint32 dstEid = _externalIdForChain(params.destinationChainId);
+        address dstAdapter = _getDstAdapterAndValidate(
+            params.destinationChainId
+        );
 
-        // Approve the OFT contract to spend tokens
+        // 4. Approve OFT
         IERC20(params.asset).forceApprove(oft, params.amount);
 
-        // Encode compose message if message is provided
-        bytes memory composeMsg = bytes("");
-        if (params.message.length > 0) {
-            composeMsg = _encodeComposeTransferParams(operationId, params);
-        }
+        // 5. Create compose message if needed
+        bytes memory composeMsg = params.message.length > 0
+            ? _encodeComposeTransferParams(operationId, params)
+            : bytes("");
 
-        SendParam memory sendParam = SendParam({
-            dstEid: _externalIdForChain(params.destinationChainId),
-            to: dstAdapter.toBytes32(),
-            amountLD: params.amount,
-            minAmountLD: params.amount, // Require exact amount (no slippage for stablecoins)
-            extraOptions: bytes(""),
-            composeMsg: composeMsg,
-            oftCmd: bytes("")
-        });
+        // 6. Create send parameters
+        SendParam memory sendParam = _createOFTSendParam(
+            dstEid,
+            dstAdapter,
+            params.amount,
+            composeMsg
+        );
 
+        // 7. Quote and send
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
-        if (msg.value < fee.nativeFee) {
+        if (msg.value < fee.nativeFee)
             revert InsufficientFee(fee.nativeFee, msg.value);
-        }
 
         IOFT(oft).send{value: fee.nativeFee}(
             sendParam,
@@ -261,14 +266,10 @@ contract LayerZeroAdapter is
             params.refundAddress
         );
 
-        // Refund any excess native back to the designated refund address
-        if (msg.value > fee.nativeFee) {
-            (bool ok, ) = params.refundAddress.call{
-                value: (msg.value - fee.nativeFee)
-            }("");
-            if (!ok) revert InsufficientBalance();
-        }
+        // 8. Refund excess
+        _refundExcessNative(msg.value, fee.nativeFee, params.refundAddress);
 
+        // 9. Emit event
         emit TransferInitiated(
             operationId,
             params.destinationChainId,
@@ -288,31 +289,24 @@ contract LayerZeroAdapter is
         onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        address oft = oftForToken[params.asset];
-        if (oft == address(0)) revert UnsupportedAsset();
-        if (params.amount == 0) revert InvalidParams();
+        address oft = _getOFTForAsset(params.asset, params.amount);
+        uint32 dstEid = _externalIdForChain(params.destinationChainId);
+        address dstAdapter = _getDstAdapterAndValidate(
+            params.destinationChainId
+        );
 
-        // Resolve destination adapter via registry
-        address dstAdapter = _getAdapterPeer(params.destinationChainId);
-        if (dstAdapter == address(0)) revert UnsupportedChain();
+        bytes memory composeMsg = params.message.length > 0
+            ? _encodeComposeTransferParams(bytes32(0), params)
+            : bytes("");
 
-        // Encode compose message if message is provided
-        bytes memory composeMsg = bytes("");
-        if (params.message.length > 0) {
-            composeMsg = _encodeComposeTransferParams(bytes32(0), params);
-        }
-
-        SendParam memory sendParam = SendParam({
-            dstEid: _externalIdForChain(params.destinationChainId),
-            to: dstAdapter.toBytes32(),
-            amountLD: params.amount,
-            minAmountLD: params.amount, // Require exact amount (no slippage for stablecoins)
-            extraOptions: bytes(""),
-            composeMsg: composeMsg,
-            oftCmd: bytes("")
-        });
-
+        SendParam memory sendParam = _createOFTSendParam(
+            dstEid,
+            dstAdapter,
+            params.amount,
+            composeMsg
+        );
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
+
         return (fee.nativeFee, fee.lzTokenFee);
     }
 
@@ -409,10 +403,14 @@ contract LayerZeroAdapter is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Handles composed messages from LayerZero after OFT token delivery
-     * @dev Called by LayerZero endpoint after tokens are delivered via OFT
-     * @param // _from The originating OApp (should be destination OFT contract)
-     * @param _message OFT-encoded compose message from OFT
+     * @notice Handles composed messages after OFT token delivery
+     * @dev Called by LayerZero endpoint after OFT tokens arrive on destination.
+     *      Security model:
+     *      1. Endpoint auth: Only LayerZero endpoint can call
+     *      2. Peer validation: composeFrom must be trusted adapter
+     *      3. Chain validation: srcEid must map to expected source chain
+     *      OFT delivers tokens first, then triggers this with transfer metadata.
+     * @param _message OFT-encoded compose (srcEid, amount, composeFrom, transferParams)
      */
     function lzCompose(
         address /* _from */,
@@ -448,7 +446,8 @@ contract LayerZeroAdapter is
         params.amount = amountLD;
 
         // Ensure the asset is supported
-        if (oftForToken[params.asset] == address(0)) revert UnsupportedAsset();
+        address oft = oftForToken[params.asset];
+        if (oft == address(0)) revert UnsupportedAsset();
 
         // Check that we have the expected amount of tokens
         uint256 bal = IERC20(params.asset).balanceOf(address(this));
@@ -490,6 +489,77 @@ contract LayerZeroAdapter is
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Validates asset and amount, returns OFT contract
+     * @param asset The ERC20 token address
+     * @param amount The amount to transfer
+     * @return oft The OFT contract address for this asset
+     */
+    function _getOFTForAsset(
+        address asset,
+        uint256 amount
+    ) internal view returns (address oft) {
+        oft = oftForToken[asset];
+        if (oft == address(0)) revert UnsupportedAsset();
+        if (amount == 0) revert InvalidParams();
+    }
+
+    /**
+     * @notice Gets and validates destination adapter
+     * @param destinationChainId Target chain ID
+     * @return dstAdapter Destination adapter address
+     */
+    function _getDstAdapterAndValidate(
+        uint16 destinationChainId
+    ) internal view returns (address dstAdapter) {
+        dstAdapter = _getAdapterPeer(destinationChainId);
+        if (dstAdapter == address(0)) revert UnsupportedChain();
+    }
+
+    /**
+     * @notice Creates OFT SendParam struct
+     * @param dstEid Destination endpoint ID (pre-computed)
+     * @param dstAdapter Destination adapter address
+     * @param amount Amount to send in local decimals
+     * @param composeMsg Optional compose message
+     * @return sendParam Configured SendParam struct
+     */
+    function _createOFTSendParam(
+        uint32 dstEid,
+        address dstAdapter,
+        uint256 amount,
+        bytes memory composeMsg
+    ) internal pure returns (SendParam memory) {
+        return
+            SendParam({
+                dstEid: dstEid,
+                to: dstAdapter.toBytes32(),
+                amountLD: amount,
+                minAmountLD: amount, // Exact amount, no slippage
+                extraOptions: bytes(""),
+                composeMsg: composeMsg,
+                oftCmd: bytes("")
+            });
+    }
+
+    /**
+     * @notice Refunds excess native token to refund address
+     * @param provided Amount of native provided
+     * @param required Amount of native required
+     * @param refundAddress Address to receive refund
+     */
+    function _refundExcessNative(
+        uint256 provided,
+        uint256 required,
+        address refundAddress
+    ) internal {
+        if (provided > required) {
+            uint256 excess = provided - required;
+            (bool success, ) = refundAddress.call{value: excess}("");
+            if (!success) revert TransferFailed();
+        }
+    }
 
     /**
      * @notice Converts a chain ID to a LayerZero endpoint ID
