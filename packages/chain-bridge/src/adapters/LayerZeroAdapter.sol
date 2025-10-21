@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {LayerZeroMessagingHelper} from "../helpers/LayerZeroMessagingHelper.sol";
+import {LayerZeroComposeHelper} from "../helpers/LayerZeroComposeHelper.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
@@ -21,7 +22,6 @@ import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Addr
 import {IOFT} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
-import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -428,7 +428,7 @@ contract LayerZeroAdapter is
             uint256 amountLD,
             address composeFrom,
             bytes memory composeMsg
-        ) = _decodeOFTCompose(_message);
+        ) = LayerZeroComposeHelper.decodeOFTCompose(_message);
 
         // Decode transfer parameters from compose message
         BridgeTypes.RelayedTransferParams
@@ -695,42 +695,6 @@ contract LayerZeroAdapter is
     /*//////////////////////////////////////////////////////////////
                              COMPOSE HELPERS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @dev Decode OFT compose message header and payload
-     * @param message The OFT-encoded compose message
-     * @return srcEid Source endpoint ID
-     * @return amountLD Amount in local decimals
-     * @return composeFrom Address that sent the compose message
-     * @return composeMsg The composed message payload
-     */
-    function _decodeOFTCompose(
-        bytes calldata message
-    )
-        internal
-        pure
-        returns (
-            uint32 srcEid,
-            uint256 amountLD,
-            address composeFrom,
-            bytes memory composeMsg
-        )
-    {
-        // Sanity-check the OFT compose header is fully present before decoding.
-        // Layout (ABI-aligned as produced by OFTComposeMsgCodec):
-        //  - 8B nonce | 4B srcEid                                   (total so far: 12 bytes)
-        //  - 32B amountLD                                           (total so far: 44 bytes)
-        //  - 32B composeFrom (left-padded address, present when composeMsg != empty)
-        // Minimum length when composeFrom is present: 12 + 32 + 32 = 76 bytes.
-        // A valid message must have additional compose message data beyond the header.
-        if (message.length <= 76) revert InvalidMessage();
-
-        // Use official codec for extraction
-        srcEid = OFTComposeMsgCodec.srcEid(message);
-        amountLD = OFTComposeMsgCodec.amountLD(message);
-        composeMsg = OFTComposeMsgCodec.composeMsg(message);
-        composeFrom = OFTComposeMsgCodec.composeFrom(message).toAddress();
-    }
 
     /**
      * @dev Encode transfer parameters for OFT compose message
