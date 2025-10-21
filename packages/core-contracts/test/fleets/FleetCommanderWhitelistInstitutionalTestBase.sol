@@ -67,8 +67,7 @@ abstract contract FleetCommanderWhitelistInstitutionalTestBase is Test {
             memory inst = IInstitutionalVaultRegistry.Institution({
                 configurationManager: address(configurationManager),
                 protocolAccessManager: address(accessManager),
-                admiralsQuarters: admiralsQuarters,
-                active: true
+                admiralsQuarters: admiralsQuarters
             });
         vm.prank(governor);
         registry.addInstitution(id, inst);

@@ -23,13 +23,14 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
     /**
      * VIEW
      */
-
+    /// @inheritdoc IInstitutionalVaultRegistry
     function getBytes32InsitutionId(
         string calldata name
     ) public pure returns (bytes32) {
         return bytes32(bytes(name));
     }
 
+    /// @inheritdoc IInstitutionalVaultRegistry
     function getStringInsitutionId(
         bytes32 id
     ) public pure returns (string memory) {
@@ -40,15 +41,12 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
         return string(bytesArray);
     }
 
+    /// @inheritdoc IInstitutionalVaultRegistry
     function exists(bytes32 id) public view returns (bool) {
         return institutions[id].configurationManager != address(0);
     }
 
-    function isActive(bytes32 id) public view returns (bool) {
-        if (!exists(id)) revert InstitutionNotFound(id);
-        return institutions[id].active;
-    }
-
+    /// @inheritdoc IInstitutionalVaultRegistry
     function getInstitution(
         bytes32 id
     )
@@ -61,12 +59,14 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
             revert InstitutionNotFound(id);
     }
 
+    /// @inheritdoc IInstitutionalVaultRegistry
     function getConfigurationManager(bytes32 id) public view returns (address) {
         IInstitutionalVaultRegistry.Institution
             memory institution = getInstitution(id);
         return institution.configurationManager;
     }
 
+    /// @inheritdoc IInstitutionalVaultRegistry
     function getProtocolAccessManager(
         bytes32 id
     ) public view returns (address) {
@@ -75,12 +75,14 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
         return institution.protocolAccessManager;
     }
 
+    /// @inheritdoc IInstitutionalVaultRegistry
     function getAdmiralsQuarters(bytes32 id) public view returns (address) {
         IInstitutionalVaultRegistry.Institution
             memory institution = getInstitution(id);
         return institution.admiralsQuarters;
     }
 
+    /// @inheritdoc IInstitutionalVaultRegistry
     function getHarborCommand(bytes32 id) public view returns (address) {
         IInstitutionalVaultRegistry.Institution
             memory institution = getInstitution(id);
@@ -93,6 +95,7 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
      * MANAGEMENT
      */
 
+    /// @inheritdoc IInstitutionalVaultRegistry
     function addInstitution(
         bytes32 id,
         IInstitutionalVaultRegistry.Institution calldata institution
@@ -105,7 +108,6 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
         ) revert ZeroAddress();
 
         institutions[id] = institution;
-        institutions[id].active = true;
 
         emit InstitutionAdded(
             id,
@@ -115,13 +117,14 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
         );
     }
 
-    function disableInstitution(bytes32 id) external onlyOwner {
+    /// @inheritdoc IInstitutionalVaultRegistry
+    function removeInstitution(bytes32 id) external onlyOwner {
         if (!exists(id)) revert InstitutionNotFound(id);
-        if (!institutions[id].active) revert InstitutionIsDisabled(id);
-        institutions[id].active = false;
-        emit InstitutionDisabled(id);
+        delete institutions[id];
+        emit InstitutionRemoved(id);
     }
 
+    /// @inheritdoc IInstitutionalVaultRegistry
     function updateAdmiralsQuarters(
         bytes32 id,
         address newAdmiralsQuarters
@@ -129,7 +132,6 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
         if (!exists(id)) revert InstitutionNotFound(id);
         IInstitutionalVaultRegistry.Institution
             storage institution = institutions[id];
-        if (!institution.active) revert InstitutionIsDisabled(id);
         if (newAdmiralsQuarters == address(0)) revert ZeroAddress();
         if (institution.admiralsQuarters == newAdmiralsQuarters)
             revert SameAddress();

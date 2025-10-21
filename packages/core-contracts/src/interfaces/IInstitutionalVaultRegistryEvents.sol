@@ -20,7 +20,7 @@ interface IInstitutionalVaultRegistryEvents {
     /**
      * @notice Emitted when an institution is disabled
      */
-    event InstitutionDisabled(bytes32 indexed id);
+    event InstitutionRemoved(bytes32 indexed id);
 
     /**
      * @notice Emitted when an institution's AdmiralsQuarters address is updated

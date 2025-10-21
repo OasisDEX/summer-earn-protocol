@@ -17,7 +17,6 @@ interface IInstitutionalVaultRegistry is
         address configurationManager;
         address protocolAccessManager;
         address admiralsQuarters;
-        bool active;
     }
     /**
      * VIEW
@@ -48,12 +47,6 @@ interface IInstitutionalVaultRegistry is
      * @notice Returns true if an institution id exists (active or disabled)
      */
     function exists(bytes32 id) external view returns (bool);
-
-    /**
-     * @notice Returns true if an institution id is active
-     * @dev Reverts if the institution does not exist
-     */
-    function isActive(bytes32 id) external view returns (bool);
 
     /**
      * @notice Returns the full institution wiring for institution with id `id`
@@ -104,9 +97,9 @@ interface IInstitutionalVaultRegistry is
     ) external;
 
     /**
-     * @notice Disables an existing institution id (keeps data visible)
+     * @notice Removes an existing institution id (keeps data visible)
      */
-    function disableInstitution(bytes32 id) external;
+    function removeInstitution(bytes32 id) external;
 
     /**
      * @notice Updates only the AdmiralsQuarters address for institution with id `id`
