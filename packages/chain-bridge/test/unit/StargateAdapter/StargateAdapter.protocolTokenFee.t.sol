@@ -242,7 +242,10 @@ contract StargateAdapterProtocolTokenFeeTest is
 
         // Transfer all protocol tokens away from user
         vm.prank(user);
-        protocolFeeToken.transfer(address(0xdead), userBalance);
+        require(
+            protocolFeeToken.transfer(address(0xdead), userBalance),
+            "Transfer failed"
+        );
 
         // Should revert due to insufficient balance
         vm.expectRevert();
@@ -468,7 +471,7 @@ contract StargateAdapterProtocolTokenFeeTest is
 
         // Transfer tokens to the router and approve the new adapter
         vm.prank(user);
-        tokenA.transfer(address(routerA), 1 ether);
+        require(tokenA.transfer(address(routerA), 1 ether), "Transfer failed");
         vm.prank(address(routerA));
         tokenA.approve(address(newAdapter), 1 ether);
 

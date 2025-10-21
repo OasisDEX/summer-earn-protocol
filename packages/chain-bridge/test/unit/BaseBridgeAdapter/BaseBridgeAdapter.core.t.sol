@@ -21,63 +21,63 @@ contract ExposedAdapter is BaseBridgeAdapter {
         uint16 dstChain
     ) external onlyTrustedDestination(dstChain) {}
 
-    function exposed_validateTrustedSource(
+    function exposedValidateTrustedSource(
         address srcAdapter,
         uint16 srcChain
     ) external view returns (bool) {
         return _validateTrustedSource(srcAdapter, srcChain);
     }
 
-    function exposed_validateSourceChainId(
+    function exposedValidateSourceChainId(
         uint16 sourceChainId,
         uint16 expected
     ) external pure {
         _validateSourceChainId(sourceChainId, expected);
     }
 
-    function exposed_externalIdForChain(
+    function exposedExternalIdForChain(
         uint16 chainId
     ) external view returns (uint32) {
         return _externalIdForChain(chainId);
     }
 
-    function exposed_chainIdFromExternalId(
+    function exposedChainIdFromExternalId(
         uint32 externalId
     ) external view returns (uint16) {
         return _chainIdFromExternalId(externalId);
     }
 
-    function exposed_requireGasLimit(
+    function exposedRequireGasLimit(
         uint64 gasLimit
     ) external pure returns (uint64) {
         return _requireGasLimit(gasLimit);
     }
 
-    function exposed_decodePayload(
+    function exposedDecodePayload(
         bytes calldata payload
     ) external pure returns (BridgeTypes.OperationType op, bytes memory data) {
         return _decodePayload(payload);
     }
 
-    function exposed_encodeRelayedMessageParams(
+    function exposedEncodeRelayedMessageParams(
         BridgeTypes.RelayedMessageParams memory p
     ) external pure returns (bytes memory) {
         return _encodeRelayedMessageParams(p);
     }
 
-    function exposed_encodeRelayedTransferParams(
+    function exposedEncodeRelayedTransferParams(
         BridgeTypes.RelayedTransferParams memory p
     ) external pure returns (bytes memory) {
         return _encodeRelayedTransferParams(p);
     }
 
-    function exposed_encodeRelayedMessageParamsWithType(
+    function exposedEncodeRelayedMessageParamsWithType(
         BridgeTypes.RelayedMessageParams memory p
     ) external pure returns (bytes memory) {
         return _encodeRelayedMessageParamsWithType(p);
     }
 
-    function exposed_encodeRelayedTransferParamsWithType(
+    function exposedEncodeRelayedTransferParamsWithType(
         BridgeTypes.RelayedTransferParams memory p
     ) external pure returns (bytes memory) {
         return _encodeRelayedTransferParamsWithType(p);
@@ -147,8 +147,8 @@ contract BaseBridgeAdapterCoreTest is Test {
         vm.stopPrank();
 
         // resolve forward/backward via internal wrappers
-        assertEq(adapterA.exposed_externalIdForChain(chainId), eid);
-        assertEq(adapterA.exposed_chainIdFromExternalId(eid), chainId);
+        assertEq(adapterA.exposedExternalIdForChain(chainId), eid);
+        assertEq(adapterA.exposedChainIdFromExternalId(eid), chainId);
     }
 
     function testMapExternalId_Reverts_WhenExternalIdZero() public {
@@ -177,13 +177,13 @@ contract BaseBridgeAdapterCoreTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(IBridgeAdapter.UnsupportedChain.selector)
         );
-        adapterA.exposed_externalIdForChain(chainId);
+        adapterA.exposedExternalIdForChain(chainId);
 
         // Reverse resolution should also revert
         vm.expectRevert(
             abi.encodeWithSelector(IBridgeAdapter.UnsupportedChain.selector)
         );
-        adapterA.exposed_chainIdFromExternalId(eid);
+        adapterA.exposedChainIdFromExternalId(eid);
     }
 
     // -------- Gas limit validation --------
@@ -193,11 +193,11 @@ contract BaseBridgeAdapterCoreTest is Test {
                 IBaseBridgeAdapterErrors.InvalidParams.selector
             )
         );
-        adapterA.exposed_requireGasLimit(0);
+        adapterA.exposedRequireGasLimit(0);
     }
 
     function testRequireGasLimit_ReturnsValue() public view {
-        assertEq(adapterA.exposed_requireGasLimit(1234), 1234);
+        assertEq(adapterA.exposedRequireGasLimit(1234), 1234);
     }
 
     // -------- Registry peer trust checks --------
@@ -262,11 +262,11 @@ contract BaseBridgeAdapterCoreTest is Test {
                 IBaseBridgeAdapterErrors.InvalidSourceChainId.selector
             )
         );
-        adapterA.exposed_validateSourceChainId(100, 200);
+        adapterA.exposedValidateSourceChainId(100, 200);
     }
 
     function testAssertSourceChainId_PassOnMatch() public view {
-        adapterA.exposed_validateSourceChainId(123, 123);
+        adapterA.exposedValidateSourceChainId(123, 123);
     }
 
     // -------- Encode/Decode helpers --------
@@ -281,9 +281,9 @@ contract BaseBridgeAdapterCoreTest is Test {
             });
 
         bytes memory payload = adapterA
-            .exposed_encodeRelayedMessageParamsWithType(p);
+            .exposedEncodeRelayedMessageParamsWithType(p);
         (BridgeTypes.OperationType op, bytes memory data) = adapterA
-            .exposed_decodePayload(payload);
+            .exposedDecodePayload(payload);
         assertEq(uint256(op), uint256(BridgeTypes.OperationType.MESSAGE));
 
         // Also decode the inner struct
@@ -311,9 +311,9 @@ contract BaseBridgeAdapterCoreTest is Test {
             });
 
         bytes memory payload = adapterA
-            .exposed_encodeRelayedTransferParamsWithType(p);
+            .exposedEncodeRelayedTransferParamsWithType(p);
         (BridgeTypes.OperationType op, bytes memory data) = adapterA
-            .exposed_decodePayload(payload);
+            .exposedDecodePayload(payload);
         assertEq(
             uint256(op),
             uint256(BridgeTypes.OperationType.TRANSFER_ASSET)
