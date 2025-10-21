@@ -38,15 +38,4 @@ interface IAssetAdapter {
         BridgeTypes.ExecuteTransferParams calldata params,
         BridgeTypes.BridgeOptions calldata options
     ) external payable;
-
-    /**
-     * @notice Check if the adapter supports asset transfers to a specific chain
-     * @param destinationChainId ID of the destination chain
-     * @param asset Address of the asset to transfer
-     * @return Whether asset transfers are supported
-     */
-    function supportsAssetTransfer(
-        uint16 destinationChainId,
-        address asset
-    ) external view returns (bool);
 }

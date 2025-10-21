@@ -400,26 +400,6 @@ contract StargateAdapter is
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
 
-    /// @inheritdoc IAssetAdapter
-    function supportsAssetTransfer(
-        uint16 destinationChainId,
-        address asset
-    ) external view returns (bool) {
-        if (destinationChainId == uint16(block.chainid)) {
-            // For current chain, check if asset has a Stargate contract
-            return assetToStargateContract[asset] != address(0);
-        }
-
-        // For remote chains, require BOTH:
-        // 1. Asset is supported locally (required for transferAsset to work)
-        // 2. Peer adapter exists (required for cross-chain routing)
-        // NOTE: This does NOT guarantee the destination adapter is configured properly.
-        // A misconfigured remote adapter will cause compose failures that require manual recovery.
-        return
-            assetToStargateContract[asset] != address(0) &&
-            _hasTrustedDestination(destinationChainId);
-    }
-
     /*//////////////////////////////////////////////////////////////
                         LAYERZERO COMPOSE HANDLER
     //////////////////////////////////////////////////////////////*/

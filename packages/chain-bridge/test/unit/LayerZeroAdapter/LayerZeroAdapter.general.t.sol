@@ -118,30 +118,6 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         );
     }
 
-    function test_supportsMessageOperation_false_when_chain_unmapped()
-        public
-        view
-    {
-        // Test with an unmapped chain ID
-        assertFalse(
-            adapterA.supportsMessageOperation(
-                999, // Unmapped chain
-                BridgeTypes.OperationType.MESSAGE
-            )
-        );
-    }
-
-    function test_supportsMessageOperation_false_when_unsupported_operation()
-        public
-        view
-    {
-        bool supported = adapterA.supportsMessageOperation(
-            CHAIN_ID_B,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
-        assertFalse(supported);
-    }
-
     /*//////////////////////////////////////////////////////////////
                         ESTIMATION & VALIDATION TESTS
     //////////////////////////////////////////////////////////////*/

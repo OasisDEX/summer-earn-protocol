@@ -37,12 +37,4 @@ interface IMessageAdapter {
         BridgeTypes.ExecuteSendMessageParams calldata params,
         BridgeTypes.BridgeOptions calldata options
     ) external payable;
-
-    /**
-     * @notice Check if the adapter supports MESSAGE to a destination
-     */
-    function supportsMessageOperation(
-        uint16 destinationChainId,
-        BridgeTypes.OperationType operationType
-    ) external view returns (bool);
 }

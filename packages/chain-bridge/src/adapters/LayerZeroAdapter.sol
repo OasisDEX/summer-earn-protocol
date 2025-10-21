@@ -476,18 +476,6 @@ contract LayerZeroAdapter is
         return _supportsOperation(operationType);
     }
 
-    /// @inheritdoc IMessageAdapter
-    function supportsMessageOperation(
-        uint16 destinationChainId,
-        BridgeTypes.OperationType operationType
-    ) external view returns (bool) {
-        // Cache storage read and combine checks for gas efficiency
-        uint32 externalId = chainToExternalId[destinationChainId];
-        return
-            externalId != 0 &&
-            operationType == BridgeTypes.OperationType.MESSAGE;
-    }
-
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
