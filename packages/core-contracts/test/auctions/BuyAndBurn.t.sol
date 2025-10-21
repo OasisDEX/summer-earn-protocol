@@ -277,7 +277,7 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         buyAndBurn.buyTokens(2, secondAuctionBuyAmount);
         vm.stopPrank();
 
-        vm.warp(block.timestamp + 8 days);
+        vm.warp(block.timestamp + 7 days + 1);
         vm.prank(governor);
         buyAndBurn.finalizeAuction(2);
 
