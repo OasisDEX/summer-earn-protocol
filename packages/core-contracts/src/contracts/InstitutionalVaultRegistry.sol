@@ -132,7 +132,7 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
         if (!exists(id)) revert InstitutionNotFound(id);
         IInstitutionalVaultRegistry.Institution
             storage institution = institutions[id];
-        if (newAdmiralsQuarters == address(0)) revert ZeroAddress();
+        if (newAdmiralsQuarters == address(0)) revert AddressZero();
         if (institution.admiralsQuarters == newAdmiralsQuarters)
             revert SameAddress();
 

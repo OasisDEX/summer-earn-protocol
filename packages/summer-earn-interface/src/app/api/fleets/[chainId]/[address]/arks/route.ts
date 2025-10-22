@@ -24,13 +24,13 @@ export async function GET(
 
   const [activeArks, bufferArkAddress] = await Promise.all([
     // @ts-ignore
-         client.readContract({
+    client.readContract({
       address: address as `0x${string}`,
       abi: fleetCommanderAbi,
       functionName: 'getActiveArks',
     }) as Promise<`0x${string}`[]>,
     // @ts-ignore
-         client.readContract({
+    client.readContract({
       address: address as `0x${string}`,
       abi: fleetCommanderAbi,
       functionName: 'bufferArk',
@@ -44,19 +44,19 @@ export async function GET(
     allArks.map(async (arkAddress) => {
       const [totalAssets, withdrawableTotalAssets, name] = await Promise.all([
         // @ts-ignore
-         client.readContract({
+        client.readContract({
           address: arkAddress,
           abi: arkAbi,
           functionName: 'totalAssets',
         }),
         // @ts-ignore
-         client.readContract({
+        client.readContract({
           address: arkAddress,
           abi: arkAbi,
           functionName: 'withdrawableTotalAssets',
         }),
         // @ts-ignore
-         client.readContract({
+        client.readContract({
           address: arkAddress,
           abi: arkAbi,
           functionName: 'name',
