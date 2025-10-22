@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     console.log('rpcUrl', rpcUrl)
     const client = createPublicClient({ transport: http(rpcUrl) })
     const activeFleets = (await // @ts-ignore
-         client.readContract({
+    client.readContract({
       address: harbor as `0x${string}`,
       abi: harborCommandAbi,
       functionName: 'getActiveFleetCommanders',
@@ -55,31 +55,31 @@ export async function GET(request: Request) {
         const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets] =
           await Promise.all([
             // @ts-ignore
-         client.readContract({
+            client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'name',
             }),
             // @ts-ignore
-         client.readContract({
+            client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'symbol',
             }),
             // @ts-ignore
-         client.readContract({
+            client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'asset',
             }),
             // @ts-ignore
-         client.readContract({
+            client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'totalAssets',
             }),
             // @ts-ignore
-         client.readContract({
+            client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'withdrawableTotalAssets',
@@ -88,13 +88,13 @@ export async function GET(request: Request) {
 
         const [assetDecimals, assetSymbol] = await Promise.all([
           // @ts-ignore
-         client.readContract({
+          client.readContract({
             address: assetAddress as `0x${string}`,
             abi: erc20Abi,
             functionName: 'decimals',
           }),
           // @ts-ignore
-         client.readContract({
+          client.readContract({
             address: assetAddress as `0x${string}`,
             abi: erc20Abi,
             functionName: 'symbol',

@@ -531,7 +531,14 @@
           "Euler_Resolv": "0xcBC9B61177444A793B85442D3a953B90f6170b7D",
           "Sky_sUSDC": "0xBc65ad17c5C0a2A4D159fa5a503f4992c7B545FE",
           "Term_Summer_USDC": "0xA9ca4909700505585B1aD2a1579dA3b670FFA9c4",
-          "Gearbox_Invariant": "0xc155444481854c60e7a29f4150373f479988f32d"
+          "Gearbox_Invariant": "0xc155444481854c60e7a29f4150373f479988f32d",
+          "Euler_Frontier_Falcon": "0x3573A84Bee11D49A1CbCe2b291538dE7a7dD81c6",
+          "Euler_Frontier_MMEV": "0x98281466aBcF48eAAD8c6E22dEdD18A3426A93b4",
+          "Euler_Frontier_YieldFi": "0xc727069c0eb261Be642272fe3848518192683fFc",
+          "Euler_Frontier_Hyperwave": "0x3C75C170671acb394804DfAf63e4F9891C121625",
+          "Euler_Frontier_Yala": "0x481D4909D7ca2eb27c4975f08dCE07DBeF0d3Fa7",
+          "Euler_Frontier_Pareto": "0xa94F9CE821C7bD57cc12991CB46ca19f5789278F",
+          "SiUSD_InfiniFi_Senior": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB"
         },
         "dai": {},
         "usde": {},
@@ -547,7 +554,10 @@
           "Fluid": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
           "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2",
           "Euler_Swaap_Lend": "0x716bF454066a84F39A2F78b5707e79a9d64f1225",
-          "Term_Summer_WETH": "0x6e7d87a64c78593781452a014dc989100B24a4aF"
+          "Term_Summer_WETH": "0x6e7d87a64c78593781452a014dc989100B24a4aF",
+          "Euler_Frontier_Upshift": "0x87c414825aB3d1E9bdC773e9B1fD968822c9CF51",
+          "Euler_Alterscope_LRT_WETH": "0x45c3B59d53e2e148Aaa6a857521059676D5c0489",
+          "Euler_Frontier_Puffer": "0xc2c4aBae84fbb5b7bAAB52301A924b1F986C66bd"
         }
       },
       "pendle": {
@@ -598,7 +608,17 @@
             "Gauntlet_Frontier_USDC": "0xc582F04d8a82795aa2Ff9c8bb4c1c889fe7b754e",
             "Relend_USDC": "0x0F359FD18BDa75e9c49bC027E7da59a4b01BF32a",
             "MEV_Capital_USDC": "0xd63070114470f685b75B74D60EEc7c1113d33a3D",
-            "Hyperithm_USDC": "0x777791C4d6DC2CE140D00D2828a7C93503c67777"
+            "Hyperithm_USDC": "0x777791C4d6DC2CE140D00D2828a7C93503c67777",
+            "Avantgarde_USDC_Core": "0x5b56F90340dBAa6a8693DADb141D620f0e154fE6",
+            "Gauntlet_USDC_RWA": "0xA8875aaeBc4f830524e35d57F9772FfAcbdD6C45",
+            "MEV_Capital_PTs_USDC": "0xd41830d88dfD08678b0B886E0122193d54b02Acc",
+            "RE7_USDC_FX_Protocol": "0x4F460bb11cf958606C69A963B4A17f9DaEEea8b6",
+            "Rollo_USDC_Performance": "0x98dC52125E9D0Eb8D62892334e502B555D04a787",
+            "Steakhouse_InfiniFi_USDC": "0xBEeF1f5Bd88285E5B239B6AAcb991d38ccA23Ac9",
+            "TAC_USDC": "0x1E2aAaDcF528b9cC08F43d4fd7db488cE89F5741",
+            "Clearstar_USDC_Reactor": "0x62fE596d59fB077c2Df736dF212E0AFfb522dC78",
+            "Edge_UltraYield_USDC": "0x0562AE950276B24F3eAE0d0a518dADB7Ad2F8D66",
+            "Vault_Bridge_USDC": "0xBEefb9f61CC44895d8AEc381373555a64191A9c4"
           },
           "dai": {},
           "usde": {},
@@ -616,7 +636,13 @@
             "Steakhouse_WETH": "0xBEEf050ecd6a16c4e7bfFbB52Ebba7846C4b8cD4",
             "Mev_Capital_WETH": "0x9a8bC3B04b7f3D87cfC09ba407dCED575f2d61D8",
             "Gauntlet_WETH_Core": "0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658",
-            "Smokehouse_WETH": "0xbEEF36A5C1372F8D7d211527FCE9f83FE02d8A73"
+            "Smokehouse_WETH": "0xbEEF36A5C1372F8D7d211527FCE9f83FE02d8A73",
+            "SingularV_WETH": "0x739d8a60ED4b14E4cB6DCAEAF79d2ec0Ca092237",
+            "Indexcoop_HyETH": "0x701907283a57FF77E255C3f1aAD790466B8CE4ef",
+            "TAC_WETH": "0x0bB2751a90fFF62e844b1521637DeD28F3f5046A",
+            "Alpha_WETH_Core": "0x47fe8Ab9eE47DD65c24df52324181790b9F47EfC",
+            "Yearn_OG_WETH": "0xE89371eAaAC6D46d4C3ED23453241987916224FC",
+            "Avantgarde_WETH_Core": "0xf79F51f8F473eD34f6b2b13ee74c3208286D53EB"
           }
         },
         "markets": {
@@ -681,9 +707,14 @@
         },
         "vaults": {
           "usdc": {
-            "apostro": "0xed9278c5188f37670b33ef3B00729E38260cd5D5"
+            "apostro": "0xed9278c5188f37670b33ef3B00729E38260cd5D5",
+            "valamore_usdc_growth": "0x8399C8Fc273bD165C346Af74A02e65f10e4FD78F"
           }
         }
+      },
+      "infinifi": {
+        "gateway": "0x3f04b65Ddbd87f9CE0A2e7Eb24d80e7fb87625b5",
+        "siUSD": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB"
       }
     },
     "bridge": {

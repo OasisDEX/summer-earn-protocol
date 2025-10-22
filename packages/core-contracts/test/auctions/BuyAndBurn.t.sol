@@ -277,10 +277,7 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         buyAndBurn.buyTokens(2, secondAuctionBuyAmount);
         vm.stopPrank();
 
-        // Advance time to ensure the second auction has ended
-        // The auction duration is 7 days, so we need to go past that from when the second auction started
-        // Adding extra time to be absolutely sure we're past the end
-        vm.warp(timeBeforeSecondAuction + 10 days);
+        vm.warp(block.timestamp + 7 days + 1);
         vm.prank(governor);
         buyAndBurn.finalizeAuction(2);
 

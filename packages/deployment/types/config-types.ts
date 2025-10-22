@@ -1,4 +1,5 @@
 import { Address } from 'viem'
+import { CoreContracts as CoreContractsBase } from '../ignition/modules/core'
 import { DeployedBridge } from './bridge-types'
 
 export enum SupportedNetworks {
@@ -293,10 +294,20 @@ export interface FleetConfig {
 
 export interface FleetDeployment {
   fleetName: string
+  isBummer?: boolean
   fleetSymbol: string
   assetSymbol: string
   fleetAddress: Address
   bufferArkAddress: Address
   network: string
   arks: Address[]
+  initialMinimumBufferBalance?: string
+  initialRebalanceCooldown?: string
+  depositCap?: string
+  initialTipRate?: string
+}
+
+// Extend CoreContracts to include InstitutionalVaultRegistry for networks
+export interface CoreContracts extends CoreContractsBase {
+  institutionalVaultRegistry?: { address: Address }
 }

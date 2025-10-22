@@ -386,19 +386,19 @@ async function getTokenBalances(
       try {
         const [symbol, decimals, balance] = await Promise.all([
           // @ts-ignore
-publicClient.readContract({
+          publicClient.readContract({
             address: token.address as `0x${string}`,
             abi: erc20Abi,
             functionName: 'symbol',
           }),
           // @ts-ignore
-publicClient.readContract({
+          publicClient.readContract({
             address: token.address as `0x${string}`,
             abi: erc20Abi,
             functionName: 'decimals',
           }),
           // @ts-ignore
-publicClient.readContract({
+          publicClient.readContract({
             address: token.address as `0x${string}`,
             abi: erc20Abi,
             functionName: 'balanceOf',
@@ -515,7 +515,7 @@ async function getClaimableRewards(
     if (matchedPattern === 'SkyRewards') {
       // @ts-ignore - Type inference issue with complex nested types
       result = await // @ts-ignore
-publicClient.readContract({
+      publicClient.readContract({
         address: config.contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'earned',
@@ -528,7 +528,7 @@ publicClient.readContract({
 
       // @ts-ignore - Type inference issue with complex nested types
       result = await // @ts-ignore
-publicClient.readContract({
+      publicClient.readContract({
         address: config.contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'getOutstandingRewardsForUser',
@@ -541,7 +541,7 @@ publicClient.readContract({
 
       // @ts-ignore - Type inference issue with complex nested types
       result = await // @ts-ignore
-publicClient.readContract({
+      publicClient.readContract({
         address: config.contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'getRewardsBalance',
@@ -557,7 +557,7 @@ publicClient.readContract({
       const cometAddress = parsedDetails.pool
       // @ts-ignore - Type inference issue with complex nested types
       result = await // @ts-ignore
-publicClient.readContract({
+      publicClient.readContract({
         address: config.contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'getRewardOwed',
