@@ -147,9 +147,8 @@ export function useRaftContract() {
     const rewardTokens = REWARD_TOKENS[chainId] || []
     const results = await Promise.all(
       rewardTokens.map(async (tokenAddress) => {
-        const amount = await 
-        // @ts-ignore
-publicClient.readContract({
+        const amount = await // @ts-ignore
+        publicClient.readContract({
           address: raftAddress,
           abi: RAFT_ABI,
           functionName: 'obtainedTokens',

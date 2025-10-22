@@ -83,17 +83,16 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
       if (!publicClient || !intentBondFactory) return null
 
       try {
-    
         const [bondAmount, isVouched] = await Promise.all([
           // @ts-ignore
-publicClient.readContract({
+          publicClient.readContract({
             address: intentBondFactory as `0x${string}`,
             abi: IntentBondFactoryABI,
             functionName: 'getSolverBondAmount',
             args: [solverAddress as `0x${string}`],
           }),
           // @ts-ignore
-publicClient.readContract({
+          publicClient.readContract({
             address: intentBondFactory as `0x${string}`,
             abi: IntentBondFactoryABI,
             functionName: 'isSolverVouched',
@@ -256,7 +255,7 @@ publicClient.readContract({
       try {
         // First get the bond contract address
         const bondAddress = await // @ts-ignore
-publicClient.readContract({
+        publicClient.readContract({
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'getSolverBond',
@@ -269,7 +268,7 @@ publicClient.readContract({
 
         // First approve SUMMER tokens for the bond contract
         const summerTokenAddress = await // @ts-ignore
-publicClient.readContract({
+        publicClient.readContract({
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'summerToken',
@@ -336,7 +335,7 @@ publicClient.readContract({
 
       try {
         const isVouched = await // @ts-ignore
-publicClient.readContract({
+        publicClient.readContract({
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'isSolverVouched',
@@ -359,7 +358,7 @@ publicClient.readContract({
 
       try {
         const bondAmount = await // @ts-ignore
-publicClient.readContract({
+        publicClient.readContract({
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'getSolverBondAmount',
@@ -382,7 +381,7 @@ publicClient.readContract({
 
       try {
         const result = await // @ts-ignore
-publicClient.readContract({
+        publicClient.readContract({
           address: intentHandler as `0x${string}`,
           abi: IntentHandlerABI,
           functionName: 'hasCommitted',
@@ -545,14 +544,14 @@ publicClient.readContract({
 
       try {
         const summerTokenAddress = await // @ts-ignore
-publicClient.readContract({
+        publicClient.readContract({
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'summerToken',
         })
 
         const allowance = await // @ts-ignore
-publicClient.readContract({
+        publicClient.readContract({
           address: summerTokenAddress as `0x${string}`,
           abi: [
             {

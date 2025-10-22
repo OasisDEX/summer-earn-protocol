@@ -21,7 +21,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * @notice Manages a fleet of Arks, coordinating deposits, withdrawals, and rebalancing operations
  * @dev Implements IFleetCommanderWhitelist interface and inherits from various utility contracts.
  *      State-changing user operations such as deposit, mint and ERC20 transfers are gated by
- *      `onlyWhitelisted(_msgSender())` via the inherited Whitelist utility. When the whitelist
+ *      via the inherited Whitelist utility and the modifier `onlyWhitelisted`. When the whitelist
  *      is open (i.e., `address(0)` is whitelisted), all callers are allowed.
  */
 contract FleetCommanderWhitelist is
@@ -101,7 +101,16 @@ contract FleetCommanderWhitelist is
         uint256 assets,
         address receiver,
         address owner
-    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
+    )
+        public
+        onlyWhitelisted(_msgSender())
+        onlyWhitelisted(owner)
+        onlyWhitelisted(receiver)
+        whenNotPaused
+        collectTip
+        useCache
+        returns (uint256 shares)
+    {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -125,6 +134,9 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
+        onlyWhitelisted(_msgSender())
+        onlyWhitelisted(owner)
+        onlyWhitelisted(receiver)
         collectTip
         useCache
         whenNotPaused
@@ -149,7 +161,16 @@ contract FleetCommanderWhitelist is
         uint256 shares,
         address receiver,
         address owner
-    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
+    )
+        public
+        onlyWhitelisted(_msgSender())
+        onlyWhitelisted(owner)
+        onlyWhitelisted(receiver)
+        collectTip
+        useCache
+        whenNotPaused
+        returns (uint256 assets)
+    {
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -173,6 +194,9 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
+        onlyWhitelisted(_msgSender())
+        onlyWhitelisted(owner)
+        onlyWhitelisted(receiver)
         collectTip
         useCache
         whenNotPaused
@@ -200,6 +224,9 @@ contract FleetCommanderWhitelist is
     )
         public
         override(IFleetCommanderWhitelist)
+        onlyWhitelisted(_msgSender())
+        onlyWhitelisted(owner)
+        onlyWhitelisted(receiver)
         collectTip
         useWithdrawCache
         whenNotPaused
@@ -223,6 +250,9 @@ contract FleetCommanderWhitelist is
     )
         public
         override(IFleetCommanderWhitelist)
+        onlyWhitelisted(_msgSender())
+        onlyWhitelisted(owner)
+        onlyWhitelisted(receiver)
         collectTip
         useWithdrawCache
         whenNotPaused
@@ -244,6 +274,7 @@ contract FleetCommanderWhitelist is
         public
         override(ERC4626, IERC4626)
         onlyWhitelisted(_msgSender())
+        onlyWhitelisted(receiver)
         collectTip
         useCache
         whenNotPaused
@@ -272,6 +303,7 @@ contract FleetCommanderWhitelist is
         public
         override(ERC4626, IERC4626)
         onlyWhitelisted(_msgSender())
+        onlyWhitelisted(receiver)
         collectTip
         useCache
         whenNotPaused
@@ -476,6 +508,7 @@ contract FleetCommanderWhitelist is
         if (!transfersEnabled) {
             revert FleetCommanderTransfersDisabled();
         }
+        _revertIfNotWhitelisted(_msgSender());
         _revertIfNotWhitelisted(from);
         _revertIfNotWhitelisted(to);
 
