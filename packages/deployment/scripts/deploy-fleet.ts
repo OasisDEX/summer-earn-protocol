@@ -90,7 +90,11 @@ async function deployFleet() {
   // Ask about using bummer config at the beginning
   const useBummerConfig = await promptForConfigType()
 
-  const config = getConfigByNetwork(network, { gov: true, core: true }, useBummerConfig) as BaseConfig
+  const config = getConfigByNetwork(
+    network,
+    { gov: true, core: true },
+    useBummerConfig,
+  ) as BaseConfig
 
   // Determine if this is a hub or satellite chain
   const isHubChain = network === HUB_CHAIN_NAME
@@ -361,7 +365,9 @@ async function handleArkAddition(
 
     // Compare on-chain state with deployment file
     if (onChainArks.length !== existingArks.length) {
-      console.log(kleur.red().bold('ERROR: Mismatch detected between on-chain and deployment file!'))
+      console.log(
+        kleur.red().bold('ERROR: Mismatch detected between on-chain and deployment file!'),
+      )
       console.log(kleur.red(`On-chain arks: ${onChainArks.length}`))
       console.log(kleur.red(`Deployment file arks: ${existingArks.length}`))
       console.log(kleur.yellow('\nOn-chain arks:'))

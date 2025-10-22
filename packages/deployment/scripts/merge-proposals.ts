@@ -4,11 +4,9 @@ import path from 'path'
 import prompts from 'prompts'
 import { Address, Hex } from 'viem'
 import {
-  displayProposalSummary,
+  ProposalDetails,
   getProposalsDirectory,
   listProposalFiles,
-  ProposalData,
-  ProposalDetails,
   saveProposalToFile,
 } from './helpers/proposal-helpers'
 
@@ -246,11 +244,7 @@ async function mergeProposalsScript() {
     console.log(kleur.blue(`\nProposal ${i + 1}:`))
     console.log(kleur.yellow(`  Title: ${p.title}`))
     console.log(kleur.yellow(`  Hub Actions: ${p.targets.length}`))
-    console.log(
-      kleur.yellow(
-        `  Cross-Chain: ${p.crossChainExecution ? 'Yes' : 'No'}`,
-      ),
-    )
+    console.log(kleur.yellow(`  Cross-Chain: ${p.crossChainExecution ? 'Yes' : 'No'}`))
   })
 
   // Ask for custom title and description
@@ -361,4 +355,3 @@ mergeProposalsScript().catch((error) => {
   console.error(error instanceof Error ? error.message : String(error))
   process.exit(1)
 })
-
