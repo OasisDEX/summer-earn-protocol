@@ -279,6 +279,22 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
+     * @notice Internal helper to check if a destination chain has a trusted peer adapter
+     * @dev Queries the CrossChainRegistry to see if a peer relationship exists
+     * @param dstChain Destination chain ID to check
+     * @return true if a peer adapter is registered for the destination chain
+     */
+    function _hasTrustedDestination(
+        uint16 dstChain
+    ) internal view returns (bool) {
+        address peer = CROSS_CHAIN_REGISTRY.getAdapterPeer(
+            address(this),
+            dstChain
+        );
+        return peer != address(0);
+    }
+
+    /**
      * @notice Validates that the source chain ID matches the expected chain ID
      * @param sourceChainId The source chain ID to validate
      * @param expectedChainId The expected chain ID
