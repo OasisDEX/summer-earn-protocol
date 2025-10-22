@@ -110,6 +110,7 @@ export interface BaseConfig {
       harborCommand: { address: string }
       admiralsQuarters: { address: string }
       fleetCommanderRewardsManagerFactory: { address: string }
+      institutionalVaultRegistry?: { address: string }
     }
     bridge?: {
       bridgeRouter: { address: string }

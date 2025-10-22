@@ -246,6 +246,13 @@
         "vaultName": "SiUSD_InfiniFi_Senior",
         "protocol": "infinifi"
       }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "fluid"
+      }
     }
   ]
 }

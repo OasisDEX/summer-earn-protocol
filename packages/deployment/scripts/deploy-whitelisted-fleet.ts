@@ -111,7 +111,7 @@ async function main() {
   try {
     const registry = await hre.viem.getContractAt(
       'InstitutionalVaultRegistry' as string,
-      registryAddress,
+      registryAddress as Address,
     )
     const institutionBytes32 = (await registry.read.getBytes32InsitutionId([
       institutionId,
@@ -143,7 +143,38 @@ async function main() {
       return
     }
 
+    // Get the fleet commander contract to validate on-chain state
+    const fleetCommander = await hre.viem.getContractAt(
+      'FleetCommanderWhitelist' as string,
+      deploymentData.fleetAddress as Address,
+    )
+
+    // Get on-chain arks
+    const onChainArks = (await fleetCommander.read.getActiveArks()) as Address[]
+    console.log(kleur.blue('On-chain Active Arks:'), kleur.cyan(onChainArks.length.toString()))
+
+    // Get existing arks from deployment file
     const existingArks: string[] = deploymentData.arks || []
+    console.log(kleur.blue('Deployment File Arks:'), kleur.cyan(existingArks.length.toString()))
+
+    // Compare on-chain state with deployment file
+    if (onChainArks.length !== existingArks.length) {
+      console.log(kleur.red().bold('ERROR: Mismatch detected between on-chain and deployment file!'))
+      console.log(kleur.red(`On-chain arks: ${onChainArks.length}`))
+      console.log(kleur.red(`Deployment file arks: ${existingArks.length}`))
+      console.log(kleur.yellow('\nOn-chain arks:'))
+      onChainArks.forEach((ark, i) => console.log(kleur.cyan(`  ${i + 1}. ${ark}`)))
+      console.log(kleur.yellow('\nDeployment file arks:'))
+      existingArks.forEach((ark, i) => console.log(kleur.cyan(`  ${i + 1}. ${ark}`)))
+      throw new Error(
+        'Deployment file state does not match on-chain state. Please reconcile the deployment file before adding new arks.',
+      )
+    }
+
+    console.log(
+      kleur.green('✓ On-chain state matches deployment file. Safe to proceed with ark addition.'),
+    )
+
     const remainingArksToAdd = existingArks.length
       ? (fleetDefinition.arks || []).slice(existingArks.length)
       : fleetDefinition.arks || []
