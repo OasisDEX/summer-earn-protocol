@@ -8,6 +8,7 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {TokenRecovery} from "./TokenRecovery.sol";
 import {ProtocolFeeTokenHandler} from "./ProtocolFeeTokenHandler.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 /**
@@ -379,5 +380,20 @@ abstract contract BaseBridgeAdapter is
     function _requireGasLimit(uint64 userGas) internal pure returns (uint64) {
         if (userGas == 0) revert InvalidParams();
         return userGas;
+    }
+
+    /**
+     * @notice Refunds excess native tokens to the specified address
+     * @dev Internal helper for returning unused native fees to users
+     * @param refundAddress Address to receive the refund
+     * @param refundAmount Amount of native tokens to refund
+     */
+    function _refundExcessNative(
+        address refundAddress,
+        uint256 refundAmount
+    ) internal {
+        if (refundAmount > 0) {
+            Address.sendValue(payable(refundAddress), refundAmount);
+        }
     }
 }

@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {BridgeMessagingHelper} from "../libraries/BridgeMessagingHelper.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
@@ -99,17 +100,18 @@ contract SuperchainAdapter is
         );
 
         // Send message via L2ToL2CrossDomainMessenger to trigger delivery
-        bytes memory message = _encodeRelayedTransferParams(
-            BridgeTypes.RelayedTransferParams({
-                operationId: operationId,
-                originator: params.originator,
-                sourceChainId: uint16(block.chainid),
-                recipient: params.target,
-                asset: params.asset,
-                amount: params.amount,
-                message: params.message
-            })
-        );
+        bytes memory message = BridgeMessagingHelper
+            .encodeRelayedTransferParams(
+                BridgeTypes.RelayedTransferParams({
+                    operationId: operationId,
+                    originator: params.originator,
+                    sourceChainId: uint16(block.chainid),
+                    recipient: params.target,
+                    asset: params.asset,
+                    amount: params.amount,
+                    message: params.message
+                })
+            );
 
         L2_TO_L2_MESSENGER.sendMessage(
             _externalIdForChain(params.destinationChainId),
@@ -144,7 +146,6 @@ contract SuperchainAdapter is
         return (0, 0);
     }
 
-
     /// @notice Set asset support (governance function)
     function setAssetSupport(
         address asset,
@@ -173,7 +174,6 @@ contract SuperchainAdapter is
         revert IBridgeAdapter.OperationNotSupported();
     }
 
-
     /*//////////////////////////////////////////////////////////////
                         BRIDGE ADAPTER IMPLEMENTATION
     //////////////////////////////////////////////////////////////*/
@@ -201,8 +201,8 @@ contract SuperchainAdapter is
         if (msg.sender != address(L2_TO_L2_MESSENGER)) revert Unauthorized();
 
         // Decode the relayed transfer parameters
-        BridgeTypes.RelayedTransferParams
-            memory params = _decodeRelayedTransferParams(_message);
+        BridgeTypes.RelayedTransferParams memory params = BridgeMessagingHelper
+            .decodeRelayedTransferParams(_message);
 
         // Validate source adapter is trusted peer
         if (

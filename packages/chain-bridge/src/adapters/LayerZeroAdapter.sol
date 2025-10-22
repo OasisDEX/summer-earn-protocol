@@ -437,8 +437,8 @@ contract LayerZeroAdapter is
         ) = LayerZeroComposeHelper.decodeOFTCompose(_message);
 
         // Decode transfer parameters from compose message
-        BridgeTypes.RelayedTransferParams
-            memory params = _decodeRelayedTransferParams(composeMsg);
+        BridgeTypes.RelayedTransferParams memory params = BridgeMessagingHelper
+            .decodeRelayedTransferParams(composeMsg);
 
         // Ensure the LayerZero srcEid maps to the same chain as encoded in the payload
         uint16 chainFromEid = _chainIdFromExternalId(srcEid);
@@ -465,7 +465,7 @@ contract LayerZeroAdapter is
         // Deliver through router
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.TRANSFER_ASSET,
-            _encodeRelayedTransferParams(params)
+            BridgeMessagingHelper.encodeRelayedTransferParams(params)
         );
     }
 
@@ -586,7 +586,6 @@ contract LayerZeroAdapter is
             operationType == BridgeTypes.OperationType.MESSAGE ||
             operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
-
 
     /**
      * @notice Handles protocol token fee payment flow
