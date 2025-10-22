@@ -29,7 +29,7 @@ interface IInstitutionalVaultRegistry is
      * @param name Human-readable institution name (UTF-8)
      * @return id bytes32 identifier suitable for on-chain keys
      */
-    function getBytes32InsitutionId(
+    function getBytes32InstitutionId(
         string calldata name
     ) external pure returns (bytes32 id);
 
@@ -39,7 +39,7 @@ interface IInstitutionalVaultRegistry is
      * @param id bytes32 institution identifier
      * @return name 32-byte string representation (may contain null bytes)
      */
-    function getStringInsitutionId(
+    function getStringInstitutionId(
         bytes32 id
     ) external pure returns (string memory name);
 

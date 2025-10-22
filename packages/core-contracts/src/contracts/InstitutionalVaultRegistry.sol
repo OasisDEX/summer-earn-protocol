@@ -24,14 +24,14 @@ contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
      * VIEW
      */
     /// @inheritdoc IInstitutionalVaultRegistry
-    function getBytes32InsitutionId(
+    function getBytes32InstitutionId(
         string calldata name
     ) public pure returns (bytes32) {
         return bytes32(bytes(name));
     }
 
     /// @inheritdoc IInstitutionalVaultRegistry
-    function getStringInsitutionId(
+    function getStringInstitutionId(
         bytes32 id
     ) public pure returns (string memory) {
         bytes memory bytesArray = new bytes(32);
