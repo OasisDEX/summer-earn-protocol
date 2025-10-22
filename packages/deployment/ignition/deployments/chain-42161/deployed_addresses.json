@@ -47,5 +47,7 @@
   "LazyVault_LowerRisk_USDC_MorphoVault_usdc_MEV_Capital_USDC_42161#MorphoVaultArk": "0x4a45a58838187F939368B08D695A5321a9306140",
   "LazyVault_LowerRisk_USDC_ERC4626_Euler_Arbitrum_USDC_usdc_42161#ERC4626Ark": "0xd17c91DDD4bf4CCD34402901697e5Af1927213ce",
   "LazyVault_LowerRisk_USDC_SiloManagedVault_greenhouse_usdc_42161#SiloManagedVaultArk": "0x286A55af8a88d3B9937c1303bf945AFe6155A06B",
-  "LazyVault_LowerRisk_USDC_Silo_Swaap_Lend_susdx_usdc_127_usdc_42161#SiloVaultArkV2": "0x54749c15751137Be18768288D3945C4934fCb800"
+  "LazyVault_LowerRisk_USDC_Silo_Swaap_Lend_susdx_usdc_127_usdc_42161#SiloVaultArkV2": "0x54749c15751137Be18768288D3945C4934fCb800",
+  "LazyVault_LowerRisk_USDC_FluidFToken_usdc_42161#FluidFTokenArk": "0x01f61bFFE1f684F71Fcc40862AfE0FDD4aA462FC",
+  "LazyVault_LowerRisk_USDT_FluidFToken_usdt_42161#FluidFTokenArk": "0x00EB8210743f4D4Aa2B44e2744aE8fFd2dCEbc72"
 }
