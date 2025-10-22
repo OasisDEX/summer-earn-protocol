@@ -10,6 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateArkDetails } from '../helpers/validation'
 
 export interface SiUSDArkUserInput extends BaseArkParams {
   gateway: Address
@@ -105,6 +106,22 @@ async function deploySiUSDArkContract(
   const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
   console.log(moduleName)
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'InfiniFi',
+    type: 'SiUSDArk',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    gateway: userInput.gateway,
+    pool: userInput.siUSD,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'Siusd ark details')
+
   return (await hre.ignition.deploy(createSiUSDArkModule(moduleName), {
     parameters: {
       [moduleName]: {
@@ -112,15 +129,7 @@ async function deploySiUSDArkContract(
         siUSD: userInput.siUSD,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: 'InfiniFi',
-            type: 'SiUSDArk',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            gateway: userInput.gateway,
-            siUSDVault: userInput.siUSD,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,

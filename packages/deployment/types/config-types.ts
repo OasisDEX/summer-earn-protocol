@@ -150,6 +150,10 @@ export interface BaseConfig {
       pool: string
       rewards: string
     }
+    spark: {
+      pool: string
+      rewards: string
+    }
     morpho: {
       blue: string
       urdFactory: string
@@ -162,6 +166,9 @@ export interface BaseConfig {
     }
     erc4626: Record<string, Record<string, string>>
     sky: {
+      psmLite: {
+        [key in Token]: Address
+      }
       psm3: {
         [key in Token]: Address
       }

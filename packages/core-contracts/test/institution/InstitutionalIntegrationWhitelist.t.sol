@@ -844,5 +844,4 @@ contract InstitutionalIntegrationWhitelistTest is
         deployedSystem.fleet.redeem(shares / 2, receiver, user);
         vm.stopPrank();
     }
-
 }

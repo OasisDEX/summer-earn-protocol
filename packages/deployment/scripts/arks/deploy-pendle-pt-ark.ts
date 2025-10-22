@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 export interface PendlePTArkUserInput extends BaseArkParams {
   marketId: string
@@ -129,6 +129,21 @@ async function deployPendlePTArkContract(
     'Pendle LP Oracle',
   )
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Pendle',
+    type: 'Pt',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: userInput.marketId,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'PendlePt ark details')
+
   return (await hre.ignition.deploy(createPendlePTArkModule(moduleName), {
     parameters: {
       [moduleName]: {
@@ -137,14 +152,7 @@ async function deployPendlePTArkContract(
         router: routerAddress,
         arkParams: {
           name: `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`,
-          details: JSON.stringify({
-            protocol: 'Pendle',
-            type: 'Pt',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: userInput.marketId,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,

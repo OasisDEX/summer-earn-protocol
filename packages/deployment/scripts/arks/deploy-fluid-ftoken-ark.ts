@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 export async function deployFluidFTokenArk(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting FluidFTokenArk deployment process...'))
@@ -116,21 +116,35 @@ async function deployFluidFTokenArkContract(
   console.log(moduleName)
   const protocol = 'Fluid'
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: protocol,
+
+    type: 'FluidFToken',
+
+    asset: userInput.token.address,
+
+    marketAsset: userInput.token.address,
+
+    pool: fToken,
+
+    chainId: chainId,
+
+    vaultName: userInput.token.symbol,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'FluidFtoken ark details')
+
   return (await hre.ignition.deploy(createFluidFTokenArkModule(moduleName), {
     parameters: {
       [moduleName]: {
         vault: fToken,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: protocol,
-            type: 'FluidFToken',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: fToken,
-            chainId: chainId,
-            vaultName: userInput.token.symbol,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,

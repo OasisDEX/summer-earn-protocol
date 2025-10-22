@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 /**
  * Main function to deploy an ArmArk.
@@ -126,17 +126,25 @@ async function deployArmArkContract(
   }
   const armAddress = validateAddress(armConfigs[vaultName], `OriginETH ARM ${vaultName}`)
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Origin',
+    type: 'ARM',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: armAddress,
+    armStrategy: vaultName,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'Arm ark details')
+
   const arkParams = {
     name: arkName,
-    details: JSON.stringify({
-      protocol: 'Origin',
-      type: 'ARM',
-      asset: userInput.token.address,
-      marketAsset: userInput.token.address,
-      pool: armAddress,
-      armStrategy: vaultName,
-      chainId: chainId,
-    }),
+    details: JSON.stringify(arkDetails),
     accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
     configurationManager: config.deployedContracts.core.configurationManager.address as Address,
     asset: userInput.token.address,
