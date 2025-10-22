@@ -246,7 +246,12 @@ contract LayerZeroAdapter is
 
         // 5. Create compose message if needed
         bytes memory composeMsg = params.message.length > 0
-            ? _encodeComposeTransferParams(operationId, params)
+            ? BridgeMessagingHelper.encodeRelayedTransferParams(
+                LayerZeroMessagingHelper.createRelayedTransferParams(
+                    operationId,
+                    params
+                )
+            )
             : bytes("");
 
         // 6. Create send parameters
@@ -302,7 +307,12 @@ contract LayerZeroAdapter is
         );
 
         bytes memory composeMsg = params.message.length > 0
-            ? _encodeComposeTransferParams(bytes32(0), params)
+            ? BridgeMessagingHelper.encodeRelayedTransferParams(
+                LayerZeroMessagingHelper.createRelayedTransferParams(
+                    bytes32(0),
+                    params
+                )
+            )
             : bytes("");
 
         SendParam memory sendParam = _createOFTSendParam(
@@ -661,21 +671,4 @@ contract LayerZeroAdapter is
     /*//////////////////////////////////////////////////////////////
                              COMPOSE HELPERS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @dev Encode transfer parameters for OFT compose message
-     * @param operationId Router-provided operation ID
-     * @param params Transfer parameters
-     * @return Encoded compose message payload
-     */
-    function _encodeComposeTransferParams(
-        bytes32 operationId,
-        BridgeTypes.ExecuteTransferParams calldata params
-    ) internal view returns (bytes memory) {
-        BridgeTypes.RelayedTransferParams
-            memory relayedParams = LayerZeroMessagingHelper
-                .createRelayedTransferParams(params, operationId);
-
-        return abi.encode(relayedParams);
-    }
 }
