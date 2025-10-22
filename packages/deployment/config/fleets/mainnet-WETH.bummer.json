@@ -65,6 +65,14 @@
         "vaultName": "Term_re7_weth",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "ArmArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "steth",
+        "protocol": "origin-arm"
+      }
     }
   ]
 }

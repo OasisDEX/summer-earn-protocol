@@ -3,9 +3,9 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address, Hex } from 'viem'
 import { SupportedNetworks } from '../../types/config-types'
-import { configureNewChainLayerZero } from '../bridge/configure-new-chain-lz'
 import { ADDRESS_ZERO } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
+import { configureNewChainLayerZero } from './bridge/configure-new-chain-lz'
 
 interface PeerConfig {
   eid: number

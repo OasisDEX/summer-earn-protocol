@@ -11,20 +11,21 @@ type ValidateConfig = {
   common?: boolean
   gov?: boolean
   core?: boolean
+  bridge?: boolean
 }
 
 /**
- * Gets the configuration for a specific network
- * @param network The network name
+ * Gets the configuration for a specific network or all networks
+ * @param network The network name or 'all' for all networks
  * @param validateConfig Configuration validation options
  * @param useBummerConfig Whether to use the test/bummer configuration
- * @returns The network configuration
+ * @returns The network configuration(s)
  */
 export function getConfigByNetwork(
   network: string,
   validateConfig: ValidateConfig,
   useBummerConfig: boolean = false,
-): BaseConfig {
+): BaseConfig | Config {
   // Determine which config file to use
   const configFileName = useBummerConfig ? 'index.test.json' : 'index.json'
   const configPath = path.resolve(__dirname, '..', '..', 'config', configFileName)
@@ -38,6 +39,11 @@ export function getConfigByNetwork(
   }
 
   const config: Config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
+  // Return all network configs if 'all' is requested
+  if (network === 'all') {
+    return config
+  }
 
   let _network = network
   if (network === 'hardhat' || network === 'local') {
@@ -58,6 +64,9 @@ export function getConfigByNetwork(
   // }
   if (validateConfig.core) {
     validateCoreDeployment(networkConfig)
+  }
+  if (validateConfig.bridge) {
+    validateBridgeDeployment(networkConfig)
   }
   return networkConfig
 }
@@ -147,4 +156,13 @@ export const validateCoreDeployment = (config: BaseConfig) => {
       `core.${contract}`,
     )
   }
+}
+
+export const validateBridgeDeployment = (config: BaseConfig) => {
+  if (!config.deployedContracts.bridge) {
+    throw new Error('Missing bridge deployment configuration')
+  }
+
+  validateAddress(config.deployedContracts.bridge.bridgeRouter.address, 'bridge.bridgeRouter')
+  validateAddress(config.deployedContracts.bridge.bridgeQueue.address, 'bridge.bridgeQueue')
 }

@@ -4,15 +4,9 @@ pragma solidity 0.8.28;
 import "../../src/contracts/arks/SyrupArk.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-
 import "../../src/events/IArkEvents.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISyrupPool} from "../../src/interfaces/syrup/ISyrupPool.sol";

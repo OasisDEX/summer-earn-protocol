@@ -44,7 +44,6 @@ export const CoreModule = buildModule('CoreModule', (m) => {
   const swapProvider = m.getParameter('swapProvider')
   const weth = m.getParameter('weth')
   const protocolAccessManager = m.getParameter('protocolAccessManager')
-
   /**
    * @dev Step 1: Deploy Core Infrastructure
    *

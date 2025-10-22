@@ -33,6 +33,59 @@ export const RAFT_CONTRACT_ADDRESSES: Record<Environment, Record<number, string>
 }
 
 // Token addresses per chain
+export const PROTOCOL_ACCESS_MANAGER_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0xf389BCEa078acD9516414F5dabE3dDd5f7e39694',
+    [arbitrum.id]: '0xf389BCEa078acD9516414F5dabE3dDd5f7e39694', // TODO: Add actual address for arbitrum
+    [base.id]: '0xf389BCEa078acD9516414F5dabE3dDd5f7e39694', // TODO: Add actual address for base
+    [sonic.id]: '0xAFb8a8beA8F7CdB4b65437b0c5963dc7Cd270bC6', // TODO: Add actual address for sonic
+  },
+  staging: {
+    [mainnet.id]: '0x092C41C6e9A8A54577CeDe5d077971116DdD6F57', // TODO: Add actual staging address
+    [arbitrum.id]: '0x2e208e55075b1cF15A767C15Ee9bA14205CB8371', // TODO: Add actual staging address
+    [base.id]: '0x603821f86DeDC794A3225d62Afe1F175fe4AE861', // TODO: Add actual staging address
+    [sonic.id]: '0xA55cd6a6D882180E84DDb25F7c7Ae4e4Af0f3f27', // TODO: Add actual staging address
+  },
+}
+
+// Summer Vesting Wallet Factory addresses per environment/chain
+export const SUMMER_VESTING_WALLET_FACTORY_ADDRESSES: Record<
+  Environment,
+  Record<number, string>
+> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x5f3cd3a45E6B8c2B29DDC80411C58291740E8886',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x5f3cd3a45E6B8c2B29DDC80411C58291740E8886',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}
+
+// Summer Vesting Wallet Factory V2 addresses per environment/chain
+export const SUMMER_VESTING_WALLET_FACTORY_V2_ADDRESSES: Record<
+  Environment,
+  Record<number, string>
+> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}
+
 export const REWARD_TOKENS: Record<number, string[]> = {
   [sonic.id]: [
     '0xb098AFC30FCE67f1926e735Db6fDadFE433E61db',
@@ -42,4 +95,132 @@ export const REWARD_TOKENS: Record<number, string[]> = {
   [mainnet.id]: [],
   [arbitrum.id]: [],
   [base.id]: [],
+}
+
+// Intent System Contract Addresses (Base only for now)
+export const INTENT_SYSTEM_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000', // Not deployed yet
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000', // Not deployed yet
+    [base.id]: '0x0000000000000000000000000000000000000000', // Not deployed yet
+    [sonic.id]: '0x0000000000000000000000000000000000000000', // Not deployed yet
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000', // Not deployed yet
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000', // Not deployed yet
+    [base.id]: '0x0000000000000000000000000000000000000000', // Not deployed yet
+    [sonic.id]: '0x0000000000000000000000000000000000000000', // Not deployed yet
+  },
+}
+
+// Individual Intent System Contracts (Base staging)
+export const INTENT_BOND_FACTORY_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x0000000000000000000000000000000000000000',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x39a1b82f989BD26552DbF95f0483d8A83654B6FF', // TODO: Add actual deployed address
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}
+
+export const INTENT_HANDLER_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x0000000000000000000000000000000000000000',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x574972f6948c127d30ac94f9eedA8855C1d0c413', // TODO: Add actual deployed address
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}
+
+// Mock Intent Oracle Addresses (for testing)
+export const MOCK_INTENT_ORACLE_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x0000000000000000000000000000000000000000',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x8a6AeCaa8C5241b72bA8c8D5D67102341Ee0c553', // TODO: Add actual deployed address
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}
+
+// Intent System Supported Tokens
+export const INTENT_SYSTEM_TOKENS: Record<Environment, Record<number, Record<string, string>>> = {
+  production: {
+    [mainnet.id]: {},
+    [arbitrum.id]: {},
+    [base.id]: {},
+    [sonic.id]: {},
+  },
+  staging: {
+    [mainnet.id]: {},
+    [arbitrum.id]: {},
+    [base.id]: {
+      SUMMER: '0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32',
+      USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    },
+    [sonic.id]: {},
+  },
+}
+
+// Summer Staking contracts (Base only for now)
+export const SUMMER_TOKEN_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}
+
+export const STAKED_SUMMER_TOKEN_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x49fea727a60469f2c25376ad3c7d5f3810adfd8c',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x49fea727a60469f2c25376ad3c7d5f3810adfd8c',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}
+
+export const SUMMER_STAKING_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x902aC48f45FEFEc167Fe65963Bff714287470A3f',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x902aC48f45FEFEc167Fe65963Bff714287470A3f',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
 }

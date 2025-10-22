@@ -25,6 +25,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
 import {ISummerRewardsRedeemer} from "@summerfi/rewards-contracts/interfaces/ISummerRewardsRedeemer.sol";
 import {IGovernanceRewardsManager} from "@summerfi/earn-gov-contracts/interfaces/IGovernanceRewardsManager.sol";
+import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
 
 /**
  * @title AdmiralsQuarters
@@ -76,6 +77,8 @@ contract AdmiralsQuarters is
     address public immutable NATIVE_PSEUDO_ADDRESS =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public immutable WRAPPED_NATIVE;
+    address public immutable MERKL_DISTRIBUTOR =
+        0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae;
 
     constructor(
         address _oneInchRouter,
@@ -149,6 +152,7 @@ contract AdmiralsQuarters is
 
         emit FleetEntered(_msgSender(), fleetCommander, assets, shares);
     }
+
     /// @inheritdoc IAdmiralsQuarters
     function enterFleet(
         address fleetCommander,
@@ -177,6 +181,7 @@ contract AdmiralsQuarters is
             referralCode
         );
     }
+
     /// @inheritdoc IAdmiralsQuarters
     function exitFleet(
         address fleetCommander,
@@ -300,6 +305,24 @@ contract AdmiralsQuarters is
         address rewardToken
     ) external onlyMulticall nonReentrant {
         _claimFleetRewards(fleetCommanders, rewardToken);
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function claimFromMerklDistributor(
+        address[] calldata users,
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
+    ) external onlyMulticall nonReentrant {
+        IDistributor(MERKL_DISTRIBUTOR).claim(users, tokens, amounts, proofs);
+        emit MerklRewardsClaimed(
+            _msgSender(),
+            MERKL_DISTRIBUTOR,
+            users,
+            tokens,
+            amounts,
+            proofs
+        );
     }
 
     /**

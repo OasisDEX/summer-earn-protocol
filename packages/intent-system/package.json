@@ -1,0 +1,49 @@
+{
+  "name": "@summerfi/intent-system",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.d.ts"
+    },
+    "./abis/*": {
+      "import": "./src/abis/*",
+      "types": "./src/abis/*"
+    }
+  },
+  "scripts": {
+    "test": "forge test",
+    "build": "forge build --extra-output-files abi && bash ./abi.sh"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-foundry": "1.1.2",
+    "@nomicfoundation/hardhat-ignition": "0.15.5",
+    "@nomicfoundation/hardhat-ignition-viem": "0.15.5",
+    "@summerfi/access-contracts": "workspace:*",
+    "@summerfi/earn-protocol-contracts": "workspace:*",
+    "@summerfi/constants": "workspace:*",
+    "@summerfi/dependencies": "workspace:*",
+    "@summerfi/dutch-auction": "workspace:*",
+    "@summerfi/earn-gov-contracts": "workspace:*",
+    "@summerfi/eslint-config": "workspace:*",
+    "@summerfi/jest-config": "workspace:*",
+    "@summerfi/math-utils": "workspace:*",
+    "@summerfi/percentage-solidity": "workspace:*",
+    "@summerfi/rewards-contracts": "workspace:*",
+    "@summerfi/tenderly-utils": "workspace:*",
+    "@summerfi/typescript-config": "workspace:*",
+    "@summerfi/voting-decay": "workspace:*",
+    "@types/prompts": "2.4.9",
+    "hardhat": "2.22.8",
+    "kleur": "4.1.5",
+    "prompts": "2.4.2",
+    "ts-node": "10.9.2"
+  },
+  "dependencies": {
+    "@oasisdex/addresses": "0.1.21-automation",
+    "solhint-plugin-prettier": "0.1.0",
+    "solidity-bytes-utils": "0.8.2"
+  }
+}

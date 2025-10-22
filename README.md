@@ -1,3 +1,6 @@
+
+[![](https://canada1.discourse-cdn.com/flex009/uploads/summer/original/1X/41245886b684401dfcfbc8db7642973e9f3f74e1.png)](https://summer.fi)
+
 # Summerfi Earn Protocol
 
 ## TLDR;
@@ -31,7 +34,7 @@ Restart your terminal after running the above commands.
 - `eslint-config`: Base `eslint` configurations
 - `jest-config`: Base `jest` configurations
 - `tenderly-utils`: Utility functions for interacting with Tenderly API
-- `typescript-config`: Base `tsconfig.json`s configurations
+- `typescript-config`: Base `tsconfig.json` configurations
 
 ## Commands
 
@@ -62,4 +65,4 @@ Learn more about the power of Turborepo:
 - [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
 - [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
 
-[![codecov](https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/kk/silo-vaults-ark/graph/badge.svg?token=ZDPGVH2NVG)](https://codecov.io/gh/OasisDEX/summer-earn-protocol)
+[![codecov](https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/kk/remove-operatio-statuses/graph/badge.svg?token=ZDPGVH2NVG)](https://codecov.io/gh/OasisDEX/summer-earn-protocol)

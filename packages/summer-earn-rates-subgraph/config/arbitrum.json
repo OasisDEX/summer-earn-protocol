@@ -1,8 +1,8 @@
 {
   "network": "arbitrum-one",
   "enable-grafting": true,
-  "grafting-base": "QmcVcUTc4ja6goHvDBPPLu2H5UsdcgNAafFK2aaomqz7PH",
-  "grafting-block": "353046601",
+  "grafting-base": "QmXWyMrmcR5q5uqCPZkhrLFZnCinegpdKnVebv2x8FWAqy",
+  "grafting-block": "368171534",
   "entry_point_address": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
   "entry_point_start_block": 293165006,
   "interval-handler-block-interval": 240

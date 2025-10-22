@@ -210,18 +210,6 @@ interface ISummerToken is
     function enableTransfers() external;
 
     /**
-     * @notice Adds an address to the whitelist
-     * @param account The address to add to the whitelist
-     */
-    function addToWhitelist(address account) external;
-
-    /**
-     * @notice Removes an address from the whitelist
-     * @param account The address to remove from the whitelist
-     */
-    function removeFromWhitelist(address account) external;
-
-    /**
      * @notice Returns the address of the rewards manager contract
      * @return The address of the rewards manager
      */
