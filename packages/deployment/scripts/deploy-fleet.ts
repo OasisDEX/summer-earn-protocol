@@ -368,6 +368,13 @@ async function handleArkAddition(
       onChainArks.forEach((ark, i) => console.log(kleur.cyan(`  ${i + 1}. ${ark}`)))
       console.log(kleur.yellow('\nDeployment file arks:'))
       existingArks.forEach((ark, i) => console.log(kleur.cyan(`  ${i + 1}. ${ark}`)))
+
+      onChainArks.forEach((ark) => {
+        if (!existingArks.includes(ark)) {
+          console.log(kleur.red(`    Ark ${ark} is not in the deployment file.`))
+        }
+      })
+
       throw new Error(
         'Deployment file state does not match on-chain state. Please reconcile the deployment file before adding new arks.',
       )
