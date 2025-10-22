@@ -527,7 +527,9 @@ contract StargateAdapter is
         returns (SendParam memory sendParam, OFTReceipt memory oftReceipt)
     {
         // Resolve destination adapter via registry
-        address destinationAdapter = _getAdapterPeer(params.destinationChainId);
+        address destinationAdapter = _getAdapterPeerOrRevert(
+            params.destinationChainId
+        );
 
         // Build SendParam - Stargate will wrap this with OFTComposeMsgCodec internally
         sendParam = _buildSendParam(

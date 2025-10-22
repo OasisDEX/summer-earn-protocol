@@ -89,7 +89,7 @@ contract SuperchainAdapter is
         );
 
         // Get destination adapter peer
-        address dstAdapter = _getAdapterPeer(params.destinationChainId);
+        address dstAdapter = _getAdapterPeerOrRevert(params.destinationChainId);
 
         // Send via Superchain bridge (mints tokens to destination adapter)
         SUPERCHAIN_BRIDGE.sendERC20(

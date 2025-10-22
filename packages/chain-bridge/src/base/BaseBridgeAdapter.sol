@@ -265,6 +265,22 @@ abstract contract BaseBridgeAdapter is
         return CROSS_CHAIN_REGISTRY.getAdapterPeer(address(this), dstChain);
     }
 
+    /**
+     * @notice Get the peer adapter address for a destination chain with validation
+     * @dev Validates that a peer adapter exists for the destination chain and reverts if not.
+     *      This provides a convenient helper for cases where immediate validation is needed.
+     * @param dstChain Destination chain ID
+     * @return Peer adapter address for the destination chain
+     * @custom:throws UnsupportedChain if no peer adapter is registered for the destination chain
+     */
+    function _getAdapterPeerOrRevert(uint16 dstChain) internal view returns (address) {
+        address peer = _getAdapterPeer(dstChain);
+        if (peer == address(0)) {
+            revert IBridgeAdapter.UnsupportedChain();
+        }
+        return peer;
+    }
+
     /// @dev Returns true if `srcAdapter` is the registry-declared peer for `srcChain`.
     function _validateTrustedSource(
         address srcAdapter,

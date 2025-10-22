@@ -237,9 +237,7 @@ contract LayerZeroAdapter is
 
         // 3. Get destination and cache EID
         uint32 dstEid = _externalIdForChain(params.destinationChainId);
-        address dstAdapter = _getDstAdapterAndValidate(
-            params.destinationChainId
-        );
+        address dstAdapter = _getAdapterPeerOrRevert(params.destinationChainId);
 
         // 4. Approve OFT
         IERC20(params.asset).forceApprove(oft, params.amount);
@@ -248,8 +246,8 @@ contract LayerZeroAdapter is
         bytes memory composeMsg = params.message.length > 0
             ? BridgeMessagingHelper.encodeRelayedTransferParams(
                 LayerZeroMessagingHelper.createRelayedTransferParams(
-                    operationId,
-                    params
+                    params,
+                    operationId
                 )
             )
             : bytes("");
@@ -302,15 +300,13 @@ contract LayerZeroAdapter is
     {
         address oft = _getOFTForAsset(params.asset, params.amount);
         uint32 dstEid = _externalIdForChain(params.destinationChainId);
-        address dstAdapter = _getDstAdapterAndValidate(
-            params.destinationChainId
-        );
+        address dstAdapter = _getAdapterPeerOrRevert(params.destinationChainId);
 
         bytes memory composeMsg = params.message.length > 0
             ? BridgeMessagingHelper.encodeRelayedTransferParams(
                 LayerZeroMessagingHelper.createRelayedTransferParams(
-                    bytes32(0),
-                    params
+                    params,
+                    bytes32(0)
                 )
             )
             : bytes("");
@@ -507,18 +503,6 @@ contract LayerZeroAdapter is
         oft = oftForToken[asset];
         if (oft == address(0)) revert UnsupportedAsset();
         if (amount == 0) revert InvalidParams();
-    }
-
-    /**
-     * @notice Gets and validates destination adapter
-     * @param destinationChainId Target chain ID
-     * @return dstAdapter Destination adapter address
-     */
-    function _getDstAdapterAndValidate(
-        uint16 destinationChainId
-    ) internal view returns (address dstAdapter) {
-        dstAdapter = _getAdapterPeer(destinationChainId);
-        if (dstAdapter == address(0)) revert UnsupportedChain();
     }
 
     /**
