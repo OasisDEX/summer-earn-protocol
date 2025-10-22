@@ -113,24 +113,17 @@ async function deployFluidFTokenArkContract(
     'Fluid fToken',
   )
 
-  console.log(moduleName)
   const protocol = 'Fluid'
 
   // Create and validate ark details
 
   const arkDetails = {
     protocol: protocol,
-
     type: 'FluidFToken',
-
     asset: userInput.token.address,
-
     marketAsset: userInput.token.address,
-
     pool: fToken,
-
     chainId: chainId,
-
     vaultName: userInput.token.symbol,
   }
 

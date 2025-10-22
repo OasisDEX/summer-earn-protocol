@@ -163,6 +163,13 @@
         "vaultName": "valamore_usdc_growth",
         "protocol": "silo"
       }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "fluid"
+      }
     }
   ]
 }
