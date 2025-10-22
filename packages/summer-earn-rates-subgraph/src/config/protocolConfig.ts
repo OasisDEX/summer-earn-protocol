@@ -676,6 +676,14 @@ class ProtocolConfig {
           'Silo',
         ),
       ]),
+      new Protocol('InfiniFi', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB'),
+          BigInt.fromI32(23631727),
+          'SiUSD',
+        ),
+      ]),
     ]
   }
 
