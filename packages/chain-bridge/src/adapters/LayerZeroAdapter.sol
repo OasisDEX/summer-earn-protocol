@@ -288,7 +288,7 @@ contract LayerZeroAdapter is
         );
     }
 
-    /// @inheritdoc IBridgeAdapter
+    /// @inheritdoc IAssetAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
         BridgeTypes.BridgeOptions calldata
@@ -322,7 +322,7 @@ contract LayerZeroAdapter is
         return (fee.nativeFee, fee.lzTokenFee);
     }
 
-    /// @inheritdoc IBridgeAdapter
+    /// @inheritdoc IMessageAdapter
     function estimateSendMessage(
         BridgeTypes.ExecuteSendMessageParams calldata params,
         BridgeTypes.BridgeOptions calldata options

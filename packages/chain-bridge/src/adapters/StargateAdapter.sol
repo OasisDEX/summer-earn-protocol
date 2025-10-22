@@ -309,7 +309,7 @@ contract StargateAdapter is
         _refundExcessNative(params.refundAddress, refundAmount);
     }
 
-    /// @inheritdoc IBridgeAdapter
+    /// @inheritdoc IAssetAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
         BridgeTypes.BridgeOptions calldata options
@@ -357,14 +357,6 @@ contract StargateAdapter is
         }
 
         return (msgFee.nativeFee, msgFee.lzTokenFee);
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function estimateSendMessage(
-        BridgeTypes.ExecuteSendMessageParams calldata,
-        BridgeTypes.BridgeOptions calldata
-    ) external pure returns (uint256, uint256) {
-        revert OperationNotSupported();
     }
 
     /// @inheritdoc IBridgeAdapter

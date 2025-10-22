@@ -257,62 +257,6 @@ contract SuperchainAdapterGeneralTest is Test {
         );
     }
 
-    function testEstimateSendMessage_Reverts() public {
-        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
-            .ExecuteSendMessageParams({
-                originator: user,
-                destinationChainId: CHAIN_ID_B,
-                target: user,
-                message: "test",
-                refundAddress: user
-            });
-
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter),
-            gasLimit: 100000,
-            calldataSize: 0,
-            msgValue: 0,
-            options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
-        });
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBridgeAdapter.OperationNotSupported.selector
-            )
-        );
-        adapter.estimateSendMessage(params, options);
-    }
-
-    function testSendMessage_Reverts() public {
-        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
-            .ExecuteSendMessageParams({
-                originator: user,
-                destinationChainId: CHAIN_ID_B,
-                target: user,
-                message: "test",
-                refundAddress: user
-            });
-
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter),
-            gasLimit: 100000,
-            calldataSize: 0,
-            msgValue: 0,
-            options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
-        });
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBridgeAdapter.OperationNotSupported.selector
-            )
-        );
-        adapter.sendMessage(bytes32(0), params, options);
-    }
-
     function testRelayMessage_RevertWhenUnauthorizedCaller() public {
         // Create test parameters
         BridgeTypes.RelayedTransferParams memory params = BridgeTypes

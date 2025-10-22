@@ -470,7 +470,7 @@ contract BridgeRouter is
         if (options.gasLimit == 0) revert ZeroGasLimit();
 
         _validateTransferParams(params);
-        (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter)
+        (nativeFee, tokenFee) = IAssetAdapter(specifiedAdapter)
             .estimateTransferAssets(params, options);
 
         nativeFee = _applyFeeBuffer(nativeFee);
@@ -491,7 +491,7 @@ contract BridgeRouter is
         if (!adapters.contains(specifiedAdapter)) revert UnknownAdapter();
 
         _validateSendMessageParams(params);
-        (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter)
+        (nativeFee, tokenFee) = IMessageAdapter(specifiedAdapter)
             .estimateSendMessage(params, options);
 
         nativeFee = _applyFeeBuffer(nativeFee);

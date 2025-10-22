@@ -38,4 +38,16 @@ interface IAssetAdapter {
         BridgeTypes.ExecuteTransferParams calldata params,
         BridgeTypes.BridgeOptions calldata options
     ) external payable;
+
+    /**
+     * @notice Estimate fees for a transfer operation using execution parameters
+     * @param params Transfer parameters identical to execute methods
+     * @param options Bridge options including adapter selection and parameters
+     * @return nativeFee Fee in the chain's native token
+     * @return tokenFee Fee in the transferred token (if applicable)
+     */
+    function estimateTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    ) external view returns (uint256 nativeFee, uint256 tokenFee);
 }

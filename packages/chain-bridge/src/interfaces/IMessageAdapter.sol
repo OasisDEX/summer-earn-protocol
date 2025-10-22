@@ -37,4 +37,16 @@ interface IMessageAdapter {
         BridgeTypes.ExecuteSendMessageParams calldata params,
         BridgeTypes.BridgeOptions calldata options
     ) external payable;
+
+    /**
+     * @notice Estimate fees for a message send operation using execution parameters
+     * @param params Message parameters identical to execute methods
+     * @param options Bridge options including adapter selection and parameters
+     * @return nativeFee Fee in the chain's native token
+     * @return tokenFee Fee in the transferred token (if applicable)
+     */
+    function estimateSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    ) external view returns (uint256 nativeFee, uint256 tokenFee);
 }

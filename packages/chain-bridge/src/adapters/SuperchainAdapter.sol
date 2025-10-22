@@ -5,7 +5,6 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeMessagingHelper} from "../libraries/BridgeMessagingHelper.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
-import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
@@ -29,12 +28,7 @@ import {IL2ToL2CrossDomainMessenger} from "../interfaces/IL2ToL2CrossDomainMesse
  * This eliminates the need for manual keeper intervention, providing automated delivery
  * similar to StargateAdapter's lzCompose pattern.
  */
-contract SuperchainAdapter is
-    BaseBridgeAdapter,
-    IAssetAdapter,
-    IMessageAdapter,
-    IBridgeAdapter
-{
+contract SuperchainAdapter is BaseBridgeAdapter, IAssetAdapter, IBridgeAdapter {
     using SafeERC20 for IERC20;
     ISuperchainTokenBridge public immutable SUPERCHAIN_BRIDGE;
     IL2ToL2CrossDomainMessenger public immutable L2_TO_L2_MESSENGER;
@@ -128,7 +122,7 @@ contract SuperchainAdapter is
         );
     }
 
-    /// @inheritdoc IBridgeAdapter
+    /// @inheritdoc IAssetAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
         BridgeTypes.BridgeOptions calldata /*options*/
@@ -162,19 +156,6 @@ contract SuperchainAdapter is
     }
 
     /*//////////////////////////////////////////////////////////////
-                        MESSAGE ADAPTER IMPLEMENTATION
-    //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IMessageAdapter
-    function sendMessage(
-        bytes32 /*operationId*/,
-        BridgeTypes.ExecuteSendMessageParams calldata /*params*/,
-        BridgeTypes.BridgeOptions calldata /*options*/
-    ) external payable {
-        revert IBridgeAdapter.OperationNotSupported();
-    }
-
-    /*//////////////////////////////////////////////////////////////
                         BRIDGE ADAPTER IMPLEMENTATION
     //////////////////////////////////////////////////////////////*/
 
@@ -183,14 +164,6 @@ contract SuperchainAdapter is
         BridgeTypes.OperationType operationType
     ) external pure returns (bool) {
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function estimateSendMessage(
-        BridgeTypes.ExecuteSendMessageParams calldata,
-        BridgeTypes.BridgeOptions calldata
-    ) external pure returns (uint256, uint256) {
-        revert IBridgeAdapter.OperationNotSupported();
     }
 
     /// @notice Handle relayed message from L2ToL2CrossDomainMessenger
