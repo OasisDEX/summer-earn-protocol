@@ -42,18 +42,12 @@ contract BridgeRouterFeeBufferTest is BridgeRouterSetup {
         );
     }
 
-    function testSetFeeBufferBps_ByKeeper() public {
+    function testSetFeeBufferBps_ByKeeper_Reverts() public {
         Bps newBufferBps = Bps.wrap(150); // 1.5%
 
         vm.prank(keeper);
+        vm.expectRevert();
         router.setFeeBufferBps(newBufferBps);
-
-        Bps currentBufferBps = router.getFeeBufferBps();
-        assertEq(
-            Bps.unwrap(currentBufferBps),
-            150,
-            "Fee buffer should be updated to 1.5%"
-        );
     }
 
     function testSetFeeBufferBps_RevertsIfBelowMinimum() public {

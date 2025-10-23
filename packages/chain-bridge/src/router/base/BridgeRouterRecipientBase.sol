@@ -16,8 +16,66 @@ abstract contract BridgeRouterRecipientBase is
     BridgeRouterValidationBase
 {
     /*//////////////////////////////////////////////////////////////
+                        INTERNAL DATA STRUCTURES
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Common decoded operation data shared across operation types
+     */
+    struct DecodedOperationData {
+        bytes32 operationId;
+        uint16 sourceChainId;
+        address recipient;
+        address originator;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                         RETRY RECIPIENT OVERRIDE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Decodes common operation data from payload
+     * @param operationType The type of operation
+     * @param operationPayload The encoded operation payload
+     * @return data The decoded common operation data
+     */
+    function _decodeCommonOperationData(
+        BridgeTypes.OperationType operationType,
+        bytes memory operationPayload
+    ) internal pure returns (DecodedOperationData memory data) {
+        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
+            BridgeTypes.RelayedTransferParams memory params = abi.decode(
+                operationPayload,
+                (BridgeTypes.RelayedTransferParams)
+            );
+            data.operationId = params.operationId;
+            data.sourceChainId = params.sourceChainId;
+            data.recipient = params.recipient;
+            data.originator = params.originator;
+        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            BridgeTypes.RelayedMessageParams memory params = abi.decode(
+                operationPayload,
+                (BridgeTypes.RelayedMessageParams)
+            );
+            data.operationId = params.operationId;
+            data.sourceChainId = params.sourceChainId;
+            data.recipient = params.recipient;
+            data.originator = params.originator;
+        }
+    }
+
+    /**
+     * @dev Resolves the final recipient address (original or override)
+     * @param originalRecipient The original recipient from the payload
+     * @param newRecipient The new recipient override (address(0) means use original)
+     * @return finalRecipient The final recipient to use
+     */
+    function _resolveFinalRecipient(
+        address originalRecipient,
+        address newRecipient
+    ) internal pure returns (address finalRecipient) {
+        return newRecipient != address(0) ? newRecipient : originalRecipient;
+    }
 
     /**
      * @notice Applies recipient override to the operation payload
@@ -32,49 +90,39 @@ abstract contract BridgeRouterRecipientBase is
         bytes memory originalPayload,
         address newRecipient
     ) internal view returns (bytes memory modifiedPayload) {
+        // Decode common operation data
+        DecodedOperationData memory data = _decodeCommonOperationData(
+            operationType,
+            originalPayload
+        );
+
+        // Resolve final recipient (original or override)
+        address finalRecipient = _resolveFinalRecipient(
+            data.recipient,
+            newRecipient
+        );
+
+        // Validate ark-fleet (peer) relationship for the final recipient
+        _validatePeerRelationship(
+            data.originator,
+            finalRecipient,
+            data.sourceChainId
+        );
+
+        // Handle operation-specific payload updates
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             BridgeTypes.RelayedTransferParams memory params = abi.decode(
                 originalPayload,
                 (BridgeTypes.RelayedTransferParams)
             );
-
-            // Apply recipient override (use original if newRecipient is zero)
-            address finalRecipient = newRecipient != address(0)
-                ? newRecipient
-                : params.recipient;
-
-            // Validate ark-fleet (peer) relationship for the final recipient
-            _validatePeerRelationship(
-                params.originator,
-                finalRecipient,
-                params.sourceChainId
-            );
-
-            // Update the payload with the final recipient
             params.recipient = finalRecipient;
-
             return abi.encode(params);
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
             BridgeTypes.RelayedMessageParams memory params = abi.decode(
                 originalPayload,
                 (BridgeTypes.RelayedMessageParams)
             );
-
-            // Apply recipient override (use original if newRecipient is zero)
-            address finalRecipient = newRecipient != address(0)
-                ? newRecipient
-                : params.recipient;
-
-            // Validate ark-fleet (peer) relationship for the final recipient
-            _validatePeerRelationship(
-                params.originator,
-                finalRecipient,
-                params.sourceChainId
-            );
-
-            // Update the payload with the final recipient
             params.recipient = finalRecipient;
-
             return abi.encode(params);
         } else {
             // For unsupported operation types, return original payload

@@ -28,6 +28,24 @@ abstract contract BridgeRouterDeliveryBase is
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @dev Validates that the operation type is supported
+     * @param operationType The type of operation to validate
+     */
+    function _validateOperationType(
+        BridgeTypes.OperationType operationType
+    ) internal pure {
+        if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            revert IBridgeRouter.UnsupportedOperationType();
+        }
+        if (
+            operationType != BridgeTypes.OperationType.TRANSFER_ASSET &&
+            operationType != BridgeTypes.OperationType.MESSAGE
+        ) {
+            revert IBridgeRouter.UnsupportedOperationType();
+        }
+    }
+
+    /**
      * @dev Decodes operation metadata from payload
      * @param operationType The type of operation
      * @param operationPayload The encoded operation payload
@@ -38,23 +56,11 @@ abstract contract BridgeRouterDeliveryBase is
         BridgeTypes.OperationType operationType,
         bytes memory operationPayload
     ) internal pure returns (bytes32 operationId, uint16 sourceChainId) {
-        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.RelayedTransferParams memory d = abi.decode(
-                operationPayload,
-                (BridgeTypes.RelayedTransferParams)
-            );
-            return (d.operationId, d.sourceChainId);
-        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.RelayedMessageParams memory d = abi.decode(
-                operationPayload,
-                (BridgeTypes.RelayedMessageParams)
-            );
-            return (d.operationId, d.sourceChainId);
-        } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            revert IBridgeRouter.UnsupportedOperationType();
-        } else {
-            revert IBridgeRouter.UnsupportedOperationType();
-        }
+        DecodedOperationData memory data = _decodeCommonOperationData(
+            operationType,
+            operationPayload
+        );
+        return (data.operationId, data.sourceChainId);
     }
 
     /**
@@ -68,51 +74,44 @@ abstract contract BridgeRouterDeliveryBase is
     ) external {
         if (msg.sender != address(this)) revert IBridgeRouter.Unauthorized();
 
+        // Validate operation type early
+        _validateOperationType(operationType);
+
+        // Decode common operation data
+        DecodedOperationData memory data = _decodeCommonOperationData(
+            operationType,
+            operationPayload
+        );
+
+        // Perform common validations
+        _assertPeerMappingExistsForChainFromAdapter(
+            data.sourceChainId,
+            adapter
+        );
+        _requireReceiverIsCrossChainReceiver(data.recipient);
+
+        // Handle operation-specific logic
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.RelayedTransferParams memory data = abi.decode(
+            BridgeTypes.RelayedTransferParams memory transferData = abi.decode(
                 operationPayload,
                 (BridgeTypes.RelayedTransferParams)
             );
 
-            // Verify adapter has peer relationship with source chain
-            _assertPeerMappingExistsForChainFromAdapter(
-                data.sourceChainId,
-                adapter
+            // Transfer the asset
+            IERC20(transferData.asset).safeTransfer(
+                transferData.recipient,
+                transferData.amount
             );
 
-            // Require recipient is a contract and supports ICrossChainReceiver
-            _requireReceiverIsCrossChainReceiver(data.recipient);
-
-            // Transfer the asset
-            IERC20(data.asset).safeTransfer(data.recipient, data.amount);
-
-            ICrossChainReceiver(data.recipient).receiveOperation(
+            ICrossChainReceiver(transferData.recipient).receiveOperation(
                 BridgeTypes.OperationType.TRANSFER_ASSET,
                 operationPayload
             );
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.RelayedMessageParams memory data = abi.decode(
-                operationPayload,
-                (BridgeTypes.RelayedMessageParams)
-            );
-
-            // Verify adapter has peer relationship with source chain
-            _assertPeerMappingExistsForChainFromAdapter(
-                data.sourceChainId,
-                adapter
-            );
-
-            // Require recipient is a contract and supports ICrossChainReceiver
-            _requireReceiverIsCrossChainReceiver(data.recipient);
-
             ICrossChainReceiver(data.recipient).receiveOperation(
                 BridgeTypes.OperationType.MESSAGE,
                 operationPayload
             );
-        } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            revert IBridgeRouter.UnsupportedOperationType();
-        } else {
-            revert IBridgeRouter.UnsupportedOperationType();
         }
     }
 
