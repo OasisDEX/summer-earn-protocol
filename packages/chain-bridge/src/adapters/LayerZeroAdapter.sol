@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
-import {LayerZeroMessagingHelper} from "../helpers/LayerZeroMessagingHelper.sol";
 import {LayerZeroComposeHelper} from "../helpers/LayerZeroComposeHelper.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
@@ -339,8 +338,10 @@ contract LayerZeroAdapter is
         // Cache LayerZero EID to avoid redundant storage reads
         uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
 
-        // Validate fee requirements using helper
-        LayerZeroMessagingHelper.validateFeeRequirements(options, msg.value);
+        // Validate fee requirements
+        if (options.msgValue > 0 && msg.value < options.msgValue) {
+            revert InsufficientMsgValue(options.msgValue, msg.value);
+        }
 
         // Create payload using BridgeMessagingHelper
         bytes memory payload = _createMessagePayload(
