@@ -426,12 +426,13 @@ contract BridgeRouter is
             revert InvalidFeeBuffer();
         }
 
-        Bps oldBufferBps = feeBufferBps;
-        feeBufferBps = newBufferBps;
-        emit FeeBufferUpdated(
-            Bps.unwrap(oldBufferBps),
+       emit FeeBufferUpdated(
+            Bps.unwrap(feeBufferBps),
             Bps.unwrap(newBufferBps)
         );
+        
+        feeBufferBps = newBufferBps;
+       
     }
 
     /// @notice Retries a previously failed delivery with optional recipient override. Only callable by keeper.
