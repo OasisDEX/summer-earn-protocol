@@ -21,7 +21,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
-import {Bps, BPS_FACTOR} from "../helpers/Bps.sol";
+import {Bps, BPS_FACTOR, BPS_1, BPS_10} from "../helpers/Bps.sol";
 import {BpsUtils} from "../helpers/BpsUtils.sol";
 
 import {BridgeRouterValidationBase} from "./base/BridgeRouterValidationBase.sol";
@@ -77,7 +77,7 @@ contract BridgeRouter is
         address _registry
     ) ProtocolAccessManaged(accessManager) CrossChainConfigManaged(_registry) {
         // Initialize fee buffer to 1% (100 basis points)
-        feeBufferBps = Bps.wrap(100);
+        feeBufferBps = BPS_1;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -421,7 +421,7 @@ contract BridgeRouter is
     /// @inheritdoc IBridgeRouter
     function setFeeBufferBps(Bps newBufferBps) external onlyGovernor {
         // Validate buffer is within allowed range (1% to 10%)
-        if (Bps.unwrap(newBufferBps) < 100 || Bps.unwrap(newBufferBps) > 1000) {
+        if (newBufferBps < BPS_1 || newBufferBps > BPS_10) {
             revert InvalidFeeBuffer();
         }
 

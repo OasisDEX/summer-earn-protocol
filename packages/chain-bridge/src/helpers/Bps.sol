@@ -52,6 +52,12 @@ Bps constant BPS_100 = Bps.wrap(10000);
 Bps constant BPS_1 = Bps.wrap(100);
 
 /**
+ * @dev BPS of 10% (1000 basis points)
+ *  This constant represents 10% in the Bps type
+ */
+Bps constant BPS_10 = Bps.wrap(1000);
+
+/**
  * @dev BPS of 0.5% (50 basis points)
  *  This constant represents 0.5% in the Bps type
  */
