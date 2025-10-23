@@ -2,10 +2,194 @@
 
 import { useEffect, useState } from 'react'
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
-import { protocolAccessManagerAbi } from '../abis/ProtocolAccessManager'
 import type { Environment } from '../config/environments'
 import { useRoleConstants } from '../hooks/useRoleConstants'
 import type { ArkRole, ChainId, FleetRole, GlobalRole } from '../types'
+// Inline minimal ABI for ProtocolAccessManager to avoid external import coupling
+const protocolAccessManagerAbi = [
+  {
+    type: 'function',
+    name: 'hasRole',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [{ type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'GOVERNOR_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'SUPER_KEEPER_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'GUARDIAN_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'DECAY_CONTROLLER_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'ADMIRALS_QUARTERS_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'FOUNDATION_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'grantGovernorRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeGovernorRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantSuperKeeperRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeSuperKeeperRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantGuardianRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeGuardianRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantCuratorRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'fleetCommanderAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeCuratorRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'fleetCommanderAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantKeeperRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'fleetCommanderAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeKeeperRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'fleetCommanderAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantCommanderRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'arkAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeCommanderRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'arkAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantDecayControllerRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeDecayControllerRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantAdmiralsQuartersRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeAdmiralsQuartersRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+] as const
 
 interface RoleManagerProps {
   chainId: ChainId

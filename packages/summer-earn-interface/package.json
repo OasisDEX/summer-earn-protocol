@@ -17,8 +17,8 @@
     "react-dom": "^18.2.0",
     "recharts": "^2.15.3",
     "sonner": "^2.0.7",
-    "viem": ">=2.37.1",
-    "wagmi": ">=2.16.9"
+    "viem": "^2.38.3",
+    "wagmi": "2.18.2"
   },
   "devDependencies": {
     "@types/node": "^20",
