@@ -115,6 +115,10 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
 
         // Final configuration
         routerA.registerAdapter(address(adapterA));
+
+        // Register user as executor
+        registryA.registerExecutor(user);
+
         tokenA.mint(user, 10000e18);
 
         vm.stopPrank();

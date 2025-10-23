@@ -20,7 +20,7 @@ import {Bytes32AddressLib} from "solmate/src/utils/Bytes32AddressLib.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 
 import {IOFT} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
-import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {MessagingFee, SendParam, MessagingReceipt as OFTMessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -253,25 +253,30 @@ contract LayerZeroAdapter is
             IERC20(params.asset).forceApprove(oft, params.amount);
         }
 
-        // 4. Quote and send
-        MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
-        if (msg.value < fee.nativeFee) {
-            revert InsufficientFee(fee.nativeFee, msg.value);
+        // 4. Validate payment mode consistency
+        // Only reject if protocol token payment is requested AND protocol token is set AND native value is provided
+        if (
+            options.payInProtocolToken &&
+            protocolFeeToken != address(0) &&
+            options.msgValue != 0
+        ) {
+            revert InvalidParams();
         }
 
-        IOFT(oft).send{value: fee.nativeFee}(
-            sendParam,
-            fee,
-            params.refundAddress
-        );
+        // 5. Handle payment based on fee type
+        if (options.payInProtocolToken && protocolFeeToken != address(0)) {
+            _handleOFTProtocolTokenPayment(
+                operationId,
+                params,
+                oft,
+                sendParam,
+                options
+            );
+        } else {
+            _handleOFTNativePayment(params, oft, sendParam);
+        }
 
-        // 5. Refund excess
-        uint256 excess = msg.value > fee.nativeFee
-            ? msg.value - fee.nativeFee
-            : 0;
-        _refundNative(params.refundAddress, excess);
-
-        // 6. Emit event
+        // 5. Emit event
         emit TransferInitiated(
             operationId,
             params.destinationChainId,
@@ -296,7 +301,10 @@ contract LayerZeroAdapter is
             bytes32(0),
             options
         );
-        MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
+        MessagingFee memory fee = IOFT(oft).quoteSend(
+            sendParam,
+            options.payInProtocolToken
+        );
 
         return (fee.nativeFee, fee.lzTokenFee);
     }
@@ -368,7 +376,8 @@ contract LayerZeroAdapter is
                 params,
                 lzDstEid,
                 payload,
-                lzOptions
+                lzOptions,
+                options
             );
         } else {
             receipt = _handleNativePayment(
@@ -636,12 +645,18 @@ contract LayerZeroAdapter is
         BridgeTypes.ExecuteSendMessageParams calldata params,
         uint32 lzDstEid,
         bytes memory payload,
-        bytes memory lzOptions
+        bytes memory lzOptions,
+        BridgeTypes.BridgeOptions calldata options
     ) internal returns (MessagingReceipt memory) {
         EndpointFee memory quoted = _quote(lzDstEid, payload, lzOptions, true);
         if (quoted.nativeFee != 0)
             revert InsufficientMsgValue(0, quoted.nativeFee);
         uint256 tokenFeeRequired = quoted.lzTokenFee;
+
+        // Validate that user-provided fee amount matches quoted fee
+        if (options.feeTokenAmount != tokenFeeRequired) {
+            revert InsufficientFee(tokenFeeRequired, options.feeTokenAmount);
+        }
 
         _collectProtocolTokenFee(
             operationId,
@@ -686,5 +701,97 @@ contract LayerZeroAdapter is
                 EndpointFee(msg.value, 0),
                 payable(refundAddress)
             );
+    }
+
+    /**
+     * @notice Handles protocol token fee payment flow for OFT transfers
+     * @dev This function manages the complete protocol token payment process for OFT transfers including:
+     *      - Fee quotation from OFT with token payment
+     *      - Token collection from the fee payer
+     *      - Allowance management for the OFT contract
+     *      - OFT sending with token fees
+     * @param operationId The operation ID for this transfer
+     * @param params ExecuteTransferParams from the bridge operation
+     * @param oft The OFT contract address
+     * @param sendParam Prepared send parameters for OFT
+     */
+    function _handleOFTProtocolTokenPayment(
+        bytes32 operationId,
+        BridgeTypes.ExecuteTransferParams calldata params,
+        address oft,
+        SendParam memory sendParam,
+        BridgeTypes.BridgeOptions calldata options
+    ) internal {
+        // Quote with token payment enabled
+        MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, true);
+
+        // Validate that native fee is zero when paying in token
+        if (fee.nativeFee != 0) {
+            revert InsufficientFee(0, fee.nativeFee);
+        }
+
+        uint256 tokenFeeRequired = fee.lzTokenFee;
+
+        // Validate that user-provided fee amount matches quoted fee
+        if (options.feeTokenAmount != tokenFeeRequired) {
+            revert InsufficientFee(tokenFeeRequired, options.feeTokenAmount);
+        }
+
+        // Collect protocol token fee from the caller
+        _collectProtocolTokenFee(
+            operationId,
+            params.refundAddress,
+            tokenFeeRequired
+        );
+
+        // Ensure sufficient allowance for the OFT contract
+        _ensureSufficientAllowance(tokenFeeRequired, oft);
+
+        // Send with token payment (no native value required)
+        IOFT(oft).send{value: 0}(
+            sendParam,
+            MessagingFee(0, tokenFeeRequired),
+            params.refundAddress
+        );
+
+        // Refund any provided native value fully (since nativeFee == 0)
+        _refundNative(params.refundAddress, msg.value);
+
+        // Emit protocol fee spent event
+        emit ProtocolFeeSpent(operationId, protocolFeeToken, tokenFeeRequired);
+    }
+
+    /**
+     * @notice Handles native fee payment flow for OFT transfers
+     * @dev This function manages the native token payment process for OFT transfers
+     * @param params ExecuteTransferParams from the bridge operation
+     * @param oft The OFT contract address
+     * @param sendParam Prepared send parameters for OFT
+     */
+    function _handleOFTNativePayment(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        address oft,
+        SendParam memory sendParam
+    ) internal {
+        // Quote with native payment
+        MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
+
+        // Validate sufficient native fee
+        if (msg.value < fee.nativeFee) {
+            revert InsufficientFee(fee.nativeFee, msg.value);
+        }
+
+        // Send with native payment
+        IOFT(oft).send{value: fee.nativeFee}(
+            sendParam,
+            fee,
+            params.refundAddress
+        );
+
+        // Refund excess native value
+        if (msg.value > fee.nativeFee) {
+            uint256 excess = msg.value - fee.nativeFee;
+            _refundNative(params.refundAddress, excess);
+        }
     }
 }
