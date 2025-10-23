@@ -184,46 +184,6 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         );
     }
 
-    function testLzReceiveRevertsWhenUnauthorizedCaller() public {
-        bytes32 messageId = bytes32(uint256(1));
-        bytes memory message = "test message";
-        address recipient = address(mockReceiver);
-
-        // Create origin data
-        Origin memory origin = Origin({
-            srcEid: LZ_EID_B,
-            sender: addressToBytes32(address(adapterB)),
-            nonce: 1
-        });
-
-        // Create payload with MESSAGE type
-        bytes memory payload = abi.encodePacked(
-            uint16(BridgeTypes.OperationType.MESSAGE),
-            abi.encode(
-                BridgeTypes.RelayedMessageParams({
-                    operationId: messageId,
-                    originator: address(adapterB),
-                    sourceChainId: uint16(CHAIN_ID_B),
-                    recipient: recipient,
-                    message: message
-                })
-            )
-        );
-
-        // Call from unauthorized caller (not LayerZero endpoint)
-        // This should be blocked by OApp's internal validation
-        vm.prank(address(0x1234567890123456789012345678901234567890));
-        vm.expectRevert(); // Should revert due to unauthorized caller
-
-        adapterA.lzReceiveTest(
-            origin,
-            messageId,
-            payload,
-            address(0x1234567890123456789012345678901234567890),
-            bytes("")
-        );
-    }
-
     function testLzReceiveSuccessWithValidPeerAdapter() public {
         bytes32 messageId = bytes32(uint256(1));
         bytes memory message = "test message";

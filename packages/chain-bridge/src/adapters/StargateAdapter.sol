@@ -527,15 +527,10 @@ contract StargateAdapter is
             destinationAdapter,
             params.amount,
             BridgeMessagingHelper.encodeRelayedTransferParams(
-                BridgeTypes.RelayedTransferParams({
-                    recipient: params.target,
-                    asset: params.asset,
-                    amount: params.amount,
-                    sourceChainId: uint16(block.chainid),
-                    operationId: operationId,
-                    originator: params.originator,
-                    message: params.message
-                })
+                BridgeMessagingHelper.createRelayedTransferParams(
+                    params,
+                    operationId
+                )
             ),
             options
         );

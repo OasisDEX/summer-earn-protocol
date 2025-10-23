@@ -309,9 +309,9 @@ contract LayerZeroAdapter is
         uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
         bytes32 dummyBytes32 = bytes32(uint256(uint160(params.target)));
 
-        // Create realistic payload using LayerZeroMessagingHelper
+        // Create realistic payload using BridgeMessagingHelper
         bytes memory payload = _createMessagePayload(
-            LayerZeroMessagingHelper.createRelayedMessageParams(
+            BridgeMessagingHelper.createRelayedMessageParams(
                 params,
                 dummyBytes32
             )
@@ -342,9 +342,9 @@ contract LayerZeroAdapter is
         // Validate fee requirements using helper
         LayerZeroMessagingHelper.validateFeeRequirements(options, msg.value);
 
-        // Create payload using LayerZeroMessagingHelper
+        // Create payload using BridgeMessagingHelper
         bytes memory payload = _createMessagePayload(
-            LayerZeroMessagingHelper.createRelayedMessageParams(
+            BridgeMessagingHelper.createRelayedMessageParams(
                 params,
                 operationId
             )
@@ -428,6 +428,9 @@ contract LayerZeroAdapter is
         // Ensure the LayerZero srcEid maps to the same chain as encoded in the payload
         uint16 chainFromEid = _chainIdFromExternalId(srcEid);
 
+        // Validate that the srcEid maps to the same chain as encoded in the payload
+        _validateSourceChainId(chainFromEid, params.sourceChainId);
+
         // Validate the source adapter relationship using the mapped chain ID
         if (!_validateTrustedSource(composeFrom, chainFromEid)) {
             revert UntrustedSourceAdapter(composeFrom, chainFromEid);
@@ -503,7 +506,7 @@ contract LayerZeroAdapter is
 
         bytes memory composeMsg = BridgeMessagingHelper
             .encodeRelayedTransferParams(
-                LayerZeroMessagingHelper.createRelayedTransferParams(
+                BridgeMessagingHelper.createRelayedTransferParams(
                     params,
                     operationId
                 )

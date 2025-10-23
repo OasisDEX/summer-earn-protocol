@@ -96,15 +96,10 @@ contract SuperchainAdapter is BaseBridgeAdapter, IAssetAdapter, IBridgeAdapter {
         // Send message via L2ToL2CrossDomainMessenger to trigger delivery
         bytes memory message = BridgeMessagingHelper
             .encodeRelayedTransferParams(
-                BridgeTypes.RelayedTransferParams({
-                    operationId: operationId,
-                    originator: params.originator,
-                    sourceChainId: uint16(block.chainid),
-                    recipient: params.target,
-                    asset: params.asset,
-                    amount: params.amount,
-                    message: params.message
-                })
+                BridgeMessagingHelper.createRelayedTransferParams(
+                    params,
+                    operationId
+                )
             );
 
         L2_TO_L2_MESSENGER.sendMessage(

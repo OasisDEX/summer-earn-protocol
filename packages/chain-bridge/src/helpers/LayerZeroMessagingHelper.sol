@@ -11,26 +11,6 @@ import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
  */
 library LayerZeroMessagingHelper {
     /**
-     * @notice Creates RelayedMessageParams from ExecuteSendMessageParams
-     * @param params ExecuteSendMessageParams from the bridge operation
-     * @param operationId The operation ID for this transaction
-     * @return RelayedMessageParams struct ready for encoding
-     */
-    function createRelayedMessageParams(
-        BridgeTypes.ExecuteSendMessageParams calldata params,
-        bytes32 operationId
-    ) internal view returns (BridgeTypes.RelayedMessageParams memory) {
-        return
-            BridgeTypes.RelayedMessageParams({
-                recipient: params.target,
-                message: params.message,
-                operationId: operationId,
-                originator: params.originator,
-                sourceChainId: uint16(block.chainid)
-            });
-    }
-
-    /**
      * @notice Validates that sufficient msg.value was provided for the operation
      * @param options Bridge options containing msgValue requirement
      * @param msgValue The actual msg.value sent with the transaction
@@ -45,28 +25,6 @@ library LayerZeroMessagingHelper {
                 msgValue
             );
         }
-    }
-
-    /**
-     * @notice Creates RelayedTransferParams from ExecuteTransferParams
-     * @param params ExecuteTransferParams from the bridge operation
-     * @param operationId The operation ID for this transaction
-     * @return RelayedTransferParams struct ready for encoding
-     */
-    function createRelayedTransferParams(
-        BridgeTypes.ExecuteTransferParams calldata params,
-        bytes32 operationId
-    ) internal view returns (BridgeTypes.RelayedTransferParams memory) {
-        return
-            BridgeTypes.RelayedTransferParams({
-                operationId: operationId,
-                originator: params.originator,
-                sourceChainId: uint16(block.chainid),
-                recipient: params.target,
-                asset: params.asset,
-                amount: params.amount,
-                message: params.message
-            });
     }
 
     /**

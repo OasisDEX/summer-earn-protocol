@@ -24,18 +24,13 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
         // Deploy mock OFT and fleet proxy
         useNetworkA();
         vm.startPrank(governor);
-        
+
         // Create mock OFT for testing
-        mockOFT = new MockOFT(
-            "Mock OFT",
-            "MOFT",
-            address(tokenA),
-            lzEndpointA
-        );
-        
+        mockOFT = new MockOFT("Mock OFT", "MOFT", address(tokenA), lzEndpointA);
+
         // Set up OFT mapping
         adapterA.setOftForTokenTest(address(tokenA), address(mockOFT));
-        
+
         fleetProxy = new MockFleetProxy(address(tokenA));
         vm.stopPrank();
     }
@@ -68,7 +63,7 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
 
         // Should revert when called by non-endpoint
         vm.expectRevert(IBaseBridgeAdapterErrors.Unauthorized.selector);
-        adapterB.lzComposeTest(
+        adapterB.lzCompose(
             address(mockOFT),
             bytes32("test-guid"),
             oftMessage,
@@ -114,7 +109,7 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
                 address(mockOFT) // expected OFT
             )
         );
-        adapterB.lzComposeTest(
+        adapterB.lzCompose(
             address(0xBEEF), // wrong OApp address
             bytes32("test-guid"),
             oftMessage,
@@ -148,7 +143,7 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
         // Should revert when asset has no OFT mapping
         vm.prank(lzEndpointB);
         vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
-        adapterB.lzComposeTest(
+        adapterB.lzCompose(
             address(mockOFT),
             bytes32("test-guid"),
             oftMessage,
@@ -194,7 +189,7 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
                 CHAIN_ID_A // source chain
             )
         );
-        adapterB.lzComposeTest(
+        adapterB.lzCompose(
             address(mockOFT),
             bytes32("test-guid"),
             oftMessage,
@@ -234,7 +229,7 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
         // Should revert when chain ID doesn't match srcEid
         vm.prank(lzEndpointB);
         vm.expectRevert(IBaseBridgeAdapterErrors.InvalidSourceChainId.selector);
-        adapterB.lzComposeTest(
+        adapterB.lzCompose(
             address(mockOFT),
             bytes32("test-guid"),
             oftMessage,
@@ -278,7 +273,7 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
         // Should revert when adapter doesn't have enough tokens
         vm.prank(lzEndpointB);
         vm.expectRevert(IBridgeRouter.InsufficientBalance.selector);
-        adapterB.lzComposeTest(
+        adapterB.lzCompose(
             address(mockOFT),
             bytes32("test-guid"),
             oftMessage,
@@ -316,13 +311,15 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
         vm.prank(lzEndpointB);
         // This might succeed or revert depending on implementation
         // For now, we'll test that it doesn't crash
-        try adapterB.lzComposeTest(
-            address(mockOFT),
-            bytes32("test-guid"),
-            oftMessage,
-            address(0),
-            ""
-        ) {
+        try
+            adapterB.lzCompose(
+                address(mockOFT),
+                bytes32("test-guid"),
+                oftMessage,
+                address(0),
+                ""
+            )
+        {
             // If it succeeds, that's also valid behavior
         } catch {
             // If it reverts, that's also valid behavior
@@ -370,16 +367,13 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
             address(routerB),
             abi.encodeCall(
                 IBridgeRouter.deliver,
-                (
-                    BridgeTypes.OperationType.TRANSFER_ASSET,
-                    composeMessage
-                )
+                (BridgeTypes.OperationType.TRANSFER_ASSET, composeMessage)
             )
         );
 
         // Call lzCompose from the authorized endpoint
         vm.prank(lzEndpointB);
-        adapterB.lzComposeTest(
+        adapterB.lzCompose(
             address(mockOFT),
             bytes32("test-guid"),
             oftMessage,
@@ -434,7 +428,7 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
 
         // Call lzCompose from the authorized endpoint
         vm.prank(lzEndpointB);
-        adapterB.lzComposeTest(
+        adapterB.lzCompose(
             address(mockOFT2), // different OFT
             bytes32("test-guid-2"),
             oftMessage,
@@ -477,7 +471,7 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
 
         // Call lzCompose from the authorized endpoint
         vm.prank(lzEndpointB);
-        adapterB.lzComposeTest(
+        adapterB.lzCompose(
             address(mockOFT),
             bytes32("test-guid"),
             oftMessage,
@@ -528,7 +522,7 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
 
         // Call lzCompose from the authorized endpoint
         vm.prank(lzEndpointB);
-        adapterB.lzComposeTest(
+        adapterB.lzCompose(
             address(mockOFT),
             bytes32("test-guid"),
             oftMessage,
@@ -537,8 +531,14 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
         );
 
         // Verify end-to-end delivery
-        assertEq(tokenB.balanceOf(address(routerB)), initialRouterBalance + 1 ether);
-        assertEq(tokenB.balanceOf(address(adapterB)), initialAdapterBalance - 1 ether);
+        assertEq(
+            tokenB.balanceOf(address(routerB)),
+            initialRouterBalance + 1 ether
+        );
+        assertEq(
+            tokenB.balanceOf(address(adapterB)),
+            initialAdapterBalance - 1 ether
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -553,17 +553,18 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
         bytes32 operationId,
         address originator
     ) internal pure returns (bytes memory) {
-        return BridgeMessagingHelper.encodeRelayedTransferParams(
-            BridgeTypes.RelayedTransferParams({
-                operationId: operationId,
-                originator: originator,
-                sourceChainId: uint16(sourceChainId),
-                recipient: recipient,
-                asset: asset,
-                amount: amount,
-                message: ""
-            })
-        );
+        return
+            BridgeMessagingHelper.encodeRelayedTransferParams(
+                BridgeTypes.RelayedTransferParams({
+                    operationId: operationId,
+                    originator: originator,
+                    sourceChainId: uint16(sourceChainId),
+                    recipient: recipient,
+                    asset: asset,
+                    amount: amount,
+                    message: ""
+                })
+            );
     }
 
     function encodeOFTCompose(
