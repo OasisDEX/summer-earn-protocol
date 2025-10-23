@@ -19,8 +19,10 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
-import {Bps} from "../helpers/Bps.sol";
+import {Bps, BPS_FACTOR} from "../helpers/Bps.sol";
+import {BpsUtils} from "../helpers/BpsUtils.sol";
 
 import {BridgeRouterValidationBase} from "./base/BridgeRouterValidationBase.sol";
 import {BridgeRouterFailureBase} from "./base/BridgeRouterFailureBase.sol";
@@ -58,6 +60,9 @@ contract BridgeRouter is
     /// @notice Pause state of the router
     bool public paused;
 
+    /// @notice Fee buffer in basis points for cross-chain operations
+    Bps private feeBufferBps;
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -70,7 +75,10 @@ contract BridgeRouter is
     constructor(
         address accessManager,
         address _registry
-    ) ProtocolAccessManaged(accessManager) CrossChainConfigManaged(_registry) {}
+    ) ProtocolAccessManaged(accessManager) CrossChainConfigManaged(_registry) {
+        // Initialize fee buffer to 1% (100 basis points)
+        feeBufferBps = Bps.wrap(100);
+    }
 
     /*//////////////////////////////////////////////////////////////
                         MODIFIERS
@@ -107,6 +115,25 @@ contract BridgeRouter is
         if (adapter == address(0)) revert NoSuitableAdapter();
         if (!adapters.contains(adapter)) revert UnknownAdapter();
         _validateAdapterSupportsOperation(adapter, operationType);
+        _;
+    }
+
+    /**
+     * @dev Modifier ensuring the caller is either a keeper or governor.
+     * Reverts if the caller doesn't have either role.
+     */
+    modifier onlyKeeperOrGovernor() {
+        if (
+            !_accessManager.hasRole(
+                _accessManager.generateRole(
+                    ContractSpecificRoles.KEEPER_ROLE,
+                    address(this)
+                ),
+                msg.sender
+            ) && !_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)
+        ) {
+            revert CallerIsNotKeeperOrGovernor(msg.sender);
+        }
         _;
     }
 
@@ -165,13 +192,14 @@ contract BridgeRouter is
     /**
      * @dev Internal function to apply fee buffer for cross-chain operation volatility
      * @param baseFee The base fee amount to buffer
-     * @return bufferedFee The fee with 1% buffer applied
+     * @return bufferedFee The fee with configured buffer applied
      */
     function _applyFeeBuffer(
         uint256 baseFee
-    ) internal pure returns (uint256 bufferedFee) {
-        // Add 1% buffer to account for fee volatility
-        return (baseFee * 101) / 100;
+    ) internal view returns (uint256 bufferedFee) {
+        // Apply configured buffer to account for fee volatility
+        // Using direct calculation for precision: baseFee * (1 + buffer/10000)
+        return (baseFee * (BPS_FACTOR + Bps.unwrap(feeBufferBps))) / BPS_FACTOR;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -373,6 +401,11 @@ contract BridgeRouter is
         return adapters.contains(adapter);
     }
 
+    /// @inheritdoc IBridgeRouter
+    function getFeeBufferBps() external view returns (Bps) {
+        return feeBufferBps;
+    }
+
     /*//////////////////////////////////////////////////////////////
                            ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -436,6 +469,21 @@ contract BridgeRouter is
         emit RouterAssetsRecovered(token, recipient, amount);
     }
 
+    /// @inheritdoc IBridgeRouter
+    function setFeeBufferBps(Bps newBufferBps) external onlyKeeperOrGovernor {
+        // Validate buffer is within allowed range (1% to 10%)
+        if (Bps.unwrap(newBufferBps) < 100 || Bps.unwrap(newBufferBps) > 1000) {
+            revert InvalidFeeBuffer();
+        }
+
+        Bps oldBufferBps = feeBufferBps;
+        feeBufferBps = newBufferBps;
+        emit FeeBufferUpdated(
+            Bps.unwrap(oldBufferBps),
+            Bps.unwrap(newBufferBps)
+        );
+    }
+
     /// @notice Retries a previously failed delivery with optional recipient override. Only callable by keeper.
     /// @param operationId The failed operation identifier
     /// @param newRecipient New recipient address; pass address(0) to use original recipient
@@ -496,15 +544,5 @@ contract BridgeRouter is
     ) external pure returns (bool) {
         return (interfaceId == type(IBridgeRouter).interfaceId ||
             interfaceId == type(IERC165).interfaceId);
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function getFeeBufferBps() external pure returns (Bps) {
-        return Bps.wrap(101); // 1% buffer
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function setFeeBufferBps(Bps) external pure {
-        revert("Not implemented");
     }
 }

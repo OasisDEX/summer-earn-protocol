@@ -123,6 +123,12 @@ interface IBridgeRouter is IERC165 {
     /// @notice Thrown when the recipient address is invalid (not a registered ark/fleet proxy)
     error InvalidRecipient();
 
+    /// @notice Thrown when the fee buffer value is invalid (outside allowed range)
+    error InvalidFeeBuffer();
+
+    /// @notice Thrown when the caller is not a keeper or governor
+    error CallerIsNotKeeperOrGovernor(address caller);
+
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS
     //////////////////////////////////////////////////////////////*/
