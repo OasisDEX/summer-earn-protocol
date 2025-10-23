@@ -224,8 +224,11 @@ contract LayerZeroAdapter is
         onlyRouter
         nonReentrant
     {
-        // 1. Validate and get OFT
-        address oft = _getOFTForAsset(params.asset, params.amount);
+        // 1. Prepare OFT transfer parameters
+        (address oft, SendParam memory sendParam) = _prepareOFTTransfer(
+            params,
+            operationId
+        );
 
         // 2. Pull tokens
         IERC20(params.asset).safeTransferFrom(
@@ -234,32 +237,10 @@ contract LayerZeroAdapter is
             params.amount
         );
 
-        // 3. Get destination and cache EID
-        uint32 dstEid = _externalIdForChain(params.destinationChainId);
-        address dstAdapter = _getAdapterPeerOrRevert(params.destinationChainId);
-
-        // 4. Approve OFT
+        // 3. Approve OFT
         IERC20(params.asset).forceApprove(oft, params.amount);
 
-        // 5. Create compose message if needed
-        bytes memory composeMsg = params.message.length > 0
-            ? BridgeMessagingHelper.encodeRelayedTransferParams(
-                LayerZeroMessagingHelper.createRelayedTransferParams(
-                    params,
-                    operationId
-                )
-            )
-            : bytes("");
-
-        // 6. Create send parameters
-        SendParam memory sendParam = _createOFTSendParam(
-            dstEid,
-            dstAdapter,
-            params.amount,
-            composeMsg
-        );
-
-        // 7. Quote and send
+        // 4. Quote and send
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
         if (msg.value < fee.nativeFee) {
             revert InsufficientFee(fee.nativeFee, msg.value);
@@ -271,13 +252,13 @@ contract LayerZeroAdapter is
             params.refundAddress
         );
 
-        // 8. Refund excess
+        // 5. Refund excess
         uint256 excess = msg.value > fee.nativeFee
             ? msg.value - fee.nativeFee
             : 0;
         _refundNative(params.refundAddress, excess);
 
-        // 9. Emit event
+        // 6. Emit event
         emit TransferInitiated(
             operationId,
             params.destinationChainId,
@@ -297,24 +278,9 @@ contract LayerZeroAdapter is
         onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        address oft = _getOFTForAsset(params.asset, params.amount);
-        uint32 dstEid = _externalIdForChain(params.destinationChainId);
-        address dstAdapter = _getAdapterPeerOrRevert(params.destinationChainId);
-
-        bytes memory composeMsg = params.message.length > 0
-            ? BridgeMessagingHelper.encodeRelayedTransferParams(
-                LayerZeroMessagingHelper.createRelayedTransferParams(
-                    params,
-                    bytes32(0)
-                )
-            )
-            : bytes("");
-
-        SendParam memory sendParam = _createOFTSendParam(
-            dstEid,
-            dstAdapter,
-            params.amount,
-            composeMsg
+        (address oft, SendParam memory sendParam) = _prepareOFTTransfer(
+            params,
+            bytes32(0)
         );
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
 
@@ -502,6 +468,38 @@ contract LayerZeroAdapter is
         oft = oftForToken[asset];
         if (oft == address(0)) revert UnsupportedAsset();
         if (amount == 0) revert InvalidParams();
+    }
+
+    /**
+     * @notice Internal helper to prepare OFT transfer parameters
+     * @param params Transfer parameters
+     * @param operationId Operation ID (use bytes32(0) for estimation)
+     * @return oft OFT contract address
+     * @return sendParam Prepared send parameters
+     */
+    function _prepareOFTTransfer(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        bytes32 operationId
+    ) internal view returns (address oft, SendParam memory sendParam) {
+        oft = _getOFTForAsset(params.asset, params.amount);
+        uint32 dstEid = _externalIdForChain(params.destinationChainId);
+        address dstAdapter = _getAdapterPeerOrRevert(params.destinationChainId);
+
+        bytes memory composeMsg = params.message.length > 0
+            ? BridgeMessagingHelper.encodeRelayedTransferParams(
+                LayerZeroMessagingHelper.createRelayedTransferParams(
+                    params,
+                    operationId
+                )
+            )
+            : bytes("");
+
+        sendParam = _createOFTSendParam(
+            dstEid,
+            dstAdapter,
+            params.amount,
+            composeMsg
+        );
     }
 
     /**
