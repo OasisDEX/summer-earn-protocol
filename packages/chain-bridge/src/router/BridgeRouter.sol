@@ -21,6 +21,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
+import {Bps, BPS_FACTOR, toBps, fromBps} from "../helpers/Bps.sol";
 /**
  * @title BridgeRouter
  * @notice Central router that coordinates cross-chain asset transfers and data queries
@@ -48,8 +49,8 @@ contract BridgeRouter is
     /// @notice Pause state of the router
     bool public paused;
 
-    /// @notice Fee buffer in basis points (default 100 = 1%)
-    uint256 public feeBufferBps = 100;
+    /// @notice Fee buffer in basis points (default 100 bps = 1%)
+    Bps public feeBufferBps = toBps(100);
 
     /// @notice Record of failed delivery attempts by operationId
     struct FailedDeliveryRecord {
@@ -124,6 +125,22 @@ contract BridgeRouter is
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @dev Asserts that a peer mapping exists in the registry for `(sourceChainId, msg.sender)`.
+     * @param sourceChainId The source chain ID from the cross-chain operation
+     *
+     * NOTE: This only verifies that governance has registered a peer relationship for the
+     *       calling adapter on the given source chain. It does NOT authenticate the
+     *       specific source adapter that originated the packet. Identity binding is enforced
+     *       within adapters using bridge-native metadata (e.g. LayerZero Origin.sender, Taxi srcSender)
+     *       via the registry's `isValidAdapterPeer` checks.
+     */
+    function _assertPeerMappingExistsForChain(
+        uint16 sourceChainId
+    ) internal view {
+        _assertPeerMappingExistsForChain(sourceChainId, address(0));
+    }
+
+    /**
      * @dev Asserts that a peer mapping exists in the registry for the given adapter and source chain.
      * @param sourceChainId The source chain ID from the cross-chain operation
      * @param adapter The adapter address to check (uses msg.sender if address(0))
@@ -139,11 +156,11 @@ contract BridgeRouter is
         address adapter
     ) internal view {
         // Use msg.sender if no adapter specified (for direct calls)
+        // Note: When called via self-call, adapter should be explicitly provided
         address effectiveAdapter = adapter == address(0) ? msg.sender : adapter;
-        
-        // Cache the PEER_RELATIONSHIP constant to avoid repeated external calls
+
         bytes32 peerRelationship = CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP();
-        
+
         address sourceContract = CROSS_CHAIN_REGISTRY.getSourceForTarget(
             sourceChainId,
             uint16(block.chainid),
@@ -242,7 +259,7 @@ contract BridgeRouter is
         uint256 baseFee
     ) internal view returns (uint256 bufferedFee) {
         // Apply configurable buffer to account for fee volatility
-        return (baseFee * (10000 + feeBufferBps)) / 10000;
+        return (baseFee * (BPS_FACTOR + fromBps(feeBufferBps))) / BPS_FACTOR;
     }
 
     /**
@@ -556,10 +573,7 @@ contract BridgeRouter is
             );
 
             // Verify adapter has peer relationship with source chain
-            _assertPeerMappingExistsForChain(
-                data.sourceChainId,
-                adapter
-            );
+            _assertPeerMappingExistsForChain(data.sourceChainId, adapter);
 
             // Require recipient is a contract and supports ICrossChainReceiver
             _requireReceiverIsCrossChainReceiver(data.recipient);
@@ -578,10 +592,7 @@ contract BridgeRouter is
             );
 
             // Verify adapter has peer relationship with source chain
-            _assertPeerMappingExistsForChain(
-                data.sourceChainId,
-                adapter
-            );
+            _assertPeerMappingExistsForChain(data.sourceChainId, adapter);
 
             // Require recipient is a contract and supports ICrossChainReceiver
             _requireReceiverIsCrossChainReceiver(data.recipient);
@@ -612,7 +623,7 @@ contract BridgeRouter is
     }
 
     /// @inheritdoc IBridgeRouter
-    function getFeeBufferBps() external view returns (uint256 bufferBps) {
+    function getFeeBufferBps() external view returns (Bps bufferBps) {
         return feeBufferBps;
     }
 
@@ -692,13 +703,13 @@ contract BridgeRouter is
     }
 
     /// @inheritdoc IBridgeRouter
-    function setFeeBufferBps(uint256 newBufferBps) external onlyGovernor {
-        if (newBufferBps > 1000) revert InvalidParams(); // Max 10% buffer
-        
-        uint256 oldBufferBps = feeBufferBps;
+    function setFeeBufferBps(Bps newBufferBps) external onlyGovernor {
+        if (newBufferBps > toBps(1000)) revert InvalidParams(); // Max 10% buffer
+
+        Bps oldBufferBps = feeBufferBps;
         feeBufferBps = newBufferBps;
-        
-        emit FeeBufferUpdated(oldBufferBps, newBufferBps);
+
+        emit FeeBufferUpdated(fromBps(oldBufferBps), fromBps(newBufferBps));
     }
 
     /// @inheritdoc IBridgeRouter
@@ -762,7 +773,9 @@ contract BridgeRouter is
         } catch (bytes memory err) {
             // Do not create a new failure record; update existing metadata only
             // Cache the storage reference to avoid additional SLOAD
-            FailedDeliveryRecord storage existing = failedDeliveries[operationId];
+            FailedDeliveryRecord storage existing = failedDeliveries[
+                operationId
+            ];
             existing.failedAt = block.timestamp;
 
             emit OperationRetryFailed(
@@ -856,9 +869,8 @@ contract BridgeRouter is
         address recipient,
         uint16 sourceChainId
     ) internal view {
-        // Cache the PEER_RELATIONSHIP constant to avoid repeated external calls
         bytes32 peerRelationship = CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP();
-        
+
         bool isValidPair = CROSS_CHAIN_REGISTRY.isValidCrossChainPair(
             originator,
             recipient,

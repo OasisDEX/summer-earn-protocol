@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {Bps} from "../helpers/Bps.sol";
 
 /**
  * @title IBridgeRouter
@@ -229,7 +230,7 @@ interface IBridgeRouter is IERC165 {
      * @notice Get the current fee buffer in basis points
      * @return bufferBps The fee buffer in basis points
      */
-    function getFeeBufferBps() external view returns (uint256 bufferBps);
+    function getFeeBufferBps() external view returns (Bps bufferBps);
 
     /*//////////////////////////////////////////////////////////////
                          GOVERNANCE FUNCTIONS
@@ -272,8 +273,8 @@ interface IBridgeRouter is IERC165 {
 
     /**
      * @notice Set the fee buffer for cross-chain operations
-     * @param newBufferBps New fee buffer in basis points (max 1000 = 10%)
+     * @param newBufferBps New fee buffer in basis points (max 1000 bps = 10%)
      * @dev Governor role required. Maximum buffer is 10% to prevent excessive fees.
      */
-    function setFeeBufferBps(uint256 newBufferBps) external;
+    function setFeeBufferBps(Bps newBufferBps) external;
 }
