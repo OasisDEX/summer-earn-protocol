@@ -1,98 +1,127 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {MessagingFee, SendParam, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {MessagingFee, SendParam, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @title MockOFT
- * @notice Mock implementation of LayerZero OFT for testing
+ * @notice Mock OFT contract for testing LayerZero compose functionality
+ * @dev Simple mock implementation for testing purposes
  */
-contract MockOFT {
-    using SafeERC20 for IERC20;
-
-    address public immutable UNDERLYING_TOKEN;
-    address public owner;
-    uint256 public quoteSendNativeFee = 0.1 ether;
-    uint256 public quoteSendTokenFee = 0;
-
-    mapping(address => bool) public approvedSpenders;
-
-    constructor(address _token) {
-        UNDERLYING_TOKEN = _token;
-        owner = msg.sender;
+contract MockOFT is ERC20 {
+    IERC20 public immutable tokenAddress;
+    
+    /// @notice Mock endpoint for testing
+    address public endpoint;
+    
+    /// @notice Mock fee for testing
+    uint256 public mockNativeFee = 0.01 ether;
+    uint256 public mockLzTokenFee = 0;
+    
+    constructor(
+        string memory name,
+        string memory symbol,
+        address _token,
+        address _endpoint
+    ) ERC20(name, symbol) {
+        tokenAddress = IERC20(_token);
+        endpoint = _endpoint;
     }
-
-    function approve(address spender) external {
-        approvedSpenders[spender] = true;
-    }
-
-    function setQuoteSendFees(uint256 nativeFee, uint256 tokenFee) external {
-        quoteSendNativeFee = nativeFee;
-        quoteSendTokenFee = tokenFee;
-    }
-
+    
+    /// @notice Mock token function
     function token() external view returns (address) {
-        return UNDERLYING_TOKEN;
+        return address(tokenAddress);
     }
-
+    
+    /// @notice Mock quoteSend function
     function quoteSend(
         SendParam calldata,
         bool
     ) external view returns (MessagingFee memory) {
-        return
-            MessagingFee({
-                nativeFee: quoteSendNativeFee,
-                lzTokenFee: quoteSendTokenFee
-            });
+        return MessagingFee({
+            nativeFee: mockNativeFee,
+            lzTokenFee: mockLzTokenFee
+        });
     }
-
+    
+    /// @notice Mock send function
     function send(
-        SendParam calldata sendParam,
+        SendParam calldata,
         MessagingFee calldata fee,
         address refundAddress
-    ) external payable returns (MessagingReceipt memory, OFTReceipt memory) {
-        // Validate fee
-        require(msg.value >= fee.nativeFee, "Insufficient fee");
-
-        // Transfer tokens from sender
-        IERC20(UNDERLYING_TOKEN).safeTransferFrom(
-            msg.sender,
-            address(this),
-            sendParam.amountLD
-        );
-
-        // Burn tokens (simplified - in real OFT this would be more complex)
-        // For testing, we'll just hold them
-
-        // Refund excess native
-        if (msg.value > fee.nativeFee) {
-            payable(refundAddress).transfer(msg.value - fee.nativeFee);
-        }
-
-        // Return mock receipts
-        return (
-            MessagingReceipt({guid: bytes32(0), nonce: 0, fee: fee}),
-            OFTReceipt({
-                amountSentLD: sendParam.amountLD,
-                amountReceivedLD: sendParam.amountLD
-            })
-        );
+    ) external payable returns (MessagingReceipt memory) {
+        // Mock implementation - just return a receipt
+        return MessagingReceipt({
+            guid: keccak256(abi.encodePacked(block.timestamp, msg.sender)),
+            fee: fee,
+            nonce: uint64(block.timestamp)
+        });
     }
-
-    function forceApprove(address spender, uint256 amount) external {
-        IERC20(UNDERLYING_TOKEN).approve(spender, amount);
+    
+    /// @notice Mock lzReceive function for testing
+    function lzReceive(
+        Origin calldata,
+        bytes32,
+        bytes calldata,
+        address,
+        bytes calldata
+    ) external payable {
+        // Mock implementation
     }
-
-    // Helper functions for testing
+    
+    /// @notice Mock lzCompose function for testing
+    function lzCompose(
+        address,
+        bytes32,
+        bytes calldata,
+        address,
+        bytes calldata
+    ) external payable {
+        // Mock implementation
+    }
+    
+    /// @notice Mock approvalRequired function
+    function approvalRequired() external view returns (bool) {
+        return false;
+    }
+    
+    /// @notice Mock oftVersion function
+    function oftVersion() external view returns (bytes4 interfaceId, uint64 version) {
+        return (bytes4(0), 1);
+    }
+    
+    /// @notice Mock quoteOFT function
+    function quoteOFT(
+        SendParam calldata,
+        bool
+    ) external view returns (MessagingFee memory) {
+        return MessagingFee({
+            nativeFee: mockNativeFee,
+            lzTokenFee: mockLzTokenFee
+        });
+    }
+    
+    /// @notice Mock sharedDecimals function
+    function sharedDecimals() external view returns (uint8) {
+        return 18;
+    }
+    
+    /// @notice Set mock fees for testing
+    function setMockFees(uint256 _nativeFee, uint256 _lzTokenFee) external {
+        mockNativeFee = _nativeFee;
+        mockLzTokenFee = _lzTokenFee;
+    }
+    
+    /// @notice Mint tokens for testing
     function mint(address to, uint256 amount) external {
-        // In a real scenario, this would be handled by the OFT's minting mechanism
-        // For testing, we'll assume tokens are pre-funded
+        _mint(to, amount);
     }
-
+    
+    /// @notice Burn tokens for testing
     function burn(address from, uint256 amount) external {
-        // Simplified burn for testing
-        IERC20(UNDERLYING_TOKEN).safeTransferFrom(from, address(this), amount);
+        _burn(from, amount);
     }
 }

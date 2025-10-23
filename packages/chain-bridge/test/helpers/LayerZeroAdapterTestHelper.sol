@@ -63,6 +63,33 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
     }
 
     /**
+     * @notice Test function for lzCompose
+     * @param _from The OApp address that sent the compose message
+     * @param _guid Global unique identifier for tracking the packet
+     * @param _message OFT-encoded compose message
+     * @param _caller Address of the caller
+     * @param _extraData Additional data provided by the caller
+     */
+    function lzComposeTest(
+        address _from,
+        bytes32 _guid,
+        bytes calldata _message,
+        address _caller,
+        bytes calldata _extraData
+    ) external payable {
+        this.lzCompose(_from, _guid, _message, _caller, _extraData);
+    }
+
+    /**
+     * @notice Helper to set OFT mapping for testing
+     * @param token Token address
+     * @param oft OFT contract address
+     */
+    function setOftForTokenTest(address token, address oft) external {
+        oftForToken[token] = oft;
+    }
+
+    /**
      * @notice Exposes the internal getLayerZeroChainId function for testing
      * @param chainId Chain ID
      * @return LayerZero EID

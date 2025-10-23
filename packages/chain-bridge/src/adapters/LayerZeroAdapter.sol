@@ -61,6 +61,9 @@ contract LayerZeroAdapter is
     ///      This cap avoids overly large configurations and removes magic numbers.
     uint8 public constant MAX_SUPPORTED_DVNS = 8;
 
+    /// @notice Error thrown when OApp address doesn't match expected OFT contract
+    error UntrustedOApp(address received, address expected);
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -388,13 +391,15 @@ contract LayerZeroAdapter is
      * @dev Called by LayerZero endpoint after OFT tokens arrive on destination.
      *      Security model:
      *      1. Endpoint auth: Only LayerZero endpoint can call
-     *      2. Peer validation: composeFrom must be trusted adapter
-     *      3. Chain validation: srcEid must map to expected source chain
+     *      2. OApp validation: _from must be the expected OFT contract for the asset
+     *      3. Peer validation: composeFrom must be trusted adapter
+     *      4. Chain validation: srcEid must map to expected source chain
      *      OFT delivers tokens first, then triggers this with transfer metadata.
+     * @param _from The OApp address that sent the compose message (should be OFT contract)
      * @param _message OFT-encoded compose (srcEid, amount, composeFrom, transferParams)
      */
     function lzCompose(
-        address /* _from */,
+        address _from,
         bytes32 /* _guid */,
         bytes calldata _message,
         address /* _caller */,
@@ -414,6 +419,11 @@ contract LayerZeroAdapter is
         // Decode transfer parameters from compose message
         BridgeTypes.RelayedTransferParams memory params = BridgeMessagingHelper
             .decodeRelayedTransferParams(composeMsg);
+
+        // Validate OApp address matches expected OFT for this asset
+        address expectedOFT = oftForToken[params.asset];
+        if (expectedOFT == address(0)) revert UnsupportedAsset();
+        if (_from != expectedOFT) revert UntrustedOApp(_from, expectedOFT);
 
         // Ensure the LayerZero srcEid maps to the same chain as encoded in the payload
         uint16 chainFromEid = _chainIdFromExternalId(srcEid);
@@ -491,14 +501,13 @@ contract LayerZeroAdapter is
         uint32 dstEid = _externalIdForChain(params.destinationChainId);
         address dstAdapter = _resolveAdapterPeer(params.destinationChainId);
 
-        bytes memory composeMsg = params.message.length > 0
-            ? BridgeMessagingHelper.encodeRelayedTransferParams(
+        bytes memory composeMsg = BridgeMessagingHelper
+            .encodeRelayedTransferParams(
                 LayerZeroMessagingHelper.createRelayedTransferParams(
                     params,
                     operationId
                 )
-            )
-            : bytes("");
+            );
 
         sendParam = _createOFTSendParam(
             dstEid,
