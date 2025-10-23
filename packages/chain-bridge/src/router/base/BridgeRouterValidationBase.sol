@@ -81,9 +81,7 @@ abstract contract BridgeRouterValidationBase is CrossChainConfigManaged {
      *      Reverts with `InvalidParams` otherwise.
      * @param receiver The address to validate
      */
-    function _requireReceiverIsCrossChainReceiver(
-        address receiver
-    ) internal view {
+    function _validateCrossChainReceiver(address receiver) internal view {
         if (receiver.code.length == 0) revert IBridgeRouter.InvalidParams();
         try
             IERC165(receiver).supportsInterface(

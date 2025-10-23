@@ -9,8 +9,7 @@ import {BridgeRouterValidationBase} from "./BridgeRouterValidationBase.sol";
  * @notice Abstract base contract providing recipient override and validation for BridgeRouter operations
  * @dev Contains recipient override logic and peer relationship validation
  */
-abstract contract BridgeRouterRecipientBase is BridgeRouterValidationBase
-{
+abstract contract BridgeRouterRecipientBase is BridgeRouterValidationBase {
     /*//////////////////////////////////////////////////////////////
                         INTERNAL DATA STRUCTURES
     //////////////////////////////////////////////////////////////*/
@@ -148,5 +147,4 @@ abstract contract BridgeRouterRecipientBase is BridgeRouterValidationBase
             return originalPayload;
         }
     }
-
 }

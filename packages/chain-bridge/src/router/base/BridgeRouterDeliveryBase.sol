@@ -76,7 +76,7 @@ abstract contract BridgeRouterDeliveryBase is
             data.sourceChainId,
             adapter
         );
-        _requireReceiverIsCrossChainReceiver(data.recipient);
+        _validateCrossChainReceiver(data.recipient);
 
         // Handle operation-specific logic
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
