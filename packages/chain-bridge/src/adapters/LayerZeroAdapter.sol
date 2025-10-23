@@ -116,12 +116,20 @@ contract LayerZeroAdapter is
      */
     function setOftForToken(address token, address oft) external onlyGovernor {
         if (token == address(0) || oft == address(0)) revert InvalidParams();
-        // Validate that the OFT contract is properly configured for this token
+
+        // Validate OFT configuration - supports both adapter and direct patterns
+        // Adapter pattern: IOFT(oft).token() returns the underlying ERC20
+        // Direct pattern: IOFT(oft).token() returns oft itself, or may not exist
         try IOFT(oft).token() returns (address t) {
-            if (t != token) revert InvalidParams();
+            // For adapter pattern: token must match the underlying asset
+            // For direct pattern: token must equal oft
+            if (t != token && t != oft) revert InvalidParams();
         } catch {
-            revert InvalidParams();
+            // Direct OFT may not have token() function
+            // Verify it's a direct implementation by checking if token == oft
+            if (token != oft) revert InvalidParams();
         }
+
         oftForToken[token] = oft;
         emit OftSet(token, oft);
     }
@@ -212,7 +220,9 @@ contract LayerZeroAdapter is
     /// @inheritdoc IAssetAdapter
     /**
      * @dev Transfers assets cross-chain using LayerZero OFT protocol.
-     *      Flow: pull tokens → approve OFT → send via OFT → refund excess native.
+     *      Supports both OFT patterns:
+     *      - Adapter pattern: pull tokens → approve OFT → send via OFT
+     *      - Direct pattern: pull tokens → send via OFT (no approval needed)
      *      If message is provided, encodes as OFT compose for post-delivery execution.
      * @param operationId Unique identifier for this transfer operation
      * @param params Transfer parameters (asset, amount, destination, optional message)
@@ -242,8 +252,10 @@ contract LayerZeroAdapter is
             params.amount
         );
 
-        // 3. Approve OFT
-        IERC20(params.asset).forceApprove(oft, params.amount);
+        // 3. Approve OFT (only needed for adapter pattern where asset != oft)
+        if (params.asset != oft) {
+            IERC20(params.asset).forceApprove(oft, params.amount);
+        }
 
         // 4. Quote and send
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
