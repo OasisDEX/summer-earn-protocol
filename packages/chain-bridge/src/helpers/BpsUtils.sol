@@ -69,6 +69,19 @@ library BpsUtils {
     }
 
     /**
+     * @notice Applies a basis points markup to an amount
+     * @param amount The base amount
+     * @param markupBps The markup in basis points (e.g., 100 = 1% markup)
+     * @return markedUpAmount The amount after applying the markup
+     */
+    function applyBpsMarkup(
+        uint256 amount,
+        Bps markupBps
+    ) internal pure returns (uint256) {
+        return (amount * (BPS_FACTOR + fromBps(markupBps))) / BPS_FACTOR;
+    }
+
+    /**
      * @notice Validates that a basis points value is within valid range
      * @param bps The basis points value to validate
      * @return valid True if the value is between 0 and 10000 (0% to 100%)
