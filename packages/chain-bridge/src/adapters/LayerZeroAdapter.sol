@@ -461,7 +461,7 @@ contract LayerZeroAdapter is
      * @param amount The amount to transfer
      * @return oft The OFT contract address for this asset
      */
-    function _getOFTForAsset(
+    function _resolveOFTForAsset(
         address asset,
         uint256 amount
     ) internal view returns (address oft) {
@@ -481,7 +481,7 @@ contract LayerZeroAdapter is
         BridgeTypes.ExecuteTransferParams calldata params,
         bytes32 operationId
     ) internal view returns (address oft, SendParam memory sendParam) {
-        oft = _getOFTForAsset(params.asset, params.amount);
+        oft = _resolveOFTForAsset(params.asset, params.amount);
         uint32 dstEid = _externalIdForChain(params.destinationChainId);
         address dstAdapter = _getAdapterPeerOrRevert(params.destinationChainId);
 
