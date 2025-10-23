@@ -38,17 +38,6 @@ abstract contract BridgeRouterFailureBase {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Check if an operation has a failure record
-     * @param operationId The operation ID to check
-     * @return True if the operation has a failure record
-     */
-    function _hasFailedDelivery(
-        bytes32 operationId
-    ) internal view returns (bool) {
-        return failedDeliveryIds.contains(operationId);
-    }
-
-    /**
      * @dev Records a failed delivery attempt
      * @param operationId The operation ID that failed
      * @param operationType The type of operation that failed
@@ -65,9 +54,7 @@ abstract contract BridgeRouterFailureBase {
         bytes memory operationPayload,
         bytes memory errorData
     ) internal {
-        bool exists = failedDeliveryIds.contains(operationId);
-
-        if (!exists) {
+        if (!failedDeliveryIds.contains(operationId)) {
             // New failure - create full record
             failedDeliveries[operationId] = FailedDeliveryRecord({
                 operationType: operationType,
@@ -96,7 +83,6 @@ abstract contract BridgeRouterFailureBase {
      * @param operationId The operation ID to clear
      */
     function _clearFailedDelivery(bytes32 operationId) internal {
-        if (!_hasFailedDelivery(operationId)) return;
         failedDeliveryIds.remove(operationId);
         delete failedDeliveries[operationId];
     }
@@ -114,8 +100,7 @@ abstract contract BridgeRouterFailureBase {
         if (cursor >= len) {
             return (new bytes32[](0), cursor);
         }
-        uint256 end = cursor + size;
-        if (end > len) end = len;
+        uint256 end = cursor + size > len ? len : cursor + size;
         uint256 pageSize = end - cursor;
         ids = new bytes32[](pageSize);
         for (uint256 i = 0; i < pageSize; i++) {
@@ -128,7 +113,7 @@ abstract contract BridgeRouterFailureBase {
     function getFailedDelivery(
         bytes32 operationId
     ) external view returns (FailedDeliveryRecord memory) {
-        if (!_hasFailedDelivery(operationId)) {
+        if (!failedDeliveryIds.contains(operationId)) {
             revert IBridgeRouter.FailureRecordNotFound();
         }
         return failedDeliveries[operationId];
@@ -143,6 +128,6 @@ abstract contract BridgeRouterFailureBase {
     function hasFailedDelivery(
         bytes32 operationId
     ) external view returns (bool) {
-        return _hasFailedDelivery(operationId);
+        return failedDeliveryIds.contains(operationId);
     }
 }
