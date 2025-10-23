@@ -266,14 +266,14 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
-     * @notice Get the peer adapter address for a destination chain with validation
+     * @notice Resolve the peer adapter address for a destination chain with validation
      * @dev Validates that a peer adapter exists for the destination chain and reverts if not.
      *      This provides a convenient helper for cases where immediate validation is needed.
      * @param dstChain Destination chain ID
      * @return Peer adapter address for the destination chain
      * @custom:throws UnsupportedChain if no peer adapter is registered for the destination chain
      */
-    function _getAdapterPeerOrRevert(
+    function _resolveAdapterPeer(
         uint16 dstChain
     ) internal view returns (address) {
         address peer = _getAdapterPeer(dstChain);

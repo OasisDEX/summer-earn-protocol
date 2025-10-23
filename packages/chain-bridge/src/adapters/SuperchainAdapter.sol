@@ -83,7 +83,7 @@ contract SuperchainAdapter is BaseBridgeAdapter, IAssetAdapter, IBridgeAdapter {
         );
 
         // Get destination adapter peer
-        address dstAdapter = _getAdapterPeerOrRevert(params.destinationChainId);
+        address dstAdapter = _resolveAdapterPeer(params.destinationChainId);
 
         // Send via Superchain bridge (mints tokens to destination adapter)
         SUPERCHAIN_BRIDGE.sendERC20(

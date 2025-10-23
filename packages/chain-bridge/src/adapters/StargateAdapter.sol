@@ -147,7 +147,6 @@ contract StargateAdapter is
         external
         payable
         onlyTrustedDestination(params.destinationChainId)
-        withSupportedOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         onlyRouter
         nonReentrant
     {
@@ -317,7 +316,6 @@ contract StargateAdapter is
         external
         view
         onlyTrustedDestination(params.destinationChainId)
-        withSupportedOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
         // Check if asset is supported on current chain
@@ -519,7 +517,7 @@ contract StargateAdapter is
         returns (SendParam memory sendParam, OFTReceipt memory oftReceipt)
     {
         // Resolve destination adapter via registry
-        address destinationAdapter = _getAdapterPeerOrRevert(
+        address destinationAdapter = _resolveAdapterPeer(
             params.destinationChainId
         );
 

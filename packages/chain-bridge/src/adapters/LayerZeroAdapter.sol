@@ -25,6 +25,7 @@ import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfac
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -42,6 +43,7 @@ contract LayerZeroAdapter is
 {
     using SafeERC20 for IERC20;
     using AddressCast for address;
+    using OptionsBuilder for bytes;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -216,7 +218,7 @@ contract LayerZeroAdapter is
     function transferAsset(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         payable
@@ -227,7 +229,8 @@ contract LayerZeroAdapter is
         // 1. Prepare OFT transfer parameters
         (address oft, SendParam memory sendParam) = _prepareOFTTransfer(
             params,
-            operationId
+            operationId,
+            options
         );
 
         // 2. Pull tokens
@@ -271,7 +274,7 @@ contract LayerZeroAdapter is
     /// @inheritdoc IAssetAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         view
@@ -280,7 +283,8 @@ contract LayerZeroAdapter is
     {
         (address oft, SendParam memory sendParam) = _prepareOFTTransfer(
             params,
-            bytes32(0)
+            bytes32(0),
+            options
         );
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
 
@@ -474,16 +478,18 @@ contract LayerZeroAdapter is
      * @notice Internal helper to prepare OFT transfer parameters
      * @param params Transfer parameters
      * @param operationId Operation ID (use bytes32(0) for estimation)
+     * @param options Bridge options containing gas limit and other parameters
      * @return oft OFT contract address
      * @return sendParam Prepared send parameters
      */
     function _prepareOFTTransfer(
         BridgeTypes.ExecuteTransferParams calldata params,
-        bytes32 operationId
+        bytes32 operationId,
+        BridgeTypes.BridgeOptions calldata options
     ) internal view returns (address oft, SendParam memory sendParam) {
         oft = _resolveOFTForAsset(params.asset, params.amount);
         uint32 dstEid = _externalIdForChain(params.destinationChainId);
-        address dstAdapter = _getAdapterPeerOrRevert(params.destinationChainId);
+        address dstAdapter = _resolveAdapterPeer(params.destinationChainId);
 
         bytes memory composeMsg = params.message.length > 0
             ? BridgeMessagingHelper.encodeRelayedTransferParams(
@@ -498,7 +504,8 @@ contract LayerZeroAdapter is
             dstEid,
             dstAdapter,
             params.amount,
-            composeMsg
+            composeMsg,
+            options
         );
     }
 
@@ -508,21 +515,32 @@ contract LayerZeroAdapter is
      * @param dstAdapter Destination adapter address
      * @param amount Amount to send in local decimals
      * @param composeMsg Optional compose message
+     * @param options Bridge options containing gas limit and other parameters
      * @return sendParam Configured SendParam struct
      */
     function _createOFTSendParam(
         uint32 dstEid,
         address dstAdapter,
         uint256 amount,
-        bytes memory composeMsg
+        bytes memory composeMsg,
+        BridgeTypes.BridgeOptions memory options
     ) internal pure returns (SendParam memory) {
+        // Create compose options when compose message is present
+        bytes memory extraOptions = composeMsg.length > 0
+            ? OptionsBuilder.newOptions().addExecutorLzComposeOption(
+                0,
+                uint128(_requireGasLimit(options.gasLimit)),
+                0
+            )
+            : bytes("");
+
         return
             SendParam({
                 dstEid: dstEid,
                 to: dstAdapter.toBytes32(),
                 amountLD: amount,
                 minAmountLD: amount, // Exact amount, no slippage
-                extraOptions: bytes(""),
+                extraOptions: extraOptions,
                 composeMsg: composeMsg,
                 oftCmd: bytes("")
             });
