@@ -81,10 +81,8 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         router.deliver(BridgeTypes.OperationType.TRANSFER_ASSET, payload);
         vm.stopPrank();
 
-        // Recorded as failed
-        (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
-        assertEq(ids.length, 1);
-        assertEq(ids[0], opId);
+        // Verify the failure was recorded
+        assertTrue(router.hasFailedDelivery(opId));
 
         return opId;
     }
@@ -138,6 +136,178 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         assertEq(record.adapter, address(mockAdapter));
         assertEq(record.sourceChainId, SOURCE_CHAIN_ID);
         assertEq(record.failedAt, block.timestamp);
+    }
+
+    /* ------------------------------------------------------------ */
+    /*                    New Query Functions Tests                  */
+    /* ------------------------------------------------------------ */
+
+    function testGetFailedDeliveryCount_NoFailures_ReturnsZero() public {
+        uint256 count = router.getFailedDeliveryCount();
+        assertEq(count, 0);
+    }
+
+    function testGetFailedDeliveryCount_WithFailures_ReturnsCorrectCount()
+        public
+    {
+        // Clear any existing failures first
+        (bytes32[] memory existingIds, ) = router.getFailedDeliveryIds(0, 100);
+        for (uint256 i = 0; i < existingIds.length; i++) {
+            mockReceiver.setReceiveSuccess(true);
+            vm.prank(keeper);
+            router.retryFailedDelivery(existingIds[i], address(0));
+        }
+
+        // Create multiple failures
+        bytes32 opId1 = _makeFailedTransfer(keccak256("op1"), 1 ether);
+        bytes32 opId2 = _makeFailedTransfer(keccak256("op2"), 1 ether);
+        bytes32 opId3 = _makeFailedTransfer(keccak256("op3"), 1 ether);
+
+        uint256 count = router.getFailedDeliveryCount();
+        assertEq(count, 3);
+
+        // Verify the IDs are tracked
+        (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
+        assertEq(ids.length, 3);
+        assertEq(ids[0], opId1);
+        assertEq(ids[1], opId2);
+        assertEq(ids[2], opId3);
+    }
+
+    function testHasFailedDelivery_NonExistentOperation_ReturnsFalse() public {
+        bytes32 nonExistentOpId = keccak256("non-existent");
+        bool hasFailed = router.hasFailedDelivery(nonExistentOpId);
+        assertFalse(hasFailed);
+    }
+
+    function testHasFailedDelivery_ExistingOperation_ReturnsTrue() public {
+        bytes32 opId = _makeFailedTransfer(keccak256("existing-op"), 1 ether);
+        bool hasFailed = router.hasFailedDelivery(opId);
+        assertTrue(hasFailed);
+    }
+
+    function testHasFailedDelivery_AfterClearing_ReturnsFalse() public {
+        bytes32 opId = _makeFailedTransfer(keccak256("clear-test"), 1 ether);
+
+        // Verify it exists
+        assertTrue(router.hasFailedDelivery(opId));
+
+        // Allow receiver to succeed for retry
+        mockReceiver.setReceiveSuccess(true);
+
+        // Clear the failure
+        vm.prank(keeper);
+        router.retryFailedDelivery(opId, address(0));
+
+        // Should no longer exist
+        assertFalse(router.hasFailedDelivery(opId));
+    }
+
+    /* ------------------------------------------------------------ */
+    /*                    Gas Optimization Tests                    */
+    /* ------------------------------------------------------------ */
+
+    function testRecordFailedDelivery_RetryFailure_PreservesOriginalMetadata()
+        public
+    {
+        bytes32 opId = _makeFailedTransfer(keccak256("retry-test"), 1 ether);
+
+        // Get original record
+        BridgeRouter.FailedDeliveryRecord memory originalRecord = router
+            .getFailedDelivery(opId);
+        uint256 originalFailedAt = originalRecord.failedAt;
+
+        // Wait a bit to ensure timestamp difference
+        vm.warp(block.timestamp + 100);
+
+        // Simulate retry failure by creating another failure with same ID
+        // This should only update the timestamp, not other fields
+        mockReceiver.setReceiveSuccess(false);
+
+        BridgeTypes.RelayedTransferParams memory p = BridgeTypes
+            .RelayedTransferParams({
+                operationId: opId,
+                originator: address(0x1002),
+                sourceChainId: SOURCE_CHAIN_ID,
+                recipient: address(mockReceiver),
+                asset: address(token),
+                amount: 2 ether, // Different amount
+                message: ""
+            });
+
+        bytes memory payload = abi.encode(p);
+
+        vm.startPrank(address(mockAdapter));
+        router.deliver(BridgeTypes.OperationType.TRANSFER_ASSET, payload);
+        vm.stopPrank();
+
+        // Get updated record
+        BridgeRouter.FailedDeliveryRecord memory updatedRecord = router
+            .getFailedDelivery(opId);
+
+        // Verify original metadata is preserved
+        assertEq(
+            uint8(updatedRecord.operationType),
+            uint8(originalRecord.operationType)
+        );
+        assertEq(updatedRecord.adapter, originalRecord.adapter);
+        assertEq(updatedRecord.sourceChainId, originalRecord.sourceChainId);
+        assertEq(
+            updatedRecord.operationPayload,
+            originalRecord.operationPayload
+        );
+
+        // Verify timestamp was updated
+        assertGt(updatedRecord.failedAt, originalFailedAt);
+        assertEq(updatedRecord.failedAt, block.timestamp);
+    }
+
+    /* ------------------------------------------------------------ */
+    /*                    Pagination Tests                          */
+    /* ------------------------------------------------------------ */
+
+    function testGetFailedDeliveryIds_Pagination_WorksCorrectly() public {
+        // Clear any existing failures first
+        (bytes32[] memory existingIds, ) = router.getFailedDeliveryIds(0, 100);
+        for (uint256 i = 0; i < existingIds.length; i++) {
+            mockReceiver.setReceiveSuccess(true);
+            vm.prank(keeper);
+            router.retryFailedDelivery(existingIds[i], address(0));
+        }
+
+        // Create 5 failures
+        bytes32[] memory opIds = new bytes32[](5);
+        for (uint256 i = 0; i < 5; i++) {
+            opIds[i] = _makeFailedTransfer(
+                keccak256(abi.encodePacked("op", i)),
+                1 ether
+            );
+        }
+
+        // Test first page
+        (bytes32[] memory page1, uint256 nextCursor1) = router
+            .getFailedDeliveryIds(0, 3);
+        assertEq(page1.length, 3);
+        assertEq(nextCursor1, 3);
+
+        // Test second page
+        (bytes32[] memory page2, uint256 nextCursor2) = router
+            .getFailedDeliveryIds(3, 3);
+        assertEq(page2.length, 2);
+        assertEq(nextCursor2, 5);
+
+        // Test beyond available
+        (bytes32[] memory page3, uint256 nextCursor3) = router
+            .getFailedDeliveryIds(5, 3);
+        assertEq(page3.length, 0);
+        assertEq(nextCursor3, 5);
+    }
+
+    function testGetFailedDeliveryIds_EmptySet_ReturnsEmptyArray() public {
+        (bytes32[] memory ids, uint256 nextCursor) = router
+            .getFailedDeliveryIds(0, 10);
+        assertEq(ids.length, 0);
+        assertEq(nextCursor, 0);
     }
 
     /* ------------------------------------------------------------ */
@@ -268,9 +438,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         router.retryFailedDelivery(opId, address(0));
 
         // Verify failure record still exists
-        (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
-        assertEq(ids.length, 1);
-        assertEq(ids[0], opId);
+        assertTrue(router.hasFailedDelivery(opId));
     }
 
     function testRetryWithMessagePayload_ValidArkFleet_Succeeds() public {
@@ -822,10 +990,8 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         router.deliver(BridgeTypes.OperationType.TRANSFER_ASSET, payload);
         vm.stopPrank();
 
-        // Recorded as failed
-        (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
-        assertEq(ids.length, 1);
-        assertEq(ids[0], opId);
+        // Verify the failure was recorded
+        assertTrue(router.hasFailedDelivery(opId));
 
         return opId;
     }
@@ -855,10 +1021,8 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         router.deliver(BridgeTypes.OperationType.MESSAGE, payload);
         vm.stopPrank();
 
-        // Recorded as failed
-        (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
-        assertEq(ids.length, 1);
-        assertEq(ids[0], opId);
+        // Verify the failure was recorded
+        assertTrue(router.hasFailedDelivery(opId));
 
         return opId;
     }

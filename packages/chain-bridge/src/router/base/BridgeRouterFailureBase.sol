@@ -38,6 +38,17 @@ abstract contract BridgeRouterFailureBase {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @dev Check if an operation has a failure record
+     * @param operationId The operation ID to check
+     * @return True if the operation has a failure record
+     */
+    function _hasFailedDelivery(
+        bytes32 operationId
+    ) internal view returns (bool) {
+        return failedDeliveryIds.contains(operationId);
+    }
+
+    /**
      * @dev Records a failed delivery attempt
      * @param operationId The operation ID that failed
      * @param operationType The type of operation that failed
@@ -54,9 +65,10 @@ abstract contract BridgeRouterFailureBase {
         bytes memory operationPayload,
         bytes memory errorData
     ) internal {
-        FailedDeliveryRecord storage existing = failedDeliveries[operationId];
-        if (existing.failedAt == 0) {
-            // Insert new record
+        bool exists = failedDeliveryIds.contains(operationId);
+
+        if (!exists) {
+            // New failure - create full record
             failedDeliveries[operationId] = FailedDeliveryRecord({
                 operationType: operationType,
                 adapter: adapter,
@@ -66,9 +78,8 @@ abstract contract BridgeRouterFailureBase {
             });
             failedDeliveryIds.add(operationId);
         } else {
-            // Update existing record
-            existing.failedAt = block.timestamp;
-            // Keep original payload and metadata
+            // Retry failure - only update timestamp (keep original metadata)
+            failedDeliveries[operationId].failedAt = block.timestamp;
         }
 
         emit IBridgeRouter.OperationFailed(
@@ -85,6 +96,7 @@ abstract contract BridgeRouterFailureBase {
      * @param operationId The operation ID to clear
      */
     function _clearFailedDelivery(bytes32 operationId) internal {
+        if (!_hasFailedDelivery(operationId)) return;
         failedDeliveryIds.remove(operationId);
         delete failedDeliveries[operationId];
     }
@@ -116,8 +128,21 @@ abstract contract BridgeRouterFailureBase {
     function getFailedDelivery(
         bytes32 operationId
     ) external view returns (FailedDeliveryRecord memory) {
-        FailedDeliveryRecord memory r = failedDeliveries[operationId];
-        if (r.failedAt == 0) revert IBridgeRouter.FailureRecordNotFound();
-        return r;
+        if (!_hasFailedDelivery(operationId)) {
+            revert IBridgeRouter.FailureRecordNotFound();
+        }
+        return failedDeliveries[operationId];
+    }
+
+    /// @notice Returns the total count of failed deliveries
+    function getFailedDeliveryCount() external view returns (uint256) {
+        return failedDeliveryIds.length();
+    }
+
+    /// @notice Check if an operation has a failure record
+    function hasFailedDelivery(
+        bytes32 operationId
+    ) external view returns (bool) {
+        return _hasFailedDelivery(operationId);
     }
 }
