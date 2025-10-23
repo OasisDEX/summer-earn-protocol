@@ -181,9 +181,9 @@ contract StargateAdapter is
      */
     function _executeSendToken(
         bytes32 operationId,
-        BridgeTypes.ExecuteTransferParams memory params,
+        BridgeTypes.ExecuteTransferParams calldata params,
         uint256 providedFee,
-        BridgeTypes.BridgeOptions memory options
+        BridgeTypes.BridgeOptions calldata options
     ) internal {
         // Get the source chain Stargate contract
         address stargateContract = assetToStargateContract[params.asset];
@@ -507,9 +507,9 @@ contract StargateAdapter is
      * @return oftReceipt Quote receipt with slippage-validated amounts
      */
     function _prepareSendParamForTransfer(
-        BridgeTypes.ExecuteTransferParams memory params,
+        BridgeTypes.ExecuteTransferParams calldata params,
         bytes32 operationId,
-        BridgeTypes.BridgeOptions memory options,
+        BridgeTypes.BridgeOptions calldata options,
         address stargateContract
     )
         internal
