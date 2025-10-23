@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "forge test",
-    "build": "forge build --extra-output-files abi && bash ./abi.sh"
+    "build": "forge build --extra-output-files abi"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-foundry": "1.1.2",

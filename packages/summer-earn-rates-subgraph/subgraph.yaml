@@ -13,7 +13,7 @@ dataSources:
     network: mainnet
     source:
       abi: Comet
-      startBlock: 23631727
+      startBlock: 23383121
       address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
     mapping:
       kind: ethereum/events
