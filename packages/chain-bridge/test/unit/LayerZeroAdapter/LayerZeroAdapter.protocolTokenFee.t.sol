@@ -67,8 +67,7 @@ contract LayerZeroAdapterProtocolTokenFeeTest is
         vm.prank(user);
         protocolFeeToken.approve(address(adapterA), type(uint256).max);
 
-        // Mint some test tokens to user
-        tokenA.mint(user, 10000e18);
+        // User approves router to spend test tokens (already minted in parent setup)
         vm.prank(user);
         tokenA.approve(address(routerA), type(uint256).max);
 
