@@ -54,14 +54,10 @@ contract LayerZeroAdapter is
     /// @notice OFT contract address per token on THIS chain
     mapping(address token => address oft) public oftForToken;
 
-    event OftSet(address indexed token, address indexed oft);
     /// @notice Governance cap for number of DVNs allowed in read config
     /// @dev Practical deployments typically use a small DVN set (e.g. 1-3).
     ///      This cap avoids overly large configurations and removes magic numbers.
     uint8 public constant MAX_SUPPORTED_DVNS = 8;
-
-    /// @notice Error thrown when OApp address doesn't match expected OFT contract
-    error UntrustedOApp(address received, address expected);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -550,14 +546,14 @@ contract LayerZeroAdapter is
         bytes memory composeMsg,
         BridgeTypes.BridgeOptions memory options
     ) internal pure returns (SendParam memory) {
-        // Create compose options when compose message is present
-        bytes memory extraOptions = composeMsg.length > 0
-            ? OptionsBuilder.newOptions().addExecutorLzComposeOption(
-                0,
-                uint128(_requireGasLimit(options.gasLimit)),
-                0
-            )
-            : bytes("");
+        uint128 gasLimit = uint128(_requireGasLimit(options.gasLimit));
+
+        // Always include both lzReceive and lzCompose options
+        // Use full gas limit for both - LayerZero only charges for actual usage
+        bytes memory extraOptions = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(gasLimit, options.msgValue)
+            .addExecutorLzComposeOption(0, gasLimit, 0);
 
         return
             SendParam({

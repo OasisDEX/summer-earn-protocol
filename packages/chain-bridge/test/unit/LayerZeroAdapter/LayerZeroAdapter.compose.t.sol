@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {LayerZeroAdapter} from "../../../src/adapters/LayerZeroAdapter.sol";
+import {ILayerZeroAdapter} from "../../../src/interfaces/ILayerZeroAdapter.sol";
 import {MockOFT} from "../../mocks/MockOFT.sol";
 import {MockFleetProxy} from "../../mocks/MockFleetProxy.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
@@ -104,7 +105,7 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
         vm.prank(lzEndpointB);
         vm.expectRevert(
             abi.encodeWithSelector(
-                LayerZeroAdapter.UntrustedOApp.selector,
+                ILayerZeroAdapter.UntrustedOApp.selector,
                 address(0xBEEF), // wrong OApp
                 address(mockOFT) // expected OFT
             )
