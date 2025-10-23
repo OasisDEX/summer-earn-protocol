@@ -6,7 +6,6 @@ import {ICrossChainRegistry} from "../../interfaces/ICrossChainRegistry.sol";
 import {ICrossChainReceiver} from "../../interfaces/ICrossChainReceiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {CrossChainConfigManaged} from "../../contracts/CrossChainConfigManaged.sol";
 import {BridgeRouterValidationBase} from "./BridgeRouterValidationBase.sol";
 import {BridgeRouterRecipientBase} from "./BridgeRouterRecipientBase.sol";
 import {IBridgeRouter} from "../../interfaces/IBridgeRouter.sol";
@@ -17,7 +16,6 @@ import {IBridgeRouter} from "../../interfaces/IBridgeRouter.sol";
  * @dev Contains delivery routing and processing logic
  */
 abstract contract BridgeRouterDeliveryBase is
-    CrossChainConfigManaged,
     BridgeRouterValidationBase,
     BridgeRouterRecipientBase
 {

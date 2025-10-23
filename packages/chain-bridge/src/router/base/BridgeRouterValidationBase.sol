@@ -6,13 +6,14 @@ import {IBridgeAdapter} from "../../interfaces/IBridgeAdapter.sol";
 import {ICrossChainReceiver} from "../../interfaces/ICrossChainReceiver.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IBridgeRouter} from "../../interfaces/IBridgeRouter.sol";
+import {CrossChainConfigManaged} from "../../contracts/CrossChainConfigManaged.sol";
 
 /**
  * @title BridgeRouterValidationBase
  * @notice Abstract base contract providing validation utilities for BridgeRouter operations
  * @dev Contains all validation logic extracted from BridgeRouter
  */
-abstract contract BridgeRouterValidationBase {
+abstract contract BridgeRouterValidationBase is CrossChainConfigManaged {
     /*//////////////////////////////////////////////////////////////
                         VALIDATION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -92,6 +93,30 @@ abstract contract BridgeRouterValidationBase {
             if (!isSupported) revert IBridgeRouter.InvalidParams();
         } catch {
             revert IBridgeRouter.InvalidParams();
+        }
+    }
+
+    /**
+     * @notice Validates that an ark <> fleet (peer) relationship is valid in both directions
+     * @param originator The originator address (sender-side peer)
+     * @param recipient The recipient address (receiver-side peer)
+     * @param sourceChainId The source chain ID
+     */
+    function _validatePeerRelationship(
+        address originator,
+        address recipient,
+        uint16 sourceChainId
+    ) internal view {
+        bool isValidPair = CROSS_CHAIN_REGISTRY.isValidCrossChainPair(
+            originator,
+            recipient,
+            sourceChainId,
+            uint16(block.chainid),
+            CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
+        );
+
+        if (!isValidPair) {
+            revert IBridgeRouter.InvalidRecipient();
         }
     }
 }

@@ -2,18 +2,14 @@
 pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../../libraries/BridgeTypes.sol";
-import {CrossChainConfigManaged} from "../../contracts/CrossChainConfigManaged.sol";
 import {BridgeRouterValidationBase} from "./BridgeRouterValidationBase.sol";
-import {IBridgeRouter} from "../../interfaces/IBridgeRouter.sol";
 
 /**
  * @title BridgeRouterRecipientBase
  * @notice Abstract base contract providing recipient override and validation for BridgeRouter operations
  * @dev Contains recipient override logic and peer relationship validation
  */
-abstract contract BridgeRouterRecipientBase is
-    CrossChainConfigManaged,
-    BridgeRouterValidationBase
+abstract contract BridgeRouterRecipientBase is BridgeRouterValidationBase
 {
     /*//////////////////////////////////////////////////////////////
                         INTERNAL DATA STRUCTURES
@@ -153,31 +149,4 @@ abstract contract BridgeRouterRecipientBase is
         }
     }
 
-    /*//////////////////////////////////////////////////////////////
-                        PAYLOAD VALIDATION FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Validates that an ark <> fleet (peer) relationship is valid in both directions
-     * @param originator The originator address (sender-side peer)
-     * @param recipient The recipient address (receiver-side peer)
-     * @param sourceChainId The source chain ID
-     */
-    function _validatePeerRelationship(
-        address originator,
-        address recipient,
-        uint16 sourceChainId
-    ) internal view {
-        bool isValidPair = CROSS_CHAIN_REGISTRY.isValidCrossChainPair(
-            originator,
-            recipient,
-            sourceChainId,
-            uint16(block.chainid),
-            CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
-        );
-
-        if (!isValidPair) {
-            revert IBridgeRouter.InvalidRecipient();
-        }
-    }
 }
