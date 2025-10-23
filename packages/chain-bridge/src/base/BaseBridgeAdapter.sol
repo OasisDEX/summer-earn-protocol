@@ -273,7 +273,9 @@ abstract contract BaseBridgeAdapter is
      * @return Peer adapter address for the destination chain
      * @custom:throws UnsupportedChain if no peer adapter is registered for the destination chain
      */
-    function _getAdapterPeerOrRevert(uint16 dstChain) internal view returns (address) {
+    function _getAdapterPeerOrRevert(
+        uint16 dstChain
+    ) internal view returns (address) {
         address peer = _getAdapterPeer(dstChain);
         if (peer == address(0)) {
             revert IBridgeAdapter.UnsupportedChain();
@@ -399,12 +401,12 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
-     * @notice Refunds excess native tokens to the specified address
-     * @dev Internal helper for returning unused native fees to users
+     * @notice Refunds native tokens to the specified address
+     * @dev Internal helper for returning native tokens to users
      * @param refundAddress Address to receive the refund
      * @param refundAmount Amount of native tokens to refund
      */
-    function _refundExcessNative(
+    function _refundNative(
         address refundAddress,
         uint256 refundAmount
     ) internal {

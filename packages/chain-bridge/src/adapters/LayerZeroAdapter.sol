@@ -42,7 +42,6 @@ contract LayerZeroAdapter is
 {
     using SafeERC20 for IERC20;
     using AddressCast for address;
-    using AddressCast for bytes32;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -276,7 +275,7 @@ contract LayerZeroAdapter is
         uint256 excess = msg.value > fee.nativeFee
             ? msg.value - fee.nativeFee
             : 0;
-        _refundExcessNative(params.refundAddress, excess);
+        _refundNative(params.refundAddress, excess);
 
         // 9. Emit event
         emit TransferInitiated(

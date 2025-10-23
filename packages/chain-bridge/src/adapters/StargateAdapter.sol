@@ -274,7 +274,7 @@ contract StargateAdapter is
         );
 
         // Refund any provided native buffer fully (since nativeFee == 0)
-        _refundExcessNative(params.refundAddress, providedFee);
+        _refundNative(params.refundAddress, providedFee);
     }
 
     /**
@@ -306,7 +306,7 @@ contract StargateAdapter is
 
         // Refund any unused native value (buffer) back to the designated refund address
         uint256 refundAmount = providedFee - messagingFee.nativeFee;
-        _refundExcessNative(params.refundAddress, refundAmount);
+        _refundNative(params.refundAddress, refundAmount);
     }
 
     /// @inheritdoc IAssetAdapter
