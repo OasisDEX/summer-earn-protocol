@@ -119,39 +119,6 @@ contract BridgeRouter is
     }
 
     /*//////////////////////////////////////////////////////////////
-                    ADAPTER PEER RELATIONSHIP CHECK
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @dev Asserts that a peer mapping exists in the registry for `(sourceChainId, msg.sender)`.
-     * @param sourceChainId The source chain ID from the cross-chain operation
-     *
-     * NOTE: This only verifies that governance has registered a peer relationship for the
-     *       calling adapter on the given source chain. It does NOT authenticate the
-     *       specific source adapter that originated the packet. Identity binding is enforced
-     *       within adapters using bridge-native metadata (e.g. LayerZero Origin.sender, Taxi srcSender)
-     *       via the registry's `isValidAdapterPeer` checks.
-     */
-    function _assertPeerMappingExistsForChain(
-        uint16 sourceChainId
-    ) internal view {
-        address sourceContract = CROSS_CHAIN_REGISTRY.getSourceForTarget(
-            sourceChainId,
-            uint16(block.chainid),
-            msg.sender,
-            CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
-        );
-
-        if (sourceContract == address(0)) {
-            revert ICrossChainRegistry.RelationshipDoesNotExist(
-                address(0),
-                CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP(),
-                uint16(block.chainid)
-            );
-        }
-    }
-
-    /*//////////////////////////////////////////////////////////////
                        INTERNAL UTILITY FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
