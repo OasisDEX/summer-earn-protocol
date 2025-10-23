@@ -555,4 +555,14 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         mockFee = _mockFee;
         // Note: We don't have mockSpecifiedAdapter in this version as we use MOCK_ADAPTER_ADDRESS
     }
+
+    // Add missing interface methods
+    function getFeeBufferBps() external view returns (uint256 bufferBps) {
+        return 100; // Default 1% buffer
+    }
+
+    function setFeeBufferBps(uint256 newBufferBps) external {
+        // Mock implementation - just emit event
+        emit FeeBufferUpdated(100, newBufferBps);
+    }
 }

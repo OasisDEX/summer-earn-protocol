@@ -84,6 +84,9 @@ interface IBridgeRouter is IERC165 {
         bytes errorData
     );
 
+    /// @notice Emitted when the fee buffer is updated
+    event FeeBufferUpdated(uint256 oldBufferBps, uint256 newBufferBps);
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -222,6 +225,12 @@ interface IBridgeRouter is IERC165 {
      */
     function isValidAdapter(address adapter) external view returns (bool);
 
+    /**
+     * @notice Get the current fee buffer in basis points
+     * @return bufferBps The fee buffer in basis points
+     */
+    function getFeeBufferBps() external view returns (uint256 bufferBps);
+
     /*//////////////////////////////////////////////////////////////
                          GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -260,4 +269,11 @@ interface IBridgeRouter is IERC165 {
      * @dev Governor role required. Uses SafeERC20 for token transfers and a low-level call for native ETH.
      */
     function sweep(address token, address recipient, uint256 amount) external;
+
+    /**
+     * @notice Set the fee buffer for cross-chain operations
+     * @param newBufferBps New fee buffer in basis points (max 1000 = 10%)
+     * @dev Governor role required. Maximum buffer is 10% to prevent excessive fees.
+     */
+    function setFeeBufferBps(uint256 newBufferBps) external;
 }

@@ -48,6 +48,9 @@ contract BridgeRouter is
     /// @notice Pause state of the router
     bool public paused;
 
+    /// @notice Fee buffer in basis points (default 100 = 1%)
+    uint256 public feeBufferBps = 100;
+
     /// @notice Record of failed delivery attempts by operationId
     struct FailedDeliveryRecord {
         BridgeTypes.OperationType operationType;
@@ -121,8 +124,9 @@ contract BridgeRouter is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Asserts that a peer mapping exists in the registry for `(sourceChainId, msg.sender)`.
+     * @dev Asserts that a peer mapping exists in the registry for the given adapter and source chain.
      * @param sourceChainId The source chain ID from the cross-chain operation
+     * @param adapter The adapter address to check (uses msg.sender if address(0))
      *
      * NOTE: This only verifies that governance has registered a peer relationship for the
      *       calling adapter on the given source chain. It does NOT authenticate the
@@ -131,43 +135,26 @@ contract BridgeRouter is
      *       via the registry's `isValidAdapterPeer` checks.
      */
     function _assertPeerMappingExistsForChain(
-        uint16 sourceChainId
-    ) internal view {
-        address sourceContract = CROSS_CHAIN_REGISTRY.getSourceForTarget(
-            sourceChainId,
-            uint16(block.chainid),
-            msg.sender,
-            CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
-        );
-
-        if (sourceContract == address(0)) {
-            revert ICrossChainRegistry.RelationshipDoesNotExist(
-                address(0),
-                CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP(),
-                uint16(block.chainid)
-            );
-        }
-    }
-
-    /**
-     * @dev Variant that verifies a peer mapping for an explicit adapter address.
-     *      Used when processing deliveries via self-call where msg.sender == address(this).
-     */
-    function _assertPeerMappingExistsForChainFromAdapter(
         uint16 sourceChainId,
         address adapter
     ) internal view {
+        // Use msg.sender if no adapter specified (for direct calls)
+        address effectiveAdapter = adapter == address(0) ? msg.sender : adapter;
+        
+        // Cache the PEER_RELATIONSHIP constant to avoid repeated external calls
+        bytes32 peerRelationship = CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP();
+        
         address sourceContract = CROSS_CHAIN_REGISTRY.getSourceForTarget(
             sourceChainId,
             uint16(block.chainid),
-            adapter,
-            CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
+            effectiveAdapter,
+            peerRelationship
         );
 
         if (sourceContract == address(0)) {
             revert ICrossChainRegistry.RelationshipDoesNotExist(
                 address(0),
-                CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP(),
+                peerRelationship,
                 uint16(block.chainid)
             );
         }
@@ -249,13 +236,13 @@ contract BridgeRouter is
     /**
      * @dev Internal function to apply fee buffer for cross-chain operation volatility
      * @param baseFee The base fee amount to buffer
-     * @return bufferedFee The fee with 1% buffer applied
+     * @return bufferedFee The fee with configurable buffer applied (default 1%)
      */
     function _applyFeeBuffer(
         uint256 baseFee
-    ) internal pure returns (uint256 bufferedFee) {
-        // Add 1% buffer to account for fee volatility
-        return (baseFee * 101) / 100;
+    ) internal view returns (uint256 bufferedFee) {
+        // Apply configurable buffer to account for fee volatility
+        return (baseFee * (10000 + feeBufferBps)) / 10000;
     }
 
     /**
@@ -282,6 +269,15 @@ contract BridgeRouter is
                       FAILURE RECORDING UTILITIES
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @dev Records a failed delivery attempt for later retry
+     * @param operationId The unique operation identifier
+     * @param operationType The type of operation that failed
+     * @param adapter The adapter that attempted the delivery
+     * @param sourceChainId The source chain ID of the operation
+     * @param operationPayload The original operation payload
+     * @param errorData The error data from the failed attempt
+     */
     function _recordFailedDelivery(
         bytes32 operationId,
         BridgeTypes.OperationType operationType,
@@ -316,27 +312,38 @@ contract BridgeRouter is
         );
     }
 
+    /**
+     * @dev Clears a failed delivery record after successful retry
+     * @param operationId The unique operation identifier to clear
+     */
     function _clearFailedDelivery(bytes32 operationId) internal {
         failedDeliveryIds.remove(operationId);
         delete failedDeliveries[operationId];
     }
 
+    /**
+     * @dev Decodes operation metadata (operationId and sourceChainId) from payload
+     * @param operationType The type of operation to decode
+     * @param operationPayload The encoded operation payload
+     * @return opId The operation identifier
+     * @return sourceChainId The source chain ID
+     */
     function _decodeOperationMeta(
         BridgeTypes.OperationType operationType,
         bytes memory operationPayload
     ) internal pure returns (bytes32 opId, uint16 sourceChainId) {
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.RelayedTransferParams memory d = abi.decode(
+            // Decode only the first two fields to avoid full struct allocation
+            (opId, sourceChainId) = abi.decode(
                 operationPayload,
-                (BridgeTypes.RelayedTransferParams)
+                (bytes32, uint16)
             );
-            return (d.operationId, d.sourceChainId);
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.RelayedMessageParams memory d = abi.decode(
+            // Decode only the first two fields to avoid full struct allocation
+            (opId, sourceChainId) = abi.decode(
                 operationPayload,
-                (BridgeTypes.RelayedMessageParams)
+                (bytes32, uint16)
             );
-            return (d.operationId, d.sourceChainId);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
             revert UnsupportedOperationType();
         } else {
@@ -484,11 +491,13 @@ contract BridgeRouter is
     )
         external
         view
+        validAdapter(
+            options.specifiedAdapter,
+            BridgeTypes.OperationType.MESSAGE
+        )
         returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
     {
         specifiedAdapter = options.specifiedAdapter;
-        if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
-        if (!adapters.contains(specifiedAdapter)) revert UnknownAdapter();
 
         _validateSendMessageParams(params);
         (nativeFee, tokenFee) = IMessageAdapter(specifiedAdapter)
@@ -547,7 +556,7 @@ contract BridgeRouter is
             );
 
             // Verify adapter has peer relationship with source chain
-            _assertPeerMappingExistsForChainFromAdapter(
+            _assertPeerMappingExistsForChain(
                 data.sourceChainId,
                 adapter
             );
@@ -569,7 +578,7 @@ contract BridgeRouter is
             );
 
             // Verify adapter has peer relationship with source chain
-            _assertPeerMappingExistsForChainFromAdapter(
+            _assertPeerMappingExistsForChain(
                 data.sourceChainId,
                 adapter
             );
@@ -600,6 +609,11 @@ contract BridgeRouter is
     /// @inheritdoc IBridgeRouter
     function isValidAdapter(address adapter) external view returns (bool) {
         return adapters.contains(adapter);
+    }
+
+    /// @inheritdoc IBridgeRouter
+    function getFeeBufferBps() external view returns (uint256 bufferBps) {
+        return feeBufferBps;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -678,6 +692,16 @@ contract BridgeRouter is
     }
 
     /// @inheritdoc IBridgeRouter
+    function setFeeBufferBps(uint256 newBufferBps) external onlyGovernor {
+        if (newBufferBps > 1000) revert InvalidParams(); // Max 10% buffer
+        
+        uint256 oldBufferBps = feeBufferBps;
+        feeBufferBps = newBufferBps;
+        
+        emit FeeBufferUpdated(oldBufferBps, newBufferBps);
+    }
+
+    /// @inheritdoc IBridgeRouter
     function sweep(
         address token,
         address recipient,
@@ -737,9 +761,8 @@ contract BridgeRouter is
             );
         } catch (bytes memory err) {
             // Do not create a new failure record; update existing metadata only
-            FailedDeliveryRecord storage existing = failedDeliveries[
-                operationId
-            ];
+            // Cache the storage reference to avoid additional SLOAD
+            FailedDeliveryRecord storage existing = failedDeliveries[operationId];
             existing.failedAt = block.timestamp;
 
             emit OperationRetryFailed(
@@ -833,12 +856,15 @@ contract BridgeRouter is
         address recipient,
         uint16 sourceChainId
     ) internal view {
+        // Cache the PEER_RELATIONSHIP constant to avoid repeated external calls
+        bytes32 peerRelationship = CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP();
+        
         bool isValidPair = CROSS_CHAIN_REGISTRY.isValidCrossChainPair(
             originator,
             recipient,
             sourceChainId,
             uint16(block.chainid),
-            CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
+            peerRelationship
         );
 
         if (!isValidPair) {
