@@ -127,7 +127,7 @@ contract MockAdapter is
 
     // READ_STATE entrypoint removed
 
-    /// @inheritdoc IBridgeAdapter
+    /// @inheritdoc IAssetAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
         BridgeTypes.BridgeOptions calldata /* options */
@@ -144,7 +144,7 @@ contract MockAdapter is
 
     // READ_STATE estimate removed
 
-    /// @inheritdoc IBridgeAdapter
+    /// @inheritdoc IMessageAdapter
     function estimateSendMessage(
         BridgeTypes.ExecuteSendMessageParams calldata params,
         BridgeTypes.BridgeOptions calldata /* options */

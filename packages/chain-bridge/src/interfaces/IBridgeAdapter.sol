@@ -54,30 +54,6 @@ interface IBridgeAdapter {
     error Untrusted(string what, address from, address additionalInfo);
 
     /**
-     * @notice Estimate fees for a transfer operation using execution parameters
-     * @param params Transfer parameters identical to execute methods
-     * @param options Bridge options including adapter selection and parameters
-     * @return nativeFee Fee in the chain's native token
-     * @return tokenFee Fee in the transferred token (if applicable)
-     */
-    function estimateTransferAssets(
-        BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    ) external view returns (uint256 nativeFee, uint256 tokenFee);
-
-    /**
-     * @notice Estimate fees for a message send operation using execution parameters
-     * @param params Message parameters identical to execute methods
-     * @param options Bridge options including adapter selection and parameters
-     * @return nativeFee Fee in the chain's native token
-     * @return tokenFee Fee in the transferred token (if applicable)
-     */
-    function estimateSendMessage(
-        BridgeTypes.ExecuteSendMessageParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    ) external view returns (uint256 nativeFee, uint256 tokenFee);
-
-    /**
      * @notice Check if an adapter supports a specific operation type
      * @param operationType Type of operation to check support for
      * @return Whether the adapter supports the operation type

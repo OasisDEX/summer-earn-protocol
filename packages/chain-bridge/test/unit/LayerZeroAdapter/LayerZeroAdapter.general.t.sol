@@ -122,36 +122,6 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                         ESTIMATION & VALIDATION TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_estimateTransferAssets_reverts_OperationNotSupported()
-        public
-    {
-        useNetworkA();
-
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapterA),
-            gasLimit: 500000,
-            calldataSize: 0,
-            msgValue: 0,
-            options: bytes(""),
-            payInProtocolToken: false,
-            feeTokenAmount: 0
-        });
-
-        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
-        adapterA.estimateTransferAssets(
-            BridgeTypes.ExecuteTransferParams({
-                destinationChainId: CHAIN_ID_B,
-                asset: address(0x1234),
-                amount: 1000,
-                target: address(0x5678),
-                originator: address(this),
-                refundAddress: address(this),
-                message: ""
-            }),
-            options
-        );
-    }
-
     function test_estimateSendMessage_reverts_when_gasLimit_zero() public {
         useNetworkA();
 

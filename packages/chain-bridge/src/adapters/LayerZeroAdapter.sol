@@ -170,15 +170,7 @@ contract LayerZeroAdapter is
                         EXTERNAL INTERFACE
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IBridgeAdapter
-    function estimateTransferAssets(
-        BridgeTypes.ExecuteTransferParams calldata /* params */,
-        BridgeTypes.BridgeOptions calldata /* options */
-    ) external pure returns (uint256, /* nativeFee */ uint256 /* tokenFee */) {
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc IBridgeAdapter
+    /// @inheritdoc IMessageAdapter
     function estimateSendMessage(
         BridgeTypes.ExecuteSendMessageParams calldata params,
         BridgeTypes.BridgeOptions calldata options
