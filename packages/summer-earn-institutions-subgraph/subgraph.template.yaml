@@ -70,8 +70,8 @@ dataSources:
         - event: InstitutionAdmiralsQuartersUpdated(indexed bytes32,address,address)
           handler: handleInstitutionAdmiralsQuartersUpdated
           receipt: true
-        - event: InstitutionDisabled(indexed bytes32)
-          handler: handleInstitutionDisabled
+        - event: InstitutionRemoved(indexed bytes32)
+          handler: handleInstitutionRemoved
           receipt: true
       file: ./src/mappings/institutionalVaultRegistry.ts                
 templates:

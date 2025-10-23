@@ -7,8 +7,8 @@ dataSources:
     network: base
     source:
       abi: InstitutionalVaultRegistry
-      address: "0x596fB9ae19121E1C5d45a0f1679e89ed653264A9"
-      startBlock: 37085499
+      address: "0xa84B4C9680EFf0334a55661fa371100AEb2F6e02"
+      startBlock: 37209151
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -63,8 +63,8 @@ dataSources:
         - event: InstitutionAdmiralsQuartersUpdated(indexed bytes32,address,address)
           handler: handleInstitutionAdmiralsQuartersUpdated
           receipt: true
-        - event: InstitutionDisabled(indexed bytes32)
-          handler: handleInstitutionDisabled
+        - event: InstitutionRemoved(indexed bytes32)
+          handler: handleInstitutionRemoved
           receipt: true
       file: ./src/mappings/institutionalVaultRegistry.ts                
 templates:

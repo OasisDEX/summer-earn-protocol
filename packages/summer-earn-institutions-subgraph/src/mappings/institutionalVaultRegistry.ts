@@ -3,7 +3,7 @@ import { ConfigurationManager } from '../../generated/InstitutionalVaultRegistry
 import {
   InstitutionAdded,
   InstitutionAdmiralsQuartersUpdated,
-  InstitutionDisabled,
+  InstitutionRemoved,
 } from '../../generated/InstitutionalVaultRegistry/InstitutionalVaultRegistry'
 import { Institution } from '../../generated/schema'
 import {
@@ -52,7 +52,7 @@ export function handleInstitutionAdmiralsQuartersUpdated(
   institution.save()
 }
 
-export function handleInstitutionDisabled(event: InstitutionDisabled): void {
+export function handleInstitutionRemoved(event: InstitutionRemoved): void {
   let institution = new Institution(event.params.id.toHex())
   institution.active = false
   institution.save()
