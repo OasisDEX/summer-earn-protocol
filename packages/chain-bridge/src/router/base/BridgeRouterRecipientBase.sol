@@ -27,6 +27,9 @@ abstract contract BridgeRouterRecipientBase is
         uint16 sourceChainId;
         address recipient;
         address originator;
+        address asset; // For TRANSFER_ASSET operations
+        uint256 amount; // For TRANSFER_ASSET operations
+        bytes message; // For both operation types
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -52,6 +55,9 @@ abstract contract BridgeRouterRecipientBase is
             data.sourceChainId = params.sourceChainId;
             data.recipient = params.recipient;
             data.originator = params.originator;
+            data.asset = params.asset;
+            data.amount = params.amount;
+            data.message = params.message;
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
             BridgeTypes.RelayedMessageParams memory params = abi.decode(
                 operationPayload,
@@ -61,6 +67,9 @@ abstract contract BridgeRouterRecipientBase is
             data.sourceChainId = params.sourceChainId;
             data.recipient = params.recipient;
             data.originator = params.originator;
+            data.asset = address(0); // Not applicable for MESSAGE operations
+            data.amount = 0; // Not applicable for MESSAGE operations
+            data.message = params.message;
         }
     }
 

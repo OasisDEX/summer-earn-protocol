@@ -310,10 +310,12 @@ contract BridgeRouter is
         bytes calldata operationPayload
     ) external onlyRegisteredAdapter nonReentrant {
         // Pre-decode minimal fields for logging/recording
-        (bytes32 operationId, uint16 sourceChainId) = _decodeOperationMeta(
+        DecodedOperationData memory data = _decodeCommonOperationData(
             operationType,
             operationPayload
         );
+        bytes32 operationId = data.operationId;
+        uint16 sourceChainId = data.sourceChainId;
 
         // Attempt processing in a self-call so we can capture reverts without
         // rolling back the outer call (adapter delivery pathway)
