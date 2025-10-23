@@ -113,7 +113,7 @@ async function main() {
       'InstitutionalVaultRegistry' as string,
       registryAddress as Address,
     )
-    const institutionBytes32 = (await registry.read.getBytes32InsitutionId([
+    const institutionBytes32 = (await registry.read.getBytes32InstitutionId([
       institutionId,
     ])) as Address
     const exists = (await registry.read.exists([institutionBytes32])) as boolean

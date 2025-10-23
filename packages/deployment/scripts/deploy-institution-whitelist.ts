@@ -91,7 +91,7 @@ async function main() {
     )
 
     // Compute id via contract helper to avoid encoding inconsistencies
-    const institutionBytes32 = (await registry.read.getBytes32InsitutionId([
+    const institutionBytes32 = (await registry.read.getBytes32InstitutionId([
       institutionId,
     ])) as ViemAddress
 

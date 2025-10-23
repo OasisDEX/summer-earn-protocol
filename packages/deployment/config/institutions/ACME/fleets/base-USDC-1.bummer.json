@@ -1,5 +1,5 @@
 {
-  "fleetName": "LazyVault_Institutional_TestA_USDC",
+  "fleetName": "LazyVault_Institutional_ACME_USDC",
   "symbol": "LVIUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "0",
