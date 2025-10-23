@@ -118,25 +118,6 @@ contract BridgeRouter is
         _;
     }
 
-    /**
-     * @dev Modifier ensuring the caller is either a keeper or governor.
-     * Reverts if the caller doesn't have either role.
-     */
-    modifier onlyKeeperOrGovernor() {
-        if (
-            !_accessManager.hasRole(
-                _accessManager.generateRole(
-                    ContractSpecificRoles.KEEPER_ROLE,
-                    address(this)
-                ),
-                msg.sender
-            ) && !_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)
-        ) {
-            revert CallerIsNotKeeperOrGovernor(msg.sender);
-        }
-        _;
-    }
-
     /*//////////////////////////////////////////////////////////////
                     ADAPTER PEER RELATIONSHIP CHECK
     //////////////////////////////////////////////////////////////*/
@@ -470,7 +451,7 @@ contract BridgeRouter is
     }
 
     /// @inheritdoc IBridgeRouter
-    function setFeeBufferBps(Bps newBufferBps) external onlyKeeperOrGovernor {
+    function setFeeBufferBps(Bps newBufferBps) external onlyGovernor {
         // Validate buffer is within allowed range (1% to 10%)
         if (Bps.unwrap(newBufferBps) < 100 || Bps.unwrap(newBufferBps) > 1000) {
             revert InvalidFeeBuffer();
