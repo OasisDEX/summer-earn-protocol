@@ -319,7 +319,7 @@ contract BridgeRouter is
 
         // Attempt processing in a self-call so we can capture reverts without
         // rolling back the outer call (adapter delivery pathway)
-        try this._processDelivery(operationType, operationPayload, msg.sender) {
+        try this.processDelivery(operationType, operationPayload, msg.sender) {
             // Success path - clear any existing failure record for this operation
             _clearFailedDelivery(operationId);
             emit OperationDelivered(operationId, operationType);
@@ -460,7 +460,7 @@ contract BridgeRouter is
         );
 
         try
-            this._processDelivery(
+            this.processDelivery(
                 r.operationType,
                 effectivePayload,
                 effectiveAdapter

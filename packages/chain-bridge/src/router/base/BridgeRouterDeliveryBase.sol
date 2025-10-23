@@ -24,6 +24,18 @@ abstract contract BridgeRouterDeliveryBase is
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
+                            MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Modifier to ensure function can only be called by this contract
+     */
+    modifier onlySelf() {
+        if (msg.sender != address(this)) revert IBridgeRouter.Unauthorized();
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                         DELIVERY PROCESSING FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -45,15 +57,13 @@ abstract contract BridgeRouterDeliveryBase is
 
     /**
      * @notice Internal processing of a delivery wrapped in a self-call for atomicity.
-     * @dev MUST only be invoked by this contract via `this._processDelivery(...)`.
+     * @dev MUST only be invoked by this contract via `this.processDelivery(...)`.
      */
-    function _processDelivery(
+    function processDelivery(
         BridgeTypes.OperationType operationType,
         bytes calldata operationPayload,
         address adapter
-    ) external {
-        if (msg.sender != address(this)) revert IBridgeRouter.Unauthorized();
-
+    ) external onlySelf {
         // Validate operation type early
         _validateOperationType(operationType);
 
@@ -84,6 +94,9 @@ abstract contract BridgeRouterDeliveryBase is
                 BridgeTypes.OperationType.MESSAGE,
                 operationPayload
             );
+        } else {
+            // This should never happen due to _validateOperationType, but adding for safety
+            revert IBridgeRouter.UnsupportedOperationType();
         }
     }
 
