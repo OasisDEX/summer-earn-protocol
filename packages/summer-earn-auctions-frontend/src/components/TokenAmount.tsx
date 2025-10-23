@@ -10,14 +10,22 @@ export function TokenAmount({ amount, symbol, decimals }: TokenAmountProps) {
     ? Number(amount) / Math.pow(10, decimals)
     : Number(amount)
   const formattedAmount =
-    symbol === 'WETH' ? normalizedAmount.toFixed(4) : normalizedAmount.toFixed(3)
+    symbol === 'WETH'
+      ? normalizedAmount.toLocaleString('en-US', {
+          minimumFractionDigits: 4,
+          maximumFractionDigits: 4,
+        })
+      : normalizedAmount.toLocaleString('en-US', {
+          minimumFractionDigits: 3,
+          maximumFractionDigits: 3,
+        })
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(amount.toString())
   }
 
   return (
-    <div className="text-sm font-medium">
+    <div className="text-sm font-medium text-gray-600">
       <button
         onClick={copyToClipboard}
         className="hover:text-blue-600 transition-colors cursor-pointer"

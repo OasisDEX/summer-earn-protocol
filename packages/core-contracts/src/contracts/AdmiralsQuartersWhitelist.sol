@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
 import {IAdmiralsQuartersWhitelist} from "../interfaces/IAdmiralsQuartersWhitelist.sol";
 import {ISummerRewardsRedeemer} from "@summerfi/rewards-contracts/interfaces/ISummerRewardsRedeemer.sol";
@@ -27,9 +27,6 @@ import {IWhitelist} from "../utils/Whitelist/IWhitelist.sol";
  *      with integrated swapping functionality using 1inch Router.
  * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas
  * efficiency.
- * @notice When it was developed the OpenZeppelin version was 5.0.2 ( hence the use of locally stored
- * ReentrancyGuardTransient )
- *
  * @notice Whitelist gating: All external functions are invoked via `multicall` in
  * `ProtectedMulticallWhitelist`, which enforces `onlyWhitelisted(_msgSender())`. If the
  * underlying whitelist is set to open mode by whitelisting `address(0)`, any caller is treated as
@@ -297,7 +294,7 @@ contract AdmiralsQuartersWhitelist is
     ) internal view {
         if (amount != msgValue) revert InvalidNativeAmount();
         // https://github.com/Uniswap/v3-periphery/issues/52
-        if (msgValue > address(this).balance) revert InvalidNativeAmount();
+        if (msgValue > address(this).balance) revert InsufficientNativeAmount();
     }
 
     /// @inheritdoc IAdmiralsQuartersWhitelist

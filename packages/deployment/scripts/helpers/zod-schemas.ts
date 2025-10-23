@@ -72,3 +72,36 @@ export const FleetDeploymentSchema = z.object({
   depositCap: z.string().optional(),
   initialTipRate: z.string().optional(),
 })
+
+// Schema for ark details validation - ensures minimal required fields for offchain processing
+export const ArkDetailsSchema = z.object({
+  protocol: z.string().min(1),
+  pool: AddressSchema,
+  chainId: z.number().int().positive(),
+  // Optional fields that may be present in different ark types
+  type: z.string().optional(),
+  asset: AddressSchema.optional(),
+  marketAsset: AddressSchema.optional(),
+  // Additional protocol-specific fields
+  gateway: AddressSchema.optional(),
+  vaultId: z.string().optional(),
+  marketId: z.string().optional(),
+  marketName: z.string().optional(),
+  siloId: z.string().optional(),
+  fToken: AddressSchema.optional(),
+  syrupAddress: AddressSchema.optional(),
+  armAddress: AddressSchema.optional(),
+  poolAddress: AddressSchema.optional(),
+  vault: AddressSchema.optional(),
+  stakingRewardsAddress: AddressSchema.optional(),
+  originETHAddress: AddressSchema.optional(),
+  sparkPool: AddressSchema.optional(),
+  mToken: AddressSchema.optional(),
+  psm3Address: AddressSchema.optional(),
+  psmLiteAddress: AddressSchema.optional(),
+  stargatePool: AddressSchema.optional(),
+  compoundV3Pool: AddressSchema.optional(),
+  aaveV3Pool: AddressSchema.optional(),
+})
+
+export type ArkDetails = z.infer<typeof ArkDetailsSchema>

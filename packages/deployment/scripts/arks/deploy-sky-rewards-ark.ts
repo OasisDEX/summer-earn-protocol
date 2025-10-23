@@ -12,7 +12,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 export interface SkyRewardsArkUserInput {
   fleetName: string
@@ -146,6 +146,21 @@ async function deploySkyRewardsArkContract(
     'Staking Rewards',
   )
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Sky',
+    type: 'Rewards',
+    asset: userInput.token.address,
+    marketAsset: config.tokens.usds,
+    pool: stakingRewardsAddress,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'SkyRewards ark details')
+
   return (await hre.ignition.deploy(createSkyRewardsArkModule(moduleName), {
     parameters: {
       [moduleName]: {
@@ -154,14 +169,7 @@ async function deploySkyRewardsArkContract(
         stakingRewards: stakingRewardsAddress,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: 'Sky',
-            type: 'Rewards',
-            asset: userInput.token.address,
-            marketAsset: config.tokens.usds,
-            pool: stakingRewardsAddress,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,

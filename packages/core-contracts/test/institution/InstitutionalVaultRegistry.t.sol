@@ -42,12 +42,11 @@ contract InstitutionalVaultRegistryTest is Test {
             IInstitutionalVaultRegistry.Institution({
                 configurationManager: address(configurationManager),
                 protocolAccessManager: address(accessManager),
-                admiralsQuarters: aq,
-                active: true
+                admiralsQuarters: aq
             });
     }
 
-    function test_Add_Get_Disable_Update() public {
+    function test_Add_Get_Remove_Update() public {
         bytes32 id1 = bytes32("inst-1");
         bytes32 id2 = bytes32("inst-2");
 
@@ -55,7 +54,6 @@ contract InstitutionalVaultRegistryTest is Test {
         registry.addInstitution(id1, _inst(address(0xA1)));
 
         assertTrue(registry.exists(id1));
-        assertTrue(registry.isActive(id1));
         assertEq(
             registry.getConfigurationManager(id1),
             address(configurationManager)
@@ -72,9 +70,8 @@ contract InstitutionalVaultRegistryTest is Test {
         assertEq(registry.getAdmiralsQuarters(id1), address(0xA2));
 
         vm.prank(governor);
-        registry.disableInstitution(id1);
-        assertTrue(registry.exists(id1));
-        assertFalse(registry.isActive(id1));
+        registry.removeInstitution(id1);
+        assertFalse(registry.exists(id1));
     }
 
     function test_Exists_False_Initially() public {
@@ -88,14 +85,13 @@ contract InstitutionalVaultRegistryTest is Test {
             memory bad = IInstitutionalVaultRegistry.Institution({
                 configurationManager: address(configurationManager),
                 protocolAccessManager: address(accessManager),
-                admiralsQuarters: address(0),
-                active: true
+                admiralsQuarters: address(0)
             });
 
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IInstitutionalVaultRegistryErrors.ZeroAddress.selector
+                IInstitutionalVaultRegistryErrors.AddressZero.selector
             )
         );
         registry.addInstitution(id, bad);
@@ -118,17 +114,6 @@ contract InstitutionalVaultRegistryTest is Test {
         registry.addInstitution(id, _inst(address(0xAB)));
     }
 
-    function test_IsActive_Reverts_When_NotFound() public {
-        bytes32 id = bytes32("nope");
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IInstitutionalVaultRegistryErrors.InstitutionNotFound.selector,
-                id
-            )
-        );
-        registry.isActive(id);
-    }
-
     function test_GetInstitution_Reverts_When_NotFound() public {
         bytes32 id = bytes32("ghost");
         vm.expectRevert(
@@ -140,7 +125,7 @@ contract InstitutionalVaultRegistryTest is Test {
         registry.getInstitution(id);
     }
 
-    function test_DisableInstitution_Reverts_When_NotFound() public {
+    function test_RemoveInstitution_Reverts_When_NotFound() public {
         bytes32 id = bytes32("missing");
         vm.prank(governor);
         vm.expectRevert(
@@ -149,27 +134,25 @@ contract InstitutionalVaultRegistryTest is Test {
                 id
             )
         );
-        registry.disableInstitution(id);
+        registry.removeInstitution(id);
     }
 
-    function test_DisableInstitution_Reverts_When_AlreadyDisabled() public {
+    function test_RemoveInstitution_Reverts_When_AlreadyRemoved() public {
         bytes32 id = bytes32("inst");
         vm.prank(governor);
         registry.addInstitution(id, _inst(address(0xA1)));
 
         vm.prank(governor);
-        registry.disableInstitution(id);
+        registry.removeInstitution(id);
 
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IInstitutionalVaultRegistryErrors
-                    .InstitutionIsDisabled
-                    .selector,
+                IInstitutionalVaultRegistryErrors.InstitutionNotFound.selector,
                 id
             )
         );
-        registry.disableInstitution(id);
+        registry.removeInstitution(id);
     }
 
     function test_UpdateAdmiralsQuarters_Reverts_When_NotFound() public {
@@ -184,20 +167,18 @@ contract InstitutionalVaultRegistryTest is Test {
         registry.updateAdmiralsQuarters(id, address(0xA2));
     }
 
-    function test_UpdateAdmiralsQuarters_Reverts_When_Disabled() public {
-        bytes32 id = bytes32("disabled");
+    function test_UpdateAdmiralsQuarters_Reverts_When_Removed() public {
+        bytes32 id = bytes32("removed");
         vm.prank(governor);
         registry.addInstitution(id, _inst(address(0xA1)));
 
         vm.prank(governor);
-        registry.disableInstitution(id);
+        registry.removeInstitution(id);
 
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IInstitutionalVaultRegistryErrors
-                    .InstitutionIsDisabled
-                    .selector,
+                IInstitutionalVaultRegistryErrors.InstitutionNotFound.selector,
                 id
             )
         );
@@ -212,7 +193,7 @@ contract InstitutionalVaultRegistryTest is Test {
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IInstitutionalVaultRegistryErrors.ZeroAddress.selector
+                IInstitutionalVaultRegistryErrors.AddressZero.selector
             )
         );
         registry.updateAdmiralsQuarters(id, address(0));

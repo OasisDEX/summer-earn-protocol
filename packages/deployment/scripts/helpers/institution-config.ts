@@ -1,6 +1,7 @@
 import kleur from 'kleur'
 import fs from 'node:fs'
 import path from 'node:path'
+import prompts from 'prompts'
 import {
   InstitutionFleetEntry,
   InstitutionFleetEntrySchema,
@@ -104,4 +105,44 @@ export function updateInstitutionFleetEntry(
 
 export function getInstitutionFleetConfigDir(institutionId: string): string {
   return path.resolve(getInstitutionRootDir(), institutionId, 'fleets')
+}
+
+/**
+ * Lists institution ids (folder names) under config/institutions
+ */
+export function listInstitutionIds(): string[] {
+  const rootDir = getInstitutionRootDir()
+  if (!fs.existsSync(rootDir)) return []
+  return fs
+    .readdirSync(rootDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+    .sort()
+}
+
+/**
+ * Prompts user to select an institution id from existing folders or enter manually.
+ */
+export async function promptForInstitutionId(): Promise<string | undefined> {
+  const institutionFolders = listInstitutionIds()
+  const { institutionIdChoice } = await prompts({
+    type: 'select',
+    name: 'institutionIdChoice',
+    message: 'Select institution (or choose Manual Entry):',
+    choices: [
+      ...institutionFolders.map((name) => ({ title: name, value: name })),
+      { title: 'Manual Entry', value: '__manual__' },
+    ],
+  })
+
+  if (!institutionIdChoice) return undefined
+  if (institutionIdChoice !== '__manual__') return institutionIdChoice
+
+  const { manualId } = await prompts({
+    type: 'text',
+    name: 'manualId',
+    message: 'Enter institution id (folder name under config/institutions):',
+    validate: (v) => (v && /^[A-Za-z0-9_-]+$/.test(v) ? true : 'Invalid id'),
+  })
+  return manualId
 }

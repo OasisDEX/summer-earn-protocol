@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
 import {IAdmiralsQuarters} from "../interfaces/IAdmiralsQuarters.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
@@ -25,6 +25,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
 import {ISummerRewardsRedeemer} from "@summerfi/rewards-contracts/interfaces/ISummerRewardsRedeemer.sol";
 import {IGovernanceRewardsManager} from "@summerfi/earn-gov-contracts/interfaces/IGovernanceRewardsManager.sol";
+import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
 
 /**
  * @title AdmiralsQuarters
@@ -32,8 +33,6 @@ import {IGovernanceRewardsManager} from "@summerfi/earn-gov-contracts/interfaces
  *      with integrated swapping functionality using 1inch Router.
  * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas
  * efficiency.
- * @notice When it was developed the OpenZeppelin version was 5.0.2 ( hence the use of locally stored
- * ReentrancyGuardTransient )
  *
  * @dev How to use this contract:
  * 1. Deposit tokens: Use `depositTokens` to deposit ERC20 tokens into the contract.
@@ -78,6 +77,8 @@ contract AdmiralsQuarters is
     address public immutable NATIVE_PSEUDO_ADDRESS =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public immutable WRAPPED_NATIVE;
+    address public immutable MERKL_DISTRIBUTOR =
+        0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae;
 
     constructor(
         address _oneInchRouter,
@@ -151,6 +152,7 @@ contract AdmiralsQuarters is
 
         emit FleetEntered(_msgSender(), fleetCommander, assets, shares);
     }
+
     /// @inheritdoc IAdmiralsQuarters
     function enterFleet(
         address fleetCommander,
@@ -179,6 +181,7 @@ contract AdmiralsQuarters is
             referralCode
         );
     }
+
     /// @inheritdoc IAdmiralsQuarters
     function exitFleet(
         address fleetCommander,
@@ -304,6 +307,24 @@ contract AdmiralsQuarters is
         _claimFleetRewards(fleetCommanders, rewardToken);
     }
 
+    /// @inheritdoc IAdmiralsQuarters
+    function claimFromMerklDistributor(
+        address[] calldata users,
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
+    ) external onlyMulticall nonReentrant {
+        IDistributor(MERKL_DISTRIBUTOR).claim(users, tokens, amounts, proofs);
+        emit MerklRewardsClaimed(
+            _msgSender(),
+            MERKL_DISTRIBUTOR,
+            users,
+            tokens,
+            amounts,
+            proofs
+        );
+    }
+
     /**
      * @dev Internal function to perform a token swap using 1inch
      * @param fromToken The token to swap from
@@ -360,7 +381,7 @@ contract AdmiralsQuarters is
     ) internal view {
         if (amount != msgValue) revert InvalidNativeAmount();
         // https://github.com/Uniswap/v3-periphery/issues/52
-        if (msgValue > address(this).balance) revert InvalidNativeAmount();
+        if (msgValue > address(this).balance) revert InsufficientNativeAmount();
     }
 
     /// @inheritdoc IAdmiralsQuarters

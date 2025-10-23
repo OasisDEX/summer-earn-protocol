@@ -139,6 +139,29 @@
         "vaultName": "Hyperithm_USDC",
         "protocol": "morpho"
       }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Vault_Bridge_USDC",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "SiloManagedVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "valamore_usdc_growth",
+        "protocol": "silo"
+      }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "fluid"
+      }
     }
   ]
 }

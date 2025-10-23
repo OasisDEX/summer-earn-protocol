@@ -1,16 +1,18 @@
 'use client'
 
-import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
+import { CHAIN_BLOCK_EXPLORERS, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
-import { RebalanceData } from '../types'
+import { ChainId, RebalanceData } from '../types'
 
 interface UseRebalanceProps {
   fleetAddress: `0x${string}`
+  chainId: ChainId
 }
 
-export function useRebalance({ fleetAddress }: UseRebalanceProps) {
+export function useRebalance({ fleetAddress, chainId }: UseRebalanceProps) {
   const [rebalancePending, setRebalancePending] = useState(false)
 
   // Rebalance
@@ -20,13 +22,23 @@ export function useRebalance({ fleetAddress }: UseRebalanceProps) {
     error: rebalanceError,
     isPending: isRebalanceWritePending,
   } = useWriteContract()
-  const { chainId } = useAccount()
   const { address } = useAccount()
 
   // Waiting for transaction
-  const { isLoading: isRebalanceLoading } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isRebalanceLoading,
+    isSuccess: isRebalanceSuccess,
+    isError: isRebalanceError,
+  } = useWaitForTransactionReceipt({
     hash: rebalanceHash,
   })
+
+  const openTx = (hash?: `0x${string}`) => {
+    if (!hash) return
+    const urlBase = CHAIN_BLOCK_EXPLORERS[chainId]
+    const url = `${urlBase}/tx/${hash}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
 
   // Rebalance action
   const rebalance = async (rebalanceData: RebalanceData[]) => {
@@ -46,14 +58,23 @@ export function useRebalance({ fleetAddress }: UseRebalanceProps) {
         abi: fleetCommanderAbi,
         functionName: 'rebalance',
         args: [formattedData],
-        chain: VIEM_CHAIN_ENTITIES[chainId as unknown as keyof typeof VIEM_CHAIN_ENTITIES],
+        chain: VIEM_CHAIN_ENTITIES[chainId],
         account: address,
       })
     } catch (error) {
       console.error('Error performing rebalance:', error)
+      toast.error('Rebalance failed')
     } finally {
       setRebalancePending(false)
     }
+  }
+
+  if (isRebalanceSuccess) {
+    toast.success('Rebalance confirmed', {
+      action: { label: 'View', onClick: () => openTx(rebalanceHash as `0x${string}`) },
+    })
+  } else if (isRebalanceError) {
+    toast.error('Rebalance failed on-chain')
   }
 
   return {

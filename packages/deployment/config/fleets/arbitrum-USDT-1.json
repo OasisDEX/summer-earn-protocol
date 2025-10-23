@@ -30,6 +30,37 @@
         "vaultName": "Fluid",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Gauntlet_USDT0_Core",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "MEV_Capital_USDT0",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Euler_Arbitrum_USDT0",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "fluid"
+      }
     }
   ]
 }

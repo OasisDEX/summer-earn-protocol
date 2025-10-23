@@ -9,10 +9,6 @@ pragma solidity 0.8.28;
  */
 interface IConfigurationManagerErrors {
     /**
-     * @notice Thrown when an operation is attempted with a zero address where a non-zero address is required.
-     */
-    error ZeroAddress();
-    /**
      * @notice Thrown when ConfigurationManager was already initialized.
      */
     error ConfigurationManagerAlreadyInitialized();

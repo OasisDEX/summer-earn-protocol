@@ -1,0 +1,22 @@
+{
+  "title": "SIP2.25.2: Add 3 Arks to LazyVault_LowerRisk_WETH Fleet",
+  "description": "# SIP2.25.2: Add Arks to LazyVault_LowerRisk_WETH Fleet\n\n## Summary\nThis proposal adds 3 new Ark(s) to the existing LazyVault_LowerRisk_WETH Fleet.\n\n## New Ark Addresses\n1. `0xeCe30eBEAA765472895E77Deac35a09ddAe9F8C7`\n2. `0x55BD40FFDBFE45869969a3c10b39C11152A735Bc`\n3. `0x2a6e16555D377b7fdefA18e1e418FD3634ec5A2C`\n\n## Actions\n1. Grant COMMANDER_ROLE to Fleet Commander for each Ark\n2. Add each Ark to the Fleet Commander\n\n## References\nDiscourse: https://forum.summer.fi/t/sip2-25-update-arks-from-core-protocols-on-base-fleets-usdc-weth/331\n",
+  "targets": [
+    "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
+    "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
+    "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af"
+  ],
+  "values": ["0", "0", "0", "0", "0", "0"],
+  "calldatas": [
+    "0x1981b9a7000000000000000000000000ece30ebeaa765472895e77deac35a09ddae9f8c70000000000000000000000002bb9ad69feba5547b7cd57aafe8457d40bf834af",
+    "0x1981b9a700000000000000000000000055bd40ffdbfe45869969a3c10b39c11152a735bc0000000000000000000000002bb9ad69feba5547b7cd57aafe8457d40bf834af",
+    "0x1981b9a70000000000000000000000002a6e16555d377b7fdefa18e1e418fd3634ec5a2c0000000000000000000000002bb9ad69feba5547b7cd57aafe8457d40bf834af",
+    "0xe37d5b7f000000000000000000000000ece30ebeaa765472895e77deac35a09ddae9f8c7",
+    "0xe37d5b7f00000000000000000000000055bd40ffdbfe45869969a3c10b39c11152a735bc",
+    "0xe37d5b7f0000000000000000000000002a6e16555d377b7fdefa18e1e418fd3634ec5a2c"
+  ],
+  "proposalTxHash": "0x7409b76ec5bba9f62d72231d86afc20a4ed4cbb8f55f59097ca598342080dea9"
+}

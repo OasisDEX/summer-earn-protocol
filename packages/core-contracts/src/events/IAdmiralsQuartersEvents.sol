@@ -163,4 +163,22 @@ interface IAdmiralsQuartersEvents {
         address indexed vault,
         uint256 amount
     );
+
+    /**
+     * @dev Emitted when a user claims rewards from a merkl distributor.
+     * @param user The address of the user who claimed the rewards.
+     * @param distributor The address of the merkl distributor.
+     * @param users The addresses of the users who claimed the rewards.
+     * @param tokens The addresses of the tokens claimed.
+     * @param amounts The amounts of tokens claimed.
+     * @param proofs The merkle proofs used to claim the rewards.
+     */
+    event MerklRewardsClaimed(
+        address indexed user,
+        address indexed distributor,
+        address[] users,
+        address[] tokens,
+        uint256[] amounts,
+        bytes32[][] proofs
+    );
 }

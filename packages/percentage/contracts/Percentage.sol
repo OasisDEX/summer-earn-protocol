@@ -52,6 +52,12 @@ uint256 constant PERCENTAGE_FACTOR = 10 ** PERCENTAGE_DECIMALS;
 Percentage constant PERCENTAGE_100 = Percentage.wrap(100 * PERCENTAGE_FACTOR);
 
 /**
+ * @dev Percentage of 1 with the given `PERCENTAGE_DECIMALS`
+ *  This constant represents 1 in the Percentage type
+ */
+Percentage constant PERCENTAGE_1 = Percentage.wrap(PERCENTAGE_FACTOR);
+
+/**
  * OPERATOR FUNCTIONS
  */
 

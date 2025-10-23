@@ -20,6 +20,7 @@ packages/dutch-auction/lib/**
 packages/gov-contracts/lib/**
 packages/external-dependencies/lib/**
 packages/institutional-contracts/lib/**
+lib/openzeppelin-contracts-upgradeable/**
 **/.sst/**
 **/.turbo/**
 packages/**/src/generated
@@ -31,3 +32,4 @@ apps/**/types/generated/*
 **/deployments/**
 **/build-info/**
 lib/**
+**/lib/**

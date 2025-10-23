@@ -17,53 +17,93 @@ interface IInstitutionalVaultRegistry is
         address configurationManager;
         address protocolAccessManager;
         address admiralsQuarters;
-        bool active;
     }
     /**
      * VIEW
      */
 
-    /// @notice Returns true if an institution id exists (active or disabled)
+    /**
+     * @notice Derives a bytes32 institution id from a UTF-8 string name.
+     * @dev This is a raw cast: strings longer than 32 bytes are truncated; shorter strings are right-padded with zeros.
+     *      Use only if the naming convention guarantees <= 32 bytes and deterministic casing/encoding.
+     * @param name Human-readable institution name (UTF-8)
+     * @return id bytes32 identifier suitable for on-chain keys
+     */
+    function getBytes32InstitutionId(
+        string calldata name
+    ) external pure returns (bytes32 id);
+
+    /**
+     * @notice Converts a bytes32 institution id back to a 32-byte string.
+     * @dev Returns the full 32-byte string
+     * @param id bytes32 institution identifier
+     * @return name 32-byte string representation (may contain null bytes)
+     */
+    function getStringInstitutionId(
+        bytes32 id
+    ) external pure returns (string memory name);
+
+    /**
+     * @notice Returns true if an institution id exists (active or disabled)
+     */
     function exists(bytes32 id) external view returns (bool);
 
-    /// @notice Returns true if an institution id is active
-    function isActive(bytes32 id) external view returns (bool);
-
-    /// @notice Returns the full institution wiring for `id`
+    /**
+     * @notice Returns the full institution wiring for institution with id `id`
+     * @dev Reverts if the institution does not exist
+     */
     function getInstitution(
         bytes32 id
     ) external view returns (Institution memory institution);
 
-    /// @notice Returns the ConfigurationManager for `id`
+    /**
+     * @notice Returns the ConfigurationManager for institution with id `id`
+     * @dev Reverts if the institution does not exist
+     */
     function getConfigurationManager(
         bytes32 id
     ) external view returns (address);
 
-    /// @notice Returns the ProtocolAccessManager for `id`
+    /**
+     * @notice Returns the ProtocolAccessManager for institution with id `id`
+     * @dev Reverts if the institution does not exist
+     */
     function getProtocolAccessManager(
         bytes32 id
     ) external view returns (address);
 
-    /// @notice Returns the AdmiralsQuarters for `id`
+    /**
+     * @notice Returns the AdmiralsQuarters for institution with id `id`
+     * @dev Reverts if the institution does not exist
+     */
     function getAdmiralsQuarters(bytes32 id) external view returns (address);
 
-    /// @notice Returns the HarborCommand for `id`
+    /**
+     * @notice Returns the HarborCommand for institution with id `id`
+     * @dev Reverts if the institution does not exist; value is read from the institution's ConfigurationManager
+     */
     function getHarborCommand(bytes32 id) external view returns (address);
 
     /**
      * MANAGEMENT (onlyGovernor)
      */
 
-    /// @notice Adds a new institution wiring
+    /**
+     * @notice Adds a new institution wiring
+     */
     function addInstitution(
         bytes32 id,
         Institution calldata institution
     ) external;
 
-    /// @notice Disables an existing institution id (keeps data visible)
-    function disableInstitution(bytes32 id) external;
+    /**
+     * @notice Removes an existing institution id (keeps data visible)
+     */
+    function removeInstitution(bytes32 id) external;
 
-    /// @notice Updates only the AdmiralsQuarters address for `id`
+    /**
+     * @notice Updates only the AdmiralsQuarters address for institution with id `id`
+     */
     function updateAdmiralsQuarters(
         bytes32 id,
         address newAdmiralsQuarters

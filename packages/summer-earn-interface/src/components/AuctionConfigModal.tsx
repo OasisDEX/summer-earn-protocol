@@ -45,7 +45,7 @@ export function AuctionConfigModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-lg w-96">
+      <div className="bg-gray-900 border border-gray-800 p-6 rounded-lg w-96 text-white">
         <h2 className="text-xl font-bold mb-4">Configure Auction Parameters</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
