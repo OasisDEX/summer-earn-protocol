@@ -452,6 +452,159 @@ contract LayerZeroAdapterProtocolTokenFeeTest is
     }
 
     /*//////////////////////////////////////////////////////////////
+                        ADDITIONAL VALIDATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testTransferAssetRevertsWhenNativeFeeNotZeroInTokenModeDuplicate()
+        public
+    {
+        useNetworkA();
+
+        uint256 transferAmount = 1000e18;
+
+        // Create bridge options with token payment but native value provided
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0.01 ether, // Native value when paying in token
+            feeTokenAmount: PROTOCOL_FEE_AMOUNT,
+            payInProtocolToken: true,
+            options: bytes("")
+        });
+
+        // Create transfer parameters
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                originator: user,
+                asset: address(tokenA),
+                amount: transferAmount,
+                destinationChainId: CHAIN_ID_B,
+                target: address(adapterB),
+                message: "",
+                refundAddress: user
+            });
+
+        // Should revert due to invalid payment mode (protocol token + native value)
+        vm.expectRevert();
+        vm.prank(user);
+        routerA.executeTransferAssets{value: 0.01 ether}(params, options);
+    }
+
+    function testTransferAssetRevertsWhenInsufficientNativeFee() public {
+        useNetworkA();
+
+        uint256 transferAmount = 1000e18;
+        uint256 requiredNativeFee = 0.01 ether;
+        uint256 providedNativeFee = 0.005 ether; // Less than required
+
+        // Create bridge options with native payment
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: uint128(providedNativeFee),
+            feeTokenAmount: 0,
+            payInProtocolToken: false,
+            options: bytes("")
+        });
+
+        // Create transfer parameters
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                originator: user,
+                asset: address(tokenA),
+                amount: transferAmount,
+                destinationChainId: CHAIN_ID_B,
+                target: address(adapterB),
+                message: "",
+                refundAddress: user
+            });
+
+        // Should revert due to insufficient native fee
+        vm.expectRevert();
+        vm.prank(user);
+        routerA.executeTransferAssets{value: providedNativeFee}(
+            params,
+            options
+        );
+    }
+
+    function testTransferAssetRevertsWhenTokenFeeMismatch() public {
+        useNetworkA();
+
+        uint256 transferAmount = 1000e18;
+        uint256 wrongTokenFee = PROTOCOL_FEE_AMOUNT * 2; // Double the required amount
+
+        // Create bridge options with wrong token fee amount
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            feeTokenAmount: wrongTokenFee,
+            payInProtocolToken: true,
+            options: bytes("")
+        });
+
+        // Create transfer parameters
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                originator: user,
+                asset: address(tokenA),
+                amount: transferAmount,
+                destinationChainId: CHAIN_ID_B,
+                target: address(adapterB),
+                message: "",
+                refundAddress: user
+            });
+
+        // Should revert due to token fee mismatch
+        vm.expectRevert();
+        vm.prank(user);
+        routerA.executeTransferAssets{value: 0}(params, options);
+    }
+
+    function testTransferAssetRevertsWhenNativeFeeNotZeroInTokenPayment()
+        public
+    {
+        useNetworkA();
+
+        uint256 transferAmount = 1000e18;
+
+        // Mock the OFT to return a non-zero native fee when paying in token
+        mockOFT.setMockFees(0.01 ether, PROTOCOL_FEE_AMOUNT); // Native fee > 0
+
+        // Create bridge options with token payment
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            feeTokenAmount: PROTOCOL_FEE_AMOUNT,
+            payInProtocolToken: true,
+            options: bytes("")
+        });
+
+        // Create transfer parameters
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                originator: user,
+                asset: address(tokenA),
+                amount: transferAmount,
+                destinationChainId: CHAIN_ID_B,
+                target: address(adapterB),
+                message: "",
+                refundAddress: user
+            });
+
+        // Should revert when native fee is not zero in token payment mode
+        vm.expectRevert();
+        vm.prank(user);
+        routerA.executeTransferAssets{value: 0}(params, options);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                         HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 

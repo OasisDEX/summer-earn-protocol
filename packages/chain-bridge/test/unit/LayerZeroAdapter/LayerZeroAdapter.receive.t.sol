@@ -76,9 +76,7 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         );
     }
 
-    function test_receive_with_short_payload_reverts_UnsupportedMessageType()
-        public
-    {
+    function testReceiveWithShortPayloadRevertsUnsupportedMessageType() public {
         Origin memory origin = Origin({
             srcEid: LZ_EID_B,
             sender: addressToBytes32(address(adapterB)),
@@ -93,6 +91,48 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             origin,
             bytes32(uint256(1)),
             tooShortPayload,
+            address(adapterB),
+            bytes("")
+        );
+    }
+
+    function testReceiveWithEmptyPayloadRevertsUnsupportedMessageType() public {
+        Origin memory origin = Origin({
+            srcEid: LZ_EID_B,
+            sender: addressToBytes32(address(adapterB)),
+            nonce: 1
+        });
+
+        bytes memory emptyPayload = bytes("");
+
+        vm.expectRevert(IBridgeAdapter.UnsupportedMessageType.selector);
+
+        adapterA.lzReceiveTest(
+            origin,
+            bytes32(uint256(1)),
+            emptyPayload,
+            address(adapterB),
+            bytes("")
+        );
+    }
+
+    function testReceiveWithSingleBytePayloadRevertsUnsupportedMessageType()
+        public
+    {
+        Origin memory origin = Origin({
+            srcEid: LZ_EID_B,
+            sender: addressToBytes32(address(adapterB)),
+            nonce: 1
+        });
+
+        bytes memory singleBytePayload = hex"00";
+
+        vm.expectRevert(IBridgeAdapter.UnsupportedMessageType.selector);
+
+        adapterA.lzReceiveTest(
+            origin,
+            bytes32(uint256(1)),
+            singleBytePayload,
             address(adapterB),
             bytes("")
         );

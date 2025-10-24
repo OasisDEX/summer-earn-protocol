@@ -9,6 +9,8 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
+import {ILayerZeroAdapter} from "../../../src/interfaces/ILayerZeroAdapter.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Base test contract with common setup used by all LayerZero adapter tests
 contract LayerZeroAdapterSetupTest is TestHelperOz5 {
@@ -242,5 +244,113 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
 
     function useNetworkB() public {
         vm.chainId(NETWORK_B_CHAIN_ID);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        CONSTRUCTOR VALIDATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testConstructorRevertsZeroEndpoint() public {
+        uint16[] memory chains = new uint16[](1);
+        chains[0] = CHAIN_ID_A;
+
+        uint32[] memory lzEids = new uint32[](1);
+        lzEids[0] = LZ_EID_A;
+
+        vm.expectRevert(); // LayerZeroAdapter doesn't define custom InvalidEndpoint error
+        new LayerZeroAdapterTestHelper(
+            address(0), // zero endpoint
+            address(registryA),
+            address(accessManagerA),
+            chains,
+            lzEids,
+            governor
+        );
+    }
+
+    function testConstructorRevertsZeroOwner() public {
+        uint16[] memory chains = new uint16[](1);
+        chains[0] = CHAIN_ID_A;
+
+        uint32[] memory lzEids = new uint32[](1);
+        lzEids[0] = LZ_EID_A;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableInvalidOwner.selector,
+                address(0)
+            )
+        );
+        new LayerZeroAdapterTestHelper(
+            lzEndpointA,
+            address(registryA),
+            address(accessManagerA),
+            chains,
+            lzEids,
+            address(0) // zero owner
+        );
+    }
+
+    function testConstructorRevertsArrayLengthMismatch() public {
+        uint16[] memory chains = new uint16[](2);
+        chains[0] = CHAIN_ID_A;
+        chains[1] = CHAIN_ID_B;
+
+        uint32[] memory lzEids = new uint32[](1); // Wrong length
+        lzEids[0] = LZ_EID_A;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ILayerZeroAdapter.ArrayLengthMismatch.selector
+            )
+        );
+        new LayerZeroAdapterTestHelper(
+            lzEndpointA,
+            address(registryA),
+            address(accessManagerA),
+            chains,
+            lzEids,
+            governor
+        );
+    }
+
+    function testConstructorRevertsZeroEndpointId() public {
+        uint16[] memory chains = new uint16[](1);
+        chains[0] = CHAIN_ID_A;
+
+        uint32[] memory lzEids = new uint32[](1);
+        lzEids[0] = 0; // zero endpoint ID
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ILayerZeroAdapter.InvalidEndpointId.selector)
+        );
+        new LayerZeroAdapterTestHelper(
+            lzEndpointA,
+            address(registryA),
+            address(accessManagerA),
+            chains,
+            lzEids,
+            governor
+        );
+    }
+
+    function testConstructorSuccess() public {
+        uint16[] memory chains = new uint16[](1);
+        chains[0] = CHAIN_ID_A;
+
+        uint32[] memory lzEids = new uint32[](1);
+        lzEids[0] = LZ_EID_A;
+
+        LayerZeroAdapterTestHelper testAdapter = new LayerZeroAdapterTestHelper(
+            lzEndpointA,
+            address(registryA),
+            address(accessManagerA),
+            chains,
+            lzEids,
+            governor
+        );
+
+        // Verify the adapter was created successfully
+        assertTrue(address(testAdapter) != address(0));
     }
 }

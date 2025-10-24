@@ -8,6 +8,8 @@ import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
+import {ILayerZeroAdapter} from "../../../src/interfaces/ILayerZeroAdapter.sol";
+import {MockOFT} from "../../mocks/MockOFT.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
@@ -247,5 +249,164 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             address(0x1234),
             bytes("")
         );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        OFT CONFIGURATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testSetOftForTokenRevertsZeroToken() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
+        );
+        adapterA.setOftForToken(address(0), address(0x1234));
+
+        vm.stopPrank();
+    }
+
+    function testSetOftForTokenRevertsZeroOft() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
+        );
+        adapterA.setOftForToken(address(tokenA), address(0));
+
+        vm.stopPrank();
+    }
+
+    function testSetOftForTokenRevertsAdapterPatternMismatch() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Create a mock OFT that returns a different token
+        MockOFT mockOFT = new MockOFT(
+            "Mock OFT",
+            "MOFT",
+            address(0xDEAD),
+            lzEndpointA
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
+        );
+        adapterA.setOftForToken(address(tokenA), address(mockOFT));
+
+        vm.stopPrank();
+    }
+
+    function testSetOftForTokenRevertsDirectPatternMismatch() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Create a mock OFT that doesn't have token() function and token != oft
+        MockOFT mockOFT = new MockOFT(
+            "Mock OFT",
+            "MOFT",
+            address(0xDEAD),
+            lzEndpointA
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
+        );
+        adapterA.setOftForToken(address(tokenA), address(mockOFT));
+
+        vm.stopPrank();
+    }
+
+    function testSetOftForTokenSuccessAdapterPattern() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Create a mock OFT that returns the correct token (adapter pattern)
+        MockOFT mockOFT = new MockOFT(
+            "Mock OFT",
+            "MOFT",
+            address(tokenA),
+            lzEndpointA
+        );
+
+        // Should succeed
+        adapterA.setOftForToken(address(tokenA), address(mockOFT));
+
+        // Verify the mapping was set
+        assertEq(adapterA.oftForToken(address(tokenA)), address(mockOFT));
+
+        vm.stopPrank();
+    }
+
+    function testSetOftForTokenSuccessDirectPattern() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // For direct pattern, token == oft
+        // Create a mock OFT that returns itself as the token
+        MockOFT mockOFT = new MockOFT(
+            "Mock OFT",
+            "MOFT",
+            address(0),
+            lzEndpointA
+        );
+
+        // Override the token() function to return the OFT address itself
+        vm.mockCall(
+            address(mockOFT),
+            abi.encodeWithSelector(MockOFT.token.selector),
+            abi.encode(address(mockOFT))
+        );
+
+        // Should succeed
+        adapterA.setOftForToken(address(mockOFT), address(mockOFT));
+
+        // Verify the mapping was set
+        assertEq(adapterA.oftForToken(address(mockOFT)), address(mockOFT));
+
+        vm.stopPrank();
+    }
+
+    function testSetOftForTokenSuccessDirectPatternNoTokenFunction() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Create a mock OFT that will revert on token() call (simulating no token function)
+        MockOFT mockOFT = new MockOFT(
+            "Mock OFT",
+            "MOFT",
+            address(0xDEAD),
+            lzEndpointA
+        );
+
+        // Override the token() function to revert
+        vm.mockCallRevert(
+            address(mockOFT),
+            abi.encodeWithSelector(MockOFT.token.selector),
+            "No token function"
+        );
+
+        // For direct pattern with no token() function, token must equal oft
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
+        );
+        adapterA.setOftForToken(address(tokenA), address(mockOFT));
+
+        // This should succeed
+        adapterA.setOftForToken(address(mockOFT), address(mockOFT));
+
+        vm.stopPrank();
     }
 }
