@@ -1,72 +1,54 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
+import {SuperchainAdapterSetupTest} from "./SuperchainAdapter.setup.t.sol";
 import {SuperchainAdapter} from "../../../src/adapters/SuperchainAdapter.sol";
-import {MockCrossChainRegistry} from "../../mocks/MockCrossChainRegistry.sol";
-import {MockSuperchainTokenBridge} from "../../mocks/MockSuperchainTokenBridge.sol";
-import {MockL2ToL2CrossDomainMessenger} from "../../mocks/MockL2ToL2CrossDomainMessenger.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
-contract SuperchainAdapterGeneralTest is Test {
-    SuperchainAdapter public adapter;
-    MockCrossChainRegistry public registry;
-    MockSuperchainTokenBridge public superchainBridge;
-    MockL2ToL2CrossDomainMessenger public L2_TO_L2_MESSENGER;
-    ProtocolAccessManager public accessManager;
+contract SuperchainAdapterGeneralTest is SuperchainAdapterSetupTest {
+    uint16 public constant GENERAL_CHAIN_ID_A = 1;
+    uint16 public constant GENERAL_CHAIN_ID_B = 2;
+    uint32 public constant GENERAL_EXTERNAL_ID_B = 100;
 
-    address public governor = address(0x1);
-    address public user = address(0x2);
-    address public token = address(0x3);
+    function setUp() public override {
+        super.setUp();
 
-    uint16 public constant CHAIN_ID_A = 1;
-    uint16 public constant CHAIN_ID_B = 2;
-    uint32 public constant EXTERNAL_ID_B = 100;
+        // Additional setup for general tests
+        useChainA();
 
-    function setUp() public {
-        accessManager = new ProtocolAccessManager(governor);
-        registry = new MockCrossChainRegistry();
-        superchainBridge = new MockSuperchainTokenBridge();
-        L2_TO_L2_MESSENGER = new MockL2ToL2CrossDomainMessenger();
-
+        // Setup chain mapping for general tests
         vm.prank(governor);
-        adapter = new SuperchainAdapter(
-            address(registry),
-            address(accessManager),
-            address(superchainBridge),
-            address(L2_TO_L2_MESSENGER)
-        );
+        adapterA.mapExternalId(GENERAL_CHAIN_ID_B, GENERAL_EXTERNAL_ID_B);
 
-        // Setup chain mapping
+        // Setup peer relationship for general tests
         vm.prank(governor);
-        adapter.mapExternalId(CHAIN_ID_B, EXTERNAL_ID_B);
-
-        // Setup peer relationship
-        vm.prank(governor);
-        registry.registerRelationship(
-            address(adapter),
+        registryA.registerRelationship(
+            address(adapterA),
             address(0x999), // peer adapter
-            CHAIN_ID_B,
-            CHAIN_ID_B,
-            registry.PEER_RELATIONSHIP()
+            GENERAL_CHAIN_ID_B,
+            GENERAL_CHAIN_ID_B,
+            registryA.PEER_RELATIONSHIP()
         );
 
         // Set up the registry to return the peer adapter
         vm.prank(governor);
-        registry.setAdapterPeer(address(adapter), CHAIN_ID_B, address(0x999));
+        registryA.setAdapterPeer(
+            address(adapterA),
+            GENERAL_CHAIN_ID_B,
+            address(0x999)
+        );
     }
 
     function testConstructor_RevertWhenZeroSuperchainBridge() public {
         vm.prank(governor);
         vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         new SuperchainAdapter(
-            address(registry),
-            address(accessManager),
+            address(registryA),
+            address(accessManagerA),
             address(0),
-            address(L2_TO_L2_MESSENGER)
+            address(l2ToL2MessengerA)
         );
     }
 
@@ -74,69 +56,69 @@ contract SuperchainAdapterGeneralTest is Test {
         vm.prank(governor);
         vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
         new SuperchainAdapter(
-            address(registry),
-            address(accessManager),
-            address(superchainBridge),
+            address(registryA),
+            address(accessManagerA),
+            address(superchainBridgeA),
             address(0)
         );
     }
 
     function testSupportsOperation_TransferAsset() public view {
         assertTrue(
-            adapter.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
+            adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         );
         assertFalse(
-            adapter.supportsOperation(BridgeTypes.OperationType.MESSAGE)
+            adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE)
         );
     }
 
     function testSupportsOperation_WithAssetSupport() public {
         // Add supported asset
         vm.prank(governor);
-        adapter.setAssetSupport(token, true);
+        adapterA.setAssetSupport(address(tokenA), true);
 
         assertTrue(
-            adapter.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
+            adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         );
         assertFalse(
-            adapter.supportsOperation(BridgeTypes.OperationType.MESSAGE)
+            adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE)
         );
     }
 
     function testSetAssetSupport_OnlyGovernor() public {
         vm.prank(user);
         vm.expectRevert();
-        adapter.setAssetSupport(token, true);
+        adapterA.setAssetSupport(address(tokenA), true);
 
         vm.prank(governor);
-        adapter.setAssetSupport(token, true);
-        assertTrue(adapter.supportedAsset(token));
+        adapterA.setAssetSupport(address(tokenA), true);
+        assertTrue(adapterA.supportedAsset(address(tokenA)));
     }
 
     function testSetAssetSupport_RevertWhenZeroAddress() public {
         vm.prank(governor);
         vm.expectRevert(IBaseBridgeAdapterErrors.InvalidParams.selector);
-        adapter.setAssetSupport(address(0), true);
+        adapterA.setAssetSupport(address(0), true);
     }
 
     function testEstimateTransferAssets_SupportedAsset() public {
         // Add supported asset
         vm.prank(governor);
-        adapter.setAssetSupport(token, true);
+        adapterA.setAssetSupport(address(tokenA), true);
 
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
                 originator: user,
-                destinationChainId: CHAIN_ID_B,
+                destinationChainId: GENERAL_CHAIN_ID_B,
                 target: user,
-                asset: token,
+                asset: address(tokenA),
                 amount: 1000e18,
                 message: "",
                 refundAddress: user
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter),
+            specifiedAdapter: address(adapterA),
             gasLimit: 100000,
             calldataSize: 0,
             msgValue: 0,
@@ -145,7 +127,7 @@ contract SuperchainAdapterGeneralTest is Test {
             feeTokenAmount: 0
         });
 
-        (uint256 nativeFee, uint256 tokenFee) = adapter.estimateTransferAssets(
+        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateTransferAssets(
             params,
             options
         );
@@ -157,16 +139,16 @@ contract SuperchainAdapterGeneralTest is Test {
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
                 originator: user,
-                destinationChainId: CHAIN_ID_B,
+                destinationChainId: GENERAL_CHAIN_ID_B,
                 target: user,
-                asset: token,
+                asset: address(tokenA),
                 amount: 1000e18,
                 message: "",
                 refundAddress: user
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter),
+            specifiedAdapter: address(adapterA),
             gasLimit: 100000,
             calldataSize: 0,
             msgValue: 0,
@@ -178,27 +160,27 @@ contract SuperchainAdapterGeneralTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
         );
-        adapter.estimateTransferAssets(params, options);
+        adapterA.estimateTransferAssets(params, options);
     }
 
     function testEstimateTransferAssets_RevertWhenZeroAmount() public {
         // Add supported asset
         vm.prank(governor);
-        adapter.setAssetSupport(token, true);
+        adapterA.setAssetSupport(address(tokenA), true);
 
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
                 originator: user,
-                destinationChainId: CHAIN_ID_B,
+                destinationChainId: GENERAL_CHAIN_ID_B,
                 target: user,
-                asset: token,
+                asset: address(tokenA),
                 amount: 0,
                 message: "",
                 refundAddress: user
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter),
+            specifiedAdapter: address(adapterA),
             gasLimit: 100000,
             calldataSize: 0,
             msgValue: 0,
@@ -208,7 +190,7 @@ contract SuperchainAdapterGeneralTest is Test {
         });
 
         vm.expectRevert(IBaseBridgeAdapterErrors.InvalidAmount.selector);
-        adapter.estimateTransferAssets(params, options);
+        adapterA.estimateTransferAssets(params, options);
     }
 
     function testEstimateTransferAssets_RevertWhenUntrustedDestination()
@@ -216,21 +198,21 @@ contract SuperchainAdapterGeneralTest is Test {
     {
         // Add supported asset
         vm.prank(governor);
-        adapter.setAssetSupport(token, true);
+        adapterA.setAssetSupport(address(tokenA), true);
 
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
                 originator: user,
-                destinationChainId: CHAIN_ID_A, // unmapped chain
+                destinationChainId: GENERAL_CHAIN_ID_A, // unmapped chain
                 target: user,
-                asset: token,
+                asset: address(tokenA),
                 amount: 1000e18,
                 message: "",
                 refundAddress: user
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter),
+            specifiedAdapter: address(adapterA),
             gasLimit: 100000,
             calldataSize: 0,
             msgValue: 0,
@@ -242,18 +224,18 @@ contract SuperchainAdapterGeneralTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IBaseBridgeAdapterErrors.UntrustedDestinationChain.selector,
-                CHAIN_ID_A
+                GENERAL_CHAIN_ID_A
             )
         );
-        adapter.estimateTransferAssets(params, options);
+        adapterA.estimateTransferAssets(params, options);
     }
 
     function testSupportsOperation_MessageNotSupported() public view {
         assertTrue(
-            adapter.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
+            adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         );
         assertFalse(
-            adapter.supportsOperation(BridgeTypes.OperationType.MESSAGE)
+            adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE)
         );
     }
 
@@ -263,9 +245,9 @@ contract SuperchainAdapterGeneralTest is Test {
             .RelayedTransferParams({
                 operationId: bytes32(uint256(123)),
                 originator: address(0x999),
-                sourceChainId: CHAIN_ID_B,
+                sourceChainId: GENERAL_CHAIN_ID_B,
                 recipient: user,
-                asset: token,
+                asset: address(tokenA),
                 amount: 1000e18,
                 message: "test message"
             });
@@ -275,6 +257,6 @@ contract SuperchainAdapterGeneralTest is Test {
         // Call from unauthorized address (not L2ToL2Messenger)
         vm.prank(user);
         vm.expectRevert(IBaseBridgeAdapterErrors.Unauthorized.selector);
-        adapter.relayMessage(message);
+        adapterA.relayMessage(message);
     }
 }
