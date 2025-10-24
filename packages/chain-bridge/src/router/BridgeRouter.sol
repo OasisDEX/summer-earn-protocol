@@ -318,6 +318,9 @@ contract BridgeRouter is
 
         // Attempt processing in a self-call so we can capture reverts without
         // rolling back the outer call (adapter delivery pathway)
+        // @dev Self-call pattern required: Solidity's try/catch only works with external calls
+        //      This allows capturing delivery failures without trapping the message with the
+        //      underlying interchain messaging protocol, enabling retry mechanisms
         try this.processDelivery(operationType, operationPayload, msg.sender) {
             // Success path - clear any existing failure record for this operation
             _clearFailedDelivery(operationId);
@@ -425,13 +428,12 @@ contract BridgeRouter is
             revert InvalidFeeBuffer();
         }
 
-       emit FeeBufferUpdated(
+        emit FeeBufferUpdated(
             Bps.unwrap(feeBufferBps),
             Bps.unwrap(newBufferBps)
         );
-        
+
         feeBufferBps = newBufferBps;
-       
     }
 
     /// @notice Retries a previously failed delivery with optional recipient override. Only callable by keeper.
@@ -459,6 +461,8 @@ contract BridgeRouter is
             newRecipient
         );
 
+        // @dev Self-call pattern required: Solidity's try/catch only works with external calls
+        //      This allows capturing retry failures without rolling back the transaction
         try
             this.processDelivery(
                 r.operationType,

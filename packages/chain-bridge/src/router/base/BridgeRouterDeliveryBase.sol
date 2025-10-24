@@ -27,6 +27,8 @@ abstract contract BridgeRouterDeliveryBase is
 
     /**
      * @dev Modifier to ensure function can only be called by this contract
+     * @dev This enforces the pattern where processDelivery must be called externally (via this.processDelivery())
+     *      to enable try/catch error handling, as Solidity's try/catch only works with external calls
      */
     modifier onlySelf() {
         if (msg.sender != address(this)) revert IBridgeRouter.Unauthorized();
