@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
+import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {MockOFT} from "../../mocks/MockOFT.sol";
 import {LayerZeroAdapter} from "../../../src/adapters/LayerZeroAdapter.sol";
 import {LayerZeroAdapterTestHelper} from "../../helpers/LayerZeroAdapterTestHelper.sol";
@@ -495,7 +496,6 @@ contract LayerZeroAdapterProtocolTokenFeeTest is
         useNetworkA();
 
         uint256 transferAmount = 1000e18;
-        uint256 requiredNativeFee = 0.01 ether;
         uint256 providedNativeFee = 0.005 ether; // Less than required
 
         // Create bridge options with native payment
@@ -574,6 +574,7 @@ contract LayerZeroAdapterProtocolTokenFeeTest is
 
         // Mock the OFT to return a non-zero native fee when paying in token
         mockOFT.setMockFees(0.01 ether, PROTOCOL_FEE_AMOUNT); // Native fee > 0
+        mockOFT.setForceNativeFeeInTokenMode(true); // Force non-zero native fee in token mode
 
         // Create bridge options with token payment
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -599,7 +600,13 @@ contract LayerZeroAdapterProtocolTokenFeeTest is
             });
 
         // Should revert when native fee is not zero in token payment mode
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBridgeAdapter.InsufficientFee.selector,
+                0,
+                0.01 ether
+            )
+        );
         vm.prank(user);
         routerA.executeTransferAssets{value: 0}(params, options);
     }

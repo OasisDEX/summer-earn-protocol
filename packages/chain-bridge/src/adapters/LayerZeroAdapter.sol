@@ -241,19 +241,7 @@ contract LayerZeroAdapter is
             options
         );
 
-        // 2. Pull tokens
-        IERC20(params.asset).safeTransferFrom(
-            msg.sender,
-            address(this),
-            params.amount
-        );
-
-        // 3. Approve OFT (only needed for adapter pattern where asset != oft)
-        if (params.asset != oft) {
-            IERC20(params.asset).forceApprove(oft, params.amount);
-        }
-
-        // 4. Validate payment mode consistency
+        // 2. Validate payment mode consistency (MOVED UP)
         // Only reject if protocol token payment is requested AND protocol token is set AND native value is provided
         if (
             options.payInProtocolToken &&
@@ -261,6 +249,18 @@ contract LayerZeroAdapter is
             options.msgValue != 0
         ) {
             revert InvalidParams();
+        }
+
+        // 3. Pull tokens
+        IERC20(params.asset).safeTransferFrom(
+            msg.sender,
+            address(this),
+            params.amount
+        );
+
+        // 4. Approve OFT (only needed for adapter pattern where asset != oft)
+        if (params.asset != oft) {
+            IERC20(params.asset).forceApprove(oft, params.amount);
         }
 
         // 5. Handle payment based on fee type

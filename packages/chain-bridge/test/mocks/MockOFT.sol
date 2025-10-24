@@ -24,6 +24,9 @@ contract MockOFT is ERC20 {
     /// @notice Mock fee token for ERC-7802 testing
     address public feeToken;
 
+    /// @notice Flag to force non-zero native fee in token payment mode (for testing error conditions)
+    bool public forceNativeFeeInTokenMode = false;
+
     constructor(
         string memory name,
         string memory symbol,
@@ -50,7 +53,15 @@ contract MockOFT is ERC20 {
         bool payInLzToken
     ) external view returns (MessagingFee memory) {
         if (payInLzToken) {
-            return MessagingFee({nativeFee: 0, lzTokenFee: mockLzTokenFee});
+            if (forceNativeFeeInTokenMode) {
+                return
+                    MessagingFee({
+                        nativeFee: mockNativeFee,
+                        lzTokenFee: mockLzTokenFee
+                    });
+            } else {
+                return MessagingFee({nativeFee: 0, lzTokenFee: mockLzTokenFee});
+            }
         } else {
             return MessagingFee({nativeFee: mockNativeFee, lzTokenFee: 0});
         }
@@ -67,11 +78,19 @@ contract MockOFT is ERC20 {
 
         // Transfer tokens from caller to this contract (simulating OFT behavior)
         if (sendParam.amountLD > 0) {
-            tokenAddress.transferFrom(
-                msg.sender,
-                address(this),
-                sendParam.amountLD
-            );
+            // Direct pattern: token == oft (tokenAddress is address(0))
+            // Adapter pattern: token != oft (tokenAddress is the underlying token)
+            if (address(tokenAddress) == address(0)) {
+                // Direct pattern: burn tokens from caller
+                _burn(msg.sender, sendParam.amountLD);
+            } else {
+                // Adapter pattern: transfer underlying tokens
+                tokenAddress.transferFrom(
+                    msg.sender,
+                    address(this),
+                    sendParam.amountLD
+                );
+            }
         }
 
         // Handle token fee payment (ERC-7802)
@@ -158,6 +177,11 @@ contract MockOFT is ERC20 {
     function setMockFees(uint256 _nativeFee, uint256 _lzTokenFee) external {
         mockNativeFee = _nativeFee;
         mockLzTokenFee = _lzTokenFee;
+    }
+
+    /// @notice Set flag to force non-zero native fee in token payment mode (for testing error conditions)
+    function setForceNativeFeeInTokenMode(bool _force) external {
+        forceNativeFeeInTokenMode = _force;
     }
 
     /// @notice Mint tokens for testing

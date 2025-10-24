@@ -125,7 +125,6 @@ contract SuperchainAdapterTransferTest is SuperchainAdapterSetupTest {
 
         uint256 transferAmount = 1000e18;
         bytes32 operationId = keccak256("test-operation");
-        address unsupportedToken = address(0x999);
 
         // Create unsupported token
         ERC20Mock unsupportedTokenMock = new ERC20Mock();

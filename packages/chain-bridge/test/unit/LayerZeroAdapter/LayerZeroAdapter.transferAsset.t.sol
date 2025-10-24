@@ -50,6 +50,9 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
         adapterA.setProtocolFeeToken(address(testToken));
         vm.stopPrank();
 
+        // Fund router with ETH for the call
+        vm.deal(address(routerA), 1 ether);
+
         vm.startPrank(address(routerA));
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -91,6 +94,8 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
 
     function testTransferAssetSuccessNativePayment() public {
         useNetworkA();
+        // Fund router with ETH for LayerZero fees
+        vm.deal(address(routerA), 1 ether);
         vm.startPrank(address(routerA));
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -136,6 +141,9 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
         adapterA.setProtocolFeeToken(address(testToken));
         vm.stopPrank();
 
+        // Fund router with ETH (even though not used, for consistency)
+        vm.deal(address(routerA), 1 ether);
+
         vm.startPrank(address(routerA));
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -145,7 +153,7 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
             msgValue: 0, // No native value
             options: bytes(""),
             payInProtocolToken: true,
-            feeTokenAmount: 1000
+            feeTokenAmount: 0 // MockOFT returns 0 fee
         });
 
         // Prepare transfer params
@@ -175,6 +183,8 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
 
     function testTransferAssetRevertsUnsupportedAsset() public {
         useNetworkA();
+        // Fund router with ETH for the call
+        vm.deal(address(routerA), 1 ether);
         vm.startPrank(address(routerA));
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -214,6 +224,8 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
 
     function testTransferAssetRevertsZeroAmount() public {
         useNetworkA();
+        // Fund router with ETH for the call
+        vm.deal(address(routerA), 1 ether);
         vm.startPrank(address(routerA));
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -260,6 +272,9 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
     function testTransferAssetAdapterPattern() public {
         useNetworkA();
         vm.startPrank(address(routerA));
+
+        // Fund router with ETH for LayerZero fees
+        vm.deal(address(routerA), 1 ether);
 
         // Mock OFT to return different token (adapter pattern)
         MockOFT adapterPatternOFT = new MockOFT(
@@ -312,11 +327,14 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
         useNetworkA();
         vm.startPrank(address(routerA));
 
+        // Fund router with ETH for LayerZero fees
+        vm.deal(address(routerA), 1 ether);
+
         // Create direct pattern OFT (token == oft)
         MockOFT directPatternOFT = new MockOFT(
             "Direct OFT",
             "DOFT",
-            address(0),
+            address(0), // Direct pattern: no underlying token
             lzEndpointA
         );
         adapterA.setOftForTokenTest(
@@ -346,8 +364,11 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
                 refundAddress: user
             });
 
-        // Mint tokens to adapter for direct pattern
-        directPatternOFT.mint(address(adapterA), 1000e18);
+        // Mint tokens to router for direct pattern
+        directPatternOFT.mint(address(routerA), 1000e18);
+
+        // Approve adapter to pull tokens from router
+        directPatternOFT.approve(address(adapterA), 1000e18);
 
         // Should succeed with direct pattern (asset == oft)
         adapterA.transferAsset{value: 0.1 ether}(
@@ -365,6 +386,8 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
 
     function testTransferAssetRevertsUnauthorizedCaller() public {
         useNetworkA();
+        // Fund user with ETH for the call
+        vm.deal(user, 1 ether);
         vm.startPrank(user); // User is not the router
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -406,6 +429,8 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
 
     function testTransferAssetRevertsUnsupportedDestination() public {
         useNetworkA();
+        // Fund router with ETH for the call
+        vm.deal(address(routerA), 1 ether);
         vm.startPrank(address(routerA));
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
