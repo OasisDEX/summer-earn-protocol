@@ -6,6 +6,7 @@ import {SuperchainAdapter} from "../../../src/adapters/SuperchainAdapter.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract SuperchainAdapterGeneralTest is SuperchainAdapterSetupTest {
     uint16 public constant GENERAL_CHAIN_ID_A = 1;
@@ -136,12 +137,15 @@ contract SuperchainAdapterGeneralTest is SuperchainAdapterSetupTest {
     }
 
     function testEstimateTransferAssets_RevertWhenUnsupportedAsset() public {
+        // Create a new unsupported token
+        ERC20Mock unsupportedToken = new ERC20Mock();
+
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
                 originator: user,
                 destinationChainId: GENERAL_CHAIN_ID_B,
                 target: user,
-                asset: address(tokenA),
+                asset: address(unsupportedToken),
                 amount: 1000e18,
                 message: "",
                 refundAddress: user
