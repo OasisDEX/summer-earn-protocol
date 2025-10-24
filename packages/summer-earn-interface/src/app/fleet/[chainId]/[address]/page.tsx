@@ -44,7 +44,7 @@ export default function FleetDetail() {
     userInfo,
     loading: fleetLoading,
     error: fleetError,
-    refetch: refetchFleetInfo,
+    updateAllowance,
   } = useFleetInfo({ address, chainId: selectedChain })
   const { arks, loading: arksLoading } = useFleetArks({
     fleetAddress: address,
@@ -144,12 +144,13 @@ export default function FleetDetail() {
     }
   }, [fleetInfo])
 
-  // Refetch fleet info after successful transactions to update allowance/balances
+  // Optimistically update allowance after successful approval
   useEffect(() => {
-    if (isApproveSuccess || isDepositSuccess || isWithdrawSuccess) {
-      refetchFleetInfo()
+    if (isApproveSuccess) {
+      // Set allowance to max uint256 since approval succeeded
+      updateAllowance(BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'))
     }
-  }, [isApproveSuccess, isDepositSuccess, isWithdrawSuccess, refetchFleetInfo])
+  }, [isApproveSuccess, updateAllowance])
 
   const isLoading = fleetLoading
 

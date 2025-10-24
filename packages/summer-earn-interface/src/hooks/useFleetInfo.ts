@@ -48,10 +48,24 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
     refetchOnWindowFocus: false,
   })
 
-  const refetch = () => {
-    queryClient.invalidateQueries({
-      queryKey: ['fleetInfo', chainId, address, isConnected ? userAddress : undefined],
-    })
+  const updateAllowance = (newAllowance: bigint) => {
+    const queryKey = ['fleetInfo', chainId, address, isConnected ? userAddress : undefined]
+    const currentData = queryClient.getQueryData(queryKey) as
+      | {
+          fleet: FleetCommanderInfo
+          user: UserFleetInfo | null
+        }
+      | undefined
+
+    if (currentData?.user) {
+      queryClient.setQueryData(queryKey, {
+        ...currentData,
+        user: {
+          ...currentData.user,
+          allowance: newAllowance,
+        },
+      })
+    }
   }
 
   return {
@@ -59,6 +73,6 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
     userInfo: query.data?.user ?? null,
     loading: query.isLoading,
     error: (query.error as Error) ?? null,
-    refetch,
+    updateAllowance,
   }
 }
