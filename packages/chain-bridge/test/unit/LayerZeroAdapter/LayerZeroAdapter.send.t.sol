@@ -9,6 +9,7 @@ import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {ICrossChainConfigManaged} from "../../../src/interfaces/ICrossChainConfigManaged.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {console} from "forge-std/Test.sol";
 
 contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
@@ -17,10 +18,29 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
     // Add a MockCrossChainReceiver instance to test direct message delivery
     MockCrossChainReceiver public mockReceiver;
 
-    // Override setup to deploy the mock receiver
+    // Protocol token for testing
+    ERC20Mock public protocolFeeToken;
+    uint256 public constant PROTOCOL_FEE_AMOUNT = 1000e18;
+
+    // Override setup to deploy the mock receiver and protocol token
     function setUp() public override {
         super.setUp();
         mockReceiver = new MockCrossChainReceiver();
+
+        // Deploy protocol fee token
+        protocolFeeToken = new ERC20Mock();
+
+        // Configure protocol fee token on adapter
+        vm.prank(governor);
+        adapterA.setProtocolFeeToken(address(protocolFeeToken));
+
+        // Mint protocol tokens to router and user
+        protocolFeeToken.mint(address(routerA), 10000e18);
+        protocolFeeToken.mint(user, 10000e18);
+
+        // Router approves adapter to spend protocol tokens
+        vm.prank(address(routerA));
+        protocolFeeToken.approve(address(adapterA), type(uint256).max);
     }
 
     function testDirectSendMessage() public {
@@ -249,6 +269,40 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         );
 
         vm.stopPrank();
+    }
+
+    function testEstimateSendMessageWithProtocolToken() public {
+        useNetworkA();
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0.5 ether,
+            options: bytes(""),
+            payInProtocolToken: true,
+            feeTokenAmount: PROTOCOL_FEE_AMOUNT
+        });
+
+        // Call estimateSendMessage with protocol token payment
+        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                message: abi.encode("Test message"),
+                originator: address(user),
+                refundAddress: address(user)
+            }),
+            options
+        );
+
+        // When paying in protocol tokens, native fee should be 0
+        assertEq(
+            nativeFee,
+            0,
+            "Native fee should be 0 when paying in protocol tokens"
+        );
+        assertGt(tokenFee, 0, "Token fee should be greater than 0");
     }
 
     // Add event declarations for the events we expect

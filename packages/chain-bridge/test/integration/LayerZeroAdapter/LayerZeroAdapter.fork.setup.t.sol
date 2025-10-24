@@ -5,6 +5,7 @@ import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol"
 import {BridgeRouterTestHelper} from "../../helpers/BridgeRouterTestHelper.sol";
 import {LayerZeroAdapterTestHelper} from "../../helpers/LayerZeroAdapterTestHelper.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Test} from "forge-std/Test.sol";
 
 /**
@@ -18,6 +19,10 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
     BridgeRouterTestHelper public router;
     CrossChainRegistry public registry;
     ProtocolAccessManager public accessManager;
+
+    // Protocol token for testing
+    ERC20Mock public protocolFeeToken;
+    uint256 public constant PROTOCOL_FEE_AMOUNT = 1000e18;
 
     // Test addresses
     address public governor = makeAddr("governor");
@@ -96,12 +101,18 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
             governor
         );
 
+        // Deploy protocol fee token
+        protocolFeeToken = new ERC20Mock();
+
         // Register layerZeroAdapter with bridge router
         vm.startPrank(governor);
         router.registerAdapter(address(layerZeroAdapter));
 
         // Register layerZeroAdapter as an executor
         registry.registerExecutor(keeper);
+
+        // Configure protocol fee token on adapter
+        layerZeroAdapter.setProtocolFeeToken(address(protocolFeeToken));
 
         vm.stopPrank();
     }
@@ -132,6 +143,18 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         vm.deal(keeper, 5 ether);
         vm.deal(governor, 5 ether);
         vm.deal(address(router), 5 ether);
+
+        // Mint protocol tokens to keeper and user
+        protocolFeeToken.mint(keeper, 10000e18);
+        protocolFeeToken.mint(user, 10000e18);
+
+        // Approve adapter to spend protocol tokens from keeper
+        vm.prank(keeper);
+        protocolFeeToken.approve(address(layerZeroAdapter), type(uint256).max);
+
+        // Approve adapter to spend protocol tokens from user
+        vm.prank(user);
+        protocolFeeToken.approve(address(layerZeroAdapter), type(uint256).max);
     }
 
     // Helper function to check layerZeroAdapter configuration
