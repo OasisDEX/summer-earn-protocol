@@ -367,11 +367,6 @@ contract StargateAdapter is
             payInToken
         );
 
-        // If paying in protocol token, validate that provided amount matches required amount
-        if (payInToken && options.feeTokenAmount != msgFee.lzTokenFee) {
-            revert InsufficientFee(msgFee.lzTokenFee, options.feeTokenAmount);
-        }
-
         return (msgFee.nativeFee, msgFee.lzTokenFee);
     }
 
