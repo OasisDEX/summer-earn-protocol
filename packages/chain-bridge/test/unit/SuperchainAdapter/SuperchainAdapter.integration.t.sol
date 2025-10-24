@@ -55,20 +55,20 @@ contract SuperchainAdapterIntegrationTest is SuperchainAdapterSetupTest {
 
         // Expect events from transfer
         vm.expectEmit(true, true, true, true);
+        emit ERC20Sent(
+            address(tokenA),
+            EXTERNAL_ID_B,
+            address(adapterB),
+            transferAmount
+        );
+
+        vm.expectEmit(true, true, true, true);
         emit TransferInitiated(
             operationId,
             CHAIN_ID_B,
             address(tokenA),
             transferAmount,
             recipient
-        );
-
-        vm.expectEmit(true, true, true, true);
-        emit ERC20Sent(
-            address(tokenA),
-            EXTERNAL_ID_B,
-            address(adapterB),
-            transferAmount
         );
 
         // Execute transfer
@@ -104,14 +104,13 @@ contract SuperchainAdapterIntegrationTest is SuperchainAdapterSetupTest {
         // Mint tokens to adapter (simulating tokens received from Superchain bridge)
         tokenB.mint(address(adapterB), transferAmount);
 
-        // Mock the router deliver call
-        vm.mockCall(
+        // Expect router.deliver to be called
+        vm.expectCall(
             address(routerB),
             abi.encodeCall(
                 IBridgeRouter.deliver,
                 (BridgeTypes.OperationType.TRANSFER_ASSET, relayMessage)
-            ),
-            abi.encode()
+            )
         );
 
         // Execute relay
@@ -121,15 +120,6 @@ contract SuperchainAdapterIntegrationTest is SuperchainAdapterSetupTest {
         // Verify final state on Chain B
         assertEq(tokenB.balanceOf(address(routerB)), transferAmount);
         assertEq(tokenB.balanceOf(address(adapterB)), 0);
-
-        // Verify router.deliver was called
-        vm.expectCall(
-            address(routerB),
-            abi.encodeCall(
-                IBridgeRouter.deliver,
-                (BridgeTypes.OperationType.TRANSFER_ASSET, relayMessage)
-            )
-        );
     }
 
     function testCrossChainRegistryIntegration() public {

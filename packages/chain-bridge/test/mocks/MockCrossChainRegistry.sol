@@ -128,12 +128,13 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
     }
 
     function isValidAdapterPeer(
-        address,
-        address,
-        uint16,
-        uint16
-    ) external pure returns (bool) {
-        return false;
+        address srcAdapter,
+        address dstAdapter,
+        uint16 srcChain,
+        uint16 /* dstChain */
+    ) external view returns (bool) {
+        // Check if the source adapter is registered as a peer of the destination adapter for the given source chain
+        return _adapterPeers[dstAdapter][srcChain] == srcAdapter;
     }
 
     // Executor functions used by subject under test

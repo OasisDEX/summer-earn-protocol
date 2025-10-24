@@ -53,6 +53,15 @@ contract SuperchainAdapterTransferTest is SuperchainAdapterSetupTest {
             address(adapterA)
         );
 
+        // Expect ERC20Sent event from SuperchainTokenBridge
+        vm.expectEmit(true, true, true, true);
+        emit ERC20Sent(
+            address(tokenA),
+            EXTERNAL_ID_B,
+            address(adapterB), // destination adapter
+            transferAmount
+        );
+
         // Expect TransferInitiated event
         vm.expectEmit(true, true, true, true);
         emit TransferInitiated(
@@ -61,15 +70,6 @@ contract SuperchainAdapterTransferTest is SuperchainAdapterSetupTest {
             address(tokenA),
             transferAmount,
             recipient
-        );
-
-        // Expect ERC20Sent event from SuperchainTokenBridge
-        vm.expectEmit(true, true, true, true);
-        emit ERC20Sent(
-            address(tokenA),
-            EXTERNAL_ID_B,
-            address(adapterB), // destination adapter
-            transferAmount
         );
 
         // Execute transfer

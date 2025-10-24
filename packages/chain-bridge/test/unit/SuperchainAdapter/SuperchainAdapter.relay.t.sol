@@ -38,14 +38,13 @@ contract SuperchainAdapterRelayTest is SuperchainAdapterSetupTest {
         // Mint tokens to adapter (simulating tokens received from Superchain bridge)
         tokenB.mint(address(adapterB), transferAmount);
 
-        // Mock the router deliver call
-        vm.mockCall(
+        // Expect router.deliver to be called
+        vm.expectCall(
             address(routerB),
             abi.encodeCall(
                 IBridgeRouter.deliver,
                 (BridgeTypes.OperationType.TRANSFER_ASSET, message)
-            ),
-            abi.encode()
+            )
         );
 
         // Execute relay
@@ -55,15 +54,6 @@ contract SuperchainAdapterRelayTest is SuperchainAdapterSetupTest {
         // Verify tokens were transferred to router
         assertEq(tokenB.balanceOf(address(routerB)), transferAmount);
         assertEq(tokenB.balanceOf(address(adapterB)), 0);
-
-        // Verify router.deliver was called
-        vm.expectCall(
-            address(routerB),
-            abi.encodeCall(
-                IBridgeRouter.deliver,
-                (BridgeTypes.OperationType.TRANSFER_ASSET, message)
-            )
-        );
     }
 
     function testRelayMessage_RevertWhenUnauthorizedCaller() public {
@@ -259,21 +249,7 @@ contract SuperchainAdapterRelayTest is SuperchainAdapterSetupTest {
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), transferAmount);
 
-        // Mock the router deliver call
-        vm.mockCall(
-            address(routerB),
-            abi.encodeCall(
-                IBridgeRouter.deliver,
-                (BridgeTypes.OperationType.TRANSFER_ASSET, message)
-            ),
-            abi.encode()
-        );
-
-        // Execute relay
-        vm.prank(address(l2ToL2MessengerB));
-        adapterB.relayMessage(message);
-
-        // Verify the message was properly decoded and passed to router
+        // Expect router.deliver to be called
         vm.expectCall(
             address(routerB),
             abi.encodeCall(
@@ -281,6 +257,10 @@ contract SuperchainAdapterRelayTest is SuperchainAdapterSetupTest {
                 (BridgeTypes.OperationType.TRANSFER_ASSET, message)
             )
         );
+
+        // Execute relay
+        vm.prank(address(l2ToL2MessengerB));
+        adapterB.relayMessage(message);
     }
 
     function testRelayMessage_MultipleRelays() public {
