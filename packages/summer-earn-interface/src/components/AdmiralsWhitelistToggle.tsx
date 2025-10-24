@@ -66,3 +66,4 @@ export function AdmiralsWhitelistToggle({ admiralsQuarters }: AdmiralsWhitelistT
     </div>
   )
 }
+

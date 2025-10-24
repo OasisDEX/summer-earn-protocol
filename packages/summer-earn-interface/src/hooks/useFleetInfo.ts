@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAccount } from 'wagmi'
 import { FleetCommanderInfo, UserFleetInfo } from '../types'
 
@@ -11,6 +11,7 @@ interface UseFleetInfoProps {
 
 export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
   const { address: userAddress, isConnected } = useAccount()
+  const queryClient = useQueryClient()
 
   const query = useQuery({
     queryKey: ['fleetInfo', chainId, address, isConnected ? userAddress : undefined],
@@ -47,10 +48,17 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
     refetchOnWindowFocus: false,
   })
 
+  const refetch = () => {
+    queryClient.invalidateQueries({
+      queryKey: ['fleetInfo', chainId, address, isConnected ? userAddress : undefined],
+    })
+  }
+
   return {
     fleetInfo: query.data?.fleet ?? null,
     userInfo: query.data?.user ?? null,
     loading: query.isLoading,
     error: (query.error as Error) ?? null,
+    refetch,
   }
 }

@@ -44,19 +44,29 @@ export default function FleetDetail() {
     userInfo,
     loading: fleetLoading,
     error: fleetError,
+    refetch: refetchFleetInfo,
   } = useFleetInfo({ address, chainId: selectedChain })
   const { arks, loading: arksLoading } = useFleetArks({
     fleetAddress: address,
     chainId: selectedChain,
   })
 
-  const { approve, deposit, withdraw, isApproveLoading, isDepositLoading, isWithdrawLoading } =
-    useFleetActions({
-      fleetAddress: address,
-      assetAddress: (fleetInfo?.asset as `0x${string}`) || '0x',
-      assetDecimals: assetInfo.decimals,
-      chainId: selectedChain,
-    })
+  const {
+    approve,
+    deposit,
+    withdraw,
+    isApproveLoading,
+    isDepositLoading,
+    isWithdrawLoading,
+    isApproveSuccess,
+    isDepositSuccess,
+    isWithdrawSuccess,
+  } = useFleetActions({
+    fleetAddress: address,
+    assetAddress: (fleetInfo?.asset as `0x${string}`) || '0x',
+    assetDecimals: assetInfo.decimals,
+    chainId: selectedChain,
+  })
 
   // Calculate if approval is needed
   const needsApproval = (amount: string) => {
@@ -133,6 +143,13 @@ export default function FleetDetail() {
       })
     }
   }, [fleetInfo])
+
+  // Refetch fleet info after successful transactions to update allowance/balances
+  useEffect(() => {
+    if (isApproveSuccess || isDepositSuccess || isWithdrawSuccess) {
+      refetchFleetInfo()
+    }
+  }, [isApproveSuccess, isDepositSuccess, isWithdrawSuccess, refetchFleetInfo])
 
   const isLoading = fleetLoading
 
