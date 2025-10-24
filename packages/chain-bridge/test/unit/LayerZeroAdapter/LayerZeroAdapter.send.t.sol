@@ -2,12 +2,14 @@
 pragma solidity 0.8.28;
 
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {MockCrossChainReceiver} from "../../mocks/MockCrossChainReceiver.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {ICrossChainConfigManaged} from "../../../src/interfaces/ICrossChainConfigManaged.sol";
+import {console} from "forge-std/Test.sol";
 
 contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
     using OptionsBuilder for bytes;
@@ -54,7 +56,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             )
         );
 
-        vm.deal(address(routerA), 1 ether);
+        vm.deal(address(routerA), 3 ether);
 
         // Expect the MessageInitiated event to be emitted
         vm.expectEmit(true, true, true, true);
@@ -69,7 +71,8 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
                 originator: address(user),
                 refundAddress: address(user)
             });
-        adapterA.sendMessage{value: 0.1 ether}(
+        // Provide sufficient value for LayerZero fee (msgValue = 0 in this case)
+        adapterA.sendMessage{value: 3 ether}(
             operationId, // Use proper operation ID
             params,
             options
@@ -206,7 +209,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             specifiedAdapter: address(adapterA),
             gasLimit: 500000,
             calldataSize: 0,
-            msgValue: 0.5 ether,
+            msgValue: 0.01 ether,
             options: bytes(""),
             payInProtocolToken: false,
             feeTokenAmount: 0
@@ -214,15 +217,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
 
         // Generate a fake operation ID
         bytes32 operationId = keccak256(abi.encode("fake-operation"));
-
-        // Should revert with InsufficientMsgValue since we only provide 0.1 ether
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBridgeAdapter.InsufficientMsgValue.selector,
-                uint128(0.5 ether),
-                0.1 ether
-            )
-        );
 
         BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
             .ExecuteSendMessageParams({
@@ -234,7 +228,21 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
                 originator: address(user),
                 refundAddress: address(user)
             });
-        adapterA.sendMessage{value: 0.1 ether}(
+
+        // Should revert with InsufficientMsgValue since we provide 0.005 ether but need fee + 0.01 ether
+        // The exact fee amount will be quoted by LayerZero, so we expect InsufficientMsgValue
+        // We need to calculate the actual required amount (fee + msgValue)
+        (uint256 nativeFee, ) = adapterA.estimateSendMessage(params, options);
+        uint256 totalRequired = nativeFee + options.msgValue;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBridgeAdapter.InsufficientMsgValue.selector,
+                totalRequired, // Actual required amount (fee + msgValue)
+                0.005 ether // msg.value provided
+            )
+        );
+        adapterA.sendMessage{value: 0.005 ether}(
             operationId, // Use proper operation ID
             params,
             options

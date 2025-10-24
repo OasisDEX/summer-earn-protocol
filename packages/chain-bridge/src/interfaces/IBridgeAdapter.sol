@@ -26,7 +26,7 @@ interface IBridgeAdapter {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Thrown when insufficient msg.value is provided for the specified msgValue
-    error InsufficientMsgValue(uint128 required, uint256 provided);
+    error InsufficientMsgValue(uint256 required, uint256 provided);
 
     /// @notice Thrown when a chain is not supported
     error UnsupportedChain();

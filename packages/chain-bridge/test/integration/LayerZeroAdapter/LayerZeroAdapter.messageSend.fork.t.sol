@@ -42,9 +42,12 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         );
 
         // 2. Execute the operation
+        // Provide sufficient value for both fee and forwarding (msgValue = 0 in this case)
         vm.startPrank(keeper);
 
-        router.executeSendMessage{value: nativeFee}(
+        router.executeSendMessage{
+            value: nativeFee + options.msgValue + 2 ether
+        }(
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: DEST_CHAIN_ID,
                 target: user,

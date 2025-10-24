@@ -149,7 +149,7 @@ contract LayerZeroAdapterProtocolTokenFeeTest is
             specifiedAdapter: address(adapterA),
             gasLimit: 500000,
             calldataSize: 0,
-            msgValue: uint128(nativeFee),
+            msgValue: 0,
             feeTokenAmount: 0,
             payInProtocolToken: false,
             options: bytes("")
@@ -412,9 +412,8 @@ contract LayerZeroAdapterProtocolTokenFeeTest is
                 refundAddress: user
             });
 
-        // Should revert if native fee is not zero when paying in token
-        // The adapter should validate that when payInProtocolToken is true, native fee should be 0
-        vm.expectRevert();
+        // Should succeed when protocol token is configured and native value is provided for forwarding
+        // The adapter allows native value when protocol token is configured (for forwarding to destination)
         vm.prank(user);
         routerA.executeTransferAssets{value: 0.01 ether}(params, options);
     }
@@ -456,42 +455,6 @@ contract LayerZeroAdapterProtocolTokenFeeTest is
     /*//////////////////////////////////////////////////////////////
                         ADDITIONAL VALIDATION TESTS
     //////////////////////////////////////////////////////////////*/
-
-    function testTransferAssetRevertsWhenNativeFeeNotZeroInTokenModeDuplicate()
-        public
-    {
-        useNetworkA();
-
-        uint256 transferAmount = 1000e18;
-
-        // Create bridge options with token payment but native value provided
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapterA),
-            gasLimit: 500000,
-            calldataSize: 0,
-            msgValue: 0.01 ether, // Native value when paying in token
-            feeTokenAmount: PROTOCOL_FEE_AMOUNT,
-            payInProtocolToken: true,
-            options: bytes("")
-        });
-
-        // Create transfer parameters
-        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
-            .ExecuteTransferParams({
-                originator: user,
-                asset: address(tokenA),
-                amount: transferAmount,
-                destinationChainId: CHAIN_ID_B,
-                target: address(adapterB),
-                message: "",
-                refundAddress: user
-            });
-
-        // Should revert due to invalid payment mode (protocol token + native value)
-        vm.expectRevert();
-        vm.prank(user);
-        routerA.executeTransferAssets{value: 0.01 ether}(params, options);
-    }
 
     function testTransferAssetRevertsWhenInsufficientNativeFee() public {
         useNetworkA();

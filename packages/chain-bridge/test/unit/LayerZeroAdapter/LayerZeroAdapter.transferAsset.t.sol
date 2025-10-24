@@ -56,6 +56,9 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
 
         vm.startPrank(address(routerA));
 
+        // Approve adapter to spend router's tokens
+        testToken.approve(address(adapterA), 1000e18);
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(adapterA),
             gasLimit: 500000,
@@ -63,7 +66,7 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
             msgValue: 0.1 ether, // Native value provided
             options: bytes(""),
             payInProtocolToken: true, // Protocol token payment requested
-            feeTokenAmount: 1000
+            feeTokenAmount: 0
         });
 
         // Prepare transfer params
@@ -78,12 +81,8 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
                 refundAddress: user
             });
 
-        // Should revert due to invalid payment mode (protocol token + native value)
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBaseBridgeAdapterErrors.InvalidParams.selector
-            )
-        );
+        // Should succeed when protocol token is configured and native value is provided for forwarding
+        // The adapter allows native value when protocol token is configured (for forwarding to destination)
         adapterA.transferAsset{value: 0.1 ether}(
             bytes32(uint256(1)),
             params,
@@ -151,7 +150,7 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
             specifiedAdapter: address(adapterA),
             gasLimit: 500000,
             calldataSize: 0,
-            msgValue: 0.1 ether,
+            msgValue: 0,
             options: bytes(""),
             payInProtocolToken: false,
             feeTokenAmount: 0
@@ -343,7 +342,7 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
             specifiedAdapter: address(adapterA),
             gasLimit: 500000,
             calldataSize: 0,
-            msgValue: 0.1 ether,
+            msgValue: 0,
             options: bytes(""),
             payInProtocolToken: false,
             feeTokenAmount: 0
@@ -397,7 +396,7 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
             specifiedAdapter: address(adapterA),
             gasLimit: 500000,
             calldataSize: 0,
-            msgValue: 0.1 ether,
+            msgValue: 0,
             options: bytes(""),
             payInProtocolToken: false,
             feeTokenAmount: 0

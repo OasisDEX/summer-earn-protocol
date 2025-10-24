@@ -238,29 +238,19 @@ contract LayerZeroAdapter is
             options
         );
 
-        // 2. Validate payment mode consistency (MOVED UP)
-        // Only reject if protocol token payment is requested AND protocol token is set AND native value is provided
-        if (
-            options.payInProtocolToken &&
-            protocolFeeToken != address(0) &&
-            options.msgValue != 0
-        ) {
-            revert InvalidParams();
-        }
-
-        // 3. Pull tokens
+        // 2. Pull tokens
         IERC20(params.asset).safeTransferFrom(
             msg.sender,
             address(this),
             params.amount
         );
 
-        // 4. Approve OFT (only needed for adapter pattern where asset != oft)
+        // 3. Approve OFT (only needed for adapter pattern where asset != oft)
         if (params.asset != oft) {
             IERC20(params.asset).forceApprove(oft, params.amount);
         }
 
-        // 5. Handle payment based on fee type
+        // 4. Handle payment based on fee type
         if (options.payInProtocolToken) {
             _handleOFTProtocolTokenPayment(
                 operationId,
@@ -270,7 +260,7 @@ contract LayerZeroAdapter is
                 options
             );
         } else {
-            _handleOFTNativePayment(params, oft, sendParam);
+            _handleOFTNativePayment(params, oft, sendParam, options);
         }
 
         // 5. Emit event
@@ -351,11 +341,6 @@ contract LayerZeroAdapter is
         // Cache LayerZero EID to avoid redundant storage reads
         uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
 
-        // Validate fee requirements
-        if (options.msgValue > 0 && msg.value < options.msgValue) {
-            revert InsufficientMsgValue(options.msgValue, msg.value);
-        }
-
         // Create payload using BridgeMessagingHelper
         bytes memory payload = _createMessagePayload(
             BridgeMessagingHelper.createRelayedMessageParams(
@@ -381,7 +366,8 @@ contract LayerZeroAdapter is
                 lzDstEid,
                 payload,
                 lzOptions,
-                params.refundAddress
+                params.refundAddress,
+                options
             );
         }
 
@@ -486,6 +472,21 @@ contract LayerZeroAdapter is
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Validates that msg.value meets the required amount
+     * @param required The minimum required msg.value
+     * @param provided The actual msg.value provided
+     * @custom:throws InsufficientMsgValue if provided < required
+     */
+    function _validateMsgValue(
+        uint256 required,
+        uint256 provided
+    ) internal pure {
+        if (provided < required) {
+            revert InsufficientMsgValue(required, provided);
+        }
+    }
 
     /**
      * @notice Resolves OFT contract for a given asset
@@ -679,14 +680,25 @@ contract LayerZeroAdapter is
      * @param payload The encoded message payload
      * @param lzOptions LayerZero options for the message
      * @param refundAddress Address to receive any refunds
+     * @param options Bridge options containing msgValue for forwarding
      * @return receipt MessagingReceipt from LayerZero
      */
     function _handleNativePayment(
         uint32 lzDstEid,
         bytes memory payload,
         bytes memory lzOptions,
-        address refundAddress
+        address refundAddress,
+        BridgeTypes.BridgeOptions calldata options
     ) internal returns (MessagingReceipt memory) {
+        // Quote the LayerZero fee first
+        EndpointFee memory quoted = _quote(lzDstEid, payload, lzOptions, false);
+
+        // Validate that msg.value is sufficient for both the fee and forwarding
+        uint256 totalRequired = quoted.nativeFee + options.msgValue;
+        _validateMsgValue(totalRequired, msg.value);
+
+        // Let LayerZero endpoint handle refunds directly - it will use what it needs
+        // and refund any excess to the specified refundAddress
         return
             _lzSend(
                 lzDstEid,
@@ -724,6 +736,9 @@ contract LayerZeroAdapter is
             revert InsufficientFee(0, fee.nativeFee);
         }
 
+        // Validate that msg.value is sufficient for the operation
+        _validateMsgValue(options.msgValue, msg.value);
+
         uint256 tokenFeeRequired = fee.lzTokenFee;
 
         // Validate that user-provided fee amount matches quoted fee
@@ -741,15 +756,18 @@ contract LayerZeroAdapter is
         // Ensure sufficient allowance for the OFT contract
         _ensureSufficientAllowance(tokenFeeRequired, oft);
 
-        // Send with token payment (no native value required)
-        IOFT(oft).send{value: 0}(
+        // Send with token payment, forwarding msgValue if specified
+        IOFT(oft).send{value: options.msgValue}(
             sendParam,
-            MessagingFee(0, tokenFeeRequired),
+            EndpointFee(options.msgValue, tokenFeeRequired),
             params.refundAddress
         );
 
-        // Refund any provided native value fully (since nativeFee == 0)
-        _refundNative(params.refundAddress, msg.value);
+        // Refund any excess native value (msg.value - options.msgValue)
+        if (msg.value > options.msgValue) {
+            uint256 excess = msg.value - options.msgValue;
+            _refundNative(params.refundAddress, excess);
+        }
 
         // Emit protocol fee spent event
         emit ProtocolFeeSpent(operationId, protocolFeeToken, tokenFeeRequired);
@@ -757,34 +775,36 @@ contract LayerZeroAdapter is
 
     /**
      * @notice Handles native fee payment flow for OFT transfers
-     * @dev This function manages the native token payment process for OFT transfers
+     * @dev This function manages the native token payment process for OFT transfers,
+     *      including forwarding additional native value to the destination chain
      * @param params ExecuteTransferParams from the bridge operation
      * @param oft The OFT contract address
      * @param sendParam Prepared send parameters for OFT
+     * @param options Bridge options containing msgValue for destination forwarding
      */
     function _handleOFTNativePayment(
         BridgeTypes.ExecuteTransferParams calldata params,
         address oft,
-        SendParam memory sendParam
+        SendParam memory sendParam,
+        BridgeTypes.BridgeOptions calldata options
     ) internal {
         // Quote with native payment
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
 
-        // Validate sufficient native fee
-        if (msg.value < fee.nativeFee) {
-            revert InsufficientFee(fee.nativeFee, msg.value);
-        }
+        // Validate sufficient native value for both fee and msgValue forwarding
+        uint256 totalRequired = fee.nativeFee + options.msgValue;
+        _validateMsgValue(totalRequired, msg.value);
 
         // Send with native payment
-        IOFT(oft).send{value: fee.nativeFee}(
+        IOFT(oft).send{value: totalRequired}(
             sendParam,
             fee,
             params.refundAddress
         );
 
         // Refund excess native value
-        if (msg.value > fee.nativeFee) {
-            uint256 excess = msg.value - fee.nativeFee;
+        if (msg.value > totalRequired) {
+            uint256 excess = msg.value - totalRequired;
             _refundNative(params.refundAddress, excess);
         }
     }
