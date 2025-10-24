@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {Bps} from "../../../src/helpers/Bps.sol";
 
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
@@ -80,7 +81,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
 
         // Should revert when estimating fee for unsupported asset
         vm.expectRevert(
-            abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.UnsupportedAsset.selector
+            )
         );
         adapterA.estimateTransferAssets(
             BridgeTypes.ExecuteTransferParams({
@@ -271,7 +274,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
         // Should revert when transferring unsupported asset
         vm.startPrank(address(routerA));
         vm.expectRevert(
-            abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.UnsupportedAsset.selector
+            )
         );
         BridgeTypes.ExecuteTransferParams
             memory params = buildExecuteTransferParams(

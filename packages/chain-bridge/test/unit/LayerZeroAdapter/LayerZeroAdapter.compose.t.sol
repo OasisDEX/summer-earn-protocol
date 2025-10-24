@@ -143,7 +143,7 @@ contract LayerZeroAdapterComposeTest is LayerZeroAdapterSetupTest {
 
         // Should revert when asset has no OFT mapping
         vm.prank(lzEndpointB);
-        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.UnsupportedAsset.selector);
         adapterB.lzCompose(
             address(mockOFT),
             bytes32("test-guid"),

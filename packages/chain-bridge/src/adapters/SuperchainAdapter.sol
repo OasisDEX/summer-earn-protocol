@@ -71,8 +71,7 @@ contract SuperchainAdapter is BaseBridgeAdapter, IAssetAdapter, IBridgeAdapter {
         onlyTrustedDestination(params.destinationChainId)
         onlyRouter
     {
-        if (!supportedAssets[params.asset])
-            revert IBridgeAdapter.UnsupportedAsset();
+        if (!supportedAssets[params.asset]) revert UnsupportedAsset();
         if (params.amount == 0) revert IBaseBridgeAdapterErrors.InvalidAmount();
 
         // Pull tokens from router
@@ -122,8 +121,7 @@ contract SuperchainAdapter is BaseBridgeAdapter, IAssetAdapter, IBridgeAdapter {
         BridgeTypes.ExecuteTransferParams calldata params,
         BridgeTypes.BridgeOptions calldata /*options*/
     ) external view returns (uint256, uint256) {
-        if (!supportedAssets[params.asset])
-            revert IBridgeAdapter.UnsupportedAsset();
+        if (!supportedAssets[params.asset]) revert UnsupportedAsset();
         if (params.amount == 0) revert IBaseBridgeAdapterErrors.InvalidAmount();
         if (!_hasTrustedDestination(params.destinationChainId)) {
             revert IBaseBridgeAdapterErrors.UntrustedDestinationChain(
@@ -192,8 +190,7 @@ contract SuperchainAdapter is BaseBridgeAdapter, IAssetAdapter, IBridgeAdapter {
         );
 
         // Validate asset is supported
-        if (!supportedAssets[params.asset])
-            revert IBridgeAdapter.UnsupportedAsset();
+        if (!supportedAssets[params.asset]) revert UnsupportedAsset();
         if (params.amount == 0) revert IBaseBridgeAdapterErrors.InvalidAmount();
 
         // Transfer tokens to router

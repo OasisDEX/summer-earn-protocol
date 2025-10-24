@@ -16,6 +16,9 @@ interface IBaseBridgeAdapterErrors {
     /// @notice Error thrown when the amount is invalid
     error InvalidAmount();
 
+    /// @notice Thrown when an asset is not supported by the adapter
+    error UnsupportedAsset();
+
     /// @notice Error thrown when the source chain ID is invalid
     error InvalidSourceChainId();
 

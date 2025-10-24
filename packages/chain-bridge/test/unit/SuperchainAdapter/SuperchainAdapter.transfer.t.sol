@@ -152,7 +152,9 @@ contract SuperchainAdapterTransferTest is SuperchainAdapterSetupTest {
         // Should revert when transferring unsupported asset
         vm.prank(address(routerA));
         vm.expectRevert(
-            abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.UnsupportedAsset.selector
+            )
         );
         adapterA.transferAsset(operationId, params, options);
     }

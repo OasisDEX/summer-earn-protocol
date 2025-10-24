@@ -37,9 +37,6 @@ interface IBridgeAdapter {
     /// @notice Thrown when insufficient fee is provided for an operation
     error InsufficientFee(uint256 required, uint256 provided);
 
-    /// @notice Thrown when an asset is not supported by the adapter
-    error UnsupportedAsset();
-
     /// @notice Thrown when an unsupported message type is received
     error UnsupportedMessageType();
 

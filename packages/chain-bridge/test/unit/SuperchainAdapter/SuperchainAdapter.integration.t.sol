@@ -383,7 +383,7 @@ contract SuperchainAdapterIntegrationTest is SuperchainAdapterSetupTest {
 
         vm.prank(address(routerA));
         vm.expectRevert(
-            abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
+            abi.encodeWithSelector(IBaseBridgeAdapterErrors.UnsupportedAsset.selector)
         );
         adapterA.transferAsset(keccak256("test"), params, options);
 

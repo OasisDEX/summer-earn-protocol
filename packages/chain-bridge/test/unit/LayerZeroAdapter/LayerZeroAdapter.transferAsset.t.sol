@@ -5,6 +5,7 @@ import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
+import {IProtocolFeeTokenHandlerErrors} from "../../../src/interfaces/IProtocolFeeTokenHandlerErrors.sol";
 import {ICrossChainConfigManaged} from "../../../src/interfaces/ICrossChainConfigManaged.sol";
 import {MockOFT} from "../../mocks/MockOFT.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -88,6 +89,54 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
             params,
             options
         );
+
+        vm.stopPrank();
+    }
+
+    function testTransferAssetRevertsProtocolTokenNotConfigured() public {
+        useNetworkA();
+
+        // Ensure protocol fee token is NOT set by explicitly clearing it
+        vm.startPrank(governor);
+        adapterA.setProtocolFeeToken(address(0)); // Clear any previously set protocol fee token
+        vm.stopPrank();
+
+        vm.deal(address(routerA), 1 ether);
+        vm.startPrank(address(routerA));
+
+        // Approve adapter to spend router's tokens
+        testToken.approve(address(adapterA), 1000e18);
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: bytes(""),
+            payInProtocolToken: true, // Request protocol token payment
+            feeTokenAmount: 0 // MockOFT returns 0 fee
+        });
+
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                originator: user,
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                asset: address(testToken),
+                amount: 1000e18,
+                message: bytes(""),
+                refundAddress: user
+            });
+
+        // Should revert with ProtocolTokenNotConfigured
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProtocolFeeTokenHandlerErrors
+                    .ProtocolTokenNotConfigured
+                    .selector
+            )
+        );
+        adapterA.transferAsset(bytes32(uint256(1)), params, options);
 
         vm.stopPrank();
     }
@@ -211,7 +260,9 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
 
         // Should revert due to unsupported asset
         vm.expectRevert(
-            abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.UnsupportedAsset.selector
+            )
         );
         adapterA.transferAsset{value: 0.1 ether}(
             bytes32(uint256(1)),
@@ -253,7 +304,7 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
         // Should revert due to zero amount
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBaseBridgeAdapterErrors.InvalidParams.selector
+                IBaseBridgeAdapterErrors.InvalidAmount.selector
             )
         );
         adapterA.transferAsset{value: 0.1 ether}(
@@ -538,7 +589,9 @@ contract LayerZeroAdapterTransferAssetTest is LayerZeroAdapterSetupTest {
 
         // Should revert due to unsupported asset
         vm.expectRevert(
-            abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.UnsupportedAsset.selector
+            )
         );
         adapterA.estimateTransferAssets(params, options);
     }

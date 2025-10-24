@@ -228,6 +228,9 @@ contract LayerZeroAdapter is
         onlyRouter
         nonReentrant
     {
+        // Validate amount is not zero
+        if (params.amount == 0) revert InvalidAmount();
+
         // 1. Prepare OFT transfer parameters
         (address oft, SendParam memory sendParam) = _prepareOFTTransfer(
             params,
@@ -258,7 +261,7 @@ contract LayerZeroAdapter is
         }
 
         // 5. Handle payment based on fee type
-        if (options.payInProtocolToken && protocolFeeToken != address(0)) {
+        if (options.payInProtocolToken) {
             _handleOFTProtocolTokenPayment(
                 operationId,
                 params,
@@ -485,18 +488,15 @@ contract LayerZeroAdapter is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Validates asset and amount, returns OFT contract
+     * @notice Resolves OFT contract for a given asset
      * @param asset The ERC20 token address
-     * @param amount The amount to transfer
      * @return oft The OFT contract address for this asset
      */
     function _resolveOFTForAsset(
-        address asset,
-        uint256 amount
+        address asset
     ) internal view returns (address oft) {
         oft = oftForToken[asset];
         if (oft == address(0)) revert UnsupportedAsset();
-        if (amount == 0) revert InvalidAmount();
     }
 
     /**
@@ -512,7 +512,7 @@ contract LayerZeroAdapter is
         bytes32 operationId,
         BridgeTypes.BridgeOptions calldata options
     ) internal view returns (address oft, SendParam memory sendParam) {
-        oft = _resolveOFTForAsset(params.asset, params.amount);
+        oft = _resolveOFTForAsset(params.asset);
         uint32 dstEid = _externalIdForChain(params.destinationChainId);
         address dstAdapter = _resolveAdapterPeer(params.destinationChainId);
 

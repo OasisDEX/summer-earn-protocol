@@ -162,7 +162,7 @@ contract SuperchainAdapterGeneralTest is SuperchainAdapterSetupTest {
         });
 
         vm.expectRevert(
-            abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
+            abi.encodeWithSelector(IBaseBridgeAdapterErrors.UnsupportedAsset.selector)
         );
         adapterA.estimateTransferAssets(params, options);
     }

@@ -5,6 +5,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
+import {IProtocolFeeTokenHandlerErrors} from "../../../src/interfaces/IProtocolFeeTokenHandlerErrors.sol";
 import {MockOFT} from "../../mocks/MockOFT.sol";
 import {LayerZeroAdapter} from "../../../src/adapters/LayerZeroAdapter.sol";
 import {LayerZeroAdapterTestHelper} from "../../helpers/LayerZeroAdapterTestHelper.sol";
@@ -217,16 +218,16 @@ contract LayerZeroAdapterProtocolTokenFeeTest is
                 refundAddress: user
             });
 
-        // Should fall back to native fee payment
+        // Should revert with ProtocolTokenNotConfigured when protocol token payment is requested but not configured
         vm.prank(user);
-        routerA.executeTransferAssets{value: nativeFee}(params, options);
-
-        // Verify test token was transferred
-        assertEq(
-            tokenA.balanceOf(user),
-            9000e18, // 10000 - 1000
-            "Test token should be transferred"
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProtocolFeeTokenHandlerErrors
+                    .ProtocolTokenNotConfigured
+                    .selector
+            )
         );
+        routerA.executeTransferAssets{value: nativeFee}(params, options);
     }
 
     /*//////////////////////////////////////////////////////////////

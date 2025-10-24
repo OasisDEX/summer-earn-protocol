@@ -126,7 +126,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
     function test_estimateTransferAssets_reverts_UnsupportedAsset() public {
         useNetworkA();
-        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
+        vm.expectRevert(IBaseBridgeAdapterErrors.UnsupportedAsset.selector);
         adapterA.estimateTransferAssets(
             BridgeTypes.ExecuteTransferParams({
                 originator: address(this),

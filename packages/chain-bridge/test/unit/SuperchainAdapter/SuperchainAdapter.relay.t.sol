@@ -185,7 +185,7 @@ contract SuperchainAdapterRelayTest is SuperchainAdapterSetupTest {
         // Should revert when asset is not supported
         vm.prank(address(l2ToL2MessengerB));
         vm.expectRevert(
-            abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
+            abi.encodeWithSelector(IBaseBridgeAdapterErrors.UnsupportedAsset.selector)
         );
         adapterB.relayMessage(message);
     }
