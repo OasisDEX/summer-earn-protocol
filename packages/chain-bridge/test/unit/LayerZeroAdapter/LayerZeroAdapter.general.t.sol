@@ -376,37 +376,4 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
         vm.stopPrank();
     }
-
-    function testSetOftForTokenSuccessDirectPatternNoTokenFunction() public {
-        useNetworkA();
-        vm.startPrank(governor);
-
-        // Create a mock OFT that will revert on token() call (simulating no token function)
-        MockOFT mockOFT = new MockOFT(
-            "Mock OFT",
-            "MOFT",
-            address(0xDEAD),
-            lzEndpointA
-        );
-
-        // Override the token() function to revert
-        vm.mockCallRevert(
-            address(mockOFT),
-            abi.encodeWithSelector(MockOFT.token.selector),
-            "No token function"
-        );
-
-        // For direct pattern with no token() function, token must equal oft
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBaseBridgeAdapterErrors.InvalidParams.selector
-            )
-        );
-        adapterA.setOftForToken(address(tokenA), address(mockOFT));
-
-        // This should succeed
-        adapterA.setOftForToken(address(mockOFT), address(mockOFT));
-
-        vm.stopPrank();
-    }
 }

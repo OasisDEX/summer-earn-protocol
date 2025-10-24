@@ -114,17 +114,11 @@ contract LayerZeroAdapter is
         if (token == address(0) || oft == address(0)) revert InvalidParams();
 
         // Validate OFT configuration - supports both adapter and direct patterns
+        // All IOFT implementations must have token() function
         // Adapter pattern: IOFT(oft).token() returns the underlying ERC20
-        // Direct pattern: IOFT(oft).token() returns oft itself, or may not exist
-        try IOFT(oft).token() returns (address t) {
-            // For adapter pattern: token must match the underlying asset
-            // For direct pattern: token must equal oft
-            if (t != token && t != oft) revert InvalidParams();
-        } catch {
-            // Direct OFT may not have token() function
-            // Verify it's a direct implementation by checking if token == oft
-            if (token != oft) revert InvalidParams();
-        }
+        // Direct pattern: IOFT(oft).token() returns oft itself
+        address t = IOFT(oft).token();
+        if (t != token && t != oft) revert InvalidParams();
 
         oftForToken[token] = oft;
         emit OftSet(token, oft);
@@ -502,7 +496,7 @@ contract LayerZeroAdapter is
     ) internal view returns (address oft) {
         oft = oftForToken[asset];
         if (oft == address(0)) revert UnsupportedAsset();
-        if (amount == 0) revert InvalidParams();
+        if (amount == 0) revert InvalidAmount();
     }
 
     /**
