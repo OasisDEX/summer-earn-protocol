@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
 
 /**
  * @title LayerZeroMessagingHelper
@@ -40,7 +40,7 @@ library LayerZeroMessagingHelper {
         uint256 msgValue
     ) internal pure {
         if (options.msgValue > 0 && msgValue < options.msgValue) {
-            revert IBridgeAdapter.InsufficientMsgValue(
+            revert IBaseBridgeAdapterErrors.InsufficientMsgValue(
                 options.msgValue,
                 msgValue
             );

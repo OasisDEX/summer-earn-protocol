@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {IBaseBridgeAdapterErrors} from "./IBaseBridgeAdapterErrors.sol";
 import {IBaseBridgeAdapterEvents} from "./IBaseBridgeAdapterEvents.sol";
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 /**
  * @title IBaseBridgeAdapter
@@ -16,8 +17,8 @@ import {IBaseBridgeAdapterEvents} from "./IBaseBridgeAdapterEvents.sol";
  *
  * This interface serves as the **Base Layer** in the three-tier bridge adapter architecture:
  *
- * 1. **Base Layer** (`IBaseBridgeAdapter`) - Error/event definitions ← **This interface**
- * 2. **Core Layer** (`IBridgeAdapter`) - Core bridge functionality
+ * 1. **Base Layer** (`IBaseBridgeAdapter`) - Error/event definitions + core methods ← **This interface**
+ * 2. **Core Layer** (`IBridgeAdapter`) - Marker interface for ERC165 support
  * 3. **Capability Layer** (`IAssetAdapter`/`IMessageAdapter`) - Specific capabilities
  *
  * ## Usage
@@ -29,6 +30,13 @@ interface IBaseBridgeAdapter is
     IBaseBridgeAdapterErrors,
     IBaseBridgeAdapterEvents
 {
-    // This interface serves as a consolidation point for base functionality
-    // All methods are inherited from the extended interfaces
+    /**
+     * @notice Check if an adapter supports a specific operation type
+     * @param operationType Type of operation to check support for
+     * @return Whether the adapter supports the operation type
+     * @dev This method should check both asset and message capabilities based on operationType
+     */
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) external view returns (bool);
 }

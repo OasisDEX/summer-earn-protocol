@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {IStargateAdapter} from "../interfaces/IStargateAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
@@ -25,11 +24,10 @@ import {LayerZeroComposeHelper} from "../helpers/LayerZeroComposeHelper.sol";
 /**
  * @title StargateAdapter
  * @notice Adapter for Stargate V2 Protocol - all V2 contracts are OFT-enabled
- * @dev Implements IAssetAdapter and IBridgeAdapter interfaces and connects to Stargate V2 for efficient cross-chain transfers
+ * @dev Implements IAssetAdapter interface and connects to Stargate V2 for efficient cross-chain transfers
  */
 contract StargateAdapter is
     IAssetAdapter,
-    IBridgeAdapter,
     IStargateAdapter,
     ILayerZeroComposer,
     BaseBridgeAdapter
@@ -373,13 +371,6 @@ contract StargateAdapter is
         }
 
         return (msgFee.nativeFee, msgFee.lzTokenFee);
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsOperation(
-        BridgeTypes.OperationType operationType
-    ) external pure override returns (bool) {
-        return _supportsOperation(operationType);
     }
 
     /**

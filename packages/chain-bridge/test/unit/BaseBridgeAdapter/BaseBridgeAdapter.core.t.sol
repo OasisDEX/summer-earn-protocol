@@ -7,7 +7,7 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 
 import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
 import {CrossChainRegistry} from "../../../src/contracts/CrossChainRegistry.sol";
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapter} from "../../../src/interfaces/IBaseBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {BridgeMessagingHelper} from "../../../src/libraries/BridgeMessagingHelper.sol";
@@ -131,7 +131,7 @@ contract BaseBridgeAdapterCoreTest is Test {
     // -------- supportsInterface --------
     function testSupportsInterface() public view {
         assertTrue(
-            adapterA.supportsInterface(type(IBridgeAdapter).interfaceId)
+            adapterA.supportsInterface(type(IBaseBridgeAdapter).interfaceId)
         );
         assertTrue(adapterA.supportsInterface(type(IERC165).interfaceId));
     }
@@ -176,13 +176,17 @@ contract BaseBridgeAdapterCoreTest is Test {
 
         // Forward resolution should now revert with UnsupportedChain
         vm.expectRevert(
-            abi.encodeWithSelector(IBridgeAdapter.UnsupportedChain.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.UnsupportedChain.selector
+            )
         );
         adapterA.exposedExternalIdForChain(chainId);
 
         // Reverse resolution should also revert
         vm.expectRevert(
-            abi.encodeWithSelector(IBridgeAdapter.UnsupportedChain.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.UnsupportedChain.selector
+            )
         );
         adapterA.exposedChainIdFromExternalId(eid);
     }

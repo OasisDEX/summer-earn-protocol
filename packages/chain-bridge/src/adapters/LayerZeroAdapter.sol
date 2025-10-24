@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {LayerZeroMessagingHelper} from "../helpers/LayerZeroMessagingHelper.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {ILayerZeroAdapter} from "../interfaces/ILayerZeroAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
@@ -22,12 +21,11 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
- * @dev Implements IMessageAdapter and IBridgeAdapter interfaces and connects to LayerZero's messaging service using OApp standard
+ * @dev Implements IMessageAdapter interface and connects to LayerZero's messaging service using OApp standard
  */
 contract LayerZeroAdapter is
     OApp,
     IMessageAdapter,
-    IBridgeAdapter,
     ILayerZeroAdapter,
     BaseBridgeAdapter
 {
@@ -261,13 +259,6 @@ contract LayerZeroAdapter is
     /*//////////////////////////////////////////////////////////////
                         PUBLIC INTERFACE
     //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsOperation(
-        BridgeTypes.OperationType operationType
-    ) public pure override returns (bool) {
-        return _supportsOperation(operationType);
-    }
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS

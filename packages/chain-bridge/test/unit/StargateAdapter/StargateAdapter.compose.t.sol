@@ -6,7 +6,6 @@ import {MockStargateV2Pool} from "../../mocks/MockStargateV2.sol";
 import {StargateOFTHelpers} from "../../helpers/StargateOFT.t.sol";
 import {MockFleetProxy} from "../../mocks/MockFleetProxy.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {LayerZeroComposeHelper} from "../../../src/helpers/LayerZeroComposeHelper.sol";
@@ -90,7 +89,7 @@ contract StargateAdapterComposeTest is
         vm.prank(lzEndpointB);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBridgeAdapter.Untrusted.selector,
+                IBaseBridgeAdapterErrors.Untrusted.selector,
                 "Stargate pool",
                 address(0xBEEF),
                 address(0)

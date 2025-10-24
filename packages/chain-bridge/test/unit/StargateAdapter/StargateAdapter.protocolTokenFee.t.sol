@@ -5,7 +5,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {StargateAdapter} from "../../../src/adapters/StargateAdapter.sol";
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {BridgeOptionsTestHelper} from "../../helpers/BridgeOptionsTestHelper.sol";
 import {TransferHelpers} from "../../helpers/TransferHelpers.t.sol";
@@ -94,7 +94,7 @@ contract StargateAdapterProtocolTokenFeeTest is
         // Should revert with InsufficientFee error
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBridgeAdapter.InsufficientFee.selector,
+                IBaseBridgeAdapterErrors.InsufficientFee.selector,
                 PROTOCOL_FEE_AMOUNT, // required
                 PROTOCOL_FEE_AMOUNT + 1 // provided
             )
