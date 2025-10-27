@@ -1,4 +1,4 @@
-import { BaseConfig } from '../../../types/config-types'
+import { BaseConfig, NetworkConfigMap } from '../../../types/config-types'
 
 export interface ChainInfo {
   chainId: number
@@ -6,4 +6,4 @@ export interface ChainInfo {
 }
 
 // Re-export for convenience
-export type { BaseConfig }
+export type { BaseConfig, NetworkConfigMap }

@@ -68,6 +68,8 @@ export interface Config {
   [key: string]: BaseConfig
 }
 
+export type NetworkConfigMap = Record<string, BaseConfig>
+
 export enum Token {
   USDC = 'usdc',
   DAI = 'dai',

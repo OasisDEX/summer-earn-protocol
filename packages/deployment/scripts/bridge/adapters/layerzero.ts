@@ -18,7 +18,7 @@ import {
   waitForTransactionConfirmation,
   writeContractTx,
 } from './transaction-helpers'
-import { BaseConfig } from './types'
+import { BaseConfig, NetworkConfigMap } from './types'
 import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
 
 /**
@@ -26,7 +26,7 @@ import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClien
  */
 export async function deployLayerZeroAdapter(
   networkConfig: BaseConfig,
-  allNetworkConfigs?: Record<string, BaseConfig>,
+  allNetworkConfigs?: NetworkConfigMap,
 ): Promise<Address> {
   console.log(kleur.blue('Deploying LayerZero adapter using Ignition module'))
 
@@ -420,7 +420,7 @@ export async function configureLayerZeroAdapter(
  */
 export async function updateLayerZeroAdapterPeers(
   layerZeroAdapterAddress: Address,
-  allNetworkConfigs: Record<string, BaseConfig>,
+  allNetworkConfigs: NetworkConfigMap,
 ): Promise<void> {
   console.log(kleur.blue('Configuring LayerZero adapter peers'))
 
@@ -550,7 +550,7 @@ export async function configureLayerZeroAdapterPeersWithConfig(
   }
 
   // Load all network configurations
-  const allNetworkConfigs: Record<string, BaseConfig> = {}
+  const allNetworkConfigs: NetworkConfigMap = {}
 
   for (const network of supportedNetworks) {
     try {

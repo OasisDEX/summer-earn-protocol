@@ -3,6 +3,7 @@ import kleur from 'kleur'
 import { Address } from 'viem'
 import { getConfigByNetwork } from '../../lib/config/handler'
 import { promptForConfigType } from '../../lib/infrastructure/prompts'
+import { NetworkConfigMap } from '../../types/config-types'
 import { updateLayerZeroAdapterPeers } from '../bridge-adapters'
 
 /**
@@ -52,7 +53,7 @@ async function main() {
 
   // Load all network configurations
   const supportedNetworks = ['mainnet', 'base', 'arbitrum', 'sonic'] // Add more as needed
-  const allNetworkConfigs: Record<string, BaseConfig> = {}
+  const allNetworkConfigs: NetworkConfigMap = {}
 
   for (const networkName of supportedNetworks) {
     try {

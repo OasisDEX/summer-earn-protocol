@@ -4,14 +4,12 @@ import { CHAIN_CONFIG_MAP, RPC_URL_MAP, getChainConfigs } from '../../lib/chain/
 import { getChainNameById } from '../../lib/chain/helpers'
 import { isTenderlyVirtualTestnet } from '../../lib/infrastructure/tenderly'
 import { createClients } from '../../lib/infrastructure/wallet'
-import { BaseConfig, ChainInfo } from './types'
+import { BaseConfig, ChainInfo, NetworkConfigMap } from './types'
 
 /**
  * Helper function to get all supported chains with LayerZero endpoint IDs from config
  */
-export function getSupportedChainsFromConfig(
-  allNetworkConfigs?: Record<string, BaseConfig>,
-): ChainInfo[] {
+export function getSupportedChainsFromConfig(allNetworkConfigs?: NetworkConfigMap): ChainInfo[] {
   if (!allNetworkConfigs) {
     // Get chains from our standard chain configs
     const configs = getChainConfigs()
@@ -27,10 +25,11 @@ export function getSupportedChainsFromConfig(
   // Extract from provided config
   const chains: ChainInfo[] = []
   for (const [, config] of Object.entries(allNetworkConfigs)) {
-    if (config?.common?.chainId && config?.common?.layerZero?.eID) {
+    const baseConfig = config as BaseConfig
+    if (baseConfig?.common?.chainId && baseConfig?.common?.layerZero?.eID) {
       chains.push({
-        chainId: Number(config.common.chainId),
-        endpointId: Number(config.common.layerZero.eID),
+        chainId: Number(baseConfig.common.chainId),
+        endpointId: Number(baseConfig.common.layerZero.eID),
       })
     }
   }

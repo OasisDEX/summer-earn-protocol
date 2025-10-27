@@ -18,7 +18,7 @@ import {
   waitForTransactionConfirmation,
   writeContractTx,
 } from './transaction-helpers'
-import { BaseConfig, ChainInfo } from './types'
+import { BaseConfig, ChainInfo, NetworkConfigMap } from './types'
 import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
 
 // Cache for validated contracts
@@ -29,7 +29,7 @@ const validatedContracts = new Set<string>()
  */
 export async function deployStargateAdapter(
   networkConfig: BaseConfig,
-  allNetworkConfigs?: Record<string, BaseConfig>,
+  allNetworkConfigs?: NetworkConfigMap,
 ): Promise<Address> {
   console.log(kleur.blue('Deploying Stargate V2 adapter using Ignition module'))
 
@@ -87,7 +87,7 @@ async function configureSupportedChains(
   stargateAdapterAddress: Address,
   currentChainId: number,
   supportedChains: ChainInfo[],
-  allNetworkConfigs?: Record<string, BaseConfig>,
+  allNetworkConfigs?: NetworkConfigMap,
 ): Promise<number> {
   let chainsAdded = 0
 
@@ -308,7 +308,7 @@ export async function configureStargateAdapter(
   stargateAdapterAddress: Address,
   bridgeRouterAddress: Address,
   networkConfig: BaseConfig,
-  allNetworkConfigs?: Record<string, BaseConfig>,
+  allNetworkConfigs?: NetworkConfigMap,
 ): Promise<void> {
   console.log(kleur.blue('Configuring Stargate V2 adapter'))
 
@@ -368,7 +368,7 @@ export async function configureStargateAdapter(
  */
 export async function updateStargateAdapterAddresses(
   stargateAdapterAddress: Address,
-  allNetworkConfigs: Record<string, BaseConfig>,
+  allNetworkConfigs: NetworkConfigMap,
 ): Promise<void> {
   console.log(kleur.blue('Updating Stargate adapter cross-chain addresses'))
 
