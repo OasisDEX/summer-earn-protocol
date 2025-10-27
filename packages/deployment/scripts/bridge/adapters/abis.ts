@@ -40,39 +40,8 @@ export const STARGATE_UPDATE_CHAIN_ADAPTER_ABI = [
 ] as const
 
 // LayerZero Adapter ABIs
-export const LAYERZERO_ACTIVATE_READ_CHANNEL_ABI = [
-  {
-    inputs: [{ internalType: 'uint32', name: 'channelId', type: 'uint32' }],
-    name: 'activateReadChannel',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-] as const
 
-export const LAYERZERO_CONFIGURE_READ_LIBRARIES_ABI = [
-  {
-    inputs: [{ internalType: 'address', name: 'readLib1002Address', type: 'address' }],
-    name: 'configureReadLibraries',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-] as const
 
-export const LAYERZERO_CONFIGURE_READ_DVNS_ABI = [
-  {
-    inputs: [
-      { internalType: 'address', name: 'readLib1002Address', type: 'address' },
-      { internalType: 'address[]', name: 'readDVNs', type: 'address[]' },
-      { internalType: 'address', name: 'executor', type: 'address' },
-    ],
-    name: 'configureReadDVNs',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-] as const
 
 export const LAYERZERO_SET_MIN_GAS_LIMIT_ABI = [
   {

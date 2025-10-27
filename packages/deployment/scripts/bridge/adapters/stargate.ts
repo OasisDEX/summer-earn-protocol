@@ -3,6 +3,7 @@ import kleur from 'kleur'
 import { Address, WalletClient, getAddress } from 'viem'
 import stargateConfig from '../../../config/adapters/stargate.json'
 import StargateAdapterModule from '../../../ignition/modules/adapters/stargate'
+import { waitForTransactionConfirmation, writeContractTx } from '../../lib/contracts/transactions'
 import {
   BRIDGE_ROUTER_REGISTER_ADAPTER_ABI,
   STARGATE_ADD_SUPPORTED_ASSET_ABI,
@@ -12,12 +13,7 @@ import {
   STARGATE_POOL_ABI,
   STARGATE_UPDATE_CHAIN_ADAPTER_ABI,
 } from './abis'
-import {
-  isAdapterRegistered,
-  validateBridgeConfig,
-  waitForTransactionConfirmation,
-  writeContractTx,
-} from './transaction-helpers'
+import { isAdapterRegistered, validateBridgeConfig } from './transaction-helpers'
 import { BaseConfig, ChainInfo, NetworkConfigMap } from './types'
 import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
 
