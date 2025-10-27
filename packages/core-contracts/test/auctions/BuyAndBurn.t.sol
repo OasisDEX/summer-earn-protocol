@@ -265,8 +265,8 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
             "Unsold tokens should be in treasury"
         );
 
-        // Second auction cycle
-
+        // Second auction cycle - start after first auction is finalized
+        uint256 timeBeforeSecondAuction = block.timestamp;
         vm.prank(governor);
         buyAndBurn.startAuction(address(tokenToAuction2));
 
@@ -277,7 +277,7 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         buyAndBurn.buyTokens(2, secondAuctionBuyAmount);
         vm.stopPrank();
 
-        vm.warp(block.timestamp + 8 days);
+        vm.warp(block.timestamp + 7 days + 1);
         vm.prank(governor);
         buyAndBurn.finalizeAuction(2);
 

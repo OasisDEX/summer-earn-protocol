@@ -10,6 +10,7 @@ const NETWORK_TO_CHAIN_ID: Record<string, number> = {
   polygon: 137,
   arbitrum: 42161,
   base: 8453,
+  sonic: 146,
 }
 
 /**

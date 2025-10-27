@@ -19,6 +19,8 @@ packages/voting-decay/lib/**
 packages/dutch-auction/lib/**
 packages/gov-contracts/lib/**
 packages/external-dependencies/lib/**
+packages/institutional-contracts/lib/**
+lib/openzeppelin-contracts-upgradeable/**
 **/.sst/**
 **/.turbo/**
 packages/**/src/generated
@@ -29,3 +31,5 @@ apps/**/types/generated/*
 **/book/**
 **/deployments/**
 **/build-info/**
+lib/**
+**/lib/**

@@ -2,7 +2,12 @@ import { CHAIN_CONFIGS } from '@/lib/config'
 
 const FINISHED_AUCTIONS_QUERY = `
   query GetFinishedAuctions {
-    auctions(where: { isFinalized: true }) {
+    auctions(
+      where: { isFinalized: true }
+      orderBy: endTimestamp
+      orderDirection: desc
+      first: 1000
+    ) {
       id
       auctionId
       ark {
@@ -31,7 +36,8 @@ const FINISHED_AUCTIONS_QUERY = `
       tokensLeft
       tokensLeftNormalized
       isFinalized
-      purchases {
+      raft
+      purchases(orderBy: timestamp, orderDirection: desc, first: 1000) {
         id
         buyer {
           id

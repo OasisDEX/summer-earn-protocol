@@ -64,20 +64,27 @@ export async function addArkToFleet(
       deploymentData.arks = []
     }
 
-    if (deploymentData.arks.includes(arkAddress)) {
-      console.log(kleur.red('Ark already added to fleet. Skipping adding Ark to fleet.'))
+    const fleetContract = await hre.viem.getContractAt(
+      'FleetCommander' as string,
+      fleet.fleetAddress,
+    )
+
+    const isArkAlreadyActive = await fleetContract.read.isArkActiveOrBufferArk([arkAddress])
+
+    if (isArkAlreadyActive) {
+      console.log(kleur.red('Ark already added to fleet on-chain. Skipping adding Ark to fleet.'))
       return
     }
+
+    console.log(kleur.blue('Ark not yet added to fleet on-chain. Proceeding with addition...'))
+
     await grantCommanderRole(
       config.deployedContracts.gov.protocolAccessManager.address as Address,
       arkAddress as Address,
       fleet.fleetAddress as Address,
       hre,
     )
-    const fleetContract = await hre.viem.getContractAt(
-      'FleetCommander' as string,
-      fleet.fleetAddress,
-    )
+
     const protocolAccessManager = await hre.viem.getContractAt(
       'ProtocolAccessManager' as string,
       config.deployedContracts.gov.protocolAccessManager.address as Address,
@@ -87,10 +94,16 @@ export async function addArkToFleet(
       deployer.account.address,
     ])
     if (hasGovernorRole) {
-      const hash = await fleetContract.write.addArk([arkAddress])
-      await publicClient.waitForTransactionReceipt({
-        hash: hash,
-      })
+      try {
+        const hash = await fleetContract.write.addArk([arkAddress])
+        await publicClient.waitForTransactionReceipt({
+          hash: hash,
+          confirmations: 2,
+        })
+        console.log(kleur.green('Ark added to fleet successfully!'))
+      } catch (error) {
+        console.log(kleur.red('Ark already added to fleet. Skipping adding Ark to fleet.'))
+      }
     } else {
       console.log(kleur.red('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
       console.log(
@@ -99,11 +112,14 @@ export async function addArkToFleet(
         ),
       )
     }
-    deploymentData.arks.push(arkAddress)
-    const filePath = getFleetDeploymentPath(fleet)
-    fs.writeFileSync(filePath, JSON.stringify(deploymentData, null, 2))
 
-    console.log(kleur.green(`Updated fleet deployment JSON at ${filePath} \n`))
+    if (!deploymentData.arks.includes(arkAddress)) {
+      deploymentData.arks.push(arkAddress)
+      const filePath = getFleetDeploymentPath(fleet)
+      fs.writeFileSync(filePath, JSON.stringify(deploymentData, null, 2))
+      console.log(kleur.green(`Updated fleet deployment JSON at ${filePath}`))
+    }
+
     console.log(kleur.green('Ark added to fleet successfully!'))
   } else {
     console.log(kleur.yellow('No fleet selected. Skipping adding Ark to fleet.'))

@@ -18,6 +18,7 @@ export class ServiceAddresses {
   USD: Address
   ETH: Address
   BTC: Address
+  USDS: Address
   FEED_REGISTRY: Address
   ONE_INCH_ORACLE_1: Address
   ONE_INCH_ORACLE_2: Address
@@ -98,6 +99,7 @@ export function getAddressesProvider(): ServiceAddresses {
       USD: Address.fromString('0x0000000000000000000000000000000000000348'),
       ETH: Address.fromString('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
       BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
+      USDS: Address.fromString('0xdC035D45d973E3EC169d2276DDab16f1e407384F'),
     }
     return addresses
   } else if (network == 'optimism') {
@@ -140,6 +142,7 @@ export function getAddressesProvider(): ServiceAddresses {
       USD: Address.fromString('0x0000000000000000000000000000000000000348'),
       ETH: Address.fromString('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
       BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
+      USDS: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
     return addresses
   } else if (network == 'base') {
@@ -182,6 +185,7 @@ export function getAddressesProvider(): ServiceAddresses {
       USD: Address.fromString('0x0000000000000000000000000000000000000348'),
       ETH: Address.fromString('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
       BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
+      USDS: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
     return addresses
   } else if (network == 'arbitrum-one') {
@@ -224,6 +228,7 @@ export function getAddressesProvider(): ServiceAddresses {
       USD: Address.fromString('0x0000000000000000000000000000000000000348'),
       ETH: Address.fromString('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
       BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
+      USDS: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
     return addresses
   } else if (network == 'sonic-mainnet') {
@@ -266,6 +271,7 @@ export function getAddressesProvider(): ServiceAddresses {
       USD: Address.fromString('0x0000000000000000000000000000000000000348'),
       ETH: Address.fromString('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
       BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
+      USDS: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
     return addresses
   }

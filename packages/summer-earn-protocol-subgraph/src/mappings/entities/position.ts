@@ -3,7 +3,11 @@ import { BigIntConstants } from '../../common/constants'
 import { getOrCreatePosition } from '../../common/initializers'
 import { PositionDetails } from '../../types'
 
-export function updatePosition(positionDetails: PositionDetails, block: ethereum.Block): void {
+export function updatePosition(
+  positionDetails: PositionDetails,
+  block: ethereum.Block,
+  referralData: string | null,
+): void {
   const position = getOrCreatePosition(positionDetails.positionId, block)
   if (position) {
     position.inputTokenBalance = positionDetails.inputTokenBalance
@@ -21,6 +25,7 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
       positionDetails.stakedInputTokenBalanceNormalizedUSD
     position.unstakedInputTokenBalanceNormalizedInUSD =
       positionDetails.unstakedInputTokenBalanceNormalizedUSD
+    position.referralData = referralData ? referralData : null
     // ------------------------------------------------------------
     // will be deprecated in the future
     position.claimableSummerToken = positionDetails.claimableSummerToken
@@ -58,6 +63,37 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
           positionDetails.inputTokenDeltaNormalizedUSD,
         )
     }
+    position.save()
+  }
+}
+
+export function updatePositionBalancesOnly(
+  positionDetails: PositionDetails,
+  block: ethereum.Block,
+): void {
+  const position = getOrCreatePosition(positionDetails.positionId, block)
+  if (position) {
+    position.inputTokenBalance = positionDetails.inputTokenBalance
+    position.stakedInputTokenBalance = positionDetails.stakedInputTokenBalance
+    position.unstakedInputTokenBalance = positionDetails.unstakedInputTokenBalance
+    position.outputTokenBalance = positionDetails.outputTokenBalance
+    position.stakedOutputTokenBalance = positionDetails.stakedOutputTokenBalance
+    position.unstakedOutputTokenBalance = positionDetails.unstakedOutputTokenBalance
+    position.inputTokenBalanceNormalized = positionDetails.inputTokenBalanceNormalized
+    position.stakedInputTokenBalanceNormalized = positionDetails.stakedInputTokenBalanceNormalized
+    position.unstakedInputTokenBalanceNormalized =
+      positionDetails.unstakedInputTokenBalanceNormalized
+    position.inputTokenBalanceNormalizedInUSD = positionDetails.inputTokenBalanceNormalizedUSD
+    position.stakedInputTokenBalanceNormalizedInUSD =
+      positionDetails.stakedInputTokenBalanceNormalizedUSD
+    position.unstakedInputTokenBalanceNormalizedInUSD =
+      positionDetails.unstakedInputTokenBalanceNormalizedUSD
+    for (let i = 0; i < positionDetails.rewards.length; i++) {
+      const reward = positionDetails.rewards[i]
+      reward.save()
+    }
+    position.claimableSummerToken = positionDetails.claimableSummerToken
+    position.claimableSummerTokenNormalized = positionDetails.claimableSummerTokenNormalized
     position.save()
   }
 }

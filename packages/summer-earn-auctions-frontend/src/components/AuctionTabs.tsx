@@ -1,7 +1,29 @@
+import FinishedAuctionsView from '@/components/FinishedAuctionsView'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Auction } from '@/lib/types'
 import { AuctionCard } from './AuctionCard'
-import { FinishedAuctionCard } from './FinishedAuctionCard'
+
+interface Auction {
+  id: string
+  auctionId: string
+  ark: {
+    address: string
+    commander: string
+  }
+  rewardToken: {
+    id: string
+    symbol: string
+    decimals: number
+  }
+  buyToken: {
+    symbol: string
+    decimals: number
+  }
+  startTimestamp: string
+  endTimestamp: string
+  startPrice: string
+  endPrice: string
+  tokensLeft: string
+}
 
 interface ChainAuctions {
   chainId: number
@@ -30,17 +52,7 @@ export function AuctionTabs({ activeAuctions, finishedAuctions }: AuctionTabsPro
         </div>
       </TabsContent>
       <TabsContent value="finished" className="space-y-4">
-        {finishedAuctions.map(({ chainId, auctions }) =>
-          auctions
-            .sort((a, b) => parseInt(b.purchases[0].timestamp) - parseInt(a.purchases[0].timestamp))
-            .map((auction) => (
-              <FinishedAuctionCard
-                key={`${chainId}-${auction.id}`}
-                auction={auction}
-                chainId={chainId}
-              />
-            )),
-        )}
+        <FinishedAuctionsView data={finishedAuctions} />
       </TabsContent>
     </Tabs>
   )

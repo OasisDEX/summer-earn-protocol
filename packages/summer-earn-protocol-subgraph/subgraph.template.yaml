@@ -1,11 +1,13 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
+{{#enable-grafting}}
 features:
   - grafting
 graft:
-  base: QmbVtbX3nPRgnQnjX44wBwc9DCwADEUEHjPCHy6uhdoGJy
-  block: 22273480    
+  base: {{grafting-base}}
+  block: {{grafting-block}}
+{{/enable-grafting}}      
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
@@ -52,7 +54,9 @@ dataSources:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json          
+          file: ./abis/GovernanceRewardsManager.abi.json    
+        - name: Multicall
+          file: ./abis/common/Multicall.json
       eventHandlers:
         - event: FleetCommanderEnlisted(indexed address)
           handler: handleFleetCommanderEnlisted
@@ -171,13 +175,18 @@ templates:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json          
+          file: ./abis/GovernanceRewardsManager.abi.json   
+        - name: SummerProtocolAccessManager
+          file: ./abis/SummerProtocolAccessManager.json
       eventHandlers:
         - event: Deposit(indexed address,indexed address,uint256,uint256)
           handler: handleDeposit
           receipt: true
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleWithdraw
+          receipt: true
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleShareTransfer
           receipt: true
         - event: Rebalanced(indexed address,(address,address,uint256,bytes,bytes)[])
           handler: handleRebalance

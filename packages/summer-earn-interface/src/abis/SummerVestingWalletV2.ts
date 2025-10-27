@@ -1,0 +1,127 @@
+export const summerVestingWalletV2Abi = [
+  {
+    type: 'function',
+    name: 'token',
+    inputs: [],
+    outputs: [{ type: 'address', name: '' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'factory',
+    inputs: [],
+    outputs: [{ type: 'address', name: '' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'isRecalled',
+    inputs: [],
+    outputs: [{ type: 'bool', name: '' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'vestingParams',
+    inputs: [],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { type: 'uint64', name: 'cliffEndTimestamp' },
+          { type: 'uint256', name: 'cliffAmount' },
+          { type: 'uint256', name: 'vestingPeriods' },
+          { type: 'uint256', name: 'totalVestingAmount' },
+        ],
+        name: '',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'performanceGoals',
+    inputs: [{ type: 'uint256', name: 'goalNumber' }],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { type: 'uint256', name: 'amount' },
+          { type: 'string', name: 'description' },
+          { type: 'bool', name: 'reached' },
+        ],
+        name: '',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getPerformanceGoalsCount',
+    inputs: [],
+    outputs: [{ type: 'uint256', name: '' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getAmountPerPeriod',
+    inputs: [],
+    outputs: [{ type: 'uint256', name: '' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'releasable',
+    inputs: [{ type: 'address', name: 'token' }],
+    outputs: [{ type: 'uint256', name: 'amount' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'released',
+    inputs: [{ type: 'address', name: 'token' }],
+    outputs: [{ type: 'uint256', name: 'amount' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'vestedAmount',
+    inputs: [
+      { type: 'address', name: 'token' },
+      { type: 'uint64', name: 'timestamp' },
+    ],
+    outputs: [{ type: 'uint256', name: 'amount' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'release',
+    inputs: [{ type: 'address', name: 'token' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'addNewGoal',
+    inputs: [
+      { type: 'uint256', name: 'goalAmount' },
+      { type: 'string', name: 'description' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'markGoalReached',
+    inputs: [{ type: 'uint256', name: 'goalNumber' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'recallUnvestedTokens',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+] as const

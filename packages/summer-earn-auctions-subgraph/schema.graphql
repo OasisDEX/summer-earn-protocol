@@ -17,6 +17,7 @@ type Auction @entity {
   duration: BigInt!
   isFinalized: Boolean!
   purchases: [TokensPurchased!]! @derivedFrom(field: "auction")
+  raft: String!
 }
 
 type TokensPurchased @entity {

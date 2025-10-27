@@ -48,6 +48,22 @@ interface IAdmiralsQuartersEvents {
     );
 
     /**
+     * @dev Emitted when a user enters a fleet with their tokens and a referral code.
+     * @param user The address of the user who entered the fleet.
+     * @param fleetCommander The address of the FleetCommander contract.
+     * @param inputAmount The amount of tokens the user input into the fleet.
+     * @param sharesReceived The amount of shares the user received in return.
+     * @param referralData The referral code used by the user.
+     */
+    event FleetEnteredWithReferral(
+        address indexed user,
+        address indexed fleetCommander,
+        uint256 inputAmount,
+        uint256 sharesReceived,
+        bytes referralData
+    );
+
+    /**
      * @dev Emitted when a user exits a fleet, withdrawing their tokens.
      * @param user The address of the user who exited the fleet.
      * @param fleetCommander The address of the FleetCommander contract.
@@ -146,5 +162,23 @@ interface IAdmiralsQuartersEvents {
         address indexed user,
         address indexed vault,
         uint256 amount
+    );
+
+    /**
+     * @dev Emitted when a user claims rewards from a merkl distributor.
+     * @param user The address of the user who claimed the rewards.
+     * @param distributor The address of the merkl distributor.
+     * @param users The addresses of the users who claimed the rewards.
+     * @param tokens The addresses of the tokens claimed.
+     * @param amounts The amounts of tokens claimed.
+     * @param proofs The merkle proofs used to claim the rewards.
+     */
+    event MerklRewardsClaimed(
+        address indexed user,
+        address indexed distributor,
+        address[] users,
+        address[] tokens,
+        uint256[] amounts,
+        bytes32[][] proofs
     );
 }

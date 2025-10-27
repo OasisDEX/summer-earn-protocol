@@ -1,5 +1,7 @@
+import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
+import path from 'path'
 import { Address } from 'viem'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { submitProposal } from '../helpers/governance-helpers'
@@ -7,6 +9,7 @@ import { promptForConfigType } from '../helpers/prompt-helpers'
 import {
   ProposalData,
   displayProposalSummary,
+  getProposalsDirectory,
   loadProposalFile,
   promptForProposalFile,
 } from '../helpers/proposal-helpers'
@@ -49,7 +52,7 @@ async function main() {
     const { title, description, targets, values, calldatas } = proposal
 
     // Submit the proposal
-    const success = await submitProposal({
+    const result = await submitProposal({
       title,
       description,
       targets,
@@ -59,8 +62,26 @@ async function main() {
       useBummerConfig,
     })
 
-    if (success) {
+    if (result.success) {
       console.log(kleur.green('Proposal submitted successfully!'))
+
+      // Update the JSON file with the transaction hash
+      if (result.transactionHash) {
+        const proposalsDir = getProposalsDirectory()
+        const proposalPath = path.join(proposalsDir, filename)
+
+        // Convert BigInt values to strings for JSON serialization
+        const updatedProposal = {
+          ...proposal,
+          values: proposal.values.map((value) => value.toString()),
+          proposalTxHash: result.transactionHash,
+        }
+
+        fs.writeFileSync(proposalPath, JSON.stringify(updatedProposal, null, 2))
+        console.log(
+          kleur.cyan(`Transaction hash saved to proposal file: ${result.transactionHash}`),
+        )
+      }
     } else {
       console.log(kleur.red('Proposal submission was cancelled or failed.'))
     }

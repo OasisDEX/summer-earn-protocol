@@ -3,6 +3,7 @@
 
 # dependencies
 node_modules
+!/packages/external-dependencies/node_modules
 .pnp
 .pnp.js
 
@@ -24,6 +25,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+!/packages/chain-bridge/.env
 .env
 .env.local
 .env.test
@@ -96,3 +98,7 @@ broadcast
 
 cache_forge/
 **/cache_forge/
+packages/external-dependencies
+lib
+safe*.json
+**/abis/*

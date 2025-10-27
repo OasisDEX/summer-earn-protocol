@@ -2,7 +2,7 @@ import '@nomicfoundation/hardhat-verify'
 import { default as dotenv } from 'dotenv'
 import 'hardhat-contract-sizer'
 import { resolve } from 'path'
-// import './plugins/multiSourceCompile'
+import './plugins/multiSourceCompile'
 
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
@@ -10,17 +10,10 @@ import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-ignition-viem'
 import type { HardhatUserConfig } from 'hardhat/config'
 
-if (!process.env.API_KEY_ARBISCAN) {
-  throw new Error('Please set your process.env.API_KEY_ARBISCAN in a .env file')
-}
-if (!process.env.API_KEY_BASESCAN) {
-  throw new Error('Please set your process.env.API_KEY_BASESCAN in a .env file')
-}
 if (!process.env.API_KEY_ETHERSCAN) {
-  throw new Error('Please set your process.env.API_KEY_ETHERSCAN in a .env file')
-}
-if (!process.env.API_KEY_SONICSCAN) {
-  throw new Error('Please set your process.env.API_KEY_SONICSCAN in a .env file')
+  throw new Error(
+    'Please set your process.env.API_KEY_ETHERSCAN in a .env file ( etherscan v2 api key )',
+  )
 }
 
 const config: HardhatUserConfig = {
@@ -31,12 +24,7 @@ const config: HardhatUserConfig = {
     strict: false,
   },
   etherscan: {
-    apiKey: {
-      arbitrumOne: process.env.API_KEY_ARBISCAN,
-      base: process.env.API_KEY_BASESCAN,
-      mainnet: process.env.API_KEY_ETHERSCAN,
-      sonic: process.env.API_KEY_SONICSCAN,
-    },
+    apiKey: process.env.API_KEY_ETHERSCAN,
     customChains: [
       {
         network: 'sonic',
@@ -44,6 +32,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: `https://api.sonicscan.org/api`,
           browserURL: `https://sonicscan.org`,
+        },
+      },
+      {
+        network: 'unichain',
+        chainId: 130,
+        urls: {
+          apiURL: `https://api.unichainscan.org/api`,
+          browserURL: `https://uniscan.xyz`,
         },
       },
     ],
@@ -86,6 +82,11 @@ const config: HardhatUserConfig = {
       url: `${process.env.OPTIMISM_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
       chainId: 10,
+    },
+    unichain: {
+      url: `${process.env.UNICHAIN_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 130,
     },
     arbitrum: {
       url: `${process.env.ARBITRUM_RPC_URL}`,

@@ -1,0 +1,20 @@
+{
+  "contracts": {
+    "1": {
+      "usdc": "0xc026395860Db2d07ee33e05fE50ed7bD583189C7",
+      "usdt": "0x933597a323Eb81cAe705C5bC29985172fd5A3973",
+      "eth": "0x77b2043768d28E9C9aB44E1aBfC95944bcE57931"
+    },
+    "8453": {
+      "usdc": "0x27a16dc786820B16E5c9028b75B99F6f604b5d26",
+      "eth": "0xdc181Bd607330aeeBEF6ea62e03e5e1Fb4B6F7C7"
+    },
+    "42161": {
+      "usdc": "0xe8CDF27AcD73a434D661C84887215F7598e7d0d3",
+      "usdt": "0xcE8CcA271Ebc0533920C83d39F417ED6A0abB7D0",
+      "eth": "0xe8CDF27AcD73a434D661C84887215F7598e7d0d3"
+    }
+  },
+  "composeGasLimit": 800000,
+  "defaultUseTaxi": false
+}

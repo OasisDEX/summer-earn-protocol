@@ -1,0 +1,69 @@
+specVersion: 0.0.8
+schema:
+  file: ./schema.graphql 
+dataSources:
+  - kind: ethereum/contract
+    name: SummerGovernor
+    network: {{network}}
+    source:
+      abi: SummerGovernor
+      address: "{{summer-governor-address}}"
+      startBlock: {{summer-governor-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: SummerGovernor
+          file: ./abis/SummerGovernor.json       
+      eventHandlers:
+        - event: ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)
+          handler: handleProposalCreated
+          receipt: true
+        - event: ProposalExecuted(uint256)
+          handler: handleProposalExecuted
+          receipt: true
+        - event: ProposalQueued(uint256,uint256)
+          handler: handleProposalQueued
+          receipt: true
+        - event: ProposalCanceled(uint256)
+          handler: handleProposalCanceled
+          receipt: true
+        - event:  ProposalSentCrossChain(indexed uint256,indexed uint32)
+          handler: handleProposalSentCrossChain
+          receipt: true
+        - event: TimelockChange(address,address)
+          handler: handleTimelockChange
+          receipt: true
+        - event: ProposalReceivedCrossChain(indexed uint256,indexed uint32)
+          handler: handleProposalReceivedCrossChain
+          receipt: true
+      file: ./src/mappings/governance.ts
+templates:
+  - kind: ethereum/contract
+    name: TimelockControllerTemplate
+    network: {{network}}
+    source:
+      abi: SummerTimelockController
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: SummerTimelockController
+          file: ./abis/SummerTimelockController.json 
+      eventHandlers:
+        - event: CallExecuted(indexed bytes32,indexed uint256,address,uint256,bytes)
+          handler: handleCallExecuted
+          receipt: true
+        - event: CallSalt(indexed bytes32,bytes32)  
+          handler: handleCallSalt
+          receipt: true
+        - event: CallScheduled(indexed bytes32,indexed uint256,address,uint256,bytes,bytes32,uint256)
+          handler: handleCallScheduled
+          receipt: true
+      file: ./src/mappings/timelock.ts

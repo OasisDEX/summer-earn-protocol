@@ -137,6 +137,9 @@ export class BigDecimalConstants {
   static DAY_IN_SECONDS: BigDecimal = BigDecimal.fromString('86400')
   static WEEK_IN_SECONDS: BigDecimal = BigDecimal.fromString('604800')
 }
+
+export const SNAPSHOT_CREATION_THRESHOLD = BigDecimalConstants.ONE
+
 export class BigIntConstants {
   static MINUS_ONE: BigInt = BigInt.fromI32(-1)
   static ZERO: BigInt = BigInt.fromI32(0)
@@ -160,4 +163,17 @@ export class BigIntConstants {
   static SECONDS_PER_MINUTE: BigInt = BigInt.fromI32(60)
   static SECONDS_PER_WEEK: BigInt = BigInt.fromI32(604800)
   static EPOCH_WEEK_OFFSET: BigInt = BigInt.fromI32(345600)
+}
+
+export class EventSignature {
+  static ProposalReceivedCrossChain: string = 'ProposalReceivedCrossChain(uint256,uint32)'
+  static CallSalt: string = 'CallSalt(bytes32,bytes32)'
+  static ProposalExecuted: string = 'ProposalExecuted(uint256)'
+  static FleetEnteredWithReferral: string =
+    'FleetEnteredWithReferral(address,address,uint256,uint256,bytes)'
+}
+
+export class AccesManagerRoles {
+  static AdmiralsQuartersRole: string =
+    '0xb00be3d6a5434b97b328543d1486d56adcb7e74080170d1cdd7e0306c3d9ba3d'
 }

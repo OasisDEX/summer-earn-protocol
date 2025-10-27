@@ -1,4 +1,4 @@
-import { Address, BigDecimal, BigInt } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, dataSource } from '@graphprotocol/graph-ts'
 import { VaultFee } from '../../generated/schema'
 import {
   RewardAdded,
@@ -22,6 +22,7 @@ import {
   Rebalanced,
   TipAccrued,
   TipRateUpdated,
+  Transfer as TransferEvent,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { addresses } from '../common/addressProvider'
@@ -37,12 +38,14 @@ import {
   getOrCreateVault,
 } from '../common/initializers'
 import { getTokenPriceInUSD } from '../common/priceHelpers'
+import { getTransferabilityEnabledBlockByChain } from '../common/transferabilityHelper'
 import * as utils from '../common/utils'
 import { formatAmount } from '../common/utils'
 import { getPositionDetails } from '../utils/position'
 import { getVaultDetails } from '../utils/vault'
 import { createDepositEventEntity } from './entities/deposit'
 import { updatePosition } from './entities/position'
+import { handleReferrals } from './entities/referral'
 import { createStakedEventEntity } from './entities/stake'
 import { createUnstakedEventEntity } from './entities/unstake'
 import {
@@ -62,7 +65,16 @@ export function handleRebalance(event: Rebalanced): void {
 
 export function handleArkAdded(event: ArkAdded): void {
   const vault = getOrCreateVault(event.address, event.block)
-  getOrCreateArk(vault, event.params.ark, event.block)
+  const ark = getOrCreateArk(event.params.ark, event.block)
+  ark.vault = vault.id
+  ark.save()
+
+  const arksArray = vault.arksArray
+  if (!arksArray.includes(ark.id)) {
+    arksArray.push(ark.id)
+    vault.arksArray = arksArray
+    vault.save()
+  }
 }
 
 let _arkAddress: string
@@ -73,7 +85,7 @@ export function handleArkRemoved(event: ArkRemoved): void {
   vault.arksArray = previousArrayOfArks.filter((ark) => ark !== _arkAddress)
   vault.save()
   // remove relation to vault
-  const ark = getOrCreateArk(vault, Address.fromString(_arkAddress), event.block)
+  const ark = getOrCreateArk(Address.fromString(_arkAddress), event.block)
   ark.vault = ADDRESS_ZERO.toHexString()
   ark.save()
 }
@@ -92,9 +104,11 @@ export function handleDeposit(event: DepositEvent): void {
     event.block,
   )
 
-  updatePosition(positionDetails, event.block)
+  const referralData = handleReferrals(event, account, positionDetails, 'handleDeposit')
 
-  createDepositEventEntity(event, positionDetails)
+  updatePosition(positionDetails, event.block, referralData)
+
+  createDepositEventEntity(event, positionDetails, referralData)
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
@@ -110,7 +124,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
     return
   }
 
-  getOrCreateAccount(event.params.owner.toHexString())
+  const account = getOrCreateAccount(event.params.owner.toHexString())
 
   const positionDetails = getPositionDetails(
     updatedVault,
@@ -118,9 +132,54 @@ export function handleWithdraw(event: WithdrawEvent): void {
     vaultDetails,
     event.block,
   )
-  updatePosition(positionDetails, event.block)
+  updatePosition(positionDetails, event.block, account.referralData)
 
-  createWithdrawEventEntity(event, positionDetails)
+  createWithdrawEventEntity(event, positionDetails, account.referralData)
+}
+
+// Track transfers of ERC4626 shares between users (excluding mints/burns and staking contract transfers)
+export function handleShareTransfer(event: TransferEvent): void {
+  if (
+    event.block.number.lt(getTransferabilityEnabledBlockByChain(dataSource.network().toLowerCase()))
+  ) {
+    return
+  }
+  // skip mints/burns and zero-value transfers
+  if (
+    event.params.from.equals(ADDRESS_ZERO) ||
+    event.params.to.equals(ADDRESS_ZERO) ||
+    event.params.value.equals(constants.BigIntConstants.ZERO)
+  ) {
+    return
+  }
+
+  const vault = getOrCreateVault(event.address, event.block)
+  const rewardsManager = vault.stakingRewardsManager
+
+  // skip transfers involving the staking rewards manager
+  if (
+    rewardsManager &&
+    (event.params.from.toHexString() == rewardsManager.toHexString() ||
+      event.params.to.toHexString() == rewardsManager.toHexString())
+  ) {
+    return
+  }
+
+  // ensure Account entities exist for FE lookups
+  getOrCreateAccount(event.params.from.toHexString())
+  getOrCreateAccount(event.params.to.toHexString())
+
+  // Recompute positions using the standard path to keep balances and rewards coherent
+  const vaultDetails = getVaultDetails(vault, event.block)
+  const updatedVault = updateVault(vaultDetails, event.block, false)
+
+  const fromDetails = getPositionDetails(updatedVault, event.params.from, vaultDetails, event.block)
+  updatePosition(fromDetails, event.block, null)
+  createWithdrawEventEntity(event, fromDetails, null, true)
+
+  const toDetails = getPositionDetails(updatedVault, event.params.to, vaultDetails, event.block)
+  updatePosition(toDetails, event.block, null)
+  createDepositEventEntity(event, toDetails, null, true)
 }
 
 // withdaraw already handled in handleWithdraw
@@ -190,10 +249,12 @@ export function handleStaked(event: Staked): void {
     event.block,
   )
 
-  updatePosition(positionDetails, event.block)
+  const referralData = handleReferrals(event, account, positionDetails, 'handleStaked')
+
+  updatePosition(positionDetails, event.block, referralData)
 
   createStakedEventEntity(event, positionDetails)
-  createDepositEventEntity(event, positionDetails)
+  createDepositEventEntity(event, positionDetails, referralData)
 }
 
 export function handleUnstaked(event: Unstaked): void {
@@ -210,10 +271,10 @@ export function handleUnstaked(event: Unstaked): void {
     event.block,
   )
 
-  updatePosition(positionDetails, event.block)
+  updatePosition(positionDetails, event.block, account.referralData)
 
   createUnstakedEventEntity(event, positionDetails)
-  createWithdrawEventEntity(event, positionDetails)
+  createWithdrawEventEntity(event, positionDetails, account.referralData)
 }
 
 export function handleRewardTokenRemoved(event: RewardTokenRemoved): void {

@@ -5,10 +5,6 @@
   "fleetAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
   "bufferArkAddress": "0x106CBB1F445F0bFFa7894F4199EE940BF7f6dD2B",
   "network": "mainnet",
-  "initialMinimumBufferBalance": "0",
-  "initialRebalanceCooldown": "3600",
-  "depositCap": "100000000",
-  "initialTipRate": "1000000000000000000",
   "arks": [
     "0xC9dd080C9ecCFcdbf379714D84CdC8Bd01046AE1",
     "0xedC6a603B31391B7D13fBa6A721fd4DDa401f9eA",
@@ -24,6 +20,15 @@
     "0xb5e9c7Ad5bB1e21B12aD62066FF1Fb388ebdeB37",
     "0x8948a5F3D24F7A6d50FF36064e8cff33B2aF062f",
     "0x9890C99f504337C3500AC05c267c38dfcd41C3e2",
-    "0xf8Db64D39D1c7382fE47De8B72435c7e9DFB2894"
-  ]
+    "0xf8Db64D39D1c7382fE47De8B72435c7e9DFB2894",
+    "0x3F9e195a8ee39Ed7B4a14A919F4a165c872976e5",
+    "0x756ca6D02523c908972C4F82a4821c15F740D275",
+    "0x679794389B05B0db3CbEdAcC908ff8Fb531fA53f",
+    "0x61d7063041d83C8ca3E42c39181dFd14B3Bc76c2",
+    "0x7B1e86949C7B74761046d79Fb457985FB3a494F3"
+  ],
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "3600",
+  "depositCap": "100000000",
+  "initialTipRate": "1000000000000000000"
 }

@@ -12,7 +12,7 @@ export function getArkDetails(
   arkAddress: Address,
   block: ethereum.Block,
 ): ArkDetails {
-  const ark = getOrCreateArk(vault, arkAddress, block)
+  const ark = getOrCreateArk(arkAddress, block)
   const arkContract = ArkContract.bind(arkAddress)
   const totalAssets = utils.readValue<BigInt>(
     arkContract.try_totalAssets(),
@@ -46,12 +46,20 @@ export function getArkProductId(ark: Ark): string | null {
     return null
   }
 
-  if (!jsonData.isSet('pool') || !jsonData.isSet('protocol') || !jsonData.isSet('chainId')) {
+  if (!jsonData.isSet('protocol') || !jsonData.isSet('chainId')) {
     return null
   }
-
+  if (!jsonData.isSet('pool') && !jsonData.isSet('vault') && !jsonData.isSet('siUSDVault')) {
+    return null
+  }
+  const hasPool = jsonData.isSet('pool')
+  const hasVault = jsonData.isSet('vault')
+  const poolValue = hasPool
+    ? jsonData.get('pool')
+    : hasVault
+      ? jsonData.get('vault')
+      : jsonData.get('siUSDVault')
   const protocolValue = jsonData.get('protocol')
-  const poolValue = jsonData.get('pool')
   const chainIdValue = jsonData.get('chainId')
 
   // Check if all values are strings

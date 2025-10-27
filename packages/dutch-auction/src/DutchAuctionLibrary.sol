@@ -295,7 +295,11 @@ library DutchAuctionLibrary {
 
         auction.state.isFinalized = true;
 
-        if (auction.state.remainingTokens > 0) {
+        if (
+            auction.state.remainingTokens > 0 &&
+            auction.config.unsoldTokensRecipient != address(this) &&
+            auction.config.unsoldTokensRecipient != address(0)
+        ) {
             auction.config.auctionToken.safeTransfer(
                 auction.config.unsoldTokensRecipient,
                 auction.state.remainingTokens

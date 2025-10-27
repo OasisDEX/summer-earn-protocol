@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 /**
  * Main function to deploy a SkyUsdsPsm3Ark.
@@ -127,6 +127,21 @@ async function deploySkyUsdsPsm3ArkContract(
   )
   const stakedUsdsAddress = validateAddress(config.tokens.stakedUsds, 'Staked USDS')
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Sky',
+    type: 'Staking',
+    asset: userInput.token.address,
+    marketAsset: config.tokens.stakedUsds,
+    pool: psm3Address,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'SkyUsdsPsm3 ark details')
+
   return (await hre.ignition.deploy(createSkyUsdsPsm3ArkModule(moduleName), {
     parameters: {
       [moduleName]: {
@@ -134,14 +149,7 @@ async function deploySkyUsdsPsm3ArkContract(
         susds: stakedUsdsAddress,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: 'Sky',
-            type: 'Staking',
-            asset: userInput.token.address,
-            marketAsset: config.tokens.stakedUsds,
-            pool: psm3Address,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,

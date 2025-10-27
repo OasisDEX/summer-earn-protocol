@@ -45,6 +45,93 @@
         "vaultName": "Gearbox",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Sky_sUSDC",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "SiloManagedVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "varlamore",
+        "protocol": "silo"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gauntlet_USDC_Prime",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gauntlet_USDC_Core",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Yearn_OG_USDC",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Steakhouse_Prime_USDC",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "MEV_Capital_USDC",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Euler_Arbitrum_USDC",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "SiloManagedVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "greenhouse",
+        "protocol": "silo"
+      }
+    },
+    {
+      "type": "SiloArkV2",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Swaap_Lend_susdx_usdc_127",
+        "protocol": "silo"
+      }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "fluid"
+      }
     }
   ]
 }

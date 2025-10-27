@@ -1,0 +1,78 @@
+{
+  "fleetName": "BummerLazyVault_WETH",
+  "isBummer": true,
+  "symbol": "LVWETH",
+  "assetSymbol": "WETH",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "3600",
+  "depositCap": "1000000000000000000",
+  "initialTipRate": "300000000000000000",
+  "network": "base",
+  "details": "",
+  "discourseURL": "https://forum.summer.fi/t/sip1-4-onbaord-lower-risk-eth-vault-on-base/171",
+  "sipNumber": "4",
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "WETH",
+        "protocol": "aaveV3"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "WETH",
+        "protocol": "compoundV3"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Fluid",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Euler_Base_WETH",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Moonwell_Flagship_WETH",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Steakhouse_WETH",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Gauntlet_WETH_Core",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "OriginETHArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "origin"
+      }
+    }
+  ]
+}

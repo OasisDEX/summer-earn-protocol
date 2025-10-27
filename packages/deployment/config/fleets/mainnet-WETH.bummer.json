@@ -1,0 +1,78 @@
+{
+  "fleetName": "BummerLazyVault_WETH",
+  "symbol": "LVWETH",
+  "assetSymbol": "WETH",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "300000000000000000",
+  "network": "mainnet",
+  "details": "",
+  "arks": [
+    {
+      "type": "OriginETHArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "origin"
+      }
+    },
+    {
+      "type": "FluidLiteArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "fluid"
+      }
+    },
+    {
+      "type": "OriginETHArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "origin"
+      }
+    },
+    {
+      "type": "FluidLiteArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "fluid"
+      }
+    },
+    {
+      "type": "OriginETHArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "origin"
+      }
+    },
+    {
+      "type": "FluidLiteArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "fluid"
+      }
+    },
+    {
+      "type": "FluidLiteArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "fluid"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Term_re7_weth",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ArmArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "steth",
+        "protocol": "origin-arm"
+      }
+    }
+  ]
+}

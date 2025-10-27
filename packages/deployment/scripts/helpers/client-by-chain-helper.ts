@@ -7,7 +7,9 @@ import { CHAIN_CONFIG_MAP, RPC_URL_MAP } from '../common/chain-config-map'
  * @param chainName The name of the chain
  * @returns A public client configured for the specified chain
  */
-export async function getChainPublicClient(chainName: string) {
+export async function getChainPublicClient(
+  chainName: string,
+): Promise<ReturnType<typeof createPublicClient>> {
   // If it's the current chain, use the Hardhat client
   if (chainName === hre.network.name) {
     return await hre.viem.getPublicClient()

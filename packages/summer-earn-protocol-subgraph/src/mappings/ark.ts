@@ -1,5 +1,4 @@
 import { Address, BigInt } from '@graphprotocol/graph-ts'
-import { Ark as ArkContract } from '../../generated/HarborCommand/Ark'
 import { Rebalance, Vault } from '../../generated/schema'
 import {
   Boarded,
@@ -21,9 +20,7 @@ import { formatAmount } from '../common/utils'
 import { handleBoard, handleDisembark, handleMove } from './entities/ark'
 
 export function handleBoarded(event: Boarded): void {
-  const arkContract = ArkContract.bind(event.address)
-  const vault = getOrCreateVault(arkContract.commander(), event.block)
-  const ark = getOrCreateArk(vault, event.address, event.block)
+  const ark = getOrCreateArk(event.address, event.block)
 
   if (ark) {
     handleBoard(event.params.amount, ark)
@@ -31,18 +28,15 @@ export function handleBoarded(event: Boarded): void {
 }
 
 export function handleDisembarked(event: Disembarked): void {
-  const arkContract = ArkContract.bind(event.address)
-  const vault = getOrCreateVault(arkContract.commander(), event.block)
-  const ark = getOrCreateArk(vault, event.address, event.block)
+  const ark = getOrCreateArk(event.address, event.block)
   if (ark) {
     handleDisembark(event.params.amount, ark)
   }
 }
 
 export function handleMoved(event: Moved): void {
-  const arkContract = ArkContract.bind(event.params.from)
-  const vault = getOrCreateVault(arkContract.commander(), event.block)
-  const ark = getOrCreateArk(vault, event.params.from, event.block)
+  const ark = getOrCreateArk(event.params.from, event.block)
+  const vault = getOrCreateVault(Address.fromString(ark.vault), event.block)
   if (ark) {
     handleMove(event.params.amount, ark)
     addRebalanceEvent(event, vault, event.logIndex.toI32())
@@ -61,8 +55,8 @@ function addRebalanceEvent(event: Moved, vault: Vault, i: i32): void {
     getTokenPriceInUSD(inputTokenAddress, event.block).price,
   )
 
-  getOrCreateArk(vault, event.params.from, event.block)
-  getOrCreateArk(vault, event.params.to, event.block)
+  getOrCreateArk(event.params.from, event.block)
+  getOrCreateArk(event.params.to, event.block)
 
   rebalanceEntity.amount = amount
   rebalanceEntity.amountUSD = normalizedAmountUSD
@@ -89,9 +83,7 @@ function addRebalanceEvent(event: Moved, vault: Vault, i: i32): void {
 }
 
 export function handleDepositCapUpdated(event: DepositCapUpdated): void {
-  const arkContract = ArkContract.bind(event.address)
-  const vault = getOrCreateVault(arkContract.commander(), event.block)
-  const ark = getOrCreateArk(vault, event.address, event.block)
+  const ark = getOrCreateArk(event.address, event.block)
 
   if (ark) {
     ark.depositCap = event.params.newCap
@@ -103,9 +95,7 @@ export function handleDepositCapUpdated(event: DepositCapUpdated): void {
 export function handleMaxDepositPercentageOfTVLUpdated(
   event: MaxDepositPercentageOfTVLUpdated,
 ): void {
-  const arkContract = ArkContract.bind(event.address)
-  const vault = getOrCreateVault(arkContract.commander(), event.block)
-  const ark = getOrCreateArk(vault, event.address, event.block)
+  const ark = getOrCreateArk(event.address, event.block)
 
   if (ark) {
     ark.maxDepositPercentageOfTVL = event.params.newMaxDepositPercentageOfTVL
@@ -114,9 +104,7 @@ export function handleMaxDepositPercentageOfTVLUpdated(
 }
 
 export function handleMaxRebalanceOutflowUpdated(event: MaxRebalanceOutflowUpdated): void {
-  const arkContract = ArkContract.bind(event.address)
-  const vault = getOrCreateVault(arkContract.commander(), event.block)
-  const ark = getOrCreateArk(vault, event.address, event.block)
+  const ark = getOrCreateArk(event.address, event.block)
 
   if (ark) {
     ark.maxRebalanceOutflow = event.params.newMaxOutflow
@@ -125,9 +113,7 @@ export function handleMaxRebalanceOutflowUpdated(event: MaxRebalanceOutflowUpdat
 }
 
 export function handleMaxRebalanceInflowUpdated(event: MaxRebalanceInflowUpdated): void {
-  const arkContract = ArkContract.bind(event.address)
-  const vault = getOrCreateVault(arkContract.commander(), event.block)
-  const ark = getOrCreateArk(vault, event.address, event.block)
+  const ark = getOrCreateArk(event.address, event.block)
 
   if (ark) {
     ark.maxRebalanceInflow = event.params.newMaxInflow

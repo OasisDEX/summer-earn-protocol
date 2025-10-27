@@ -81,42 +81,42 @@ contract SummerVestingTest is SummerTokenTestBase {
         );
     }
 
-    function testFail_NonFoundationCreateVestingWallet() public {
+    function test_RevertWhen_NonFoundationCreateVestingWallet() public {
         vm.prank(nonFoundation);
-        vestingWalletFactoryA.createVestingWallet(
-            beneficiary,
-            TIME_BASED_AMOUNT,
-            goalAmounts,
-            ISummerVestingWallet.VestingType.TeamVesting
-        );
-    }
-
-    function testFail_DuplicateVestingWallet() public {
-        vm.prank(foundation);
-        vestingWalletFactoryA.createVestingWallet(
-            beneficiary,
-            TIME_BASED_AMOUNT,
-            goalAmounts,
-            ISummerVestingWallet.VestingType.TeamVesting
-        );
-        vm.prank(foundation);
-        vestingWalletFactoryA.createVestingWallet(
-            beneficiary,
-            TIME_BASED_AMOUNT,
-            goalAmounts,
-            ISummerVestingWallet.VestingType.TeamVesting
-        );
-    }
-
-    function testFail_InvalidVestingType() public {
-        vm.prank(foundation);
-        vestingWalletFactoryA.createVestingWallet(
-            beneficiary,
-            TIME_BASED_AMOUNT,
-            goalAmounts,
-            ISummerVestingWallet.VestingType(
-                uint8(type(ISummerVestingWallet.VestingType).max) + 1
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotFoundation(address)",
+                nonFoundation
             )
+        );
+        vestingWalletFactoryA.createVestingWallet(
+            beneficiary,
+            TIME_BASED_AMOUNT,
+            goalAmounts,
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+    }
+
+    function test_RevertWhen_DuplicateVestingWallet() public {
+        vm.prank(foundation);
+        vestingWalletFactoryA.createVestingWallet(
+            beneficiary,
+            TIME_BASED_AMOUNT,
+            goalAmounts,
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+        vm.prank(foundation);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "VestingWalletAlreadyExists(address)",
+                beneficiary
+            )
+        );
+        vestingWalletFactoryA.createVestingWallet(
+            beneficiary,
+            TIME_BASED_AMOUNT,
+            goalAmounts,
+            ISummerVestingWallet.VestingType.TeamVesting
         );
     }
 

@@ -6,6 +6,8 @@ import { PositionDetails } from '../../types'
 export function createDepositEventEntity(
   event: ethereum.Event,
   positionDetails: PositionDetails,
+  referralData: string | null,
+  isShareTransfer: boolean = false,
 ): void {
   let staked = Staked.load(`${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`)
   let deposit: Deposit | null = null
@@ -14,7 +16,10 @@ export function createDepositEventEntity(
       `${event.transaction.hash.toHexString()}-${event.logIndex.minus(BigInt.fromI32(1)).toString()}`,
     )
   } else {
-    deposit = new Deposit(`${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`)
+    const additionalMessage = isShareTransfer ? '-in' : ''
+    deposit = new Deposit(
+      `${event.transaction.hash.toHexString()}-${event.logIndex.toString()}${additionalMessage}`,
+    )
   }
   deposit.amount = positionDetails.inputTokenDelta
   deposit.amountUSD = positionDetails.inputTokenDeltaNormalizedUSD
@@ -30,6 +35,7 @@ export function createDepositEventEntity(
   deposit.position = positionDetails.positionId
   deposit.inputTokenBalance = positionDetails.inputTokenBalance
   deposit.inputTokenBalanceNormalizedUSD = positionDetails.inputTokenBalanceNormalizedUSD
+  deposit.referralData = referralData
   if (positionDetails.inputTokenDelta.equals(BigIntConstants.ZERO)) {
     return
   }

@@ -2,6 +2,13 @@ specVersion: 0.0.8
 description: Rates
 schema:
   file: ./schema.graphql
+{{#enable-grafting}}
+features:
+  - grafting
+graft:
+  base: {{grafting-base}}
+  block: {{grafting-block}}
+{{/enable-grafting}}  
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
@@ -50,8 +57,8 @@ dataSources:
           file: ./abis/silo/ISiloConfig.json
         - name: ISilo
           file: ./abis/silo/ISilo.json
-        - name: IGauge
-          file: ./abis/silo/IGauge.json
+        - name: ISiloIncentivesController
+          file: ./abis/silo/ISiloIncentivesController.json
         - name: IRewardDistributor
           file: ./abis/moonwell/IRewardDistributor.json
         - name: IComptroller
@@ -72,6 +79,18 @@ dataSources:
           file: ./abis/oracles/spark-oracle.json
         - name: AaveV2Oracle
           file: ./abis/oracles/aave-v2-price-oracle.json  
+        - name: IStakingRewards
+          file: ./abis/IStakingRewards.json
+        - name: ISiloVault
+          file: ./abis/silo/ISiloVault.json
+        - name: ISiloVaultIncentivesModule
+          file: ./abis/silo/ISiloVaultIncentivesModule.json
+        - name: ERC4626FluidLite
+          file: ./abis/ERC4626FluidLite.json
+        - name: AeraVault
+          file: ./abis/aera/Vault.json
+        - name: AeraFeeCalculator
+          file: ./abis/aera/PriceAndFeeCalculator.json
       blockHandlers:
         - handler: handleBlock
           filter:

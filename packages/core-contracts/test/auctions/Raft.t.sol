@@ -18,6 +18,7 @@ import {DutchAuctionErrors} from "@summerfi/dutch-auction/DutchAuctionErrors.sol
 
 import {DutchAuctionEvents} from "@summerfi/dutch-auction/DutchAuctionEvents.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.sol";
+import {TokenWithNoSelfTransfer} from "../mocks/TokenWithNoSelfTransfer.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -28,6 +29,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     ERC20Mock public mockRewardToken;
     ERC20Mock public mockRewardToken2;
     ERC20Mock public mockPaymentToken;
+    TokenWithNoSelfTransfer public mockRewardTokenWithNoSelfTransfer;
 
     uint256 constant REWARD_AMOUNT = 100000000;
 
@@ -48,6 +50,10 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         mockRewardToken = createMockToken("Reward Token", "RWD", 18);
         mockRewardToken2 = createMockToken("Reward Token 2", "RWD2", 18);
         mockPaymentToken = mockToken;
+        mockRewardTokenWithNoSelfTransfer = new TokenWithNoSelfTransfer(
+            "Reward Token With No Self Transfer",
+            "RWDNS"
+        );
 
         vm.startPrank(governor);
         raftContract.setArkAuctionParameters(
@@ -60,6 +66,11 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             address(mockRewardToken2),
             defaultParams
         );
+        raftContract.setArkAuctionParameters(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer),
+            defaultParams
+        );
         vm.stopPrank();
 
         mintTokens(address(mockRewardToken), address(mockArk1), REWARD_AMOUNT);
@@ -68,12 +79,21 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             address(mockArk1),
             REWARD_AMOUNT * 2
         );
+        mintTokens(
+            address(mockRewardTokenWithNoSelfTransfer),
+            address(mockArk1),
+            REWARD_AMOUNT
+        );
         mintTokens(address(mockPaymentToken), buyer, 10000000000 ether);
 
         vm.label(address(mockArk1), "mockArk1");
         vm.label(address(mockRewardToken), "mockRewardToken");
         vm.label(address(mockRewardToken2), "mockRewardToken2");
         vm.label(address(mockPaymentToken), "mockPaymentToken");
+        vm.label(
+            address(mockRewardTokenWithNoSelfTransfer),
+            "mockRewardTokenWithNoSelfTransfer"
+        );
         vm.label(address(raftContract), "raftContract");
     }
 
@@ -160,6 +180,47 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         (, DutchAuctionLibrary.AuctionState memory state) = raftContract
             .auctions(address(mockArk1), address(mockRewardToken));
+        assertEq(
+            state.remainingTokens,
+            REWARD_AMOUNT -
+                REWARD_AMOUNT.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                )
+        );
+    }
+
+    function test_HarvestAndStartAuctionWithNoSelfTransfer() public {
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = address(mockRewardTokenWithNoSelfTransfer);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardAmounts[0] = REWARD_AMOUNT;
+
+        vm.prank(governor);
+        vm.expectEmit(true, true, true, true);
+        emit ArkHarvested(address(mockArk1), rewardTokens, rewardAmounts);
+        vm.expectEmit(true, true, true, true);
+        emit DutchAuctionEvents.AuctionCreated(
+            1,
+            governor,
+            REWARD_AMOUNT -
+                REWARD_AMOUNT.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            )
+        );
+
+        raftContract.harvestAndStartAuction(
+            address(mockArk1),
+            _getEncodedRewardData(rewardTokens, rewardAmounts)
+        );
+
+        (, DutchAuctionLibrary.AuctionState memory state) = raftContract
+            .auctions(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            );
         assertEq(
             state.remainingTokens,
             REWARD_AMOUNT -
@@ -407,6 +468,193 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             "Should have total rewards boarded"
         );
     }
+    function test_MultipleAuctionsCycleWithNoSelfTransfer() public {
+        // First auction cycle
+        _setupAuction(address(mockRewardTokenWithNoSelfTransfer));
+
+        uint256 firstAuctionAmount = REWARD_AMOUNT -
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            );
+        uint256 currentPrice = raftContract.getCurrentPrice(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+        uint256 firstAuctionAmountToSpend = (firstAuctionAmount *
+            currentPrice) / 1e18;
+        // Buy all tokens in the first auction
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(
+            address(raftContract),
+            firstAuctionAmountToSpend
+        );
+        raftContract.buyTokens(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer),
+            firstAuctionAmount
+        );
+
+        vm.stopPrank();
+
+        // Verify first auction is finalized
+        (, DutchAuctionLibrary.AuctionState memory state) = raftContract
+            .auctions(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            );
+        assertTrue(state.isFinalized, "First auction should be finalized");
+        assertEq(
+            state.remainingTokens,
+            0,
+            "First auction should have no remaining tokens"
+        );
+
+        // Verify rewards were boarded
+        assertEq(
+            mockPaymentToken.balanceOf(address(mockArk1)),
+            firstAuctionAmountToSpend,
+            "Rewards should be boarded"
+        );
+
+        // Second harvest and auction cycle
+        uint256 secondHarvestAmount = 150; // Different amount for the second harvest
+        deal(
+            address(mockRewardTokenWithNoSelfTransfer),
+            address(mockArk1),
+            secondHarvestAmount
+        );
+
+        vm.startPrank(governor);
+        vm.expectEmit(true, true, true, true);
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = address(mockRewardTokenWithNoSelfTransfer);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardAmounts[0] = secondHarvestAmount;
+
+        emit ArkHarvested(address(mockArk1), rewardTokens, rewardAmounts);
+
+        raftContract.harvest(
+            address(mockArk1),
+            _getEncodedRewardData(rewardTokens, rewardAmounts)
+        );
+
+        // Start second auction
+        vm.expectEmit(true, true, true, true);
+        emit DutchAuctionEvents.AuctionCreated(
+            2, // This should be the next auction ID
+            governor,
+            secondHarvestAmount -
+                secondHarvestAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            secondHarvestAmount.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            )
+        );
+
+        raftContract.startAuction(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+        vm.stopPrank();
+
+        // Verify second auction setup
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory newState
+        ) = raftContract.auctions(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            );
+
+        assertEq(config.id, 2, "Should be the second auction ID");
+        assertEq(
+            config.totalTokens,
+            secondHarvestAmount -
+                secondHarvestAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            "Should have the correct total tokens"
+        );
+        assertEq(
+            newState.remainingTokens,
+            secondHarvestAmount -
+                secondHarvestAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            "Should have the correct remaining tokens"
+        );
+        assertFalse(newState.isFinalized, "Should not be finalized");
+
+        // Buy half of the tokens in the second auction
+        uint256 secondAuctionBuyAmount = (secondHarvestAmount -
+            secondHarvestAmount.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            )) / 2;
+        currentPrice = raftContract.getCurrentPrice(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+        uint256 secondAuctionAmountToSpend = (secondAuctionBuyAmount *
+            currentPrice) / 1e18;
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(
+            address(raftContract),
+            secondAuctionAmountToSpend
+        );
+        raftContract.buyTokens(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer),
+            secondAuctionBuyAmount
+        );
+        vm.stopPrank();
+
+        // Finalize the second auction
+        vm.warp(block.timestamp + 8 days);
+        raftContract.finalizeAuction(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+
+        // Verify final state
+        (, DutchAuctionLibrary.AuctionState memory finalState) = raftContract
+            .auctions(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            );
+        assertTrue(finalState.isFinalized, "Should be finalized");
+
+        assertEq(
+            finalState.remainingTokens,
+            secondHarvestAmount -
+                secondHarvestAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ) -
+                secondAuctionBuyAmount,
+            "Should have the correct remaining tokens"
+        );
+
+        // Verify unsold tokens
+        assertEq(
+            raftContract.unsoldTokens(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            ),
+            secondHarvestAmount -
+                secondHarvestAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ) -
+                secondAuctionBuyAmount,
+            "Should have unsold tokens"
+        );
+
+        // Verify total rewards boarded
+        assertEq(
+            mockPaymentToken.balanceOf(address(mockArk1)),
+            firstAuctionAmountToSpend + secondAuctionAmountToSpend,
+            "Should have total rewards boarded"
+        );
+    }
 
     function test_MultipleAuctionsCycleWithUnsoldTokens() public {
         // First auction cycle
@@ -593,7 +841,209 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             "Should have total rewards boarded from both auctions"
         );
     }
+    function test_MultipleAuctionsCycleWithUnsoldTokensAndNoSelfTransfer()
+        public
+    {
+        // First auction cycle
+        _setupAuction(address(mockRewardTokenWithNoSelfTransfer));
 
+        uint256 firstAuctionTotalAmount = REWARD_AMOUNT -
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            );
+        uint256 firstAuctionBuyAmount = firstAuctionTotalAmount / 2; // Buy only half of the tokens
+        uint256 currentPrice = raftContract.getCurrentPrice(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+        uint256 firstAuctionBuyAmountToSpend = (firstAuctionBuyAmount *
+            currentPrice) / 1e18;
+
+        // Buy half of the tokens in the first auction
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(
+            address(raftContract),
+            firstAuctionBuyAmountToSpend
+        );
+        raftContract.buyTokens(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer),
+            firstAuctionBuyAmount
+        );
+        vm.stopPrank();
+
+        // Finalize the first auction after some time
+        vm.warp(block.timestamp + 8 days);
+        raftContract.finalizeAuction(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+
+        // Verify first auction is finalized with unsold tokens
+        (, DutchAuctionLibrary.AuctionState memory state) = raftContract
+            .auctions(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            );
+        assertTrue(state.isFinalized, "First auction should be finalized");
+        assertEq(
+            state.remainingTokens,
+            firstAuctionTotalAmount - firstAuctionBuyAmount,
+            "First auction should have remaining tokens"
+        );
+
+        // Verify rewards were boarded and unsold tokens are recorded
+        assertEq(
+            mockPaymentToken.balanceOf(address(mockArk1)),
+            firstAuctionBuyAmountToSpend,
+            "Partial rewards should be boarded"
+        );
+        assertEq(
+            mockRewardTokenWithNoSelfTransfer.balanceOf(address(mockArk1)),
+            0,
+            "All rewards should be harvested"
+        );
+        assertEq(
+            mockRewardTokenWithNoSelfTransfer.balanceOf(address(raftContract)),
+            firstAuctionTotalAmount - firstAuctionBuyAmount,
+            "Half of rewards should be auctioned"
+        );
+        assertEq(
+            raftContract.unsoldTokens(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            ),
+            firstAuctionTotalAmount - firstAuctionBuyAmount,
+            "Unsold tokens should be recorded"
+        );
+
+        // Second harvest and auction cycle
+        uint256 secondHarvestAmount = 1500000000; // Different amount for the second harvest
+        deal(
+            address(mockRewardTokenWithNoSelfTransfer),
+            address(mockArk1),
+            secondHarvestAmount
+        );
+
+        vm.startPrank(governor);
+        vm.expectEmit(true, true, true, true);
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = address(mockRewardTokenWithNoSelfTransfer);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardAmounts[0] = secondHarvestAmount;
+
+        emit ArkHarvested(address(mockArk1), rewardTokens, rewardAmounts);
+
+        raftContract.harvest(
+            address(mockArk1),
+            _getEncodedRewardData(rewardTokens, rewardAmounts)
+        );
+
+        // Calculate total tokens for second auction (new harvest + unsold tokens from first auction)
+        uint256 secondAuctionTotalAmount = secondHarvestAmount +
+            (firstAuctionTotalAmount - firstAuctionBuyAmount);
+
+        // Start second auction
+        vm.expectEmit(true, true, true, true);
+        emit DutchAuctionEvents.AuctionCreated(
+            2, // This should be the next auction ID
+            governor,
+            secondAuctionTotalAmount -
+                secondAuctionTotalAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            secondAuctionTotalAmount.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            )
+        );
+
+        raftContract.startAuction(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+        vm.stopPrank();
+
+        // Verify second auction setup
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory newState
+        ) = raftContract.auctions(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            );
+
+        assertEq(config.id, 2, "Should be the second auction ID");
+        assertEq(
+            config.totalTokens,
+            secondAuctionTotalAmount -
+                secondAuctionTotalAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            "Should have the correct total tokens including unsold from first auction"
+        );
+        assertEq(
+            newState.remainingTokens,
+            secondAuctionTotalAmount -
+                secondAuctionTotalAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            "Should have the correct remaining tokens"
+        );
+        assertFalse(newState.isFinalized, "Should not be finalized");
+
+        // Buy all tokens in the second auction
+        uint256 secondAuctionBuyAmount = secondAuctionTotalAmount -
+            secondAuctionTotalAmount.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            );
+        currentPrice = raftContract.getCurrentPrice(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+        uint256 secondAuctionBuyAmountToSpend = (secondAuctionBuyAmount *
+            currentPrice) / 1e18;
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(
+            address(raftContract),
+            secondAuctionBuyAmountToSpend
+        );
+        raftContract.buyTokens(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer),
+            secondAuctionBuyAmount
+        );
+        vm.stopPrank();
+
+        // Verify final state
+        (, DutchAuctionLibrary.AuctionState memory finalState) = raftContract
+            .auctions(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            );
+        assertTrue(finalState.isFinalized, "Should be finalized");
+        assertEq(
+            finalState.remainingTokens,
+            0,
+            "Should have no remaining tokens"
+        );
+
+        // Verify unsold tokens
+        assertEq(
+            raftContract.unsoldTokens(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            ),
+            0,
+            "Should have no unsold tokens"
+        );
+
+        // Verify total rewards boarded
+        assertEq(
+            mockPaymentToken.balanceOf(address(mockArk1)),
+            firstAuctionBuyAmountToSpend + secondAuctionBuyAmountToSpend,
+            "Should have total rewards boarded from both auctions"
+        );
+    }
     function test_StartAuction() public {
         address[] memory rewardTokens = new address[](1);
         rewardTokens[0] = address(mockRewardToken);
@@ -678,7 +1128,24 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             .auctions(address(mockArk1), address(mockRewardToken));
         assertTrue(state.isFinalized);
     }
+    function test_FinalizeAuctionWithNoSelfTransfer() public {
+        _setupAuction(address(mockRewardTokenWithNoSelfTransfer));
 
+        // Warp to after auction end time
+        vm.warp(block.timestamp + 8 days);
+
+        raftContract.finalizeAuction(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+
+        (, DutchAuctionLibrary.AuctionState memory state) = raftContract
+            .auctions(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            );
+        assertTrue(state.isFinalized);
+    }
     function test_BuyAllAndSettleAuction() public {
         _setupAuction();
         uint256 currentPrice = raftContract.getCurrentPrice(
@@ -711,7 +1178,41 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             .auctions(address(mockArk1), address(mockRewardToken));
         assertTrue(state.isFinalized);
     }
+    function test_BuyAllAndSettleAuctionWithNoSelfTransfer() public {
+        _setupAuction(address(mockRewardTokenWithNoSelfTransfer));
+        uint256 currentPrice = raftContract.getCurrentPrice(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+        uint256 buyAmount = REWARD_AMOUNT -
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            );
+        uint256 amountToSpend = (buyAmount * currentPrice) / 1e18;
 
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(address(raftContract), amountToSpend);
+        vm.expectEmit(true, true, true, true);
+        emit RewardBoarded(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer),
+            address(mockPaymentToken),
+            amountToSpend
+        );
+        raftContract.buyTokens(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer),
+            buyAmount
+        );
+        vm.stopPrank();
+
+        (, DutchAuctionLibrary.AuctionState memory state) = raftContract
+            .auctions(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
+            );
+        assertTrue(state.isFinalized);
+    }
     function test_UpdateAuctionConfig() public {
         BaseAuctionParameters memory newConfig = BaseAuctionParameters({
             duration: 2 days,
@@ -824,6 +1325,47 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             raftContract.unsoldTokens(
                 address(mockArk1),
                 address(mockRewardToken)
+            ),
+            expectedUnsoldTokens
+        );
+    }
+    function test_UnsoldTokensHandlingWithNoSelfTransfer() public {
+        _setupAuction(address(mockRewardTokenWithNoSelfTransfer));
+        uint256 buyAmount = (REWARD_AMOUNT -
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            )) / 2;
+        uint256 currentPrice = raftContract.getCurrentPrice(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+        uint256 buyAmountToSpend = (buyAmount * currentPrice) / 1e18;
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(address(raftContract), buyAmountToSpend);
+        raftContract.buyTokens(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer),
+            buyAmount
+        );
+        vm.stopPrank();
+
+        // Finalize the auction
+        vm.warp(block.timestamp + 8 days);
+        raftContract.finalizeAuction(
+            address(mockArk1),
+            address(mockRewardTokenWithNoSelfTransfer)
+        );
+
+        // Check unsold tokens
+        uint256 expectedUnsoldTokens = REWARD_AMOUNT -
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            ) -
+            buyAmount;
+        assertEq(
+            raftContract.unsoldTokens(
+                address(mockArk1),
+                address(mockRewardTokenWithNoSelfTransfer)
             ),
             expectedUnsoldTokens
         );
@@ -942,19 +1484,6 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         // Verify the final state
         assertTrue(state.isFinalized, "Auction should be finalized");
-    }
-
-    function _setupAuction() internal {
-        vm.startPrank(governor);
-        raftContract.harvest(
-            address(mockArk1),
-            _getEncodedRewardDataSingleToken(
-                address(mockRewardToken),
-                REWARD_AMOUNT
-            )
-        );
-        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
-        vm.stopPrank();
     }
 
     function test_Sweep() public {
@@ -1287,5 +1816,27 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
         vm.prank(governor);
         raftContract.startAuction(address(mockArk1), address(789));
+    }
+
+    function _setupAuction() internal {
+        vm.startPrank(governor);
+        raftContract.harvest(
+            address(mockArk1),
+            _getEncodedRewardDataSingleToken(
+                address(mockRewardToken),
+                REWARD_AMOUNT
+            )
+        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
+        vm.stopPrank();
+    }
+    function _setupAuction(address token) internal {
+        vm.startPrank(governor);
+        raftContract.harvest(
+            address(mockArk1),
+            _getEncodedRewardDataSingleToken(token, REWARD_AMOUNT)
+        );
+        raftContract.startAuction(address(mockArk1), token);
+        vm.stopPrank();
     }
 }

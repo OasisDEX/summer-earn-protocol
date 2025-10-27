@@ -3,11 +3,11 @@ import { createPublicClient, http } from 'viem'
 
 export async function POST(request: Request) {
   try {
-    const { chainId, arkAddress, rewardAddress } = await request.json()
+    const { chainId, arkAddress, rewardAddress, raftAddress } = await request.json()
 
-    if (!chainId || !arkAddress || !rewardAddress) {
+    if (!chainId || !arkAddress || !rewardAddress || !raftAddress) {
       return Response.json(
-        { error: 'Missing required parameters: chainId, arkAddress, rewardAddress' },
+        { error: 'Missing required parameters: chainId, arkAddress, rewardAddress, raftAddress' },
         { status: 400 },
       )
     }
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     try {
       const currentPrice = await publicClient.readContract({
-        address: config.raftAddress as `0x${string}`,
+        address: raftAddress as `0x${string}`,
         abi: [
           {
             inputs: [

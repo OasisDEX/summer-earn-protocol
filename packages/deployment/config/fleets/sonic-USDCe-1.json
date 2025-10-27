@@ -54,6 +54,38 @@
         "vaultName": "market_8",
         "protocol": "silo"
       }
+    },
+    {
+      "type": "SiloManagedVaultArk",
+      "params": {
+        "asset": "usdce",
+        "vaultName": "varlamore",
+        "protocol": "silo"
+      }
+    },
+    {
+      "type": "SiloManagedVaultArk",
+      "params": {
+        "asset": "usdce",
+        "vaultName": "re7labs",
+        "protocol": "silo"
+      }
+    },
+    {
+      "type": "SiloManagedVaultArk",
+      "params": {
+        "asset": "usdce",
+        "vaultName": "apostro",
+        "protocol": "silo"
+      }
+    },
+    {
+      "type": "SiloManagedVaultArk",
+      "params": {
+        "asset": "usdce",
+        "vaultName": "greenhouse",
+        "protocol": "silo"
+      }
     }
   ]
 }

@@ -1,7 +1,6 @@
 import { Address } from 'viem'
-import { BuyAndBurnContracts } from '../ignition/modules/buy-and-burn'
-import { CoreContracts } from '../ignition/modules/core'
-import { GovContracts } from '../ignition/modules/gov'
+import { CoreContracts as CoreContractsBase } from '../ignition/modules/core'
+import { DeployedBridge } from './bridge-types'
 
 export enum SupportedNetworks {
   MAINNET = 'mainnet',
@@ -14,6 +13,7 @@ export enum ArkType {
   AaveV3Ark = 'AaveV3Ark',
   SparkArk = 'SparkArk',
   CompoundV3Ark = 'CompoundV3Ark',
+  CrossChainArk = 'CrossChainArk',
   ERC4626Ark = 'ERC4626Ark',
   MorphoArk = 'MorphoArk',
   MorphoVaultArk = 'MorphoVaultArk',
@@ -24,9 +24,19 @@ export enum ArkType {
   SkyUsdsPsm3Ark = 'SkyUsdsPsm3Ark',
   MoonwellArk = 'MoonwellArk',
   SyrupArk = 'SyrupArk',
+  SkyRewardsArk = 'SkyRewardsArk',
   SiloArk = 'SiloArk',
+  SiloArkV2 = 'SiloArkV2',
+  SiloManagedVaultArk = 'SiloManagedVaultArk',
+  OriginETHArk = 'OriginETHArk',
+  ArmArk = 'ArmArk',
+  FluidLiteArk = 'FluidLiteArk',
+  AeraArk = 'AeraArk',
+  StargateV2PoolArk = 'StargateV2PoolArk',
+  SiUSDArk = 'SiUSDArk',
+  FluidFTokenArk = 'FluidFTokenArk',
   PsmLiteERC4626Ark = 'PsmLiteERC4626Ark',
-  Psm3ERC4626Ark = 'Psm3ERC4626Ark',
+  Psm3ERC4626Ark = 'Psm3ERC4626Ark'
 }
 
 export const arkTypes = [
@@ -35,6 +45,7 @@ export const arkTypes = [
   { title: 'MorphoArk', value: ArkType.MorphoArk },
   { title: 'MorphoVaultArk', value: ArkType.MorphoVaultArk },
   { title: 'CompoundV3Ark', value: ArkType.CompoundV3Ark },
+  { title: 'CrossChainArk', value: ArkType.CrossChainArk },
   { title: 'ERC4626Ark', value: ArkType.ERC4626Ark },
   { title: 'SkyUsdsArk', value: ArkType.SkyUsdsArk },
   { title: 'SkyUsdsPsm3Ark', value: ArkType.SkyUsdsPsm3Ark },
@@ -43,16 +54,22 @@ export const arkTypes = [
   { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
   { title: 'MoonwellArk', value: ArkType.MoonwellArk },
   { title: 'SyrupArk', value: ArkType.SyrupArk },
+  { title: 'SkyRewardsArk', value: ArkType.SkyRewardsArk },
   { title: 'SiloArk', value: ArkType.SiloArk },
+  { title: 'SiloManagedVaultArk', value: ArkType.SiloManagedVaultArk },
+  { title: 'OriginETHArk', value: ArkType.OriginETHArk },
+  { title: 'ArmArk', value: ArkType.ArmArk },
+  { title: 'FluidLiteArk', value: ArkType.FluidLiteArk },
+  { title: 'AeraArk', value: ArkType.AeraArk },
+  { title: 'StargateV2PoolArk', value: ArkType.StargateV2PoolArk },
+  { title: 'SiUSDArk', value: ArkType.SiUSDArk },
+  { title: 'FluidFTokenArk', value: ArkType.FluidFTokenArk },
   { title: 'PsmLiteERC4626Ark', value: ArkType.PsmLiteERC4626Ark },
   { title: 'Psm3ERC4626Ark', value: ArkType.Psm3ERC4626Ark },
 ]
 
 export interface Config {
-  [SupportedNetworks.MAINNET]: BaseConfig
-  [SupportedNetworks.BASE]: BaseConfig
-  [SupportedNetworks.ARBITRUM]: BaseConfig
-  [SupportedNetworks.SONIC]: BaseConfig
+  [key: string]: BaseConfig
 }
 
 export enum Token {
@@ -64,6 +81,7 @@ export enum Token {
   USDS = 'usds',
   STAKED_USDS = 'stakedUsds',
   WETH = 'weth',
+  STETH = 'steth',
   EURC = 'eurc',
   SEAM = 'seam',
   REUL = 'reul',
@@ -71,90 +89,96 @@ export enum Token {
   WS = 'ws',
   GEAR = 'gear',
   MORPHO = 'morpho',
+  SYRUP = 'syrup',
+  SILO = 'silo',
+  SKY = 'sky',
+  XSILO = 'xsilo',
 }
 
 export interface BaseConfig {
   deployedContracts: {
-    core: CoreContracts
-    gov: GovContracts
-    buyAndBurn: BuyAndBurnContracts
-  }
-  common: {
-    chainId: string
-    initialSupply: string
-    layerZero: {
-      lzEndpoint: Address
-      eID: string
-      lzExecutor: Address
-      sendUln302: Address
-      receiveUln302: Address
-      blockedMessageLib: Address
-      lzDeadDVN: Address
-      dvns: {
-        sonic: Record<string, Address>
+    gov: {
+      summerGovernor: { address: string }
+      summerToken: { address: string }
+      timelock: { address: string }
+      protocolAccessManager: { address: string }
+      rewardsRedeemer: { address: string }
+    }
+    buyAndBurn: {
+      buyAndBurn: { address: string }
+    }
+    core: {
+      tipJar: { address: string }
+      raft: { address: string }
+      configurationManager: { address: string }
+      harborCommand: { address: string }
+      admiralsQuarters: { address: string }
+      fleetCommanderRewardsManagerFactory: { address: string }
+      institutionalVaultRegistry?: { address: string }
+    }
+    bridge?: {
+      bridgeRouter: { address: string }
+      bridgeQueue: { address: string }
+      crossChainRegistry: { address: string }
+      adapters?: {
+        layerZero?: { address: string }
+        stargate?: { address: string }
       }
     }
-    swapProvider: Address
-    tipRate: string
   }
   tokens: {
     [key in Token]: Address
   }
-  protocolSpecific: {
-    erc4626: {
-      [key in Token]: {
-        [key: string]: Address
-      }
-    }
-    pendle: {
-      router: Address
-      'lp-oracle': Address
-      markets: {
-        [key in Token]: {
-          swapInTokens: Array<{
-            token: Token
-            oracle: Address
-          }>
-          marketAddresses: Record<string, Address>
+  common: {
+    chainId: string
+    initialSupply: string
+    swapProvider: string
+    tipRate: string
+    layerZero: {
+      lzEndpoint: string
+      eID: string
+      lzExecutor: string
+      sendUln302: string
+      receiveUln302: string
+      blockedMessageLib: string
+      lzDeadDVN: string
+      dvns: {
+        [key: string]: {
+          lzLabs: string
+          stargate: string
         }
       }
     }
+  }
+  protocolSpecific: {
     aaveV3: {
-      pool: Address
-      rewards: Address
+      pool: string
+      rewards: string
     }
     spark: {
-      pool: Address
-      rewards: Address
+      pool: string
+      rewards: string
     }
     morpho: {
-      blue: Address
-      urdFactory: Address
-      vaults: {
-        [key in Token]: {
-          [key: string]: Address
-        }
-      }
-      markets: {
-        [key in Token]: {
-          [key: string]: Address
-        }
-      }
+      blue: string
+      urdFactory: string
+      vaults: Record<string, Record<string, string>>
+      markets: Record<string, Record<string, string>>
     }
     compoundV3: {
-      pools: {
-        [key in Token]: {
-          cToken: Address
-        }
-      }
-      rewards: Address
+      pools: Record<string, { cToken: string }>
+      rewards: string
     }
+    erc4626: Record<string, Record<string, string>>
     sky: {
       psmLite: {
         [key in Token]: Address
       }
       psm3: {
         [key in Token]: Address
+      }
+      staking: {
+        sky: Address
       }
     }
     moonwell: {
@@ -179,8 +203,71 @@ export interface BaseConfig {
           [key: string]: Address
         }
       }
+      vaults: {
+        [key in Token]: {
+          [key: string]: Address
+        }
+      }
+    }
+    fluid: {
+      lite: {
+        [key in Token]: {
+          wrapper: Address
+          vault: Address
+          withdrawalQueue: Address
+        }
+      }
+      fToken: {
+        [key in Token]: {
+          fToken: Address
+          merkleDistributor: Address
+        }
+      }
+    }
+    originETH: {
+      originETH: Address
+      arm: Address
+      arms: {
+        [key in Token]: {
+          [key: string]: Address
+        }
+      }
+    }
+    gauntlet: {
+      vaults: {
+        [key in Token]: {
+          [key: string]: {
+            provisioner: Address
+          }
+        }
+      }
+    }
+    stargate: {
+      staking: Address
+      pools: {
+        [key in Token]: Address
+      }
+    }
+    infinifi?: {
+      gateway: Address
+      siUSD: Address
+    }
+    pendle: {
+      router: Address
+      'lp-oracle': Address
+      markets: Record<
+        Token,
+        {
+          marketAddresses: Record<string, Address>
+          swapInTokens: {
+            token: Token
+            oracle: Address
+          }[]
+        }
+      >
     }
   }
+  bridge?: DeployedBridge
 }
 
 export interface ArkConfig {
@@ -189,6 +276,11 @@ export interface ArkConfig {
     asset: string
     protocol: string
     vaultName?: string // For ERC4626Ark
+    depositCap?: string // For FluidLiteArk
+    maxRebalanceOutflow?: string // For FluidLiteArk
+    maxRebalanceInflow?: string // For FluidLiteArk
+    targetChainId?: string // For CrossChainArk
+    fleetName?: string // For CrossChainArk
   }
 }
 
@@ -214,10 +306,20 @@ export interface FleetConfig {
 
 export interface FleetDeployment {
   fleetName: string
+  isBummer?: boolean
   fleetSymbol: string
   assetSymbol: string
   fleetAddress: Address
   bufferArkAddress: Address
   network: string
   arks: Address[]
+  initialMinimumBufferBalance?: string
+  initialRebalanceCooldown?: string
+  depositCap?: string
+  initialTipRate?: string
+}
+
+// Extend CoreContracts to include InstitutionalVaultRegistry for networks
+export interface CoreContracts extends CoreContractsBase {
+  institutionalVaultRegistry?: { address: Address }
 }
