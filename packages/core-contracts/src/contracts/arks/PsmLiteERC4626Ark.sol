@@ -95,11 +95,9 @@ contract PsmLiteERC4626Ark is Ark {
         if (balance > 0) {
             assets = erc4626Vault.convertToAssets(balance);
             if (shouldStake) {
-                assets =
-                    susds.convertToAssets(assets) /
-                    TO_18_DECIMALS_CONVERSION_FACTOR;
+                assets = _from18Decimals(susds.convertToAssets(assets));
             } else {
-                assets = assets / TO_18_DECIMALS_CONVERSION_FACTOR;
+                assets = _from18Decimals(assets);
             }
         }
     }
@@ -134,18 +132,30 @@ contract PsmLiteERC4626Ark is Ark {
                 uint256 susdsAmount = erc4626Vault.maxWithdraw(address(this));
                 // amount of USDS that would be redeemed from the sUSDS vault, based on the amount of withdrawn sUSDS
                 // converted to USDC decimals
-                withdrawableAssets =
-                    susds.previewRedeem(susdsAmount) /
-                    TO_18_DECIMALS_CONVERSION_FACTOR;
+                withdrawableAssets = _from18Decimals(
+                    susds.previewRedeem(susdsAmount)
+                );
             } else {
                 // maximum amount of USDS that can be withdrawn from the ERC4626 vault
                 uint256 usdsAmount = erc4626Vault.maxWithdraw(address(this));
                 // amount of USDS that can be withdrawn from the ERC4626 vault, converted to USDC decimals
-                withdrawableAssets =
-                    usdsAmount /
-                    TO_18_DECIMALS_CONVERSION_FACTOR;
+                withdrawableAssets = _from18Decimals(usdsAmount);
             }
         }
+    }
+
+    /**
+     * @notice Convert USDC-decimal amount (e.g., 6 decimals) to 18-decimal amount
+     */
+    function _to18Decimals(uint256 usdcAmount) internal view returns (uint256) {
+        return usdcAmount * TO_18_DECIMALS_CONVERSION_FACTOR;
+    }
+
+    /**
+     * @notice Convert 18-decimal amount to USDC-decimal amount (e.g., 6 decimals)
+     */
+    function _from18Decimals(uint256 amount18) internal view returns (uint256) {
+        return amount18 / TO_18_DECIMALS_CONVERSION_FACTOR;
     }
 
     /**
@@ -218,7 +228,7 @@ contract PsmLiteERC4626Ark is Ark {
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
         // amount of USDS to disembark, converted from USDC decimals to 18 decimals
-        uint256 usdsAmount = amount * TO_18_DECIMALS_CONVERSION_FACTOR;
+        uint256 usdsAmount = _to18Decimals(amount);
 
         if (shouldStake) {
             _handleSusdsDisembarking(usdsAmount);
