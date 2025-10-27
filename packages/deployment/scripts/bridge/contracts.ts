@@ -99,7 +99,7 @@ export async function deployBridgeContracts(
 
     return {
       bridgeRouter: { address: result.bridgeRouter.address as Address },
-      bridgeQueue: { address: result.bridgeQueue.address as Address },
+      bridgeQueue: { address: (result.bridgeQueue as any).address as Address },
       crossChainRegistry: { address: result.crossChainRegistry.address as Address },
     }
   }
@@ -144,7 +144,7 @@ export async function deployBridgeContracts(
     return {
       bridgeRouter: { address: newRouterAddress },
       bridgeQueue: { address: existingQueueAddress },
-      crossChainRegistry: { address: result.crossChainRegistry.address as Address },
+      crossChainRegistry: { address: bridgeConfig.crossChainRegistry.address as Address },
     }
   }
 

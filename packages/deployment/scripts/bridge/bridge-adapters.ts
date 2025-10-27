@@ -1,9 +1,11 @@
+import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, getAddress } from 'viem'
 import {
   configureLayerZeroAdapter,
   configureLayerZeroAdapterPeersWithConfig,
   deployLayerZeroAdapter,
+  updateLayerZeroAdapterPeers,
 } from './adapters/layerzero'
 import {
   configureStargateAdapter,
@@ -123,7 +125,8 @@ export async function deployBridgeAdapters(
     } else {
       try {
         const stargateAdapterAddress = await deployStargateAdapter(
-          bridgeRouterAddress,
+          networkConfig.deployedContracts.bridge.crossChainRegistry.address,
+          networkConfig.deployedContracts.gov.protocolAccessManager.address,
           networkConfig,
         )
         deployedAdapters.stargate = { address: stargateAdapterAddress }
@@ -139,7 +142,11 @@ export async function deployBridgeAdapters(
     }
   } else {
     try {
-      const stargateAdapterAddress = await deployStargateAdapter(bridgeRouterAddress, networkConfig)
+      const stargateAdapterAddress = await deployStargateAdapter(
+        networkConfig.deployedContracts.bridge.crossChainRegistry.address,
+        networkConfig.deployedContracts.gov.protocolAccessManager.address,
+        networkConfig,
+      )
       deployedAdapters.stargate = { address: stargateAdapterAddress }
       await configureStargateAdapter(
         stargateAdapterAddress,
@@ -157,7 +164,7 @@ export async function deployBridgeAdapters(
 }
 
 export {
-  configureLayerZeroAdapterPeers,
   configureLayerZeroAdapterPeersWithConfig,
+  updateLayerZeroAdapterPeers,
   updateStargateAdapterAddresses,
 }

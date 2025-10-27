@@ -3,7 +3,12 @@ import kleur from 'kleur'
 import { Address, getAddress } from 'viem'
 import stargateConfig from '../../../config/adapters/stargate.json'
 import StargateAdapterModule from '../../../ignition/modules/adapters/stargate'
-import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
+import {
+  extractBridgeRouterAddress,
+  getNetworkNameFromChainId,
+  getSupportedChainsFromConfig,
+  getWalletClient,
+} from './utils'
 
 // Define a type for the bridge router address parameter
 type BridgeRouterAddressParam = Address | { bridgeRouterAddress: Address }
@@ -563,16 +568,4 @@ export async function validateStargateContract(contractAddress: string): Promise
   } catch {
     return false
   }
-}
-
-/**
- * Extract the actual bridge router address from the input parameter which can be either
- * a direct Address or an object containing the address
- */
-export function extractBridgeRouterAddress(
-  bridgeRouterAddress: Address | { bridgeRouterAddress: Address },
-): Address {
-  return typeof bridgeRouterAddress === 'object'
-    ? bridgeRouterAddress.bridgeRouterAddress
-    : bridgeRouterAddress
 }

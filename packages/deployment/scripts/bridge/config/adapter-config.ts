@@ -1,4 +1,4 @@
-import { BridgeAdaptersConfig } from '../../types/bridge-types'
+import { BridgeAdaptersConfig } from '../../../types/bridge-types'
 
 /**
  * Extracts bridge adapter configurations from the network config
@@ -12,8 +12,6 @@ export function getBridgeAdapterConfigs(config: any): BridgeAdaptersConfig | und
 
   // Extract adapter specific configurations
   const adapterConfigs: BridgeAdaptersConfig = {}
-
-  console.log('config [debug]', config)
 
   // Check if bridge config is directly in config.bridge
   if (config.bridge?.adapters) {
@@ -57,56 +55,4 @@ export function getBridgeAdapterConfigs(config: any): BridgeAdaptersConfig | und
 export function hasBridgeAdapterConfigs(config: any): boolean {
   const adapterConfigs = getBridgeAdapterConfigs(config)
   return adapterConfigs !== undefined
-}
-import fs from 'node:fs'
-import path from 'node:path'
-import { DeployedBridge } from '../../types/bridge-types'
-
-export function getBridgeDeploymentDir() {
-  return path.join(process.cwd(), 'deployments', 'bridge')
-}
-
-export function getBridgeDeploymentFileName(network: string) {
-  return `bridge-${network}.json`
-}
-
-export function getBridgeDeploymentPath(network: string) {
-  return path.join(getBridgeDeploymentDir(), getBridgeDeploymentFileName(network))
-}
-
-export async function saveBridgeDeploymentJson(deployedBridge: DeployedBridge, network: string) {
-  const deploymentsDir = getBridgeDeploymentDir()
-
-  // Create directory if it doesn't exist
-  if (!fs.existsSync(deploymentsDir)) {
-    fs.mkdirSync(deploymentsDir, { recursive: true })
-  }
-
-  const filePath = getBridgeDeploymentPath(network)
-  fs.writeFileSync(filePath, JSON.stringify(deployedBridge, null, 2))
-
-  console.log(`Bridge deployment configuration saved to: ${filePath}`)
-}
-import hre from 'hardhat'
-import { DeployedBridge } from '../../types/bridge-types'
-
-export async function setupBridgeGovernance(deployedBridge: DeployedBridge, config: any) {
-  const protocolAccessManager = await hre.viem.getContractAt(
-    'ProtocolAccessManager',
-    config.deployedContracts.gov.protocolAccessManager.address,
-  )
-
-  // Set up initial permissions
-  // Add any necessary role assignments here
-  // For example:
-  // await protocolAccessManager.write.grantRole([
-  //   KEEPER_ROLE,
-  //   deployedBridge.bridgeQueue.address
-  // ])
-}
-
-export async function createBridgeGovernanceProposal(deployedBridge: DeployedBridge, config: any) {
-  // Create a governance proposal for bridge setup
-  // This would be similar to other governance proposals in the system
-  // Implementation depends on your governance system
 }

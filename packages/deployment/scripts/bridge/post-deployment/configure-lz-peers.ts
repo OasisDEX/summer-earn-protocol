@@ -1,16 +1,16 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address } from 'viem'
-import { getConfigByNetwork } from '../lib/config/handler'
-import { promptForConfigType } from '../lib/infrastructure/prompts'
-import { configureLayerZeroAdapterPeers } from './bridge-adapters'
+import { getConfigByNetwork } from '../../lib/config/handler'
+import { promptForConfigType } from '../../lib/infrastructure/prompts'
+import { updateLayerZeroAdapterPeers } from '../bridge-adapters'
 
 /**
  * Script to configure LayerZero adapter peers across all deployed chains
  * This should be run after all chains have deployed their LayerZero adapters
  *
  * Usage:
- * npx hardhat run scripts/bridge/configure-lz-peers.ts --network <network-name>
+ * npx hardhat run scripts/bridge/post-deployment/configure-lz-peers.ts --network <network-name>
  */
 async function main() {
   console.log(kleur.cyan().bold(`Configuring LayerZero adapter peers on ${hre.network.name}...`))
@@ -101,7 +101,7 @@ async function main() {
 
   // Configure LayerZero adapter peers
   try {
-    await configureLayerZeroAdapterPeers(layerZeroAdapterAddress as Address, allNetworkConfigs)
+    await updateLayerZeroAdapterPeers(layerZeroAdapterAddress as Address, allNetworkConfigs)
 
     console.log(
       kleur.green().bold('✅ LayerZero adapter peers configuration completed successfully!'),
