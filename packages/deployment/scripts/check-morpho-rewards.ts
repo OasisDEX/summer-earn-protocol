@@ -5,7 +5,7 @@ import { Address, createWalletClient, encodeAbiParameters, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { base, mainnet } from 'viem/chains'
 import { FleetDeployment } from '../types/config-types'
-import { getFleetDeploymentDir } from './common/fleet-deployment-files-helpers'
+import { getFleetDeploymentDir } from './fleets/deployment'
 
 interface MorphoDistribution {
   claimable: string

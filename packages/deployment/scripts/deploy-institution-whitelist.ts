@@ -7,7 +7,7 @@ import {
   InstitutionWhitelistModule,
 } from '../ignition/modules/institution-whitelist'
 import { BaseConfig } from '../types/config-types'
-import { ADDRESS_ZERO } from './common/constants'
+import { ADDRESS_ZERO } from './lib/infrastructure/constants'
 import { getConfigByNetwork } from './lib/config/handler'
 import {
   promptForInstitutionId,

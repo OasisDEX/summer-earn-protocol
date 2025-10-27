@@ -1,11 +1,14 @@
 import hre from 'hardhat'
+import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import kleur from 'kleur'
 import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
-import { FleetConfig, FleetDeployment } from '../../types/config-types'
+import { BaseConfig, FleetConfig, FleetDeployment } from '../../types/config-types'
+import { deployArk } from '../common/ark-deployment'
+import { GOVERNOR_ROLE } from '../lib/infrastructure/constants'
 import { FleetConfigSchema, FleetDeploymentSchema } from '../lib/infrastructure/zod-schemas'
 
 /**
@@ -193,15 +196,6 @@ export function saveFleetDeploymentJson(
 
   console.log(kleur.green().bold(`Deployment information saved to: ${filePath}`))
 }
-import fs from 'fs'
-import hre from 'hardhat'
-import kleur from 'kleur'
-import path from 'path'
-import prompts from 'prompts'
-import { Address } from 'viem'
-import { BaseConfig, FleetConfig } from '../../types/config-types'
-import { deployArk } from '../common/ark-deployment'
-import { GOVERNOR_ROLE } from '../lib/infrastructure/constants'
 
 /**
  * Deploys all Arks specified in the fleet definition
@@ -559,22 +553,6 @@ export async function promptForFleetDeploymentOutput(
 
   return selectedFleet
 }
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import kleur from 'kleur'
-import fs from 'node:fs'
-import path from 'node:path'
-import prompts from 'prompts'
-import { Address } from 'viem'
-import { BaseConfig, FleetConfig, FleetDeployment } from '../../types/config-types'
-import { GOVERNOR_ROLE } from './constants'
-import {
-  getAvailableFleets,
-  getFleetDeploymentDir,
-  getFleetDeploymentFileName,
-  getFleetDeploymentPath,
-  loadFleetDeployment,
-} from './fleet-deployment-files-helpers'
-import { grantCommanderRole } from './grant-commander-role'
 
 /**
  * Adds the deployed Ark to a selected fleet.
@@ -686,10 +664,6 @@ export async function addArkToFleet(
     console.log(kleur.yellow('No fleet selected. Skipping adding Ark to fleet.'))
   }
 }
-
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import kleur from 'kleur'
-import { Address } from 'viem'
 
 /**
  * Grants the COMMANDER_ROLE to a Fleet Commander for a specific Ark

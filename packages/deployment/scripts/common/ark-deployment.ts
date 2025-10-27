@@ -28,6 +28,7 @@ import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
+import { ZERO_STRING } from '../lib/infrastructure/constants'
 import {
   validateAddress,
   validateErc4626Address,
@@ -35,7 +36,6 @@ import {
   validateString,
   validateToken,
 } from '../lib/infrastructure/validation'
-import { ZERO_STRING } from './constants'
 
 export type ArkConfig = {
   type: ArkType

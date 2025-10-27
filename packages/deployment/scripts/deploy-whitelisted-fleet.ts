@@ -6,12 +6,12 @@ import prompts from 'prompts'
 import { Address, Address as ViemAddress } from 'viem'
 import { createFleetWhitelistModule } from '../ignition/modules/fleet-whitelist'
 import { BaseConfig, FleetConfig } from '../types/config-types'
-import { addArkToFleet } from './common/add-ark-to-fleet'
-import { ADDRESS_ZERO, GOVERNOR_ROLE } from './common/constants'
+import { addArkToFleet } from './fleets/deployment'
+import { ADDRESS_ZERO, GOVERNOR_ROLE } from './lib/infrastructure/constants'
 import {
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
-} from './common/fleet-deployment-files-helpers'
+} from './fleets/deployment'
 import { logDeploymentResults } from './fleets/contracts'
 import {
   addFleetToHarbor,

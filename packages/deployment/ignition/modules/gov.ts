@@ -1,5 +1,5 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { ADDRESS_ZERO } from '../../scripts/common/constants'
+import { ADDRESS_ZERO } from '../../scripts/lib/infrastructure/constants'
 
 /**
  * @dev Enum representing different types of voting power decay functions

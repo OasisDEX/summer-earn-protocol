@@ -576,7 +576,7 @@ export async function configureLayerZeroAdapterPeersWithConfig(
   console.log(kleur.cyan().bold(`Configuring LayerZero adapter peers on ${networkName}...`))
 
   // Get current network config
-  const { getConfigByNetwork } = await import('../../helpers/config-handler')
+  const { getConfigByNetwork } = await import('../../lib/config/handler')
 
   const currentNetworkConfig = getConfigByNetwork(
     networkName,

@@ -6,7 +6,7 @@ import { Account, createPublicClient, createWalletClient, encodeAbiParameters, h
 import { privateKeyToAccount } from 'viem/accounts'
 import { mainnet } from 'viem/chains'
 import { FleetDeployment } from '../types/config-types'
-import { getFleetDeploymentDir } from './common/fleet-deployment-files-helpers'
+import { getFleetDeploymentDir } from './fleets/deployment'
 
 interface MerklReward {
   root: string

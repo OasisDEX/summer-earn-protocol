@@ -5,8 +5,8 @@ import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig } from '../types/config-types'
-import { addArkToFleet } from './common/add-ark-to-fleet'
-import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './common/constants'
+import { addArkToFleet } from './fleets/deployment'
+import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './lib/infrastructure/constants'
 import {
   getFleetConfig,
   getFleetDeploymentDir,
@@ -14,8 +14,8 @@ import {
   loadFleetDeployment,
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
-} from './common/fleet-deployment-files-helpers'
-import { grantCommanderRole } from './common/grant-commander-role'
+} from './fleets/deployment'
+import { grantCommanderRole } from './fleets/deployment'
 import { deployFleetContracts, logDeploymentResults } from './fleets/contracts'
 import {
   addFleetToHarbor,
