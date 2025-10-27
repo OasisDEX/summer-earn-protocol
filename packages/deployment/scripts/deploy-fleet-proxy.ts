@@ -10,7 +10,10 @@ import { getChainIdByNetwork } from './common/chain'
 import { getConfigByNetwork } from './common/config'
 import { handleDeploymentId } from './common/files'
 import { continueDeploymentCheck } from './common/prompts'
-import { loadCrossChainConfig, saveCrossChainConfig } from './layerzero/cross-chain'
+import {
+  loadCrossChainConfig,
+  saveCrossChainConfig,
+} from './governance/bridge/helpers/cross-chain-config-helper'
 
 /**
  * Interface for the FleetProxy deployment parameters

@@ -8,14 +8,14 @@ import { getChainConfigByChainId } from '../../core/chain'
 import { createClients } from '../../core/clients'
 import { getConfigByNetwork } from '../../core/config'
 import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../../core/constants'
+import { prepareBridgeTransaction } from '../../governance/bridge/helpers/bridge-transaction-helper'
+import { constructLzOptions } from '../../governance/bridge/helpers/lz-options-helper'
 import {
   createGovernanceProposal,
   hashDescription,
   ProposalContent,
 } from '../../governance/core/proposal'
 import { FleetContracts } from '../../ignition/modules/fleet'
-import { prepareBridgeTransaction } from '../../layerzero/bridge'
-import { constructLzOptions } from '../../layerzero/options'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { getRewardsManagerAddress } from './deployment'
 

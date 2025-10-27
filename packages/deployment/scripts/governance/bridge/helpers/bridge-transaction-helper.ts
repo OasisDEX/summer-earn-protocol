@@ -2,7 +2,7 @@ import { addressToBytes32, Options } from '@layerzerolabs/lz-v2-utilities'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex, PublicClient } from 'viem'
-import SummerTokenABI from '../../artifacts/src/contracts/SummerToken.sol/SummerToken.json'
+import SummerTokenABI from '../../../artifacts/src/contracts/SummerToken.sol/SummerToken.json'
 
 /**
  * Prepares actions for bridging tokens across chains using LayerZero

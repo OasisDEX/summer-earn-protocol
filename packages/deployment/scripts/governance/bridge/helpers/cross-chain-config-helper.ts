@@ -2,9 +2,9 @@ import * as fs from 'fs'
 import kleur from 'kleur'
 import * as path from 'path'
 import { Address, Hex, encodeFunctionData, parseAbi } from 'viem'
-import { ChainSetup } from '../common/prompts'
-import { constructLzOptions } from './options'
-import { hashDescription } from './proposal'
+import { ChainSetup } from '../../../common/prompts'
+import { hashDescription } from '../../../core/proposal'
+import { constructLzOptions } from './lz-options-helper'
 
 export interface CrossChainProtocolConfig {
   protocol: string

@@ -9,9 +9,9 @@ import {
   getSipMinorNumber,
   hashDescription,
 } from '../../../governance/core/proposal'
-import { constructLzOptions } from '../../../layerzero/options'
 import { LZ_ENDPOINT_ABI } from '../lz-endpoint-abi'
 import { checkLzAuthorization } from './lz-authorization-helper'
+import { constructLzOptions } from './lz-options-helper'
 import { generateAggregatedLzConfigProposalDescription } from './proposal-description-helper'
 
 /**
