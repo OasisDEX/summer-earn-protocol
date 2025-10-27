@@ -19,12 +19,7 @@ import {
   writeContractTx,
 } from './transaction-helpers'
 import { BaseConfig } from './types'
-import {
-  extractBridgeRouterAddress,
-  getNetworkNameFromChainId,
-  getSupportedChainsFromConfig,
-  getWalletClient,
-} from './utils'
+import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
 
 /**
  * Deploy LayerZero adapter using Ignition module
@@ -307,13 +302,15 @@ async function registerWithBridgeRouter(
   layerZeroAdapterAddress: Address,
 ): Promise<void> {
   try {
-    const actualAddress = extractBridgeRouterAddress(bridgeRouterAddress)
-    const alreadyRegistered = await isAdapterRegistered(actualAddress, layerZeroAdapterAddress)
+    const alreadyRegistered = await isAdapterRegistered(
+      bridgeRouterAddress,
+      layerZeroAdapterAddress,
+    )
 
     if (!alreadyRegistered) {
       const hash = await writeContractTx(
         walletClient,
-        actualAddress,
+        bridgeRouterAddress,
         BRIDGE_ROUTER_REGISTER_ADAPTER_ABI,
         'registerAdapter',
         [getAddress(layerZeroAdapterAddress)],

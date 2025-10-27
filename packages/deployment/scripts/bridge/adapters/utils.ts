@@ -1,6 +1,5 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address } from 'viem'
 import { CHAIN_CONFIG_MAP, RPC_URL_MAP, getChainConfigs } from '../../lib/chain/config'
 import { getChainNameById } from '../../lib/chain/helpers'
 import { isTenderlyVirtualTestnet } from '../../lib/infrastructure/tenderly'
@@ -166,16 +165,4 @@ export async function waitForPendingTransactions(
   }
 
   console.log(kleur.yellow('Max wait time reached, proceeding anyway...'))
-}
-
-/**
- * Extract the actual bridge router address from the input parameter which can be either
- * a direct Address or an object containing the address
- */
-export function extractBridgeRouterAddress(
-  bridgeRouterAddress: Address | { bridgeRouterAddress: Address },
-): Address {
-  return typeof bridgeRouterAddress === 'object'
-    ? bridgeRouterAddress.bridgeRouterAddress
-    : bridgeRouterAddress
 }

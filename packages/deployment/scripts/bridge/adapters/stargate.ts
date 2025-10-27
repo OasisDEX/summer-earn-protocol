@@ -19,15 +19,7 @@ import {
   writeContractTx,
 } from './transaction-helpers'
 import { BaseConfig, ChainInfo } from './types'
-import {
-  extractBridgeRouterAddress,
-  getNetworkNameFromChainId,
-  getSupportedChainsFromConfig,
-  getWalletClient,
-} from './utils'
-
-// Define a type for the bridge router address parameter
-type BridgeRouterAddressParam = Address | { bridgeRouterAddress: Address }
+import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
 
 // Cache for validated contracts
 const validatedContracts = new Set<string>()
@@ -284,16 +276,15 @@ async function configureSupportedAssets(
 async function registerWithBridgeRouter(
   walletClient: any,
   stargateAdapterAddress: Address,
-  bridgeRouterAddress: BridgeRouterAddressParam,
+  bridgeRouterAddress: Address,
 ): Promise<void> {
   try {
-    const actualAddress = extractBridgeRouterAddress(bridgeRouterAddress)
-    const alreadyRegistered = await isAdapterRegistered(actualAddress, stargateAdapterAddress)
+    const alreadyRegistered = await isAdapterRegistered(bridgeRouterAddress, stargateAdapterAddress)
 
     if (!alreadyRegistered) {
       const hash = await writeContractTx(
         walletClient,
-        actualAddress,
+        bridgeRouterAddress,
         BRIDGE_ROUTER_REGISTER_ADAPTER_ABI,
         'registerAdapter',
         [getAddress(stargateAdapterAddress as `0x${string}`)],
@@ -315,7 +306,7 @@ async function registerWithBridgeRouter(
  */
 export async function configureStargateAdapter(
   stargateAdapterAddress: Address,
-  bridgeRouterAddress: BridgeRouterAddressParam,
+  bridgeRouterAddress: Address,
   networkConfig: BaseConfig,
   allNetworkConfigs?: Record<string, BaseConfig>,
 ): Promise<void> {
