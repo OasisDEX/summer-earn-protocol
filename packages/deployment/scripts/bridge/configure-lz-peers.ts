@@ -1,8 +1,8 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address } from 'viem'
-import { getConfigByNetwork } from '../core/config'
-import { promptForConfigType } from '../utils/prompts'
+import { getConfigByNetwork } from '../common/config'
+import { promptForConfigType } from '../common/prompts'
 import { configureLayerZeroAdapterPeers } from './bridge-adapters'
 
 /**

@@ -5,11 +5,11 @@ import { Address } from 'viem'
 import { AeraArkContracts, createAeraArkModule } from '../../ignition/modules/arks/aera-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { BaseArkParams } from '../arks/core/deployment'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../core/constants'
-import { getFleetConfig } from '../fleets/core/config'
-import { handleDeploymentId } from '../utils/files'
-import { getChainId } from '../core/chain'
-import { continueDeploymentCheck } from '../utils/prompts'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../fleets/deployment/config'
+import { handleDeploymentId } from '../common/files'
+import { getChainId } from '../common/chain'
+import { continueDeploymentCheck } from '../common/prompts'
 
 export interface AeraArkUserInput extends BaseArkParams {
   provisioner: string

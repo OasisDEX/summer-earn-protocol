@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import kleur from 'kleur'
 import * as path from 'path'
 import { Address, Hex, encodeFunctionData, parseAbi } from 'viem'
-import { ChainSetup } from '../utils/prompts'
+import { ChainSetup } from '../common/prompts'
 import { constructLzOptions } from './options'
 import { hashDescription } from './proposal'
 

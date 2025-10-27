@@ -1,8 +1,8 @@
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address, Hex, encodeFunctionData, parseAbi } from 'viem'
-import { getConfigByNetwork } from '../core/config'
-import { getSipMinorNumber } from '../core/get-sip-minor-number'
+import { getConfigByNetwork } from '../common/config'
+import { getSipMinorNumber } from '../common/get-sip-minor-number'
 import { submitProposal } from '../governance/core/submission'
 
 const hre = require('hardhat')

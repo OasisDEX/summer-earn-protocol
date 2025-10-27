@@ -2,12 +2,12 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { createSummerVestingFactoryV2Module } from '../ignition/modules/summerVestingFactoryV2ModuleFactory'
-import { getConfigByNetwork } from './core/config-handler'
-import { handleDeploymentId } from './core/deployment-id-handler'
-import { getChainId } from './core/get-chainid'
+import { getConfigByNetwork } from './common/config-handler'
+import { handleDeploymentId } from './common/deployment-id-handler'
+import { getChainId } from './common/get-chainid'
 import { continueDeploymentCheck, promptForConfigType } from './utils/prompts'
 import { warnIfTenderlyVirtualTestnet } from './utils/tenderly'
-import { updateIndexJson } from './core/update-json'
+import { updateIndexJson } from './common/update-json'
 
 export async function deploySummerVestingFactoryV2() {
   const network = hre.network.name

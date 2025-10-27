@@ -5,9 +5,9 @@ import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { ArkType, FleetConfig } from '../types/config-types'
-import { getConfigByNetwork } from './core/config'
-import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './core/constants'
-import { validateToken } from './core/validation'
+import { getConfigByNetwork } from './common/config'
+import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './common/constants'
+import { validateToken } from './common/validation'
 import {
   getFleetConfig,
   getFleetDeploymentDir,
@@ -15,21 +15,21 @@ import {
   loadFleetDeployment,
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
-} from './fleets/core/config'
-import { deployFleetContracts, logDeploymentResults } from './fleets/core/contracts'
+} from './fleets/deployment/config'
+import { deployFleetContracts, logDeploymentResults } from './fleets/deployment/contracts'
 import {
   addFleetToHarbor,
   deployArks,
   getRewardsManagerAddress,
   grantCuratorRole,
   setupFleetRewards,
-} from './fleets/core/deployment'
+} from './fleets/deployment/deployment'
 import {
   createArkAdditionCrossChainProposal,
   createArkAdditionProposal,
   createHubGovernanceProposal,
   createSatelliteGovernanceProposal,
-} from './fleets/core/governance'
+} from './fleets/deployment/governance'
 import { addArkToFleet } from './utils/add-ark-to-fleet'
 import { grantCommanderRole } from './utils/grant-commander-role'
 import { continueDeploymentCheck, promptForConfigType } from './utils/prompts'

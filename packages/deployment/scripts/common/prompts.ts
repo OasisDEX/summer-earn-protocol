@@ -5,8 +5,8 @@ import path from 'path'
 import prompts from 'prompts'
 import { Address, Chain, parseAbi } from 'viem'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
-import { ChainName, getChainConfigs } from '../core/chain'
-import { createClients } from '../core/clients'
+import { ChainName, getChainConfigs } from '../common/chain'
+import { createClients } from '../common/clients'
 
 dotenv.config({ path: '../../.env' })
 

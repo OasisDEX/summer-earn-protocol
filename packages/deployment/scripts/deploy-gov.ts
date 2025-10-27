@@ -7,7 +7,7 @@ import { finalizeGov } from './governance/finalize-gov'
 import { peerGov } from './governance/peer-gov'
 import { rolesGov } from './governance/roles-gov'
 import { deployGov as systemGov } from './governance/system-gov'
-import { getConfigByNetwork } from './core/config-handler'
+import { getConfigByNetwork } from './common/config-handler'
 import { promptForConfigType } from './utils/prompts'
 import { verifyGovernanceRewardsManager } from './verify/governance-reward-managers'
 

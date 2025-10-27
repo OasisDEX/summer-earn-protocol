@@ -9,8 +9,8 @@ import { getConfigByNetwork } from '../../core/config'
 import { promptForFleetDeploymentOutput } from '../../fleets/core/deployment'
 import { promptForConfigType } from '../../utils/prompts'
 import { warnIfTenderlyVirtualTestnet } from '../../utils/tenderly'
-import { createUnifiedLzConfigProposal } from './core/bridge-governance-helper'
-import { checkLzAuthorization } from './core/lz-authorization-helper'
+import { createUnifiedLzConfigProposal } from './common/bridge-governance-helper'
+import { checkLzAuthorization } from './common/lz-authorization-helper'
 import { LZ_ENDPOINT_ABI } from './lz-endpoint-abi'
 
 // Interface for LayerZero configuration

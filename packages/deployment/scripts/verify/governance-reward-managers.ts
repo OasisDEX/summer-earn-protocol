@@ -2,9 +2,9 @@ import dotenv from 'dotenv'
 import hre from 'hardhat'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { resolve } from 'path'
-import { getChainConfigByChainId } from '../core/chain'
-import { getChainPublicClient } from '../core/clients'
-import { getConfigByNetwork } from '../core/config'
+import { getChainConfigByChainId } from '../common/chain'
+import { getChainPublicClient } from '../common/clients'
+import { getConfigByNetwork } from '../common/config'
 
 dotenv.config()
 

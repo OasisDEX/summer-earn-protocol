@@ -4,10 +4,10 @@ import fs from 'fs'
 import hre from 'hardhat'
 import path from 'path'
 import { Address, PublicClient, encodeFunctionData, formatUnits, getAddress, parseAbi } from 'viem'
-import { FOUNDATION_ROLE, GOVERNOR_ROLE } from '../core/constants'
-import { promptForChainFromHre } from '../core/chain-prompt'
-import { proposeAllSafeTransactions } from '../core/safe-transaction'
-import { createClients } from '../core/wallet-helper'
+import { FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
+import { promptForChainFromHre } from '../common/chain-prompt'
+import { proposeAllSafeTransactions } from '../common/safe-transaction'
+import { createClients } from '../common/wallet-helper'
 
 // Load environment variables
 dotenv.config({ path: '../../.env' })

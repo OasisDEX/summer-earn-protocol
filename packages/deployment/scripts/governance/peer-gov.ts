@@ -3,8 +3,8 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address, Hex } from 'viem'
 import { SupportedNetworks } from '../../types/config-types'
-import { ADDRESS_ZERO } from '../core/constants'
-import { getConfigByNetwork } from '../core/config'
+import { ADDRESS_ZERO } from '../common/constants'
+import { getConfigByNetwork } from '../common/config'
 import { configureNewChainLayerZero } from './bridge/configure-new-chain-lz'
 
 interface PeerConfig {

@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { BaseConfig } from '../types/config-types'
-import { getConfigByNetwork } from './core/config-handler'
+import { getConfigByNetwork } from './common/config-handler'
 import { promptForConfigType } from './utils/prompts'
 
 async function updateBridgeRouter() {

@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { ArkType, BaseConfig, arkTypes } from '../types/config-types'
 import { deployArkInteractive } from './arks/core/deployment'
-import { getConfigByNetwork } from './core/config'
+import { getConfigByNetwork } from './common/config'
 import { addArkToFleet } from './utils/add-ark-to-fleet'
 import { ModuleLogger } from './utils/module-logger'
 

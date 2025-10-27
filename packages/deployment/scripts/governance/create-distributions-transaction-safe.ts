@@ -7,10 +7,10 @@ import path from 'path'
 import { Address, encodeFunctionData, getAddress } from 'viem'
 import { base } from 'viem/chains'
 import { BaseConfig } from '../../types/config-types'
-import { ADDRESS_ZERO, FOUNDATION_ROLE, GOVERNOR_ROLE } from '../core/constants'
-import { getConfigByNetwork } from '../core/config'
-import { constructLzOptions } from '../core/layerzero-options'
-import { proposeAllSafeTransactions } from '../core/safe-transaction'
+import { ADDRESS_ZERO, FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
+import { getConfigByNetwork } from '../common/config'
+import { constructLzOptions } from '../common/layerzero-options'
+import { proposeAllSafeTransactions } from '../common/safe-transaction'
 
 dotenv.config()
 

@@ -11,7 +11,7 @@ import {
   getFleetDeploymentFileName,
   getFleetDeploymentPath,
   loadFleetDeployment,
-} from '../fleets/core/config'
+} from '../fleets/deployment/config'
 import { GOVERNOR_ROLE } from './constants'
 import { grantCommanderRole } from './grant-commander-role'
 

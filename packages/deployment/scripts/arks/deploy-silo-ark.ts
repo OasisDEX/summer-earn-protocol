@@ -5,11 +5,11 @@ import { Address } from 'viem'
 import { createSiloArkModule, SiloArkContracts } from '../../ignition/modules/arks/silo-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { BaseArkParams } from '../arks/core/deployment'
-import { getChainId } from '../core/chain'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../core/constants'
-import { getFleetConfig } from '../fleets/core/config'
-import { handleDeploymentId } from '../utils/files'
-import { continueDeploymentCheck } from '../utils/prompts'
+import { getChainId } from '../common/chain'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../fleets/deployment/config'
+import { handleDeploymentId } from '../common/files'
+import { continueDeploymentCheck } from '../common/prompts'
 
 export interface SiloArkUserInput extends BaseArkParams {
   siloId: string

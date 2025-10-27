@@ -7,7 +7,7 @@ import {
   configureStargateAdapter,
   deployBridgeAdapters,
 } from './bridge/bridge-adapters'
-import { getConfigByNetwork } from './core/config'
+import { getConfigByNetwork } from './common/config'
 import { updateIndexJson } from './utils/files'
 import { promptForConfigType, promptYesNo } from './utils/prompts'
 

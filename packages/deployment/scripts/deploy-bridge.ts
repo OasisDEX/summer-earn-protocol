@@ -1,9 +1,9 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { BaseConfig } from '../types/config-types'
-import { deployBridgeContracts } from './bridge/core/contracts'
-import { getChainId } from './core/chain'
-import { getConfigByNetwork } from './core/config'
+import { deployBridgeContracts } from './bridge/deployment/contracts'
+import { getChainId } from './common/chain'
+import { getConfigByNetwork } from './common/config'
 import { updateIndexJson } from './utils/files'
 import { promptForConfigType } from './utils/prompts'
 

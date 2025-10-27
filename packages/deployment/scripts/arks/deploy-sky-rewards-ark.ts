@@ -7,12 +7,12 @@ import {
   createSkyRewardsArkModule,
 } from '../../ignition/modules/arks/sky-rewards-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../core/constants'
-import { getFleetConfig } from '../fleets/core/config'
-import { handleDeploymentId } from '../utils/files'
-import { getChainId } from '../core/chain'
-import { continueDeploymentCheck } from '../utils/prompts'
-import { validateAddress } from '../core/validation'
+import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../fleets/deployment/config'
+import { handleDeploymentId } from '../common/files'
+import { getChainId } from '../common/chain'
+import { continueDeploymentCheck } from '../common/prompts'
+import { validateAddress } from '../common/validation'
 
 export interface SkyRewardsArkUserInput {
   fleetName: string

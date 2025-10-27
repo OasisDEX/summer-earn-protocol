@@ -3,9 +3,9 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import { Address } from 'viem'
-import { getConfigByNetwork } from '../core/config'
+import { getConfigByNetwork } from '../common/config'
 import { submitProposal } from '../governance/core/submission'
-import { promptForConfigType } from '../utils/prompts'
+import { promptForConfigType } from '../common/prompts'
 import {
   ProposalData,
   displayProposalSummary,
