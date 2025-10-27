@@ -5,8 +5,9 @@ import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { ArkType, FleetConfig } from '../types/config-types'
-import { addArkToFleet } from './common/add-ark-to-fleet'
-import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './common/constants'
+import { getConfigByNetwork } from './core/config'
+import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './core/constants'
+import { validateToken } from './core/validation'
 import {
   getFleetConfig,
   getFleetDeploymentDir,
@@ -14,27 +15,26 @@ import {
   loadFleetDeployment,
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
-} from './common/fleet-deployment-files-helpers'
-import { grantCommanderRole } from './common/grant-commander-role'
-import { deployFleetContracts, logDeploymentResults } from './fleets/fleet-contracts'
+} from './fleets/core/config'
+import { deployFleetContracts, logDeploymentResults } from './fleets/core/contracts'
 import {
   addFleetToHarbor,
   deployArks,
   getRewardsManagerAddress,
   grantCuratorRole,
   setupFleetRewards,
-} from './fleets/fleet-deployment-helpers'
+} from './fleets/core/deployment'
 import {
   createArkAdditionCrossChainProposal,
   createArkAdditionProposal,
   createHubGovernanceProposal,
   createSatelliteGovernanceProposal,
-} from './fleets/fleet-governance-helpers'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
-import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'
-import { getAssetAddress } from './helpers/token-helpers'
-import { validateToken } from './helpers/validation'
+} from './fleets/core/governance'
+import { addArkToFleet } from './utils/add-ark-to-fleet'
+import { grantCommanderRole } from './utils/grant-commander-role'
+import { continueDeploymentCheck, promptForConfigType } from './utils/prompts'
+import { warnIfTenderlyVirtualTestnet } from './utils/tenderly'
+import { getAssetAddress } from './utils/tokens'
 
 /**
  * Deployment modes for the script

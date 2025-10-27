@@ -1,9 +1,14 @@
 import prompts from 'prompts'
 import { Address, Hex, encodeFunctionData, formatEther, parseAbi, parseEther } from 'viem'
-import { ChainSetup, promptForChain, promptForTargetChain } from '../../helpers/chain-prompt'
-import { buildCrossChainProposalAction } from '../../helpers/cross-chain-proposal'
-import { promptForAddresses, useTestConfig } from '../../helpers/prompt-helpers'
-import { createClients } from '../../helpers/wallet-helper'
+import { createClients } from '../../core/clients'
+import { buildCrossChainProposalAction } from '../../layerzero/cross-chain'
+import {
+  ChainSetup,
+  promptForAddresses,
+  promptForChain,
+  promptForTargetChain,
+  useTestConfig,
+} from '../../utils/prompts'
 
 const governorAbi = parseAbi([
   'function propose(address[] targets, uint256[] values, bytes[] calldatas, string description) public returns (uint256)',

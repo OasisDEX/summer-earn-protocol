@@ -2,12 +2,12 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address, parseAbi } from 'viem'
-import { HUB_CHAIN_NAME } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
-import { hashDescription } from '../helpers/hash-description'
-import { promptForConfigType } from '../helpers/prompt-helpers'
-import { ProposalData, loadProposal } from '../helpers/proposal-helpers'
-import { sleep } from '../helpers/utils'
+import { HUB_CHAIN_NAME } from '../core/constants'
+import { getConfigByNetwork } from '../core/config'
+import { hashDescription } from '../core/hash-description'
+import { promptForConfigType } from '../utils/prompts'
+import { ProposalData, loadProposal } from '../governance/core/proposal'
+import { sleep } from '../core/utils'
 
 enum ProposalState {
   Pending,

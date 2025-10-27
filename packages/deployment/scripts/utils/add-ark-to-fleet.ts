@@ -5,14 +5,14 @@ import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { BaseConfig, FleetConfig, FleetDeployment } from '../../types/config-types'
-import { GOVERNOR_ROLE } from './constants'
 import {
   getAvailableFleets,
   getFleetDeploymentDir,
   getFleetDeploymentFileName,
   getFleetDeploymentPath,
   loadFleetDeployment,
-} from './fleet-deployment-files-helpers'
+} from '../fleets/core/config'
+import { GOVERNOR_ROLE } from './constants'
 import { grantCommanderRole } from './grant-commander-role'
 
 /**

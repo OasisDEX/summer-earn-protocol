@@ -5,8 +5,8 @@ import hre from 'hardhat'
 import path from 'path'
 import { Address, encodeFunctionData, getAddress } from 'viem'
 import { base } from 'viem/chains'
-import { getConfigByNetwork } from '../helpers/config-handler'
-import { proposeAllSafeTransactions } from '../helpers/safe-transaction'
+import { getConfigByNetwork } from '../core/config'
+import { proposeAllSafeTransactions } from '../core/safe-transaction'
 
 dotenv.config()
 

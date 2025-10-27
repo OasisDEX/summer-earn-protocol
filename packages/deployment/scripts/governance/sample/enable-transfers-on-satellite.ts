@@ -1,9 +1,9 @@
 import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
-import { promptForChain, promptForTargetChain } from '../../helpers/chain-prompt'
-import { hashDescription } from '../../helpers/hash-description'
-import { constructLzOptions } from '../../helpers/layerzero-options'
-import { createClients } from '../../helpers/wallet-helper'
+import { createClients } from '../../core/clients'
+import { hashDescription } from '../../governance/core/proposal'
+import { constructLzOptions } from '../../layerzero/options'
+import { promptForChain, promptForTargetChain } from '../../utils/prompts'
 
 const governorAbi = parseAbi([
   'function propose(address[] targets, uint256[] values, bytes[] calldatas, string description) public returns (uint256)',

@@ -4,12 +4,12 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { AeraArkContracts, createAeraArkModule } from '../../ignition/modules/arks/aera-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { BaseArkParams } from '../common/ark-deployment'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
-import { handleDeploymentId } from '../helpers/deployment-id-handler'
-import { getChainId } from '../helpers/get-chainid'
-import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { BaseArkParams } from '../arks/core/deployment'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../core/constants'
+import { getFleetConfig } from '../fleets/core/config'
+import { handleDeploymentId } from '../utils/files'
+import { getChainId } from '../core/chain'
+import { continueDeploymentCheck } from '../utils/prompts'
 
 export interface AeraArkUserInput extends BaseArkParams {
   provisioner: string

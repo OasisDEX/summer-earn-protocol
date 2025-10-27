@@ -9,13 +9,13 @@ import {
 } from '../../ignition/modules/arks/origineth-ark'
 import { ArkParams } from '../../types/ark-params'
 import { BaseConfig, Token } from '../../types/config-types'
-import { BaseArkParams } from '../common/ark-deployment'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
-import { handleDeploymentId } from '../helpers/deployment-id-handler'
-import { getChainId } from '../helpers/get-chainid'
-import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { BaseArkParams } from '../arks/core/deployment'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../core/constants'
+import { getFleetConfig } from '../fleets/core/config'
+import { handleDeploymentId } from '../utils/files'
+import { getChainId } from '../core/chain'
+import { continueDeploymentCheck } from '../utils/prompts'
+import { validateAddress } from '../core/validation'
 
 /**
  * Main function to deploy an OriginETHArk.

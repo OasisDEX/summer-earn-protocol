@@ -3,13 +3,15 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { HUB_CHAIN_NAME } from '../common/constants'
-import { promptForFleetDeploymentOutput } from '../fleets/fleet-deployment-helpers'
-import { createRewardSetupProposal } from '../fleets/fleet-governance-helpers'
-import { ChainName } from '../helpers/chain-configs'
-import { promptForChain } from '../helpers/chain-prompt'
-import { promptForFleet as promptForFleetConfiguration } from '../helpers/fleet-prompt'
-import { useTestConfig } from '../helpers/prompt-helpers'
+import { ChainName } from '../core/chain'
+import { HUB_CHAIN_NAME } from '../core/constants'
+import { promptForFleetDeploymentOutput } from '../fleets/core/deployment'
+import { createRewardSetupProposal } from '../fleets/core/governance'
+import {
+  promptForChain,
+  promptForFleet as promptForFleetConfiguration,
+  useTestConfig,
+} from '../utils/prompts'
 
 /**
  * Creates a governance proposal to set up fleet rewards.

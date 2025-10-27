@@ -2,8 +2,7 @@ import fs from 'fs'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
-import { Address, Hex } from 'viem'
-import { createTallyProposal, formatTallyProposalUrl } from './tally-helpers'
+import { Address, Hex, keccak256, toBytes } from 'viem'
 
 interface ProposalAction {
   target: Address
@@ -58,6 +57,41 @@ export interface ProposalData {
     predecessor: string
     delay: string
   }>
+}
+
+/**
+ * Hashes a description string using keccak256
+ * @param description The description to hash
+ * @returns The hashed description as Hex
+ */
+export function hashDescription(description: string): Hex {
+  return keccak256(toBytes(description))
+}
+
+/**
+ * Helper function to prompt for SIP minor number
+ */
+export async function getSipMinorNumber(): Promise<number | undefined> {
+  try {
+    // Check if prompts package is available
+    const prompts = require('prompts')
+
+    const response = await prompts({
+      type: 'number',
+      name: 'value',
+      message:
+        'Enter the SIP minor number for this proposal (e.g., for SIP5.1 enter 1, leave empty for no minor number):',
+      validate: (value) =>
+        value === '' || (Number.isInteger(Number(value)) && Number(value) >= 0)
+          ? true
+          : 'Please enter a valid non-negative integer or leave empty',
+    })
+
+    return response.value === '' ? undefined : Number(response.value)
+  } catch (error) {
+    console.log(kleur.yellow('Could not prompt for SIP minor number, continuing without it.'))
+    return undefined
+  }
 }
 
 /**
@@ -198,59 +232,37 @@ export function displayProposalSummary(proposal: ProposalData): void {
     console.log(kleur.blue('Cross-Chain Proposal:'))
     console.log(kleur.blue('  Target Chains:'), proposal.crossChainExecution.length)
 
-    // Display details for each target chain
-    proposal.crossChainExecution.forEach((targetChain, index) => {
-      console.log(kleur.blue(`  Target Chain ${index + 1}:`), targetChain.name)
-      if (targetChain.targets) {
-        console.log(kleur.blue(`  Actions:`), targetChain.targets.length)
-      }
+    proposal.crossChainExecution.forEach((chain, index) => {
+      console.log(kleur.blue(`  Chain ${index + 1}:`), chain.name)
+      console.log(kleur.blue('    Chain ID:'), chain.chainId)
+      console.log(kleur.blue('    Actions:'), chain.targets.length)
     })
-  }
-}
-
-/**
- * Load a proposal by prompting the user to select a file
- * @param promptMessage Optional custom message for the prompt
- * @returns The loaded proposal data or undefined if canceled
- */
-export async function loadProposal(
-  promptMessage = 'Select a proposal file to execute:',
-): Promise<ProposalData | undefined> {
-  const filename = await promptForProposalFile(promptMessage)
-  if (!filename) {
-    return undefined
+  } else if (proposal.crossChainExecution && proposal.crossChainExecution.targetChain) {
+    console.log(kleur.blue('Cross-Chain Proposal:'))
+    console.log(kleur.blue('  Target Chain:'), proposal.crossChainExecution.targetChain.name)
+    console.log(kleur.blue('  Actions:'), proposal.crossChainExecution.targetChain.targets.length)
   }
 
-  const proposal = loadProposalFile(filename)
-  displayProposalSummary(proposal)
-
-  return proposal
+  // Display each action
+  console.log(kleur.blue('\nActions:'))
+  proposal.targets.forEach((target, index) => {
+    console.log(kleur.blue(`  ${index + 1}. Target:`), target)
+    console.log(kleur.blue('     Value:'), proposal.values[index].toString())
+    console.log(kleur.blue('     Calldata:'), proposal.calldatas[index].substring(0, 20) + '...')
+  })
 }
 
 /**
- * Save proposal details to a JSON file
- * @param proposalDetails The proposal details to save
- * @param savePath The path to save the file to
- * @returns The path where the file was saved
- */
-export function saveProposalToFile(proposalDetails: ProposalDetails, savePath: string): string {
-  // Create directory if it doesn't exist
-  fs.mkdirSync(path.dirname(savePath), { recursive: true })
-
-  // Generate a unique filename if not provided
-  const finalPath = savePath.endsWith('.json')
-    ? savePath
-    : path.join(savePath, `proposal-${Date.now()}.json`)
-
-  // Save the file
-  fs.writeFileSync(finalPath, JSON.stringify(proposalDetails, null, 2))
-  console.log(kleur.green(`Proposal details saved to: ${finalPath}`))
-
-  return finalPath
-}
-
-/**
- * Creates a governance proposal using Tally API and saves proposal details to a JSON file
+ * Creates a governance proposal and saves it to a JSON file
+ * @param title The proposal title
+ * @param description The proposal description
+ * @param actions Array of proposal actions
+ * @param governorAddress The governor contract address
+ * @param chainId The chain ID
+ * @param discourseURL Optional Discourse URL
+ * @param actionSummary Optional action summary
+ * @param savePath Optional custom save path
+ * @param crossChainExecution Optional cross-chain execution details
  */
 export async function createGovernanceProposal(
   title: string,
@@ -262,114 +274,60 @@ export async function createGovernanceProposal(
   actionSummary: string[] = [],
   savePath?: string,
   crossChainExecution?: any,
-): Promise<string | undefined> {
-  try {
-    // Log proposal actions
-    console.log(kleur.cyan('Creating Tally draft proposal with the following actions:'))
-    if (actionSummary.length > 0) {
-      actionSummary.forEach((action) => console.log(kleur.yellow(action)))
-    }
+): Promise<void> {
+  const governorId = `eip155:${chainId}:${governorAddress}`
 
-    // Log discourse URL if provided
-    if (discourseURL) {
-      console.log(kleur.blue('Using Discourse URL:'), kleur.cyan(discourseURL))
-    }
+  // Convert actions to the format expected by Tally
+  const executableCalls = actions.map((action) => ({
+    target: action.target,
+    calldata: action.calldata,
+    signature: '', // Will be filled by Tally
+    value: action.value.toString(),
+    type: 'CALL',
+  }))
 
-    // Format governor ID for Tally
-    const governorId = `eip155:${chainId}:${governorAddress}`
+  // Create proposal data
+  const proposalData: ProposalDetails = {
+    title,
+    description,
+    governorId,
+    targets: actions.map((action) => action.target),
+    values: actions.map((action) => action.value.toString()),
+    calldatas: actions.map((action) => action.calldata),
+    discourseURL,
+    timestamp: Date.now(),
+    crossChainExecution,
+  }
 
-    // Create executable calls array for Tally
-    const executableCalls = actions.map((action) => ({
-      target: action.target,
-      calldata: action.calldata,
-      signature: '',
-      value: action.value.toString(),
-      type: 'custom',
-    }))
+  // Generate save path if not provided
+  if (!savePath) {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const proposalsDir = getProposalsDirectory()
+    savePath = path.join(proposalsDir, `proposal_${timestamp}.json`)
+  }
 
-    // Save proposal details to JSON file if a path is provided
-    if (savePath) {
-      const proposalDetails: ProposalDetails = {
-        title,
-        description,
-        governorId,
-        targets: actions.map((a) => a.target),
-        values: actions.map((a) => a.value.toString()),
-        calldatas: actions.map((a) => a.calldata),
-        discourseURL: discourseURL || undefined,
-        timestamp: Date.now(),
-        crossChainExecution,
-      }
+  // Ensure proposals directory exists
+  const proposalsDir = path.dirname(savePath)
+  if (!fs.existsSync(proposalsDir)) {
+    fs.mkdirSync(proposalsDir, { recursive: true })
+  }
 
-      saveProposalToFile(proposalDetails, savePath)
-    }
+  // Save proposal to file
+  fs.writeFileSync(savePath, JSON.stringify(proposalData, null, 2))
 
-    // Submit to Tally API
-    const response = await createTallyProposal(
-      governorId,
-      title,
-      description,
-      executableCalls,
-      discourseURL,
-    )
-
-    // Get proposal ID and display URL
-    const proposalId = response.data.createProposal.id
-    console.log(kleur.green(`Tally proposal created successfully! ID: ${proposalId}`))
-    const proposalUrl = formatTallyProposalUrl(governorId, proposalId)
-    console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
-
-    return proposalId
-  } catch (error: any) {
-    console.error(kleur.red('Error creating Tally draft proposal:'), error)
-    if (
-      error instanceof Error &&
-      typeof error === 'object' &&
-      error !== null &&
-      'response' in error &&
-      typeof (error as any).response === 'object'
-    ) {
-      console.error(kleur.red('Error response:'), (error as any).response.data)
-    }
-
-    // Define governorId in catch block as well
-    const governorId = `eip155:${chainId}:${governorAddress}`
-
-    // Fall back to showing manual submission details
-    console.log(kleur.yellow('\nProposal details for manual submission:'))
-    console.log(kleur.blue('Governor ID:'), kleur.cyan(governorId))
-    console.log(kleur.blue('Targets:'), kleur.cyan(JSON.stringify(actions.map((a) => a.target))))
-    console.log(
-      kleur.blue('Values:'),
-      kleur.cyan(actions.map((a) => a.value.toString()).join(', ')),
-    )
-    console.log(kleur.blue('Calldatas:'))
-    actions.forEach((action) => {
-      console.log(kleur.cyan(action.calldata))
+  console.log(kleur.green(`Proposal saved to: ${savePath}`))
+  console.log(kleur.cyan('Proposal Summary:'))
+  console.log(`Title: ${title}`)
+  console.log(`Governor: ${governorAddress}`)
+  console.log(`Chain ID: ${chainId}`)
+  console.log(`Actions: ${actions.length}`)
+  if (discourseURL) {
+    console.log(`Discourse: ${discourseURL}`)
+  }
+  if (actionSummary.length > 0) {
+    console.log('Action Summary:')
+    actionSummary.forEach((action, index) => {
+      console.log(`  ${index + 1}. ${action}`)
     })
-    console.log(kleur.blue('Description:'), kleur.cyan(description))
-
-    // Save proposal details to JSON file even if Tally submission fails
-    if (savePath) {
-      try {
-        const proposalDetails: ProposalDetails = {
-          title,
-          description,
-          governorId,
-          targets: actions.map((a) => a.target),
-          values: actions.map((a) => a.value.toString()),
-          calldatas: actions.map((a) => a.calldata),
-          discourseURL: discourseURL || undefined,
-          timestamp: Date.now(),
-          crossChainExecution,
-        }
-
-        saveProposalToFile(proposalDetails, savePath)
-      } catch (saveError) {
-        console.error(kleur.red('Error saving proposal details:'), saveError)
-      }
-    }
-
-    throw error
   }
 }

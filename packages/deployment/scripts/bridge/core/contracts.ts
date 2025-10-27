@@ -2,10 +2,10 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address } from 'viem'
+import { getChainId } from '../../core/chain'
+import { ADDRESS_ZERO } from '../../core/constants'
 import bridgeModule from '../../ignition/modules/bridge'
 import { DeployedBridge } from '../../types/bridge-types'
-import { ADDRESS_ZERO } from '../core/constants'
-import { getChainId } from '../core/chain'
 
 /**
  * Create a router-only deployment module for when queue already exists

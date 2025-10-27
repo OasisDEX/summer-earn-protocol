@@ -1,9 +1,8 @@
 import prompts from 'prompts'
 import { Address, encodeFunctionData, parseAbi } from 'viem'
-import { promptForChain } from '../../helpers/chain-prompt'
-import { promptForFleet } from '../../helpers/fleet-prompt'
-import { hashDescription } from '../../helpers/hash-description'
-import { createClients } from '../../helpers/wallet-helper'
+import { createClients } from '../../core/clients'
+import { hashDescription } from '../../governance/core/proposal'
+import { promptForChain, promptForFleet } from '../../utils/prompts'
 
 const governorAbi = parseAbi([
   'function propose(address[] targets, uint256[] values, bytes[] calldatas, string description) public returns (uint256)',

@@ -7,12 +7,12 @@ import {
   SiloManagedVaultArkContracts,
 } from '../../ignition/modules/arks/silo-managed-vault-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { BaseArkParams } from '../common/ark-deployment'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
-import { handleDeploymentId } from '../helpers/deployment-id-handler'
-import { getChainId } from '../helpers/get-chainid'
-import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { BaseArkParams } from '../arks/core/deployment'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../core/constants'
+import { getFleetConfig } from '../fleets/core/config'
+import { handleDeploymentId } from '../utils/files'
+import { getChainId } from '../core/chain'
+import { continueDeploymentCheck } from '../utils/prompts'
 
 export interface SiloManagedVaultArkUserInput extends BaseArkParams {
   vaultId: string

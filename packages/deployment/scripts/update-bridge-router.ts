@@ -1,8 +1,8 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { BaseConfig } from '../types/config-types'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { promptForConfigType } from './helpers/prompt-helpers'
+import { getConfigByNetwork } from './core/config-handler'
+import { promptForConfigType } from './utils/prompts'
 
 async function updateBridgeRouter() {
   const network = hre.network.name

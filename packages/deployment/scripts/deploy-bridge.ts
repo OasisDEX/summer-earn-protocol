@@ -1,11 +1,11 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { BaseConfig } from '../types/config-types'
-import { deployBridgeContracts } from './bridge/bridge-contracts'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { getChainId } from './helpers/get-chainid'
-import { promptForConfigType } from './helpers/prompt-helpers'
-import { updateIndexJson } from './helpers/update-json'
+import { deployBridgeContracts } from './bridge/core/contracts'
+import { getChainId } from './core/chain'
+import { getConfigByNetwork } from './core/config'
+import { updateIndexJson } from './utils/files'
+import { promptForConfigType } from './utils/prompts'
 
 async function deployBridge() {
   const network = hre.network.name

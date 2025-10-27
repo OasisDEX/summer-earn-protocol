@@ -3,12 +3,13 @@ import kleur from 'kleur'
 import path from 'path'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
 import type { BaseConfig } from '../../../../types/config-types'
-import { getConfigByNetwork } from '../../../helpers/config-handler'
-import { getHubChain } from '../../../helpers/get-hub-chain'
-import { getSipMinorNumber } from '../../../helpers/get-sip-minor-number'
-import { hashDescription } from '../../../helpers/hash-description'
-import { constructLzOptions } from '../../../helpers/layerzero-options'
-import { createGovernanceProposal } from '../../../helpers/proposal-helpers'
+import { getConfigByNetwork } from '../../../core/config'
+import {
+  createGovernanceProposal,
+  getSipMinorNumber,
+  hashDescription,
+} from '../../../governance/core/proposal'
+import { constructLzOptions } from '../../../layerzero/options'
 import { LZ_ENDPOINT_ABI } from '../lz-endpoint-abi'
 import { checkLzAuthorization } from './lz-authorization-helper'
 import { generateAggregatedLzConfigProposalDescription } from './proposal-description-helper'

@@ -2,8 +2,8 @@ import fs from 'fs'
 import hre from 'hardhat'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import path, { resolve } from 'path'
-import { getConfigByNetwork } from '../helpers/config-handler'
-import { promptForConfigType } from '../helpers/prompt-helpers'
+import { getConfigByNetwork } from '../core/config'
+import { promptForConfigType } from '../utils/prompts'
 
 const REWARDS_MANAGER_CREATED_EVENT =
   '0x0b3397f9446e8b85cf96fe3194aeec84e2fd23ab014cf85f82805b36aef207aa'

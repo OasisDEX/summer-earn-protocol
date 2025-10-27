@@ -1,8 +1,8 @@
 import prompts from 'prompts'
 import { Address, parseAbi } from 'viem'
-import { promptForChain } from '../../helpers/chain-prompt'
-import { hashDescription } from '../../helpers/hash-description'
-import { createClients } from '../../helpers/wallet-helper'
+import { createClients } from '../../core/clients'
+import { hashDescription } from '../../governance/core/proposal'
+import { promptForChain } from '../../utils/prompts'
 
 // Governor ABI (only the needed functions)
 const governorAbi = parseAbi([

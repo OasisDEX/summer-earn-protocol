@@ -2,6 +2,29 @@ import kleur from 'kleur'
 import fs from 'node:fs'
 import path from 'path'
 
+/**
+ * Sleeps for the specified number of milliseconds
+ * @param ms Number of milliseconds to sleep
+ * @returns Promise that resolves after the specified time
+ */
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * Generates a deployment ID based on the chain ID.
+ * @param chainId The chain ID for the deployment.
+ * @returns The generated deployment ID.
+ */
+export async function handleDeploymentId(chainId: number): Promise<string> {
+  return `chain-${chainId}`
+}
+
+/**
+ * Updates the index.json configuration file with deployed contract addresses
+ * @param moduleType The type of module (e.g., 'gov', 'core', 'bridge')
+ * @param network The network name
+ * @param deployedContracts The deployed contracts to update
+ * @param useBummerConfig Whether to use test configuration
+ */
 export async function updateIndexJson<T extends Record<string, any>>(
   moduleType: string,
   network: string,

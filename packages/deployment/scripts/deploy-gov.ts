@@ -7,8 +7,8 @@ import { finalizeGov } from './governance/finalize-gov'
 import { peerGov } from './governance/peer-gov'
 import { rolesGov } from './governance/roles-gov'
 import { deployGov as systemGov } from './governance/system-gov'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { promptForConfigType } from './helpers/prompt-helpers'
+import { getConfigByNetwork } from './core/config-handler'
+import { promptForConfigType } from './utils/prompts'
 import { verifyGovernanceRewardsManager } from './verify/governance-reward-managers'
 
 const STEPS = {

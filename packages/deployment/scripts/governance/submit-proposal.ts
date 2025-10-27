@@ -3,16 +3,16 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import { Address } from 'viem'
-import { getConfigByNetwork } from '../helpers/config-handler'
-import { submitProposal } from '../helpers/governance-helpers'
-import { promptForConfigType } from '../helpers/prompt-helpers'
+import { getConfigByNetwork } from '../core/config'
+import { submitProposal } from '../governance/core/submission'
+import { promptForConfigType } from '../utils/prompts'
 import {
   ProposalData,
   displayProposalSummary,
   getProposalsDirectory,
   loadProposalFile,
   promptForProposalFile,
-} from '../helpers/proposal-helpers'
+} from '../governance/core/proposal'
 
 /**
  * Script to submit a governance proposal from a saved JSON file
