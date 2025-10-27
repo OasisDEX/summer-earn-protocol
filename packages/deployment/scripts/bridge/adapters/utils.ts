@@ -1,18 +1,18 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address } from 'viem'
-import { CHAIN_CONFIG_MAP, RPC_URL_MAP } from '../../lib/chain/config'
-import { getChainConfigs } from '../../lib/chain/config'
+import { CHAIN_CONFIG_MAP, RPC_URL_MAP, getChainConfigs } from '../../lib/chain/config'
 import { getChainNameById } from '../../lib/chain/helpers'
 import { isTenderlyVirtualTestnet } from '../../lib/infrastructure/tenderly'
 import { createClients } from '../../lib/infrastructure/wallet'
+import { BaseConfig, ChainInfo } from './types'
 
 /**
  * Helper function to get all supported chains with LayerZero endpoint IDs from config
  */
 export function getSupportedChainsFromConfig(
-  allNetworkConfigs?: Record<string, any>,
-): Array<{ chainId: number; endpointId: number }> {
+  allNetworkConfigs?: Record<string, BaseConfig>,
+): ChainInfo[] {
   if (!allNetworkConfigs) {
     // Get chains from our standard chain configs
     const configs = getChainConfigs()
@@ -21,12 +21,12 @@ export function getSupportedChainsFromConfig(
       .filter(({ config }) => config.common?.layerZero?.eID)
       .map(({ chain, config }) => ({
         chainId: chain.id,
-        endpointId: config.common.layerZero.eID,
+        endpointId: Number(config.common.layerZero.eID),
       }))
   }
 
   // Extract from provided config
-  const chains: Array<{ chainId: number; endpointId: number }> = []
+  const chains: ChainInfo[] = []
   for (const [, config] of Object.entries(allNetworkConfigs)) {
     if (config?.common?.chainId && config?.common?.layerZero?.eID) {
       chains.push({
@@ -61,7 +61,6 @@ export async function getWalletClient() {
 
 /**
  * Helper function to get network name from chain ID
- * @deprecated Use getChainNameById from chain-helpers.ts instead
  */
 export function getNetworkNameFromChainId(chainId: number): string {
   return getChainNameById(chainId)

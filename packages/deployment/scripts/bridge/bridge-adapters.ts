@@ -1,6 +1,8 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, getAddress } from 'viem'
+import { DeployedBridgeAdapters } from '../../types/bridge-types'
+import { BaseConfig } from '../../types/config-types'
 import {
   configureLayerZeroAdapter,
   configureLayerZeroAdapterPeersWithConfig,
@@ -13,14 +15,6 @@ import {
   updateStargateAdapterAddresses,
 } from './adapters/stargate'
 import { extractBridgeRouterAddress, waitForPendingTransactions } from './adapters/utils'
-
-/**
- * Interface for deployed bridge adapters
- */
-interface DeployedBridgeAdapters {
-  layerZero?: { address: Address }
-  stargate?: { address: Address }
-}
 
 /**
  * Check if an adapter is already registered with the bridge router
@@ -55,8 +49,8 @@ async function isAdapterRegistered(
  */
 async function deployBridgeAdapters(
   bridgeRouterAddress: Address,
-  networkConfig: any,
-  allNetworkConfigs?: Record<string, any>,
+  networkConfig: BaseConfig,
+  allNetworkConfigs?: Record<string, BaseConfig>,
 ): Promise<DeployedBridgeAdapters> {
   console.log(kleur.cyan().bold('Starting bridge adapters deployment...'))
 
