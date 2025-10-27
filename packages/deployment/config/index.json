@@ -615,6 +615,9 @@
           "Euler_Frontier_Upshift": "0x87c414825aB3d1E9bdC773e9B1fD968822c9CF51",
           "Euler_Alterscope_LRT_WETH": "0x45c3B59d53e2e148Aaa6a857521059676D5c0489",
           "Euler_Frontier_Puffer": "0xc2c4aBae84fbb5b7bAAB52301A924b1F986C66bd"
+        },
+        "usds": {
+          "Sky_Staked_USDS": "0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9"
         }
       },
       "pendle": {
