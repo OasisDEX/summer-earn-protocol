@@ -7,7 +7,7 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { BaseConfig, FleetConfig, FleetDeployment } from '../../types/config-types'
-import { deployArk } from '../common/ark-deployment'
+import { deployArk } from '../arks/deployment'
 import { GOVERNOR_ROLE } from '../lib/infrastructure/constants'
 import { FleetConfigSchema, FleetDeploymentSchema } from '../lib/infrastructure/zod-schemas'
 

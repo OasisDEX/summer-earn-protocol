@@ -7,13 +7,13 @@ import {
   FluidFTokenArkContracts,
 } from '../../ignition/modules/arks/fluid-ftoken-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { BaseArkParams } from '../common/ark-deployment'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { getFleetConfig } from '../fleets/deployment'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'
 import { continueDeploymentCheck } from '../lib/infrastructure/prompts'
 import { validateAddress, validateArkDetails } from '../lib/infrastructure/validation'
+import { BaseArkParams } from './deployment'
 
 export async function deployFluidFTokenArk(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting FluidFTokenArk deployment process...'))

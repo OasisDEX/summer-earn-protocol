@@ -4,12 +4,12 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { createFluidLiteArkModule } from '../../ignition/modules/arks/fluid-lite-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { BaseArkParams } from '../common/ark-deployment'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { getFleetConfig } from '../fleets/deployment'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'
 import { validateAddress, validateArkDetails } from '../lib/infrastructure/validation'
+import { BaseArkParams } from './deployment'
 
 export interface FluidLiteArkUserInput extends BaseArkParams {
   token: { address: Address; symbol: Token }

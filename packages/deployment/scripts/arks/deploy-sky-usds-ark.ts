@@ -7,13 +7,13 @@ import {
   createSkyUsdsArkModule,
 } from '../../ignition/modules/arks/sky-usds-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { BaseArkParams } from '../common/ark-deployment'
-import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { getFleetConfig } from '../fleets/deployment'
+import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'
 import { continueDeploymentCheck } from '../lib/infrastructure/prompts'
 import { validateAddress, validateArkDetails } from '../lib/infrastructure/validation'
+import { BaseArkParams } from './deployment'
 
 /**
  * Main function to deploy a SkyUsdsArk.

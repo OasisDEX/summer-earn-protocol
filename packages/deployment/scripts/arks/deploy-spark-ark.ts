@@ -4,13 +4,13 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { SparkArkContracts, createSparkArkModule } from '../../ignition/modules/arks/spark-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { BaseArkParams } from '../common/ark-deployment'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { getFleetConfig } from '../fleets/deployment'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'
 import { continueDeploymentCheck } from '../lib/infrastructure/prompts'
 import { validateAddress, validateArkDetails } from '../lib/infrastructure/validation'
+import { BaseArkParams } from './deployment'
 
 /**
  * Main function to deploy a SparkArk.
