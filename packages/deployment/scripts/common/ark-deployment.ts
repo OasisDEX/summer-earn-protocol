@@ -48,6 +48,7 @@ export type ArkConfig = {
     depositCap?: string // For FluidLiteArk
     maxRebalanceOutflow?: string // For FluidLiteArk
     maxRebalanceInflow?: string // For FluidLiteArk
+    vaultToken?: string // for arks with underlying token different than fleet asset
   }
 }
 
@@ -389,15 +390,16 @@ export async function deployArk(
       break
     }
     case ArkType.PsmLiteERC4626Ark: {
+      const vaultToken = validateToken(config, arkConfig.params.vaultToken || '')
       const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
       const erc4626VaultId = validateErc4626Address(
-        config.protocolSpecific.erc4626[token][erc4626VaultName],
+        config.protocolSpecific.erc4626[vaultToken][erc4626VaultName],
         `ERC4626-${erc4626VaultName}`,
       )
       deployedArk = await deployPsmERC4626Ark(config, {
         ...baseArkParams,
         psmType: 'psmlite',
-        vaultToken: token,
+        vaultToken: config.tokens[vaultToken],
         vaultId: erc4626VaultId,
         vaultName: erc4626VaultName,
       })
@@ -405,15 +407,16 @@ export async function deployArk(
     }
 
     case ArkType.Psm3ERC4626Ark: {
+      const vaultToken = validateToken(config, arkConfig.params.vaultToken || '')
       const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
       const erc4626VaultId = validateErc4626Address(
-        config.protocolSpecific.erc4626[token][erc4626VaultName],
+        config.protocolSpecific.erc4626[vaultToken][erc4626VaultName],
         `ERC4626-${erc4626VaultName}`,
       )
       deployedArk = await deployPsmERC4626Ark(config, {
         ...baseArkParams,
         psmType: 'psm3',
-        vaultToken: token,
+        vaultToken: config.tokens[vaultToken],
         vaultId: erc4626VaultId,
         vaultName: erc4626VaultName,
       })

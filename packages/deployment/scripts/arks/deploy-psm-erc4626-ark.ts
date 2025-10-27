@@ -161,8 +161,8 @@ async function deployPsmERC4626ArkContract(config: BaseConfig, userInput: PsmERC
   const stakedUsdsAddress = validateAddress(config.tokens.stakedUsds, 'Staked USDS')
   const vaultAddress = validateAddress(userInput.vaultId, 'ERC4626 Vault')
   if (
-    (userInput.vaultToken as Token) != Token.USDS &&
-    (userInput.vaultToken as Token) != Token.STAKED_USDS
+    (userInput.vaultToken as Address) != config.tokens.usds &&
+    (userInput.vaultToken as Address) != config.tokens.stakedUsds
   ) {
     throw new Error('Vault token must be USDS or Staked USDS')
   }

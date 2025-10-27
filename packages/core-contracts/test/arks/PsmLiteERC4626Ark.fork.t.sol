@@ -8,11 +8,7 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-contract PsmLiteERC4626ArkTestFork_Mainnet is
-    Test,
-    IArkEvents,
-    ArkTestBase
-{
+contract PsmLiteERC4626ArkTestFork_Mainnet is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     PsmLiteERC4626Ark public ark;
