@@ -69,16 +69,14 @@ library BpsUtils {
     }
 
     /**
-     * @notice Applies a basis points markup to an amount
+     * @notice Adds basis points to an amount (amount * (100% + bps))
      * @param amount The base amount
-     * @param markupBps The markup in basis points (e.g., 100 = 1% markup)
-     * @return markedUpAmount The amount after applying the markup
+     * @param bps The basis points to add (e.g., 100 = 1% increase)
+     * @return The amount with the basis points added
      */
-    function applyBpsMarkup(
-        uint256 amount,
-        Bps markupBps
-    ) internal pure returns (uint256) {
-        return (amount * (BPS_FACTOR + fromBps(markupBps))) / BPS_FACTOR;
+    function addBps(uint256 amount, Bps bps) internal pure returns (uint256) {
+        Percentage percentage = bpsToPercentage(bps);
+        return PercentageUtils.addPercentage(amount, percentage);
     }
 
     /**

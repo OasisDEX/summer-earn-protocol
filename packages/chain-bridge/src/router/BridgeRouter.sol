@@ -146,7 +146,7 @@ contract BridgeRouter is
         uint256 baseFee
     ) internal view returns (uint256 bufferedFee) {
         // Apply configured buffer to account for fee volatility
-        return BpsUtils.applyBpsMarkup(baseFee, feeBufferBps);
+        return BpsUtils.addBps(baseFee, feeBufferBps);
     }
 
     /*//////////////////////////////////////////////////////////////
