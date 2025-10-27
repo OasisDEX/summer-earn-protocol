@@ -2,14 +2,14 @@ import fs from 'fs'
 import kleur from 'kleur'
 import path from 'path'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
-import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
-import { promptForChain } from '../common/chain-prompt'
 import { getChainIdByNetwork } from '../common/chain'
+import { promptForChain } from '../common/chain-prompt'
+import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
 import { getSipMinorNumber } from '../common/get-sip-minor-number'
 import { hashDescription } from '../common/hash-description'
 import { constructLzOptions } from '../common/layerzero-options'
-import { createGovernanceProposal } from '../governance/core/proposal'
 import { createClients } from '../common/wallet-helper'
+import { createGovernanceProposal } from '../governance/proposal'
 
 const governorAbi = parseAbi([
   'function propose(address[] targets, uint256[] values, bytes[] calldatas, string description) public returns (uint256)',

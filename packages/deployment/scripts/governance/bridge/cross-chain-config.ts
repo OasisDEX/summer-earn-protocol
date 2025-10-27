@@ -3,8 +3,8 @@ import kleur from 'kleur'
 import * as path from 'path'
 import { Address, Hex, encodeFunctionData, parseAbi } from 'viem'
 import { ChainSetup } from '../../../common/prompts'
-import { hashDescription } from '../../../core/proposal'
-import { constructLzOptions } from './lz-options-helper'
+import { hashDescription } from '../../governance/proposal'
+import { constructLzOptions } from './lz-options'
 
 export interface CrossChainProtocolConfig {
   protocol: string

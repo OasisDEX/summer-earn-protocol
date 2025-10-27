@@ -4,13 +4,13 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { AaveV3ArkContracts, createAaveV3ArkModule } from '../../ignition/modules/arks/aavev3-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { BaseArkParams } from '../arks/core/deployment'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getFleetConfig } from '../fleets/deployment/config'
-import { handleDeploymentId } from '../common/files'
 import { getChainId } from '../common/chain'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { handleDeploymentId } from '../common/files'
 import { continueDeploymentCheck } from '../common/prompts'
 import { validateAddress } from '../common/validation'
+import { getFleetConfig } from '../fleets/config'
+import { BaseArkParams } from './deployment'
 
 /**
  * Main function to deploy an AaveV3Ark.

@@ -9,7 +9,7 @@ import {
   createCrossChainArkModule,
 } from '../../ignition/modules/arks/cross-chain-ark'
 import { BaseConfig } from '../../types/config-types'
-import { BaseArkParams } from '../arks/core/deployment'
+import { BaseArkParams } from './deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../common/files'
 import { getChainId } from '../common/chain'

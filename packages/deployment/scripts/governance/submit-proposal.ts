@@ -4,7 +4,6 @@ import kleur from 'kleur'
 import path from 'path'
 import { Address } from 'viem'
 import { getConfigByNetwork } from '../common/config'
-import { submitProposal } from '../governance/core/submission'
 import { promptForConfigType } from '../common/prompts'
 import {
   ProposalData,
@@ -12,7 +11,8 @@ import {
   getProposalsDirectory,
   loadProposalFile,
   promptForProposalFile,
-} from '../governance/core/proposal'
+} from '../governance/proposal'
+import { submitProposal } from '../governance/submission'
 
 /**
  * Script to submit a governance proposal from a saved JSON file

@@ -4,19 +4,15 @@ import _, { capitalize } from 'lodash'
 import path from 'path'
 import { Address, encodeFunctionData, Hex, parseAbi, PublicClient } from 'viem'
 import SummerTokenABI from '../../artifacts/src/contracts/SummerToken.sol/SummerToken.json'
-import { getChainConfigByChainId } from '../../core/chain'
-import { createClients } from '../../core/clients'
-import { getConfigByNetwork } from '../../core/config'
-import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../../core/constants'
-import { prepareBridgeTransaction } from '../../governance/bridge/helpers/bridge-transaction-helper'
-import { constructLzOptions } from '../../governance/bridge/helpers/lz-options-helper'
-import {
-  createGovernanceProposal,
-  hashDescription,
-  ProposalContent,
-} from '../../governance/core/proposal'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
+import { getChainConfigByChainId } from '../common/chain'
+import { createClients } from '../common/clients'
+import { getConfigByNetwork } from '../common/config'
+import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
+import { prepareBridgeTransaction } from '../governance/bridge/bridge-transaction'
+import { constructLzOptions } from '../governance/bridge/lz-options'
+import { createGovernanceProposal, hashDescription, ProposalContent } from '../governance/proposal'
 import { getRewardsManagerAddress } from './deployment'
 
 export interface FleetSingleChainContent extends ProposalContent {

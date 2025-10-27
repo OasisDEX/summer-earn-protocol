@@ -1,6 +1,6 @@
 import kleur from 'kleur'
 import { Address } from 'viem'
-import { getChainPublicClient } from '../../../core/clients'
+import { getChainPublicClient } from '../../common/clients'
 import { LZ_ENDPOINT_ABI } from '../lz-endpoint-abi'
 
 /**

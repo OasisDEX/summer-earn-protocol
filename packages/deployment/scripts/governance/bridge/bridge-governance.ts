@@ -3,16 +3,16 @@ import kleur from 'kleur'
 import path from 'path'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
 import type { BaseConfig } from '../../../../types/config-types'
-import { getConfigByNetwork } from '../../../core/config'
+import { getConfigByNetwork } from '../../common/config'
 import {
   createGovernanceProposal,
   getSipMinorNumber,
   hashDescription,
-} from '../../../governance/core/proposal'
+} from '../../governance/proposal'
 import { LZ_ENDPOINT_ABI } from '../lz-endpoint-abi'
-import { checkLzAuthorization } from './lz-authorization-helper'
-import { constructLzOptions } from './lz-options-helper'
-import { generateAggregatedLzConfigProposalDescription } from './proposal-description-helper'
+import { checkLzAuthorization } from './lz-authorization'
+import { constructLzOptions } from './lz-options'
+import { generateAggregatedLzConfigProposalDescription } from './proposal-description'
 
 /**
  * Creates a unified governance proposal containing both hub chain and cross-chain actions

@@ -5,14 +5,14 @@ import prompts from 'prompts'
 import { Address, createPublicClient, encodeFunctionData, Hex, http } from 'viem'
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
 import { BaseConfig } from '../../types/config-types'
-import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
-import { getConfigByNetwork } from '../common/config'
 import { getChainIdByNetwork } from '../common/chain'
+import { getConfigByNetwork } from '../common/config'
+import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
 import { getSipMinorNumber } from '../common/get-sip-minor-number'
 import { hashDescription } from '../common/hash-description'
 import { constructLzOptions } from '../common/layerzero-options'
 import { promptForConfigType } from '../common/prompts'
-import { createGovernanceProposal } from '../governance/core/proposal'
+import { createGovernanceProposal } from '../governance/proposal'
 
 enum SupportedChain {
   base = 'base',

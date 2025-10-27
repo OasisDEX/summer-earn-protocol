@@ -4,14 +4,14 @@ import path from 'node:path'
 import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex } from 'viem'
 import { BaseConfig } from '../../types/config-types'
-import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
-import { getConfigByNetwork } from '../common/config'
 import { getChainIdByNetwork } from '../common/chain'
+import { getConfigByNetwork } from '../common/config'
+import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
 import { getSipMinorNumber } from '../common/get-sip-minor-number'
 import { hashDescription } from '../common/hash-description'
 import { constructLzOptions } from '../common/layerzero-options'
 import { promptForConfigType } from '../common/prompts'
-import { createGovernanceProposal } from '../governance/core/proposal'
+import { createGovernanceProposal } from '../governance/proposal'
 
 // Target chains for the multi-chain proposal
 const TARGET_CHAINS = ['base', 'arbitrum', 'mainnet', 'sonic']

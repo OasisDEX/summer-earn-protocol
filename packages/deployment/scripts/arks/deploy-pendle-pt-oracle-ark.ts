@@ -7,9 +7,9 @@ import {
   PendlePtOracleArkContracts,
 } from '../../ignition/modules/arks/pendle-pt-oracle-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { BaseArkParams } from '../arks/core/deployment'
+import { BaseArkParams } from './deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getFleetConfig } from '../fleets/deployment/config'
+import { getFleetConfig } from '../fleets/config'
 import { handleDeploymentId } from '../common/files'
 import { getChainId } from '../common/chain'
 import { continueDeploymentCheck } from '../common/prompts'

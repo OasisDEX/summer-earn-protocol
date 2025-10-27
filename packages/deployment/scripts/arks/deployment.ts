@@ -2,14 +2,6 @@ import fs from 'fs'
 import kleur from 'kleur'
 import path from 'path'
 import { Address } from 'viem'
-import { ZERO_STRING } from '../../core/constants'
-import {
-  validateAddress,
-  validateErc4626Address,
-  validateMarketId,
-  validateString,
-  validateToken,
-} from '../../core/validation'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployAeraArk } from '../arks/deploy-aera-ark'
@@ -33,6 +25,14 @@ import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
+import { ZERO_STRING } from '../common/constants'
+import {
+  validateAddress,
+  validateErc4626Address,
+  validateMarketId,
+  validateString,
+  validateToken,
+} from '../common/validation'
 
 export type ArkConfig = {
   type: ArkType

@@ -4,9 +4,9 @@ import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { deployArk } from '../../arks/core/deployment'
-import { GOVERNOR_ROLE } from '../../core/constants'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
+import { deployArk } from '../arks/deployment'
+import { GOVERNOR_ROLE } from '../common/constants'
 
 /**
  * Deploys all Arks specified in the fleet definition

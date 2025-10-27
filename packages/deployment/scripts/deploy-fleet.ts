@@ -20,21 +20,21 @@ import {
   loadFleetDeployment,
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
-} from './fleets/deployment/config'
-import { deployFleetContracts, logDeploymentResults } from './fleets/deployment/contracts'
+} from './fleets/config'
+import { deployFleetContracts, logDeploymentResults } from './fleets/contracts'
 import {
   addFleetToHarbor,
   deployArks,
   getRewardsManagerAddress,
   grantCuratorRole,
   setupFleetRewards,
-} from './fleets/deployment/deployment'
+} from './fleets/deployment'
 import {
   createArkAdditionCrossChainProposal,
   createArkAdditionProposal,
   createHubGovernanceProposal,
   createSatelliteGovernanceProposal,
-} from './fleets/deployment/governance'
+} from './fleets/governance'
 
 /**
  * Deployment modes for the script

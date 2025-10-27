@@ -5,13 +5,13 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { ChainName } from '../common/chain'
 import { HUB_CHAIN_NAME } from '../common/constants'
-import { promptForFleetDeploymentOutput } from '../fleets/deployment/deployment'
-import { createRewardSetupProposal } from '../fleets/deployment/governance'
 import {
   promptForChain,
   promptForFleet as promptForFleetConfiguration,
   useTestConfig,
 } from '../common/prompts'
+import { promptForFleetDeploymentOutput } from '../fleets/deployment'
+import { createRewardSetupProposal } from '../fleets/governance'
 
 /**
  * Creates a governance proposal to set up fleet rewards.

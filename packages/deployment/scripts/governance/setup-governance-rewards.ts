@@ -3,7 +3,7 @@ import prompts from 'prompts'
 import { Address, Hex, encodeFunctionData, parseAbi } from 'viem'
 import { getConfigByNetwork } from '../common/config'
 import { getSipMinorNumber } from '../common/get-sip-minor-number'
-import { submitProposal } from '../governance/core/submission'
+import { submitProposal } from '../governance/submission'
 
 const hre = require('hardhat')
 
