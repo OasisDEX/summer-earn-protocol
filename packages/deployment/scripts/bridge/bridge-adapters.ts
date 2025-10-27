@@ -12,12 +12,12 @@ import {
   deployStargateAdapter,
   updateStargateAdapterAddresses,
 } from './adapters/stargate'
-import { waitForPendingTransactions } from './adapters/utils'
+import { extractBridgeRouterAddress, waitForPendingTransactions } from './adapters/utils'
 
 /**
  * Interface for deployed bridge adapters
  */
-export interface DeployedBridgeAdapters {
+interface DeployedBridgeAdapters {
   layerZero?: { address: Address }
   stargate?: { address: Address }
 }
@@ -30,14 +30,7 @@ async function isAdapterRegistered(
   adapterAddress: Address,
 ): Promise<boolean> {
   try {
-    // Handle case where bridgeRouterAddress might be an object
-    let actualAddress: string
-    if (typeof bridgeRouterAddress === 'object' && bridgeRouterAddress !== null) {
-      const addressObj = bridgeRouterAddress as any
-      actualAddress = addressObj.bridgeRouterAddress || String(bridgeRouterAddress)
-    } else {
-      actualAddress = String(bridgeRouterAddress)
-    }
+    const actualAddress = extractBridgeRouterAddress(bridgeRouterAddress)
 
     const bridgeRouter = await hre.viem.getContractAt(
       'BridgeRouter' as string,
@@ -60,7 +53,7 @@ async function isAdapterRegistered(
  * @param allNetworkConfigs All network configurations for cross-chain setup
  * @returns Deployed bridge adapters
  */
-export async function deployBridgeAdapters(
+async function deployBridgeAdapters(
   bridgeRouterAddress: Address,
   networkConfig: any,
   allNetworkConfigs?: Record<string, any>,
@@ -164,7 +157,9 @@ export async function deployBridgeAdapters(
 }
 
 export {
+  DeployedBridgeAdapters,
   configureLayerZeroAdapterPeersWithConfig,
+  deployBridgeAdapters,
   updateLayerZeroAdapterPeers,
   updateStargateAdapterAddresses,
 }

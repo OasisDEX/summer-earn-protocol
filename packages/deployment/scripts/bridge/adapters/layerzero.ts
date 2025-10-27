@@ -14,7 +14,7 @@ import {
  * Deploy LayerZero adapter using Ignition module
  */
 export async function deployLayerZeroAdapter(
-  crossChainRegistry: Address,
+  bridgeRouterAddress: Address,
   networkConfig: any,
   allNetworkConfigs?: Record<string, any>,
 ): Promise<Address> {
@@ -27,6 +27,12 @@ export async function deployLayerZeroAdapter(
   const endpoint = networkConfig.common.layerZero.lzEndpoint
   if (!endpoint) {
     throw new Error(`LayerZero endpoint not configured for chain ID ${chainId}`)
+  }
+
+  // Get the crossChainRegistry address from network config
+  const crossChainRegistry = networkConfig.deployedContracts.bridge.crossChainRegistry.address
+  if (!crossChainRegistry) {
+    throw new Error(`CrossChainRegistry address not found in config for chain ID ${chainId}`)
   }
 
   // Build chain mapping from general config

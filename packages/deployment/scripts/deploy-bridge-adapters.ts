@@ -2,67 +2,13 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, isAddressEqual, zeroAddress } from 'viem'
 import { BaseConfig } from '../types/config-types'
-import {
-  configureLayerZeroAdapter,
-  configureStargateAdapter,
-  deployBridgeAdapters,
-} from './bridge/bridge-adapters'
+import { configureLayerZeroAdapter } from './bridge/adapters/layerzero'
+import { configureStargateAdapter } from './bridge/adapters/stargate'
+import { waitForPendingTransactions } from './bridge/adapters/utils'
+import { DeployedBridgeAdapters, deployBridgeAdapters } from './bridge/bridge-adapters'
 import { getConfigByNetwork } from './lib/config/handler'
 import { promptForConfigType, promptYesNo } from './lib/infrastructure/prompts'
 import { updateIndexJson } from './lib/infrastructure/update-json'
-
-/**
- * Wait for pending transactions to be confirmed
- * @param requiredConfirmations Number of confirmations required (default: 5)
- * @param checkIntervalMs Time in ms between checks (default: 5000)
- * @param maxAttempts Maximum number of attempts (default: 24, 2 minutes total)
- */
-async function waitForPendingTransactions(
-  requiredConfirmations = 5,
-  checkIntervalMs = 5000,
-  maxAttempts = 24,
-): Promise<void> {
-  const [deployer] = await hre.viem.getWalletClients()
-  const provider = await hre.viem.getPublicClient()
-  const address = deployer.account.address
-
-  console.log(kleur.yellow(`Checking for pending transactions from ${address}...`))
-
-  let attempts = 0
-  while (attempts < maxAttempts) {
-    try {
-      // Get the current nonce
-      const currentNonce = await provider.getTransactionCount({ address })
-
-      // Get the pending nonce
-      const pendingNonce = await provider.getTransactionCount({
-        address,
-        blockTag: 'pending',
-      })
-
-      if (currentNonce === pendingNonce) {
-        console.log(kleur.green('No pending transactions found, continuing...'))
-        return
-      }
-
-      console.log(
-        kleur.yellow(
-          `Waiting for ${pendingNonce - currentNonce} transactions to be confirmed (${attempts + 1}/${maxAttempts})...`,
-        ),
-      )
-
-      // Wait for the specified interval
-      await new Promise((resolve) => setTimeout(resolve, checkIntervalMs))
-      attempts++
-    } catch (error) {
-      console.error(kleur.red('Error checking pending transactions:'), error)
-      attempts++
-      // Continue anyway, but log the error
-    }
-  }
-
-  console.log(kleur.yellow('Max wait time reached, proceeding anyway...'))
-}
 
 async function deployAdapters() {
   const network = hre.network.name
@@ -129,7 +75,7 @@ async function deployAdapters() {
     // Wait for any pending transactions to be confirmed before starting deployment
     await waitForPendingTransactions()
 
-    let deployedAdapters: { layerZero?: { address: Address }; stargate?: { address: Address } } = {}
+    let deployedAdapters: DeployedBridgeAdapters = {}
 
     if (reconfigureOnly) {
       // Use existing adapter addresses from config
@@ -169,7 +115,11 @@ async function deployAdapters() {
       console.log(kleur.green().bold('Bridge adapters reconfiguration completed successfully!'))
     } else {
       // Deploy and configure adapters
-      deployedAdapters = await deployBridgeAdapters(bridgeRouterAddress as Address, config)
+      deployedAdapters = await deployBridgeAdapters(
+        bridgeRouterAddress as Address,
+        config,
+        allNetworkConfigs,
+      )
       console.log(kleur.green().bold('Bridge adapters deployment completed successfully!'))
     }
 
