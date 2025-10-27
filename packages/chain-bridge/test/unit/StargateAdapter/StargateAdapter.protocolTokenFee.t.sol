@@ -91,16 +91,8 @@ contract StargateAdapterProtocolTokenFeeTest is
                 PROTOCOL_FEE_AMOUNT + 1 // Wrong amount
             );
 
-        // Should revert with InsufficientFee error
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBridgeAdapter.InsufficientFee.selector,
-                PROTOCOL_FEE_AMOUNT, // required
-                PROTOCOL_FEE_AMOUNT + 1 // provided
-            )
-        );
-
-        adapterA.estimateTransferAssets(
+        // Estimation should NOT revert - it should return the correct fees regardless of input
+        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateTransferAssets(
             BridgeTypes.ExecuteTransferParams({
                 originator: user,
                 destinationChainId: CHAIN_ID_B,
@@ -111,6 +103,18 @@ contract StargateAdapterProtocolTokenFeeTest is
                 refundAddress: user
             }),
             options
+        );
+
+        // Should return the correct fees (not the wrong input amount)
+        assertEq(
+            tokenFee,
+            PROTOCOL_FEE_AMOUNT,
+            "Should return correct token fee"
+        );
+        assertEq(
+            nativeFee,
+            0,
+            "Native fee should be 0 when paying in protocol token"
         );
     }
 
