@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import { DeployedBridge } from '../../../types/bridge-types'
 
-export async function setupBridgeGovernance(deployedBridge: DeployedBridge, config: any) {
+export async function setupBridgeGovernance(deployedBridge: DeployedBridge, config: BaseConfig) {
   const protocolAccessManager = await hre.viem.getContractAt(
     'ProtocolAccessManager',
     config.deployedContracts.gov.protocolAccessManager.address,
@@ -16,7 +16,10 @@ export async function setupBridgeGovernance(deployedBridge: DeployedBridge, conf
   // ])
 }
 
-export async function createBridgeGovernanceProposal(deployedBridge: DeployedBridge, config: any) {
+export async function createBridgeGovernanceProposal(
+  deployedBridge: DeployedBridge,
+  config: BaseConfig,
+) {
   // Create a governance proposal for bridge setup
   // This would be similar to other governance proposals in the system
   // Implementation depends on your governance system

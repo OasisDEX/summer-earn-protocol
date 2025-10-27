@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address, getAddress } from 'viem'
+import { Address, WalletClient, getAddress } from 'viem'
 import stargateConfig from '../../../config/adapters/stargate.json'
 import StargateAdapterModule from '../../../ignition/modules/adapters/stargate'
 import {
@@ -83,7 +83,7 @@ export async function deployStargateAdapter(
  */
 async function configureSupportedChains(
   stargateAdapter: any,
-  walletClient: any,
+  walletClient: WalletClient,
   stargateAdapterAddress: Address,
   currentChainId: number,
   supportedChains: ChainInfo[],
@@ -166,7 +166,7 @@ async function configureSupportedChains(
  */
 async function configureSupportedAssets(
   stargateAdapter: any,
-  walletClient: any,
+  walletClient: WalletClient,
   stargateAdapterAddress: Address,
   currentChainId: number,
   networkConfig: BaseConfig,
@@ -274,7 +274,7 @@ async function configureSupportedAssets(
  * Register adapter with bridge router
  */
 async function registerWithBridgeRouter(
-  walletClient: any,
+  walletClient: WalletClient,
   stargateAdapterAddress: Address,
   bridgeRouterAddress: Address,
 ): Promise<void> {

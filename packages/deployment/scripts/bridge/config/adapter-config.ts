@@ -5,7 +5,7 @@ import { BridgeAdaptersConfig } from '../../../types/bridge-types'
  * @param config The network configuration object
  * @returns Bridge adapter configuration or undefined if not present
  */
-export function getBridgeAdapterConfigs(config: any): BridgeAdaptersConfig | undefined {
+export function getBridgeAdapterConfigs(config: BaseConfig): BridgeAdaptersConfig | undefined {
   if (!config) {
     return undefined
   }
@@ -52,7 +52,7 @@ export function getBridgeAdapterConfigs(config: any): BridgeAdaptersConfig | und
  * @param config The network configuration object
  * @returns True if any bridge adapter configuration is present
  */
-export function hasBridgeAdapterConfigs(config: any): boolean {
+export function hasBridgeAdapterConfigs(config: BaseConfig): boolean {
   const adapterConfigs = getBridgeAdapterConfigs(config)
   return adapterConfigs !== undefined
 }

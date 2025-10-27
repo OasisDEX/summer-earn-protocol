@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address, getAddress } from 'viem'
+import { Address, PublicClient, WalletClient, getAddress } from 'viem'
 import layerZeroConfig from '../../../config/adapters/layerzero.json'
 import LayerZeroAdapterModule from '../../../ignition/modules/adapters/layerzero'
 import {
@@ -88,7 +88,7 @@ export async function deployLayerZeroAdapter(
 // Helper function to activate read channel
 async function activateReadChannel(
   layerZeroAdapter: any,
-  walletClient: any,
+  walletClient: WalletClient,
   layerZeroAdapterAddress: Address,
   readChannelId: number,
 ): Promise<void> {
@@ -120,8 +120,8 @@ async function activateReadChannel(
 // Helper function to configure ReadLib1002 libraries
 async function configureReadLib1002(
   layerZeroAdapter: any,
-  walletClient: any,
-  publicClient: any,
+  walletClient: WalletClient,
+  publicClient: PublicClient,
   layerZeroAdapterAddress: Address,
   endpointAddress: Address,
   readChannelId: number,
@@ -217,8 +217,8 @@ async function configureReadLib1002(
 // Helper function to configure DVNs and executor
 async function configureDVNsAndExecutor(
   layerZeroAdapter: any,
-  walletClient: any,
-  publicClient: any,
+  walletClient: WalletClient,
+  publicClient: PublicClient,
   layerZeroAdapterAddress: Address,
   readLib1002Address: Address,
   readDVNs: Address[],
@@ -255,7 +255,7 @@ async function configureDVNsAndExecutor(
 // Helper function to set minimum gas limits
 async function setMinimumGasLimits(
   layerZeroAdapter: any,
-  walletClient: any,
+  walletClient: WalletClient,
   layerZeroAdapterAddress: Address,
   minGasLimits: Record<string, number>,
 ): Promise<void> {
@@ -297,7 +297,7 @@ async function setMinimumGasLimits(
 
 // Helper function to register adapter with bridge router
 async function registerWithBridgeRouter(
-  walletClient: any,
+  walletClient: WalletClient,
   bridgeRouterAddress: Address,
   layerZeroAdapterAddress: Address,
 ): Promise<void> {
@@ -550,7 +550,7 @@ export async function configureLayerZeroAdapterPeersWithConfig(
   }
 
   // Load all network configurations
-  const allNetworkConfigs: Record<string, any> = {}
+  const allNetworkConfigs: Record<string, BaseConfig> = {}
 
   for (const network of supportedNetworks) {
     try {

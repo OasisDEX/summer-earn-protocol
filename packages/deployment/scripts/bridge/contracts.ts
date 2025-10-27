@@ -4,6 +4,7 @@ import kleur from 'kleur'
 import { Address } from 'viem'
 import bridgeModule from '../../ignition/modules/bridge'
 import { DeployedBridge } from '../../types/bridge-types'
+import { BaseConfig } from '../../types/config-types'
 import { ADDRESS_ZERO } from '../lib/infrastructure/constants'
 import { getChainId } from '../lib/infrastructure/get-chainid'
 
@@ -35,8 +36,8 @@ function hasValidAddress(address?: string): boolean {
 }
 
 export async function deployBridgeContracts(
-  networkConfig: any,
-  allConfigs: Record<string, any>,
+  networkConfig: BaseConfig,
+  allConfigs: Record<string, BaseConfig>,
   currentChainId?: number,
 ): Promise<DeployedBridge> {
   console.log(kleur.blue('Deploying bridge contracts'))
@@ -76,9 +77,9 @@ export async function deployBridgeContracts(
     // All exist in config
     console.log(kleur.green('All contracts already configured'))
     return {
-      bridgeRouter: { address: bridgeConfig.bridgeRouter.address as Address },
-      bridgeQueue: { address: bridgeConfig.bridgeQueue.address as Address },
-      crossChainRegistry: { address: bridgeConfig.crossChainRegistry.address as Address },
+      bridgeRouter: { address: bridgeConfig!.bridgeRouter.address as Address },
+      bridgeQueue: { address: bridgeConfig!.bridgeQueue.address as Address },
+      crossChainRegistry: { address: bridgeConfig!.crossChainRegistry.address as Address },
     }
   }
 
@@ -108,7 +109,7 @@ export async function deployBridgeContracts(
     // Queue exists in config, need to deploy router only
     console.log(kleur.blue('BridgeQueue exists, deploying BridgeRouter only'))
 
-    const existingQueueAddress = bridgeConfig.bridgeQueue.address as Address
+    const existingQueueAddress = bridgeConfig!.bridgeQueue.address as Address
     console.log(kleur.cyan('Existing BridgeQueue:'), existingQueueAddress)
 
     // Deploy router using router-only module
@@ -144,7 +145,7 @@ export async function deployBridgeContracts(
     return {
       bridgeRouter: { address: newRouterAddress },
       bridgeQueue: { address: existingQueueAddress },
-      crossChainRegistry: { address: bridgeConfig.crossChainRegistry.address as Address },
+      crossChainRegistry: { address: bridgeConfig!.crossChainRegistry.address as Address },
     }
   }
 

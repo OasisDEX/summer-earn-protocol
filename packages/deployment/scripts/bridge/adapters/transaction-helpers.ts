@@ -1,18 +1,18 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address, getAddress } from 'viem'
+import { Abi, Address, WalletClient, getAddress } from 'viem'
 import { BaseConfig } from '../../../types/config-types'
 import { AdapterConfigurationError } from './errors'
 
 /**
  * Write a contract transaction with consistent error handling
  */
-export async function writeContractTx(
-  walletClient: any,
+export async function writeContractTx<TAbi extends Abi, TFunctionName extends string>(
+  walletClient: WalletClient,
   contractAddress: Address,
-  abi: readonly any[],
-  functionName: string,
-  args: readonly any[],
+  abi: TAbi,
+  functionName: TFunctionName,
+  args: readonly unknown[],
 ): Promise<string> {
   try {
     const hash = await walletClient.writeContract({
@@ -34,7 +34,7 @@ export async function writeContractTx(
  */
 export async function updateIfDifferent<T>(
   contract: any,
-  walletClient: any,
+  walletClient: WalletClient,
   readFunction: string,
   currentValue: T,
   expectedValue: T,
