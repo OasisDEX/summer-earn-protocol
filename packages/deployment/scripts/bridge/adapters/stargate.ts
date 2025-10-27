@@ -60,26 +60,36 @@ const validatedContracts = new Set<string>()
  * Deploy Stargate adapter using Ignition module
  */
 export async function deployStargateAdapter(
-  crossChainRegistry: Address,
-  accessManager: Address,
   networkConfig: any,
+  allNetworkConfigs?: Record<string, any>,
 ): Promise<Address> {
   console.log(kleur.blue('Deploying Stargate V2 adapter using Ignition module'))
+
+  // Get current chain ID
+  const chainId = Number(networkConfig.common.chainId)
+
+  // Get the crossChainRegistry address from network config
+  const crossChainRegistry = networkConfig.deployedContracts.bridge.crossChainRegistry.address
+  if (!crossChainRegistry) {
+    throw new Error(`CrossChainRegistry address not found in config for chain ID ${chainId}`)
+  }
+
+  // Get the access manager address from network config
+  const accessManager = networkConfig.deployedContracts.gov.protocolAccessManager.address
+  if (!accessManager) {
+    throw new Error(`ProtocolAccessManager address not found in config for chain ID ${chainId}`)
+  }
 
   // Get LayerZero endpoint from network config
   const lzEndpoint = networkConfig.common.layerZero.lzEndpoint
   if (!lzEndpoint) {
-    throw new Error(
-      `LayerZero endpoint not configured for chain ID ${networkConfig.common.chainId}`,
-    )
+    throw new Error(`LayerZero endpoint not configured for chain ID ${chainId}`)
   }
 
   // Get HarborCommand address from network config
   const harborCommand = networkConfig.deployedContracts.core.harborCommand.address
   if (!harborCommand) {
-    throw new Error(
-      `HarborCommand address not found in config for chain ID ${networkConfig.common.chainId}`,
-    )
+    throw new Error(`HarborCommand address not found in config for chain ID ${chainId}`)
   }
 
   // Deploy using Ignition module - all 4 constructor parameters needed

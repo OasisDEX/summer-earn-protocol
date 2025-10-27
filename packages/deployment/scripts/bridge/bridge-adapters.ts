@@ -76,7 +76,6 @@ async function deployBridgeAdapters(
     } else {
       try {
         const layerZeroAdapterAddress = await deployLayerZeroAdapter(
-          bridgeRouterAddress,
           networkConfig,
           allNetworkConfigs,
         )
@@ -88,11 +87,7 @@ async function deployBridgeAdapters(
     }
   } else {
     try {
-      const layerZeroAdapterAddress = await deployLayerZeroAdapter(
-        bridgeRouterAddress,
-        networkConfig,
-        allNetworkConfigs,
-      )
+      const layerZeroAdapterAddress = await deployLayerZeroAdapter(networkConfig, allNetworkConfigs)
       deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
       await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
     } catch (error) {
@@ -117,11 +112,7 @@ async function deployBridgeAdapters(
       deployedAdapters.stargate = { address: existingStargateAddress as Address }
     } else {
       try {
-        const stargateAdapterAddress = await deployStargateAdapter(
-          networkConfig.deployedContracts.bridge.crossChainRegistry.address,
-          networkConfig.deployedContracts.gov.protocolAccessManager.address,
-          networkConfig,
-        )
+        const stargateAdapterAddress = await deployStargateAdapter(networkConfig, allNetworkConfigs)
         deployedAdapters.stargate = { address: stargateAdapterAddress }
         await configureStargateAdapter(
           stargateAdapterAddress,
@@ -135,11 +126,7 @@ async function deployBridgeAdapters(
     }
   } else {
     try {
-      const stargateAdapterAddress = await deployStargateAdapter(
-        networkConfig.deployedContracts.bridge.crossChainRegistry.address,
-        networkConfig.deployedContracts.gov.protocolAccessManager.address,
-        networkConfig,
-      )
+      const stargateAdapterAddress = await deployStargateAdapter(networkConfig, allNetworkConfigs)
       deployedAdapters.stargate = { address: stargateAdapterAddress }
       await configureStargateAdapter(
         stargateAdapterAddress,

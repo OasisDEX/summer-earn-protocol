@@ -14,7 +14,6 @@ import {
  * Deploy LayerZero adapter using Ignition module
  */
 export async function deployLayerZeroAdapter(
-  bridgeRouterAddress: Address,
   networkConfig: any,
   allNetworkConfigs?: Record<string, any>,
 ): Promise<Address> {
