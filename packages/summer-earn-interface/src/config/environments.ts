@@ -178,3 +178,49 @@ export const INTENT_SYSTEM_TOKENS: Record<Environment, Record<number, Record<str
     [sonic.id]: {},
   },
 }
+
+// Summer Staking contracts (Base only for now)
+export const SUMMER_TOKEN_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}
+
+export const STAKED_SUMMER_TOKEN_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x49fea727a60469f2c25376ad3c7d5f3810adfd8c',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x49fea727a60469f2c25376ad3c7d5f3810adfd8c',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}
+
+export const SUMMER_STAKING_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x902aC48f45FEFEc167Fe65963Bff714287470A3f',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x902aC48f45FEFEc167Fe65963Bff714287470A3f',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}

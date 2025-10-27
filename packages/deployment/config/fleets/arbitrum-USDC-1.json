@@ -125,6 +125,13 @@
         "vaultName": "Swaap_Lend_susdx_usdc_127",
         "protocol": "silo"
       }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "fluid"
+      }
     }
   ]
 }

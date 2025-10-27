@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 export interface MorphoArkUserInput extends BaseArkParams {
   marketId: string
@@ -135,6 +135,19 @@ async function deployMorphoArkContract(
   )
   const blueAddress = validateAddress(config.protocolSpecific.morpho.blue, 'Morpho Blue')
 
+  // Create and validate ark details
+  const arkDetails = {
+    protocol: 'Morpho',
+    type: 'Lending',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: userInput.marketId,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+  validateArkDetails(arkDetails, 'Morpho ark details')
+
   return (await hre.ignition.deploy(createMorphoArkModule(moduleName), {
     parameters: {
       [moduleName]: {
@@ -143,14 +156,7 @@ async function deployMorphoArkContract(
         urdFactory: urdFactoryAddress,
         arkParams: {
           name: `Morpho-${userInput.token.symbol}-${userInput.marketName}-${chainId}`,
-          details: JSON.stringify({
-            protocol: 'Morpho',
-            type: 'Lending',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: userInput.marketId,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,

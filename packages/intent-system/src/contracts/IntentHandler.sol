@@ -253,7 +253,8 @@ contract IntentHandler is
 
     function withdrawToken(address token, uint256 amount) external onlyKeeper {
         if (token == address(0)) {
-            msg.sender.call{value: amount}("");
+            (bool success, ) = msg.sender.call{value: amount}("");
+            if (!success) revert IntentHandler__WithdrawFailed();
         }
         IERC20(token).safeTransfer(msg.sender, amount);
     }
@@ -305,4 +306,5 @@ contract IntentHandler is
 
     error IntentHandler__SolverEscrowAlreadyExists();
     error IntentHandler__SolverEscrowNotFound();
+    error IntentHandler__WithdrawFailed();
 }

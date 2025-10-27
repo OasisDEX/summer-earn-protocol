@@ -5,7 +5,7 @@ import prompts from 'prompts'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { resolve } from 'path'
 import { createPublicClient, decodeEventLog, http } from 'viem'
-import { ChainName, chainConfigs } from '../helpers/chain-configs'
+import { ChainName, getChainConfigs } from '../helpers/chain-configs'
 import { getConfigByNetwork } from '../helpers/config-handler'
 
 dotenv.config()
@@ -21,8 +21,23 @@ export async function verifyVestingWallets(hre: HardhatRuntimeEnvironment) {
     common: true,
     gov: true,
     core: false,
-  })
-  const chainConfig = chainConfigs[hre.network.name as ChainName]
+  }) as any
+  const chainConfigs = getChainConfigs()
+  let networkName: ChainName
+
+  // Map hardhat/local to base for chain configs (same as config handler does)
+  if (hre.network.name === 'hardhat' || hre.network.name === 'local') {
+    networkName = 'base'
+  } else {
+    networkName = hre.network.name as ChainName
+  }
+
+  const chainConfig = chainConfigs[networkName]
+  if (!chainConfig) {
+    throw new Error(
+      `Chain config not found for network: ${networkName}. Available networks: ${Object.keys(chainConfigs).join(', ')}`,
+    )
+  }
 
   const publicClient = createPublicClient({
     chain: chainConfig.chain,
@@ -38,20 +53,11 @@ export async function verifyVestingWallets(hre: HardhatRuntimeEnvironment) {
       /^0x[a-fA-F0-9]{40}$/.test(value) ? true : 'Please enter a valid Ethereum address',
   })
 
-  // Get vesting wallet factory and wallet address
-  const vestingWalletFactory = await publicClient.readContract({
-    address: config.deployedContracts.gov.summerToken.address as `0x${string}`,
-    abi: [
-      {
-        inputs: [],
-        name: 'vestingWalletFactory',
-        outputs: [{ type: 'address' }],
-        stateMutability: 'view',
-        type: 'function',
-      },
-    ],
-    functionName: 'vestingWalletFactory',
-  })
+  // Get vesting wallet factory V2 address from deployment config
+  // Note: SummerToken contract doesn't have vestingWalletFactoryV2 function,
+  // so we need to get the deployed address from the config
+  const vestingWalletFactory = config.deployedContracts.gov.summerVestingFactoryV2
+    .address as `0x${string}`
 
   const vestingWalletsAddress = await publicClient.readContract({
     address: vestingWalletFactory,
@@ -68,14 +74,22 @@ export async function verifyVestingWallets(hre: HardhatRuntimeEnvironment) {
     args: [beneficiaryAddress],
   })
 
-  // Get creation logs to extract parameters
+  // Get creation logs to extract parameters for V2
   const vestingWalletCreatedEvent = {
     inputs: [
       { type: 'address', name: 'beneficiary', indexed: true },
-      { type: 'address', name: 'wallet', indexed: true },
-      { type: 'uint256', name: 'timeBasedAmount' },
-      { type: 'uint256[]', name: 'goalAmounts' },
-      { type: 'uint8', name: 'vestingType' },
+      { type: 'address', name: 'vestingWallet', indexed: true },
+      {
+        type: 'tuple',
+        name: 'vestingParams',
+        components: [
+          { type: 'uint64', name: 'cliffEndTimestamp' },
+          { type: 'uint256', name: 'cliffAmount' },
+          { type: 'uint256', name: 'vestingPeriods' },
+          { type: 'uint256', name: 'totalVestingAmount' },
+        ],
+      },
+      { type: 'uint256', name: 'performanceGoalsCount' },
     ],
     name: 'VestingWalletCreated',
     type: 'event',
@@ -95,7 +109,7 @@ export async function verifyVestingWallets(hre: HardhatRuntimeEnvironment) {
       topics: log.topics,
     })
     return (
-      decoded.args.wallet?.toLowerCase() === vestingWalletsAddress.toLowerCase() &&
+      decoded.args.vestingWallet?.toLowerCase() === vestingWalletsAddress.toLowerCase() &&
       decoded.args.beneficiary?.toLowerCase() === beneficiaryAddress.toLowerCase()
     )
   })
@@ -104,36 +118,52 @@ export async function verifyVestingWallets(hre: HardhatRuntimeEnvironment) {
     throw new Error('Could not find creation logs for this vesting wallet')
   }
 
-  const { timeBasedAmount, goalAmounts, vestingType } = relevantLog.args
+  const { vestingParams, performanceGoalsCount } = relevantLog.args
 
-  // Use block timestamp as startTimestamp since it's not in the event
-  const startTimestamp = BigInt(
-    await publicClient
-      .getBlock({
-        blockNumber: relevantLog.blockNumber,
-      })
-      .then((block) => block.timestamp),
-  )
+  // Get performance goals from the vesting wallet contract
+  const performanceGoals = []
+  for (let i = 1; i <= (performanceGoalsCount || 0); i++) {
+    const goal = await publicClient.readContract({
+      address: vestingWalletsAddress,
+      abi: [
+        {
+          inputs: [{ type: 'uint256' }],
+          name: 'performanceGoals',
+          outputs: [
+            {
+              type: 'tuple',
+              components: [
+                { type: 'uint256', name: 'amount' },
+                { type: 'string', name: 'description' },
+                { type: 'bool', name: 'reached' },
+              ],
+            },
+          ],
+          stateMutability: 'view',
+          type: 'function',
+        },
+      ],
+      functionName: 'performanceGoals',
+      args: [BigInt(i)],
+    })
+    performanceGoals.push(goal)
+  }
 
   console.log('Found parameters from logs:', {
-    startTimestamp,
-    vestingType,
-    timeBasedAmount,
-    goalAmounts,
+    vestingParams,
+    performanceGoals,
   })
 
   try {
     await hre.run('verify:verify', {
       address: vestingWalletsAddress,
-      contract: 'src/contracts/SummerVestingWallet.sol:SummerVestingWallet',
+      contract: 'src/contracts/SummerVestingWalletV2.sol:SummerVestingWalletV2',
       constructorArguments: [
         config.deployedContracts.gov.summerToken.address,
         beneficiaryAddress,
-        startTimestamp,
-        vestingType,
-        timeBasedAmount,
-        goalAmounts,
-        config.deployedContracts.gov.protocolAccessManager.address,
+        vestingParams,
+        performanceGoals,
+        vestingWalletFactory,
       ],
     })
   } catch (error) {

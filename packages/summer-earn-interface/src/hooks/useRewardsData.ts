@@ -385,16 +385,19 @@ async function getTokenBalances(
     for (const token of tokens as Array<{ address: string; threshold: number }>) {
       try {
         const [symbol, decimals, balance] = await Promise.all([
+          // @ts-ignore
           publicClient.readContract({
             address: token.address as `0x${string}`,
             abi: erc20Abi,
             functionName: 'symbol',
           }),
+          // @ts-ignore
           publicClient.readContract({
             address: token.address as `0x${string}`,
             abi: erc20Abi,
             functionName: 'decimals',
           }),
+          // @ts-ignore
           publicClient.readContract({
             address: token.address as `0x${string}`,
             abi: erc20Abi,
@@ -511,7 +514,8 @@ async function getClaimableRewards(
 
     if (matchedPattern === 'SkyRewards') {
       // @ts-ignore - Type inference issue with complex nested types
-      result = await publicClient.readContract({
+      result = await // @ts-ignore
+      publicClient.readContract({
         address: config.contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'earned',
@@ -523,7 +527,8 @@ async function getClaimableRewards(
       if (!mTokenAddress) return claimableRewards
 
       // @ts-ignore - Type inference issue with complex nested types
-      result = await publicClient.readContract({
+      result = await // @ts-ignore
+      publicClient.readContract({
         address: config.contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'getOutstandingRewardsForUser',
@@ -535,7 +540,8 @@ async function getClaimableRewards(
       if (!programNames) return claimableRewards
 
       // @ts-ignore - Type inference issue with complex nested types
-      result = await publicClient.readContract({
+      result = await // @ts-ignore
+      publicClient.readContract({
         address: config.contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'getRewardsBalance',
@@ -550,7 +556,8 @@ async function getClaimableRewards(
       const parsedDetails = JSON.parse(ark.details)
       const cometAddress = parsedDetails.pool
       // @ts-ignore - Type inference issue with complex nested types
-      result = await publicClient.readContract({
+      result = await // @ts-ignore
+      publicClient.readContract({
         address: config.contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'getRewardOwed',

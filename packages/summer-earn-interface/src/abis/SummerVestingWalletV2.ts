@@ -30,8 +30,8 @@ export const summerVestingWalletV2Abi = [
         components: [
           { type: 'uint64', name: 'cliffEndTimestamp' },
           { type: 'uint256', name: 'cliffAmount' },
-          { type: 'uint256', name: 'totalVestingAmount' },
           { type: 'uint256', name: 'vestingPeriods' },
+          { type: 'uint256', name: 'totalVestingAmount' },
         ],
         name: '',
       },

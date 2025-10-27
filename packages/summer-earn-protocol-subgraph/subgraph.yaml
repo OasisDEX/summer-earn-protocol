@@ -4,16 +4,16 @@ schema:
 features:
   - grafting
 graft:
-  base: Qmdf3Yv1qg3sbiq5R77vs7FgtSkwo3rPiAM6DeN4EN3xm9
-  block: 35006991
+  base: QmWFKGrTLRD3376fbGoLReqJuWAFk8Z72UWMb63wqhbazi
+  block: 23533120
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: base
+    network: mainnet
     source:
       abi: HarborCommand
       address: "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
-      startBlock: 25773568
+      startBlock: 21745351
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -67,11 +67,11 @@ dataSources:
       file: ./src/mappings/harborCommand.ts
   - kind: ethereum/contract
     name: GovernanceRewardsManager
-    network: base
+    network: mainnet
     source:
       abi: GovernanceRewardsManager
       address: "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92"
-      startBlock: 25642492
+      startBlock: 21745351
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -134,7 +134,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: base
+    network: mainnet
     source:
       abi: FleetCommander
     mapping:
@@ -222,7 +222,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: base
+    network: mainnet
     source:
       abi: Ark
     mapping:
@@ -285,7 +285,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: FleetCommanderRewardsManagerTemplate
-    network: base
+    network: mainnet
     source:
       abi: FleetCommanderRewardsManager
     mapping:
