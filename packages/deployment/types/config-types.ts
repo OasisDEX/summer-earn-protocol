@@ -36,7 +36,7 @@ export enum ArkType {
   SiUSDArk = 'SiUSDArk',
   FluidFTokenArk = 'FluidFTokenArk',
   PsmLiteERC4626Ark = 'PsmLiteERC4626Ark',
-  Psm3ERC4626Ark = 'Psm3ERC4626Ark'
+  Psm3ERC4626Ark = 'Psm3ERC4626Ark',
 }
 
 export const arkTypes = [

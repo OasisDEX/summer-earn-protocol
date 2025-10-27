@@ -11,7 +11,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 export interface PsmERC4626ArkUserInput extends BaseArkParams {
   vaultId: string
@@ -149,6 +149,7 @@ async function deployPsmERC4626ArkContract(config: BaseConfig, userInput: PsmERC
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `ERC4626-${userInput.psmType.toUpperCase()}-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
   const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const protocol = userInput.vaultName.split('_')[0]
 
   const psmAddress = validateAddress(
     userInput.psmType === 'psm3'
@@ -166,6 +167,17 @@ async function deployPsmERC4626ArkContract(config: BaseConfig, userInput: PsmERC
     throw new Error('Vault token must be USDS or Staked USDS')
   }
 
+  const arkDetails = {
+    protocol: protocol,
+    type: 'PSM-ERC4626',
+    asset: userInput.token.address,
+    marketAsset: userInput.vaultToken,
+    pool: vaultAddress,
+    chainId: chainId,
+    vaultName: userInput.vaultName,
+  }
+  validateArkDetails(arkDetails, 'PSM ERC4626 ark details')
+
   const deploymentParams = {
     parameters: {
       [moduleName]: {
@@ -175,15 +187,7 @@ async function deployPsmERC4626ArkContract(config: BaseConfig, userInput: PsmERC
         vault: vaultAddress,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: 'Sky',
-            type: 'PSM-ERC4626',
-            asset: userInput.token.address,
-            marketAsset: config.tokens.usds,
-            pool: vaultAddress,
-            chainId: chainId,
-            vaultName: userInput.vaultName,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
