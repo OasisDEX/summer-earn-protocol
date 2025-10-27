@@ -4,8 +4,8 @@ import { BaseConfig } from '../types/config-types'
 import { deployBridgeContracts } from './bridge/deployment/contracts'
 import { getChainId } from './common/chain'
 import { getConfigByNetwork } from './common/config'
-import { updateIndexJson } from './utils/files'
-import { promptForConfigType } from './utils/prompts'
+import { updateIndexJson } from './common/files'
+import { promptForConfigType } from './common/prompts'
 
 async function deployBridge() {
   const network = hre.network.name

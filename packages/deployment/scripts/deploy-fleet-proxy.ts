@@ -8,9 +8,9 @@ import { createFleetProxyModule } from '../ignition/modules/fleet-proxy'
 import { BaseConfig } from '../types/config-types'
 import { getChainIdByNetwork } from './common/chain'
 import { getConfigByNetwork } from './common/config'
+import { handleDeploymentId } from './common/files'
+import { continueDeploymentCheck } from './common/prompts'
 import { loadCrossChainConfig, saveCrossChainConfig } from './layerzero/cross-chain'
-import { handleDeploymentId } from './utils/files'
-import { continueDeploymentCheck } from './utils/prompts'
 
 /**
  * Interface for the FleetProxy deployment parameters

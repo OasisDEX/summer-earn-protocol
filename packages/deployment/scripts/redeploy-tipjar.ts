@@ -6,12 +6,11 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { TipJarContracts, createTipJarModule } from '../ignition/modules/tipjar'
 import { BaseConfig } from '../types/config-types'
-import { getConfigByNetwork } from './common/config-handler'
-import { handleDeploymentId } from './common/deployment-id-handler'
-import { getChainId } from './common/get-chainid'
-import { continueDeploymentCheck, promptForConfigType } from './utils/prompts'
-import { warnIfTenderlyVirtualTestnet } from './utils/tenderly'
-import { updateIndexJson } from './common/update-json'
+import { getChainId } from './common/chain'
+import { getConfigByNetwork } from './common/config'
+import { handleDeploymentId, updateIndexJson } from './common/files'
+import { continueDeploymentCheck, promptForConfigType } from './common/prompts'
+import { warnIfTenderlyVirtualTestnet } from './common/tenderly'
 
 /**
  * Deploys the TipJar contract and updates the ConfigurationManager.

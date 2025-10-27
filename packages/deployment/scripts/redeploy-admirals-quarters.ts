@@ -7,9 +7,9 @@ import { BaseConfig } from '../types/config-types'
 import { getChainId } from './common/chain'
 import { getConfigByNetwork } from './common/config'
 import { ADMIRALS_QUARTERS_ROLE, GOVERNOR_ROLE } from './common/constants'
-import { handleDeploymentId, updateIndexJson } from './utils/files'
-import { continueDeploymentCheck, promptForConfigType } from './utils/prompts'
-import { warnIfTenderlyVirtualTestnet } from './utils/tenderly'
+import { handleDeploymentId, updateIndexJson } from './common/files'
+import { continueDeploymentCheck, promptForConfigType } from './common/prompts'
+import { warnIfTenderlyVirtualTestnet } from './common/tenderly'
 
 export async function redeployAdmiralsQuarters() {
   const network = hre.network.name

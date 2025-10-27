@@ -8,8 +8,8 @@ import {
   deployBridgeAdapters,
 } from './bridge/bridge-adapters'
 import { getConfigByNetwork } from './common/config'
-import { updateIndexJson } from './utils/files'
-import { promptForConfigType, promptYesNo } from './utils/prompts'
+import { updateIndexJson } from './common/files'
+import { promptForConfigType, promptYesNo } from './common/prompts'
 
 /**
  * Wait for pending transactions to be confirmed

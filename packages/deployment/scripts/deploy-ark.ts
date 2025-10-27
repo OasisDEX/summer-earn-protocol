@@ -2,10 +2,10 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { ArkType, BaseConfig, arkTypes } from '../types/config-types'
+import { addArkToFleet } from './actions/add-ark-to-fleet'
 import { deployArkInteractive } from './arks/core/deployment'
 import { getConfigByNetwork } from './common/config'
-import { addArkToFleet } from './utils/add-ark-to-fleet'
-import { ModuleLogger } from './utils/module-logger'
+import { ModuleLogger } from './common/module-logger'
 
 async function deployArk() {
   console.log(kleur.green().bold('Starting Ark deployment process...'))

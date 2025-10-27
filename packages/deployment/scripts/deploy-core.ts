@@ -3,12 +3,12 @@ import kleur from 'kleur'
 import { Address, keccak256, toBytes } from 'viem'
 import { CoreContracts, CoreModule } from '../ignition/modules/core'
 import { BaseConfig } from '../types/config-types'
+import { checkExistingContracts } from './common/check-existing-contracts'
 import { getConfigByNetwork } from './common/config'
 import { ADDRESS_ZERO } from './common/constants'
-import { checkExistingContracts } from './utils/check-existing-contracts'
-import { updateIndexJson } from './utils/files'
-import { ModuleLogger } from './utils/module-logger'
-import { promptForConfigType } from './utils/prompts'
+import { updateIndexJson } from './common/files'
+import { ModuleLogger } from './common/module-logger'
+import { promptForConfigType } from './common/prompts'
 
 const ADMIRALS_QUARTERS_ROLE = keccak256(toBytes('ADMIRALS_QUARTERS_ROLE'))
 

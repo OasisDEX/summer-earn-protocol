@@ -4,9 +4,9 @@ import prompts from 'prompts'
 import { createRaftModule } from '../ignition/modules/raftModuleFactory'
 import { getChainId } from './common/chain'
 import { getConfigByNetwork } from './common/config'
-import { handleDeploymentId, updateIndexJson } from './utils/files'
-import { continueDeploymentCheck, promptForConfigType } from './utils/prompts'
-import { warnIfTenderlyVirtualTestnet } from './utils/tenderly'
+import { handleDeploymentId, updateIndexJson } from './common/files'
+import { continueDeploymentCheck, promptForConfigType } from './common/prompts'
+import { warnIfTenderlyVirtualTestnet } from './common/tenderly'
 
 export async function redeployRaft() {
   const network = hre.network.name

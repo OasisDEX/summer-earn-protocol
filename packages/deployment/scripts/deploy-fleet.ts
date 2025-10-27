@@ -5,8 +5,13 @@ import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { ArkType, FleetConfig } from '../types/config-types'
+import { addArkToFleet } from './actions/add-ark-to-fleet'
+import { grantCommanderRole } from './actions/grant-commander-role'
 import { getConfigByNetwork } from './common/config'
 import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './common/constants'
+import { continueDeploymentCheck, promptForConfigType } from './common/prompts'
+import { warnIfTenderlyVirtualTestnet } from './common/tenderly'
+import { getAssetAddress } from './common/tokens'
 import { validateToken } from './common/validation'
 import {
   getFleetConfig,
@@ -30,11 +35,6 @@ import {
   createHubGovernanceProposal,
   createSatelliteGovernanceProposal,
 } from './fleets/deployment/governance'
-import { addArkToFleet } from './utils/add-ark-to-fleet'
-import { grantCommanderRole } from './utils/grant-commander-role'
-import { continueDeploymentCheck, promptForConfigType } from './utils/prompts'
-import { warnIfTenderlyVirtualTestnet } from './utils/tenderly'
-import { getAssetAddress } from './utils/tokens'
 
 /**
  * Deployment modes for the script
