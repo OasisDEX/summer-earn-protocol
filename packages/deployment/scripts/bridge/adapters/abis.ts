@@ -41,8 +41,6 @@ export const STARGATE_UPDATE_CHAIN_ADAPTER_ABI = [
 
 // LayerZero Adapter ABIs
 
-
-
 export const LAYERZERO_SET_MIN_GAS_LIMIT_ABI = [
   {
     inputs: [

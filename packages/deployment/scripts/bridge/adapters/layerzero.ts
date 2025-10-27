@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address, PublicClient, WalletClient, getAddress } from 'viem'
+import { Address, WalletClient, getAddress } from 'viem'
 import layerZeroConfig from '../../../config/adapters/layerzero.json'
 import LayerZeroAdapterModule from '../../../ignition/modules/adapters/layerzero'
 import {
@@ -81,9 +81,6 @@ export async function deployLayerZeroAdapter(
 
   return layerZeroAdapterAddress
 }
-
-
-
 
 // Helper function to set minimum gas limits
 async function setMinimumGasLimits(

@@ -39,10 +39,6 @@ async function getBridgeConfigs() {
     console.log(kleur.blue('\nLayerZero Adapter Configuration:'))
     console.log(`- Endpoint: ${adapterConfigs.layerZero.endpoint}`)
     console.log(`- Supported Chains: ${adapterConfigs.layerZero.supportedChains.join(', ')}`)
-    console.log(`- LZ Endpoint IDs: ${adapterConfigs.layerZero.lzEids.join(', ')}`)
-    if (adapterConfigs.layerZero.readChannelId) {
-      console.log(`- Read Channel ID: ${adapterConfigs.layerZero.readChannelId}`)
-    }
     if (adapterConfigs.layerZero.minGasLimits) {
       console.log('- Minimum Gas Limits:')
       for (const [msgType, gasLimit] of Object.entries(adapterConfigs.layerZero.minGasLimits)) {

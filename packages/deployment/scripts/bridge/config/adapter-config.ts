@@ -1,4 +1,5 @@
 import { BridgeAdaptersConfig } from '../../../types/bridge-types'
+import { BaseConfig } from '../../../types/config-types'
 
 /**
  * Extracts bridge adapter configurations from the network config
@@ -23,7 +24,6 @@ export function getBridgeAdapterConfigs(config: BaseConfig): BridgeAdaptersConfi
         endpoint: adapters.layerZero.endpoint,
         supportedChains: adapters.layerZero.supportedChains || [],
         lzEids: adapters.layerZero.lzEids || [],
-        readChannelId: adapters.layerZero.readChannelId,
         minGasLimits: adapters.layerZero.minGasLimits,
       }
     }

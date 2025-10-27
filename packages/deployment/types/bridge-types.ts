@@ -19,14 +19,7 @@ export interface BridgeAdaptersConfig {
       chainId: number
       lzEid: number
     }>
-    readChannelId?: number
     minGasLimits?: Record<string, number>
-    readLib1002?: Address
-    sendUln302?: Address
-    receiveUln302?: Address
-    executor?: Address
-    readDVNs?: Address[]
-    confirmations?: number
   }
   stargate?: {
     router: Address
