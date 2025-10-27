@@ -7,8 +7,8 @@ import {
   EXECUTOR_ROLE,
   GOVERNOR_ROLE,
   PROPOSER_ROLE,
-} from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
+} from '../lib/infrastructure/constants'
+import { getConfigByNetwork } from '../lib/config/handler'
 
 /**
  * @dev Post-deployment governance setup

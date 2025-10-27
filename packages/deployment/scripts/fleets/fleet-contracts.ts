@@ -2,9 +2,9 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { createFleetModule, FleetContracts } from '../../ignition/modules/fleet'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
-import { handleDeploymentId } from '../helpers/deployment-id-handler'
-import { getChainId } from '../helpers/get-chainid'
-import { ModuleLogger } from '../helpers/module-logger'
+import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
+import { getChainId } from '../lib/infrastructure/get-chainid'
+import { ModuleLogger } from '../lib/infrastructure/logger'
 
 /**
  * Deploys the Fleet and BufferArk contracts using Hardhat Ignition.

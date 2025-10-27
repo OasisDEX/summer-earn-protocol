@@ -5,8 +5,8 @@ import prompts from 'prompts'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { resolve } from 'path'
 import { createPublicClient, decodeEventLog, http } from 'viem'
-import { ChainName, getChainConfigs } from '../helpers/chain-configs'
-import { getConfigByNetwork } from '../helpers/config-handler'
+import { ChainName, getChainConfigs } from '../lib/chain/config'
+import { getConfigByNetwork } from '../lib/config/handler'
 
 dotenv.config()
 

@@ -12,24 +12,24 @@ import {
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
 } from './common/fleet-deployment-files-helpers'
-import { logDeploymentResults } from './fleets/fleet-contracts'
+import { logDeploymentResults } from './fleets/contracts'
 import {
   addFleetToHarbor,
   deployArks,
   getRewardsManagerAddress,
   grantCuratorRole,
   setupFleetRewards,
-} from './fleets/fleet-deployment-helpers'
-import { getInstitutionConfigByNetwork } from './helpers/config-handler'
+} from './fleets/deployment'
+import { getInstitutionConfigByNetwork } from './lib/config/handler'
 import {
   getInstitutionFleetConfigDir,
   promptForInstitutionId,
   updateInstitutionFleetEntry,
-} from './helpers/institution-config'
-import { promptForConfigType } from './helpers/prompt-helpers'
-import { getAssetAddress } from './helpers/token-helpers'
-import { validateToken } from './helpers/validation'
-import { FleetConfigSchema } from './helpers/zod-schemas'
+} from './lib/config/institution'
+import { promptForConfigType } from './lib/infrastructure/prompts'
+import { getAssetAddress } from './lib/infrastructure/validation'
+import { validateToken } from './lib/infrastructure/validation'
+import { FleetConfigSchema } from './lib/infrastructure/zod-schemas'
 
 async function selectInstitutionFleetConfig(
   institutionId: string,

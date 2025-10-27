@@ -1,7 +1,7 @@
 import prompts from 'prompts'
 import { Address, parseAbi } from 'viem'
-import { promptForChain } from '../../helpers/chain-prompt'
-import { createClients } from '../../helpers/wallet-helper'
+import { promptForChain } from '../../lib/chain/prompts'
+import { createClients } from '../../lib/infrastructure/wallet'
 
 const governorAbi = parseAbi([
   'function castVote(uint256 proposalId, uint8 support) public returns (uint256)',

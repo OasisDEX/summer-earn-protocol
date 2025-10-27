@@ -34,7 +34,7 @@ import {
   validateMarketId,
   validateString,
   validateToken,
-} from '../helpers/validation'
+} from '../lib/infrastructure/validation'
 import { ZERO_STRING } from './constants'
 
 export type ArkConfig = {

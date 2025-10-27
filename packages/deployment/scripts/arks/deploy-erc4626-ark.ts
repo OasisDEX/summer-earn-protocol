@@ -8,12 +8,12 @@ import {
 } from '../../ignition/modules/arks/erc4626-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
-import { handleDeploymentId } from '../helpers/deployment-id-handler'
-import { getChainId } from '../helpers/get-chainid'
-import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateArkDetails } from '../helpers/validation'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
+import { getFleetConfig } from '../fleets/deployment'
+import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
+import { getChainId } from '../lib/infrastructure/get-chainid'
+import { continueDeploymentCheck } from '../lib/infrastructure/prompts'
+import { validateArkDetails } from '../lib/infrastructure/validation'
 
 export interface ERC4626ArkUserInput extends BaseArkParams {
   vaultId: string

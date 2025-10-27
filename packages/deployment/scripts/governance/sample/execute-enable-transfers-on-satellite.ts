@@ -1,8 +1,8 @@
 import { encodeFunctionData, parseAbi, PublicClient } from 'viem'
-import { promptForChain, promptForTargetChain } from '../../helpers/chain-prompt'
-import { hashDescription } from '../../helpers/hash-description'
-import { constructLzOptions } from '../../helpers/layerzero-options'
-import { createClients } from '../../helpers/wallet-helper'
+import { promptForChain, promptForTargetChain } from '../../lib/chain/prompts'
+import { hashDescription } from '../../lib/infrastructure/hash-description'
+import { constructLzOptions } from '../../lib/layerzero/options'
+import { createClients } from '../../lib/infrastructure/wallet'
 
 const governorAbi = parseAbi([
   'function execute(address[] targets, uint256[] values, bytes[] calldatas, bytes32 descriptionHash) public payable returns (uint256)',

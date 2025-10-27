@@ -1,11 +1,11 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address } from 'viem'
-import { CHAIN_CONFIG_MAP, RPC_URL_MAP } from '../../common/chain-config-map'
-import { getChainConfigs } from '../../helpers/chain-configs'
-import { getChainNameById } from '../../helpers/chain-helpers'
-import { isTenderlyVirtualTestnet } from '../../helpers/tenderly-helpers'
-import { createClients } from '../../helpers/wallet-helper'
+import { CHAIN_CONFIG_MAP, RPC_URL_MAP } from '../../lib/chain/config'
+import { getChainConfigs } from '../../lib/chain/config'
+import { getChainNameById } from '../../lib/chain/helpers'
+import { isTenderlyVirtualTestnet } from '../../lib/infrastructure/tenderly'
+import { createClients } from '../../lib/infrastructure/wallet'
 
 /**
  * Helper function to get all supported chains with LayerZero endpoint IDs from config

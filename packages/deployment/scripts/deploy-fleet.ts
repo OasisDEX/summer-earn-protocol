@@ -16,25 +16,25 @@ import {
   saveFleetDeploymentJson,
 } from './common/fleet-deployment-files-helpers'
 import { grantCommanderRole } from './common/grant-commander-role'
-import { deployFleetContracts, logDeploymentResults } from './fleets/fleet-contracts'
+import { deployFleetContracts, logDeploymentResults } from './fleets/contracts'
 import {
   addFleetToHarbor,
   deployArks,
   getRewardsManagerAddress,
   grantCuratorRole,
   setupFleetRewards,
-} from './fleets/fleet-deployment-helpers'
+} from './fleets/deployment'
 import {
   createArkAdditionCrossChainProposal,
   createArkAdditionProposal,
   createHubGovernanceProposal,
   createSatelliteGovernanceProposal,
-} from './fleets/fleet-governance-helpers'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
-import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'
-import { getAssetAddress } from './helpers/token-helpers'
-import { validateToken } from './helpers/validation'
+} from './fleets/governance'
+import { getConfigByNetwork } from './lib/config/handler'
+import { continueDeploymentCheck, promptForConfigType } from './lib/infrastructure/prompts'
+import { warnIfTenderlyVirtualTestnet } from './lib/infrastructure/tenderly'
+import { getAssetAddress } from './lib/infrastructure/validation'
+import { validateToken } from './lib/infrastructure/validation'
 
 /**
  * Deployment modes for the script

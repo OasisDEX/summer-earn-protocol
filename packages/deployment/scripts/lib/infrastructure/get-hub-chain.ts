@@ -1,4 +1,4 @@
-import { HUB_CHAIN_NAME } from '../common/constants'
+import { HUB_CHAIN_NAME } from './constants'
 
 /**
  * Get the hub chain name

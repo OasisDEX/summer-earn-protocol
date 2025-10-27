@@ -1,10 +1,10 @@
 import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
-import { promptForChain, promptForTargetChain } from '../../helpers/chain-prompt'
-import { promptForFleet } from '../../helpers/fleet-prompt'
-import { hashDescription } from '../../helpers/hash-description'
-import { constructLzOptions } from '../../helpers/layerzero-options'
-import { createClients } from '../../helpers/wallet-helper'
+import { promptForChain, promptForTargetChain } from '../../lib/chain/prompts'
+import { promptForFleet } from '../../fleets/prompts'
+import { hashDescription } from '../../lib/infrastructure/hash-description'
+import { constructLzOptions } from '../../lib/layerzero/options'
+import { createClients } from '../../lib/infrastructure/wallet'
 
 const governorAbi = parseAbi([
   'function propose(address[] targets, uint256[] values, bytes[] calldatas, string description) public returns (uint256)',

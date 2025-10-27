@@ -1,8 +1,8 @@
 import prompts from 'prompts'
 import { Address, parseAbi } from 'viem'
-import { promptForChain } from '../../helpers/chain-prompt'
-import { useTestConfig } from '../../helpers/prompt-helpers'
-import { createClients } from '../../helpers/wallet-helper'
+import { promptForChain } from '../../lib/chain/prompts'
+import { useTestConfig } from '../../lib/infrastructure/prompts'
+import { createClients } from '../../lib/infrastructure/wallet'
 
 const timelockAbi = parseAbi([
   'function execute(address target, uint256 value, bytes calldata payload, bytes32 predecessor, bytes32 salt) public payable',

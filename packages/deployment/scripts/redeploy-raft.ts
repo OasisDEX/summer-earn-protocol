@@ -2,12 +2,12 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { createRaftModule } from '../ignition/modules/raftModuleFactory'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { getChainId } from './helpers/get-chainid'
-import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
-import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'
-import { updateIndexJson } from './helpers/update-json'
+import { getConfigByNetwork } from './lib/config/handler'
+import { handleDeploymentId } from './lib/infrastructure/deployment-id-handler'
+import { getChainId } from './lib/infrastructure/get-chainid'
+import { continueDeploymentCheck, promptForConfigType } from './lib/infrastructure/prompts'
+import { warnIfTenderlyVirtualTestnet } from './lib/infrastructure/tenderly'
+import { updateIndexJson } from './lib/infrastructure/update-json'
 
 export async function redeployRaft() {
   const network = hre.network.name

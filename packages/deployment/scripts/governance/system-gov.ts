@@ -4,10 +4,10 @@ import prompts from 'prompts'
 
 import { GovContracts, GovModule } from '../../ignition/modules/gov'
 import { BaseConfig } from '../../types/config-types'
-import { ADDRESS_ZERO } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
-import { ModuleLogger } from '../helpers/module-logger'
-import { updateIndexJson } from '../helpers/update-json'
+import { ADDRESS_ZERO } from '../lib/infrastructure/constants'
+import { getConfigByNetwork } from '../lib/config/handler'
+import { ModuleLogger } from '../lib/infrastructure/logger'
+import { updateIndexJson } from '../lib/infrastructure/update-json'
 
 export async function deployGov(config: BaseConfig, useBummerConfig?: boolean) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))

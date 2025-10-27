@@ -6,11 +6,11 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { createFleetProxyModule } from '../ignition/modules/fleet-proxy'
 import { BaseConfig } from '../types/config-types'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { loadCrossChainConfig, saveCrossChainConfig } from './helpers/cross-chain-config'
-import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { getChainIdByNetwork } from './helpers/get-chainid'
-import { continueDeploymentCheck } from './helpers/prompt-helpers'
+import { getConfigByNetwork } from './lib/config/handler'
+import { loadCrossChainConfig, saveCrossChainConfig } from './lib/config/cross-chain'
+import { handleDeploymentId } from './lib/infrastructure/deployment-id-handler'
+import { getChainIdByNetwork } from './lib/infrastructure/get-chainid'
+import { continueDeploymentCheck } from './lib/infrastructure/prompts'
 
 /**
  * Interface for the FleetProxy deployment parameters

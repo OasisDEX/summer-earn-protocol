@@ -7,9 +7,9 @@ import {
   configureStargateAdapter,
   deployBridgeAdapters,
 } from './bridge/bridge-adapters'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { promptForConfigType, promptYesNo } from './helpers/prompt-helpers'
-import { updateIndexJson } from './helpers/update-json'
+import { getConfigByNetwork } from './lib/config/handler'
+import { promptForConfigType, promptYesNo } from './lib/infrastructure/prompts'
+import { updateIndexJson } from './lib/infrastructure/update-json'
 
 /**
  * Wait for pending transactions to be confirmed

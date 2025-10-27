@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { Chain, createPublicClient, http } from 'viem'
-import { CHAIN_CONFIG_MAP, RPC_URL_MAP } from '../common/chain-config-map'
+import { CHAIN_CONFIG_MAP, RPC_URL_MAP } from '../chain/config'
 
 /**
  * Get a public client for a specific chain

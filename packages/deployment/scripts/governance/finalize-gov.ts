@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, keccak256, toBytes } from 'viem'
-import { getConfigByNetwork } from '../helpers/config-handler'
+import { getConfigByNetwork } from '../lib/config/handler'
 import { LZ_ENDPOINT_ABI } from './bridge/lz-endpoint-abi'
 
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))

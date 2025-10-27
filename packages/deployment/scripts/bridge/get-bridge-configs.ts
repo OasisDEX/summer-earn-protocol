@@ -1,8 +1,8 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { getConfigByNetwork } from '../helpers/config-handler'
-import { promptForConfigType } from '../helpers/prompt-helpers'
-import { getBridgeAdapterConfigs, hasBridgeAdapterConfigs } from './bridge-config-helpers'
+import { getConfigByNetwork } from '../lib/config/handler'
+import { promptForConfigType } from '../lib/infrastructure/prompts'
+import { getBridgeAdapterConfigs, hasBridgeAdapterConfigs } from './config'
 
 /**
  * Script that demonstrates using bridge config helpers to extract and display adapter configurations

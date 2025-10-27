@@ -5,12 +5,12 @@ import { Address } from 'viem'
 import { createAdmiralsQuartersModule } from '../ignition/modules/admiralsQuartersModuleFactory'
 import { BaseConfig } from '../types/config-types'
 import { ADMIRALS_QUARTERS_ROLE, GOVERNOR_ROLE } from './common/constants'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { getChainId } from './helpers/get-chainid'
-import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
-import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'
-import { updateIndexJson } from './helpers/update-json'
+import { getConfigByNetwork } from './lib/config/handler'
+import { handleDeploymentId } from './lib/infrastructure/deployment-id-handler'
+import { getChainId } from './lib/infrastructure/get-chainid'
+import { continueDeploymentCheck, promptForConfigType } from './lib/infrastructure/prompts'
+import { warnIfTenderlyVirtualTestnet } from './lib/infrastructure/tenderly'
+import { updateIndexJson } from './lib/infrastructure/update-json'
 
 export async function redeployAdmiralsQuarters() {
   const network = hre.network.name

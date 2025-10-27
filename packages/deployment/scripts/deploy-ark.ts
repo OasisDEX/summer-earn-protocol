@@ -4,8 +4,8 @@ import prompts from 'prompts'
 import { ArkType, BaseConfig, arkTypes } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { deployArkInteractive } from './common/ark-deployment'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { ModuleLogger } from './helpers/module-logger'
+import { getConfigByNetwork } from './lib/config/handler'
+import { ModuleLogger } from './lib/infrastructure/logger'
 
 async function deployArk() {
   console.log(kleur.green().bold('Starting Ark deployment process...'))

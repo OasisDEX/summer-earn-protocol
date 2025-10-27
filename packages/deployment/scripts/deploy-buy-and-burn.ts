@@ -2,10 +2,10 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { BuyAndBurnContracts, BuyAndBurnModule } from '../ignition/modules/buy-and-burn'
 import { BaseConfig } from '../types/config-types'
-import { checkExistingContracts } from './helpers/check-existing-contracts'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { ModuleLogger } from './helpers/module-logger'
-import { updateIndexJson } from './helpers/update-json'
+import { checkExistingContracts } from './lib/contracts/verification'
+import { getConfigByNetwork } from './lib/config/handler'
+import { ModuleLogger } from './lib/infrastructure/logger'
+import { updateIndexJson } from './lib/infrastructure/update-json'
 
 export async function deployBuyAndBurn() {
   const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true })

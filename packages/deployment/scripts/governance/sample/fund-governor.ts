@@ -1,8 +1,8 @@
 import prompts from 'prompts'
 import { Address, formatEther, parseAbi, parseEther } from 'viem'
-import { promptForChain } from '../../helpers/chain-prompt'
-import { hashDescription } from '../../helpers/hash-description'
-import { createClients } from '../../helpers/wallet-helper'
+import { promptForChain } from '../../lib/chain/prompts'
+import { hashDescription } from '../../lib/infrastructure/hash-description'
+import { createClients } from '../../lib/infrastructure/wallet'
 
 const governorAbi = parseAbi([
   'function propose(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) public returns (uint256)',

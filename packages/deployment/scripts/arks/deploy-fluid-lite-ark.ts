@@ -5,11 +5,11 @@ import { Address } from 'viem'
 import { createFluidLiteArkModule } from '../../ignition/modules/arks/fluid-lite-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
-import { handleDeploymentId } from '../helpers/deployment-id-handler'
-import { getChainId } from '../helpers/get-chainid'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
+import { getFleetConfig } from '../fleets/deployment'
+import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
+import { getChainId } from '../lib/infrastructure/get-chainid'
+import { validateAddress, validateArkDetails } from '../lib/infrastructure/validation'
 
 export interface FluidLiteArkUserInput extends BaseArkParams {
   token: { address: Address; symbol: Token }

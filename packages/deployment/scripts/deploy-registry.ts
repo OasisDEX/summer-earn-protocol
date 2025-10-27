@@ -3,10 +3,10 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address } from 'viem'
 import { BaseConfig } from '../types/config-types'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { getChainId } from './helpers/get-chainid'
-import { promptForConfigType } from './helpers/prompt-helpers'
-import { updateIndexJson } from './helpers/update-json'
+import { getConfigByNetwork } from './lib/config/handler'
+import { getChainId } from './lib/infrastructure/get-chainid'
+import { promptForConfigType } from './lib/infrastructure/prompts'
+import { updateIndexJson } from './lib/infrastructure/update-json'
 
 export async function deployCrossChainRegistry() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))

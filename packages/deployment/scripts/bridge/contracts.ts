@@ -4,8 +4,8 @@ import kleur from 'kleur'
 import { Address } from 'viem'
 import bridgeModule from '../../ignition/modules/bridge'
 import { DeployedBridge } from '../../types/bridge-types'
-import { ADDRESS_ZERO } from '../common/constants'
-import { getChainId } from '../helpers/get-chainid'
+import { ADDRESS_ZERO } from '../lib/infrastructure/constants'
+import { getChainId } from '../lib/infrastructure/get-chainid'
 
 /**
  * Create a router-only deployment module for when queue already exists

@@ -5,9 +5,9 @@ import {
   InstitutionRegistryContracts,
   InstitutionRegistryModule,
 } from '../ignition/modules/institution-registry'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { promptForConfigType } from './helpers/prompt-helpers'
-import { updateIndexJson } from './helpers/update-json'
+import { getConfigByNetwork } from './lib/config/handler'
+import { promptForConfigType } from './lib/infrastructure/prompts'
+import { updateIndexJson } from './lib/infrastructure/update-json'
 
 async function main() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))

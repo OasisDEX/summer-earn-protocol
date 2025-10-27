@@ -4,11 +4,11 @@ import { Address, keccak256, toBytes } from 'viem'
 import { CoreContracts, CoreModule } from '../ignition/modules/core'
 import { BaseConfig } from '../types/config-types'
 import { ADDRESS_ZERO } from './common/constants'
-import { checkExistingContracts } from './helpers/check-existing-contracts'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { ModuleLogger } from './helpers/module-logger'
-import { promptForConfigType } from './helpers/prompt-helpers'
-import { updateIndexJson } from './helpers/update-json'
+import { checkExistingContracts } from './lib/contracts/verification'
+import { getConfigByNetwork } from './lib/config/handler'
+import { ModuleLogger } from './lib/infrastructure/logger'
+import { promptForConfigType } from './lib/infrastructure/prompts'
+import { updateIndexJson } from './lib/infrastructure/update-json'
 
 const ADMIRALS_QUARTERS_ROLE = keccak256(toBytes('ADMIRALS_QUARTERS_ROLE'))
 

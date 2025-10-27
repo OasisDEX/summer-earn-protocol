@@ -10,10 +10,10 @@ import {
 } from '../../ignition/modules/arks/cross-chain-ark'
 import { BaseConfig } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { handleDeploymentId } from '../helpers/deployment-id-handler'
-import { getChainId } from '../helpers/get-chainid'
-import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
+import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
+import { getChainId } from '../lib/infrastructure/get-chainid'
+import { continueDeploymentCheck } from '../lib/infrastructure/prompts'
 
 // Export the type
 export { CrossChainArkContracts } from '../../ignition/modules/arks/cross-chain-ark'

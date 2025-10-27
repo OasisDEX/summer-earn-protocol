@@ -2,9 +2,9 @@ import fs from 'fs'
 import hre from 'hardhat'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import path, { resolve } from 'path'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
-import { promptForConfigType } from '../helpers/prompt-helpers'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
+import { getConfigByNetwork } from '../lib/config/handler'
+import { promptForConfigType } from '../lib/infrastructure/prompts'
 
 const multiSources = [resolve(__dirname, '../../../core-contracts/src')]
 

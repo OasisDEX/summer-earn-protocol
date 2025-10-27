@@ -8,7 +8,7 @@ import {
   getProposalsDirectory,
   listProposalFiles,
   saveProposalToFile,
-} from './helpers/proposal-helpers'
+} from './lib/governance/proposals'
 
 interface MergedCrossChainExecution {
   name: string

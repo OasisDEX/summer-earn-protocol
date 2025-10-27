@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { Address } from 'viem'
-import { CHAIN_MAP_BY_ID } from '../common/chain-config-map'
+import { CHAIN_MAP_BY_ID } from './config'
 import { getConfigByNetwork } from './config-handler'
 import { getChainIdByNetwork } from './get-chainid'
 

@@ -8,13 +8,13 @@ import {
 } from '../ignition/modules/institution-whitelist'
 import { BaseConfig } from '../types/config-types'
 import { ADDRESS_ZERO } from './common/constants'
-import { getConfigByNetwork } from './helpers/config-handler'
+import { getConfigByNetwork } from './lib/config/handler'
 import {
   promptForInstitutionId,
   updateInstitutionDeployedContracts,
-} from './helpers/institution-config'
-import { promptForConfigType } from './helpers/prompt-helpers'
-import { AddressSchema } from './helpers/zod-schemas'
+} from './lib/config/institution'
+import { promptForConfigType } from './lib/infrastructure/prompts'
+import { AddressSchema } from './lib/infrastructure/zod-schemas'
 
 async function main() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))

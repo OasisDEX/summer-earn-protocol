@@ -1,7 +1,7 @@
 import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex } from 'viem'
-import { promptForChain, promptForTargetChain } from '../../helpers/chain-prompt'
-import { createClients } from '../../helpers/wallet-helper'
+import { promptForChain, promptForTargetChain } from '../../lib/chain/prompts'
+import { createClients } from '../../lib/infrastructure/wallet'
 
 async function main() {
   console.log('🚀 Starting peer addition process...\n')
