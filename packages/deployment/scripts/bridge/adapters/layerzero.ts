@@ -8,18 +8,9 @@ import {
   getCrossChainRegistryAddress,
   getLayerZeroEndpoint,
 } from '../../lib/config/getters'
-import {
-  updateIfDifferent,
-  waitForTransactionConfirmation,
-  writeContractTx,
-} from '../../lib/contracts/transactions'
-import {
-  BRIDGE_ROUTER_REGISTER_ADAPTER_ABI,
-  LAYERZERO_SET_MIN_GAS_LIMIT_ABI,
-  LAYERZERO_SET_PEER_ABI,
-} from './abis'
+import { waitForTransactionConfirmation, writeContractTx } from '../../lib/contracts/transactions'
+import { BRIDGE_ROUTER_REGISTER_ADAPTER_ABI, LAYERZERO_SET_PEER_ABI } from './abis'
 import { LayerZeroConfig } from './config-types'
-import { MESSAGE_TYPES } from './constants'
 import { isAdapterRegistered } from './transaction-helpers'
 import { BaseConfig, NetworkConfigMap } from './types'
 import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
@@ -82,49 +73,6 @@ export async function deployLayerZeroAdapter(
   return layerZeroAdapterAddress
 }
 
-// Helper function to set minimum gas limits
-async function setMinimumGasLimits(
-  layerZeroAdapter: Awaited<ReturnType<typeof hre.viem.getContractAt>>,
-  walletClient: WalletClient,
-  layerZeroAdapterAddress: Address,
-  minGasLimits: Record<string, number>,
-): Promise<void> {
-  for (const [strMsgType, gasLimit] of Object.entries(minGasLimits)) {
-    const numMsgType = MESSAGE_TYPES[strMsgType as keyof typeof MESSAGE_TYPES]
-    if (numMsgType === undefined) {
-      console.error(kleur.red(`Unknown message type: ${strMsgType}, skipping`))
-      continue
-    }
-
-    try {
-      const currentGasLimit = BigInt(String(await layerZeroAdapter.read.minGasLimits([numMsgType])))
-      const configuredGasLimit = BigInt(gasLimit)
-
-      await updateIfDifferent(
-        layerZeroAdapter,
-        walletClient,
-        'minGasLimits',
-        currentGasLimit,
-        configuredGasLimit,
-        () =>
-          writeContractTx(
-            walletClient,
-            layerZeroAdapterAddress,
-            LAYERZERO_SET_MIN_GAS_LIMIT_ABI,
-            'setMinGasLimit',
-            [numMsgType, configuredGasLimit],
-          ),
-        `Setting minimum gas limit for message type ${strMsgType} (${numMsgType}) to ${gasLimit}`,
-      )
-    } catch (error) {
-      console.error(
-        kleur.red(`Error setting minimum gas limit for message type ${strMsgType}:`),
-        error,
-      )
-    }
-  }
-}
-
 // Helper function to register adapter with bridge router
 async function registerWithBridgeRouter(
   walletClient: WalletClient,
@@ -183,17 +131,7 @@ export async function configureLayerZeroAdapter(
   const walletClient = await getWalletClient()
   const publicClient = await hre.viem.getPublicClient()
 
-  // Step 1: Set minimum gas limits
-  if (chainConfig.minGasLimits) {
-    await setMinimumGasLimits(
-      layerZeroAdapter,
-      walletClient,
-      layerZeroAdapterAddress,
-      chainConfig.minGasLimits,
-    )
-  }
-
-  // Step 5: Register adapter with bridge router
+  // Step 1: Register adapter with bridge router
   await registerWithBridgeRouter(walletClient, bridgeRouterAddress, layerZeroAdapterAddress)
 }
 

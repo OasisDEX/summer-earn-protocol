@@ -1,28 +1,8 @@
 {
   "chainConfig": {
-    "1": {
-      "minGasLimits": {
-        "stateRead": 300000,
-        "generalMessage": 300000
-      }
-    },
-    "8453": {
-      "minGasLimits": {
-        "stateRead": 300000,
-        "generalMessage": 300000
-      }
-    },
-    "42161": {
-      "minGasLimits": {
-        "stateRead": 300000,
-        "generalMessage": 300000
-      }
-    },
-    "146": {
-      "minGasLimits": {
-        "stateRead": 300000,
-        "generalMessage": 300000
-      }
-    }
+    "1": {},
+    "8453": {},
+    "42161": {},
+    "146": {}
   }
 }

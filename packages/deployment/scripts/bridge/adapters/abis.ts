@@ -41,19 +41,6 @@ export const STARGATE_UPDATE_CHAIN_ADAPTER_ABI = [
 
 // LayerZero Adapter ABIs
 
-export const LAYERZERO_SET_MIN_GAS_LIMIT_ABI = [
-  {
-    inputs: [
-      { internalType: 'uint16', name: 'msgType', type: 'uint16' },
-      { internalType: 'uint128', name: 'gasLimit', type: 'uint128' },
-    ],
-    name: 'setMinGasLimit',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-] as const
-
 export const LAYERZERO_SET_PEER_ABI = [
   {
     inputs: [

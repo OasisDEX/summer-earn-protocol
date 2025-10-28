@@ -4,10 +4,7 @@
 
 // For layerzero.json structure
 export interface LayerZeroChainConfig {
-  minGasLimits?: {
-    stateRead: number
-    generalMessage: number
-  }
+  // Future configuration properties can be added here
 }
 
 export interface LayerZeroConfig {
