@@ -258,11 +258,10 @@ export async function deployArk(
       }
 
       // Get bridge components from config
-      const bridgeQueue = config.deployedContracts.bridge?.bridgeQueue?.address as Address
       const bridgeRouter = config.deployedContracts.bridge?.bridgeRouter?.address as Address
 
-      if (!bridgeQueue || !bridgeRouter) {
-        throw new Error('Bridge components not found in config')
+      if (!bridgeRouter) {
+        throw new Error('Bridge Router not found in config')
       }
 
       // Get cross-chain config
@@ -291,7 +290,6 @@ export async function deployArk(
         ...baseArkParams,
         targetChainId,
         targetProtocol,
-        bridgeQueue,
         bridgeRouter,
         ...protocol,
       })

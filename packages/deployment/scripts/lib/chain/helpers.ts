@@ -1,8 +1,8 @@
 import hre from 'hardhat'
 import { Address } from 'viem'
 import { CHAIN_MAP_BY_ID } from './config'
-import { getConfigByNetwork } from './config-handler'
-import { getChainIdByNetwork } from './get-chainid'
+import { getConfigByNetwork } from '../config/handler'
+import { getChainIdByNetwork } from '../infrastructure/get-chainid'
 
 /**
  * Gets the hub chain ID from the SummerGovernor contract and determines if

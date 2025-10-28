@@ -7,7 +7,7 @@ import {
   InstitutionFleetEntrySchema,
   InstitutionIndex,
   InstitutionIndexSchema,
-} from './zod-schemas'
+} from '../infrastructure/zod-schemas'
 
 export function getInstitutionRootDir(): string {
   return path.resolve(__dirname, '..', '..', 'config', 'institutions')

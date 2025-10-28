@@ -1,15 +1,16 @@
-import { AaveV3ArkContracts } from '../../ignition/modules/arks/aavev3-ark'
-import { CompoundV3ArkContracts } from '../../ignition/modules/arks/compoundv3-ark'
-import { ERC4626ArkContracts } from '../../ignition/modules/arks/erc4626-ark'
-import { MorphoArkContracts } from '../../ignition/modules/arks/morpho-ark'
-import { MorphoVaultArkContracts } from '../../ignition/modules/arks/morpho-vault-ark'
-import { PendleLPArkContracts } from '../../ignition/modules/arks/pendle-lp-ark'
-import { PendlePTArkContracts } from '../../ignition/modules/arks/pendle-pt-ark'
-import { BuyAndBurnContracts } from '../../ignition/modules/buy-and-burn'
-import { CoreContracts } from '../../ignition/modules/core'
-import { FleetContracts } from '../../ignition/modules/fleet'
-import { GovContracts } from '../../ignition/modules/gov'
-import { ArkContracts } from '../deploy-ark'
+import { AaveV3ArkContracts } from '../../../ignition/modules/arks/aavev3-ark'
+import { CompoundV3ArkContracts } from '../../../ignition/modules/arks/compoundv3-ark'
+import { ERC4626ArkContracts } from '../../../ignition/modules/arks/erc4626-ark'
+import { MorphoArkContracts } from '../../../ignition/modules/arks/morpho-ark'
+import { MorphoVaultArkContracts } from '../../../ignition/modules/arks/morpho-vault-ark'
+import { PendleLPArkContracts } from '../../../ignition/modules/arks/pendle-lp-ark'
+import { PendlePTArkContracts } from '../../../ignition/modules/arks/pendle-pt-ark'
+import { BuyAndBurnContracts } from '../../../ignition/modules/buy-and-burn'
+import { CoreContracts } from '../../../ignition/modules/core'
+import { FleetContracts } from '../../../ignition/modules/fleet'
+import { GovContracts } from '../../../ignition/modules/gov'
+// Define ArkContracts type inline since it's only used for logging
+type ArkContracts = { ark: { address: string } }
 
 export class ModuleLogger {
   private moduleName: string

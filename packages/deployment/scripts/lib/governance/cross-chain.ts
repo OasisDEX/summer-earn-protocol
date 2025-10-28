@@ -1,7 +1,7 @@
 import { Address, Hex, encodeFunctionData, parseAbi } from 'viem'
-import { ChainSetup } from './chain-prompt'
-import { hashDescription } from './hash-description'
-import { constructLzOptions } from './layerzero-options'
+import { ChainSetup } from '../chain/prompts'
+import { hashDescription } from '../infrastructure/hash-description'
+import { constructLzOptions } from '../layerzero/options'
 
 export interface CrossChainAction {
   target: Address

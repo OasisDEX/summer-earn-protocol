@@ -23,18 +23,15 @@ export type CrossChainArkContracts = {
 export function createCrossChainArkModule(moduleName: string) {
   return buildModule(moduleName, (m) => {
     // Common parameters
-    const bridgeQueue = m.getParameter('bridgeQueue')
     const bridgeRouter = m.getParameter('bridgeRouter')
     const crossChainRegistry = m.getParameter('crossChainRegistry')
     const targetChainId = m.getParameter('targetChainId')
     const arkParams = m.getParameter('arkParams')
 
-    // Deploy CrossChainArk with all 5 required constructor parameters
+    // Deploy CrossChainArk with required constructor parameters
     const crossChainArk = m.contract('CrossChainArk', [
-      bridgeQueue, // _bridgeQueue
-      bridgeRouter, // _bridgeRouter
       crossChainRegistry, // _crossChainRegistry
-      targetChainId, // _targetChainId
+      targetChainId, // _satelliteChainId
       arkParams, // _params
     ])
 

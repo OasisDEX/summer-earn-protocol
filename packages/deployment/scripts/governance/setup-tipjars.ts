@@ -6,13 +6,13 @@ import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex } from 'viem'
 import TipJarAbi from '../../artifacts/src/contracts/TipJar.sol/TipJar.json'
 import { BaseConfig } from '../../types/config-types'
-import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../lib/infrastructure/constants'
 import { getConfigByNetwork } from '../lib/config/handler'
+import { createGovernanceProposal } from '../lib/governance/proposals'
+import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../lib/infrastructure/constants'
 import { getChainIdByNetwork } from '../lib/infrastructure/get-chainid'
 import { hashDescription } from '../lib/infrastructure/hash-description'
-import { constructLzOptions } from '../lib/layerzero/options'
 import { promptForConfigType } from '../lib/infrastructure/prompts'
-import { createGovernanceProposal } from '../lib/governance/proposals'
+import { constructLzOptions } from '../lib/layerzero/options'
 
 // Target chains for the multi-chain proposal
 const TARGET_CHAINS = ['base', 'arbitrum', 'mainnet']

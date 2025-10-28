@@ -36,7 +36,6 @@ export { CrossChainArkContracts } from '../../ignition/modules/arks/cross-chain-
 export async function deployCrossChainArk(
   config: BaseConfig,
   arkParams?: BaseArkParams & {
-    bridgeQueue?: Address
     bridgeRouter?: Address
     crossChainRegistry?: Address
     targetChainId?: number
@@ -219,10 +218,6 @@ export async function deployCrossChainArk(
 
   // Validate required parameters if arkParams was provided
   if (arkParams) {
-    if (!arkParams.bridgeQueue) {
-      console.error(kleur.red('Bridge Queue address is required in arkParams.'))
-      throw new Error('Bridge Queue address is required')
-    }
     if (!arkParams.bridgeRouter) {
       console.error(kleur.red('Bridge Router address is required in arkParams.'))
       throw new Error('Bridge Router address is required')
@@ -295,9 +290,6 @@ async function getUserInput(
   targetProtocol: string,
   protocolConfig: any,
 ) {
-  // Use bridgeQueue from config
-  const bridgeQueueAddress = getBridgeQueueAddress(config)
-
   const bridgeRouterAddress = getBridgeRouterAddress(config)
 
   // Validate CrossChainRegistry is available
@@ -375,7 +367,6 @@ async function getUserInput(
       address: assetAddress,
     },
     configName,
-    bridgeQueue: bridgeQueueAddress,
     bridgeRouter: bridgeRouterAddress,
     crossChainRegistry: crossChainRegistryAddress,
     targetChainId,
@@ -400,7 +391,6 @@ async function confirmDeployment(userInput: any, config: BaseConfig, isAutomated
   console.log(kleur.blue('Deposit Cap:'), kleur.cyan(userInput.depositCap))
   console.log(kleur.blue('Max Rebalance Outflow:'), kleur.cyan(userInput.maxRebalanceOutflow))
   console.log(kleur.blue('Max Rebalance Inflow:'), kleur.cyan(userInput.maxRebalanceInflow))
-  console.log(kleur.blue('Bridge Queue:'), kleur.cyan(userInput.bridgeQueue))
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(userInput.bridgeRouter))
   console.log(kleur.blue('CrossChain Registry:'), kleur.cyan(userInput.crossChainRegistry))
   console.log(kleur.blue('Target Chain ID:'), kleur.cyan(userInput.targetChainId))
@@ -440,7 +430,6 @@ async function deployCrossChainArkContract(
   const result = await hre.ignition.deploy(module, {
     parameters: {
       [moduleName]: {
-        bridgeQueue: userInput.bridgeQueue,
         bridgeRouter: userInput.bridgeRouter,
         crossChainRegistry: crossChainRegistryAddress,
         targetChainId: userInput.targetChainId,

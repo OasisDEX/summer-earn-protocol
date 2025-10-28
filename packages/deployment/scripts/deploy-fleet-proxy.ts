@@ -9,7 +9,6 @@ import { BaseConfig } from '../types/config-types'
 import { loadCrossChainConfig, saveCrossChainConfig } from './lib/config/cross-chain'
 import {
   getAccessManagerAddress,
-  getBridgeQueueAddress,
   getBridgeRouterAddress,
   getCrossChainRegistryAddress,
 } from './lib/config/getters'
@@ -24,7 +23,6 @@ import { continueDeploymentCheck } from './lib/infrastructure/prompts'
 interface FleetProxyParams {
   accessManager: Address
   bridgeRouter: Address
-  bridgeQueue: Address
   fleetContract: Address
   sourceChainId: number
   protocol: string
@@ -101,7 +99,6 @@ async function getUserInput(
 ): Promise<FleetProxyParams> {
   // Validate required addresses from config
   const bridgeRouterAddress = getBridgeRouterAddress(config)
-  const bridgeQueueAddress = getBridgeQueueAddress(config)
   const accessManagerAddress = getAccessManagerAddress(config)
   const crossChainRegistryAddress = getCrossChainRegistryAddress(config)
 
@@ -177,7 +174,6 @@ async function getUserInput(
   return {
     accessManager: accessManagerAddress,
     bridgeRouter: bridgeRouterAddress,
-    bridgeQueue: bridgeQueueAddress,
     fleetContract: fleetAddress,
     sourceChainId: currentChainId,
     fleetName,
@@ -197,7 +193,6 @@ async function confirmDeployment(params: FleetProxyParams, config: BaseConfig): 
   console.log(kleur.blue('Fleet Name:'), kleur.cyan(params.fleetName))
   console.log(kleur.blue('Access Manager:'), kleur.cyan(params.accessManager))
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(params.bridgeRouter))
-  console.log(kleur.blue('Bridge Queue:'), kleur.cyan(params.bridgeQueue))
   console.log(
     kleur.blue('CrossChain Registry:'),
     kleur.cyan(config.deployedContracts.bridge?.crossChainRegistry.address as string),
@@ -238,8 +233,7 @@ async function deployFleetProxyContract(
       parameters: {
         [moduleName]: {
           accessManager: params.accessManager,
-          bridgeRouter: params.bridgeRouter,
-          bridgeQueue: params.bridgeQueue,
+          sourceChainId: params.sourceChainId,
           crossChainRegistry: crossChainRegistryAddress,
           fleetContract: params.fleetContract,
         },

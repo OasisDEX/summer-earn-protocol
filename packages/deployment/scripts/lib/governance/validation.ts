@@ -2,8 +2,8 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address, parseAbi } from 'viem'
-import { getConfigByNetwork } from './config-handler'
-import { hashDescription } from './hash-description'
+import { getConfigByNetwork } from '../config/handler'
+import { hashDescription } from '../infrastructure/hash-description'
 
 /**
  * Checks if the user has enough SUMR tokens to create a governance proposal

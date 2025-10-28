@@ -1,5 +1,5 @@
 import { Address } from 'viem'
-import { BaseConfig, Token } from '../../types/config-types'
+import { BaseConfig, Token } from '../../../types/config-types'
 import { ADDRESS_ZERO } from './constants'
 import { ArkDetailsSchema, type ArkDetails } from './zod-schemas'
 
@@ -125,7 +125,7 @@ export function validateArkDetails(details: unknown, context: string = 'ark deta
  */
 export function getAssetAddress(assetSymbol: string, config: BaseConfig): string {
   const assetSymbolLower = assetSymbol.toLowerCase() as keyof typeof config.tokens
-  if (!Object.keys(config.tokens).includes(assetSymbolLower)) {
+  if (!(assetSymbolLower in config.tokens)) {
     throw new Error(`No token address for symbol ${assetSymbol} found in config`)
   }
   return config.tokens[assetSymbolLower]

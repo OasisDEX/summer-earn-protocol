@@ -11,7 +11,7 @@ export async function updateIndexJson<T extends Record<string, any>>(
   const configFile = useBummerConfig ? 'index.test.json' : 'index.json'
   console.log(kleur.cyan().bold(`Updating ${configFile} with deployed ${moduleType} addresses...`))
 
-  const indexPath = path.join(__dirname, '..', '..', 'config', configFile)
+  const indexPath = path.join(__dirname, '..', '..', '..', 'config', configFile)
   let indexJson = JSON.parse(fs.readFileSync(indexPath, 'utf8'))
 
   // Sanitize deployed contracts by converting any contract-like proxies

@@ -1,11 +1,11 @@
 import fs from 'fs'
 import kleur from 'kleur'
 import path from 'path'
-import { CoreContracts } from '../../ignition/modules/core'
-import { GovContracts } from '../../ignition/modules/gov'
-import { BaseConfig, Config } from '../../types/config-types'
-import { readInstitutionConfigFile } from './institution-config'
-import { validateAddress, validateNumber } from './validation'
+import { CoreContracts } from '../../../ignition/modules/core'
+import { GovContracts } from '../../../ignition/modules/gov'
+import { BaseConfig, Config } from '../../../types/config-types'
+import { readInstitutionConfigFile } from './institution'
+import { validateAddress, validateNumber } from '../infrastructure/validation'
 
 type ValidateConfig = {
   common?: boolean
@@ -28,7 +28,7 @@ export function getConfigByNetwork(
 ): BaseConfig | Config {
   // Determine which config file to use
   const configFileName = useBummerConfig ? 'index.test.json' : 'index.json'
-  const configPath = path.resolve(__dirname, '..', '..', 'config', configFileName)
+  const configPath = path.resolve(__dirname, '..', '..', '..', 'config', configFileName)
 
   if (!fs.existsSync(configPath)) {
     throw new Error(`Config file not found: ${configPath}`)
@@ -164,5 +164,4 @@ export const validateBridgeDeployment = (config: BaseConfig) => {
   }
 
   validateAddress(config.deployedContracts.bridge.bridgeRouter.address, 'bridge.bridgeRouter')
-  validateAddress(config.deployedContracts.bridge.bridgeQueue.address, 'bridge.bridgeQueue')
 }

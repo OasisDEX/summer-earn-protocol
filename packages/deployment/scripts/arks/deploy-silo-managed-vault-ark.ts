@@ -3,8 +3,8 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import {
-  createSiloManagedVaultArkModule,
   SiloManagedVaultArkContracts,
+  createSiloManagedVaultArkModule,
 } from '../../ignition/modules/arks/silo-managed-vault-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { getFleetConfig } from '../fleets/deployment'

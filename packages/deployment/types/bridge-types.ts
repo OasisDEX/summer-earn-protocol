@@ -37,7 +37,6 @@ export interface BridgeAdaptersConfig {
 
 export interface DeployedBridge {
   bridgeRouter: { address: Address }
-  bridgeQueue: { address: Address }
   crossChainRegistry: { address: Address }
   adapters?: {
     layerZero?: { address: Address }

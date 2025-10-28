@@ -236,7 +236,7 @@ export async function deployArks(
         retries++
         console.log(
           kleur.yellow().bold(`Deployment attempt ${retries} failed, retrying in 13 seconds...`),
-          kleur.yellow(error),
+          kleur.yellow(error instanceof Error ? error.message : String(error)),
         )
         await new Promise((resolve) => setTimeout(resolve, DELAY))
       }
@@ -437,7 +437,7 @@ export async function getRewardsManagerAddress(fleetCommander: Address): Promise
       args: {
         fleetCommander: fleetCommander,
       },
-      fromBlock: isSonic ? '0xca0d5e' : 'earliest',
+      fromBlock: isSonic ? BigInt(0xca0d5e) : 'earliest',
     })
 
     console.log(`Found ${logs.length} logs`)

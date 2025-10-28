@@ -4,8 +4,8 @@ import prompts from 'prompts'
 
 import { GovContracts, GovModule } from '../../ignition/modules/gov'
 import { BaseConfig } from '../../types/config-types'
-import { ADDRESS_ZERO } from '../lib/infrastructure/constants'
 import { getConfigByNetwork } from '../lib/config/handler'
+import { ADDRESS_ZERO } from '../lib/infrastructure/constants'
 import { ModuleLogger } from '../lib/infrastructure/logger'
 import { updateIndexJson } from '../lib/infrastructure/update-json'
 

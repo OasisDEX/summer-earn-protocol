@@ -7,10 +7,10 @@ import path from 'path'
 import { Address, encodeFunctionData, getAddress } from 'viem'
 import { base } from 'viem/chains'
 import { BaseConfig } from '../../types/config-types'
-import { ADDRESS_ZERO, FOUNDATION_ROLE, GOVERNOR_ROLE } from '../lib/infrastructure/constants'
 import { getConfigByNetwork } from '../lib/config/handler'
-import { constructLzOptions } from '../lib/layerzero/options'
+import { ADDRESS_ZERO, FOUNDATION_ROLE, GOVERNOR_ROLE } from '../lib/infrastructure/constants'
 import { proposeAllSafeTransactions } from '../lib/infrastructure/safe'
+import { constructLzOptions } from '../lib/layerzero/options'
 
 dotenv.config()
 
@@ -108,7 +108,11 @@ type ChainConfiguration = {
 const chainConfig: ChainConfiguration = {
   chain: base,
   chainId: 8453,
-  config: getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false }),
+  config: getConfigByNetwork(hre.network.name, {
+    common: true,
+    gov: true,
+    core: false,
+  }) as BaseConfig,
   rpcUrl: process.env.BASE_RPC_URL as string,
   // Filter out 'base' from the loaded config
   satelliteConfigs: (() => {
@@ -162,123 +166,9 @@ async function handleWhitelist(
   factoryAddress: Address,
   transactions: TransactionBase[],
 ): Promise<void> {
-  const governanceStakingAddress = await summerToken.read.rewardsManager()
-  const governanceRewardsContract = await hre.viem.getContractAt(
-    'GovernanceRewardsManager' as string,
-    governanceStakingAddress,
-  )
-  const wrappedStakingToken = await governanceRewardsContract.read.wrappedStakingToken()
-  const isWrappedStakingTokenWhitelisted = await summerToken.read.whitelistedAddresses([
-    wrappedStakingToken,
-  ])
-  if (!isWrappedStakingTokenWhitelisted) {
-    console.log('WHITELIST: ❌ Wrapped staking token is not whitelisted, adding to whitelist...')
-    const whitelistCalldata = encodeFunctionData({
-      abi: summerToken.abi,
-      functionName: 'addToWhitelist',
-      args: [wrappedStakingToken],
-    })
-    transactions.push({
-      to: summerToken.address,
-      data: whitelistCalldata,
-      value: '0',
-    })
-  } else {
-    console.log('WHITELIST: ✅ Wrapped staking token is already whitelisted, skipping...')
-  }
-  const isGovernanceStakingWhitelisted = await summerToken.read.whitelistedAddresses([
-    governanceStakingAddress,
-  ])
-  if (!isGovernanceStakingWhitelisted) {
-    console.log(
-      'WHITELIST: ❌ Governance staking address is not whitelisted, adding to whitelist...',
-    )
-    const whitelistCalldata = encodeFunctionData({
-      abi: summerToken.abi,
-      functionName: 'addToWhitelist',
-      args: [governanceStakingAddress],
-    })
-    transactions.push({
-      to: summerToken.address,
-      data: whitelistCalldata,
-      value: '0',
-    })
-  } else {
-    console.log('WHITELIST: ✅ Governance staking address is already whitelisted, skipping...')
-  }
-  const isRewardsRedeemerWhitelisted = await summerToken.read.whitelistedAddresses([
-    chainConfig.config.deployedContracts.gov.rewardsRedeemer.address as Address,
-  ])
-  if (!isRewardsRedeemerWhitelisted) {
-    console.log('WHITELIST: ❌ Rewards redeemer is not whitelisted, adding to whitelist...')
-    const whitelistCalldata = encodeFunctionData({
-      abi: summerToken.abi,
-      functionName: 'addToWhitelist',
-      args: [chainConfig.config.deployedContracts.gov.rewardsRedeemer.address as Address],
-    })
-    transactions.push({
-      to: summerToken.address,
-      data: whitelistCalldata,
-      value: '0',
-    })
-  } else {
-    console.log('WHITELIST: ✅ Rewards redeemer is already whitelisted, skipping...')
-  }
-
-  const isSafeWhitelisted = await summerToken.read.whitelistedAddresses([safeAddress])
-  if (!isSafeWhitelisted) {
-    console.log('WHITELIST: ❌ Safe is not whitelisted, adding to whitelist...')
-    const whitelistCalldata = encodeFunctionData({
-      abi: summerToken.abi,
-      functionName: 'addToWhitelist',
-      args: [safeAddress],
-    })
-    transactions.push({
-      to: summerToken.address,
-      data: whitelistCalldata,
-      value: '0',
-    })
-  } else {
-    console.log('WHITELIST: ✅ Safe is already whitelisted, skipping...')
-  }
-
-  const isFactoryWhitelisted = await summerToken.read.whitelistedAddresses([factoryAddress])
-  if (!isFactoryWhitelisted) {
-    console.log('WHITELIST: ❌ Factory is not whitelisted, adding to whitelist...')
-    const whitelistCalldata = encodeFunctionData({
-      abi: summerToken.abi,
-      functionName: 'addToWhitelist',
-      args: [factoryAddress],
-    })
-    transactions.push({
-      to: summerToken.address,
-      data: whitelistCalldata,
-      value: '0',
-    })
-    console.log('✅ Added factory to whitelist!')
-  } else {
-    console.log('WHITELIST: ✅ Factory is already whitelisted, skipping...')
-  }
-
-  // Handle additional whitelist addresses
-  for (const { address, description } of ADDITIONAL_WHITELIST_ADDRESSES) {
-    const isWhitelisted = await summerToken.read.whitelistedAddresses([address])
-    if (!isWhitelisted) {
-      console.log(`WHITELIST: ❌ ${description} is not whitelisted, adding to whitelist...`)
-      const whitelistCalldata = encodeFunctionData({
-        abi: summerToken.abi,
-        functionName: 'addToWhitelist',
-        args: [address],
-      })
-      transactions.push({
-        to: summerToken.address,
-        data: whitelistCalldata,
-        value: '0',
-      })
-    } else {
-      console.log(`WHITELIST: ✅ ${description} is already whitelisted, skipping...`)
-    }
-  }
+  // Whitelist functionality has been removed from SummerToken
+  // Transfers are now managed via enableTransfers() function only
+  console.log('WHITELIST: Skipping whitelist operations - functionality removed from SummerToken')
 }
 
 async function handleApproval(
