@@ -33,8 +33,7 @@ abstract contract FleetCommanderWhitelistInstitutionalTestBase is Test {
                 raft: address(0x2),
                 tipJar: address(0x3),
                 treasury: address(0x4),
-                harborCommand: address(harborCommand),
-                fleetCommanderRewardsManagerFactory: address(0x5)
+                harborCommand: address(harborCommand)
             })
         );
         registry = new InstitutionalVaultRegistry(governor);
@@ -58,7 +57,8 @@ abstract contract FleetCommanderWhitelistInstitutionalTestBase is Test {
                 symbol: symbol_,
                 details: "institutional",
                 initialTipRate: initialTipRate,
-                depositCap: type(uint256).max
+                depositCap: type(uint256).max,
+                initialWithdrawalFee: Percentage.wrap(0)
             });
     }
 

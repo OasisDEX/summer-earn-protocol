@@ -41,7 +41,6 @@ contract FleetCommanderConfigProviderWhitelist is
     EnumerableSet.AddressSet private _activeArks;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
-    uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
 
     bool public transfersEnabled;
 
@@ -49,7 +48,7 @@ contract FleetCommanderConfigProviderWhitelist is
         FleetCommanderParams memory params
     )
         ProtocolAccessManaged(params.accessManager)
-        FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
+        FleetCommanderPausable()
         ConfigurationManaged(params.configurationManager)
     {
         BufferArk _bufferArk = new BufferArk(
@@ -73,8 +72,8 @@ contract FleetCommanderConfigProviderWhitelist is
             minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-            // stakingRewardsManager is set to address(0) in the constructor - not used anymore in the whitelist version
-            stakingRewardsManager: address(0)
+            rebalanceCooldown: 0, // Not used in whitelist version
+            withdrawalFee: Percentage.wrap(0) // Not used in whitelist version
         });
         details = params.details;
     }

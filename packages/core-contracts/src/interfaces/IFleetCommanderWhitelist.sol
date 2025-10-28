@@ -176,13 +176,6 @@ interface IFleetCommanderWhitelist is
     function setTipRate(Percentage newTipRate) external;
 
     /**
-     * @notice Sets a new minimum pause time for the FleetCommander
-     * @dev Only callable by the governor
-     * @param newMinimumPauseTime The new minimum pause time in seconds
-     */
-    function setMinimumPauseTime(uint256 newMinimumPauseTime) external;
-
-    /**
      * @notice Pauses the FleetCommander
      * @dev This function is used to pause the FleetCommander in case of critical issues or emergencies
      * @dev Only callable by the guardian or governor

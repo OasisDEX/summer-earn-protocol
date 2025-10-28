@@ -29,9 +29,6 @@ contract ConfigurationManagerWhitelist is
     /// @inheritdoc IConfigurationManager
     address public harborCommand;
 
-    /// @inheritdoc IConfigurationManager
-    address public fleetCommanderRewardsManagerFactory;
-
     /**
      * @notice Constructs the ConfigurationManager contract
      * @param _accessManager The address of the ProtocolAccessManager contract
@@ -57,16 +54,10 @@ contract ConfigurationManagerWhitelist is
         tipJar = params.tipJar;
         treasury = params.treasury;
         harborCommand = params.harborCommand;
-        fleetCommanderRewardsManagerFactory = params
-            .fleetCommanderRewardsManagerFactory;
         emit RaftUpdated(address(0), params.raft);
         emit TipJarUpdated(address(0), params.tipJar);
         emit TreasuryUpdated(address(0), params.treasury);
         emit HarborCommandUpdated(address(0), params.harborCommand);
-        emit FleetCommanderRewardsManagerFactoryUpdated(
-            address(0),
-            params.fleetCommanderRewardsManagerFactory
-        );
         initialized = true;
     }
 
@@ -104,12 +95,5 @@ contract ConfigurationManagerWhitelist is
         }
         emit HarborCommandUpdated(harborCommand, newHarborCommand);
         harborCommand = newHarborCommand;
-    }
-
-    /// @inheritdoc IConfigurationManager
-    function setFleetCommanderRewardsManagerFactory(
-        address newFleetCommanderRewardsManagerFactory
-    ) external onlyGovernor {
-        revert NotSupported();
     }
 }
