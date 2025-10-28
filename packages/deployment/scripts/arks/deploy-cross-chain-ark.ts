@@ -11,7 +11,6 @@ import {
 import { BaseConfig } from '../../types/config-types'
 import {
   getAccessManagerAddress,
-  getBridgeQueueAddress,
   getBridgeRouterAddress,
   getCrossChainRegistryAddress,
 } from '../lib/config/getters'

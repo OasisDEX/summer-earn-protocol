@@ -245,16 +245,33 @@ async function deployFleetProxyContract(
     const fleetProxyAddress = fleetProxyContract.fleetProxy.address
 
     // Save the FleetProxy address to cross-chain config
+    const existingConfig = loadCrossChainConfig(fleetName) || {
+      fleetName,
+      sourceChainId: 0,
+      hubFleetAddress: '',
+      hubFleetName: '',
+      satelliteFleetName: '',
+      destinations: [],
+    }
+
     saveCrossChainConfig(fleetName, {
-      chainId: chainId,
-      protocol: params.protocol,
-      fleetProxyAddress: fleetProxyAddress,
+      ...existingConfig,
+      sourceChainId: chainId,
+      destinations: existingConfig.destinations.map((dest) => ({
+        ...dest,
+        protocols: dest.protocols.map((protocol) =>
+          protocol.protocol === params.protocol
+            ? { ...protocol, fleetProxyAddress: fleetProxyAddress }
+            : protocol,
+        ),
+      })),
     })
 
     // Make sure the source chain ID is updated in the config
     const crossChainConfig = loadCrossChainConfig(fleetName)
     if (crossChainConfig && crossChainConfig.sourceChainId === 0) {
       saveCrossChainConfig(fleetName, {
+        ...crossChainConfig,
         sourceChainId: params.sourceChainId,
       })
     }
@@ -305,11 +322,20 @@ async function promptForCrossChainArkAddress(
 
     if (crossChainArkAddress) {
       // Save the CrossChain Ark address to the cross-chain config
-      saveCrossChainConfig(fleetName, {
-        chainId: sourceChainId,
-        protocol,
-        crossChainArkAddress: crossChainArkAddress.trim(),
-      })
+      const existingConfig = loadCrossChainConfig(fleetName)
+      if (existingConfig) {
+        saveCrossChainConfig(fleetName, {
+          ...existingConfig,
+          destinations: existingConfig.destinations.map((dest) => ({
+            ...dest,
+            protocols: dest.protocols.map((protocolItem) =>
+              protocolItem.protocol === protocol
+                ? { ...protocolItem, crossChainArkAddress: crossChainArkAddress.trim() }
+                : protocolItem,
+            ),
+          })),
+        })
+      }
 
       console.log(
         kleur.green(`✓ CrossChain Ark address saved to configuration: ${crossChainArkAddress}`),

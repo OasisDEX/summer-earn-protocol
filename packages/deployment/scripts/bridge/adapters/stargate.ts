@@ -6,11 +6,10 @@ import {
   getAccessManagerAddress,
   getChainIdFromConfig,
   getCrossChainRegistryAddress,
-  getHarborCommandAddress,
   getLayerZeroEndpoint,
 } from '../../lib/config/getters'
 import { waitForTransactionConfirmation, writeContractTx } from '../../lib/contracts/transactions'
-import { BRIDGE_ROUTER_REGISTER_ADAPTER_ABI, STARGATE_UPDATE_CHAIN_ADAPTER_ABI } from './abis'
+import { BRIDGE_ROUTER_REGISTER_ADAPTER_ABI } from './abis'
 import {
   AssetConfigurationParams,
   configureSupportedAssets,
@@ -25,7 +24,7 @@ import { SETTLEMENT_DELAY_MS } from './stargate-constants'
 import { StargateContractValidator } from './stargate-validation-service'
 import { isAdapterRegistered, validateBridgeConfig } from './transaction-helpers'
 import { BaseConfig, NetworkConfigMap } from './types'
-import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient, waitForPendingTransactions } from './utils'
+import { getSupportedChainsFromConfig, getWalletClient } from './utils'
 
 /**
  * Deploy Stargate adapter using Ignition module

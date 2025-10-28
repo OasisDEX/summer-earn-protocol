@@ -49,8 +49,8 @@ export async function deployBridgeContracts(
     // All exist in config
     console.log(kleur.green('All contracts already configured'))
     return {
-      bridgeRouter: { address: bridgeConfig.bridgeRouter.address as Address },
-      crossChainRegistry: { address: bridgeConfig.crossChainRegistry.address as Address },
+      bridgeRouter: { address: bridgeConfig!.bridgeRouter.address as Address },
+      crossChainRegistry: { address: bridgeConfig!.crossChainRegistry.address as Address },
     }
   }
 
