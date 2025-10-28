@@ -182,26 +182,57 @@ contract PsmLiteERC4626Ark is Ark {
      * @notice Handles the disembarking process for USDS
      * @param usdsAmount Amount of USDS to withdraw
      */
-    function _handleUsdsDisembarking(uint256 usdsAmount) internal {
+    function _handleUsdsDisembarking(
+        uint256 usdsAmount,
+        uint256 usdcAmount
+    ) internal {
         // withdraw the USDS from the ERC4626 vault
         erc4626Vault.withdraw(usdsAmount, address(this), address(this));
-        // approve the psmLite to take USDS
-        usds.forceApprove(address(psmLite), usdsAmount);
+        // swap USDS to USDC
+        _swapToUsdc(usdsAmount, usdcAmount);
     }
 
     /**
      * @notice Handles the disembarking process for sUSDS
      * @param usdsAmount Amount of USDS to withdraw
      */
-    function _handleSusdsDisembarking(uint256 usdsAmount) internal {
+    function _handleSusdsDisembarking(
+        uint256 usdsAmount,
+        uint256 usdcAmount
+    ) internal {
         // amount of sUSDS needed for redemption, to get the specified amount of USDS
         uint256 susdsAmount = susds.previewWithdraw(usdsAmount);
         // withdraw the sUSDS from the ERC4626 vault
         erc4626Vault.withdraw(susdsAmount, address(this), address(this));
         // withdraw the USDS from the sUSDS vault
         susds.withdraw(usdsAmount, address(this), address(this));
+        // swap USDS to USDC
+        _swapToUsdc(usdsAmount, usdcAmount);
+    }
+
+    /**
+     * @notice Swaps USDS to USDC
+     * @param usdsAmount Amount of USDS to swap
+     * @param usdcAmount Amount of USDC to swap
+     */
+    function _swapToUsdc(uint256 usdsAmount, uint256 usdcAmount) internal {
         // approve the psmLite to take USDS
         usds.forceApprove(address(psmLite), usdsAmount);
+        // swap USDS to USDC
+        psmLite.buyGem(address(this), usdcAmount);
+    }
+
+    /**
+     * @notice Swaps USDC to USDS
+     * @param usdcAmount Amount of USDC to swap
+     */
+    function _swapToUsds(
+        uint256 usdcAmount
+    ) internal returns (uint256 usdsAmount) {
+        // approve the psmLite to take USDC
+        config.asset.forceApprove(address(psmLite), usdcAmount);
+        // swap USDC to USDS
+        usdsAmount = psmLite.sellGem(address(this), usdcAmount);
     }
 
     /**
@@ -209,11 +240,8 @@ contract PsmLiteERC4626Ark is Ark {
      * @param amount Amount of USDC to board
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        // Approve PSM to take USDC
-        config.asset.forceApprove(address(psmLite), amount);
-
         // Swap USDC to USDS
-        uint256 usdsAmount = psmLite.sellGem(address(this), amount);
+        uint256 usdsAmount = _swapToUsds(amount);
 
         if (shouldStake) {
             _handleSusdsBoarding(usdsAmount);
@@ -231,13 +259,10 @@ contract PsmLiteERC4626Ark is Ark {
         uint256 usdsAmount = _to18Decimals(amount);
 
         if (shouldStake) {
-            _handleSusdsDisembarking(usdsAmount);
+            _handleSusdsDisembarking(usdsAmount, amount);
         } else {
-            _handleUsdsDisembarking(usdsAmount);
+            _handleUsdsDisembarking(usdsAmount, amount);
         }
-
-        // swap USDS to USDC
-        psmLite.buyGem(address(this), amount);
     }
 
     /**
