@@ -100,7 +100,7 @@ export async function addCrossChainDestination() {
     validate: (value: number) => {
       if (!value || value <= 0) return 'Chain ID must be a positive number'
       // Check if chain ID already exists
-      if (existingConfig.destinations.some((d) => d.chainId === value)) {
+      if (getAllDestinationChainIds(existingConfig).includes(value)) {
         return 'Chain ID already exists in this config'
       }
       return true

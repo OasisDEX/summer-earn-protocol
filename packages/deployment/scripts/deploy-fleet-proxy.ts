@@ -13,11 +13,7 @@ import {
   mergeCrossChainConfig,
   saveCrossChainConfig,
 } from './lib/config/cross-chain'
-import {
-  getAccessManagerAddress,
-  getBridgeRouterAddress,
-  getCrossChainRegistryAddress,
-} from './lib/config/getters'
+import { getAccessManagerAddress, getBridgeRouterAddress } from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
 import {
   printValidationErrors,
@@ -121,7 +117,6 @@ async function getUserInput(
   // Validate required addresses from config
   const bridgeRouterAddress = getBridgeRouterAddress(config)
   const accessManagerAddress = getAccessManagerAddress(config)
-  const crossChainRegistryAddress = getCrossChainRegistryAddress(config)
 
   const currentNetwork = hre.network.name
   const currentChainId = getChainIdByNetwork(currentNetwork)
@@ -181,7 +176,6 @@ async function getUserInput(
   // Extract fleet information
   const fleetName = fleetDeployment.fleetName
   const fleetAddress = fleetDeployment.fleetAddress as Address
-  const sourceNetwork = fleetDeployment.network
   const assetSymbol = fleetDeployment.assetSymbol.toLowerCase()
 
   // Get the asset address from the config using the symbol

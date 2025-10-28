@@ -9,6 +9,10 @@ import {
   getCrossChainConfigStatus,
   loadCrossChainConfig,
 } from '../lib/config/cross-chain'
+import {
+  getCrossChainArkAddressSafe,
+  getFleetProxyAddressSafe,
+} from '../lib/config/cross-chain-getters'
 import { getConfigByNetwork } from '../lib/config/handler'
 import { promptForConfigType } from '../lib/infrastructure/prompts'
 
@@ -203,8 +207,8 @@ export async function verifyCrossChainSetup() {
   console.log(kleur.blue('\n📡 Ark-Fleet Relationships:'))
   for (const dest of cc.destinations) {
     for (const protocol of dest.protocols) {
-      const ark = protocol.crossChainArkAddress
-      const fleetProxy = protocol.fleetProxyAddress
+      const ark = getCrossChainArkAddressSafe(cc, dest.chainId, protocol.protocol)
+      const fleetProxy = getFleetProxyAddressSafe(cc, dest.chainId, protocol.protocol)
 
       if (!ark || !fleetProxy) continue
 
@@ -224,8 +228,8 @@ export async function verifyCrossChainSetup() {
 
       const isValid = await verifyRelationship(
         registryAddress,
-        ark as Address,
-        fleetProxy as Address,
+        ark,
+        fleetProxy,
         sourceChainId,
         targetChainId,
       )

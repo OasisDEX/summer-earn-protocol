@@ -16,6 +16,7 @@ import {
   saveCrossChainConfig,
   validateCrossChainConfigPhase,
 } from '../lib/config/cross-chain'
+import { getFleetProxyAddress, getProtocolConfigSafe } from '../lib/config/cross-chain-getters'
 import {
   getAccessManagerAddress,
   getBridgeRouterAddress,
@@ -212,7 +213,7 @@ export async function deployCrossChainArk(
   }
 
   // Find the protocol configuration
-  const protocolConfig = findProtocolConfigInData(crossChainConfig, targetChainId, targetProtocol)
+  const protocolConfig = getProtocolConfigSafe(crossChainConfig, targetChainId, targetProtocol)
 
   const userInput =
     arkParams ||
@@ -221,7 +222,7 @@ export async function deployCrossChainArk(
       selectedConfigFile.replace('.json', ''), // Use config file name without extension instead of fleet name
       targetChainId,
       targetProtocol,
-      protocolConfig,
+      crossChainConfig,
     ))
 
   // Validate required parameters if arkParams was provided
@@ -272,17 +273,6 @@ async function findMatchingConfigFile(
 }
 
 /**
- * Find protocol configuration in the cross-chain config data
- */
-function findProtocolConfigInData(crossChainConfig: any, chainId: number, protocol: string) {
-  const destination = crossChainConfig.destinations.find((d: any) => d.chainId === chainId)
-  if (!destination) return null
-
-  const protocolConfig = destination.protocols.find((p: any) => p.protocol === protocol)
-  return protocolConfig
-}
-
-/**
  * Prompts the user for deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
  * @param {string} configName - The name of the config file (without extension).
@@ -296,14 +286,15 @@ async function getUserInput(
   configName: string,
   targetChainId: number,
   targetProtocol: string,
-  protocolConfig: any,
+  crossChainConfig: any,
 ) {
   const bridgeRouterAddress = getBridgeRouterAddress(config)
 
   // Validate CrossChainRegistry is available
   const crossChainRegistryAddress = getCrossChainRegistryAddress(config)
 
-  const fleetProxyAddress = protocolConfig?.fleetProxyAddress as Address | undefined
+  // FleetProxy must exist (enforces Phase 1 complete before Phase 2)
+  const fleetProxyAddress = getFleetProxyAddress(crossChainConfig, targetChainId, targetProtocol)
   const accessManagerAddress = getAccessManagerAddress(config)
 
   // Get other parameters from user
@@ -329,42 +320,36 @@ async function getUserInput(
   ])
 
   // Get the asset from the cross-chain config or prompt user
-  let assetSymbol = protocolConfig?.asset?.symbol
+  const protocolConfig = getProtocolConfigSafe(crossChainConfig, targetChainId, targetProtocol)
+  let assetSymbol: string | undefined
   let assetAddress: Address
 
-  if (!assetSymbol) {
-    console.log(
-      kleur.yellow(
-        'Asset not found in cross-chain config. This is normal if FleetProxy is not deployed yet.',
-      ),
-    )
+  // Cross-chain config doesn't store asset info, so we need to prompt user
+  console.log(
+    kleur.yellow(
+      'Asset information not stored in cross-chain config. Please select the asset for this CrossChainArk.',
+    ),
+  )
 
-    // Prompt user for asset selection
-    const tokenChoices = Object.keys(config.tokens).map((token) => ({
-      title: token.toUpperCase(),
-      value: token,
-    }))
+  // Prompt user for asset selection
+  const tokenChoices = Object.keys(config.tokens).map((token) => ({
+    title: token.toUpperCase(),
+    value: token,
+  }))
 
-    const { selectedAsset } = await prompts({
-      type: 'select',
-      name: 'selectedAsset',
-      message: 'Select the asset for this CrossChainArk:',
-      choices: tokenChoices,
-    })
+  const { selectedAsset } = await prompts({
+    type: 'select',
+    name: 'selectedAsset',
+    message: 'Select the asset for this CrossChainArk:',
+    choices: tokenChoices,
+  })
 
-    if (!selectedAsset) {
-      throw new Error('Asset selection is required')
-    }
-
-    assetSymbol = selectedAsset.toUpperCase()
-    assetAddress = config.tokens[selectedAsset as keyof typeof config.tokens] as Address
-  } else {
-    // Get the asset address from the current chain's config
-    assetAddress = config.tokens[assetSymbol.toLowerCase() as keyof typeof config.tokens] as Address
-    if (!assetAddress) {
-      throw new Error(`Asset address not found for symbol ${assetSymbol} on current chain`)
-    }
+  if (!selectedAsset) {
+    throw new Error('Asset selection is required')
   }
+
+  assetSymbol = selectedAsset.toUpperCase()
+  assetAddress = config.tokens[selectedAsset as keyof typeof config.tokens] as Address
 
   console.log(kleur.green(`Using asset: ${assetSymbol}`))
 
@@ -428,12 +413,7 @@ async function deployCrossChainArkContract(
   const module = createCrossChainArkModule(moduleName)
 
   // Get the CrossChainRegistry address from config
-  const crossChainRegistryAddress = config.deployedContracts.bridge?.crossChainRegistry?.address
-  if (!crossChainRegistryAddress) {
-    throw new Error(
-      'CrossChainRegistry address not found in config. Make sure bridge contracts are deployed.',
-    )
-  }
+  const crossChainRegistryAddress = getCrossChainRegistryAddress(config)
 
   const result = await hre.ignition.deploy(module, {
     parameters: {
@@ -458,27 +438,18 @@ async function deployCrossChainArkContract(
     deploymentId,
   })
 
-  // Set target proxy if provided
-  if (
-    userInput.fleetProxyAddress &&
-    userInput.fleetProxyAddress !== '0x0000000000000000000000000000000000000000'
-  ) {
-    console.log(kleur.yellow('Setting target proxy...'))
-    const crossChainArkContract = await hre.viem.getContractAt(
-      'CrossChainArk' as string,
-      result.crossChainArk.address,
-    )
-    const publicClient = await hre.viem.getPublicClient()
+  // Set target proxy (FleetProxy must exist per satellite-first approach)
+  console.log(kleur.yellow('Setting target proxy...'))
+  const crossChainArkContract = await hre.viem.getContractAt(
+    'CrossChainArk' as string,
+    result.crossChainArk.address,
+  )
+  const publicClient = await hre.viem.getPublicClient()
 
-    const proxyHash = await crossChainArkContract.write.setTargetProxy([
-      userInput.fleetProxyAddress,
-    ])
-    console.log(kleur.yellow('Waiting for target proxy transaction to confirm...'))
-    await publicClient.waitForTransactionReceipt({ hash: proxyHash })
-    console.log(kleur.green('Target proxy set successfully'))
-  } else {
-    console.log(kleur.yellow('No target proxy provided. You will need to set it later.'))
-  }
+  const proxyHash = await crossChainArkContract.write.setTargetProxy([userInput.fleetProxyAddress])
+  console.log(kleur.yellow('Waiting for target proxy transaction to confirm...'))
+  await publicClient.waitForTransactionReceipt({ hash: proxyHash })
+  console.log(kleur.green('Target proxy set successfully'))
 
   // Update cross-chain config in Phase 2
   await updateCrossChainConfigPhase2(fleetName, result.crossChainArk.address, userInput)

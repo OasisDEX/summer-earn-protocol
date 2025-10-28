@@ -6,6 +6,10 @@ import prompts from 'prompts'
 import { Address, getAddress, isAddressEqual, zeroAddress } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { CrossChainConfig, loadCrossChainConfig } from '../lib/config/cross-chain'
+import {
+  getCrossChainArkAddressSafe,
+  getFleetProxyAddressSafe,
+} from '../lib/config/cross-chain-getters'
 import { getConfigByNetwork } from '../lib/config/handler'
 import {
   printValidationErrors,
@@ -387,8 +391,8 @@ export async function registerCrossChainRelationships() {
   // Register Ark-Fleet relationships
   for (const dest of cc.destinations) {
     for (const protocol of dest.protocols) {
-      const ark = protocol.crossChainArkAddress
-      const fleetProxy = protocol.fleetProxyAddress
+      const ark = getCrossChainArkAddressSafe(cc, dest.chainId, protocol.protocol)
+      const fleetProxy = getFleetProxyAddressSafe(cc, dest.chainId, protocol.protocol)
 
       if (!ark || !fleetProxy) continue
 
@@ -410,8 +414,8 @@ export async function registerCrossChainRelationships() {
       try {
         const made = await ensurePeerRelationship(
           registryAddress,
-          ark as Address,
-          fleetProxy as Address,
+          ark,
+          fleetProxy,
           sourceChainId,
           targetChainId,
         )

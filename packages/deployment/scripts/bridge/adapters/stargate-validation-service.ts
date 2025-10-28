@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import { PublicClient } from 'viem'
 import { STARGATE_COMMON_ABI, STARGATE_OFT_ABI, STARGATE_POOL_ABI } from './abis'
-import { AdapterValidationError } from './errors'
 
 /**
  * Validates Stargate contracts with caching to avoid repeated validation
@@ -14,7 +14,7 @@ export class StargateContractValidator {
    */
   async validateContract(contractAddress: string): Promise<boolean> {
     const contractKey = contractAddress.toLowerCase()
-    
+
     if (this.validatedContracts.has(contractKey)) {
       console.log(kleur.blue(`✓ Stargate contract ${contractAddress} already validated`))
       return true
@@ -25,11 +25,9 @@ export class StargateContractValidator {
       this.validatedContracts.add(contractKey)
       console.log(kleur.green(`✓ Stargate contract ${contractAddress} validated`))
     } else {
-      console.error(
-        kleur.red(`Invalid Stargate contract ${contractAddress}: Failed validation`),
-      )
+      console.error(kleur.red(`Invalid Stargate contract ${contractAddress}: Failed validation`))
     }
-    
+
     return isValid
   }
 
@@ -66,7 +64,10 @@ export class StargateContractValidator {
   /**
    * Validate OFT-style Stargate contract
    */
-  private async validateOFTContract(publicClient: any, contractAddress: string): Promise<boolean> {
+  private async validateOFTContract(
+    publicClient: PublicClient,
+    contractAddress: string,
+  ): Promise<boolean> {
     try {
       await publicClient.readContract({
         address: contractAddress as `0x${string}`,
@@ -82,7 +83,10 @@ export class StargateContractValidator {
   /**
    * Validate Pool-style Stargate contract
    */
-  private async validatePoolContract(publicClient: any, contractAddress: string): Promise<boolean> {
+  private async validatePoolContract(
+    publicClient: PublicClient,
+    contractAddress: string,
+  ): Promise<boolean> {
     try {
       await publicClient.readContract({
         address: contractAddress as `0x${string}`,
@@ -98,7 +102,10 @@ export class StargateContractValidator {
   /**
    * Validate common Stargate contract
    */
-  private async validateCommonContract(publicClient: any, contractAddress: string): Promise<boolean> {
+  private async validateCommonContract(
+    publicClient: PublicClient,
+    contractAddress: string,
+  ): Promise<boolean> {
     try {
       await publicClient.readContract({
         address: contractAddress as `0x${string}`,
@@ -114,7 +121,10 @@ export class StargateContractValidator {
   /**
    * Validate that contract exists (has bytecode)
    */
-  private async validateContractExists(publicClient: any, contractAddress: string): Promise<boolean> {
+  private async validateContractExists(
+    publicClient: PublicClient,
+    contractAddress: string,
+  ): Promise<boolean> {
     try {
       const code = await publicClient.getBytecode({
         address: contractAddress as `0x${string}`,
