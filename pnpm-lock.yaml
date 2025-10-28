@@ -877,6 +877,18 @@ importers:
         specifier: ^5.3.0
         version: 5.4.5
 
+  packages/summer-earn-institutions-subgraph:
+    devDependencies:
+      '@graphprotocol/graph-cli':
+        specifier: 0.96.0
+        version: 0.96.0(@types/node@20.12.7)(typescript@5.4.5)(zod@3.22.4)
+      '@graphprotocol/graph-ts':
+        specifier: 0.35.1
+        version: 0.35.1
+      mustache:
+        specifier: 4.2.0
+        version: 4.2.0
+
   packages/summer-earn-interface:
     dependencies:
       '@reown/appkit':
@@ -2531,7 +2543,7 @@ packages:
       '@whatwg-node/fetch': 0.10.11
       assemblyscript: 0.19.23
       chokidar: 4.0.3
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
       docker-compose: 1.1.0
       fs-extra: 11.3.0
       glob: 11.0.1
@@ -4889,7 +4901,7 @@ packages:
       ansis: 3.17.0
       clean-stack: 3.0.1
       cli-spinners: 2.9.2
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@8.1.1)
       ejs: 3.1.10
       get-package-type: 0.1.0
       globby: 11.1.0
@@ -4897,7 +4909,7 @@ packages:
       is-wsl: 2.2.0
       lilconfig: 3.1.3
       minimatch: 9.0.5
-      semver: 7.7.1
+      semver: 7.7.3
       string-width: 4.2.3
       supports-color: 8.1.1
       widest-line: 3.1.0
@@ -4948,7 +4960,7 @@ packages:
     resolution: {integrity: sha512-cwvq1+tQnSHNQEQrop82W7AZIFXC5ENUvicXWhBSpVF1KDIUez/ptIth4M4zha/0+DlSPsYcQgzaN6tSWtUoEA==}
     engines: {node: '>=18.0.0'}
     dependencies:
-      '@oclif/core': 4.2.6
+      '@oclif/core': 4.5.4
       ansis: 3.17.0
       debug: 4.4.3(supports-color@8.1.1)
       ejs: 3.1.10
@@ -4986,7 +4998,7 @@ packages:
     resolution: {integrity: sha512-jZESAAHqJuGcvnyLX0/2WAVDu/WAk1iMth5/o8oviDPzS3a4Ajsd5slxwFb/tg4hbswY9aFoob9wYP4tnP6d8w==}
     engines: {node: '>=18.0.0'}
     dependencies:
-      '@oclif/core': 4.2.6
+      '@oclif/core': 4.5.4
       ansis: 3.17.0
       debug: 4.4.3(supports-color@8.1.1)
       http-call: 5.3.0
@@ -5590,7 +5602,7 @@ packages:
       viem: 2.38.3(typescript@5.4.5)(zod@3.22.4)
       wagmi: 2.18.2(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(zod@3.22.4)
     optionalDependencies:
-      '@wagmi/connectors': 6.0.1(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(wagmi@2.18.2)(zod@3.22.4)
+      '@wagmi/connectors': 6.1.0(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(wagmi@2.18.2)(zod@3.22.4)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -7392,63 +7404,6 @@ packages:
       - zod
     dev: false
 
-  /@wagmi/connectors@6.0.1(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(wagmi@2.18.2)(zod@3.22.4):
-    resolution: {integrity: sha512-ZHvC9GIncOViz6Fi+oCc+8oin+U+GfCKNLj90aNxve8CLw++vQBEcivPIq1mQq2QNo6lay7yjNyGInPoOEIkSg==}
-    requiresBuild: true
-    peerDependencies:
-      '@wagmi/core': 2.22.1
-      typescript: '>=5.0.4'
-      viem: 2.x
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-    dependencies:
-      '@base-org/account': 1.1.1(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(zod@3.22.4)
-      '@coinbase/wallet-sdk': 4.3.6(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(zod@3.22.4)
-      '@gemini-wallet/core': 0.2.0(viem@2.38.3)
-      '@metamask/sdk': 0.33.1
-      '@safe-global/safe-apps-provider': 0.18.6(typescript@5.4.5)(zod@3.22.4)
-      '@safe-global/safe-apps-sdk': 9.1.0(typescript@5.4.5)(zod@3.22.4)
-      '@wagmi/core': 2.22.1(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(viem@2.38.3)
-      '@walletconnect/ethereum-provider': 2.21.1(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(zod@3.22.4)
-      cbw-sdk: /@coinbase/wallet-sdk@3.9.3
-      porto: 0.2.19(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(wagmi@2.18.2)
-      typescript: 5.4.5
-      viem: 2.38.3(typescript@5.4.5)(zod@3.22.4)
-    transitivePeerDependencies:
-      - '@azure/app-configuration'
-      - '@azure/cosmos'
-      - '@azure/data-tables'
-      - '@azure/identity'
-      - '@azure/keyvault-secrets'
-      - '@azure/storage-blob'
-      - '@capacitor/preferences'
-      - '@deno/kv'
-      - '@netlify/blobs'
-      - '@planetscale/database'
-      - '@react-native-async-storage/async-storage'
-      - '@tanstack/react-query'
-      - '@types/react'
-      - '@upstash/redis'
-      - '@vercel/blob'
-      - '@vercel/functions'
-      - '@vercel/kv'
-      - aws4fetch
-      - bufferutil
-      - db0
-      - encoding
-      - immer
-      - ioredis
-      - react
-      - supports-color
-      - uploadthing
-      - use-sync-external-store
-      - utf-8-validate
-      - wagmi
-      - zod
-    dev: false
-    optional: true
-
   /@wagmi/connectors@6.1.0(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(viem@2.38.3)(wagmi@2.18.2)(zod@3.22.4):
     resolution: {integrity: sha512-MnpJHEABUIsajNxLc6br0LiqJvoFZbavQ6yG+mQb7Xlb3Hmm3IRjH5NU1g2zw5PCTRd3BFQLjwniLdwDnUPYNw==}
     peerDependencies:
@@ -7503,6 +7458,62 @@ packages:
       - wagmi
       - zod
     dev: false
+
+  /@wagmi/connectors@6.1.0(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(wagmi@2.18.2)(zod@3.22.4):
+    resolution: {integrity: sha512-MnpJHEABUIsajNxLc6br0LiqJvoFZbavQ6yG+mQb7Xlb3Hmm3IRjH5NU1g2zw5PCTRd3BFQLjwniLdwDnUPYNw==}
+    peerDependencies:
+      '@wagmi/core': 2.22.1
+      typescript: '>=5.0.4'
+      viem: 2.x
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      '@base-org/account': 1.1.1(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(zod@3.22.4)
+      '@coinbase/wallet-sdk': 4.3.6(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(zod@3.22.4)
+      '@gemini-wallet/core': 0.2.0(viem@2.38.3)
+      '@metamask/sdk': 0.33.1
+      '@safe-global/safe-apps-provider': 0.18.6(typescript@5.4.5)(zod@3.22.4)
+      '@safe-global/safe-apps-sdk': 9.1.0(typescript@5.4.5)(zod@3.22.4)
+      '@wagmi/core': 2.22.1(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(viem@2.38.3)
+      '@walletconnect/ethereum-provider': 2.21.1(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(zod@3.22.4)
+      cbw-sdk: /@coinbase/wallet-sdk@3.9.3
+      porto: 0.2.19(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(wagmi@2.18.2)
+      typescript: 5.4.5
+      viem: 2.38.3(typescript@5.4.5)(zod@3.22.4)
+    transitivePeerDependencies:
+      - '@azure/app-configuration'
+      - '@azure/cosmos'
+      - '@azure/data-tables'
+      - '@azure/identity'
+      - '@azure/keyvault-secrets'
+      - '@azure/storage-blob'
+      - '@capacitor/preferences'
+      - '@deno/kv'
+      - '@netlify/blobs'
+      - '@planetscale/database'
+      - '@react-native-async-storage/async-storage'
+      - '@tanstack/react-query'
+      - '@types/react'
+      - '@upstash/redis'
+      - '@vercel/blob'
+      - '@vercel/functions'
+      - '@vercel/kv'
+      - aws4fetch
+      - bufferutil
+      - db0
+      - encoding
+      - immer
+      - ioredis
+      - react
+      - supports-color
+      - uploadthing
+      - use-sync-external-store
+      - utf-8-validate
+      - wagmi
+      - zod
+    dev: false
+    optional: true
 
   /@wagmi/core@2.21.2(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(viem@2.37.9):
     resolution: {integrity: sha512-Rp4waam2z0FQUDINkJ91jq38PI5wFUHCv1YBL2LXzAQswaEk1ZY8d6+WG3vYGhFHQ22DXy2AlQ8IWmj+2EG3zQ==}
@@ -10305,7 +10316,7 @@ packages:
       ms: 2.1.2
       supports-color: 8.1.1
 
-  /debug@4.4.0(supports-color@8.1.1):
+  /debug@4.4.0:
     resolution: {integrity: sha512-6WTZ/IxCY/T6BALoZHaE4ctp9xm+Z5kY/pzYaCHRFeyVhojxlrm+46y68HA6hr0TcwEssoxNiDEUJQjfPZ/RYA==}
     engines: {node: '>=6.0'}
     peerDependencies:
@@ -10315,7 +10326,6 @@ packages:
         optional: true
     dependencies:
       ms: 2.1.3
-      supports-color: 8.1.1
 
   /debug@4.4.3(supports-color@8.1.1):
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -10654,7 +10664,7 @@ packages:
     resolution: {integrity: sha512-VrkQJNafPQ5d6bGULW0P6KqcxSkv3ZU5Wn2wQA19oB71o7+55vQ9ogFe2MMeNbK+jc9rrKVy280DnHO5JLMWOQ==}
     engines: {node: '>= 6.0.0'}
     dependencies:
-      yaml: 2.7.0
+      yaml: 2.8.1
     dev: true
 
   /docker-modem@1.0.9:
@@ -12162,7 +12172,7 @@ packages:
       debug:
         optional: true
     dependencies:
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
 
   /follow-redirects@1.15.11(debug@4.4.3):
     resolution: {integrity: sha512-deG2P0JfjrTxl50XGCDyfI97ZGVCxIpfKYmfyrQ54n5FO/0gfIES8C/Psl6kWVDolizcaaxZJnTS0QSMxvnsBQ==}
