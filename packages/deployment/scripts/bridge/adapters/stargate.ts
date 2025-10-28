@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import { Address, getAddress } from 'viem'
 import stargateConfig from '../../../config/adapters/stargate.json'
 import StargateAdapterModule from '../../../ignition/modules/adapters/stargate'
-import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
+import { getSupportedChainsFromConfig, getWalletClient, waitForPendingTransactions } from './utils'
 
 // Define a type for the bridge router address parameter
 type BridgeRouterAddressParam = Address | { bridgeRouterAddress: Address }
@@ -69,22 +69,13 @@ export async function deployStargateAdapter(
     )
   }
 
-  // Get HarborCommand address from network config
-  const harborCommand = networkConfig.deployedContracts.core.harborCommand.address
-  if (!harborCommand) {
-    throw new Error(
-      `HarborCommand address not found in config for chain ID ${networkConfig.common.chainId}`,
-    )
-  }
-
-  // Deploy using Ignition module - all 4 constructor parameters needed
+  // Deploy using Ignition module - 3 constructor parameters needed
   const deploymentResult = await hre.ignition.deploy(StargateAdapterModule, {
     parameters: {
       StargateAdapterModule: {
         crossChainRegistry,
         accessManager,
         lzEndpoint,
-        harborCommand,
       },
     },
   })
@@ -113,109 +104,61 @@ export async function configureStargateAdapter(
 
   // Get wallet client for transactions using proper setup
   const walletClient = await getWalletClient()
+  const publicClient = await hre.viem.getPublicClient()
 
   const currentChainId = Number(networkConfig.common.chainId)
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
 
-  // Debug logging
-  console.log(
-    'allNetworkConfigs keys:',
-    allNetworkConfigs ? Object.keys(allNetworkConfigs) : 'undefined',
-  )
-  console.log('supportedChains:', supportedChains)
-
-  // Add supported chains (using general config)
-  let chainsAdded = 0
+  // Map chain IDs to LayerZero EIDs for all supported remote chains
+  let mappingsAdded = 0
   for (const chainInfo of supportedChains) {
-    if (chainInfo.chainId === currentChainId) {
-      continue // Skip current chain
-    }
+    if (chainInfo.chainId === currentChainId) continue
 
     try {
-      // Check if chain is already supported
-      let existingEndpointId = 0
-      try {
-        existingEndpointId = Number(
-          await stargateAdapter.read.chainToEndpointId([chainInfo.chainId]),
-        )
-      } catch (error) {
-        // If the call fails, it means the chain is not supported yet (which is expected)
-        console.log(`Chain ${chainInfo.chainId} not yet supported, will add it`)
-        existingEndpointId = 0
-      }
+      const currentEndpointId = Number(
+        await stargateAdapter.read.chainToExternalId([chainInfo.chainId]),
+      )
 
-      if (existingEndpointId === 0) {
+      if (currentEndpointId !== Number(chainInfo.endpointId)) {
         console.log(
-          `Adding supported chain ${chainInfo.chainId} with LayerZero endpoint ID ${chainInfo.endpointId}`,
+          `Mapping chain ${chainInfo.chainId} -> EID ${chainInfo.endpointId} (current: ${currentEndpointId})`,
         )
-
-        // Determine adapter address for this chain
-        let adapterAddress: Address
-
-        if (chainInfo.chainId === currentChainId) {
-          // For current chain, use the current adapter address
-          adapterAddress = stargateAdapterAddress
-        } else {
-          // For other chains, check if we have the adapter address in config
-          const targetNetworkName = getNetworkNameFromChainId(chainInfo.chainId)
-          const targetNetworkConfig = allNetworkConfigs?.[targetNetworkName]
-          const existingAdapterAddress =
-            targetNetworkConfig?.deployedContracts?.bridge?.adapters?.stargate?.address
-
-          if (
-            existingAdapterAddress &&
-            existingAdapterAddress !== '0x0000000000000000000000000000000000000000'
-          ) {
-            adapterAddress = existingAdapterAddress as Address
-            console.log(
-              `Using existing adapter address for chain ${chainInfo.chainId}: ${adapterAddress}`,
-            )
-          } else {
-            // Skip this chain for now - will be added when that chain's adapter is deployed
-            console.log(`No adapter address found for chain ${chainInfo.chainId}, skipping for now`)
-            continue
-          }
-        }
-
-        // Use wallet client directly instead of .write
         const hash = await walletClient.writeContract({
           address: getAddress(stargateAdapterAddress as `0x${string}`),
           abi: [
             {
               inputs: [
                 { internalType: 'uint16', name: 'chainId', type: 'uint16' },
-                { internalType: 'uint32', name: 'endpointId', type: 'uint32' },
-                { internalType: 'address', name: 'adapterAddress', type: 'address' },
+                { internalType: 'uint32', name: 'externalId', type: 'uint32' },
               ],
-              name: 'addSupportedChain',
+              name: 'mapExternalId',
               outputs: [],
               stateMutability: 'nonpayable',
               type: 'function',
             },
           ] as const,
-          functionName: 'addSupportedChain',
-          args: [chainInfo.chainId, chainInfo.endpointId, adapterAddress],
+          functionName: 'mapExternalId',
+          args: [chainInfo.chainId, chainInfo.endpointId],
         })
-        console.log(kleur.green(`Chain ${chainInfo.chainId} added successfully, tx: ${hash}`))
+        console.log(kleur.green(`Chain mapping updated, tx: ${hash}`))
 
-        // Wait for transaction confirmation
-        const publicClient = await hre.viem.getPublicClient()
         await publicClient.waitForTransactionReceipt({ hash })
-        console.log(kleur.green(`Chain ${chainInfo.chainId} transaction confirmed`))
-        chainsAdded++
+        mappingsAdded++
       } else {
-        console.log(kleur.yellow(`Chain ${chainInfo.chainId} already supported, skipping`))
+        console.log(
+          kleur.yellow(`EID mapping for chain ${chainInfo.chainId} already correct, skipping`),
+        )
       }
     } catch (error) {
       console.error(kleur.red(`Error adding chain ${chainInfo.chainId}:`), error)
     }
   }
 
-  console.log(kleur.green(`Added ${chainsAdded} new supported chains`))
+  console.log(kleur.green(`Updated ${mappingsAdded} chain -> EID mappings`))
 
   // Only add delay if we actually added chains
-  if (chainsAdded > 0) {
-    console.log(kleur.blue(`Added ${chainsAdded} new chains, waiting for settlement...`))
+  if (mappingsAdded > 0) {
+    console.log(kleur.blue(`Added ${mappingsAdded} new chains, waiting for settlement...`))
     await new Promise((resolve) => setTimeout(resolve, 2000))
   }
 
@@ -245,32 +188,29 @@ export async function configureStargateAdapter(
         `Configuring asset ${assetSymbol} (${checksummedLocalAddress}) with Stargate contract ${checksummedStargateContract}`,
       )
 
-      // Validate Stargate contract before adding asset (with caching)
-      const contractKey = `${currentChainId}-${checksummedStargateContract}`
-      if (!validatedContracts.has(contractKey)) {
-        try {
-          const isValid = await validateStargateContract(checksummedStargateContract)
-          if (!isValid) {
-            console.error(
-              kleur.red(
-                `Invalid Stargate contract ${checksummedStargateContract}: Failed validation`,
-              ),
-            )
-            continue // Skip this asset
-          }
-          validatedContracts.add(contractKey)
-          console.log(kleur.green(`✓ Stargate contract ${checksummedStargateContract} validated`))
-        } catch (error) {
-          console.error(
-            kleur.red(`Error validating Stargate contract ${checksummedStargateContract}:`),
-            error,
+      // Strict pre-validation: must be a Pool and its token() must match the local asset
+      try {
+        const poolToken = await publicClient.readContract({
+          address: checksummedStargateContract,
+          abi: IStargatePoolABI,
+          functionName: 'token',
+        })
+        const matches = String(poolToken).toLowerCase() === checksummedLocalAddress.toLowerCase()
+        if (!matches) {
+          console.log(
+            kleur.yellow(
+              `Skipping ${assetSymbol}: Stargate pool token ${poolToken} does not match local asset ${checksummedLocalAddress}`,
+            ),
           )
-          continue // Skip this asset
+          continue
         }
-      } else {
+      } catch (e) {
         console.log(
-          kleur.blue(`✓ Stargate contract ${checksummedStargateContract} already validated`),
+          kleur.yellow(
+            `Skipping ${assetSymbol}: Contract ${checksummedStargateContract} does not expose token() like a Stargate Pool`,
+          ),
         )
+        continue
       }
 
       // Check current chain asset mapping
@@ -309,6 +249,8 @@ export async function configureStargateAdapter(
               `Asset mapping for ${checksummedLocalAddress} on current chain added, tx: ${hash}`,
             ),
           )
+          // Ensure tx is mined before proceeding to avoid nonce/fee conflicts
+          await publicClient.waitForTransactionReceipt({ hash })
           assetsConfigured++
         } else {
           console.log(kleur.yellow(`Asset mapping for current chain already correct, skipping`))
@@ -327,72 +269,8 @@ export async function configureStargateAdapter(
 
   console.log(kleur.blue(`Configured ${assetsConfigured} asset mappings`))
 
-  // Set compose gas limit from Stargate config (with check)
-  try {
-    const currentGasLimit = BigInt(String(await stargateAdapter.read.composeGasLimit()))
-    // Use composeGasLimit from config or default to 700000 (matching contract default)
-    const configuredGasLimit = BigInt(stargateConfig.composeGasLimit || 700000)
-
-    if (currentGasLimit !== configuredGasLimit) {
-      // Use wallet client directly instead of .write
-      const hash = await walletClient.writeContract({
-        address: getAddress(stargateAdapterAddress as `0x${string}`),
-        abi: [
-          {
-            inputs: [{ internalType: 'uint256', name: '_composeGasLimit', type: 'uint256' }],
-            name: 'setComposeGasLimit',
-            outputs: [],
-            stateMutability: 'nonpayable',
-            type: 'function',
-          },
-        ] as const,
-        functionName: 'setComposeGasLimit',
-        args: [configuredGasLimit],
-      })
-      console.log(kleur.green(`Compose gas limit updated to ${configuredGasLimit}, tx: ${hash}`))
-    } else {
-      console.log(kleur.yellow(`Compose gas limit already set to ${currentGasLimit}, skipping`))
-    }
-  } catch (error) {
-    console.error(kleur.red('Error setting compose gas limit:'), error)
-  }
-
-  // Set default transport mode from Stargate config (with check)
-  try {
-    const defaultUseTaxi = stargateConfig.defaultUseTaxi || false
-    const currentUseTaxi = Boolean(await stargateAdapter.read.defaultUseTaxi())
-
-    if (currentUseTaxi !== defaultUseTaxi) {
-      // Use wallet client directly instead of .write
-      const hash = await walletClient.writeContract({
-        address: getAddress(stargateAdapterAddress as `0x${string}`),
-        abi: [
-          {
-            inputs: [{ internalType: 'bool', name: 'useTaxi', type: 'bool' }],
-            name: 'setDefaultTransportMode',
-            outputs: [],
-            stateMutability: 'nonpayable',
-            type: 'function',
-          },
-        ] as const,
-        functionName: 'setDefaultTransportMode',
-        args: [defaultUseTaxi],
-      })
-      console.log(
-        kleur.green(
-          `Default transport mode updated to ${defaultUseTaxi ? 'taxi' : 'bus'}, tx: ${hash}`,
-        ),
-      )
-    } else {
-      console.log(
-        kleur.yellow(
-          `Default transport mode already set to ${defaultUseTaxi ? 'taxi' : 'bus'}, skipping`,
-        ),
-      )
-    }
-  } catch (error) {
-    console.error(kleur.red('Error setting default transport mode:'), error)
-  }
+  // Note: StargateAdapter uses hardcoded taxi mode for all transfers
+  // No configuration needed for transport mode
 
   // Register adapter with bridge router (existing check is good)
   try {
@@ -408,7 +286,9 @@ export async function configureStargateAdapter(
     )
 
     if (!alreadyRegistered) {
-      // Use wallet client directly instead of .write
+      // Ensure pending transactions are settled before sending governance-protected tx
+      await waitForPendingTransactions()
+
       const hash = await walletClient.writeContract({
         address: getAddress(actualAddress as `0x${string}`),
         abi: [
@@ -424,6 +304,7 @@ export async function configureStargateAdapter(
         args: [getAddress(stargateAdapterAddress as `0x${string}`)],
       })
       console.log(kleur.green(`Stargate V2 adapter registered with bridge router, tx: ${hash}`))
+      await publicClient.waitForTransactionReceipt({ hash })
     } else {
       console.log(
         kleur.yellow(
@@ -433,6 +314,8 @@ export async function configureStargateAdapter(
     }
   } catch (error) {
     console.error(kleur.red('Error registering adapter with bridge router:'), error)
+    // Do not swallow the error: surface it so the deploy flow fails visibly
+    throw error
   }
 }
 
@@ -443,7 +326,7 @@ export async function updateStargateAdapterAddresses(
   stargateAdapterAddress: Address,
   allNetworkConfigs: Record<string, any>,
 ): Promise<void> {
-  console.log(kleur.blue('Updating Stargate adapter cross-chain addresses'))
+  console.log(kleur.blue('Verifying Stargate adapter chain -> EID mappings'))
 
   const stargateAdapter = await hre.viem.getContractAt(
     'StargateAdapter' as string,
@@ -452,61 +335,40 @@ export async function updateStargateAdapterAddresses(
 
   // Get wallet client for transactions using proper setup
   const walletClient = await getWalletClient()
+  const publicClient = await hre.viem.getPublicClient()
 
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
 
   for (const chainInfo of supportedChains) {
     try {
-      const targetNetworkName = getNetworkNameFromChainId(chainInfo.chainId)
-      const targetNetworkConfig = allNetworkConfigs[targetNetworkName]
-      const targetAdapterAddress =
-        targetNetworkConfig?.deployedContracts?.bridge?.adapters?.stargate?.address
-
-      if (targetAdapterAddress) {
-        // Check if the current adapter address is correct
-        const currentAdapterAddress = (await stargateAdapter.read.chainToAdapter([
-          chainInfo.chainId,
-        ])) as string
-
-        if (currentAdapterAddress.toLowerCase() !== targetAdapterAddress.toLowerCase()) {
-          console.log(
-            `Updating adapter address for chain ${chainInfo.chainId} from ${currentAdapterAddress} to ${targetAdapterAddress}`,
-          )
-
-          // Use wallet client directly instead of .write
-          const hash = await walletClient.writeContract({
-            address: getAddress(stargateAdapterAddress as `0x${string}`),
-            abi: [
-              {
-                inputs: [
-                  { internalType: 'uint16', name: 'chainId', type: 'uint16' },
-                  { internalType: 'address', name: 'adapterAddress', type: 'address' },
-                ],
-                name: 'updateChainAdapter',
-                outputs: [],
-                stateMutability: 'nonpayable',
-                type: 'function',
-              },
-            ] as const,
-            functionName: 'updateChainAdapter',
-            args: [chainInfo.chainId, targetAdapterAddress as Address],
-          })
-
-          console.log(
-            kleur.green(`Chain ${chainInfo.chainId} adapter address updated, tx: ${hash}`),
-          )
-
-          // Wait for transaction confirmation
-          const publicClient = await hre.viem.getPublicClient()
-          await publicClient.waitForTransactionReceipt({ hash })
-        } else {
-          console.log(
-            kleur.yellow(`Chain ${chainInfo.chainId} adapter address already correct, skipping`),
-          )
-        }
+      const currentEndpointId = Number(
+        await stargateAdapter.read.chainToExternalId([chainInfo.chainId]),
+      )
+      if (currentEndpointId !== Number(chainInfo.endpointId)) {
+        console.log(
+          `Remapping chain ${chainInfo.chainId} to EID ${chainInfo.endpointId} (current: ${currentEndpointId})`,
+        )
+        const hash = await walletClient.writeContract({
+          address: getAddress(stargateAdapterAddress as `0x${string}`),
+          abi: [
+            {
+              inputs: [
+                { internalType: 'uint16', name: 'chainId', type: 'uint16' },
+                { internalType: 'uint32', name: 'externalId', type: 'uint32' },
+              ],
+              name: 'mapExternalId',
+              outputs: [],
+              stateMutability: 'nonpayable',
+              type: 'function',
+            },
+          ] as const,
+          functionName: 'mapExternalId',
+          args: [chainInfo.chainId, chainInfo.endpointId],
+        })
+        await publicClient.waitForTransactionReceipt({ hash })
       } else {
         console.log(
-          kleur.yellow(`No adapter address found for chain ${chainInfo.chainId}, skipping`),
+          kleur.yellow(`EID mapping for chain ${chainInfo.chainId} already correct, skipping`),
         )
       }
     } catch (error) {
