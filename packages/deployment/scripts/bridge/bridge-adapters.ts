@@ -24,11 +24,9 @@ async function isAdapterRegistered(
   adapterAddress: Address,
 ): Promise<boolean> {
   try {
-    const actualAddress = bridgeRouterAddress
-
     const bridgeRouter = await hre.viem.getContractAt(
       'BridgeRouter' as string,
-      getAddress(actualAddress as `0x${string}`),
+      getAddress(bridgeRouterAddress as `0x${string}`),
     )
 
     return Boolean(
