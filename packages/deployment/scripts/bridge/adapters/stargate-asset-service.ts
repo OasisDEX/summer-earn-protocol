@@ -1,13 +1,12 @@
-import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, WalletClient, getAddress } from 'viem'
 import stargateConfig from '../../../config/adapters/stargate.json'
-import { waitForTransactionConfirmation, writeContractTx } from '../../lib/contracts/transactions'
+import { writeContractTx } from '../../lib/contracts/transactions'
+import { ADDRESS_ZERO } from '../../lib/infrastructure/constants'
 import { STARGATE_ADD_SUPPORTED_ASSET_ABI } from './abis'
 import { StargateConfig } from './config-types'
-import { AdapterConfigurationError, AdapterValidationError } from './errors'
-import { BaseConfig } from './types'
 import { StargateContractValidator } from './stargate-validation-service'
+import { BaseConfig } from './types'
 
 /**
  * Configuration for asset operations
@@ -37,7 +36,14 @@ export async function addAssetIfNotMapped(
   assetSymbol: string,
   stargateContract: string,
 ): Promise<{ configured: boolean; error?: string }> {
-  const { stargateAdapter, walletClient, stargateAdapterAddress, currentChainId, networkConfig, validator } = params
+  const {
+    stargateAdapter,
+    walletClient,
+    stargateAdapterAddress,
+    currentChainId,
+    networkConfig,
+    validator,
+  } = params
 
   const tokenKey = assetSymbol === 'eth' ? 'weth' : assetSymbol
   const localAssetAddress = networkConfig.tokens[tokenKey as keyof typeof networkConfig.tokens]
@@ -45,7 +51,7 @@ export async function addAssetIfNotMapped(
   if (!localAssetAddress || !stargateContract) {
     return {
       configured: false,
-      error: `Asset ${assetSymbol} not available on current chain ${currentChainId} (address: ${localAssetAddress})`
+      error: `Asset ${assetSymbol} not available on current chain ${currentChainId} (address: ${localAssetAddress})`,
     }
   }
 
@@ -62,7 +68,7 @@ export async function addAssetIfNotMapped(
     if (!isValid) {
       return {
         configured: false,
-        error: `Invalid Stargate contract ${checksummedStargateContract}: Failed validation`
+        error: `Invalid Stargate contract ${checksummedStargateContract}: Failed validation`,
       }
     }
 
@@ -72,7 +78,7 @@ export async function addAssetIfNotMapped(
     )
 
     if (
-      currentStargateContract === '0x0000000000000000000000000000000000000000' ||
+      currentStargateContract === ADDRESS_ZERO ||
       currentStargateContract.toLowerCase() !== checksummedStargateContract.toLowerCase()
     ) {
       console.log(
@@ -86,13 +92,13 @@ export async function addAssetIfNotMapped(
         'addSupportedAsset',
         [checksummedLocalAddress, checksummedStargateContract],
       )
-      
+
       console.log(
         kleur.green(
           `Asset mapping for ${checksummedLocalAddress} on current chain added, tx: ${hash}`,
         ),
       )
-      
+
       return { configured: true }
     } else {
       console.log(kleur.yellow(`Asset mapping for current chain already correct, skipping`))
@@ -119,7 +125,7 @@ export async function configureSupportedAssets(
   const currentChainContracts = (stargateConfig as StargateConfig).contracts[
     currentChainId.toString()
   ]
-  
+
   if (!currentChainContracts) {
     console.log(
       kleur.yellow(
@@ -136,7 +142,7 @@ export async function configureSupportedAssets(
     }
 
     const result = await addAssetIfNotMapped(params, assetSymbol, stargateContract)
-    
+
     if (result.configured) {
       assetsConfigured++
     } else if (result.error) {
@@ -152,9 +158,9 @@ export async function configureSupportedAssets(
  */
 export function logAssetConfigurationResults(result: AssetConfigurationResult): void {
   console.log(kleur.blue(`Configured ${result.assetsConfigured} asset mappings`))
-  
+
   if (result.errors.length > 0) {
     console.log(kleur.red(`Encountered ${result.errors.length} errors:`))
-    result.errors.forEach(error => console.log(kleur.red(`  - ${error}`)))
+    result.errors.forEach((error) => console.log(kleur.red(`  - ${error}`)))
   }
 }
