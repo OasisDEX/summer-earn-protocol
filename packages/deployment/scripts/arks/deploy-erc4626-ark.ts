@@ -5,8 +5,8 @@ import { Address } from 'viem'
 import {
   createERC4626ArkModule,
   ERC4626ArkContracts,
-} from '../../../ignition/modules/arks/erc4626-ark'
-import { BaseConfig, Token } from '../../../types/config-types'
+} from '../../ignition/modules/arks/erc4626-ark'
+import { BaseConfig, Token } from '../../types/config-types'
 import { getFleetConfig } from '../fleets/deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'

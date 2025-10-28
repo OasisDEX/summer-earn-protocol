@@ -5,10 +5,10 @@ import { Address } from 'viem'
 import {
   SkyRewardsArkContracts,
   createSkyRewardsArkModule,
-} from '../../../ignition/modules/arks/sky-rewards-ark'
-import { BaseConfig, Token } from '../../../types/config-types'
-import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
+} from '../../ignition/modules/arks/sky-rewards-ark'
+import { BaseConfig, Token } from '../../types/config-types'
 import { getFleetConfig } from '../fleets/deployment'
+import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'
 import { continueDeploymentCheck } from '../lib/infrastructure/prompts'

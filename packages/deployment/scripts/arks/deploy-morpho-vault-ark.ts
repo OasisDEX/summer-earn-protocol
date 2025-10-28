@@ -5,8 +5,8 @@ import { Address } from 'viem'
 import {
   createMorphoVaultArkModule,
   MorphoVaultArkContracts,
-} from '../../../ignition/modules/arks/morpho-vault-ark'
-import { BaseConfig, Token } from '../../../types/config-types'
+} from '../../ignition/modules/arks/morpho-vault-ark'
+import { BaseConfig, Token } from '../../types/config-types'
 import { getFleetConfig } from '../fleets/deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
