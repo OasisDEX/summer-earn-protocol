@@ -1,4 +1,7 @@
-import { BridgeAdaptersConfig } from '../../types/bridge-types'
+import hre from 'hardhat'
+import fs from 'node:fs'
+import path from 'node:path'
+import { BridgeAdaptersConfig, DeployedBridge } from '../../types/bridge-types'
 
 /**
  * Extracts bridge adapter configurations from the network config
@@ -58,9 +61,6 @@ export function hasBridgeAdapterConfigs(config: any): boolean {
   const adapterConfigs = getBridgeAdapterConfigs(config)
   return adapterConfigs !== undefined
 }
-import fs from 'node:fs'
-import path from 'node:path'
-import { DeployedBridge } from '../../types/bridge-types'
 
 export function getBridgeDeploymentDir() {
   return path.join(process.cwd(), 'deployments', 'bridge')
@@ -87,8 +87,6 @@ export async function saveBridgeDeploymentJson(deployedBridge: DeployedBridge, n
 
   console.log(`Bridge deployment configuration saved to: ${filePath}`)
 }
-import hre from 'hardhat'
-import { DeployedBridge } from '../../types/bridge-types'
 
 export async function setupBridgeGovernance(deployedBridge: DeployedBridge, config: any) {
   const protocolAccessManager = await hre.viem.getContractAt(
@@ -101,7 +99,7 @@ export async function setupBridgeGovernance(deployedBridge: DeployedBridge, conf
   // For example:
   // await protocolAccessManager.write.grantRole([
   //   KEEPER_ROLE,
-  //   deployedBridge.bridgeQueue.address
+  //   deployedBridge.bridgeRouter.address
   // ])
 }
 

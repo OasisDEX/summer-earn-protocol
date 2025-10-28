@@ -2,11 +2,9 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, isAddressEqual, zeroAddress } from 'viem'
 import { BaseConfig } from '../types/config-types'
-import {
-  configureLayerZeroAdapter,
-  configureStargateAdapter,
-  deployBridgeAdapters,
-} from './bridge/bridge-adapters'
+import { configureLayerZeroAdapter } from './bridge/adapters/layerzero'
+import { configureStargateAdapter } from './bridge/adapters/stargate'
+import { deployBridgeAdapters } from './bridge/bridge-adapters'
 import { getConfigByNetwork } from './lib/config/handler'
 import { promptForConfigType, promptYesNo } from './lib/infrastructure/prompts'
 import { updateIndexJson } from './lib/infrastructure/update-json'

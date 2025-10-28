@@ -114,7 +114,6 @@ export interface BaseConfig {
     }
     bridge?: {
       bridgeRouter: { address: string }
-      bridgeQueue: { address: string }
       crossChainRegistry: { address: string }
       adapters?: {
         layerZero?: { address: string }

@@ -164,5 +164,4 @@ export const validateBridgeDeployment = (config: BaseConfig) => {
   }
 
   validateAddress(config.deployedContracts.bridge.bridgeRouter.address, 'bridge.bridgeRouter')
-  validateAddress(config.deployedContracts.bridge.bridgeQueue.address, 'bridge.bridgeQueue')
 }

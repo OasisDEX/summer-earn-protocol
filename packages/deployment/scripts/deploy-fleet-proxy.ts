@@ -6,8 +6,8 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { createFleetProxyModule } from '../ignition/modules/fleet-proxy'
 import { BaseConfig } from '../types/config-types'
-import { getConfigByNetwork } from './lib/config/handler'
 import { loadCrossChainConfig, saveCrossChainConfig } from './lib/config/cross-chain'
+import { getConfigByNetwork } from './lib/config/handler'
 import { handleDeploymentId } from './lib/infrastructure/deployment-id-handler'
 import { getChainIdByNetwork } from './lib/infrastructure/get-chainid'
 import { continueDeploymentCheck } from './lib/infrastructure/prompts'
@@ -18,7 +18,6 @@ import { continueDeploymentCheck } from './lib/infrastructure/prompts'
 interface FleetProxyParams {
   accessManager: Address
   bridgeRouter: Address
-  bridgeQueue: Address
   fleetContract: Address
   sourceChainId: number
   protocol: string
@@ -95,18 +94,12 @@ async function getUserInput(
 ): Promise<FleetProxyParams> {
   // Validate required addresses from config
   const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter.address as Address
-  const bridgeQueueAddress = config.deployedContracts.bridge?.bridgeQueue.address as Address
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
   const crossChainRegistryAddress = config.deployedContracts.bridge?.crossChainRegistry.address
 
   if (!bridgeRouterAddress) {
     throw new Error(
       'Bridge Router address not found in config. Make sure bridge contracts are deployed.',
-    )
-  }
-  if (!bridgeQueueAddress) {
-    throw new Error(
-      'Bridge Queue address not found in config. Make sure bridge contracts are deployed.',
     )
   }
   if (!crossChainRegistryAddress) {
@@ -187,7 +180,6 @@ async function getUserInput(
   return {
     accessManager: accessManagerAddress,
     bridgeRouter: bridgeRouterAddress,
-    bridgeQueue: bridgeQueueAddress,
     fleetContract: fleetAddress,
     sourceChainId: currentChainId,
     fleetName,
@@ -207,7 +199,6 @@ async function confirmDeployment(params: FleetProxyParams, config: BaseConfig): 
   console.log(kleur.blue('Fleet Name:'), kleur.cyan(params.fleetName))
   console.log(kleur.blue('Access Manager:'), kleur.cyan(params.accessManager))
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(params.bridgeRouter))
-  console.log(kleur.blue('Bridge Queue:'), kleur.cyan(params.bridgeQueue))
   console.log(
     kleur.blue('CrossChain Registry:'),
     kleur.cyan(config.deployedContracts.bridge?.crossChainRegistry.address as string),
@@ -248,8 +239,7 @@ async function deployFleetProxyContract(
       parameters: {
         [moduleName]: {
           accessManager: params.accessManager,
-          bridgeRouter: params.bridgeRouter,
-          bridgeQueue: params.bridgeQueue,
+          sourceChainId: params.sourceChainId,
           crossChainRegistry: crossChainRegistryAddress,
           fleetContract: params.fleetContract,
         },
