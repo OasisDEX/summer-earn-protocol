@@ -13,6 +13,7 @@ import {
   STARGATE_POOL_ABI,
   STARGATE_UPDATE_CHAIN_ADAPTER_ABI,
 } from './abis'
+import { StargateConfig } from './config-types'
 import { isAdapterRegistered, validateBridgeConfig } from './transaction-helpers'
 import { BaseConfig, ChainInfo, NetworkConfigMap } from './types'
 import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
@@ -78,7 +79,7 @@ export async function deployStargateAdapter(
  * Configure supported chains for Stargate adapter
  */
 async function configureSupportedChains(
-  stargateAdapter: any,
+  stargateAdapter: Awaited<ReturnType<typeof hre.viem.getContractAt>>,
   walletClient: WalletClient,
   stargateAdapterAddress: Address,
   currentChainId: number,
@@ -161,7 +162,7 @@ async function configureSupportedChains(
  * Configure supported assets for Stargate adapter
  */
 async function configureSupportedAssets(
-  stargateAdapter: any,
+  stargateAdapter: Awaited<ReturnType<typeof hre.viem.getContractAt>>,
   walletClient: WalletClient,
   stargateAdapterAddress: Address,
   currentChainId: number,
@@ -170,7 +171,9 @@ async function configureSupportedAssets(
   let assetsConfigured = 0
 
   // Get Stargate contracts for current chain
-  const currentChainContracts = (stargateConfig.contracts as any)[currentChainId.toString()]
+  const currentChainContracts = (stargateConfig as StargateConfig).contracts[
+    currentChainId.toString()
+  ]
   if (!currentChainContracts) {
     console.log(
       kleur.yellow(

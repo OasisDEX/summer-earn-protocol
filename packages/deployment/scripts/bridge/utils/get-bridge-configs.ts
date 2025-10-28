@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import { BaseConfig } from '../../../types/config-types'
 import { getConfigByNetwork } from '../../lib/config/handler'
 import { promptForConfigType } from '../../lib/infrastructure/prompts'
 import { getBridgeAdapterConfigs, hasBridgeAdapterConfigs } from '../config/adapter-config'
@@ -15,7 +16,11 @@ async function getBridgeConfigs() {
   const useBummerConfig = await promptForConfigType()
 
   // Load network configuration
-  const config = getConfigByNetwork(network, { common: true, gov: true }, useBummerConfig) as any
+  const config = getConfigByNetwork(
+    network,
+    { common: true, gov: true },
+    useBummerConfig,
+  ) as BaseConfig
 
   // Validate required configuration
   if (!config) {

@@ -13,6 +13,7 @@ import {
   LAYERZERO_SET_MIN_GAS_LIMIT_ABI,
   LAYERZERO_SET_PEER_ABI,
 } from './abis'
+import { LayerZeroConfig } from './config-types'
 import { MESSAGE_TYPES } from './constants'
 import { isAdapterRegistered } from './transaction-helpers'
 import { BaseConfig, NetworkConfigMap } from './types'
@@ -84,7 +85,7 @@ export async function deployLayerZeroAdapter(
 
 // Helper function to set minimum gas limits
 async function setMinimumGasLimits(
-  layerZeroAdapter: any,
+  layerZeroAdapter: Awaited<ReturnType<typeof hre.viem.getContractAt>>,
   walletClient: WalletClient,
   layerZeroAdapterAddress: Address,
   minGasLimits: Record<string, number>,
@@ -168,7 +169,7 @@ export async function configureLayerZeroAdapter(
   console.log(kleur.blue('Configuring LayerZero adapter'))
 
   const chainId = Number(networkConfig.common.chainId)
-  const chainConfig = (layerZeroConfig.chainConfig as any)[chainId.toString()]
+  const chainConfig = (layerZeroConfig as LayerZeroConfig).chainConfig[chainId.toString()]
 
   if (!chainConfig) {
     console.log(kleur.yellow(`No LayerZero configuration found for chain ${chainId}, skipping`))
@@ -176,7 +177,7 @@ export async function configureLayerZeroAdapter(
   }
 
   const layerZeroAdapter = await hre.viem.getContractAt(
-    'LayerZeroAdapter' as any,
+    'LayerZeroAdapter' as string,
     getAddress(layerZeroAdapterAddress as `0x${string}`),
   )
 
