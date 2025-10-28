@@ -4,6 +4,11 @@ import { Address, WalletClient, getAddress } from 'viem'
 import layerZeroConfig from '../../../config/adapters/layerzero.json'
 import LayerZeroAdapterModule from '../../../ignition/modules/adapters/layerzero'
 import {
+  getChainIdFromConfig,
+  getCrossChainRegistryAddress,
+  getLayerZeroEndpoint,
+} from '../../lib/config/getters'
+import {
   updateIfDifferent,
   waitForTransactionConfirmation,
   writeContractTx,
@@ -29,19 +34,13 @@ export async function deployLayerZeroAdapter(
   console.log(kleur.blue('Deploying LayerZero adapter using Ignition module'))
 
   // Get current chain ID
-  const chainId = Number(networkConfig.common.chainId)
+  const chainId = getChainIdFromConfig(networkConfig)
 
   // Use endpoint from general config
-  const endpoint = networkConfig.common.layerZero.lzEndpoint
-  if (!endpoint) {
-    throw new Error(`LayerZero endpoint not configured for chain ID ${chainId}`)
-  }
+  const endpoint = getLayerZeroEndpoint(networkConfig)
 
   // Get the crossChainRegistry address from network config
-  const crossChainRegistry = networkConfig.deployedContracts.bridge?.crossChainRegistry?.address
-  if (!crossChainRegistry) {
-    throw new Error(`CrossChainRegistry address not found in config for chain ID ${chainId}`)
-  }
+  const crossChainRegistry = getCrossChainRegistryAddress(networkConfig)
 
   // Build chain mapping from general config
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)

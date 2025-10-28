@@ -6,8 +6,14 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { createFleetProxyModule } from '../ignition/modules/fleet-proxy'
 import { BaseConfig } from '../types/config-types'
-import { getConfigByNetwork } from './lib/config/handler'
 import { loadCrossChainConfig, saveCrossChainConfig } from './lib/config/cross-chain'
+import {
+  getAccessManagerAddress,
+  getBridgeQueueAddress,
+  getBridgeRouterAddress,
+  getCrossChainRegistryAddress,
+} from './lib/config/getters'
+import { getConfigByNetwork } from './lib/config/handler'
 import { handleDeploymentId } from './lib/infrastructure/deployment-id-handler'
 import { getChainIdByNetwork } from './lib/infrastructure/get-chainid'
 import { continueDeploymentCheck } from './lib/infrastructure/prompts'
@@ -94,26 +100,10 @@ async function getUserInput(
   useBummerConfig: boolean,
 ): Promise<FleetProxyParams> {
   // Validate required addresses from config
-  const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter.address as Address
-  const bridgeQueueAddress = config.deployedContracts.bridge?.bridgeQueue.address as Address
-  const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
-  const crossChainRegistryAddress = config.deployedContracts.bridge?.crossChainRegistry.address
-
-  if (!bridgeRouterAddress) {
-    throw new Error(
-      'Bridge Router address not found in config. Make sure bridge contracts are deployed.',
-    )
-  }
-  if (!bridgeQueueAddress) {
-    throw new Error(
-      'Bridge Queue address not found in config. Make sure bridge contracts are deployed.',
-    )
-  }
-  if (!crossChainRegistryAddress) {
-    throw new Error(
-      'CrossChainRegistry address not found in config. Make sure core contracts are deployed.',
-    )
-  }
+  const bridgeRouterAddress = getBridgeRouterAddress(config)
+  const bridgeQueueAddress = getBridgeQueueAddress(config)
+  const accessManagerAddress = getAccessManagerAddress(config)
+  const crossChainRegistryAddress = getCrossChainRegistryAddress(config)
 
   const currentNetwork = hre.network.name
   const currentChainId = getChainIdByNetwork(currentNetwork)

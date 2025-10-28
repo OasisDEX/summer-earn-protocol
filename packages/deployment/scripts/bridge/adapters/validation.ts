@@ -1,17 +1,22 @@
 import { BaseConfig } from '../../../types/config-types'
+import {
+  getAccessManagerAddress,
+  getCrossChainRegistryAddress,
+  getLayerZeroEndpoint,
+} from '../../lib/config/getters'
 import { AdapterConfigurationError } from './errors'
 
 /**
  * Validate that required config fields exist for bridge operations
  */
 export function validateBridgeConfig(config: BaseConfig): void {
-  if (!config.deployedContracts.bridge?.crossChainRegistry?.address) {
-    throw new AdapterConfigurationError('CrossChainRegistry address not found in config')
-  }
-  if (!config.deployedContracts.gov?.protocolAccessManager?.address) {
-    throw new AdapterConfigurationError('ProtocolAccessManager address not found in config')
-  }
-  if (!config.common.layerZero?.lzEndpoint) {
-    throw new AdapterConfigurationError('LayerZero endpoint not configured')
+  try {
+    getCrossChainRegistryAddress(config)
+    getAccessManagerAddress(config)
+    getLayerZeroEndpoint(config)
+  } catch (error) {
+    throw new AdapterConfigurationError(
+      error instanceof Error ? error.message : 'Configuration validation failed',
+    )
   }
 }

@@ -1,11 +1,16 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address, isAddressEqual, zeroAddress } from 'viem'
+import { Address } from 'viem'
 import { BaseConfig } from '../types/config-types'
 import { configureLayerZeroAdapter } from './bridge/adapters/layerzero'
 import { configureStargateAdapter } from './bridge/adapters/stargate'
 import { waitForPendingTransactions } from './bridge/adapters/utils'
 import { DeployedBridgeAdapters, deployBridgeAdapters } from './bridge/bridge-adapters'
+import {
+  getBridgeRouterAddress,
+  hasLayerZeroAdapter,
+  hasStargateAdapter,
+} from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
 import { promptForConfigType, promptYesNo } from './lib/infrastructure/prompts'
 import { updateIndexJson } from './lib/infrastructure/update-json'
@@ -35,24 +40,10 @@ async function deployAdapters() {
     throw new Error(`No configuration found for network ${network}`)
   }
 
-  if (!config.deployedContracts.bridge?.bridgeRouter) {
-    throw new Error('BridgeRouter address is missing in configuration')
-  }
-
-  const bridgeRouterAddress = config.deployedContracts.bridge.bridgeRouter.address
+  const bridgeRouterAddress = getBridgeRouterAddress(config)
 
   // Check if we want to reconfigure existing adapters
-  const hasExistingAdapters =
-    config.deployedContracts.bridge?.adapters?.layerZero?.address &&
-    !isAddressEqual(
-      config.deployedContracts.bridge.adapters.layerZero.address as Address,
-      zeroAddress,
-    ) &&
-    config.deployedContracts.bridge?.adapters?.stargate?.address &&
-    !isAddressEqual(
-      config.deployedContracts.bridge.adapters.stargate.address as Address,
-      zeroAddress,
-    )
+  const hasExistingAdapters = hasLayerZeroAdapter(config) && hasStargateAdapter(config)
 
   let reconfigureOnly = false
   if (hasExistingAdapters) {
@@ -133,6 +124,11 @@ async function deployAdapters() {
 
     // Update the configuration with deployed addresses
     console.log(kleur.blue('Updating configuration with deployed addresses...'))
+
+    // Ensure bridge config exists
+    if (!config.deployedContracts.bridge) {
+      throw new Error('Bridge configuration is missing')
+    }
 
     // Add adapters to the bridge configuration
     if (!config.deployedContracts.bridge.adapters) {

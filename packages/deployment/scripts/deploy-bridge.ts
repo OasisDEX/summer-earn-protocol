@@ -2,6 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { BaseConfig } from '../types/config-types'
 import { deployBridgeContracts } from './bridge/contracts'
+import { hasBridgeConfig } from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
 import { getChainId } from './lib/infrastructure/get-chainid'
 import { promptForConfigType } from './lib/infrastructure/prompts'
@@ -26,7 +27,7 @@ async function deployBridge() {
     throw new Error(`No configuration found for network ${network}`)
   }
 
-  if (!config.deployedContracts.bridge) {
+  if (!hasBridgeConfig(config)) {
     throw new Error('Bridge configuration is missing')
   }
 

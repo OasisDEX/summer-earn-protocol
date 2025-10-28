@@ -5,6 +5,7 @@ import { Address } from 'viem'
 import bridgeModule from '../../ignition/modules/bridge'
 import { DeployedBridge } from '../../types/bridge-types'
 import { BaseConfig } from '../../types/config-types'
+import { getAccessManagerAddress } from '../lib/config/getters'
 import { ADDRESS_ZERO } from '../lib/infrastructure/constants'
 import { getChainId } from '../lib/infrastructure/get-chainid'
 
@@ -46,15 +47,11 @@ export async function deployBridgeContracts(
   const chainId = currentChainId || getChainId()
 
   // Validate required configuration
-  if (networkConfig.deployedContracts.gov.protocolAccessManager.address === ADDRESS_ZERO) {
-    throw new Error('ProtocolAccessManager is not deployed')
-  }
+  const protocolAccessManager = getAccessManagerAddress(networkConfig)
 
   if (!networkConfig.common.chainId) {
     throw new Error('Chain ID is not configured')
   }
-
-  const protocolAccessManager = networkConfig.deployedContracts.gov.protocolAccessManager.address
 
   // Check what exists in config
   const bridgeConfig = networkConfig.deployedContracts.bridge

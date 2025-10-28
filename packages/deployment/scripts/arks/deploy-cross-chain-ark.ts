@@ -9,6 +9,12 @@ import {
   createCrossChainArkModule,
 } from '../../ignition/modules/arks/cross-chain-ark'
 import { BaseConfig } from '../../types/config-types'
+import {
+  getAccessManagerAddress,
+  getBridgeQueueAddress,
+  getBridgeRouterAddress,
+  getCrossChainRegistryAddress,
+} from '../lib/config/getters'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'
@@ -290,30 +296,15 @@ async function getUserInput(
   protocolConfig: any,
 ) {
   // Use bridgeQueue from config
-  const bridgeQueueAddress = config.deployedContracts.bridge?.bridgeQueue?.address
-  if (!bridgeQueueAddress) {
-    console.error(kleur.red('Bridge Queue address not found in config.'))
-    console.error(kleur.yellow('Make sure you have the bridge module deployed on this chain.'))
-    throw new Error('Bridge Queue address is required')
-  }
+  const bridgeQueueAddress = getBridgeQueueAddress(config)
 
-  const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter?.address
-  if (!bridgeRouterAddress) {
-    console.error(kleur.red('Bridge Router address not found in config.'))
-    console.error(kleur.yellow('Make sure you have the bridge module deployed on this chain.'))
-    throw new Error('Bridge Router address is required')
-  }
+  const bridgeRouterAddress = getBridgeRouterAddress(config)
 
   // Validate CrossChainRegistry is available
-  const crossChainRegistryAddress = config.deployedContracts.bridge?.crossChainRegistry?.address
-  if (!crossChainRegistryAddress) {
-    throw new Error(
-      'CrossChainRegistry address not found in config. Make sure bridge contracts are deployed.',
-    )
-  }
+  const crossChainRegistryAddress = getCrossChainRegistryAddress(config)
 
   const fleetProxyAddress = protocolConfig?.fleetProxyAddress as Address | undefined
-  const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
+  const accessManagerAddress = getAccessManagerAddress(config)
 
   // Get other parameters from user
   const responses = await prompts([

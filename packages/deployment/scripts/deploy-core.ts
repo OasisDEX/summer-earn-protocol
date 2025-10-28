@@ -3,9 +3,15 @@ import kleur from 'kleur'
 import { Address, keccak256, toBytes } from 'viem'
 import { CoreContracts, CoreModule } from '../ignition/modules/core'
 import { BaseConfig } from '../types/config-types'
-import { ADDRESS_ZERO } from './lib/infrastructure/constants'
-import { checkExistingContracts } from './lib/contracts/verification'
+import {
+  getAccessManagerAddress,
+  getSwapProviderAddress,
+  getTimelockAddress,
+  getWethAddress,
+} from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
+import { checkExistingContracts } from './lib/contracts/verification'
+import { ADDRESS_ZERO } from './lib/infrastructure/constants'
 import { ModuleLogger } from './lib/infrastructure/logger'
 import { promptForConfigType } from './lib/infrastructure/prompts'
 import { updateIndexJson } from './lib/infrastructure/update-json'
@@ -40,23 +46,20 @@ async function deployCoreContracts(
   console.log(kleur.cyan().bold('Deploying Core Contracts...'))
 
   checkExistingContracts(config, 'core')
-  if (config.deployedContracts.gov.protocolAccessManager.address === ADDRESS_ZERO) {
-    throw new Error('ProtocolAccessManager is not deployed')
-  }
-  if (config.deployedContracts.gov.timelock.address === ADDRESS_ZERO) {
-    throw new Error('TimelockController is not deployed')
-  }
-  if (config.common.swapProvider === ADDRESS_ZERO) {
-    throw new Error('SwapProvider is not deployed')
-  }
+
+  // Validate required addresses using getters
+  const protocolAccessManager = getAccessManagerAddress(config)
+  const timelock = getTimelockAddress(config)
+  const swapProvider = getSwapProviderAddress(config)
+  const weth = getWethAddress(config)
 
   const core = await hre.ignition.deploy(CoreModule, {
     parameters: {
       CoreModule: {
-        swapProvider: config.common.swapProvider,
-        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
-        treasury: config.deployedContracts.gov.timelock.address,
-        weth: config.tokens.weth,
+        swapProvider,
+        protocolAccessManager,
+        treasury: timelock,
+        weth,
       },
     },
   })

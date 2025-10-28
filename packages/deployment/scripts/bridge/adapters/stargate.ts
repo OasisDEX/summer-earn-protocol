@@ -3,6 +3,13 @@ import kleur from 'kleur'
 import { Address, WalletClient, getAddress } from 'viem'
 import stargateConfig from '../../../config/adapters/stargate.json'
 import StargateAdapterModule from '../../../ignition/modules/adapters/stargate'
+import {
+  getAccessManagerAddress,
+  getChainIdFromConfig,
+  getCrossChainRegistryAddress,
+  getHarborCommandAddress,
+  getLayerZeroEndpoint,
+} from '../../lib/config/getters'
 import { waitForTransactionConfirmation, writeContractTx } from '../../lib/contracts/transactions'
 import {
   BRIDGE_ROUTER_REGISTER_ADAPTER_ABI,
@@ -31,31 +38,19 @@ export async function deployStargateAdapter(
   console.log(kleur.blue('Deploying Stargate V2 adapter using Ignition module'))
 
   // Get current chain ID
-  const chainId = Number(networkConfig.common.chainId)
+  const chainId = getChainIdFromConfig(networkConfig)
 
   // Get the crossChainRegistry address from network config
-  const crossChainRegistry = networkConfig.deployedContracts.bridge?.crossChainRegistry?.address
-  if (!crossChainRegistry) {
-    throw new Error(`CrossChainRegistry address not found in config for chain ID ${chainId}`)
-  }
+  const crossChainRegistry = getCrossChainRegistryAddress(networkConfig)
 
   // Get the access manager address from network config
-  const accessManager = networkConfig.deployedContracts.gov.protocolAccessManager.address
-  if (!accessManager) {
-    throw new Error(`ProtocolAccessManager address not found in config for chain ID ${chainId}`)
-  }
+  const accessManager = getAccessManagerAddress(networkConfig)
 
   // Get LayerZero endpoint from network config
-  const lzEndpoint = networkConfig.common.layerZero.lzEndpoint
-  if (!lzEndpoint) {
-    throw new Error(`LayerZero endpoint not configured for chain ID ${chainId}`)
-  }
+  const lzEndpoint = getLayerZeroEndpoint(networkConfig)
 
   // Get HarborCommand address from network config
-  const harborCommand = networkConfig.deployedContracts.core.harborCommand.address
-  if (!harborCommand) {
-    throw new Error(`HarborCommand address not found in config for chain ID ${chainId}`)
-  }
+  const harborCommand = getHarborCommandAddress(networkConfig)
 
   // Deploy using Ignition module - all 4 constructor parameters needed
   const deploymentResult = await hre.ignition.deploy(StargateAdapterModule, {
