@@ -48,7 +48,6 @@ contract FleetCommanderConfigProviderWhitelist is
         FleetCommanderParams memory params
     )
         ProtocolAccessManaged(params.accessManager)
-        FleetCommanderPausable()
         ConfigurationManaged(params.configurationManager)
     {
         BufferArk _bufferArk = new BufferArk(
