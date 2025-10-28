@@ -51,7 +51,6 @@
     "verify:sonic": "hardhat ignition verify chain-146",
     "visualize:core": "hardhat ignition visualize ./ignition/modules/fleet.ts",
     "create-distributions-tx": "hardhat run scripts/governance/create-distributions-transaction-safe.ts --network $NETWORK",
-    "whitelist-vesting-wallets-tx": "hardhat run scripts/governance/whitelist-vesting-wallets-safe.ts --network $NETWORK",
     "generate-merkle-root": "tsx scripts/generate-merkle-root.ts",
     "update-fleet-configurations": "tsx scripts/governance/update-fleet-configurations-safe.ts",
     "configure:new-chain-layerzero": "hardhat run scripts/bridge/configure-lz-peers.ts --network $NETWORK --no-compile",

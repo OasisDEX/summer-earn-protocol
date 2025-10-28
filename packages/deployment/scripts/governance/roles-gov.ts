@@ -1,6 +1,8 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address } from 'viem'
+import { BaseConfig } from '../../types/config-types'
+import { getConfigByNetwork } from '../lib/config/handler'
 import {
   CANCELLER_ROLE,
   DECAY_CONTROLLER_ROLE,
@@ -8,7 +10,6 @@ import {
   GOVERNOR_ROLE,
   PROPOSER_ROLE,
 } from '../lib/infrastructure/constants'
-import { getConfigByNetwork } from '../lib/config/handler'
 
 /**
  * @dev Post-deployment governance setup
@@ -34,7 +35,7 @@ export async function rolesGov(_additionalGovernors: string[] = [], useBummerCon
     hre.network.name,
     { common: false, gov: true, core: false },
     useBummerConfig,
-  )
+  ) as BaseConfig
 
   const publicClient = await hre.viem.getPublicClient()
 
@@ -49,20 +50,6 @@ export async function rolesGov(_additionalGovernors: string[] = [], useBummerCon
     config.deployedContracts.gov.summerToken.address as Address,
   )
   const deployerBalance = await summerToken.read.balanceOf([deployer])
-
-  const isDeployerWhitelisted = await summerToken.read.whitelistedAddresses([deployer])
-  if (!isDeployerWhitelisted) {
-    console.log(`DEPLOYER - adding to whitelist...`)
-    const addToWhitelistHash = await summerToken.write.addToWhitelist([deployer])
-    await publicClient.waitForTransactionReceipt({ hash: addToWhitelistHash })
-  }
-
-  const isMultisigWhitelisted = await summerToken.read.whitelistedAddresses([multisigTokenReceiver])
-  if (!isMultisigWhitelisted) {
-    console.log(`MULTISIG - adding to whitelist...`)
-    const addToWhitelistHash = await summerToken.write.addToWhitelist([multisigTokenReceiver])
-    await publicClient.waitForTransactionReceipt({ hash: addToWhitelistHash })
-  }
 
   console.log(`DEPLOYER - transferring ${deployerBalance} tokens to multisig...`)
   const transferHash = await summerToken.write.transfer([multisigTokenReceiver, deployerBalance])

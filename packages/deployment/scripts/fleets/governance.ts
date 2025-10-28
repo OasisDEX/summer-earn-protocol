@@ -3,17 +3,16 @@ import kleur from 'kleur'
 import _, { capitalize } from 'lodash'
 import path from 'path'
 import { Address, encodeFunctionData, Hex, parseAbi, PublicClient } from 'viem'
-import SummerTokenABI from '../../artifacts/src/contracts/SummerToken.sol/SummerToken.json'
 import { FleetContracts } from '../../../ignition/modules/fleet'
 import { BaseConfig, FleetConfig } from '../../../types/config-types'
-import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../lib/infrastructure/constants'
 import { getChainConfigByChainId } from '../lib/chain/config'
 import { getConfigByNetwork } from '../lib/config/handler'
+import { createGovernanceProposal, ProposalContent } from '../lib/governance/proposals'
+import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../lib/infrastructure/constants'
 import { hashDescription } from '../lib/infrastructure/hash-description'
+import { createClients } from '../lib/infrastructure/wallet'
 import { prepareBridgeTransaction } from '../lib/layerzero/bridge'
 import { constructLzOptions } from '../lib/layerzero/options'
-import { createGovernanceProposal, ProposalContent } from '../lib/governance/proposals'
-import { createClients } from '../lib/infrastructure/wallet'
 import { getRewardsManagerAddress } from './deployment'
 
 export interface FleetSingleChainContent extends ProposalContent {
@@ -429,41 +428,8 @@ export async function prepareRewardSetupActions(
   const values: bigint[] = []
   const calldatas: Hex[] = []
 
-  console.log(kleur.yellow('Checking if timelock is whitelisted as a rewarder'))
-  console.log(kleur.yellow('Timelock:'), timelock)
-  console.log(kleur.yellow('Summer token address:'), summerTokenAddress)
-  // Add action to whitelist timelock as a rewarder if provided
-  const isTimelockWhitelisted = await publicClient.readContract({
-    address: summerTokenAddress,
-    abi: SummerTokenABI.abi,
-    functionName: 'whitelistedAddresses',
-    args: [timelock],
-  })
-  console.log(kleur.yellow('Is timelock whitelisted:'), isTimelockWhitelisted)
-
-  if (!isTimelockWhitelisted) {
-    console.log(kleur.yellow('Timelock is not whitelisted as a rewarder, adding to whitelist'))
-    targets.push(summerTokenAddress)
-    values.push(0n)
-    calldatas.push(
-      encodeFunctionData({
-        abi: SummerTokenABI.abi,
-        functionName: 'addToWhitelist',
-        args: [timelock],
-      }) as Hex,
-    )
-  }
-
-  console.log(kleur.yellow('Whitelisting rewards manager as a rewarder'))
-  targets.push(summerTokenAddress)
-  values.push(0n)
-  calldatas.push(
-    encodeFunctionData({
-      abi: SummerTokenABI.abi,
-      functionName: 'addToWhitelist',
-      args: [rewardsManagerAddress],
-    }) as Hex,
-  )
+  console.log(kleur.yellow('Whitelist functionality removed from SummerToken'))
+  console.log(kleur.yellow('Transfers are now managed via enableTransfers() function only'))
 
   for (let i = 0; i < rewardTokens.length; i++) {
     // Add action to approve token transfer to rewards manager
