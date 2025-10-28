@@ -9,10 +9,19 @@ import { StargateContractValidator } from './stargate-validation-service'
 import { BaseConfig } from './types'
 
 /**
+ * Contract instance interface for Stargate adapter
+ */
+export interface StargateAdapterContract {
+  read: {
+    assetToStargateContract: (args: [Address]) => Promise<string>
+  }
+}
+
+/**
  * Configuration for asset operations
  */
 export interface AssetConfigurationParams {
-  stargateAdapter: any
+  stargateAdapter: StargateAdapterContract
   walletClient: WalletClient
   stargateAdapterAddress: Address
   currentChainId: number
