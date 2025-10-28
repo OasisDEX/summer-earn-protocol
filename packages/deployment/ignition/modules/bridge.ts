@@ -5,7 +5,6 @@ import { Address } from 'viem'
 export default buildModule('BridgeModule', (m) => {
   // Get the ProtocolAccessManager address from the config
   const protocolAccessManager = m.getParameter<Address>('protocolAccessManager')
-  const currentChainId = m.getParameter('currentChainId')
 
   /**
    * @dev Deploy CrossChainRegistry first
@@ -13,12 +12,9 @@ export default buildModule('BridgeModule', (m) => {
    * The CrossChainRegistry manages cross-chain relationships between
    * CrossChainArk and FleetProxy contracts. It requires:
    * - ProtocolAccessManager for access control
-   * - Current chain ID for cross-chain identification
+   * - Current chain ID is automatically set from block.chainid
    */
-  const crossChainRegistry = m.contract('CrossChainRegistry', [
-    protocolAccessManager,
-    currentChainId,
-  ])
+  const crossChainRegistry = m.contract('CrossChainRegistry', [protocolAccessManager])
 
   // Deploy BridgeRouter with CrossChainRegistry address
   const bridgeRouter = m.contract('BridgeRouter', [protocolAccessManager, crossChainRegistry])

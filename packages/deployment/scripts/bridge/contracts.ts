@@ -63,7 +63,6 @@ export async function deployBridgeContracts(
     const parameters = {
       BridgeModule: {
         protocolAccessManager,
-        currentChainId: chainId,
       },
     }
 
