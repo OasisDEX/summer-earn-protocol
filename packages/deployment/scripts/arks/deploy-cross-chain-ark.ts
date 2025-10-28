@@ -20,7 +20,6 @@ import {
 import {
   getCrossChainAssetForProtocol,
   getFleetProxyAddress,
-  getProtocolConfig,
 } from '../lib/config/cross-chain-getters'
 import {
   getAccessManagerAddress,
@@ -217,9 +216,6 @@ export async function deployCrossChainArk(
     targetProtocol = selectedProtocol
   }
 
-  // Find the protocol configuration
-  const protocolConfig = getProtocolConfig(crossChainConfig, targetChainId, targetProtocol)
-
   const userInput =
     arkParams ||
     (await getUserInput(
@@ -230,11 +226,16 @@ export async function deployCrossChainArk(
       crossChainConfig,
     ))
 
-  // Validate required parameters if arkParams was provided
+  // Auto-populate bridge addresses from config if not provided in arkParams
   if (arkParams) {
     if (!arkParams.bridgeRouter) {
-      console.error(kleur.red('Bridge Router address is required in arkParams.'))
-      throw new Error('Bridge Router address is required')
+      arkParams.bridgeRouter = getBridgeRouterAddress(config)
+    }
+    if (!arkParams.crossChainRegistry) {
+      arkParams.crossChainRegistry = getCrossChainRegistryAddress(config)
+    }
+    if (!arkParams.accessManager) {
+      arkParams.accessManager = getAccessManagerAddress(config)
     }
   }
 
@@ -283,7 +284,6 @@ async function findMatchingConfigFile(
  * @param {string} configName - The name of the config file (without extension).
  * @param {number} targetChainId - The target chain ID.
  * @param {string} targetProtocol - The target protocol.
- * @param {object} protocolConfig - Protocol configuration.
  * @returns {Promise<object>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput(

@@ -257,13 +257,6 @@ export async function deployArk(
         throw new Error('CrossChainArk requires targetChainId and protocol parameters')
       }
 
-      // Get bridge components from config
-      const bridgeRouter = config.deployedContracts.bridge?.bridgeRouter?.address as Address
-
-      if (!bridgeRouter) {
-        throw new Error('Bridge Router not found in config')
-      }
-
       // Get cross-chain config
       const configDir = path.join(process.cwd(), 'config', 'cross-chain')
       const configFiles = fs.readdirSync(configDir).filter((file) => file.endsWith('.json'))
@@ -290,7 +283,7 @@ export async function deployArk(
         ...baseArkParams,
         targetChainId,
         targetProtocol,
-        bridgeRouter,
+        // bridgeRouter removed - will be auto-populated
         ...protocol,
       })
       break
