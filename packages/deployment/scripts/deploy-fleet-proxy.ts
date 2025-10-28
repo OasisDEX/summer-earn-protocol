@@ -6,13 +6,24 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { createFleetProxyModule } from '../ignition/modules/fleet-proxy'
 import { BaseConfig } from '../types/config-types'
-import { loadCrossChainConfig, saveCrossChainConfig } from './lib/config/cross-chain'
+import {
+  createSatellitePhaseConfig,
+  getCrossChainConfigStatus,
+  loadCrossChainConfig,
+  mergeCrossChainConfig,
+  saveCrossChainConfig,
+} from './lib/config/cross-chain'
 import {
   getAccessManagerAddress,
   getBridgeRouterAddress,
   getCrossChainRegistryAddress,
 } from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
+import {
+  printValidationErrors,
+  printValidationSuccess,
+  validateSatellitePhasePrerequisites,
+} from './lib/cross-chain/validation'
 import { handleDeploymentId } from './lib/infrastructure/deployment-id-handler'
 import { getChainIdByNetwork } from './lib/infrastructure/get-chainid'
 import { continueDeploymentCheck } from './lib/infrastructure/prompts'
@@ -39,6 +50,7 @@ interface FleetProxyParams {
 export async function deployFleetProxy() {
   console.log(kleur.green().bold('Starting FleetProxy deployment process...'))
   console.log(kleur.yellow('Note: FleetProxy should be deployed on the satellite chain.'))
+  console.log(kleur.cyan('This creates Phase 1 of the cross-chain configuration.'))
 
   // Ask about using bummer config
   const { useBummerConfig } = await prompts({
@@ -60,6 +72,14 @@ export async function deployFleetProxy() {
     useBummerConfig,
   ) as BaseConfig
 
+  // Validate prerequisites
+  const validation = validateSatellitePhasePrerequisites(config)
+  if (!validation.isValid) {
+    printValidationErrors(validation.errors, 'satellite')
+    throw new Error('Prerequisites not met for satellite phase deployment')
+  }
+  printValidationSuccess('satellite')
+
   // Get user input for deployment parameters
   const userInput = await getUserInput(config, useBummerConfig)
 
@@ -70,18 +90,19 @@ export async function deployFleetProxy() {
     console.log(kleur.green().bold('FleetProxy successfully deployed at:'), fleetProxyAddress)
     console.log(kleur.green('Deployment recorded in cross-chain configuration.'))
 
-    // Optional step: Ask if CrossChain Ark has been deployed and save its address
-    await promptForCrossChainArkAddress(
-      userInput.fleetName,
-      userInput.protocol,
-      userInput.sourceChainId,
-    )
+    // Create or update cross-chain config in Phase 1
+    await updateCrossChainConfigPhase1(userInput, fleetProxyAddress)
 
+    console.log(kleur.green().bold('✅ Phase 1 (Satellite) Complete!'))
+    console.log(kleur.yellow('Next steps:'))
+    console.log(kleur.cyan('1. Switch to the source chain network'))
+    console.log(kleur.cyan('2. Deploy hub fleet (if not already deployed)'))
     console.log(
-      kleur.green('Note: Deploy CrossChainArk on the source chain if not already deployed.'),
+      kleur.cyan(
+        '3. Deploy CrossChainArk: npx hardhat run scripts/arks/deploy-cross-chain-ark.ts --network <source>',
+      ),
     )
-    console.log(kleur.green('Cross-chain connectivity can be configured at any time.'))
-    console.log(kleur.green('Bridge options will be provided by keepers at execution time.'))
+    console.log(kleur.cyan('4. Register relationships on both chains'))
 
     return fleetProxyAddress
   } else {
@@ -244,37 +265,7 @@ async function deployFleetProxyContract(
     const fleetProxyContract = result as unknown as { fleetProxy: { address: Address } }
     const fleetProxyAddress = fleetProxyContract.fleetProxy.address
 
-    // Save the FleetProxy address to cross-chain config
-    const existingConfig = loadCrossChainConfig(fleetName) || {
-      fleetName,
-      sourceChainId: 0,
-      hubFleetAddress: '',
-      hubFleetName: '',
-      satelliteFleetName: '',
-      destinations: [],
-    }
-
-    saveCrossChainConfig(fleetName, {
-      ...existingConfig,
-      sourceChainId: chainId,
-      destinations: existingConfig.destinations.map((dest) => ({
-        ...dest,
-        protocols: dest.protocols.map((protocol) =>
-          protocol.protocol === params.protocol
-            ? { ...protocol, fleetProxyAddress: fleetProxyAddress }
-            : protocol,
-        ),
-      })),
-    })
-
-    // Make sure the source chain ID is updated in the config
-    const crossChainConfig = loadCrossChainConfig(fleetName)
-    if (crossChainConfig && crossChainConfig.sourceChainId === 0) {
-      saveCrossChainConfig(fleetName, {
-        ...crossChainConfig,
-        sourceChainId: params.sourceChainId,
-      })
-    }
+    // Cross-chain config will be updated by updateCrossChainConfigPhase1 function
 
     console.log(
       kleur.yellow('Note: Remember to set the source chain ark address using the governor account'),
@@ -288,63 +279,52 @@ async function deployFleetProxyContract(
 }
 
 /**
- * Optional step to prompt user for CrossChain Ark address and save it to config
+ * Updates cross-chain config in Phase 1 (satellite deployment)
  */
-async function promptForCrossChainArkAddress(
-  fleetName: string,
-  protocol: string,
-  sourceChainId: number,
+async function updateCrossChainConfigPhase1(
+  userInput: FleetProxyParams,
+  fleetProxyAddress: Address,
 ): Promise<void> {
-  console.log(kleur.yellow('\n--- Optional: CrossChain Ark Configuration ---'))
+  const existingConfig = loadCrossChainConfig(userInput.fleetName)
 
-  const { hasCrossChainArk } = await prompts({
-    type: 'confirm',
-    name: 'hasCrossChainArk',
-    message: 'Has the corresponding CrossChain Ark been deployed on the source chain?',
-    initial: false,
-  })
-
-  if (hasCrossChainArk) {
-    const { crossChainArkAddress } = await prompts({
-      type: 'text',
-      name: 'crossChainArkAddress',
-      message: 'Enter the CrossChain Ark address:',
-      validate: (value: string) => {
-        if (!value || value.trim() === '') {
-          return 'CrossChain Ark address is required'
-        }
-        if (!value.startsWith('0x') || value.length !== 42) {
-          return 'Please enter a valid Ethereum address (0x...)'
-        }
-        return true
-      },
+  if (existingConfig) {
+    // Update existing config with FleetProxy address
+    const updatedConfig = mergeCrossChainConfig(existingConfig, {
+      destinations: existingConfig.destinations.map((dest) => ({
+        ...dest,
+        protocols: dest.protocols.map((protocol) =>
+          protocol.protocol === userInput.protocol
+            ? { ...protocol, fleetProxyAddress: fleetProxyAddress }
+            : protocol,
+        ),
+      })),
     })
 
-    if (crossChainArkAddress) {
-      // Save the CrossChain Ark address to the cross-chain config
-      const existingConfig = loadCrossChainConfig(fleetName)
-      if (existingConfig) {
-        saveCrossChainConfig(fleetName, {
-          ...existingConfig,
-          destinations: existingConfig.destinations.map((dest) => ({
-            ...dest,
-            protocols: dest.protocols.map((protocolItem) =>
-              protocolItem.protocol === protocol
-                ? { ...protocolItem, crossChainArkAddress: crossChainArkAddress.trim() }
-                : protocolItem,
-            ),
-          })),
-        })
-      }
-
-      console.log(
-        kleur.green(`✓ CrossChain Ark address saved to configuration: ${crossChainArkAddress}`),
-      )
-      console.log(kleur.green('✓ Cross-chain configuration is now complete!'))
-    }
+    saveCrossChainConfig(userInput.fleetName, updatedConfig)
+    console.log(kleur.green('✓ Updated existing cross-chain configuration'))
   } else {
-    console.log(kleur.yellow('CrossChain Ark address can be added later when deployed.'))
-    console.log(kleur.yellow('Use the cross-chain config helper to update the configuration.'))
+    // Create new Phase 1 config
+    const newConfig = createSatellitePhaseConfig(
+      userInput.fleetName,
+      userInput.fleetName, // satelliteFleetName same as fleetName for now
+      {
+        chainId: userInput.sourceChainId,
+        name: `chain-${userInput.sourceChainId}`,
+        fleetProxyAddress: fleetProxyAddress,
+        satelliteFleetAddress: userInput.fleetContract,
+        protocol: userInput.protocol,
+      },
+    )
+
+    saveCrossChainConfig(userInput.fleetName, newConfig)
+    console.log(kleur.green('✓ Created new cross-chain configuration (Phase 1)'))
+  }
+
+  // Show current status
+  const status = getCrossChainConfigStatus(userInput.fleetName)
+  console.log(kleur.blue(`Current phase: ${status.phase}`))
+  if (status.missingFields.length > 0) {
+    console.log(kleur.yellow(`Missing: ${status.missingFields.join(', ')}`))
   }
 }
 

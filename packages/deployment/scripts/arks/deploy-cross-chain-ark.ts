@@ -10,10 +10,22 @@ import {
 } from '../../ignition/modules/arks/cross-chain-ark'
 import { BaseConfig } from '../../types/config-types'
 import {
+  getCrossChainConfigStatus,
+  loadCrossChainConfig,
+  mergeCrossChainConfig,
+  saveCrossChainConfig,
+  validateCrossChainConfigPhase,
+} from '../lib/config/cross-chain'
+import {
   getAccessManagerAddress,
   getBridgeRouterAddress,
   getCrossChainRegistryAddress,
 } from '../lib/config/getters'
+import {
+  printValidationErrors,
+  printValidationSuccess,
+  validateHubPhasePrerequisites,
+} from '../lib/cross-chain/validation'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'
@@ -46,19 +58,16 @@ export async function deployCrossChainArk(
 ) {
   console.log(kleur.green().bold('Starting CrossChainArk deployment process...'))
   console.log(kleur.yellow('Note: CrossChainArk should be deployed on the source chain.'))
-  console.log(kleur.yellow('FleetProxy can be deployed on the satellite chain before or after.'))
-  console.log(kleur.yellow('Deployment steps:'))
-  console.log(kleur.cyan('1. Deploy bridge components on the source and satellite chains'))
-  console.log(kleur.cyan('2. Deploy CrossChainArk on the source chain (this step)'))
-  console.log(
-    kleur.cyan('3. Deploy FleetProxy on the satellite chain (optional, can be done later)'),
-  )
-  console.log(kleur.cyan('4. Configure CrossChainArk and FleetProxy to point to each other'))
-  console.log(
-    kleur.yellow('Note: These components can be deployed in any order and configured later.'),
-  )
-  console.log(kleur.yellow('Bridge options will be provided by keepers at execution time.'))
+  console.log(kleur.cyan('This creates Phase 2 of the cross-chain configuration.'))
   console.log()
+
+  // Validate prerequisites
+  const validation = validateHubPhasePrerequisites(config)
+  if (!validation.isValid) {
+    printValidationErrors(validation.errors, 'hub')
+    throw new Error('Prerequisites not met for hub phase deployment')
+  }
+  printValidationSuccess('hub')
 
   // If fleetName is not provided in arkParams, prompt for it
   let fleetName: string | undefined = arkParams?.fleetName
@@ -471,5 +480,71 @@ async function deployCrossChainArkContract(
     console.log(kleur.yellow('No target proxy provided. You will need to set it later.'))
   }
 
+  // Update cross-chain config in Phase 2
+  await updateCrossChainConfigPhase2(fleetName, result.crossChainArk.address, userInput)
+
   return { crossChainArk: result.crossChainArk }
+}
+
+/**
+ * Updates cross-chain config in Phase 2 (hub deployment)
+ */
+async function updateCrossChainConfigPhase2(
+  fleetName: string,
+  crossChainArkAddress: Address,
+  userInput: any,
+): Promise<void> {
+  const existingConfig = loadCrossChainConfig(fleetName)
+
+  if (!existingConfig) {
+    console.log(kleur.yellow('No existing cross-chain config found. Creating new config...'))
+    // This shouldn't happen in normal flow, but handle gracefully
+    return
+  }
+
+  // Validate that we have a Phase 1 config
+  const satelliteValidation = validateCrossChainConfigPhase(existingConfig, 'satellite')
+  if (!satelliteValidation.isValid) {
+    console.log(kleur.red('Cross-chain config is not in valid satellite phase. Cannot proceed.'))
+    console.log(kleur.red('Please deploy FleetProxy first.'))
+    return
+  }
+
+  // Update config with hub information
+  const updatedConfig = mergeCrossChainConfig(existingConfig, {
+    sourceChainId: userInput.sourceChainId || (await getChainId()),
+    hubFleetAddress: userInput.hubFleetAddress || '', // Will be set when hub fleet is deployed
+    hubFleetName: userInput.hubFleetName || fleetName,
+    destinations: existingConfig.destinations.map((dest) => ({
+      ...dest,
+      protocols: dest.protocols.map((protocol) =>
+        protocol.protocol === userInput.targetProtocol
+          ? { ...protocol, crossChainArkAddress: crossChainArkAddress }
+          : protocol,
+      ),
+    })),
+  })
+
+  saveCrossChainConfig(fleetName, updatedConfig)
+  console.log(kleur.green('✓ Updated cross-chain configuration (Phase 2)'))
+
+  // Show current status
+  const status = getCrossChainConfigStatus(fleetName)
+  console.log(kleur.blue(`Current phase: ${status.phase}`))
+  if (status.missingFields.length > 0) {
+    console.log(kleur.yellow(`Missing: ${status.missingFields.join(', ')}`))
+  }
+
+  console.log(kleur.green().bold('✅ Phase 2 (Hub) Complete!'))
+  console.log(kleur.yellow('Next steps:'))
+  console.log(
+    kleur.cyan(
+      '1. Register relationships: npx hardhat run scripts/cross-chain/register-relationships.ts --network <chain>',
+    ),
+  )
+  console.log(
+    kleur.cyan(
+      '2. Verify setup: npx hardhat run scripts/cross-chain/verify-setup.ts --network <chain>',
+    ),
+  )
 }
