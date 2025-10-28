@@ -574,6 +574,9 @@
           "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2",
           "Euler_Swaap_Lend": "0x716bF454066a84F39A2F78b5707e79a9d64f1225",
           "Term_re7_weth": "0xd5e617420b9ea0be28751435b647328d63b10368"
+        },
+        "usds": {
+          "Sky_Staked_USDS": "0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9"
         }
       },
       "pendle": {

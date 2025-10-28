@@ -18,6 +18,7 @@ import { deployOriginETHArk } from '../arks/deploy-origineth-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
+import { deployPsmERC4626Ark } from '../arks/deploy-psm-erc4626-ark'
 import { deploySiloArk } from '../arks/deploy-silo-ark'
 import { deploySiloArkV2 } from '../arks/deploy-silo-ark-v2'
 import { deploySiloManagedVaultArk } from '../arks/deploy-silo-managed-vault-ark'
@@ -47,6 +48,7 @@ export type ArkConfig = {
     depositCap?: string // For FluidLiteArk
     maxRebalanceOutflow?: string // For FluidLiteArk
     maxRebalanceInflow?: string // For FluidLiteArk
+    vaultToken?: string // for arks with underlying token different than fleet asset
   }
 }
 
@@ -387,6 +389,39 @@ export async function deployArk(
       deployedArk = ark
       break
     }
+    case ArkType.PsmLiteERC4626Ark: {
+      const vaultToken = validateToken(config, arkConfig.params.vaultToken || '')
+      const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626VaultId = validateErc4626Address(
+        config.protocolSpecific.erc4626[vaultToken][erc4626VaultName],
+        `ERC4626-${erc4626VaultName}`,
+      )
+      deployedArk = await deployPsmERC4626Ark(config, {
+        ...baseArkParams,
+        psmType: 'psmlite',
+        vaultToken: config.tokens[vaultToken],
+        vaultId: erc4626VaultId,
+        vaultName: erc4626VaultName,
+      })
+      break
+    }
+
+    case ArkType.Psm3ERC4626Ark: {
+      const vaultToken = validateToken(config, arkConfig.params.vaultToken || '')
+      const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626VaultId = validateErc4626Address(
+        config.protocolSpecific.erc4626[vaultToken][erc4626VaultName],
+        `ERC4626-${erc4626VaultName}`,
+      )
+      deployedArk = await deployPsmERC4626Ark(config, {
+        ...baseArkParams,
+        psmType: 'psm3',
+        vaultToken: config.tokens[vaultToken],
+        vaultId: erc4626VaultId,
+        vaultName: erc4626VaultName,
+      })
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${type}`)
   }
@@ -502,7 +537,15 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
       deployedArk = await deployFluidLiteArk(config)
       break
     }
+    case ArkType.PsmLiteERC4626Ark: {
+      deployedArk = await deployPsmERC4626Ark(config)
+      break
+    }
 
+    case ArkType.Psm3ERC4626Ark: {
+      deployedArk = await deployPsmERC4626Ark(config)
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${arkType}`)
   }

@@ -35,6 +35,8 @@ export enum ArkType {
   StargateV2PoolArk = 'StargateV2PoolArk',
   SiUSDArk = 'SiUSDArk',
   FluidFTokenArk = 'FluidFTokenArk',
+  PsmLiteERC4626Ark = 'PsmLiteERC4626Ark',
+  Psm3ERC4626Ark = 'Psm3ERC4626Ark',
 }
 
 export const arkTypes = [
@@ -62,6 +64,8 @@ export const arkTypes = [
   { title: 'StargateV2PoolArk', value: ArkType.StargateV2PoolArk },
   { title: 'SiUSDArk', value: ArkType.SiUSDArk },
   { title: 'FluidFTokenArk', value: ArkType.FluidFTokenArk },
+  { title: 'PsmLiteERC4626Ark', value: ArkType.PsmLiteERC4626Ark },
+  { title: 'Psm3ERC4626Ark', value: ArkType.Psm3ERC4626Ark },
 ]
 
 export interface Config {
