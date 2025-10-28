@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
 import { Address, Hex } from 'viem'
-import { createTallyProposal, formatTallyProposalUrl } from './tally-helpers'
+import { createTallyProposal, formatTallyProposalUrl } from './tally'
 
 interface ProposalAction {
   target: Address
