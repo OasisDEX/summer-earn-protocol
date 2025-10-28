@@ -5,8 +5,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { FleetContracts } from '../../../ignition/modules/fleet'
-import { BaseConfig, FleetConfig, FleetDeployment } from '../../../types/config-types'
+import { FleetContracts } from '../../ignition/modules/fleet'
+import { BaseConfig, FleetConfig, FleetDeployment } from '../../types/config-types'
 import { deployArk } from '../arks/deployment'
 import { GOVERNOR_ROLE } from '../lib/infrastructure/constants'
 import { FleetConfigSchema, FleetDeploymentSchema } from '../lib/infrastructure/zod-schemas'
@@ -236,7 +236,7 @@ export async function deployArks(
         retries++
         console.log(
           kleur.yellow().bold(`Deployment attempt ${retries} failed, retrying in 13 seconds...`),
-          kleur.yellow(error),
+          kleur.yellow(error instanceof Error ? error.message : String(error)),
         )
         await new Promise((resolve) => setTimeout(resolve, DELAY))
       }
@@ -437,7 +437,7 @@ export async function getRewardsManagerAddress(fleetCommander: Address): Promise
       args: {
         fleetCommander: fleetCommander,
       },
-      fromBlock: isSonic ? '0xca0d5e' : 'earliest',
+      fromBlock: isSonic ? BigInt(0xca0d5e) : 'earliest',
     })
 
     console.log(`Found ${logs.length} logs`)

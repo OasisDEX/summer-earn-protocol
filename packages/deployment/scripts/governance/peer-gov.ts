@@ -2,9 +2,9 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address, Hex } from 'viem'
-import { SupportedNetworks } from '../../../types/config-types'
-import { ADDRESS_ZERO } from '../lib/infrastructure/constants'
+import { SupportedNetworks } from '../../types/config-types'
 import { getConfigByNetwork } from '../lib/config/handler'
+import { ADDRESS_ZERO } from '../lib/infrastructure/constants'
 import { configureNewChainLayerZero } from './bridge/configure-new-chain-lz'
 
 interface PeerConfig {
