@@ -465,13 +465,6 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
-    function setMinimumPauseTime(
-        uint256 _newMinimumPauseTime
-    ) public onlyGovernor whenNotPaused {
-        _setMinimumPauseTime(_newMinimumPauseTime);
-    }
-
-    /// @inheritdoc IFleetCommanderWhitelist
     function pause() external onlyGovernor {
         _pause();
     }

@@ -1,11 +1,11 @@
 import fs from 'fs'
 import kleur from 'kleur'
 import path from 'path'
-import { CoreContracts } from '../../ignition/modules/core'
-import { GovContracts } from '../../ignition/modules/gov'
-import { BaseConfig, Config } from '../../types/config-types'
-import { readInstitutionConfigFile } from './institution-config'
-import { validateAddress, validateNumber } from './validation'
+import { CoreContracts } from '../../../ignition/modules/core'
+import { GovContracts } from '../../../ignition/modules/gov'
+import { BaseConfig, Config } from '../../../types/config-types'
+import { readInstitutionConfigFile } from './institution'
+import { validateAddress, validateNumber } from '../infrastructure/validation'
 
 type ValidateConfig = {
   common?: boolean

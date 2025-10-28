@@ -45,11 +45,12 @@ contract FleetCommanderConfigProviderWhitelist is
 
     bool public transfersEnabled;
 
+    event TransfersEnabled();
+
     constructor(
         FleetCommanderParams memory params
     )
         ProtocolAccessManaged(params.accessManager)
-        FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
         ConfigurationManaged(params.configurationManager)
     {
         BufferArk _bufferArk = new BufferArk(
@@ -73,8 +74,8 @@ contract FleetCommanderConfigProviderWhitelist is
             minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-            // stakingRewardsManager is set to address(0) in the constructor - not used anymore in the whitelist version
-            stakingRewardsManager: address(0)
+            rebalanceCooldown: params.initialRebalanceCooldown,
+            withdrawalFee: params.initialWithdrawalFee
         });
         details = params.details;
     }
