@@ -15,6 +15,95 @@ import { getConfigByNetwork } from './lib/config/handler'
 import { promptForConfigType, promptYesNo } from './lib/infrastructure/prompts'
 import { updateIndexJson } from './lib/infrastructure/update-json'
 
+// Helper function types
+interface ExistingAdapterAddresses {
+  layerZero?: Address
+  stargate?: Address
+}
+
+/**
+ * Extract existing adapter addresses from configuration
+ */
+function getExistingAdapterAddresses(config: BaseConfig): ExistingAdapterAddresses {
+  return {
+    layerZero: config.deployedContracts.bridge?.adapters?.layerZero?.address as Address,
+    stargate: config.deployedContracts.bridge?.adapters?.stargate?.address as Address,
+  }
+}
+
+/**
+ * Log deployed adapter addresses
+ */
+function logDeployedAdapters(deployedAdapters: DeployedBridgeAdapters): void {
+  if (deployedAdapters.layerZero) {
+    console.log('- LayerZeroAdapter:', deployedAdapters.layerZero.address)
+  }
+
+  if (deployedAdapters.stargate) {
+    console.log('- StargateAdapter:', deployedAdapters.stargate.address)
+  }
+}
+
+/**
+ * Update bridge configuration with deployed adapters and save to JSON
+ */
+async function updateBridgeConfigWithAdapters(
+  config: BaseConfig,
+  deployedAdapters: DeployedBridgeAdapters,
+  network: string,
+  useBummerConfig: boolean,
+): Promise<void> {
+  console.log(kleur.blue('Updating configuration with deployed addresses...'))
+
+  // Ensure bridge config exists
+  if (!config.deployedContracts.bridge) {
+    throw new Error('Bridge configuration is missing')
+  }
+
+  // Add adapters to the bridge configuration
+  if (!config.deployedContracts.bridge.adapters) {
+    config.deployedContracts.bridge.adapters = {}
+  }
+
+  if (deployedAdapters.layerZero) {
+    config.deployedContracts.bridge.adapters.layerZero = deployedAdapters.layerZero
+  }
+
+  if (deployedAdapters.stargate) {
+    config.deployedContracts.bridge.adapters.stargate = deployedAdapters.stargate
+  }
+
+  // Wait before updating JSON to ensure all transactions are confirmed
+  await waitForPendingTransactions()
+
+  await updateIndexJson('bridge', network, config.deployedContracts.bridge, useBummerConfig)
+}
+
+/**
+ * Reconfigure existing adapters
+ */
+async function reconfigureExistingAdapters(
+  existingAdapters: ExistingAdapterAddresses,
+  bridgeRouterAddress: Address,
+  config: BaseConfig,
+  allNetworkConfigs: Record<string, any>,
+): Promise<void> {
+  if (existingAdapters.layerZero) {
+    console.log(kleur.blue('Reconfiguring LayerZero adapter...'))
+    await configureLayerZeroAdapter(existingAdapters.layerZero, bridgeRouterAddress, config)
+  }
+
+  if (existingAdapters.stargate) {
+    console.log(kleur.blue('Reconfiguring Stargate adapter...'))
+    await configureStargateAdapter(
+      existingAdapters.stargate,
+      bridgeRouterAddress,
+      config,
+      allNetworkConfigs,
+    )
+  }
+}
+
 async function deployAdapters() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
@@ -29,16 +118,21 @@ async function deployAdapters() {
     useBummerConfig,
   ) as BaseConfig
 
+  // Validate required configuration early
+  if (!config) {
+    throw new Error(`No configuration found for network ${network}`)
+  }
+
+  // Validate bridge configuration exists early
+  if (!config.deployedContracts.bridge) {
+    throw new Error('Bridge configuration is missing')
+  }
+
   // Get all network configs for cross-chain configuration
   const allNetworkConfigs = getConfigByNetwork('all', { common: true }, useBummerConfig) as Record<
     string,
     any
   >
-
-  // Validate required configuration
-  if (!config) {
-    throw new Error(`No configuration found for network ${network}`)
-  }
 
   const bridgeRouterAddress = getBridgeRouterAddress(config)
 
@@ -70,83 +164,32 @@ async function deployAdapters() {
 
     if (reconfigureOnly) {
       // Use existing adapter addresses from config
+      const existingAdapters = getExistingAdapterAddresses(config)
       deployedAdapters = {
-        layerZero: config.deployedContracts.bridge?.adapters?.layerZero
-          ? {
-              address: config.deployedContracts.bridge.adapters.layerZero.address as Address,
-            }
-          : undefined,
-        stargate: config.deployedContracts.bridge?.adapters?.stargate
-          ? {
-              address: config.deployedContracts.bridge.adapters.stargate.address as Address,
-            }
-          : undefined,
+        layerZero: existingAdapters.layerZero ? { address: existingAdapters.layerZero } : undefined,
+        stargate: existingAdapters.stargate ? { address: existingAdapters.stargate } : undefined,
       }
 
       // Reconfigure existing adapters
-      if (deployedAdapters.layerZero) {
-        console.log(kleur.blue('Reconfiguring LayerZero adapter...'))
-        await configureLayerZeroAdapter(
-          deployedAdapters.layerZero.address as Address,
-          bridgeRouterAddress as Address,
-          config,
-        )
-      }
-
-      if (deployedAdapters.stargate) {
-        console.log(kleur.blue('Reconfiguring Stargate adapter...'))
-        await configureStargateAdapter(
-          deployedAdapters.stargate.address as Address,
-          bridgeRouterAddress as Address,
-          config,
-          allNetworkConfigs,
-        )
-      }
+      await reconfigureExistingAdapters(
+        existingAdapters,
+        bridgeRouterAddress,
+        config,
+        allNetworkConfigs,
+      )
 
       console.log(kleur.green().bold('Bridge adapters reconfiguration completed successfully!'))
     } else {
       // Deploy and configure adapters
-      deployedAdapters = await deployBridgeAdapters(
-        bridgeRouterAddress as Address,
-        config,
-        allNetworkConfigs,
-      )
+      deployedAdapters = await deployBridgeAdapters(bridgeRouterAddress, config, allNetworkConfigs)
       console.log(kleur.green().bold('Bridge adapters deployment completed successfully!'))
     }
 
-    if (deployedAdapters.layerZero) {
-      console.log('- LayerZeroAdapter:', deployedAdapters.layerZero.address)
-    }
-
-    if (deployedAdapters.stargate) {
-      console.log('- StargateAdapter:', deployedAdapters.stargate.address)
-    }
+    // Log deployed adapter addresses
+    logDeployedAdapters(deployedAdapters)
 
     // Update the configuration with deployed addresses
-    console.log(kleur.blue('Updating configuration with deployed addresses...'))
-
-    // Ensure bridge config exists
-    if (!config.deployedContracts.bridge) {
-      throw new Error('Bridge configuration is missing')
-    }
-
-    // Add adapters to the bridge configuration
-    if (!config.deployedContracts.bridge.adapters) {
-      config.deployedContracts.bridge.adapters = {}
-    }
-
-    if (deployedAdapters.layerZero) {
-      config.deployedContracts.bridge.adapters.layerZero = deployedAdapters.layerZero
-    }
-
-    if (deployedAdapters.stargate) {
-      config.deployedContracts.bridge.adapters.stargate = deployedAdapters.stargate
-    }
-
-    // Wait again before updating JSON to ensure all transactions are confirmed
-    await waitForPendingTransactions()
-
-    await updateIndexJson('bridge', network, config.deployedContracts.bridge, useBummerConfig)
+    await updateBridgeConfigWithAdapters(config, deployedAdapters, network, useBummerConfig)
 
     return deployedAdapters
   } catch (error) {
