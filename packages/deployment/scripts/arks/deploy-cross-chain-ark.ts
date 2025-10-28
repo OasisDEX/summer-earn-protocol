@@ -7,8 +7,8 @@ import { Address } from 'viem'
 import {
   CrossChainArkContracts,
   createCrossChainArkModule,
-} from '../../ignition/modules/arks/cross-chain-ark'
-import { BaseConfig } from '../../types/config-types'
+} from '../../../ignition/modules/arks/cross-chain-ark'
+import { BaseConfig } from '../../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'
@@ -16,7 +16,7 @@ import { continueDeploymentCheck } from '../lib/infrastructure/prompts'
 import { BaseArkParams } from './deployment'
 
 // Export the type
-export { CrossChainArkContracts } from '../../ignition/modules/arks/cross-chain-ark'
+export { CrossChainArkContracts } from '../../../ignition/modules/arks/cross-chain-ark'
 
 /**
  * Main function to deploy a CrossChainArk and FleetProxy.

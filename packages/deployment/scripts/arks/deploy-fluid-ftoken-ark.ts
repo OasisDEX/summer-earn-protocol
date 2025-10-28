@@ -5,8 +5,8 @@ import { Address } from 'viem'
 import {
   createFluidFTokenArkModule,
   FluidFTokenArkContracts,
-} from '../../ignition/modules/arks/fluid-ftoken-ark'
-import { BaseConfig, Token } from '../../types/config-types'
+} from '../../../ignition/modules/arks/fluid-ftoken-ark'
+import { BaseConfig, Token } from '../../../types/config-types'
 import { getFleetConfig } from '../fleets/deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'

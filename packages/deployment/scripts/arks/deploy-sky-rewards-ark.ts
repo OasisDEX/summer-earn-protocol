@@ -5,8 +5,8 @@ import { Address } from 'viem'
 import {
   SkyRewardsArkContracts,
   createSkyRewardsArkModule,
-} from '../../ignition/modules/arks/sky-rewards-ark'
-import { BaseConfig, Token } from '../../types/config-types'
+} from '../../../ignition/modules/arks/sky-rewards-ark'
+import { BaseConfig, Token } from '../../../types/config-types'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { getFleetConfig } from '../fleets/deployment'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'

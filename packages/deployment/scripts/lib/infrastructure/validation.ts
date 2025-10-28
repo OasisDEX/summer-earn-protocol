@@ -1,5 +1,5 @@
 import { Address } from 'viem'
-import { BaseConfig, Token } from '../../types/config-types'
+import { BaseConfig, Token } from '../../../../types/config-types'
 import { ADDRESS_ZERO } from './constants'
 import { ArkDetailsSchema, type ArkDetails } from './zod-schemas'
 

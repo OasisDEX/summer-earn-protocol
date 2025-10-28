@@ -2,13 +2,13 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { createOriginSuperOETHArkModule } from '../../ignition/modules/arks/origin-super-eth-ark'
+import { createOriginSuperOETHArkModule } from '../../../ignition/modules/arks/origin-super-eth-ark'
 import {
   createOriginETHArkModule,
   OriginETHArkContracts,
-} from '../../ignition/modules/arks/origineth-ark'
+} from '../../../ignition/modules/arks/origineth-ark'
 import { ArkParams } from '../../types/ark-params'
-import { BaseConfig, Token } from '../../types/config-types'
+import { BaseConfig, Token } from '../../../types/config-types'
 import { getFleetConfig } from '../fleets/deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'

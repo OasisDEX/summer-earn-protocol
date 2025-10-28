@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 import hre from 'hardhat'
 import prompts from 'prompts'
 import { Chain } from 'viem'
-import { BaseConfig } from '../../types/config-types'
+import { BaseConfig } from '../../../types/config-types'
 import { ChainName, getChainConfigs } from './chain-configs'
 
 dotenv.config({ path: '../../.env' })

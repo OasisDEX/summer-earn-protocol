@@ -5,8 +5,8 @@ import { Address } from 'viem'
 import {
   SkyUsdsPsm3ArkContracts,
   createSkyUsdsPsm3ArkModule,
-} from '../../ignition/modules/arks/sky-usds-psm3-ark'
-import { BaseConfig, Token } from '../../types/config-types'
+} from '../../../ignition/modules/arks/sky-usds-psm3-ark'
+import { BaseConfig, Token } from '../../../types/config-types'
 import { getFleetConfig } from '../fleets/deployment'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
