@@ -91,9 +91,9 @@ contract PsmLiteERC4626Ark is Ark {
      * @return assets Total assets in USDC terms
      */
     function totalAssets() public view override returns (uint256 assets) {
-        uint256 balance = erc4626Vault.balanceOf(address(this));
-        if (balance > 0) {
-            assets = erc4626Vault.convertToAssets(balance);
+        uint256 shares = erc4626Vault.balanceOf(address(this));
+        if (shares > 0) {
+            assets = erc4626Vault.convertToAssets(shares);
             if (shouldStake) {
                 assets = _from18Decimals(susds.convertToAssets(assets));
             } else {
@@ -131,7 +131,7 @@ contract PsmLiteERC4626Ark is Ark {
                 // maximum amount of sUSDS that can be withdrawn from the ERC4626 vault
                 uint256 susdsAmount = erc4626Vault.maxWithdraw(address(this));
                 // amount of USDS that would be redeemed from the sUSDS vault, based on the amount of withdrawn sUSDS
-                // converted to USDC decimals
+                // converted to USDC decimals (in this context sUSDS amount is the amount of shares - hence we use redeem)
                 withdrawableAssets = _from18Decimals(
                     susds.previewRedeem(susdsAmount)
                 );

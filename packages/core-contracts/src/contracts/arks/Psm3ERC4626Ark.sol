@@ -132,7 +132,7 @@ contract Psm3ERC4626Ark is Ark {
     }
 
     /**
-     * @notice Handles the boarding process for sUSDS
+     * @notice Handles the boarding process for deposit token
      * @param token Token to board
      * @param amount Amount of token to board
      */
@@ -142,7 +142,7 @@ contract Psm3ERC4626Ark is Ark {
     }
 
     /**
-     * @notice Handles the disembarking process for USDS
+     * @notice Handles the disembarking process for the deposit token
      * @param token Token to disembark
      * @param amount Amount of token to disembark
      */
