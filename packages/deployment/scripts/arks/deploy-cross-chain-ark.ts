@@ -10,13 +10,14 @@ import {
 } from '../../ignition/modules/arks/cross-chain-ark'
 import { BaseConfig } from '../../types/config-types'
 import {
+  CrossChainConfig,
   getCrossChainConfigStatus,
   loadCrossChainConfig,
   mergeCrossChainConfig,
   saveCrossChainConfig,
   validateCrossChainConfigPhase,
 } from '../lib/config/cross-chain'
-import { getFleetProxyAddress, getProtocolConfigSafe } from '../lib/config/cross-chain-getters'
+import { getFleetProxyAddress, getProtocolConfig } from '../lib/config/cross-chain-getters'
 import {
   getAccessManagerAddress,
   getBridgeRouterAddress,
@@ -113,7 +114,7 @@ export async function deployCrossChainArk(
 
   // Let user select a config file
   let selectedConfigFile: string
-  let crossChainConfig: any
+  let crossChainConfig: CrossChainConfig
 
   if (arkParams?.targetChainId && arkParams?.targetProtocol) {
     // If specific target chain and protocol are provided, we need to find the matching config file
@@ -213,7 +214,7 @@ export async function deployCrossChainArk(
   }
 
   // Find the protocol configuration
-  const protocolConfig = getProtocolConfigSafe(crossChainConfig, targetChainId, targetProtocol)
+  const protocolConfig = getProtocolConfig(crossChainConfig, targetChainId, targetProtocol)
 
   const userInput =
     arkParams ||
@@ -286,7 +287,7 @@ async function getUserInput(
   configName: string,
   targetChainId: number,
   targetProtocol: string,
-  crossChainConfig: any,
+  crossChainConfig: CrossChainConfig,
 ) {
   const bridgeRouterAddress = getBridgeRouterAddress(config)
 
@@ -320,7 +321,7 @@ async function getUserInput(
   ])
 
   // Get the asset from the cross-chain config or prompt user
-  const protocolConfig = getProtocolConfigSafe(crossChainConfig, targetChainId, targetProtocol)
+  const protocolConfig = getProtocolConfig(crossChainConfig, targetChainId, targetProtocol)
   let assetSymbol: string | undefined
   let assetAddress: Address
 
