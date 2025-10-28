@@ -282,13 +282,18 @@ async function updateCrossChainConfigPhase1(
   const existingConfig = loadCrossChainConfig(userInput.fleetName)
 
   if (existingConfig) {
-    // Update existing config with FleetProxy address
+    // Update existing config with FleetProxy address and asset information
     const updatedConfig = mergeCrossChainConfig(existingConfig, {
       destinations: existingConfig.destinations.map((dest) => ({
         ...dest,
         protocols: dest.protocols.map((protocol) =>
           protocol.protocol === userInput.protocol
-            ? { ...protocol, fleetProxyAddress: fleetProxyAddress }
+            ? {
+                ...protocol,
+                fleetProxyAddress: fleetProxyAddress,
+                assetAddress: userInput.asset.address,
+                assetSymbol: userInput.asset.symbol,
+              }
             : protocol,
         ),
       })),
@@ -307,6 +312,8 @@ async function updateCrossChainConfigPhase1(
         fleetProxyAddress: fleetProxyAddress,
         satelliteFleetAddress: userInput.fleetContract,
         protocol: userInput.protocol,
+        assetAddress: userInput.asset.address,
+        assetSymbol: userInput.asset.symbol,
       },
     )
 

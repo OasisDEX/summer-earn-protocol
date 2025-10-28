@@ -10,6 +10,7 @@ import {
   saveCrossChainConfig,
   validateCrossChainConfigPhase,
 } from '../lib/config/cross-chain'
+import { getAllDestinationChainIds } from '../lib/config/cross-chain-getters'
 import { getConfigByNetwork } from '../lib/config/handler'
 import {
   printValidationErrors,
@@ -181,6 +182,8 @@ export async function addCrossChainDestination() {
             fleetProxyAddress: fleetProxyAddress.trim(),
             crossChainArkAddress: '', // Will be set when CrossChainArk is deployed
             satelliteFleetAddress: satelliteFleetAddress.trim(),
+            assetAddress: '', // Will be set when FleetProxy is deployed
+            assetSymbol: '', // Will be set when FleetProxy is deployed
           },
         ],
       },

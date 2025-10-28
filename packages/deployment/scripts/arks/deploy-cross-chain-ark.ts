@@ -17,7 +17,11 @@ import {
   saveCrossChainConfig,
   validateCrossChainConfigPhase,
 } from '../lib/config/cross-chain'
-import { getFleetProxyAddress, getProtocolConfig } from '../lib/config/cross-chain-getters'
+import {
+  getCrossChainAssetForProtocol,
+  getFleetProxyAddress,
+  getProtocolConfig,
+} from '../lib/config/cross-chain-getters'
 import {
   getAccessManagerAddress,
   getBridgeRouterAddress,
@@ -320,39 +324,12 @@ async function getUserInput(
     },
   ])
 
-  // Get the asset from the cross-chain config or prompt user
-  const protocolConfig = getProtocolConfig(crossChainConfig, targetChainId, targetProtocol)
-  let assetSymbol: string | undefined
-  let assetAddress: Address
+  // Get the asset from the cross-chain config
+  const assetInfo = getCrossChainAssetForProtocol(crossChainConfig, targetChainId, targetProtocol)
+  const assetSymbol = assetInfo.symbol
+  const assetAddress = assetInfo.address
 
-  // Cross-chain config doesn't store asset info, so we need to prompt user
-  console.log(
-    kleur.yellow(
-      'Asset information not stored in cross-chain config. Please select the asset for this CrossChainArk.',
-    ),
-  )
-
-  // Prompt user for asset selection
-  const tokenChoices = Object.keys(config.tokens).map((token) => ({
-    title: token.toUpperCase(),
-    value: token,
-  }))
-
-  const { selectedAsset } = await prompts({
-    type: 'select',
-    name: 'selectedAsset',
-    message: 'Select the asset for this CrossChainArk:',
-    choices: tokenChoices,
-  })
-
-  if (!selectedAsset) {
-    throw new Error('Asset selection is required')
-  }
-
-  assetSymbol = selectedAsset.toUpperCase()
-  assetAddress = config.tokens[selectedAsset as keyof typeof config.tokens] as Address
-
-  console.log(kleur.green(`Using asset: ${assetSymbol}`))
+  console.log(kleur.green(`Using asset from config: ${assetSymbol}`))
 
   return {
     ...responses,

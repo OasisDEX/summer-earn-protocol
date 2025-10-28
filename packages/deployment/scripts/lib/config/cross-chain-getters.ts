@@ -297,14 +297,64 @@ export function getHubFleetName(config: CrossChainConfig): string {
 }
 
 /**
- * Get the satellite fleet name from the configuration
+ * Get cross-chain asset address for a specific chain and protocol
  * @param config Cross-chain configuration
- * @returns Satellite fleet name
- * @throws Error if not set
+ * @param chainId Destination chain ID
+ * @param protocol Protocol name (default: 'summerfi')
+ * @returns Asset address
+ * @throws Error if not found
  */
-export function getSatelliteFleetName(config: CrossChainConfig): string {
-  if (!config.satelliteFleetName) {
-    throw new Error('Satellite fleet name not set in cross-chain config')
+export function getCrossChainAssetAddress(
+  config: CrossChainConfig,
+  chainId: number,
+  protocol: string = 'summerfi',
+): Address {
+  const protocolConfig = getProtocolConfig(config, chainId, protocol)
+  if (!protocolConfig?.assetAddress) {
+    throw new Error(`Asset address not found for chain ${chainId} protocol ${protocol}`)
   }
-  return config.satelliteFleetName
+  return protocolConfig.assetAddress as Address
+}
+
+/**
+ * Get cross-chain asset symbol for a specific chain and protocol
+ * @param config Cross-chain configuration
+ * @param chainId Destination chain ID
+ * @param protocol Protocol name (default: 'summerfi')
+ * @returns Asset symbol
+ * @throws Error if not found
+ */
+export function getCrossChainAssetSymbol(
+  config: CrossChainConfig,
+  chainId: number,
+  protocol: string = 'summerfi',
+): string {
+  const protocolConfig = getProtocolConfig(config, chainId, protocol)
+  if (!protocolConfig?.assetSymbol) {
+    throw new Error(`Asset symbol not found for chain ${chainId} protocol ${protocol}`)
+  }
+  return protocolConfig.assetSymbol
+}
+
+/**
+ * Get cross-chain asset information for a specific chain and protocol
+ * @param config Cross-chain configuration
+ * @param chainId Destination chain ID
+ * @param protocol Protocol name (default: 'summerfi')
+ * @returns Asset information object
+ * @throws Error if not found
+ */
+export function getCrossChainAssetForProtocol(
+  config: CrossChainConfig,
+  chainId: number,
+  protocol: string = 'summerfi',
+): { address: Address; symbol: string } {
+  const protocolConfig = getProtocolConfig(config, chainId, protocol)
+  if (!protocolConfig?.assetAddress || !protocolConfig?.assetSymbol) {
+    throw new Error(`Asset information not found for chain ${chainId} protocol ${protocol}`)
+  }
+  return {
+    address: protocolConfig.assetAddress as Address,
+    symbol: protocolConfig.assetSymbol,
+  }
 }

@@ -15,6 +15,8 @@ export interface CrossChainConfig {
       fleetProxyAddress: string
       crossChainArkAddress: string
       satelliteFleetAddress: string
+      assetAddress: string
+      assetSymbol: string
     }>
   }>
 }
@@ -250,6 +252,8 @@ export function createSatellitePhaseConfig(
     fleetProxyAddress: string
     satelliteFleetAddress: string
     protocol?: string
+    assetAddress?: string
+    assetSymbol?: string
   },
 ): CrossChainConfig {
   return {
@@ -268,6 +272,8 @@ export function createSatellitePhaseConfig(
             fleetProxyAddress: destination.fleetProxyAddress,
             crossChainArkAddress: '', // Will be set later
             satelliteFleetAddress: destination.satelliteFleetAddress,
+            assetAddress: destination.assetAddress || '', // Will be set later
+            assetSymbol: destination.assetSymbol || '', // Will be set later
           },
         ],
       },
