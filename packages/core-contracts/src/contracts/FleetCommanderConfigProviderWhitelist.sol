@@ -41,7 +41,6 @@ contract FleetCommanderConfigProviderWhitelist is
     EnumerableSet.AddressSet private _activeArks;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
-    uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
 
     bool public transfersEnabled;
 

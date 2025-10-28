@@ -54,12 +54,10 @@ contract ConfigurationManagerWhitelist is
         tipJar = params.tipJar;
         treasury = params.treasury;
         harborCommand = params.harborCommand;
-
         emit RaftUpdated(address(0), params.raft);
         emit TipJarUpdated(address(0), params.tipJar);
         emit TreasuryUpdated(address(0), params.treasury);
         emit HarborCommandUpdated(address(0), params.harborCommand);
-
         initialized = true;
     }
 
