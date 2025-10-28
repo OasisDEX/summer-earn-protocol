@@ -1,5 +1,6 @@
 import kleur from 'kleur'
 import { Address, getAddress } from 'viem'
+import { DeployedBridgeAdapters } from '../../types/bridge-types'
 import {
   configureLayerZeroAdapter,
   configureLayerZeroAdapterPeersWithConfig,
@@ -11,14 +12,6 @@ import {
   updateStargateAdapterAddresses,
 } from './adapters/stargate'
 import { waitForPendingTransactions } from './adapters/utils'
-
-/**
- * Interface for deployed bridge adapters
- */
-export interface DeployedBridgeAdapters {
-  layerZero?: { address: Address }
-  stargate?: { address: Address }
-}
 
 /**
  * Check if an adapter is already registered with the bridge router

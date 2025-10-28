@@ -51,7 +51,6 @@ async function deployBridge() {
     console.log(kleur.green().bold('Bridge deployment completed successfully!'))
     console.log('Deployed contracts:')
     console.log('- BridgeRouter:', deployedBridge.bridgeRouter.address)
-    console.log('- BridgeQueue:', deployedBridge.bridgeQueue.address)
     console.log('- CrossChainRegistry:', deployedBridge.crossChainRegistry.address)
 
     // Update the configuration with deployed addresses
