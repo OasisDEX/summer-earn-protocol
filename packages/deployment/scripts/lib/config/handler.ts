@@ -28,7 +28,7 @@ export function getConfigByNetwork(
 ): BaseConfig | Config {
   // Determine which config file to use
   const configFileName = useBummerConfig ? 'index.test.json' : 'index.json'
-  const configPath = path.resolve(__dirname, '..', '..', 'config', configFileName)
+  const configPath = path.resolve(__dirname, '..', '..', '..', 'config', configFileName)
 
   if (!fs.existsSync(configPath)) {
     throw new Error(`Config file not found: ${configPath}`)
