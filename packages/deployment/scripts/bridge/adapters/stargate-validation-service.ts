@@ -148,6 +148,63 @@ export class StargateContractValidator {
   getCacheSize(): number {
     return this.validatedContracts.size
   }
+
+  /**
+   * Get the token address from a Stargate pool contract
+   * @param contractAddress The Stargate contract address
+   * @returns The token address, or null if not found
+   */
+  async getStargatePoolToken(contractAddress: string): Promise<string | null> {
+    try {
+      const publicClient = await hre.viem.getPublicClient()
+      const tokenAddress = await publicClient.readContract({
+        address: contractAddress as `0x${string}`,
+        abi: STARGATE_POOL_ABI,
+        functionName: 'token',
+      })
+      return tokenAddress as string
+    } catch (error) {
+      console.error(
+        kleur.red(`Error getting token from Stargate contract ${contractAddress}:`),
+        error,
+      )
+      return null
+    }
+  }
+
+  /**
+   * Validate that the Stargate contract's token matches the expected asset address
+   * @param assetAddress The expected asset address
+   * @param stargateContract The Stargate contract address
+   * @returns Object with isValid flag and error message if invalid
+   */
+  async validateTokenMatch(
+    assetAddress: string,
+    stargateContract: string,
+  ): Promise<{ isValid: boolean; error?: string; actualToken?: string }> {
+    const checksummedAsset = assetAddress.toLowerCase()
+    const checksummedStargate = stargateContract.toLowerCase()
+
+    const actualToken = await this.getStargatePoolToken(checksummedStargate)
+    if (!actualToken) {
+      return {
+        isValid: false,
+        error: `Could not retrieve token address from Stargate contract ${stargateContract}`,
+      }
+    }
+
+    const checksummedActualToken = actualToken.toLowerCase()
+
+    if (checksummedActualToken !== checksummedAsset) {
+      return {
+        isValid: false,
+        error: `Token mismatch: expected ${assetAddress}, but Stargate contract ${stargateContract} has token ${actualToken}`,
+        actualToken,
+      }
+    }
+
+    return { isValid: true }
+  }
 }
 
 /**

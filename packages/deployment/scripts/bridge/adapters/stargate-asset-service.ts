@@ -3,7 +3,7 @@ import { Address, WalletClient, getAddress } from 'viem'
 import stargateConfig from '../../../config/adapters/stargate.json'
 import { writeContractTx } from '../../lib/contracts/transactions'
 import { ADDRESS_ZERO } from '../../lib/infrastructure/constants'
-import { STARGATE_ADD_SUPPORTED_ASSET_ABI } from './abis'
+import { STARGATE_ADAPTER_ERRORS_ABI, STARGATE_ADD_SUPPORTED_ASSET_ABI } from './abis'
 import { StargateConfig } from './config-types'
 import { StargateContractValidator } from './stargate-validation-service'
 import { BaseConfig } from './types'
@@ -81,6 +81,18 @@ export async function addAssetIfNotMapped(
       }
     }
 
+    // Validate that the Stargate contract's token matches the asset address
+    const tokenMatch = await validator.validateTokenMatch(
+      checksummedLocalAddress,
+      checksummedStargateContract,
+    )
+    if (!tokenMatch.isValid) {
+      return {
+        configured: false,
+        error: `Error configuring asset mapping for ${assetSymbol}: ${tokenMatch.error}`,
+      }
+    }
+
     // Check current chain asset mapping
     const currentStargateContract = String(
       await stargateAdapter.read.assetToStargateContract([checksummedLocalAddress]),
@@ -100,6 +112,7 @@ export async function addAssetIfNotMapped(
         STARGATE_ADD_SUPPORTED_ASSET_ABI,
         'addSupportedAsset',
         [checksummedLocalAddress, checksummedStargateContract],
+        STARGATE_ADAPTER_ERRORS_ABI,
       )
 
       console.log(

@@ -102,3 +102,40 @@ export const STARGATE_COMMON_ABI = [
     type: 'function',
   },
 ] as const
+
+// Stargate Adapter Custom Errors
+export const STARGATE_ADAPTER_ERRORS_ABI = [
+  {
+    inputs: [
+      { internalType: 'address', name: 'expected', type: 'address' },
+      { internalType: 'address', name: 'actual', type: 'address' },
+    ],
+    name: 'InvalidStargatePoolToken',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'InvalidAssetAddress',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'InvalidStargateContract',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'InvalidStargateType',
+    type: 'error',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: 'provided', type: 'uint256' }],
+    name: 'InvalidSlippageTolerance',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'InvalidLzEndpoint',
+    type: 'error',
+  },
+] as const
