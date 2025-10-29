@@ -195,6 +195,12 @@ export class StargateContractValidator {
 
     const checksummedActualToken = actualToken.toLowerCase()
 
+    // Handle native ETH pools: Stargate uses zero address for native ETH pools
+    // When pool token is zero address, skip token match validation (valid for native ETH)
+    if (checksummedActualToken === '0x0000000000000000000000000000000000000000') {
+      return { isValid: true }
+    }
+
     if (checksummedActualToken !== checksummedAsset) {
       return {
         isValid: false,

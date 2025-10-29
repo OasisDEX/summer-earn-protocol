@@ -24,6 +24,7 @@ export interface ChainConfigurationParams {
 export interface ChainConfigurationResult {
   chainsAdded: number
   errors: string[]
+  warnings: string[]
 }
 
 /**
@@ -32,7 +33,7 @@ export interface ChainConfigurationResult {
 export async function addChainIfNotSupported(
   params: ChainConfigurationParams,
   chainInfo: ChainInfo,
-): Promise<{ added: boolean; error?: string }> {
+): Promise<{ added: boolean; error?: string; warning?: string }> {
   const {
     stargateAdapter,
     walletClient,
@@ -70,7 +71,7 @@ export async function addChainIfNotSupported(
       if (!adapterAddress) {
         return {
           added: false,
-          error: `No adapter address found for chain ${chainInfo.chainId}`,
+          warning: `No adapter address found for chain ${chainInfo.chainId}`,
         }
       }
 
@@ -111,18 +112,30 @@ export async function determineAdapterAddress(
     return stargateAdapterAddress
   }
 
-  const targetNetworkName = getNetworkNameFromChainId(chainInfo.chainId)
-  const targetNetworkConfig = allNetworkConfigs?.[targetNetworkName]
-  const existingAdapterAddress =
-    targetNetworkConfig?.deployedContracts?.bridge?.adapters?.stargate?.address
+  try {
+    const targetNetworkName = getNetworkNameFromChainId(chainInfo.chainId)
+    const targetNetworkConfig = allNetworkConfigs?.[targetNetworkName]
+    const existingAdapterAddress =
+      targetNetworkConfig?.deployedContracts?.bridge?.adapters?.stargate?.address
 
-  if (existingAdapterAddress && existingAdapterAddress !== ADDRESS_ZERO) {
+    if (existingAdapterAddress && existingAdapterAddress !== ADDRESS_ZERO) {
+      console.log(
+        `Using existing adapter address for chain ${chainInfo.chainId}: ${existingAdapterAddress}`,
+      )
+      return existingAdapterAddress as Address
+    } else {
+      console.log(
+        kleur.yellow(`No adapter address found for chain ${chainInfo.chainId}, skipping for now`),
+      )
+      return null
+    }
+  } catch (error) {
+    // If we can't get the network name (e.g., chain not in config), log warning
     console.log(
-      `Using existing adapter address for chain ${chainInfo.chainId}: ${existingAdapterAddress}`,
+      kleur.yellow(
+        `Could not determine adapter address for chain ${chainInfo.chainId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      ),
     )
-    return existingAdapterAddress as Address
-  } else {
-    console.log(`No adapter address found for chain ${chainInfo.chainId}, skipping for now`)
     return null
   }
 }
@@ -136,6 +149,7 @@ export async function configureSupportedChains(
   const { supportedChains } = params
   let chainsAdded = 0
   const errors: string[] = []
+  const warnings: string[] = []
 
   for (const chainInfo of supportedChains) {
     const result = await addChainIfNotSupported(params, chainInfo)
@@ -144,10 +158,12 @@ export async function configureSupportedChains(
       chainsAdded++
     } else if (result.error) {
       errors.push(result.error)
+    } else if (result.warning) {
+      warnings.push(result.warning)
     }
   }
 
-  return { chainsAdded, errors }
+  return { chainsAdded, errors, warnings }
 }
 
 /**
@@ -155,6 +171,11 @@ export async function configureSupportedChains(
  */
 export function logChainConfigurationResults(result: ChainConfigurationResult): void {
   console.log(kleur.green(`Added ${result.chainsAdded} new supported chains`))
+
+  if (result.warnings.length > 0) {
+    console.log(kleur.yellow(`Encountered ${result.warnings.length} warnings:`))
+    result.warnings.forEach((warning) => console.log(kleur.yellow(`  - ${warning}`)))
+  }
 
   if (result.errors.length > 0) {
     console.log(kleur.red(`Encountered ${result.errors.length} errors:`))

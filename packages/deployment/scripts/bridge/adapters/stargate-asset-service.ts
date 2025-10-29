@@ -54,8 +54,8 @@ export async function addAssetIfNotMapped(
     validator,
   } = params
 
-  const tokenKey = assetSymbol
-  // const tokenKey = assetSymbol === 'eth' ? 'weth' : assetSymbol
+  // Map 'eth' to 'weth' since network config uses 'weth' but Stargate config uses 'eth'
+  const tokenKey = assetSymbol === 'eth' ? 'weth' : assetSymbol
   const localAssetAddress = networkConfig.tokens[tokenKey as keyof typeof networkConfig.tokens]
 
   if (!localAssetAddress || !stargateContract) {
