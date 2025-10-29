@@ -11,7 +11,7 @@ export function validateSatellitePhasePrerequisites(config: BaseConfig): { isVal
 
   // Check bridge infrastructure
   if (!config.deployedContracts.bridge) {
-    errors.push('Bridge contracts not deployed. Run deploy-bridge.ts first.')
+    errors.push('Bridge contracts not deployed. Run deploy-xchain-core.ts first.')
   } else {
     if (!getBridgeRouterAddress(config)) {
       errors.push('BridgeRouter not found in config')
@@ -35,7 +35,7 @@ export function validateHubPhasePrerequisites(config: BaseConfig): { isValid: bo
 
   // Check bridge infrastructure
   if (!config.deployedContracts.bridge) {
-    errors.push('Bridge contracts not deployed. Run deploy-bridge.ts first.')
+    errors.push('Bridge contracts not deployed. Run deploy-xchain-core.ts first.')
   } else {
     if (!getBridgeRouterAddress(config)) {
       errors.push('BridgeRouter not found in config')
@@ -98,7 +98,7 @@ export function validateRegistrationPrerequisites(
 
   // Check bridge infrastructure
   if (!config.deployedContracts.bridge) {
-    errors.push('Bridge contracts not deployed. Run deploy-bridge.ts first.')
+    errors.push('Bridge contracts not deployed. Run deploy-xchain-core.ts first.')
   } else {
     if (!getBridgeRouterAddress(config)) {
       errors.push('BridgeRouter not found in config')
@@ -142,14 +142,14 @@ export function getDeploymentGuidance(status: CrossChainConfigStatus): string[] 
   switch (status.phase) {
     case 'satellite':
       guidance.push('Next steps:')
-      guidance.push('1. Deploy FleetProxy on satellite chain: npx hardhat run scripts/deploy-fleet-proxy.ts --network <satellite>')
+      guidance.push('1. Deploy FleetProxy on satellite chain: npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network <satellite>')
       guidance.push('2. Deploy hub fleet and CrossChainArk on source chain')
       guidance.push('3. Register relationships on both chains')
       break
 
     case 'hub':
       guidance.push('Next steps:')
-      guidance.push('1. Deploy CrossChainArk on source chain: npx hardhat run scripts/arks/deploy-cross-chain-ark.ts --network <source>')
+      guidance.push('1. Deploy CrossChainArk on source chain: npx hardhat run scripts/arks/deploy-xchain-ark.ts --network <source>')
       guidance.push('2. Register relationships on both chains')
       break
 

@@ -20,13 +20,12 @@ Cross-chain fleets allow users to deposit on a hub chain and have assets automat
 Deploy bridge contracts on both the source (hub) and destination (satellite) chains:
 
 ```bash
-# On source chain (e.g., Optimism)
-npx hardhat run scripts/deploy-bridge.ts --network optimism
-npx hardhat run scripts/deploy-bridge-adapters.ts --network optimism
+npx hardhat run scripts/deploy-xchain-core.ts --network optimism
+npx hardhat run scripts/deploy-xchain-adapters.ts --network optimism
 
 # On satellite chain (e.g., Base)
-npx hardhat run scripts/deploy-bridge.ts --network base
-npx hardhat run scripts/deploy-bridge-adapters.ts --network base
+npx hardhat run scripts/deploy-xchain-core.ts --network base
+npx hardhat run scripts/deploy-xchain-adapters.ts --network base
 ```
 
 ### Step 2: Deploy Satellite Fleet and FleetProxy
@@ -38,7 +37,7 @@ Deploy the satellite fleet and FleetProxy on the destination chain:
 npx hardhat run scripts/deploy-fleet.ts --network base
 
 # Deploy FleetProxy - this creates Phase 1 of cross-chain config
-npx hardhat run scripts/deploy-fleet-proxy.ts --network base
+npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network base
 ```
 
 **What happens:**
@@ -55,7 +54,7 @@ Deploy the hub fleet and CrossChainArk on the source chain:
 npx hardhat run scripts/deploy-fleet.ts --network optimism
 
 # Deploy CrossChainArk - this updates to Phase 2 config
-npx hardhat run scripts/arks/deploy-cross-chain-ark.ts --network optimism
+npx hardhat run scripts/arks/deploy-xchain-ark.ts --network optimism
 ```
 
 **What happens:**
@@ -104,18 +103,18 @@ Here's a complete example deploying a USDC cross-chain fleet from Optimism to Ba
 
 ```bash
 # 1. Deploy bridge infrastructure
-npx hardhat run scripts/deploy-bridge.ts --network optimism
-npx hardhat run scripts/deploy-bridge-adapters.ts --network optimism
-npx hardhat run scripts/deploy-bridge.ts --network base  
-npx hardhat run scripts/deploy-bridge-adapters.ts --network base
+npx hardhat run scripts/deploy-xchain-core.ts --network optimism
+npx hardhat run scripts/deploy-xchain-adapters.ts --network optimism
+npx hardhat run scripts/deploy-xchain-core.ts --network base  
+npx hardhat run scripts/deploy-xchain-adapters.ts --network base
 
 # 2. Deploy satellite components (Base)
 npx hardhat run scripts/deploy-fleet.ts --network base
-npx hardhat run scripts/deploy-fleet-proxy.ts --network base
+npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network base
 
 # 3. Deploy hub components (Optimism)
 npx hardhat run scripts/deploy-fleet.ts --network optimism
-npx hardhat run scripts/arks/deploy-cross-chain-ark.ts --network optimism
+npx hardhat run scripts/arks/deploy-xchain-ark.ts --network optimism
 
 # 4. Register relationships
 npx hardhat run scripts/cross-chain/register-relationships.ts --network optimism
@@ -135,10 +134,10 @@ To add more satellite chains to an existing cross-chain fleet:
 npx hardhat run scripts/cross-chain/add-destination.ts --network arbitrum
 
 # Deploy FleetProxy for new destination
-npx hardhat run scripts/deploy-fleet-proxy.ts --network arbitrum
+npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network arbitrum
 
 # Update CrossChainArk to include new destination (if needed)
-npx hardhat run scripts/arks/deploy-cross-chain-ark.ts --network optimism
+npx hardhat run scripts/arks/deploy-xchain-ark.ts --network optimism
 
 # Register relationships for new destination
 npx hardhat run scripts/cross-chain/register-relationships.ts --network arbitrum
@@ -227,7 +226,7 @@ Cross-chain configurations are stored in `config/cross-chain/` and evolve throug
 
 ```bash
 # Check current config status
-npx hardhat run scripts/deploy-fleet-proxy.ts --network <chain>
+npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network <chain>
 
 # Verify on-chain state
 npx hardhat run scripts/cross-chain/verify-setup.ts --network <chain>

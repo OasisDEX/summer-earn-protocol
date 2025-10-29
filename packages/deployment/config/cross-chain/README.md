@@ -5,7 +5,7 @@ This directory contains configuration files that define cross-chain relationship
 ## Configuration Lifecycle
 
 ### Phase 1: Satellite Deployment
-**Created by:** `deploy-fleet-proxy.ts`
+**Created by:** `deploy-xchain-fleetproxy.ts`
 
 ```json
 {
@@ -31,7 +31,7 @@ This directory contains configuration files that define cross-chain relationship
 ```
 
 ### Phase 2: Hub Deployment
-**Updated by:** `deploy-cross-chain-ark.ts`
+**Updated by:** `deploy-xchain-ark.ts`
 
 ```json
 {
@@ -81,8 +81,8 @@ All fields populated, relationships registered in CrossChainRegistry on both cha
 ### 1. Prerequisites
 ```bash
 # Deploy bridge infrastructure on both chains
-npx hardhat run scripts/deploy-bridge.ts --network <chain>
-npx hardhat run scripts/deploy-bridge-adapters.ts --network <chain>
+npx hardhat run scripts/deploy-xchain-core.ts --network <chain>
+npx hardhat run scripts/deploy-xchain-adapters.ts --network <chain>
 ```
 
 ### 2. Satellite Phase (Phase 1)
@@ -91,7 +91,7 @@ npx hardhat run scripts/deploy-bridge-adapters.ts --network <chain>
 npx hardhat run scripts/deploy-fleet.ts --network <satellite>
 
 # Deploy FleetProxy on satellite chain
-npx hardhat run scripts/deploy-fleet-proxy.ts --network <satellite>
+npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network <satellite>
 ```
 
 ### 3. Hub Phase (Phase 2)
@@ -100,7 +100,7 @@ npx hardhat run scripts/deploy-fleet-proxy.ts --network <satellite>
 npx hardhat run scripts/deploy-fleet.ts --network <source>
 
 # Deploy CrossChainArk on source chain
-npx hardhat run scripts/arks/deploy-cross-chain-ark.ts --network <source>
+npx hardhat run scripts/arks/deploy-xchain-ark.ts --network <source>
 ```
 
 ### 4. Registration Phase (Phase 3)
@@ -130,8 +130,8 @@ This will:
 ## Scripts Reference
 
 ### Core Deployment Scripts
-- `deploy-fleet-proxy.ts` - Deploy FleetProxy, create Phase 1 config
-- `deploy-cross-chain-ark.ts` - Deploy CrossChainArk, update to Phase 2 config
+- `deploy-xchain-fleetproxy.ts` - Deploy FleetProxy, create Phase 1 config
+- `deploy-xchain-ark.ts` - Deploy CrossChainArk, update to Phase 2 config
 
 ### Cross-Chain Management Scripts
 - `cross-chain/register-relationships.ts` - Register ARK↔FleetProxy relationships and executors
@@ -146,7 +146,7 @@ Each script validates prerequisites and provides clear error messages if depende
 ### Check Configuration Status
 ```bash
 # The scripts will show current phase and missing fields
-npx hardhat run scripts/deploy-fleet-proxy.ts --network <chain>
+npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network <chain>
 ```
 
 ### Verify On-Chain State

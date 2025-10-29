@@ -95,7 +95,7 @@ export async function deployFleetProxy() {
     console.log(kleur.cyan('2. Deploy hub fleet (if not already deployed)'))
     console.log(
       kleur.cyan(
-        '3. Deploy CrossChainArk: npx hardhat run scripts/arks/deploy-cross-chain-ark.ts --network <source>',
+        '3. Deploy CrossChainArk: npx hardhat run scripts/arks/deploy-xchain-ark.ts --network <source>',
       ),
     )
     console.log(kleur.cyan('4. Register relationships on both chains'))
