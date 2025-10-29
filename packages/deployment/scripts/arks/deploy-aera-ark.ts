@@ -111,7 +111,8 @@ async function deployAeraArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Aera-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   // Validate vault name format and extract protocol
   validateVaultName(userInput.vaultName, 'Aera vault name')

@@ -66,5 +66,21 @@
   "TarFi_USDC_MorphoVault_usdc_Gauntlet_USDC_Prime_42161#MorphoVaultArk": "0xeF2941eec4F0E44cD308a0A960C31b5413a03190",
   "TarFi_USDC_MorphoVault_usdc_Gauntlet_USDC_Core_42161#MorphoVaultArk": "0xE9B1c26a48Be2bC267f83958eDeC2752741b295E",
   "TarFi_USDC_ERC4626_Euler_Arbitrum_USDC_usdc_42161#ERC4626Ark": "0xbdb2AF9c28896CaD3E055000335373CFC59f6799",
-  "TarFi_USDC_FluidFToken_usdc_42161#FluidFTokenArk": "0xF7B4909BE705de1bddFD6A0F717fc81d69684C3C"
+  "TarFi_USDC_FluidFToken_usdc_42161#FluidFTokenArk": "0xF7B4909BE705de1bddFD6A0F717fc81d69684C3C",
+  "InstitutionRegistry_prod#InstitutionalVaultRegistry": "0x209dCC11C4A3424d7AA6c0690cbEa07de9d6D9B6",
+  "InstitutionWhitelist_Targen#DutchAuctionLibrary": "0xa5c83fB2f37Fd096dFBbe8B1554741eDE8065641",
+  "InstitutionWhitelist_Targen#ProtocolAccessManager": "0xd723090a7fe126265Da5528EE3c93669Dd1284c5",
+  "InstitutionWhitelist_Targen#HarborCommand": "0x47c327898d412Cf0271675f62BCf0CE472A040Cf",
+  "InstitutionWhitelist_Targen#Raft": "0xD8564c9dcb93f28ECEfD2f0ec4BA0F7d4dbEc718",
+  "InstitutionWhitelist_Targen#ConfigurationManagerWhitelist": "0x5632B3DF8A030001d0A89c2D9B420c2210EeDdC5",
+  "InstitutionWhitelist_Targen#AdmiralsQuartersWhitelist": "0x4963C6E00CF8b27580F7e9e3ae6b5C952a85B1D3",
+  "InstitutionWhitelist_Targen#TipJar": "0x8Af05D23ac0D45d7609400bC7a62BB48764Ab398",
+  "prod_FleetWhitelist_TarFi_USDC#FleetCommanderWhitelist": "0xb960bAef9665F067455Ab119E56A29896D676deF",
+  "prod_TarFi_USDC_AaveV3_usdc_42161#AaveV3Ark": "0xe9e9c35F53E0425C0C29fDfc90915382c51AdfFC",
+  "prod_TarFi_USDC_CompoundV3_usdc_42161#CompoundV3Ark": "0x9fc0f16C8323Da7B2781CcF17bA6FAb3e55e1B9C",
+  "prod_TarFi_USDC_ERC4626_Sky_sUSDC_usdc_42161#ERC4626Ark": "0x45FF580617c41Ca4FB5D76C0EcC331FA3A5Ac8b5",
+  "prod_TarFi_USDC_MorphoVault_usdc_Gauntlet_USDC_Prime_42161#MorphoVaultArk": "0x10888a1EF0cac3b78488287c5759fE9E65d23B76",
+  "prod_TarFi_USDC_MorphoVault_usdc_Gauntlet_USDC_Core_42161#MorphoVaultArk": "0x05498707884212E7182a252105d8603e76E2EeD8",
+  "prod_TarFi_USDC_ERC4626_Euler_Arbitrum_USDC_usdc_42161#ERC4626Ark": "0x580b9a45b03509c1177c3698c130A68977fDeE1d",
+  "prod_TarFi_USDC_FluidFToken_usdc_42161#FluidFTokenArk": "0x1bf59cc3E72736040c6b8fDc084e19a8070A045C"
 }

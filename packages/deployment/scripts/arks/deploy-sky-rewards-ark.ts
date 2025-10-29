@@ -134,7 +134,8 @@ async function deploySkyRewardsArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `SkyRewards-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const psmLiteAddress = validateAddress(
     config.protocolSpecific.sky.psmLite[userInput.token.symbol],

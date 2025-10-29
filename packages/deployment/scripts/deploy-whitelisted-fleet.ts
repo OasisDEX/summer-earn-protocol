@@ -18,6 +18,7 @@ import {
   deployArks,
   getRewardsManagerAddress,
   grantCuratorRole,
+  grantKeeperRole,
   setupFleetRewards,
 } from './fleets/fleet-deployment-helpers'
 import { getInstitutionConfigByNetwork } from './helpers/config-handler'
@@ -56,7 +57,6 @@ async function selectInstitutionFleetConfig(
   return {
     ...parsed,
     details: JSON.stringify(parsed.details),
-    ...(data.curator ? { curator: data.curator } : {}),
   } as unknown as FleetConfig
 }
 
@@ -239,13 +239,15 @@ async function main() {
   }
 
   // Deploy via whitelist module (FleetCommanderWhitelist)
+  const envLabel = useBummerConfig ? 'staging' : 'prod'
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
-  const fleetModule = createFleetWhitelistModule(`FleetWhitelist_${name}`)
+  const moduleName = `${envLabel}_FleetWhitelist_${name}`
+  const fleetModule = createFleetWhitelistModule(moduleName)
 
   // Use addresses directly from merged config (ensures propagation is correct)
   const deployedFleet = await hre.ignition.deploy(fleetModule, {
     parameters: {
-      [`FleetWhitelist_${name}`]: {
+      [moduleName]: {
         configurationManager: config.deployedContracts.core.configurationManager.address,
         protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         fleetName: fleetDefinition.fleetName,
@@ -323,6 +325,14 @@ async function main() {
         config.deployedContracts.gov.protocolAccessManager.address as Address,
         deployedFleet.fleetCommanderWhitelist.address as Address,
         fleetDefinition.curator as Address,
+        hre,
+      )
+    }
+    if (fleetDefinition.keeper) {
+      await grantKeeperRole(
+        config.deployedContracts.gov.protocolAccessManager.address as Address,
+        deployedFleet.fleetCommanderWhitelist.address as Address,
+        fleetDefinition.keeper as Address,
         hre,
       )
     }

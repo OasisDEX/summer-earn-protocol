@@ -4,7 +4,7 @@ import kleur from 'kleur'
 import { Address as ViemAddress } from 'viem'
 import {
   InstitutionWhitelistContracts,
-  InstitutionWhitelistModule,
+  createInstitutionWhitelistModule,
 } from '../ignition/modules/institution-whitelist'
 import { BaseConfig } from '../types/config-types'
 import { getConfigByNetwork } from './helpers/config-handler'
@@ -49,9 +49,11 @@ async function main() {
 
   const treasury = governance.treasury
 
-  const deployed = (await hre.ignition.deploy(InstitutionWhitelistModule, {
+  const moduleName = `InstitutionWhitelist_${institutionId}`
+  const InstitutionModule = createInstitutionWhitelistModule(moduleName)
+  const deployed = (await hre.ignition.deploy(InstitutionModule, {
     parameters: {
-      InstitutionWhitelistModule: {
+      [moduleName]: {
         swapProvider: swapProvider,
         weth: wethAddress,
         treasury: treasury as ViemAddress,

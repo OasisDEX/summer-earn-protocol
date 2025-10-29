@@ -1,13 +1,52 @@
 {
   "arbitrum": {
-    "guardian": [
-      "0xA0d7E9F71597623355e407C0D55047306045cca0",
-      "0xb0f758323D3798a6A567C1601d84f30d1BCAAA0b"
-    ],
+    "deployedContracts": {
+      "gov": {
+        "protocolAccessManager": {
+          "address": "0xd723090a7fe126265Da5528EE3c93669Dd1284c5"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0x8Af05D23ac0D45d7609400bC7a62BB48764Ab398"
+        },
+        "configurationManager": {
+          "address": "0x5632B3DF8A030001d0A89c2D9B420c2210EeDdC5"
+        },
+        "harborCommand": {
+          "address": "0x47c327898d412Cf0271675f62BCf0CE472A040Cf"
+        },
+        "admiralsQuarters": {
+          "address": "0x4963C6E00CF8b27580F7e9e3ae6b5C952a85B1D3"
+        },
+        "raft": {
+          "address": "0xD8564c9dcb93f28ECEfD2f0ec4BA0F7d4dbEc718"
+        }
+      }
+    },
+    "fleets": {
+      "TarFi_USDC": {
+        "fleetCommander": "0xb960bAef9665F067455Ab119E56A29896D676deF",
+        "bufferArk": "0x30Eae455bAa93b70f0f54042702a4F5f842B1cf3",
+        "arks": [
+          "0xe9e9c35F53E0425C0C29fDfc90915382c51AdfFC",
+          "0x9fc0f16C8323Da7B2781CcF17bA6FAb3e55e1B9C",
+          "0x45FF580617c41Ca4FB5D76C0EcC331FA3A5Ac8b5",
+          "0x10888a1EF0cac3b78488287c5759fE9E65d23B76",
+          "0x05498707884212E7182a252105d8603e76E2EeD8",
+          "0x580b9a45b03509c1177c3698c130A68977fDeE1d",
+          "0x1bf59cc3E72736040c6b8fDc084e19a8070A045C"
+        ]
+      }
+    },
+    "treasury": "0xA0d7E9F71597623355e407C0D55047306045cca0",
     "governor": [
       "0xA0d7E9F71597623355e407C0D55047306045cca0",
       "0xb0f758323D3798a6A567C1601d84f30d1BCAAA0b"
     ],
-    "treasury": "0xA0d7E9F71597623355e407C0D55047306045cca0"
+    "guardian": [
+      "0xA0d7E9F71597623355e407C0D55047306045cca0",
+      "0xb0f758323D3798a6A567C1601d84f30d1BCAAA0b"
+    ]
   }
 }

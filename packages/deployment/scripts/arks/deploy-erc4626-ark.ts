@@ -117,7 +117,8 @@ async function deployERC4626ArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `ERC4626-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   // Validate vault name format and extract protocol
   validateVaultName(userInput.vaultName, 'ERC4626 vault name')

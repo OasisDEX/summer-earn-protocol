@@ -286,6 +286,7 @@ export interface ArkConfig {
 
 export interface FleetConfig {
   fleetName: string
+  isBummer?: boolean
   symbol: string
   assetSymbol: string
   initialMinimumBufferBalance: string
@@ -302,6 +303,7 @@ export interface FleetConfig {
   sipNumber?: string
   details: string
   curator?: Address
+  keeper?: Address
 }
 
 export interface FleetDeployment {

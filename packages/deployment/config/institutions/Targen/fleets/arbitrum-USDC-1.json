@@ -5,10 +5,11 @@
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "600",
   "depositCap": "1000000000",
-  "initialTipRate": "0",
+  "initialTipRate": "2000000000000000000",
   "network": "arbitrum",
   "details": "",
   "curator": "0xA0d7E9F71597623355e407C0D55047306045cca0",
+  "keeper": "0xc2a8467a52Fec8383c424149000cf384de9Ba1B5",
   "arks": [
     {
       "type": "AaveV3Ark",

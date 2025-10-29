@@ -109,7 +109,8 @@ async function deploySparkArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Spark-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const sparkPool = validateAddress(config.protocolSpecific.spark.pool, 'spark pool')
   const sparkRewards = validateAddress(config.protocolSpecific.spark.rewards, 'spark rewards')

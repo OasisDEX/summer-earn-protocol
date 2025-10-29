@@ -61,13 +61,19 @@ export const FleetConfigSchema = z.object({
   fleetName: z.string().min(1),
   symbol: z.string().min(1),
   assetSymbol: z.string().min(1),
-  initialMinimumBufferBalance: z.union([z.string(), z.number(), z.bigint()]),
-  initialRebalanceCooldown: z.union([z.string(), z.number()]),
-  depositCap: z.union([z.string(), z.number(), z.bigint()]),
-  initialTipRate: z.union([z.string(), z.number(), z.bigint()]),
+  initialMinimumBufferBalance: z.string().min(1),
+  initialRebalanceCooldown: z.string().min(1),
+  depositCap: z.string().min(1),
+  initialTipRate: z.string().min(1),
   network: z.string().min(1),
   details: z.unknown(),
   arks: z.array(z.any()).optional(),
+  curator: AddressSchema.optional(),
+  keeper: AddressSchema.optional(),
+  rewardTokens: z.array(AddressSchema).optional(),
+  rewardAmounts: z.array(z.string()).optional(),
+  rewardsDuration: z.number().optional(),
+  bridgeAmount: z.string().optional(),
 })
 
 export const FleetDeploymentSchema = z.object({
