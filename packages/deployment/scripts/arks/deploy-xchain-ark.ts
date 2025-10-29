@@ -156,6 +156,20 @@ export async function deployCrossChainArk(
 
   console.log(kleur.green(`Loaded cross-chain config: ${selectedConfigFile}`))
 
+  // Use the fleetName from the loaded config file for config operations
+  // This ensures we're using the correct name that matches the config file
+  const configFleetName = crossChainConfig.fleetName
+  if (!configFleetName || configFleetName.trim() === '') {
+    throw new Error(
+      'Cross-chain config file is missing fleetName. Please ensure the config file is valid.',
+    )
+  }
+  if (configFleetName !== fleetName) {
+    console.log(
+      kleur.yellow(`Using fleet name from config: ${configFleetName} (input was: ${fleetName})`),
+    )
+  }
+
   // Get target chain and protocol
   let targetChainId: number
   let targetProtocol: string
@@ -240,7 +254,12 @@ export async function deployCrossChainArk(
   }
 
   if (await confirmDeployment(userInput, config, arkParams != undefined)) {
-    const deployedContracts = await deployCrossChainArkContract(config, userInput, fleetName!)
+    const deployedContracts = await deployCrossChainArkContract(
+      config,
+      userInput,
+      fleetName!,
+      configFleetName,
+    )
     // Return in the same format as other arks
     return { ark: deployedContracts.crossChainArk }
   } else {
@@ -376,13 +395,15 @@ async function confirmDeployment(userInput: any, config: BaseConfig, isAutomated
  * Deploys the CrossChainArk contract
  * @param {BaseConfig} config - The configuration object for the current network
  * @param {object} userInput - The user's input for deployment parameters
- * @param {string} fleetName - The name of the fleet
+ * @param {string} fleetName - The name of the fleet (for module naming)
+ * @param {string} configFleetName - The fleet name from the config file (for config operations)
  * @returns {Promise<CrossChainArkContracts>} The deployed contracts
  */
 async function deployCrossChainArkContract(
   config: BaseConfig,
   userInput: any,
   fleetName: string,
+  configFleetName: string,
 ): Promise<CrossChainArkContracts> {
   const chainId = await getChainId()
   const deploymentId = await handleDeploymentId(chainId)
@@ -416,21 +437,13 @@ async function deployCrossChainArkContract(
     deploymentId,
   })
 
-  // Set target proxy (FleetProxy must exist per satellite-first approach)
-  console.log(kleur.yellow('Setting target proxy...'))
-  const crossChainArkContract = await hre.viem.getContractAt(
-    'CrossChainArk' as string,
+  // Update cross-chain config in Phase 2 - use configFleetName for config operations
+  await updateCrossChainConfigPhase2(
+    configFleetName,
     result.crossChainArk.address,
+    userInput,
+    fleetName,
   )
-  const publicClient = await hre.viem.getPublicClient()
-
-  const proxyHash = await crossChainArkContract.write.setTargetProxy([userInput.fleetProxyAddress])
-  console.log(kleur.yellow('Waiting for target proxy transaction to confirm...'))
-  await publicClient.waitForTransactionReceipt({ hash: proxyHash })
-  console.log(kleur.green('Target proxy set successfully'))
-
-  // Update cross-chain config in Phase 2
-  await updateCrossChainConfigPhase2(fleetName, result.crossChainArk.address, userInput)
 
   return { crossChainArk: result.crossChainArk }
 }
@@ -439,11 +452,12 @@ async function deployCrossChainArkContract(
  * Updates cross-chain config in Phase 2 (hub deployment)
  */
 async function updateCrossChainConfigPhase2(
-  fleetName: string,
+  configFleetName: string,
   crossChainArkAddress: Address,
   userInput: any,
+  hubFleetName?: string,
 ): Promise<void> {
-  const existingConfig = loadCrossChainConfig(fleetName)
+  const existingConfig = loadCrossChainConfig(configFleetName)
 
   if (!existingConfig) {
     console.log(kleur.yellow('No existing cross-chain config found. Creating new config...'))
@@ -463,7 +477,7 @@ async function updateCrossChainConfigPhase2(
   const updatedConfig = mergeCrossChainConfig(existingConfig, {
     sourceChainId: userInput.sourceChainId || (await getChainId()),
     hubFleetAddress: userInput.hubFleetAddress || '', // Will be set when hub fleet is deployed
-    hubFleetName: userInput.hubFleetName || fleetName,
+    hubFleetName: userInput.hubFleetName || hubFleetName || configFleetName,
     destinations: existingConfig.destinations.map((dest) => ({
       ...dest,
       protocols: dest.protocols.map((protocol) =>
@@ -474,11 +488,11 @@ async function updateCrossChainConfigPhase2(
     })),
   })
 
-  saveCrossChainConfig(fleetName, updatedConfig)
+  saveCrossChainConfig(configFleetName, updatedConfig)
   console.log(kleur.green('✓ Updated cross-chain configuration (Phase 2)'))
 
   // Show current status
-  const status = getCrossChainConfigStatus(fleetName)
+  const status = getCrossChainConfigStatus(configFleetName)
   console.log(kleur.blue(`Current phase: ${status.phase}`))
   if (status.missingFields.length > 0) {
     console.log(kleur.yellow(`Missing: ${status.missingFields.join(', ')}`))
