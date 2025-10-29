@@ -74,9 +74,6 @@ export function validateRegistrationPrerequisites(
   if (!crossChainConfig.sourceChainId || crossChainConfig.sourceChainId === 0) {
     errors.push('Cross-chain config missing sourceChainId')
   }
-  if (!crossChainConfig.hubFleetAddress) {
-    errors.push('Cross-chain config missing hubFleetAddress')
-  }
   if (!crossChainConfig.hubFleetName) {
     errors.push('Cross-chain config missing hubFleetName')
   }

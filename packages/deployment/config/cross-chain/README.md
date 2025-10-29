@@ -11,7 +11,6 @@ This directory contains configuration files that define cross-chain relationship
 {
   "fleetName": "LazyVault_LowerRisk_USDC",
   "sourceChainId": 0,  // Not yet known
-  "hubFleetAddress": "",  // Not yet deployed
   "hubFleetName": "",
   "destinations": [
     {
@@ -37,7 +36,6 @@ This directory contains configuration files that define cross-chain relationship
 {
   "fleetName": "LazyVault_LowerRisk_USDC",
   "sourceChainId": 10,  // Now known
-  "hubFleetAddress": "0x05Da9eE95BF7f0a37e79a1341706eFB65e385979",  // Now deployed
   "hubFleetName": "Bummer_SuperLazyVault_LowerRisk_USDC",
   "destinations": [
     {
@@ -65,7 +63,6 @@ All fields populated, relationships registered in CrossChainRegistry on both cha
 
 - `fleetName`: Name of the cross-chain fleet configuration
 - `sourceChainId`: Chain ID of the hub chain (set in Phase 2)
-- `hubFleetAddress`: Address of the hub fleet on the source chain (set in Phase 2)
 - `hubFleetName`: Name of the hub fleet (set in Phase 2)
 - `destinations`: Array of destination chain configurations
   - `chainId`: Chain ID of the destination chain

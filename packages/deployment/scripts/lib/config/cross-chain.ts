@@ -4,7 +4,6 @@ import path from 'path'
 export interface CrossChainConfig {
   fleetName: string
   sourceChainId: number
-  hubFleetAddress: string
   hubFleetName: string
   destinations: Array<{
     chainId: number
@@ -109,9 +108,6 @@ export function validateCrossChainConfigPhase(
       // Hub phase: CrossChainArk addresses should be present
       if (!config.sourceChainId || config.sourceChainId === 0) {
         errors.push('sourceChainId is required for hub phase')
-      }
-      if (!config.hubFleetAddress) {
-        errors.push('hubFleetAddress is required for hub phase')
       }
       if (!config.hubFleetName) {
         errors.push('hubFleetName is required for hub phase')
@@ -254,7 +250,6 @@ export function createSatellitePhaseConfig(
   return {
     fleetName,
     sourceChainId: 0, // Will be set later
-    hubFleetAddress: '', // Will be set later
     hubFleetName: '', // Will be set later
     destinations: [
       {

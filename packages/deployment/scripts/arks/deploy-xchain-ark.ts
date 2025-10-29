@@ -476,7 +476,6 @@ async function updateCrossChainConfigPhase2(
   // Update config with hub information
   const updatedConfig = mergeCrossChainConfig(existingConfig, {
     sourceChainId: userInput.sourceChainId || (await getChainId()),
-    hubFleetAddress: userInput.hubFleetAddress || '', // Will be set when hub fleet is deployed
     hubFleetName: userInput.hubFleetName || hubFleetName || configFleetName,
     destinations: existingConfig.destinations.map((dest) => ({
       ...dest,

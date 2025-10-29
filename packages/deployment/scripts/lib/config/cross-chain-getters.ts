@@ -271,19 +271,6 @@ export function getSourceChainId(config: CrossChainConfig): number {
 }
 
 /**
- * Get the hub fleet address from the configuration
- * @param config Cross-chain configuration
- * @returns Hub fleet address
- * @throws Error if not set
- */
-export function getHubFleetAddress(config: CrossChainConfig): Address {
-  if (!config.hubFleetAddress) {
-    throw new Error('Hub fleet address not set in cross-chain config')
-  }
-  return config.hubFleetAddress as Address
-}
-
-/**
  * Get the hub fleet name from the configuration
  * @param config Cross-chain configuration
  * @returns Hub fleet name
