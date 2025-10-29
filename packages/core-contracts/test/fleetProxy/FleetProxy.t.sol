@@ -967,6 +967,29 @@ contract CrossChainFleetProxyTest is Test {
         // Refund/balance checks are not applicable since call reverts before router interaction
     }
 
+    function test_NotifyWhileInFlight_RevertsInFlight() public {
+        // Ensure latestIncomingTransferId is set (required by notify)
+        _depositAssetsToFleet(1000);
+
+        // Set inflight withdrawals > 0 via governor
+        vm.prank(governor);
+        proxy.forceUpdateInflightAssets(1);
+
+        // Attempt to notify should revert with InFlight
+        vm.deal(governor, 1 ether);
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InFlight()"));
+        proxy.notifyHubChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+    }
+
     function test_NotifySourceChain_SetsRefundToKeeper_and_RefundsETH() public {
         // Arrange
         vm.deal(governor, 10 ether);

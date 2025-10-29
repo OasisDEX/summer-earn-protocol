@@ -1139,4 +1139,236 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Verify the balance wasn't updated
         assertEq(ark.lastRemoteAssetBalance(), initialBalance);
     }
+
+    function test_Race_WithdrawThenNotify_NotificationFirst_totalAssetsStable()
+        public
+    {
+        // Initial hub (H) and remote (R)
+        uint256 H = 1_000;
+        uint256 R = 500;
+        deal(address(mockToken), address(ark), H);
+
+        // Set initial remote via MESSAGE (seq = 1)
+        BridgeTypes.RelayedMessageParams memory initMsg = _encodeMessage(
+            keccak256("init"),
+            address(proxy),
+            address(ark),
+            R,
+            TARGET_CHAIN_ID,
+            bytes32(0)
+        );
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(initMsg)
+        );
+
+        uint256 expectedTotal = H + R;
+        assertEq(ark.totalAssets(), expectedTotal, "initial total");
+
+        // Simulate withdrawal Y: R -> R - Y
+        uint256 Y = 200;
+        uint256 newR = R - Y;
+
+        // Craft transfer with older sequence (seq = 2) but deliver later
+        bytes memory transferMsg = abi.encode(newR, uint64(2));
+        BridgeTypes.RelayedTransferParams memory tparams = BridgeTypes
+            .RelayedTransferParams({
+                operationId: keccak256("withdrawal"),
+                originator: address(proxy),
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                asset: address(mockToken),
+                amount: Y,
+                message: transferMsg
+            });
+
+        // Deliver newer notification first (seq = 3)
+        bytes memory notifyMsg = abi.encode(newR, bytes32(0), uint64(3));
+        BridgeTypes.RelayedMessageParams memory nparams = BridgeTypes
+            .RelayedMessageParams({
+                operationId: keccak256("notify-new"),
+                originator: address(proxy),
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                message: notifyMsg
+            });
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(nparams)
+        );
+
+        // After notification: inboundInflightAssets should hold Y; total stays constant
+        assertEq(ark.inboundInflightAssets(), Y, "inbound before transfer");
+        assertEq(ark.totalAssets(), expectedTotal, "total after notify first");
+
+        // Now deliver transfer with stale seq (2), credit tokens
+        deal(address(mockToken), address(ark), Y);
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(tparams)
+        );
+
+        // Inbound cleared; totals unchanged; remote balance remains newR
+        assertEq(ark.inboundInflightAssets(), 0, "inbound cleared");
+        assertEq(ark.totalAssets(), expectedTotal, "total after transfer");
+        assertEq(ark.lastRemoteAssetBalance(), newR, "remote after");
+        assertEq(ark.lastProcessedSequence(), 3, "seq tracked");
+    }
+
+    function test_Race_NotifyThenWithdraw_TransferFirst_totalAssetsStable()
+        public
+    {
+        // Initial hub (H) and remote (R)
+        uint256 H = 2_000;
+        uint256 R = 800;
+        deal(address(mockToken), address(ark), H);
+
+        // Set initial remote via MESSAGE (seq = 1)
+        BridgeTypes.RelayedMessageParams memory initMsg = _encodeMessage(
+            keccak256("init2"),
+            address(proxy),
+            address(ark),
+            R,
+            TARGET_CHAIN_ID,
+            bytes32(0)
+        );
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(initMsg)
+        );
+
+        uint256 expectedTotal = H + R;
+        assertEq(ark.totalAssets(), expectedTotal, "initial total");
+
+        uint256 Y = 250;
+        uint256 newR = R - Y;
+
+        // Newer transfer first (seq = 3), older notify later (seq = 2)
+        // Deliver transfer first
+        deal(address(mockToken), address(ark), Y);
+        bytes memory transferMsg = abi.encode(newR, uint64(3));
+        BridgeTypes.RelayedTransferParams memory tparams = BridgeTypes
+            .RelayedTransferParams({
+                operationId: keccak256("withdrawal2"),
+                originator: address(proxy),
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                asset: address(mockToken),
+                amount: Y,
+                message: transferMsg
+            });
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(tparams)
+        );
+
+        // Totals remain constant, remote updated
+        assertEq(
+            ark.totalAssets(),
+            expectedTotal,
+            "total after transfer first"
+        );
+        assertEq(ark.lastRemoteAssetBalance(), newR, "remote updated");
+
+        // Now deliver stale notification (seq = 2) -> ignored
+        bytes memory notifyMsg = abi.encode(newR, bytes32(0), uint64(2));
+        BridgeTypes.RelayedMessageParams memory nparams = BridgeTypes
+            .RelayedMessageParams({
+                operationId: keccak256("notify-old"),
+                originator: address(proxy),
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                message: notifyMsg
+            });
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(nparams)
+        );
+
+        assertEq(
+            ark.totalAssets(),
+            expectedTotal,
+            "total unchanged after stale"
+        );
+        assertEq(ark.lastRemoteAssetBalance(), newR, "remote unchanged");
+        assertEq(ark.inboundInflightAssets(), 0, "no inbound inflight");
+    }
+
+    function test_StaleTransfer_DoesNotOverwriteRemoteBalance_ButClearsInbound()
+        public
+    {
+        // Initial H and R
+        uint256 H = 1_500;
+        uint256 R = 600;
+        deal(address(mockToken), address(ark), H);
+
+        // Initial remote via MESSAGE (seq = 1)
+        BridgeTypes.RelayedMessageParams memory initMsg = _encodeMessage(
+            keccak256("init3"),
+            address(proxy),
+            address(ark),
+            R,
+            TARGET_CHAIN_ID,
+            bytes32(0)
+        );
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(initMsg)
+        );
+
+        uint256 expectedTotal = H + R;
+        assertEq(ark.totalAssets(), expectedTotal, "initial total");
+
+        // Notification decreases remote (seq = 2)
+        uint256 Y = 100;
+        uint256 newR = R - Y;
+        bytes memory notifyMsg = abi.encode(newR, bytes32(0), uint64(2));
+        BridgeTypes.RelayedMessageParams memory nparams = BridgeTypes
+            .RelayedMessageParams({
+                operationId: keccak256("notify2"),
+                originator: address(proxy),
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                message: notifyMsg
+            });
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(nparams)
+        );
+
+        // inbound inflight tracks Y; total constant
+        assertEq(ark.inboundInflightAssets(), Y, "inbound after notify");
+        assertEq(ark.totalAssets(), expectedTotal, "total after notify");
+
+        // Deliver transfer with stale/equal seq (2) -> should not overwrite remote but clears inbound
+        deal(address(mockToken), address(ark), Y);
+        bytes memory transferMsg = abi.encode(newR, uint64(2));
+        BridgeTypes.RelayedTransferParams memory tparams = BridgeTypes
+            .RelayedTransferParams({
+                operationId: keccak256("withdrawal3"),
+                originator: address(proxy),
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                asset: address(mockToken),
+                amount: Y,
+                message: transferMsg
+            });
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(tparams)
+        );
+
+        assertEq(ark.inboundInflightAssets(), 0, "inbound cleared");
+        assertEq(ark.lastRemoteAssetBalance(), newR, "remote unchanged");
+        assertEq(ark.totalAssets(), expectedTotal, "total stable");
+    }
 }
