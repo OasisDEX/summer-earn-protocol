@@ -1684,6 +1684,7 @@ type Institution @entity {
   createdTimestamp: BigInt!
   createdBlockNumber: BigInt!
   vaults: [Vault!]! @derivedFrom(field: "institution")
+  roles: [Role!]! @derivedFrom(field: "institution")
 }
 
 type Role @entity {

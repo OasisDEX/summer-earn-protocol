@@ -152,8 +152,8 @@ export function handleInterval(block: ethereum.Block): void {
 
   let protocol = getOrCreateYieldAggregator(block.timestamp)
 
-  if (!protocol || !protocol.vaultsArray) {
-    log.warning('Protocol or vaultsArray is null', [])
+  if (!protocol || protocol.vaults.load().length == 0) {
+    log.warning('Protocol or vaults are empty', [])
     return
   }
 
@@ -162,7 +162,7 @@ export function handleInterval(block: ethereum.Block): void {
     updateAccountStakingRewards(block.number)
   }
 
-  const vaults = protocol.vaultsArray
+  const vaults = protocol.vaults.load()
 
   for (let i = 0; i < vaults.length; i++) {
     if (!vaults[i]) {
@@ -170,12 +170,12 @@ export function handleInterval(block: ethereum.Block): void {
       continue
     }
 
-    if (!vaults[i].startsWith('0x') || vaults[i].length != 42) {
+    if (!vaults[i].id.startsWith('0x') || vaults[i].id.length != 42) {
       log.warning('Invalid vault address format at index ' + i.toString(), [])
       continue
     }
 
-    const vaultAddress = Address.fromString(vaults[i])
+    const vaultAddress = Address.fromString(vaults[i].id)
 
     processHourlyVaultUpdate(
       vaultAddress,

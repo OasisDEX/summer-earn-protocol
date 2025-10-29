@@ -1,3 +1,4 @@
+import { store } from '@graphprotocol/graph-ts'
 import { HarborCommand } from '../../generated/HarborCommand/HarborCommand'
 import { ConfigurationManager } from '../../generated/InstitutionalVaultRegistry/ConfigurationManager'
 import {
@@ -11,7 +12,11 @@ import {
   HarborCommand as HarborCommandTemplate,
   ProtocolAccessManager as ProtocolAccessManagerTemplate,
 } from '../../generated/templates'
-import { getOrCreateAccessController, getOrCreateVault } from '../common/initializers'
+import {
+  getOrCreateAccessController,
+  getOrCreateVault,
+  getOrCreateYieldAggregator,
+} from '../common/initializers'
 
 export function handleInstitutionAdded(event: InstitutionAdded): void {
   let institution = new Institution(event.params.id.toHex())
@@ -53,7 +58,36 @@ export function handleInstitutionAdmiralsQuartersUpdated(
 }
 
 export function handleInstitutionRemoved(event: InstitutionRemoved): void {
-  let institution = new Institution(event.params.id.toHex())
-  institution.active = false
-  institution.save()
+  let institution = Institution.load(event.params.id.toHex())
+  if (!institution) {
+    return
+  }
+
+  let protocol = getOrCreateYieldAggregator(event.block.timestamp)
+  if (!protocol) {
+    return
+  }
+  const roles = institution.roles.load()
+  for (let i = 0; i < roles.length; i++) {
+    const role = roles[i]
+    store.remove('Role', role.id)
+  }
+  const vaults = institution.vaults.load()
+
+  for (let i = 0; i < vaults.length; i++) {
+    const vault = vaults[i]
+    const positions = vault.positions
+    for (let j = 0; j < positions.length; j++) {
+      const position = positions[j]
+      store.remove('Position', position)
+    }
+    const arks = vault.arks.load()
+    for (let j = 0; j < arks.length; j++) {
+      const ark = arks[j]
+      store.remove('Ark', ark.id)
+    }
+    store.remove('Vault', vault.id)
+  }
+  protocol.save()
+  store.remove('Institution', institution.id)
 }

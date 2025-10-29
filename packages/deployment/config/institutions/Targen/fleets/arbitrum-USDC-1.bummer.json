@@ -1,5 +1,6 @@
 {
-  "fleetName": "TarFi_USDC",
+  "fleetName": "Bummer_TarFi_USDC",
+  "isBummer": true,
   "symbol": "tarfiUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "0",
