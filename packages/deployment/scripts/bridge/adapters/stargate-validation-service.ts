@@ -1,6 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { PublicClient } from 'viem'
+import { ADDRESS_ZERO } from '../../lib/infrastructure/constants'
 import { STARGATE_COMMON_ABI, STARGATE_OFT_ABI, STARGATE_POOL_ABI } from './abis'
 
 /**
@@ -126,7 +127,7 @@ export class StargateContractValidator {
     contractAddress: string,
   ): Promise<boolean> {
     try {
-      const code = await publicClient.getBytecode({
+      const code = await publicClient.getCode({
         address: contractAddress as `0x${string}`,
       })
       return code !== undefined && code !== '0x'
@@ -196,12 +197,13 @@ export class StargateContractValidator {
     const checksummedActualToken = actualToken.toLowerCase()
 
     // Handle native ETH pools: Stargate uses zero address for native ETH pools
-    // The contract cannot accept zero address assets (reverts InvalidAssetAddress)
-    // and requires poolToken == asset, so native ETH pools are not supported
-    if (checksummedActualToken === '0x0000000000000000000000000000000000000000') {
+    // The StargateAdapter contract cannot accept zero address assets (reverts InvalidAssetAddress)
+    // and requires poolToken == asset, so native ETH pools are not supported by the current adapter implementation
+    // Note: Stargate itself supports native ETH pools, but the adapter uses IERC20 which requires ERC20 tokens
+    if (checksummedActualToken === ADDRESS_ZERO) {
       return {
         isValid: false,
-        error: `Native ETH pools (zero address token) are not supported by StargateAdapter contract`,
+        error: `Native ETH pools are not supported by StargateAdapter contract (uses IERC20 which requires ERC20 tokens, not native ETH)`,
         actualToken: actualToken,
       }
     }
