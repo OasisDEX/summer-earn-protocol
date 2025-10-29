@@ -35,6 +35,7 @@ export interface AssetConfigurationParams {
 export interface AssetConfigurationResult {
   assetsConfigured: number
   errors: string[]
+  warnings: string[]
 }
 
 /**
@@ -44,7 +45,7 @@ export async function addAssetIfNotMapped(
   params: AssetConfigurationParams,
   assetSymbol: string,
   stargateContract: string,
-): Promise<{ configured: boolean; error?: string }> {
+): Promise<{ configured: boolean; error?: string; warning?: string }> {
   const {
     stargateAdapter,
     walletClient,
@@ -88,6 +89,13 @@ export async function addAssetIfNotMapped(
       checksummedStargateContract,
     )
     if (!tokenMatch.isValid) {
+      // Check if this is a native ETH pool (zero address token) - skip with warning
+      if (tokenMatch.actualToken?.toLowerCase() === '0x0000000000000000000000000000000000000000') {
+        return {
+          configured: false,
+          warning: `Skipping native ETH pool for ${assetSymbol}: ${tokenMatch.error}`,
+        }
+      }
       return {
         configured: false,
         error: `Error configuring asset mapping for ${assetSymbol}: ${tokenMatch.error}`,
@@ -143,6 +151,7 @@ export async function configureSupportedAssets(
   const { currentChainId } = params
   let assetsConfigured = 0
   const errors: string[] = []
+  const warnings: string[] = []
 
   // Get Stargate contracts for current chain
   const currentChainContracts = (stargateConfig as StargateConfig).contracts[
@@ -155,7 +164,7 @@ export async function configureSupportedAssets(
         `No Stargate V2 contracts found for current chain ${currentChainId}, skipping asset configuration`,
       ),
     )
-    return { assetsConfigured: 0, errors: [] }
+    return { assetsConfigured: 0, errors: [], warnings: [] }
   }
 
   // Configure supported assets
@@ -170,10 +179,12 @@ export async function configureSupportedAssets(
       assetsConfigured++
     } else if (result.error) {
       errors.push(result.error)
+    } else if (result.warning) {
+      warnings.push(result.warning)
     }
   }
 
-  return { assetsConfigured, errors }
+  return { assetsConfigured, errors, warnings }
 }
 
 /**
@@ -181,6 +192,11 @@ export async function configureSupportedAssets(
  */
 export function logAssetConfigurationResults(result: AssetConfigurationResult): void {
   console.log(kleur.blue(`Configured ${result.assetsConfigured} asset mappings`))
+
+  if (result.warnings.length > 0) {
+    console.log(kleur.yellow(`Encountered ${result.warnings.length} warnings:`))
+    result.warnings.forEach((warning) => console.log(kleur.yellow(`  - ${warning}`)))
+  }
 
   if (result.errors.length > 0) {
     console.log(kleur.red(`Encountered ${result.errors.length} errors:`))
