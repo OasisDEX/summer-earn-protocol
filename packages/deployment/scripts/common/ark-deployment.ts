@@ -350,7 +350,7 @@ export async function deployArk(
     case ArkType.AeraArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
       const provisioner = validateAddress(
-        config.protocolSpecific.gauntlet.vaults[token][vaultName].provisioner,
+        config.protocolSpecific.aera.vaults[token][vaultName].provisioner,
         `Aera-${vaultName}`,
       )
       const ark = await deployAeraArk(config, {

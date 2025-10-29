@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateArkDetails } from '../helpers/validation'
+import { validateArkDetails, validateVaultName } from '../helpers/validation'
 
 export interface ERC4626ArkUserInput extends BaseArkParams {
   vaultId: string
@@ -118,6 +118,9 @@ async function deployERC4626ArkContract(
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `ERC4626-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
   const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+
+  // Validate vault name format and extract protocol
+  validateVaultName(userInput.vaultName, 'ERC4626 vault name')
   const protocol = userInput.vaultName.split('_')[0]
 
   // Create and validate ark details
