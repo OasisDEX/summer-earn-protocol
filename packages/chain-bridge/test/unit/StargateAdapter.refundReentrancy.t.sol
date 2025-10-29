@@ -18,7 +18,7 @@ contract MaliciousRefundReceiver {
         // Attempt to reenter adapter entrypoint. With .transfer (2300 gas),
         // this call will OOG/revert and thus the original refund will fail.
         // This simulates a malicious refundAddress trying to reenter.
-        // The revert here is expected and bubbles up, reverting the tx.
+        // The revert with "reenter" message is expected and bubbles up, reverting the tx.
         // NOTE: Intentionally perform an external call to exceed 2300 gas.
         (bool s, ) = adapter.call("");
         s; // silence warning
@@ -107,7 +107,7 @@ contract StargateAdapterRefundReentrancyTest is StargateAdapterSetupTest {
 
         // Expect revert due to refund .transfer into malicious receiver
         vm.prank(address(routerA));
-        vm.expectRevert();
+        vm.expectRevert("reenter");
         adapterA.transferAsset{value: requiredFee + 1}(
             operationId,
             params,
