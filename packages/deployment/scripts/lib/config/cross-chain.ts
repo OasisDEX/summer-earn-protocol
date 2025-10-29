@@ -6,7 +6,6 @@ export interface CrossChainConfig {
   sourceChainId: number
   hubFleetAddress: string
   hubFleetName: string
-  satelliteFleetName: string
   destinations: Array<{
     chainId: number
     name: string
@@ -85,9 +84,6 @@ export function validateCrossChainConfigPhase(
   // Basic validation
   if (!config.fleetName) {
     errors.push('fleetName is required')
-  }
-  if (!config.satelliteFleetName) {
-    errors.push('satelliteFleetName is required')
   }
   if (!config.destinations || config.destinations.length === 0) {
     errors.push('destinations array is required and must not be empty')
@@ -245,7 +241,6 @@ export function getCrossChainConfigStatus(fleetName: string): CrossChainConfigSt
  */
 export function createSatellitePhaseConfig(
   fleetName: string,
-  satelliteFleetName: string,
   destination: {
     chainId: number
     name: string
@@ -261,7 +256,6 @@ export function createSatellitePhaseConfig(
     sourceChainId: 0, // Will be set later
     hubFleetAddress: '', // Will be set later
     hubFleetName: '', // Will be set later
-    satelliteFleetName,
     destinations: [
       {
         chainId: destination.chainId,

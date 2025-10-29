@@ -1,6 +1,7 @@
 import kleur from 'kleur'
 import { Address, WalletClient } from 'viem'
 import { waitForTransactionConfirmation, writeContractTx } from '../../lib/contracts/transactions'
+import { ADDRESS_ZERO } from '../../lib/infrastructure/constants'
 import { STARGATE_ADD_SUPPORTED_CHAIN_ABI } from './abis'
 import { ChainInfo, NetworkConfigMap } from './types'
 import { getNetworkNameFromChainId } from './utils'
@@ -115,10 +116,7 @@ export async function determineAdapterAddress(
   const existingAdapterAddress =
     targetNetworkConfig?.deployedContracts?.bridge?.adapters?.stargate?.address
 
-  if (
-    existingAdapterAddress &&
-    existingAdapterAddress !== '0x0000000000000000000000000000000000000000'
-  ) {
+  if (existingAdapterAddress && existingAdapterAddress !== ADDRESS_ZERO) {
     console.log(
       `Using existing adapter address for chain ${chainInfo.chainId}: ${existingAdapterAddress}`,
     )

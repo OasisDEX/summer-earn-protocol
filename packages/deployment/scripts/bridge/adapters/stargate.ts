@@ -12,6 +12,7 @@ import { waitForTransactionConfirmation, writeContractTx } from '../../lib/contr
 import { BRIDGE_ROUTER_REGISTER_ADAPTER_ABI } from './abis'
 import {
   AssetConfigurationParams,
+  StargateAdapterContract,
   configureSupportedAssets,
   logAssetConfigurationResults,
 } from './stargate-asset-service'
@@ -20,7 +21,6 @@ import {
   configureSupportedChains,
   logChainConfigurationResults,
 } from './stargate-chain-service'
-import { SETTLEMENT_DELAY_MS } from './stargate-constants'
 import { StargateContractValidator } from './stargate-validation-service'
 import { isAdapterRegistered, validateBridgeConfig } from './transaction-helpers'
 import { BaseConfig, NetworkConfigMap } from './types'
@@ -144,17 +144,9 @@ export async function configureStargateAdapter(
   const chainResult = await configureSupportedChains(chainParams)
   logChainConfigurationResults(chainResult)
 
-  // Only add delay if we actually added chains
-  if (chainResult.chainsAdded > 0) {
-    console.log(
-      kleur.blue(`Added ${chainResult.chainsAdded} new chains, waiting for settlement...`),
-    )
-    await new Promise((resolve) => setTimeout(resolve, SETTLEMENT_DELAY_MS))
-  }
-
   // Configure supported assets
   const assetParams: AssetConfigurationParams = {
-    stargateAdapter,
+    stargateAdapter: stargateAdapter as unknown as StargateAdapterContract,
     walletClient,
     stargateAdapterAddress,
     currentChainId,

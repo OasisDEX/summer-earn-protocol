@@ -303,19 +303,15 @@ async function updateCrossChainConfigPhase1(
     console.log(kleur.green('✓ Updated existing cross-chain configuration'))
   } else {
     // Create new Phase 1 config
-    const newConfig = createSatellitePhaseConfig(
-      userInput.fleetName,
-      userInput.fleetName, // satelliteFleetName same as fleetName for now
-      {
-        chainId: userInput.sourceChainId,
-        name: `chain-${userInput.sourceChainId}`,
-        fleetProxyAddress: fleetProxyAddress,
-        satelliteFleetAddress: userInput.fleetContract,
-        protocol: userInput.protocol,
-        assetAddress: userInput.asset.address,
-        assetSymbol: userInput.asset.symbol,
-      },
-    )
+    const newConfig = createSatellitePhaseConfig(userInput.fleetName, {
+      chainId: userInput.sourceChainId,
+      name: `chain-${userInput.sourceChainId}`,
+      fleetProxyAddress: fleetProxyAddress,
+      satelliteFleetAddress: userInput.fleetContract,
+      protocol: userInput.protocol,
+      assetAddress: userInput.asset.address,
+      assetSymbol: userInput.asset.symbol,
+    })
 
     saveCrossChainConfig(userInput.fleetName, newConfig)
     console.log(kleur.green('✓ Created new cross-chain configuration (Phase 1)'))
