@@ -110,7 +110,7 @@ export type ArkDetails = z.infer<typeof ArkDetailsSchema>
 export const VaultNameSchema = z.string().refine(
   (name) => {
     const parts = name.split('_')
-    return parts.length >= 2 && parts[0].length > 0
+    return parts.length >= 2 && parts[0].length > 0 && parts[parts.length - 1].length > 0
   },
   {
     message:
