@@ -1,20 +1,20 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
+// prompts removed: treasury now read from institution index
 import { Address as ViemAddress } from 'viem'
 import {
   InstitutionWhitelistContracts,
-  InstitutionWhitelistModule,
+  createInstitutionWhitelistModule,
 } from '../ignition/modules/institution-whitelist'
 import { BaseConfig } from '../types/config-types'
-import { ADDRESS_ZERO } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import {
   promptForInstitutionId,
+  readInstitutionGovernance,
   updateInstitutionDeployedContracts,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
-import { AddressSchema } from './helpers/zod-schemas'
+import { validateAddress, validateToken } from './helpers/validation'
 
 async function main() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
@@ -36,30 +36,26 @@ async function main() {
   ) as BaseConfig
 
   // Ensure InstitutionalVaultRegistry is configured in the base (regular) config
-  const registryAddress = config.deployedContracts.core.institutionalVaultRegistry?.address
-  if (!registryAddress || registryAddress == ADDRESS_ZERO) {
-    console.log(
-      kleur.red(
-        'InstitutionalVaultRegistry address not found in base config. Please deploy and configure it before proceeding.',
-      ),
-    )
-    return
-  }
+  const registryAddress = validateAddress(
+    config.deployedContracts.core.institutionalVaultRegistry?.address,
+    'InstitutionalVaultRegistry address',
+  )
+  const swapProvider = validateAddress(config.common.swapProvider, 'Swap provider address')
+  const weth = validateToken(config, 'weth')
+  const wethAddress = config.tokens[weth]
 
-  console.log(kleur.cyan().bold('Deploying Institution Whitelist...'))
-  // Prompt for treasury (institution-specific) and validate with Zod Address
-  const { treasury } = await prompts({
-    type: 'text',
-    name: 'treasury',
-    message: 'Enter treasury address for this institution:',
-    validate: (v) => (AddressSchema.safeParse(v).success ? true : 'Invalid address'),
-  })
+  // Read institution governance for current network and validate
+  const governance = readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name)
 
-  const deployed = (await hre.ignition.deploy(InstitutionWhitelistModule, {
+  const treasury = governance.treasury
+
+  const moduleName = `InstitutionWhitelist_${institutionId}`
+  const InstitutionModule = createInstitutionWhitelistModule(moduleName)
+  const deployed = (await hre.ignition.deploy(InstitutionModule, {
     parameters: {
-      InstitutionWhitelistModule: {
-        swapProvider: config.common.swapProvider,
-        weth: config.tokens.weth,
+      [moduleName]: {
+        swapProvider: swapProvider,
+        weth: wethAddress,
         treasury: treasury as ViemAddress,
       },
     },
@@ -82,6 +78,34 @@ async function main() {
   })
 
   console.log(kleur.green().bold('Institution index updated successfully.'))
+
+  // Grant governor and guardian roles to accounts from institution governance
+  try {
+    const protocolAccessManager = await hre.viem.getContractAt(
+      'ProtocolAccessManager' as string,
+      deployed.protocolAccessManager.address,
+    )
+    const publicClient = await hre.viem.getPublicClient()
+
+    for (const addr of governance.governor) {
+      const hash = await protocolAccessManager.write.grantGovernorRole([addr as ViemAddress])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Granted GOVERNOR_ROLE to ${addr}`))
+    }
+
+    for (const addr of governance.guardian) {
+      const hash = await protocolAccessManager.write.grantGuardianRole([addr as ViemAddress])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Granted GUARDIAN_ROLE to ${addr}`))
+    }
+  } catch (e) {
+    console.error(
+      kleur.red(
+        `Failed to grant governor/guardian roles: ${e instanceof Error ? e.message : String(e)}`,
+      ),
+    )
+    throw e
+  }
 
   // Attempt to register institution in the registry if caller is owner
   try {

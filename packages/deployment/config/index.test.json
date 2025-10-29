@@ -263,6 +263,9 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xA6040c5A92FFf881b8e74E6a5576DE156C0B6B1a"
+        },
+        "institutionalVaultRegistry": {
+          "address": "0xd641aE747D6dF46786D261818e99725130448Cc2"
         }
       },
       "bridge": {
@@ -328,13 +331,15 @@
         "usdc": {
           "Gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6",
           "Fluid": "0x1A996cb54bb95462040408C06122D45D6Cdb6096",
-          "Sky_sUSDC": "0x940098b108fB7D0a7E374f6eDED7760787464609"
+          "Sky_sUSDC": "0x940098b108fB7D0a7E374f6eDED7760787464609",
+          "Euler_Arbitrum_USDC": "0x0a1eCC5Fe8C9be3C809844fcBe615B46A869b899"
         },
         "usdce": {
           "Gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
         },
         "usdt": {
-          "Fluid": "0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03"
+          "Fluid": "0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03",
+          "Euler_Arbitrum_USDT0": "0x37512F45B4ba8808910632323b73783Ca938CD51"
         }
       },
       "pendle": {
@@ -361,6 +366,20 @@
       },
       "morpho": {
         "blue": "0x0000000000000000000000000000000000000000",
+        "urdFactory": "0x7b792Ef7e91fbc78Ef482E3bBB52193A73367fbf",
+        "vaults": {
+          "usdc": {
+            "Gauntlet_USDC_Prime": "0x7c574174DA4b2be3f705c6244B4BfA0815a8B3Ed",
+            "Gauntlet_USDC_Core": "0x7e97fa6893871A2751B5fE961978DCCb2c201E65",
+            "Yearn_OG_USDC": "0x87DEAE530841A9671326C9D5B9f91bdB11F3162c",
+            "Steakhouse_Prime_USDC": "0x250CF7c82bAc7cB6cf899b6052979d4B5BA1f9ca",
+            "MEV_Capital_USDC": "0xa60643c90A542A95026C0F1dbdB0615fF42019Cf"
+          },
+          "usdt": {
+            "Gauntlet_USDT0_Core": "0x139250CdB310D657eAC506c7C7FC6AcDE34Af1ec",
+            "MEV_Capital_USDT0": "0x6d57dAd0F1c4da0C1d5443AE8F7f8a50BDb9Cf75"
+          }
+        },
         "markets": {
           "usdc": {
             "nomarket": "0x0000000000000000000000000000000000000000"

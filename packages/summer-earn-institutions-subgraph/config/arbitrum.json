@@ -1,11 +1,9 @@
 {
   "network": "arbitrum-one",
-  "harbor-command-address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F",
-  "harbor-command-start-block": 301218468,
-  "governance-rewards-manager-address": "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92",
-  "governance-rewards-manager-start-block": 301218468,
+  "registry-address": "0x209dCC11C4A3424d7AA6c0690cbEa07de9d6D9B6",
+  "registry-start-block": 394646348,
   "interval-handler-block-interval": 240,
-  "enable-grafting": true,
-  "grafting-base": "QmSq6SNwRyesxjMEY25yNNMYwSv6z135v68D61Tvj4Qnbo",
-  "grafting-block": "344200000"
+  "enable-grafting": false,
+  "grafting-base": "QmSKcDsPtJSdVW2eqVFQVrHD3jJGxq8Zoay7EPMhZ6wBCu",
+  "grafting-block": "30609070"
 }

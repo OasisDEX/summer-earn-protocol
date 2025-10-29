@@ -61,6 +61,7 @@ export type BaseArkParams = {
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
   fleetName: string
+  isBummer?: boolean
 }
 
 export async function deployArk(
@@ -85,6 +86,7 @@ export async function deployArk(
     maxRebalanceOutflow: params.maxRebalanceOutflow || ZERO_STRING,
     maxRebalanceInflow: params.maxRebalanceInflow || ZERO_STRING,
     fleetName: fleetConfig.fleetName,
+    isBummer: fleetConfig.isBummer,
   }
 
   let deployedArk

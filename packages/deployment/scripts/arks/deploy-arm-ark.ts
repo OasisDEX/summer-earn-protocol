@@ -115,7 +115,8 @@ async function deployArmArkContract(
   const deploymentId = await handleDeploymentId(chainId)
   const vaultName = userInput.vaultName || 'default'
   const arkName = `Origin_ARM-${userInput.token.symbol}-${vaultName}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_') + '_' + 'gov'
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   // Look up ARM address from config based on token and vaultName
   const armConfigs = config.protocolSpecific.originETH.arms[userInput.token.symbol as Token]

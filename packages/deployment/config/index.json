@@ -272,6 +272,9 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
+        },
+        "institutionalVaultRegistry": {
+          "address": "0x209dCC11C4A3424d7AA6c0690cbEa07de9d6D9B6"
         }
       }
     },

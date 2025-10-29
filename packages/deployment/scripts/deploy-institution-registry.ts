@@ -3,8 +3,9 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import {
   InstitutionRegistryContracts,
-  InstitutionRegistryModule,
+  createInstitutionRegistryModule,
 } from '../ignition/modules/institution-registry'
+import { BaseConfig } from '../types/config-types'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
@@ -28,8 +29,11 @@ async function main() {
   })
 
   console.log(kleur.cyan().bold('Deploying InstitutionalVaultRegistry...'))
-  const deployed = (await hre.ignition.deploy(InstitutionRegistryModule, {
-    parameters: { InstitutionRegistryModule: { owner } },
+  const envLabel = useBummerConfig ? 'staging' : 'prod'
+  const moduleName = `InstitutionRegistry_${envLabel}`
+  const RegistryModule = createInstitutionRegistryModule(moduleName)
+  const deployed = (await hre.ignition.deploy(RegistryModule, {
+    parameters: { [moduleName]: { owner } },
   })) as InstitutionRegistryContracts
 
   console.log(
@@ -42,7 +46,7 @@ async function main() {
     'core',
     hre.network.name,
     {
-      ...config.deployedContracts.core,
+      ...(config as BaseConfig).deployedContracts.core,
       institutionalVaultRegistry: { address: deployed.institutionalVaultRegistry.address },
     } as any,
     useBummerConfig,

@@ -2,9 +2,12 @@ import kleur from 'kleur'
 import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
+import { Address } from 'viem'
 import {
   InstitutionFleetEntry,
   InstitutionFleetEntrySchema,
+  InstitutionGovernance,
+  InstitutionGovernanceSchema,
   InstitutionIndex,
   InstitutionIndexSchema,
 } from './zod-schemas'
@@ -63,6 +66,36 @@ export function writeInstitutionIndex(
   const updated = updater(current)
   const rechecked = InstitutionIndexSchema.parse(updated)
   fs.writeFileSync(idxPath, JSON.stringify(rechecked, null, 2))
+}
+
+/**
+ * Reads and validates governance fields (treasury, governor[], guardian[]).
+ * Throws if any of them are missing or invalid.
+ */
+export function readInstitutionGovernance(
+  institutionId: string,
+  useBummer: boolean,
+  network: string,
+): InstitutionGovernance {
+  const content = readInstitutionConfigFile(institutionId, useBummer)
+  const net = content[network]
+  const treasury = net?.treasury
+  const governor = net?.governor
+  const guardian = net?.guardian
+
+  // Strong validation using zod schema requiring all fields
+  try {
+    const parsed = InstitutionGovernanceSchema.parse({ treasury, governor, guardian })
+    return {
+      treasury: parsed.treasury as Address,
+      governor: parsed.governor as Address[],
+      guardian: parsed.guardian as Address[],
+    }
+  } catch (e) {
+    throw new Error(
+      `Institution governance is missing or invalid for network "${network}". Ensure fields { treasury, governor[], guardian[] } exist under that network in the institution index file for "${institutionId}"`,
+    )
+  }
 }
 
 export function updateInstitutionDeployedContracts(

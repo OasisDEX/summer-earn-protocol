@@ -148,7 +148,8 @@ async function deployPsmERC4626ArkContract(config: BaseConfig, userInput: PsmERC
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `ERC4626-${userInput.psmType.toUpperCase()}-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
   const protocol = userInput.vaultName.split('_')[0]
 
   const psmAddress = validateAddress(

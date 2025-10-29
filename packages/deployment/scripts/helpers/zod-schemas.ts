@@ -35,26 +35,45 @@ export const InstitutionNetworkSchema = z
   .object({
     deployedContracts: InstitutionNetworkDeployedContractsSchema.optional(),
     fleets: z.record(z.string(), InstitutionFleetEntrySchema).optional(),
+    // Per-network governance fields
+    treasury: AddressSchema.optional(),
+    governor: z.array(AddressSchema).optional(),
+    guardian: z.array(AddressSchema).optional(),
   })
   .partial()
+
+// Governance fields structure (used for validating per-network governance)
+export const InstitutionGovernanceSchema = z.object({
+  treasury: AddressSchema,
+  governor: z.array(AddressSchema),
+  guardian: z.array(AddressSchema),
+})
 
 // Top-level: record of network name -> schema
 export const InstitutionIndexSchema = z.record(z.string(), InstitutionNetworkSchema)
 
+export type InstitutionNetwork = z.infer<typeof InstitutionNetworkSchema>
 export type InstitutionIndex = z.infer<typeof InstitutionIndexSchema>
+export type InstitutionGovernance = z.infer<typeof InstitutionGovernanceSchema>
 export type InstitutionFleetEntry = z.infer<typeof InstitutionFleetEntrySchema>
 
 export const FleetConfigSchema = z.object({
   fleetName: z.string().min(1),
   symbol: z.string().min(1),
   assetSymbol: z.string().min(1),
-  initialMinimumBufferBalance: z.union([z.string(), z.number(), z.bigint()]),
-  initialRebalanceCooldown: z.union([z.string(), z.number()]),
-  depositCap: z.union([z.string(), z.number(), z.bigint()]),
-  initialTipRate: z.union([z.string(), z.number(), z.bigint()]),
+  initialMinimumBufferBalance: z.string().min(1),
+  initialRebalanceCooldown: z.string().min(1),
+  depositCap: z.string().min(1),
+  initialTipRate: z.string().min(1),
   network: z.string().min(1),
   details: z.unknown(),
   arks: z.array(z.any()).optional(),
+  curator: AddressSchema.optional(),
+  keeper: AddressSchema.optional(),
+  rewardTokens: z.array(AddressSchema).optional(),
+  rewardAmounts: z.array(z.string()).optional(),
+  rewardsDuration: z.number().optional(),
+  bridgeAmount: z.string().optional(),
 })
 
 export const FleetDeploymentSchema = z.object({
