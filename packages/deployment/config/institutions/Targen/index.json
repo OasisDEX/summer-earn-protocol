@@ -3,39 +3,39 @@
     "deployedContracts": {
       "gov": {
         "protocolAccessManager": {
-          "address": "0xd723090a7fe126265Da5528EE3c93669Dd1284c5"
+          "address": "0x058c586cd8eb06aAe4A4E1D7584db48c10a98F8A"
         }
       },
       "core": {
         "tipJar": {
-          "address": "0x8Af05D23ac0D45d7609400bC7a62BB48764Ab398"
+          "address": "0x1fe082f764c86b362AdEC12691d1Fb979A7dFa83"
         },
         "configurationManager": {
-          "address": "0x5632B3DF8A030001d0A89c2D9B420c2210EeDdC5"
+          "address": "0xe0d25012D8bCb75d3B50f95E290b8eBa558912b6"
         },
         "harborCommand": {
-          "address": "0x47c327898d412Cf0271675f62BCf0CE472A040Cf"
+          "address": "0x7fBfb946cA4ba96559467E84ef41DA6cfE0C9a17"
         },
         "admiralsQuarters": {
-          "address": "0x4963C6E00CF8b27580F7e9e3ae6b5C952a85B1D3"
+          "address": "0x43D2C9786E8F5A960e75D6141e44411d065a4615"
         },
         "raft": {
-          "address": "0xD8564c9dcb93f28ECEfD2f0ec4BA0F7d4dbEc718"
+          "address": "0xD771bFAf914daF03cD42DE44a7aCe82beeEFa104"
         }
       }
     },
     "fleets": {
       "TarFi_USDC": {
-        "fleetCommander": "0xb960bAef9665F067455Ab119E56A29896D676deF",
-        "bufferArk": "0x30Eae455bAa93b70f0f54042702a4F5f842B1cf3",
+        "fleetCommander": "0x6e23CfE8D830488Bc824C0aDD201A1A2E1dFDBEb",
+        "bufferArk": "0x660D426e2cD40266526161Ec03459C9C2e34942f",
         "arks": [
-          "0xe9e9c35F53E0425C0C29fDfc90915382c51AdfFC",
-          "0x9fc0f16C8323Da7B2781CcF17bA6FAb3e55e1B9C",
-          "0x45FF580617c41Ca4FB5D76C0EcC331FA3A5Ac8b5",
-          "0x10888a1EF0cac3b78488287c5759fE9E65d23B76",
-          "0x05498707884212E7182a252105d8603e76E2EeD8",
-          "0x580b9a45b03509c1177c3698c130A68977fDeE1d",
-          "0x1bf59cc3E72736040c6b8fDc084e19a8070A045C"
+          "0x23B249E6Af9f022645DaB0Ed9d4e0285D3B1d0E7",
+          "0x9b474B6F910E7267ed988C7b3d886e891081bc73",
+          "0x497d89F32FF7Dcf0D8Db2a532Efc8d06549a38Df",
+          "0x27D7655d2439Fe714D337dc4e229c3835AD78c5A",
+          "0xc19002584f8f796Db4613da0d4C0F7Bc275E56D8",
+          "0x65ef675C5D2C28DDaA18fCd127dF16aF9BCD0094",
+          "0x3D3e4973ce9DD6CDDEE76a499f20BEE6085881C7"
         ]
       }
     },

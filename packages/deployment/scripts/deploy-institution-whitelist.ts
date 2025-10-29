@@ -79,34 +79,6 @@ async function main() {
 
   console.log(kleur.green().bold('Institution index updated successfully.'))
 
-  // Grant governor and guardian roles to accounts from institution governance
-  try {
-    const protocolAccessManager = await hre.viem.getContractAt(
-      'ProtocolAccessManager' as string,
-      deployed.protocolAccessManager.address,
-    )
-    const publicClient = await hre.viem.getPublicClient()
-
-    for (const addr of governance.governor) {
-      const hash = await protocolAccessManager.write.grantGovernorRole([addr as ViemAddress])
-      await publicClient.waitForTransactionReceipt({ hash })
-      console.log(kleur.green(`Granted GOVERNOR_ROLE to ${addr}`))
-    }
-
-    for (const addr of governance.guardian) {
-      const hash = await protocolAccessManager.write.grantGuardianRole([addr as ViemAddress])
-      await publicClient.waitForTransactionReceipt({ hash })
-      console.log(kleur.green(`Granted GUARDIAN_ROLE to ${addr}`))
-    }
-  } catch (e) {
-    console.error(
-      kleur.red(
-        `Failed to grant governor/guardian roles: ${e instanceof Error ? e.message : String(e)}`,
-      ),
-    )
-    throw e
-  }
-
   // Attempt to register institution in the registry if caller is owner
   try {
     const registry = await hre.viem.getContractAt(
@@ -157,6 +129,34 @@ async function main() {
         `Failed to register institution in registry: ${e instanceof Error ? e.message : String(e)}`,
       ),
     )
+  }
+
+  // Grant governor and guardian roles to accounts from institution governance
+  try {
+    const protocolAccessManager = await hre.viem.getContractAt(
+      'ProtocolAccessManager' as string,
+      deployed.protocolAccessManager.address,
+    )
+    const publicClient = await hre.viem.getPublicClient()
+
+    for (const addr of governance.governor) {
+      const hash = await protocolAccessManager.write.grantGovernorRole([addr as ViemAddress])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Granted GOVERNOR_ROLE to ${addr}`))
+    }
+
+    for (const addr of governance.guardian) {
+      const hash = await protocolAccessManager.write.grantGuardianRole([addr as ViemAddress])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Granted GUARDIAN_ROLE to ${addr}`))
+    }
+  } catch (e) {
+    console.error(
+      kleur.red(
+        `Failed to grant governor/guardian roles: ${e instanceof Error ? e.message : String(e)}`,
+      ),
+    )
+    throw e
   }
 }
 
