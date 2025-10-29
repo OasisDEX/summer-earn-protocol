@@ -829,7 +829,7 @@ contract BridgeRouter is
         if (token == address(0)) {
             // Recover native ETH
             if (address(this).balance < amount) revert InsufficientBalance();
-            Address.sendValue(payable(recipient), amount);
+            payable(recipient).transfer(amount);
         } else {
             // Recover ERC20 using SafeERC20
             IERC20(token).safeTransfer(recipient, amount);

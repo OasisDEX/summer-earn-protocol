@@ -221,7 +221,7 @@ contract StargateAdapter is
         // Refund any unused native value (buffer) back to the designated refund address
         uint256 refundAmount = providedFee - messagingFee.nativeFee;
         if (refundAmount > 0) {
-            Address.sendValue(payable(params.refundAddress), refundAmount);
+            payable(params.refundAddress).transfer(refundAmount);
         }
     }
 

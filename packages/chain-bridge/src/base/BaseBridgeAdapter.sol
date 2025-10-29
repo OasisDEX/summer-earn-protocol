@@ -316,7 +316,7 @@ abstract contract BaseBridgeAdapter is
         if (asset == address(0)) {
             // Handle native ETH
             if (address(this).balance < amount) revert InsufficientBalance();
-            Address.sendValue(payable(to), amount);
+            payable(to).transfer(amount);
         } else {
             // Handle ERC20 tokens
             uint256 balance = IERC20(asset).balanceOf(address(this));
