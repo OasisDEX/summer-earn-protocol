@@ -801,8 +801,11 @@ contract CrossChainFleetProxyTest is Test {
         );
         assertEq(target, expectedTarget, "Target should be the source ark");
 
-        // Decode and verify the message content
-        uint256 fleetAssets = abi.decode(message, (uint256));
+        // Decode and verify the message content (fleetAssets, sequence)
+        (uint256 fleetAssets, uint64 seq) = abi.decode(
+            message,
+            (uint256, uint64)
+        );
         uint256 expectedFleetAssets = fleetCommanderMock.convertToAssets(
             fleetCommanderMock.balanceOf(address(proxy))
         );
@@ -876,9 +879,11 @@ contract CrossChainFleetProxyTest is Test {
             finalMessageCallCount - 1
         );
 
-        // Decode and verify the message content
-        (uint256 fleetAssets, bytes32 transferId, uint256 timestamp) = abi
-            .decode(message, (uint256, bytes32, uint256));
+        // Decode and verify the message content (no timestamp, includes sequence)
+        (uint256 fleetAssets, bytes32 transferId, uint64 seq) = abi.decode(
+            message,
+            (uint256, bytes32, uint64)
+        );
 
         // Verify the fleet assets amount is zero
         assertEq(fleetAssets, 0, "Message should contain zero fleet assets");
@@ -894,12 +899,7 @@ contract CrossChainFleetProxyTest is Test {
             "Transfer ID should be set from the deposit operation"
         );
 
-        // Verify the timestamp is reasonable (should be current block timestamp)
-        assertEq(
-            timestamp,
-            block.timestamp,
-            "Timestamp should match current block timestamp"
-        );
+        // No timestamp is included anymore
     }
 
     function test_NotifySourceChain_UnauthorizedCaller() public {

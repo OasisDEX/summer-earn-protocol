@@ -50,8 +50,11 @@ contract CrossChainArk is
     /// @notice The latest incoming transfer ID received from the satellite proxy
     bytes32 public latestIncomingTransferId;
 
-    /// @notice Timestamp of the last processed balance notification
-    uint256 public lastNotificationTimestamp;
+    /// @notice Last processed sequence across notifications and withdrawals
+    uint64 public lastProcessedSequence;
+
+    /// @notice Inbound assets expected from satellite (derived from notifications)
+    uint256 public inboundInflightAssets;
 
     /// @notice Pending transfer params for the cross-chain transfer
     BridgeTypes.ExecuteTransferParams public pendingTransferParams;
@@ -110,7 +113,8 @@ contract CrossChainArk is
         assets =
             config.asset.balanceOf(address(this)) +
             lastRemoteAssetBalance +
-            inflightAssets;
+            inflightAssets +
+            inboundInflightAssets;
     }
 
     /**
@@ -303,12 +307,12 @@ contract CrossChainArk is
             revert InvalidSourceChain();
         if (params.originator != _getTargetProxy()) revert InvalidSender();
 
-        // Decode the remote asset balance with timestamp
+        // Decode notification: sequence-only format
         (
             uint256 newRemoteBalance,
             bytes32 latestReceivedTransferId,
-            uint256 timestamp
-        ) = abi.decode(params.message, (uint256, bytes32, uint256));
+            uint64 sequence
+        ) = abi.decode(params.message, (uint256, bytes32, uint64));
         if (latestReceivedTransferId != latestOutgoingTransferId) {
             // we skip updating the remote balance if the transfer id (received in FleetProxy) is not the latest
             // sent by this Ark
@@ -319,16 +323,21 @@ contract CrossChainArk is
             return;
         }
 
-        // Reject stale notifications to prevent race conditions
-        if (timestamp < lastNotificationTimestamp) {
-            emit StaleNotification(timestamp, lastNotificationTimestamp);
+        // Enforce cross-type ordering by sequence
+        if (sequence <= lastProcessedSequence) {
             return;
         }
 
-        lastNotificationTimestamp = timestamp;
+        // Compute inbound inflight as the delta when remote decreased
+        if (newRemoteBalance < lastRemoteAssetBalance) {
+            inboundInflightAssets = lastRemoteAssetBalance - newRemoteBalance;
+        } else {
+            inboundInflightAssets = 0;
+        }
 
         lastRemoteAssetBalance = newRemoteBalance;
         lastRemoteBalanceUpdateTime = block.timestamp;
+        lastProcessedSequence = sequence;
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
@@ -369,20 +378,31 @@ contract CrossChainArk is
         if (params.asset != address(config.asset)) revert InvalidAsset();
         if (params.originator != _getTargetProxy()) revert InvalidRequestor();
 
-        uint256 remoteBalance = abi.decode(params.message, (uint256));
-        // Update the remote asset tracking
-
-        lastRemoteAssetBalance = remoteBalance;
-        lastRemoteBalanceUpdateTime = block.timestamp;
-        emit RemoteAssetBalanceUpdated(
-            lastRemoteAssetBalance,
-            params.operationId
+        (uint256 remoteBalance, uint64 sequence) = abi.decode(
+            params.message,
+            (uint256, uint64)
         );
 
-        emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
+        // If stale sequence, do not overwrite remote balance; still clear inbound inflight
+        bool updatedBalance = false;
+        if (sequence > lastProcessedSequence) {
+            lastRemoteAssetBalance = remoteBalance;
+            lastRemoteBalanceUpdateTime = block.timestamp;
+            lastProcessedSequence = sequence;
+            updatedBalance = true;
+        }
 
-        // Track the latest incoming transfer id to ACK back to satellite
+        if (updatedBalance) {
+            emit RemoteAssetBalanceUpdated(
+                lastRemoteAssetBalance,
+                params.operationId
+            );
+        }
+
+        // Always emit receipt and clear inbound inflight on transfer arrival
+        emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
         latestIncomingTransferId = params.operationId;
+        inboundInflightAssets = 0;
     }
 
     /// @notice Notifies the satellite chain proxy that assets have been received on the hub

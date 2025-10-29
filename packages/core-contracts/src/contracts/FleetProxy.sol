@@ -53,6 +53,9 @@ contract FleetProxy is
     /// @notice The latest outgoing transfer ID
     bytes32 public latestOutgoingTransferId;
 
+    /// @notice Monotonic sequence for balance updates (notifications and withdrawals)
+    uint64 public balanceSequence;
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -186,6 +189,9 @@ contract FleetProxy is
         IERC20(asset).forceApprove(address(bridgeRouter), amount);
 
         // 6. Prepare the transfer parameters
+        // Increment sequence for this balance update
+        balanceSequence += 1;
+
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
                 originator: address(this),
@@ -193,7 +199,7 @@ contract FleetProxy is
                 target: _getHubChainArk(hubChainId),
                 asset: asset,
                 amount: amount,
-                message: abi.encode(fleetAssets),
+                message: abi.encode(fleetAssets, balanceSequence),
                 refundAddress: msg.sender
             });
 
@@ -229,16 +235,20 @@ contract FleetProxy is
         if (!_isValidSourceChain(hubChainId)) revert InvalidSourceChain();
         // Security: include replay guard context - require we have a non-zero last transfer id
         if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
+        // Do not interleave notifications with an inflight withdrawal
+        if (inflightWithdrawals != 0) revert InFlight();
         uint256 fleetShares = IFleetCommander(fleetAddress).balanceOf(
             address(this)
         );
         uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
             fleetShares
         );
+        // Increment sequence for this balance update
+        balanceSequence += 1;
         _sendNotification(
             hubChainId,
             _getHubChainArk(hubChainId),
-            abi.encode(fleetAssets, latestIncomingTransferId, block.timestamp),
+            abi.encode(fleetAssets, latestIncomingTransferId, balanceSequence),
             options,
             msg.sender
         );

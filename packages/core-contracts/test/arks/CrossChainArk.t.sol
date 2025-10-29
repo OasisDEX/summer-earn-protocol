@@ -42,8 +42,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
                               HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Wraps a uint256 in BridgeTypes.ReadResponse so that
-    ///      CrossChainArk.receiveOperation(BridgeTypes.OperationType.READ_STATE,abi.encode( can decode it.
+    uint64 private seq;
+
+    /// @dev Helper to build a MESSAGE params payload in the new sequence-only format
     function _encodeMessage(
         bytes32 operationId,
         address originator,
@@ -51,18 +52,15 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 balance,
         uint16 sourceChainId,
         bytes32 latestOutgoingTransferId
-    ) internal view returns (BridgeTypes.RelayedMessageParams memory) {
+    ) internal returns (BridgeTypes.RelayedMessageParams memory) {
+        seq += 1;
         return
             BridgeTypes.RelayedMessageParams({
                 operationId: operationId,
                 originator: originator,
                 sourceChainId: sourceChainId,
                 recipient: arkAddress,
-                message: abi.encode(
-                    balance,
-                    latestOutgoingTransferId,
-                    block.timestamp
-                )
+                message: abi.encode(balance, latestOutgoingTransferId, seq)
             });
     }
 
@@ -502,7 +500,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Track initial state
         uint256 initialRemoteBalance = 1000;
         uint256 remoteBalanceAfterWithdrawal = initialRemoteBalance - amount;
-        bytes memory message = abi.encode(remoteBalanceAfterWithdrawal);
+        // Sequence must be greater than lastProcessedSequence; use helper counter
+        seq += 1;
+        bytes memory message = abi.encode(remoteBalanceAfterWithdrawal, seq);
 
         // Set initial remote balance
         BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
@@ -558,7 +558,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Simulate receiving a withdrawal from satellite so that latestIncomingTransferId is set
         uint256 amount = 500;
         bytes32 opId = keccak256("withdrawal-op");
-        bytes memory message = abi.encode(uint256(1000));
+        seq += 1;
+        bytes memory message = abi.encode(uint256(1000), seq);
 
         BridgeTypes.RelayedTransferParams memory params = BridgeTypes
             .RelayedTransferParams({
@@ -1093,14 +1094,14 @@ contract CrossChainArkTest is Test, ArkTestBase {
         bytes32 requestId1 = keccak256("stale-test-1");
         bytes32 requestId2 = keccak256("stale-test-2");
 
-        // First, set up a valid notification
+        // First, set up a valid notification (sequence = 1)
         BridgeTypes.RelayedMessageParams memory params1 = _encodeMessage(
             requestId1,
             address(proxy),
             address(ark),
             initialBalance,
             TARGET_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0)
         );
 
         // Process the first notification
@@ -1111,18 +1112,12 @@ contract CrossChainArkTest is Test, ArkTestBase {
         );
 
         assertEq(ark.lastRemoteAssetBalance(), initialBalance);
-        assertEq(ark.lastNotificationTimestamp(), block.timestamp);
 
-        // Now try to send a stale notification with an older timestamp
-        vm.warp(block.timestamp + 100); // Advance time to 101
-
-        // Create the stale message directly without using _encodeMessage
-        uint256 staleTimestamp = 0; // This should be 0, which is older than 1
-
+        // Now send a stale notification with the same (older) sequence = 1
         bytes memory staleMessage = abi.encode(
             newBalance,
             bytes32(0),
-            staleTimestamp
+            uint64(1)
         );
 
         BridgeTypes.RelayedMessageParams memory params2 = BridgeTypes
@@ -1134,14 +1129,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 message: staleMessage
             });
 
-        // Expect the StaleNotification event
-        vm.expectEmit(true, true, true, true);
-        emit ICrossChainArk.StaleNotification(
-            staleTimestamp, // 0
-            1 // lastNotificationTimestamp was 1
-        );
-
-        // Process the stale notification - should be rejected
+        // Process the stale notification - should be ignored silently
         vm.prank(address(router));
         ark.receiveOperation(
             BridgeTypes.OperationType.MESSAGE,
@@ -1150,6 +1138,5 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Verify the balance wasn't updated
         assertEq(ark.lastRemoteAssetBalance(), initialBalance);
-        assertEq(ark.lastNotificationTimestamp(), 1);
     }
 }
