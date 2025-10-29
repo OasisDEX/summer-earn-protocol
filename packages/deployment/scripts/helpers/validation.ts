@@ -1,7 +1,7 @@
 import { Address } from 'viem'
 import { BaseConfig, Token } from '../../types/config-types'
 import { ADDRESS_ZERO } from '../common/constants'
-import { ArkDetailsSchema, type ArkDetails } from './zod-schemas'
+import { ArkDetailsSchema, VaultNameSchema, type ArkDetails } from './zod-schemas'
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -108,6 +108,26 @@ export function validateErc4626Address(address: unknown, context: string) {
 export function validateArkDetails(details: unknown, context: string = 'ark details'): ArkDetails {
   try {
     return ArkDetailsSchema.parse(details)
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new ValidationError(`Invalid ${context}: ${error.message}`)
+    }
+    throw new ValidationError(`Invalid ${context}: validation failed`)
+  }
+}
+
+/**
+ * Validates vault name format to ensure it follows the protocol_name convention.
+ * The vault name must contain at least one underscore with a non-empty protocol prefix.
+ *
+ * @param vaultName - The vault name to validate
+ * @param context - Context string for error messages
+ * @returns Validated vault name string
+ * @throws ValidationError if validation fails
+ */
+export function validateVaultName(vaultName: unknown, context: string = 'vault name'): string {
+  try {
+    return VaultNameSchema.parse(vaultName)
   } catch (error) {
     if (error instanceof Error) {
       throw new ValidationError(`Invalid ${context}: ${error.message}`)

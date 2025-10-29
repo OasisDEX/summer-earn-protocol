@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateArkDetails } from '../helpers/validation'
+import { validateArkDetails, validateVaultName } from '../helpers/validation'
 
 export interface AeraArkUserInput extends BaseArkParams {
   provisioner: string
@@ -33,13 +33,12 @@ export async function deployAeraArk(config: BaseConfig, arkParams?: AeraArkUserI
 async function getUserInput(config: BaseConfig): Promise<AeraArkUserInput> {
   // Extract Aera provisioners from the configuration
   const provisioners = []
-  if (!config.protocolSpecific.gauntlet || !config.protocolSpecific.gauntlet.vaults) {
+  if (!config.protocolSpecific.aera || !config.protocolSpecific.aera.vaults) {
     throw new Error('No Aera provisioners found in the configuration.')
   }
-  for (const token in config.protocolSpecific.gauntlet.vaults) {
-    for (const vaultName in config.protocolSpecific.gauntlet.vaults[token as Token]) {
-      const provisioner =
-        config.protocolSpecific.gauntlet.vaults[token as Token][vaultName].provisioner
+  for (const token in config.protocolSpecific.aera.vaults) {
+    for (const vaultName in config.protocolSpecific.aera.vaults[token as Token]) {
+      const provisioner = config.protocolSpecific.aera.vaults[token as Token][vaultName].provisioner
       provisioners.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
         value: { token, provisioner, vaultName },
@@ -114,12 +113,18 @@ async function deployAeraArkContract(
   const arkName = `Aera-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
   const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
 
+  // Validate vault name format and extract protocol
+  validateVaultName(userInput.vaultName, 'Aera vault name')
+  const protocol = userInput.vaultName.split('_')[0]
+
   const provisionerContract =
-    config.protocolSpecific.gauntlet.vaults[userInput.token.symbol][userInput.vaultName].provisioner
+    config.protocolSpecific.aera.vaults[userInput.token.symbol][userInput.vaultName].provisioner
   // call provisioner to get MULTI_DEPOSITOR_VAULT() as it's the pool address
-  const multiDepositorVault = await hre.viem.getContractAt('IProvisioner', provisionerContract)
+  const multiDepositorVault = await hre.viem.getContractAt(
+    'IProvisioner' as string,
+    provisionerContract,
+  )
   const poolAddress = await multiDepositorVault.read.MULTI_DEPOSITOR_VAULT()
-  const protocol = 'Aera'
 
   // Create and validate ark details
   const arkDetails = {

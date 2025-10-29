@@ -233,7 +233,7 @@ export interface BaseConfig {
         }
       }
     }
-    gauntlet: {
+    aera: {
       vaults: {
         [key in Token]: {
           [key: string]: {
