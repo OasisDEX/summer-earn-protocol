@@ -122,7 +122,7 @@ async function getUserInput(
   const currentChainId = getChainIdByNetwork(currentNetwork)
 
   // List available fleet deployments
-  const deploymentsDir = path.resolve(__dirname, '../../deployments/fleets')
+  const deploymentsDir = path.resolve(__dirname, '../deployments/fleets')
   const deploymentFiles = fs
     .readdirSync(deploymentsDir)
     .filter((file) => file.endsWith('_deployment.json'))
