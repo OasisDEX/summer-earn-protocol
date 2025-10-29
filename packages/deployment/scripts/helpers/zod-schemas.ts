@@ -35,13 +35,26 @@ export const InstitutionNetworkSchema = z
   .object({
     deployedContracts: InstitutionNetworkDeployedContractsSchema.optional(),
     fleets: z.record(z.string(), InstitutionFleetEntrySchema).optional(),
+    // Per-network governance fields
+    treasury: AddressSchema.optional(),
+    governor: z.array(AddressSchema).optional(),
+    guardian: z.array(AddressSchema).optional(),
   })
   .partial()
+
+// Governance fields structure (used for validating per-network governance)
+export const InstitutionGovernanceSchema = z.object({
+  treasury: AddressSchema,
+  governor: z.array(AddressSchema),
+  guardian: z.array(AddressSchema),
+})
 
 // Top-level: record of network name -> schema
 export const InstitutionIndexSchema = z.record(z.string(), InstitutionNetworkSchema)
 
+export type InstitutionNetwork = z.infer<typeof InstitutionNetworkSchema>
 export type InstitutionIndex = z.infer<typeof InstitutionIndexSchema>
+export type InstitutionGovernance = z.infer<typeof InstitutionGovernanceSchema>
 export type InstitutionFleetEntry = z.infer<typeof InstitutionFleetEntrySchema>
 
 export const FleetConfigSchema = z.object({

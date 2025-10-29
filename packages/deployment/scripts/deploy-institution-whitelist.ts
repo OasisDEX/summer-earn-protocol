@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
+// prompts removed: treasury now read from institution index
 import { Address as ViemAddress } from 'viem'
 import {
   InstitutionWhitelistContracts,
@@ -10,11 +10,11 @@ import { BaseConfig } from '../types/config-types'
 import { getConfigByNetwork } from './helpers/config-handler'
 import {
   promptForInstitutionId,
+  readInstitutionGovernance,
   updateInstitutionDeployedContracts,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { validateAddress, validateToken } from './helpers/validation'
-import { AddressSchema } from './helpers/zod-schemas'
 
 async function main() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
@@ -44,14 +44,10 @@ async function main() {
   const weth = validateToken(config, 'weth')
   const wethAddress = config.tokens[weth]
 
-  console.log(kleur.cyan().bold('Deploying Institution Whitelist...'))
-  // Prompt for treasury (institution-specific) and validate with Zod Address
-  const { treasury } = await prompts({
-    type: 'text',
-    name: 'treasury',
-    message: 'Enter treasury address for this institution:',
-    validate: (v) => (AddressSchema.safeParse(v).success ? true : 'Invalid address'),
-  })
+  // Read institution governance for current network and validate
+  const governance = readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name)
+
+  const treasury = governance.treasury
 
   const deployed = (await hre.ignition.deploy(InstitutionWhitelistModule, {
     parameters: {
@@ -80,6 +76,34 @@ async function main() {
   })
 
   console.log(kleur.green().bold('Institution index updated successfully.'))
+
+  // Grant governor and guardian roles to accounts from institution governance
+  try {
+    const protocolAccessManager = await hre.viem.getContractAt(
+      'ProtocolAccessManager' as string,
+      deployed.protocolAccessManager.address,
+    )
+    const publicClient = await hre.viem.getPublicClient()
+
+    for (const addr of governance.governor) {
+      const hash = await protocolAccessManager.write.grantGovernorRole([addr as ViemAddress])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Granted GOVERNOR_ROLE to ${addr}`))
+    }
+
+    for (const addr of governance.guardian) {
+      const hash = await protocolAccessManager.write.grantGuardianRole([addr as ViemAddress])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Granted GUARDIAN_ROLE to ${addr}`))
+    }
+  } catch (e) {
+    console.error(
+      kleur.red(
+        `Failed to grant governor/guardian roles: ${e instanceof Error ? e.message : String(e)}`,
+      ),
+    )
+    throw e
+  }
 
   // Attempt to register institution in the registry if caller is owner
   try {

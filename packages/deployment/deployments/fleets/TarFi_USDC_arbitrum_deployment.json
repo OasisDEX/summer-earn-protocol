@@ -1,0 +1,22 @@
+{
+  "fleetName": "TarFi_USDC",
+  "isBummer": true,
+  "fleetSymbol": "tarfiUSDC",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0xBf68eadF78D814730510DB0bFF16566ac00fc638",
+  "bufferArkAddress": "0xc9C6129e9bF1f77CD0de1f40dD7A5BB48D31779f",
+  "network": "arbitrum",
+  "arks": [
+    "0x6df9fd2813FE96248d417D543d80B3789AB1b50E",
+    "0x96C4067bfE614844E370Ce9D6837A9D91008795b",
+    "0x5a793699D70a5375C9f2DD94AFbc75AB0d034237",
+    "0xeF2941eec4F0E44cD308a0A960C31b5413a03190",
+    "0xE9B1c26a48Be2bC267f83958eDeC2752741b295E",
+    "0xbdb2AF9c28896CaD3E055000335373CFC59f6799",
+    "0xF7B4909BE705de1bddFD6A0F717fc81d69684C3C"
+  ],
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "0"
+}

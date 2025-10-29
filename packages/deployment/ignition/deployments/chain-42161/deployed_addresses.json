@@ -49,5 +49,22 @@
   "LazyVault_LowerRisk_USDC_SiloManagedVault_greenhouse_usdc_42161#SiloManagedVaultArk": "0x286A55af8a88d3B9937c1303bf945AFe6155A06B",
   "LazyVault_LowerRisk_USDC_Silo_Swaap_Lend_susdx_usdc_127_usdc_42161#SiloVaultArkV2": "0x54749c15751137Be18768288D3945C4934fCb800",
   "LazyVault_LowerRisk_USDC_FluidFToken_usdc_42161#FluidFTokenArk": "0x01f61bFFE1f684F71Fcc40862AfE0FDD4aA462FC",
-  "LazyVault_LowerRisk_USDT_FluidFToken_usdt_42161#FluidFTokenArk": "0x00EB8210743f4D4Aa2B44e2744aE8fFd2dCEbc72"
+  "LazyVault_LowerRisk_USDT_FluidFToken_usdt_42161#FluidFTokenArk": "0x00EB8210743f4D4Aa2B44e2744aE8fFd2dCEbc72",
+  "InstitutionRegistryModule#InstitutionalVaultRegistry": "0xd641aE747D6dF46786D261818e99725130448Cc2",
+  "InstitutionWhitelistModule#DutchAuctionLibrary": "0x87DBB370438e6532e1F8Ae557e5A5453d3cf849B",
+  "InstitutionWhitelistModule#ProtocolAccessManager": "0xb253E72F45c83e6E1E21573baF3d6969Fd2a8DA8",
+  "InstitutionWhitelistModule#ConfigurationManagerWhitelist": "0x08f7eF972C2bBddf96146Fa4B1150226C007526D",
+  "InstitutionWhitelistModule#HarborCommand": "0xf7A25aE3eFa4260E8c14312724f9d3121E58262e",
+  "InstitutionWhitelistModule#Raft": "0x623c961391065b5117bF1Dc5AAb26A19e1B7c64E",
+  "InstitutionWhitelistModule#AdmiralsQuartersWhitelist": "0x2Bcf30205d6e97A01527C915843695B2B9Aed7E7",
+  "InstitutionWhitelistModule#TipJar": "0xc01D21Eca39Ffa21731BE740DA9Dd7c3bDBC0f94",
+  "FleetWhitelist_TarFiUSDC#FleetCommanderWhitelist": "0x09F2816C012DCe15915a5A275370393094785b7A",
+  "FleetWhitelist_TarFi_USDC#FleetCommanderWhitelist": "0xBf68eadF78D814730510DB0bFF16566ac00fc638",
+  "TarFi_USDC_AaveV3_usdc_42161#AaveV3Ark": "0x6df9fd2813FE96248d417D543d80B3789AB1b50E",
+  "TarFi_USDC_CompoundV3_usdc_42161#CompoundV3Ark": "0x96C4067bfE614844E370Ce9D6837A9D91008795b",
+  "TarFi_USDC_ERC4626_Sky_sUSDC_usdc_42161#ERC4626Ark": "0x5a793699D70a5375C9f2DD94AFbc75AB0d034237",
+  "TarFi_USDC_MorphoVault_usdc_Gauntlet_USDC_Prime_42161#MorphoVaultArk": "0xeF2941eec4F0E44cD308a0A960C31b5413a03190",
+  "TarFi_USDC_MorphoVault_usdc_Gauntlet_USDC_Core_42161#MorphoVaultArk": "0xE9B1c26a48Be2bC267f83958eDeC2752741b295E",
+  "TarFi_USDC_ERC4626_Euler_Arbitrum_USDC_usdc_42161#ERC4626Ark": "0xbdb2AF9c28896CaD3E055000335373CFC59f6799",
+  "TarFi_USDC_FluidFToken_usdc_42161#FluidFTokenArk": "0xF7B4909BE705de1bddFD6A0F717fc81d69684C3C"
 }
