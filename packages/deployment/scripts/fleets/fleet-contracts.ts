@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { createFleetModule, FleetContracts } from '../../../ignition/modules/fleet'
-import { BaseConfig, FleetConfig } from '../../../types/config-types'
+import { FleetContracts, createFleetModule } from '../../ignition/modules/fleet'
+import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'
 import { ModuleLogger } from '../lib/infrastructure/logger'
@@ -36,8 +36,7 @@ export async function deployFleetContracts(
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
         depositCap: fleetDefinition.depositCap,
         initialTipRate: fleetDefinition.initialTipRate,
-        fleetCommanderRewardsManagerFactory:
-          config.deployedContracts.core.fleetCommanderRewardsManagerFactory.address,
+        initialWithdrawalFee: fleetDefinition.initialWithdrawalFee || '0',
       },
     },
     deploymentId,

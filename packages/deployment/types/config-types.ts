@@ -289,6 +289,7 @@ export interface FleetConfig {
   initialRebalanceCooldown: string
   depositCap: string
   initialTipRate: string
+  initialWithdrawalFee?: string
   network: string
   rewardTokens: string[]
   rewardAmounts: string[]
