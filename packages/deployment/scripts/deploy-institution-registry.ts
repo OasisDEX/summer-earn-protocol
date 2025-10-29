@@ -5,6 +5,7 @@ import {
   InstitutionRegistryContracts,
   InstitutionRegistryModule,
 } from '../ignition/modules/institution-registry'
+import { BaseConfig } from '../types/config-types'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
@@ -42,7 +43,7 @@ async function main() {
     'core',
     hre.network.name,
     {
-      ...config.deployedContracts.core,
+      ...(config as BaseConfig).deployedContracts.core,
       institutionalVaultRegistry: { address: deployed.institutionalVaultRegistry.address },
     } as any,
     useBummerConfig,

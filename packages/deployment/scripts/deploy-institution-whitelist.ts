@@ -7,13 +7,13 @@ import {
   InstitutionWhitelistModule,
 } from '../ignition/modules/institution-whitelist'
 import { BaseConfig } from '../types/config-types'
-import { ADDRESS_ZERO } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import {
   promptForInstitutionId,
   updateInstitutionDeployedContracts,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
+import { validateAddress, validateToken } from './helpers/validation'
 import { AddressSchema } from './helpers/zod-schemas'
 
 async function main() {
@@ -36,15 +36,13 @@ async function main() {
   ) as BaseConfig
 
   // Ensure InstitutionalVaultRegistry is configured in the base (regular) config
-  const registryAddress = config.deployedContracts.core.institutionalVaultRegistry?.address
-  if (!registryAddress || registryAddress == ADDRESS_ZERO) {
-    console.log(
-      kleur.red(
-        'InstitutionalVaultRegistry address not found in base config. Please deploy and configure it before proceeding.',
-      ),
-    )
-    return
-  }
+  const registryAddress = validateAddress(
+    config.deployedContracts.core.institutionalVaultRegistry?.address,
+    'InstitutionalVaultRegistry address',
+  )
+  const swapProvider = validateAddress(config.common.swapProvider, 'Swap provider address')
+  const weth = validateToken(config, 'weth')
+  const wethAddress = config.tokens[weth]
 
   console.log(kleur.cyan().bold('Deploying Institution Whitelist...'))
   // Prompt for treasury (institution-specific) and validate with Zod Address
@@ -58,8 +56,8 @@ async function main() {
   const deployed = (await hre.ignition.deploy(InstitutionWhitelistModule, {
     parameters: {
       InstitutionWhitelistModule: {
-        swapProvider: config.common.swapProvider,
-        weth: config.tokens.weth,
+        swapProvider: swapProvider,
+        weth: wethAddress,
         treasury: treasury as ViemAddress,
       },
     },

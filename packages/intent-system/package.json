@@ -18,9 +18,6 @@
     "build": "forge build --extra-output-files abi"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-foundry": "1.1.2",
-    "@nomicfoundation/hardhat-ignition": "0.15.5",
-    "@nomicfoundation/hardhat-ignition-viem": "0.15.5",
     "@summerfi/access-contracts": "workspace:*",
     "@summerfi/earn-protocol-contracts": "workspace:*",
     "@summerfi/constants": "workspace:*",
