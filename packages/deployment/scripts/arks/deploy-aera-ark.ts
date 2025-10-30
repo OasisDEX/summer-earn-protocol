@@ -71,6 +71,12 @@ async function getUserInput(config: BaseConfig): Promise<AeraArkUserInput> {
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
 
   // Set the token address based on the selected vault
@@ -81,6 +87,7 @@ async function getUserInput(config: BaseConfig): Promise<AeraArkUserInput> {
     depositCap: responses.depositCap,
     maxRebalanceOutflow: responses.maxRebalanceOutflow,
     maxRebalanceInflow: responses.maxRebalanceInflow,
+    maxDepositPercentageOfTVL: responses.maxDepositPercentageOfTVL,
     token: { address: tokenAddress, symbol: selectedVault.token },
     provisioner: selectedVault.provisioner,
     vaultName: selectedVault.vaultName,
@@ -155,7 +162,7 @@ async function deployAeraArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

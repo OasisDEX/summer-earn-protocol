@@ -71,6 +71,7 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams & { vault
     depositCap: '0',
     maxRebalanceOutflow: MAX_UINT256_STRING,
     maxRebalanceInflow: MAX_UINT256_STRING,
+    maxDepositPercentageOfTVL: HUNDRED_PERCENT,
     fleetName: fleetConfig.fleetName,
     vaultName: armChoice.value,
   }
@@ -153,7 +154,7 @@ async function deployArmArkContract(
     maxRebalanceOutflow: userInput.maxRebalanceOutflow,
     maxRebalanceInflow: userInput.maxRebalanceInflow,
     requiresKeeperData: false,
-    maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+    maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
   }
 
   console.log('arkParams', arkParams)

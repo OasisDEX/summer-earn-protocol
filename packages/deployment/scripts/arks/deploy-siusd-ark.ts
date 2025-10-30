@@ -64,6 +64,12 @@ async function getUserInput(config: BaseConfig): Promise<SiUSDArkUserInput> {
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
 
   // SiUSDArk only supports USDC
@@ -73,6 +79,7 @@ async function getUserInput(config: BaseConfig): Promise<SiUSDArkUserInput> {
     depositCap: responses.depositCap,
     maxRebalanceOutflow: responses.maxRebalanceOutflow,
     maxRebalanceInflow: responses.maxRebalanceInflow,
+    maxDepositPercentageOfTVL: responses.maxDepositPercentageOfTVL,
     token: { address: tokenAddress as Address, symbol: Token.USDC },
     gateway: responses.gateway as Address,
     siUSD: responses.siUSD as Address,
@@ -139,7 +146,7 @@ async function deploySiUSDArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

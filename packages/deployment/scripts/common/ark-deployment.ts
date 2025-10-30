@@ -45,9 +45,10 @@ export type ArkConfig = {
     protocol?: string
     vaultName?: string
     targetChainId?: string
-    depositCap?: string // For FluidLiteArk
-    maxRebalanceOutflow?: string // For FluidLiteArk
-    maxRebalanceInflow?: string // For FluidLiteArk
+    depositCap?: string
+    maxRebalanceOutflow?: string
+    maxRebalanceInflow?: string
+    maxDepositPercentageOfTVL?: string
     vaultToken?: string // for arks with underlying token different than fleet asset
   }
 }
@@ -60,6 +61,7 @@ export type BaseArkParams = {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
+  maxDepositPercentageOfTVL: string
   fleetName: string
   isBummer?: boolean
 }
@@ -85,6 +87,7 @@ export async function deployArk(
     depositCap: params.depositCap || ZERO_STRING,
     maxRebalanceOutflow: params.maxRebalanceOutflow || ZERO_STRING,
     maxRebalanceInflow: params.maxRebalanceInflow || ZERO_STRING,
+    maxDepositPercentageOfTVL: params.maxDepositPercentageOfTVL || ZERO_STRING,
     fleetName: fleetConfig.fleetName,
     isBummer: fleetConfig.isBummer,
   }

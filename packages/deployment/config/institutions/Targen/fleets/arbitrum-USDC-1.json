@@ -70,6 +70,30 @@
         "protocol": "fluid",
         "depositCap": "100000000"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gearbox",
+        "protocol": "erc4626",
+        "depositCap": "100000000",
+        "maxDepositPercentageOfTVL": "34000000000000000000",
+        "maxRebalanceOutflow": "26300000000",
+        "maxRebalanceInflow": "26300000000"
+      }
+    },
+    {
+      "type": "SiloArkV2",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Swaap_Lend_susdx_usdc_127",
+        "protocol": "silo",
+        "depositCap": "100000000",
+        "maxDepositPercentageOfTVL": "36000000000000000000",
+        "maxRebalanceOutflow": "1490000000000",
+        "maxRebalanceInflow": "1490000000000"
+      }
     }
   ]
 }

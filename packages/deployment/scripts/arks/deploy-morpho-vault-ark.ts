@@ -88,6 +88,12 @@ async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
 
   // Set the token address based on the selected vault
@@ -98,6 +104,7 @@ async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput
     depositCap: responses.depositCap,
     maxRebalanceInflow: responses.maxRebalanceInflow,
     maxRebalanceOutflow: responses.maxRebalanceOutflow,
+    maxDepositPercentageOfTVL: responses.maxDepositPercentageOfTVL,
     token: { address: tokenAddress, symbol: selectedVault.token },
     vaultId: selectedVault.vaultId,
     vaultName: selectedVault.vaultName,
@@ -186,7 +193,7 @@ async function deployMorphoVaultArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },
