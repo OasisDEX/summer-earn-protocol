@@ -11,6 +11,13 @@ import { promptForAddresses, promptForConfigType, promptYesNo } from '../lib/inf
 
 const REGISTRY_ABI = [
   {
+    inputs: [],
+    name: 'bridgeRouter',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
     inputs: [
       { internalType: 'address', name: 'sourceContract', type: 'address' },
       { internalType: 'address', name: 'targetContract', type: 'address' },
@@ -134,11 +141,13 @@ async function ensurePeerRelationship(
             `    Detected existing target for SOURCE on chain ${targetChainId}: ${existingTarget}. This must be unregistered first.`,
           ),
         )
-        const confirmUnreg = await promptYesNo(
-          `Unregister mapping for SOURCE ${getAddress(
-            sourceArk as `0x${string}`,
-          )} on chain ${targetChainId} (current target: ${existingTarget})?`,
-        )
+        const confirmUnreg = nonInteractive
+          ? true
+          : await promptYesNo(
+              `Unregister mapping for SOURCE ${getAddress(
+                sourceArk as `0x${string}`,
+              )} on chain ${targetChainId} (current target: ${existingTarget})?`,
+            )
         if (!confirmUnreg) {
           return false
         }
@@ -208,13 +217,17 @@ async function ensurePeerRelationship(
         )} for chain pair ${sourceChainId}→${targetChainId}. This must be unregistered first.`,
       ),
     )
-    const useDetected = await promptYesNo(
-      `Unregister detected stale SOURCE ${existingSourceForTarget} for target ${getAddress(
-        targetFleetProxy as `0x${string}`,
-      )} (chain ${sourceChainId}→${targetChainId})?`,
-    )
+    const useDetected = nonInteractive
+      ? true
+      : await promptYesNo(
+          `Unregister detected stale SOURCE ${existingSourceForTarget} for target ${getAddress(
+            targetFleetProxy as `0x${string}`,
+          )} (chain ${sourceChainId}→${targetChainId})?`,
+        )
     let staleSource = existingSourceForTarget
     if (!useDetected) {
+      if (nonInteractive)
+        throw new Error('Non-interactive mode requires auto-confirm or specific stale source')
       const [addr] = await promptForAddresses(
         'Enter the stale SOURCE address to unregister for this chain pair (single address):',
       )
@@ -281,6 +294,10 @@ export async function registerArkFleetRelationships() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
 
+  const nonInteractive =
+    process.argv.includes('--no-prompts') ||
+    ['1', 'true'].includes(String(process.env.NON_INTERACTIVE).toLowerCase())
+
   const useBummerConfig = await promptForConfigType()
   const localConfig = getConfigByNetwork(
     network,
@@ -292,10 +309,38 @@ export async function registerArkFleetRelationships() {
     ?.address as Address
   if (!registryAddress) throw new Error('CrossChainRegistry not deployed on this network')
 
+  // Guard: ensure registry.bridgeRouter is configured
+  const publicClientForGuard = await hre.viem.getPublicClient()
+  const configuredBridgeRouter = (await publicClientForGuard.readContract({
+    address: getAddress(registryAddress as `0x${string}`),
+    abi: REGISTRY_ABI,
+    functionName: 'bridgeRouter',
+    args: [],
+  })) as Address
+
+  if (configuredBridgeRouter === zeroAddress) {
+    console.log(
+      kleur
+        .red()
+        .bold(
+          'CrossChainRegistry.bridgeRouter is not set (0x0). Aborting ARK_FLEET registration.\n' +
+            'Action required: set the BridgeRouter on this chain using setBridgeRouter(), then re-run this script.',
+        ),
+    )
+    return
+  }
+
   const localChainId = Number(localConfig.common.chainId)
 
-  const chosen = await chooseFleetConfig()
-  if (!chosen) return
+  let chosen = process.env.FLEET_CONFIG
+  if (!chosen) {
+    const selected = await chooseFleetConfig()
+    if (!selected) {
+      if (nonInteractive) throw new Error('FLEET_CONFIG is required in non-interactive mode')
+      return
+    }
+    chosen = selected
+  }
 
   const fleetName = chosen.replace(/\.json$/, '')
   const cc: CrossChainConfig | null = loadCrossChainConfig(fleetName)
