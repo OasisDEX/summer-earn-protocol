@@ -3,7 +3,6 @@
 
 # dependencies
 node_modules
-!/packages/external-dependencies/node_modules
 .pnp
 .pnp.js
 
@@ -98,8 +97,14 @@ broadcast
 
 cache_forge/
 **/cache_forge/
+<<<<<<< Updated upstream
 packages/external-dependencies
 lib/
 !packages/deployment/scripts/lib/
+=======
+lib
+!/packages/external-dependencies/node_modules
+!/packages/external-dependencies/lib
+>>>>>>> Stashed changes
 safe*.json
 **/abis/*
