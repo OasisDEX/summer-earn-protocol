@@ -56,7 +56,7 @@
     "create-distributions-tx": "hardhat run scripts/governance/create-distributions-transaction-safe.ts --network $NETWORK",
     "generate-merkle-root": "tsx scripts/generate-merkle-root.ts",
     "update-fleet-configurations": "tsx scripts/governance/update-fleet-configurations-safe.ts",
-    "configure:new-chain-layerzero": "hardhat run scripts/bridge/configure-lz-peers.ts --network $NETWORK --no-compile",
+    "xchain:configure-lz-adapter": "hardhat run scripts/bridge/post-deployment/configure-lz-peers.ts --network $NETWORK --no-compile",
     "xchain:configure-registry": "hardhat run scripts/cross-chain/configure-registry.ts --network $NETWORK --no-compile",
     "xchain:peers": "hardhat run scripts/bridge/register-adapter-peers.ts --network $NETWORK --no-compile",
     "xchain:ark-fleet": "hardhat run scripts/cross-chain/register-ark-fleet.ts --network $NETWORK --no-compile",
@@ -68,8 +68,7 @@
     "gov:merge-proposals": "hardhat run scripts/merge-proposals.ts --network mainnet",
     "update-vesting-goals": "hardhat run scripts/governance/update-vesting-goals-safe.ts --network $NETWORK",
     "check-morpho-rewards": "tsx scripts/check-morpho-rewards.ts",
-    "check-angl-rewards": "tsx scripts/check-angl-rewards.ts",
-    "x": "hardhat verify --network sonic 0x702C4114eB8bB23Dd1432bb12Ac51B9cD5C7826f '0xA55cd6a6D882180E84DDb25F7c7Ae4e4Af0f3f27'"
+    "check-angl-rewards": "tsx scripts/check-angl-rewards.ts"
   },
   "devDependencies": {
     "@layerzerolabs/lz-v2-utilities": "2.3.39",
