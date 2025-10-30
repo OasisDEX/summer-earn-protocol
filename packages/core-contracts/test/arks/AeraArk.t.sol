@@ -662,7 +662,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.expectEmit();
         emit IArkWithWithdrawalRequest.WithdrawalRequested(
             withdrawAmount,
-            36866333879810532229499986215110199860193588099027437356549799665242621429672
+            17839415934797548993582574759700929997113032325894211869796006362987333045534
         );
 
         ark.requestWithdrawal(withdrawAmount);
