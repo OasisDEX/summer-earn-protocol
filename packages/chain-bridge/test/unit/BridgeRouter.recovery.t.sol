@@ -561,7 +561,8 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         RejectETH rejectContract = new RejectETH();
 
         vm.startPrank(governor);
-        vm.expectRevert(Errors.FailedCall.selector);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.SweepFailed(address(rejectContract), 1 ether);
         router.sweep(address(0), address(rejectContract), 1 ether);
         vm.stopPrank();
     }
@@ -610,7 +611,8 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         ReentrancyAttacker attacker = new ReentrancyAttacker(router);
 
         vm.startPrank(governor);
-        vm.expectRevert(Errors.FailedCall.selector);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.SweepFailed(address(attacker), 1 ether);
         router.sweep(address(0), address(attacker), 1 ether);
         vm.stopPrank();
 
@@ -792,7 +794,8 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         RejectETH rejectContract = new RejectETH();
 
         vm.startPrank(governor);
-        vm.expectRevert(Errors.FailedCall.selector);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.SweepFailed(address(rejectContract), 1 ether);
         router.sweep(address(0), address(rejectContract), 1 ether);
         vm.stopPrank();
     }

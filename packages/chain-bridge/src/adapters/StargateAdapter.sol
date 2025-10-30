@@ -20,6 +20,7 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 
 /**
  * @title StargateAdapter
@@ -223,9 +224,11 @@ contract StargateAdapter is
         if (refundAmount > 0) {
             (bool ok, ) = payable(params.refundAddress).call{
                 value: refundAmount,
-                gas: 5_000
+                gas: Constants.NATIVE_SEND_GAS_STIPEND
             }("");
-            if (!ok) revert Errors.FailedCall();
+            if (!ok) {
+                emit RefundFailed(params.refundAddress, refundAmount);
+            }
         }
     }
 

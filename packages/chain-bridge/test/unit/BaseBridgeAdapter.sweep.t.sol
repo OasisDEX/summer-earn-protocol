@@ -183,9 +183,15 @@ contract BaseBridgeAdapterSweepTest is Test {
 
         RejectETH rejectContract = new RejectETH();
 
+        // Expect SweepFailed event and no revert
+        vm.expectEmit(true, false, false, true);
+        emit BaseBridgeAdapter.SweepFailed(address(rejectContract), 1 ether);
         vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSelector(Errors.FailedCall.selector));
         adapter.sweep(address(0), address(rejectContract), 1 ether);
+
+        // Balance should remain as transfer failed silently
+        assertEq(address(adapter).balance, 1 ether);
+        assertEq(address(rejectContract).balance, 0);
     }
 
     function testSweep_Native_ZeroAmount_EmitsEventOnly() public {

@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
+import {IStargateAdapter} from "../../src/interfaces/IStargateAdapter.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
@@ -34,7 +35,7 @@ contract BenignRefundReceiver {
 }
 
 contract StargateAdapterRefundReentrancyTest is StargateAdapterSetupTest {
-    function testRefundWithMaliciousRefundAddressRevertsAndStateUnchanged()
+    function testRefundWithMaliciousRefundAddressEmitsEventAndTransferSucceeds()
         public
     {
         useNetworkA();
@@ -104,19 +105,28 @@ contract StargateAdapterRefundReentrancyTest is StargateAdapterSetupTest {
 
         uint256 routerBalanceBefore = tokenA.balanceOf(address(routerA));
         uint256 adapterBalanceBefore = tokenA.balanceOf(address(adapterA));
+        uint256 stargateBalanceBefore = tokenA.balanceOf(address(stargateA));
 
         // Expect standardized revert due to refund failure (low-gas call mapped to Errors.FailedCall)
         vm.prank(address(routerA));
-        vm.expectRevert(Errors.FailedCall.selector);
+        vm.expectEmit(true, false, false, true);
+        emit IStargateAdapter.RefundFailed(address(malicious), 1);
         adapterA.transferAsset{value: requiredFee + 1}(
             operationId,
             params,
             options
         );
 
-        // State unchanged
-        assertEq(tokenA.balanceOf(address(routerA)), routerBalanceBefore);
+        // Transfer proceeds; only native refund fails
+        assertEq(
+            tokenA.balanceOf(address(routerA)),
+            routerBalanceBefore - 1 ether
+        );
         assertEq(tokenA.balanceOf(address(adapterA)), adapterBalanceBefore);
+        assertEq(
+            tokenA.balanceOf(address(stargateA)),
+            stargateBalanceBefore + 1 ether
+        );
     }
 
     function testRefundWithBenignRefundAddressSucceeds() public {
@@ -179,6 +189,9 @@ contract StargateAdapterRefundReentrancyTest is StargateAdapterSetupTest {
             });
 
         vm.prank(address(routerA));
+        // Expect benign receiver to get the leftover 1 wei
+        vm.expectEmit(false, false, false, true);
+        emit BenignRefundReceiver.Received(1);
         adapterA.transferAsset{value: requiredFee + 1}(
             operationId,
             params,

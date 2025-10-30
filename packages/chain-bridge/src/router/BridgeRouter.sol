@@ -20,6 +20,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
+
 /**
  * @title BridgeRouter
  * @notice Central router that coordinates cross-chain asset transfers and data queries
@@ -832,9 +834,11 @@ contract BridgeRouter is
             if (amount > 0) {
                 (bool ok, ) = payable(recipient).call{
                     value: amount,
-                    gas: 5_000
+                    gas: Constants.NATIVE_SEND_GAS_STIPEND
                 }("");
-                if (!ok) revert Errors.FailedCall();
+                if (!ok) {
+                    emit SweepFailed(recipient, amount);
+                }
             }
         } else {
             // Recover ERC20 using SafeERC20
