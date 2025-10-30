@@ -6,6 +6,7 @@ import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
 
 contract MaliciousRefundReceiver {
     address public immutable adapter;
@@ -15,10 +16,9 @@ contract MaliciousRefundReceiver {
     }
 
     receive() external payable {
-        // Attempt to reenter adapter entrypoint. With .transfer (2300 gas),
-        // this call will OOG/revert and thus the original refund will fail.
-        // This simulates a malicious refundAddress trying to reenter.
-        // The revert with "reenter" message is expected and bubbles up, reverting the tx.
+        // Attempt to reenter adapter entrypoint.
+        // Refund uses a low gas cap; behavior is gas-sensitive, so adapter standardizes
+        // any refund failure to Errors.FailedCall(). We still exercise a reenter attempt here.
         // NOTE: Intentionally perform an external call to exceed 2300 gas.
         (bool s, ) = adapter.call("");
         s; // silence warning
@@ -105,9 +105,9 @@ contract StargateAdapterRefundReentrancyTest is StargateAdapterSetupTest {
         uint256 routerBalanceBefore = tokenA.balanceOf(address(routerA));
         uint256 adapterBalanceBefore = tokenA.balanceOf(address(adapterA));
 
-        // Expect revert due to refund .transfer into malicious receiver
+        // Expect standardized revert due to refund failure (low-gas call mapped to Errors.FailedCall)
         vm.prank(address(routerA));
-        vm.expectRevert("reenter");
+        vm.expectRevert(Errors.FailedCall.selector);
         adapterA.transferAsset{value: requiredFee + 1}(
             operationId,
             params,

@@ -13,6 +13,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
 
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -828,7 +829,13 @@ contract BridgeRouter is
         if (token == address(0)) {
             // Recover native ETH
             if (address(this).balance < amount) revert InsufficientBalance();
-            payable(recipient).transfer(amount);
+            if (amount > 0) {
+                (bool ok, ) = payable(recipient).call{
+                    value: amount,
+                    gas: 5_000
+                }("");
+                if (!ok) revert Errors.FailedCall();
+            }
         } else {
             // Recover ERC20 using SafeERC20
             IERC20(token).safeTransfer(recipient, amount);

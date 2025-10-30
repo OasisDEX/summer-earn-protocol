@@ -9,6 +9,7 @@ import {IBaseBridgeAdapterEvents} from "../interfaces/IBaseBridgeAdapterEvents.s
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeCodec} from "../libraries/BridgeCodec.sol";
@@ -315,7 +316,10 @@ abstract contract BaseBridgeAdapter is
         if (asset == address(0)) {
             // Handle native ETH
             if (address(this).balance < amount) revert InsufficientBalance();
-            payable(to).transfer(amount);
+            if (amount > 0) {
+                (bool ok, ) = payable(to).call{value: amount, gas: 5_000}("");
+                if (!ok) revert Errors.FailedCall();
+            }
         } else {
             // Handle ERC20 tokens
             uint256 balance = IERC20(asset).balanceOf(address(this));
