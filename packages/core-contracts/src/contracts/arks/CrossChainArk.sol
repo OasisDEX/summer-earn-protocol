@@ -307,12 +307,13 @@ contract CrossChainArk is
             revert InvalidSourceChain();
         if (params.originator != _getTargetProxy()) revert InvalidSender();
 
-        // Decode notification: sequence-only format
+        // Decode notification: explicit inbound format
         (
             uint256 newRemoteBalance,
             bytes32 latestReceivedTransferId,
+            uint256 inboundExpected,
             uint64 sequence
-        ) = abi.decode(params.message, (uint256, bytes32, uint64));
+        ) = abi.decode(params.message, (uint256, bytes32, uint256, uint64));
         if (latestReceivedTransferId != latestOutgoingTransferId) {
             // we skip updating the remote balance if the transfer id (received in FleetProxy) is not the latest
             // sent by this Ark
@@ -328,12 +329,8 @@ contract CrossChainArk is
             return;
         }
 
-        // Compute inbound inflight as the delta when remote decreased
-        if (newRemoteBalance < lastRemoteAssetBalance) {
-            inboundInflightAssets = lastRemoteAssetBalance - newRemoteBalance;
-        } else {
-            inboundInflightAssets = 0;
-        }
+        // Set inbound inflight explicitly as provided by satellite
+        inboundInflightAssets = inboundExpected;
 
         lastRemoteAssetBalance = newRemoteBalance;
         lastRemoteBalanceUpdateTime = block.timestamp;
@@ -387,7 +384,6 @@ contract CrossChainArk is
         bool updatedBalance = false;
         if (sequence > lastProcessedSequence) {
             lastRemoteAssetBalance = remoteBalance;
-            lastRemoteBalanceUpdateTime = block.timestamp;
             lastProcessedSequence = sequence;
             updatedBalance = true;
         }

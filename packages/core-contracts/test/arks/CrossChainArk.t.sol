@@ -50,6 +50,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         address originator,
         address arkAddress,
         uint256 balance,
+        uint256 inboundExpected,
         uint16 sourceChainId,
         bytes32 latestOutgoingTransferId
     ) internal returns (BridgeTypes.RelayedMessageParams memory) {
@@ -60,7 +61,12 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 originator: originator,
                 sourceChainId: sourceChainId,
                 recipient: arkAddress,
-                message: abi.encode(balance, latestOutgoingTransferId, seq)
+                message: abi.encode(
+                    balance,
+                    latestOutgoingTransferId,
+                    inboundExpected,
+                    seq
+                )
             });
     }
 
@@ -469,6 +475,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
+            0,
             TARGET_CHAIN_ID,
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
@@ -510,6 +517,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             initialRemoteBalance,
+            0,
             TARGET_CHAIN_ID,
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
@@ -636,6 +644,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
+            0,
             TARGET_CHAIN_ID,
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
@@ -669,6 +678,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
+            0,
             TARGET_CHAIN_ID,
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
@@ -709,6 +719,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
+            0,
             sourceChain,
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
@@ -731,6 +742,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
+            0,
             wrongSourceChain,
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
@@ -771,6 +783,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
+            0,
             TARGET_CHAIN_ID,
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
@@ -803,6 +816,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
+            0,
             TARGET_CHAIN_ID,
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
@@ -1100,6 +1114,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             initialBalance,
+            0,
             TARGET_CHAIN_ID,
             bytes32(0)
         );
@@ -1117,6 +1132,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         bytes memory staleMessage = abi.encode(
             newBalance,
             bytes32(0),
+            uint256(0),
             uint64(1)
         );
 
@@ -1154,6 +1170,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             R,
+            0,
             TARGET_CHAIN_ID,
             bytes32(0)
         );
@@ -1184,7 +1201,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             });
 
         // Deliver newer notification first (seq = 3)
-        bytes memory notifyMsg = abi.encode(newR, bytes32(0), uint64(3));
+        bytes memory notifyMsg = abi.encode(newR, bytes32(0), Y, uint64(3));
         BridgeTypes.RelayedMessageParams memory nparams = BridgeTypes
             .RelayedMessageParams({
                 operationId: keccak256("notify-new"),
@@ -1232,6 +1249,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             R,
+            0,
             TARGET_CHAIN_ID,
             bytes32(0)
         );
@@ -1276,7 +1294,12 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(ark.lastRemoteAssetBalance(), newR, "remote updated");
 
         // Now deliver stale notification (seq = 2) -> ignored
-        bytes memory notifyMsg = abi.encode(newR, bytes32(0), uint64(2));
+        bytes memory notifyMsg = abi.encode(
+            newR,
+            bytes32(0),
+            uint256(0),
+            uint64(2)
+        );
         BridgeTypes.RelayedMessageParams memory nparams = BridgeTypes
             .RelayedMessageParams({
                 operationId: keccak256("notify-old"),
@@ -1314,6 +1337,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             R,
+            0,
             TARGET_CHAIN_ID,
             bytes32(0)
         );
@@ -1329,7 +1353,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Notification decreases remote (seq = 2)
         uint256 Y = 100;
         uint256 newR = R - Y;
-        bytes memory notifyMsg = abi.encode(newR, bytes32(0), uint64(2));
+        bytes memory notifyMsg = abi.encode(newR, bytes32(0), Y, uint64(2));
         BridgeTypes.RelayedMessageParams memory nparams = BridgeTypes
             .RelayedMessageParams({
                 operationId: keccak256("notify2"),

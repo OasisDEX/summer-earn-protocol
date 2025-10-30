@@ -245,10 +245,16 @@ contract FleetProxy is
         );
         // Increment sequence for this balance update
         balanceSequence += 1;
+        uint256 inboundExpected = inflightWithdrawals;
         _sendNotification(
             hubChainId,
             _getHubChainArk(hubChainId),
-            abi.encode(fleetAssets, latestIncomingTransferId, balanceSequence),
+            abi.encode(
+                fleetAssets,
+                latestIncomingTransferId,
+                inboundExpected,
+                balanceSequence
+            ),
             options,
             msg.sender
         );
