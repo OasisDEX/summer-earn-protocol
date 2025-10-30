@@ -381,14 +381,9 @@ contract CrossChainArk is
         );
 
         // If stale sequence, do not overwrite remote balance; still clear inbound inflight
-        bool updatedBalance = false;
         if (sequence > lastProcessedSequence) {
             lastRemoteAssetBalance = remoteBalance;
             lastProcessedSequence = sequence;
-            updatedBalance = true;
-        }
-
-        if (updatedBalance) {
             emit RemoteAssetBalanceUpdated(
                 lastRemoteAssetBalance,
                 params.operationId
