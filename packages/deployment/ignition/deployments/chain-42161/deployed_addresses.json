@@ -65,5 +65,7 @@
   "prod_TarFi_USDC_MorphoVault_usdc_Gauntlet_USDC_Prime_42161#MorphoVaultArk": "0x27D7655d2439Fe714D337dc4e229c3835AD78c5A",
   "prod_TarFi_USDC_MorphoVault_usdc_Gauntlet_USDC_Core_42161#MorphoVaultArk": "0xc19002584f8f796Db4613da0d4C0F7Bc275E56D8",
   "prod_TarFi_USDC_ERC4626_Euler_Arbitrum_USDC_usdc_42161#ERC4626Ark": "0x65ef675C5D2C28DDaA18fCd127dF16aF9BCD0094",
-  "prod_TarFi_USDC_FluidFToken_usdc_42161#FluidFTokenArk": "0x3D3e4973ce9DD6CDDEE76a499f20BEE6085881C7"
+  "prod_TarFi_USDC_FluidFToken_usdc_42161#FluidFTokenArk": "0x3D3e4973ce9DD6CDDEE76a499f20BEE6085881C7",
+  "prod_TarFi_USDC_ERC4626_Gearbox_usdc_42161#ERC4626Ark": "0xCF5870Ab4cc9d3de9D68e3B5222B7fBDcf841985",
+  "prod_TarFi_USDC_Silo_Swaap_Lend_susdx_usdc_127_usdc_42161#SiloVaultArkV2": "0x269938dF5C0110a9e8De1f76cF8279F745895d28"
 }
