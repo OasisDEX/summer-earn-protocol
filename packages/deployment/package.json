@@ -57,7 +57,7 @@
     "generate-merkle-root": "tsx scripts/generate-merkle-root.ts",
     "update-fleet-configurations": "tsx scripts/governance/update-fleet-configurations-safe.ts",
     "configure:new-chain-layerzero": "hardhat run scripts/bridge/configure-lz-peers.ts --network $NETWORK --no-compile",
-    "xchain:configure-registry": "hardhat run scripts/cross-chain/set-bridge-router.ts --network $NETWORK --no-compile",
+    "xchain:configure-registry": "hardhat run scripts/cross-chain/configure-registry.ts --network $NETWORK --no-compile",
     "xchain:peers": "hardhat run scripts/bridge/register-adapter-peers.ts --network $NETWORK --no-compile",
     "xchain:ark-fleet": "hardhat run scripts/cross-chain/register-ark-fleet.ts --network $NETWORK --no-compile",
     "xchain:executors": "hardhat run scripts/cross-chain/register-executors.ts --network $NETWORK --no-compile",
