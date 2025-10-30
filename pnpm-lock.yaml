@@ -174,24 +174,6 @@ importers:
       '@summerfi/voting-decay':
         specifier: workspace:*
         version: link:../voting-decay
-      '@types/prompts':
-        specifier: 2.4.9
-        version: 2.4.9
-      hardhat:
-        specifier: 2.22.8
-        version: 2.22.8(ts-node@10.9.2)(typescript@5.4.5)
-      hardhat-contract-sizer:
-        specifier: 2.10.0
-        version: 2.10.0(hardhat@2.22.8)
-      kleur:
-        specifier: 4.1.5
-        version: 4.1.5
-      prompts:
-        specifier: 2.4.2
-        version: 2.4.2
-      ts-node:
-        specifier: 10.9.2
-        version: 10.9.2(@types/node@20.12.7)(typescript@5.4.5)
 
   packages/deployment:
     dependencies:
@@ -12631,17 +12613,6 @@ packages:
       ufo: 1.6.1
       uncrypto: 0.1.3
     dev: false
-
-  /hardhat-contract-sizer@2.10.0(hardhat@2.22.8):
-    resolution: {integrity: sha512-QiinUgBD5MqJZJh1hl1jc9dNnpJg7eE/w4/4GEnrcmZJJTDbVFNe3+/3Ep24XqISSkYxRz36czcPHKHd/a0dwA==}
-    peerDependencies:
-      hardhat: ^2.0.0
-    dependencies:
-      chalk: 4.1.2
-      cli-table3: 0.6.5
-      hardhat: 2.22.8(ts-node@10.9.2)(typescript@5.4.5)
-      strip-ansi: 6.0.1
-    dev: true
 
   /hardhat-contract-sizer@2.10.1(hardhat@2.26.3):
     resolution: {integrity: sha512-/PPQQbUMgW6ERzk8M0/DA8/v2TEM9xRRAnF9qKPNMYF6FX5DFWcnxBsQvtp8uBz+vy7rmLyV9Elti2wmmhgkbg==}

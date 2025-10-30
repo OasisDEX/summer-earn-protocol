@@ -68,6 +68,7 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
     depositCap: '0',
     maxRebalanceOutflow: MAX_UINT256_STRING,
     maxRebalanceInflow: MAX_UINT256_STRING,
+    maxDepositPercentageOfTVL: HUNDRED_PERCENT,
     fleetName: fleetConfig.fleetName,
   }
 }
@@ -145,7 +146,7 @@ async function deployOriginETHArkContract(
     maxRebalanceOutflow: userInput.maxRebalanceOutflow,
     maxRebalanceInflow: userInput.maxRebalanceInflow,
     requiresKeeperData: false,
-    maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+    maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
   }
 
   console.log('arkParams', arkParams)
