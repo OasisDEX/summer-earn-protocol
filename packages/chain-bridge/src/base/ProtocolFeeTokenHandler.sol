@@ -11,6 +11,7 @@ import {IProtocolFeeTokenHandlerErrors} from "../interfaces/IProtocolFeeTokenHan
  * @notice Abstract base contract for managing protocol fee token payments
  * @dev Provides reusable functionality for bridge adapters that support ERC20 token fee payments.
  *      This contract can be inherited by any bridge adapter that needs to handle protocol token fees.
+ *      the inheriting contract must implement the _requireFeeAuthorization function to enforce access control.
  */
 abstract contract ProtocolFeeTokenHandler is
     IProtocolFeeTokenHandlerEvents,
@@ -43,11 +44,14 @@ abstract contract ProtocolFeeTokenHandler is
         address feePayer,
         uint256 tokenFeeRequired
     ) internal {
+        // If no protocol fee token is configured, revert
         if (protocolFeeToken == address(0)) {
             revert ProtocolTokenNotConfigured();
         }
 
+        // If no token fee is required, skip collection
         if (tokenFeeRequired > 0) {
+            // Transfer the required protocol fee tokens from the fee payer to this contract
             IERC20(protocolFeeToken).safeTransferFrom(
                 feePayer,
                 address(this),
@@ -72,12 +76,16 @@ abstract contract ProtocolFeeTokenHandler is
         uint256 requiredAmount,
         address spender
     ) internal {
+        // If no protocol fee token is configured, skip allowance check
         if (protocolFeeToken == address(0)) return;
 
+        // Check current allowance
         uint256 currentAllowance = IERC20(protocolFeeToken).allowance(
             address(this),
             spender
         );
+
+        // If allowance is insufficient, set it to the required amount
         if (currentAllowance < requiredAmount) {
             IERC20(protocolFeeToken).forceApprove(spender, requiredAmount);
         }

@@ -36,6 +36,7 @@ library LayerZeroOptionsHelper {
     function _createLzOptions(
         BridgeTypes.BridgeOptions memory options
     ) private pure returns (bytes memory lzOptions) {
+        // Ensure options are initialized
         if (options.options.length > 0) {
             return options.options;
         } else {
