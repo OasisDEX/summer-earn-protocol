@@ -43,7 +43,7 @@ interface FleetProxyParams {
 /**
  * Deploy FleetProxy on the satellite chain
  */
-export async function deployFleetProxy() {
+export async function deployXChainFleetProxy() {
   console.log(kleur.green().bold('Starting FleetProxy deployment process...'))
   console.log(kleur.yellow('Note: FleetProxy should be deployed on the satellite chain.'))
   console.log(kleur.cyan('This creates Phase 1 of the cross-chain configuration.'))
@@ -327,7 +327,7 @@ async function updateCrossChainConfigPhase1(
 
 // Direct invocation
 if (require.main === module) {
-  deployFleetProxy().catch((error) => {
+  deployXChainFleetProxy().catch((error) => {
     console.error(kleur.red('Error during FleetProxy deployment:'))
     console.error(error)
     process.exit(1)

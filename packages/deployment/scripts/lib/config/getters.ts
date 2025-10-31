@@ -203,6 +203,25 @@ export function isAdapterDeployed(
   return isValidAddress(config.deployedContracts.bridge?.adapters?.[adapterType]?.address)
 }
 
+/**
+ * Interface for existing adapter addresses
+ */
+export interface ExistingAdapterAddresses {
+  layerZero?: Address
+  stargate?: Address
+}
+
+/**
+ * Get all existing adapter addresses from configuration
+ * Returns both LayerZero and Stargate adapter addresses if they exist
+ */
+export function getExistingAdapterAddresses(config: BaseConfig): ExistingAdapterAddresses {
+  return {
+    layerZero: getLayerZeroAdapterAddressOptional(config),
+    stargate: getStargateAdapterAddressOptional(config),
+  }
+}
+
 // ============================================================================
 // MULTI-NETWORK BRIDGE HELPERS
 // ============================================================================

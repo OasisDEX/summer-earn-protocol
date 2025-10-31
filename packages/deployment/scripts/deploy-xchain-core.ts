@@ -1,13 +1,13 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { BaseConfig } from '../types/config-types'
-import { deployBridgeContracts } from './x-chain/bridge-contracts'
 import { hasBridgeConfig } from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
 import { promptForConfigType } from './lib/infrastructure/prompts'
 import { updateIndexJson } from './lib/infrastructure/update-json'
+import { deployBridgeContracts } from './x-chain/bridge-contracts'
 
-async function deployBridge() {
+async function deployXChainCore() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
 
@@ -55,8 +55,8 @@ async function deployBridge() {
 
 // Execute the deployBridge function and handle any errors
 if (require.main === module) {
-  deployBridge().catch((error) => {
-    console.error(kleur.red('Error during bridge deployment:'))
+  deployXChainCore().catch((error) => {
+    console.error(kleur.red('Error during x-chain core deployment:'))
     console.error(error instanceof Error ? error.message : String(error))
     process.exit(1)
   })

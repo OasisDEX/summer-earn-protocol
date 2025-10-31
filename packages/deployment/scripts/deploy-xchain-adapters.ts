@@ -4,8 +4,10 @@ import { Address } from 'viem'
 import { BaseConfig } from '../types/config-types'
 import {
   getBridgeRouterAddress,
+  getExistingAdapterAddresses,
   hasLayerZeroAdapter,
   hasStargateAdapter,
+  type ExistingAdapterAddresses,
 } from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
 import { promptForConfigType, promptYesNo } from './lib/infrastructure/prompts'
@@ -14,22 +16,6 @@ import { configureLayerZeroAdapter } from './x-chain/adapters/layerzero'
 import { configureStargateAdapter } from './x-chain/adapters/stargate'
 import { waitForPendingTransactions } from './x-chain/adapters/utils'
 import { DeployedBridgeAdapters, deployBridgeAdapters } from './x-chain/bridge-adapters'
-
-// Helper function types
-interface ExistingAdapterAddresses {
-  layerZero?: Address
-  stargate?: Address
-}
-
-/**
- * Extract existing adapter addresses from configuration
- */
-function getExistingAdapterAddresses(config: BaseConfig): ExistingAdapterAddresses {
-  return {
-    layerZero: config.deployedContracts.bridge?.adapters?.layerZero?.address as Address,
-    stargate: config.deployedContracts.bridge?.adapters?.stargate?.address as Address,
-  }
-}
 
 /**
  * Log deployed adapter addresses
@@ -104,7 +90,7 @@ async function reconfigureExistingAdapters(
   }
 }
 
-async function deployAdapters() {
+async function deployXChainAdapters() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
 
@@ -201,8 +187,8 @@ async function deployAdapters() {
 
 // Execute the deployAdapters function and handle any errors
 if (require.main === module) {
-  deployAdapters().catch((error) => {
-    console.error(kleur.red('Error during bridge adapters deployment:'))
+  deployXChainAdapters().catch((error) => {
+    console.error(kleur.red('Error during x-chain bridge adapters deployment:'))
     console.error(error instanceof Error ? error.message : String(error))
     process.exit(1)
   })
