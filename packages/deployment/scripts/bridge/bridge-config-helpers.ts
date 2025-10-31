@@ -1,4 +1,5 @@
 import { BaseConfig } from '../../types/config-types'
+import { ADDRESS_ZERO } from '../lib/infrastructure/constants'
 
 /**
  * Extract adapter configuration from network config
@@ -18,9 +19,7 @@ export function extractAdapterConfig(
 
   return {
     address: adapter.address,
-    deployed: Boolean(
-      adapter.address && adapter.address !== '0x0000000000000000000000000000000000000000',
-    ),
+    deployed: Boolean(adapter.address && adapter.address !== ADDRESS_ZERO),
   }
 }
 
@@ -95,7 +94,7 @@ export function getCrossChainRegistryAddress(networkConfig: BaseConfig): string 
  */
 export function isCrossChainRegistryDeployed(networkConfig: BaseConfig): boolean {
   const address = getCrossChainRegistryAddress(networkConfig)
-  return Boolean(address && address !== '0x0000000000000000000000000000000000000000')
+  return Boolean(address && address !== ADDRESS_ZERO)
 }
 
 /**
@@ -110,5 +109,5 @@ export function getBridgeRouterAddress(networkConfig: BaseConfig): string | null
  */
 export function isBridgeRouterDeployed(networkConfig: BaseConfig): boolean {
   const address = getBridgeRouterAddress(networkConfig)
-  return Boolean(address && address !== '0x0000000000000000000000000000000000000000')
+  return Boolean(address && address !== ADDRESS_ZERO)
 }
