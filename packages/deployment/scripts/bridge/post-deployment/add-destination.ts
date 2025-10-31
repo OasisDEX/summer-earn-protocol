@@ -1,22 +1,23 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
-import { BaseConfig } from '../../types/config-types'
+import prompts from 'prompts'
+import { BaseConfig } from '../../../types/config-types'
 import {
   getCrossChainConfigStatus,
   loadCrossChainConfig,
   mergeCrossChainConfig,
   saveCrossChainConfig,
   validateCrossChainConfigPhase,
-} from '../lib/config/cross-chain'
-import { getAllDestinationChainIds } from '../lib/config/cross-chain-getters'
-import { getConfigByNetwork } from '../lib/config/handler'
+} from '../../lib/config/cross-chain'
+import { getAllDestinationChainIds } from '../../lib/config/cross-chain-getters'
+import { getConfigByNetwork } from '../../lib/config/handler'
 import {
   printValidationErrors,
   printValidationSuccess,
   validateSatellitePhasePrerequisites,
-} from '../lib/cross-chain/validation'
-import { promptForConfigType } from '../lib/infrastructure/prompts'
+} from '../../lib/cross-chain/validation'
+import { promptForConfigType } from '../../lib/infrastructure/prompts'
 
 function listCrossChainConfigs(): string[] {
   const fs = require('fs')
@@ -202,12 +203,12 @@ export async function addCrossChainDestination() {
   console.log(kleur.cyan('1. Deploy CrossChainArk on the source chain (if not already done)'))
   console.log(
     kleur.cyan(
-      '2. Register adapter peers: npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network <chain>',
+      '2. Register adapter peers: npx hardhat run scripts/bridge/post-deployment/register-ark-fleet.ts --network <chain>',
     ),
   )
   console.log(
     kleur.cyan(
-      '3. Verify setup: npx hardhat run scripts/cross-chain/verify-setup.ts --network <chain>',
+      '3. Verify setup: npx hardhat run scripts/bridge/post-deployment/verify-setup.ts --network <chain>',
     ),
   )
 }
@@ -219,3 +220,4 @@ if (require.main === module) {
     process.exit(1)
   })
 }
+

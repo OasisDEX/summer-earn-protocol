@@ -1,19 +1,20 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
+import prompts from 'prompts'
 import { Address, getAddress } from 'viem'
-import { BaseConfig } from '../../types/config-types'
+import { BaseConfig } from '../../../types/config-types'
 import {
   CrossChainConfig,
   getCrossChainConfigStatus,
   loadCrossChainConfig,
-} from '../lib/config/cross-chain'
+} from '../../lib/config/cross-chain'
 import {
   getCrossChainArkAddressSafe,
   getFleetProxyAddressSafe,
-} from '../lib/config/cross-chain-getters'
-import { getConfigByNetwork } from '../lib/config/handler'
-import { promptForConfigType } from '../lib/infrastructure/prompts'
+} from '../../lib/config/cross-chain-getters'
+import { getConfigByNetwork } from '../../lib/config/handler'
+import { promptForConfigType } from '../../lib/infrastructure/prompts'
 
 const REGISTRY_ABI = [
   {
@@ -249,7 +250,7 @@ export async function verifyCrossChainSetup() {
   try {
     const currentChainId = Number((localConfig as BaseConfig).common.chainId)
     const fs = require('fs')
-    const cfgDir = path.resolve(__dirname, '..', '..', 'config', 'cross-chain')
+    const cfgDir = path.resolve(__dirname, '..', '..', '..', 'config', 'cross-chain')
     if (fs.existsSync(cfgDir)) {
       const files = fs
         .readdirSync(cfgDir)
@@ -331,7 +332,7 @@ export async function verifyCrossChainSetup() {
     )
     console.log(
       kleur.cyan(
-        'Run: npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network <chain>',
+        'Run: npx hardhat run scripts/bridge/post-deployment/register-ark-fleet.ts --network <chain>',
       ),
     )
   }
@@ -350,3 +351,4 @@ if (require.main === module) {
     process.exit(1)
   })
 }
+

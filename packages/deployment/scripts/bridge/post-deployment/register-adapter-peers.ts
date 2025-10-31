@@ -1,9 +1,9 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, getAddress, isAddressEqual, zeroAddress } from 'viem'
-import { BaseConfig } from '../../types/config-types'
-import { getConfigByNetwork } from '../lib/config/handler'
-import { promptForConfigType } from '../lib/infrastructure/prompts'
+import { BaseConfig } from '../../../types/config-types'
+import { getConfigByNetwork } from '../../lib/config/handler'
+import { promptForConfigType } from '../../lib/infrastructure/prompts'
 
 type NetworkConfigs = Record<string, any>
 

@@ -4,10 +4,10 @@ import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
 import { Address, getAddress, isAddressEqual, zeroAddress } from 'viem'
-import { BaseConfig } from '../../types/config-types'
-import { CrossChainConfig, loadCrossChainConfig } from '../lib/config/cross-chain'
-import { getConfigByNetwork } from '../lib/config/handler'
-import { promptForAddresses, promptForConfigType, promptYesNo } from '../lib/infrastructure/prompts'
+import { BaseConfig } from '../../../types/config-types'
+import { CrossChainConfig, loadCrossChainConfig } from '../../lib/config/cross-chain'
+import { getConfigByNetwork } from '../../lib/config/handler'
+import { promptForAddresses, promptForConfigType, promptYesNo } from '../../lib/infrastructure/prompts'
 
 const REGISTRY_ABI = [
   {
@@ -558,3 +558,4 @@ if (require.main === module) {
     process.exit(1)
   })
 }
+

@@ -4,9 +4,9 @@ import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
 import { Address, getAddress, zeroAddress } from 'viem'
-import { BaseConfig } from '../../types/config-types'
-import { getConfigByNetwork } from '../lib/config/handler'
-import { promptForConfigType } from '../lib/infrastructure/prompts'
+import { BaseConfig } from '../../../types/config-types'
+import { getConfigByNetwork } from '../../lib/config/handler'
+import { promptForConfigType } from '../../lib/infrastructure/prompts'
 
 const REGISTRY_ABI = [
   {
@@ -182,7 +182,7 @@ export async function registerExecutors() {
 
   try {
     const currentChainId = Number((config as BaseConfig).common.chainId)
-    const cfgDir = path.resolve(__dirname, '..', '..', 'config', 'cross-chain')
+    const cfgDir = path.resolve(__dirname, '..', '..', '..', 'config', 'cross-chain')
     if (fs.existsSync(cfgDir)) {
       const files = fs
         .readdirSync(cfgDir)
@@ -282,3 +282,4 @@ if (require.main === module) {
     process.exit(1)
   })
 }
+

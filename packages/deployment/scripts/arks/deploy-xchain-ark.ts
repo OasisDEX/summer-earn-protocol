@@ -378,12 +378,12 @@ async function updateCrossChainConfigPhase2(
   console.log(kleur.yellow('Next steps:'))
   console.log(
     kleur.cyan(
-      '1. Register adapter peers: npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network <chain>',
+      '1. Register adapter peers: npx hardhat run scripts/bridge/post-deployment/register-ark-fleet.ts --network <chain>',
     ),
   )
   console.log(
     kleur.cyan(
-      '2. Verify setup: npx hardhat run scripts/cross-chain/verify-setup.ts --network <chain>',
+      '2. Verify setup: npx hardhat run scripts/bridge/post-deployment/verify-setup.ts --network <chain>',
     ),
   )
 }
