@@ -71,8 +71,8 @@ contract FleetCommanderConfigProviderWhitelist is
             minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-            rebalanceCooldown: params.initialRebalanceCooldown,
-            withdrawalFee: params.initialWithdrawalFee
+            rebalanceCooldown: 0, // Not used in whitelist version
+            withdrawalFee: Percentage.wrap(0) // Not used in whitelist version
         });
         details = params.details;
     }
