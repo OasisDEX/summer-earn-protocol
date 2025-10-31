@@ -137,6 +137,140 @@ export function hasStargateAdapter(config: BaseConfig): boolean {
 }
 
 /**
+ * Get the BridgeRouter address from configuration (optional)
+ * Returns undefined if not found
+ */
+export function getBridgeRouterAddressOptional(config: BaseConfig): Address | undefined {
+  return getOptionalAddress(config, 'deployedContracts.bridge.bridgeRouter.address')
+}
+
+/**
+ * Get the CrossChainRegistry address from configuration (optional)
+ * Returns undefined if not found
+ */
+export function getCrossChainRegistryAddressOptional(config: BaseConfig): Address | undefined {
+  return getOptionalAddress(config, 'deployedContracts.bridge.crossChainRegistry.address')
+}
+
+/**
+ * Get the LayerZero adapter address from configuration (optional)
+ * Returns undefined if not found
+ */
+export function getLayerZeroAdapterAddressOptional(config: BaseConfig): Address | undefined {
+  return getOptionalAddress(config, 'deployedContracts.bridge.adapters.layerZero.address')
+}
+
+/**
+ * Get the Stargate adapter address from configuration (optional)
+ * Returns undefined if not found
+ */
+export function getStargateAdapterAddressOptional(config: BaseConfig): Address | undefined {
+  return getOptionalAddress(config, 'deployedContracts.bridge.adapters.stargate.address')
+}
+
+/**
+ * Get adapter address for a specific adapter type (optional)
+ * Returns undefined if not found
+ */
+export function getAdapterAddress(
+  config: BaseConfig,
+  adapterType: 'layerZero' | 'stargate',
+): Address | undefined {
+  return getOptionalAddress(config, `deployedContracts.bridge.adapters.${adapterType}.address`)
+}
+
+/**
+ * Check if BridgeRouter is deployed
+ */
+export function hasBridgeRouter(config: BaseConfig): boolean {
+  return isValidAddress(config.deployedContracts.bridge?.bridgeRouter?.address)
+}
+
+/**
+ * Check if CrossChainRegistry is deployed
+ */
+export function hasCrossChainRegistry(config: BaseConfig): boolean {
+  return isValidAddress(config.deployedContracts.bridge?.crossChainRegistry?.address)
+}
+
+/**
+ * Check if a specific adapter is deployed on a network
+ */
+export function isAdapterDeployed(
+  config: BaseConfig,
+  adapterType: 'layerZero' | 'stargate',
+): boolean {
+  return isValidAddress(config.deployedContracts.bridge?.adapters?.[adapterType]?.address)
+}
+
+// ============================================================================
+// MULTI-NETWORK BRIDGE HELPERS
+// ============================================================================
+
+/**
+ * Extract adapter configuration from network config
+ */
+export function extractAdapterConfig(
+  networkConfig: BaseConfig,
+  adapterType: 'layerZero' | 'stargate',
+): {
+  address: string
+  deployed: boolean
+} | null {
+  const adapter = networkConfig.deployedContracts?.bridge?.adapters?.[adapterType]
+
+  if (!adapter) {
+    return null
+  }
+
+  return {
+    address: adapter.address,
+    deployed: Boolean(adapter.address && adapter.address !== ADDRESS_ZERO),
+  }
+}
+
+/**
+ * Get all deployed adapters across all networks
+ */
+export function getAllDeployedAdapters(
+  allNetworkConfigs: Record<string, BaseConfig>,
+): Record<string, Record<string, { address: string; deployed: boolean }>> {
+  const result: Record<string, Record<string, { address: string; deployed: boolean }>> = {}
+
+  for (const [networkName, config] of Object.entries(allNetworkConfigs)) {
+    result[networkName] = {}
+
+    const layerZero = extractAdapterConfig(config, 'layerZero')
+    if (layerZero) {
+      result[networkName].layerZero = layerZero
+    }
+
+    const stargate = extractAdapterConfig(config, 'stargate')
+    if (stargate) {
+      result[networkName].stargate = stargate
+    }
+  }
+
+  return result
+}
+
+/**
+ * Get all networks that have a specific adapter deployed
+ */
+export function getNetworksWithAdapter(
+  allNetworkConfigs: Record<string, BaseConfig>,
+  adapterType: 'layerZero' | 'stargate',
+): string[] {
+  return Object.entries(allNetworkConfigs)
+    .filter(([, config]) => isAdapterDeployed(config, adapterType))
+    .map(([networkName]) => networkName)
+}
+
+// ============================================================================
+// BRIDGE ADAPTER CONFIG GETTERS
+// ============================================================================
+
+/**
  * Extracts bridge adapter configurations from the network config
  * @param config The network configuration object
  * @returns Bridge adapter configuration or undefined if not present

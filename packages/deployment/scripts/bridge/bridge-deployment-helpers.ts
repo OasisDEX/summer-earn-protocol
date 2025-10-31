@@ -1,50 +1,30 @@
 import kleur from 'kleur'
 import { getAddress } from 'viem'
 import { BaseConfig } from '../../types/config-types'
-import { getConfigByNetwork } from '../lib/config/handler'
 import {
   extractAdapterConfig,
-  getBridgeRouterAddress,
-  getCrossChainRegistryAddress,
+  getBridgeRouterAddressOptional as getBridgeRouterAddress,
+  getCrossChainRegistryAddressOptional as getCrossChainRegistryAddress,
   isAdapterDeployed,
-  isBridgeRouterDeployed,
-  isCrossChainRegistryDeployed,
-} from './bridge-config-helpers'
+  hasBridgeRouter as isBridgeRouterDeployed,
+  hasCrossChainRegistry as isCrossChainRegistryDeployed,
+} from '../lib/config/getters'
+import { getConfigByNetwork } from '../lib/config/handler'
+import {
+  BridgeValidationOptions,
+  BridgeValidationResult,
+  validateBridgeComponents,
+} from './adapters/validation'
 
 /**
  * Validate that required bridge infrastructure is deployed
+ * Uses consolidated validation logic from adapters/validation.ts
  */
 export function validateBridgeInfrastructure(
   networkConfig: BaseConfig,
-  requiredComponents: {
-    crossChainRegistry?: boolean
-    bridgeRouter?: boolean
-    layerZero?: boolean
-    stargate?: boolean
-  } = {},
-): { valid: boolean; missing: string[] } {
-  const missing: string[] = []
-
-  if (requiredComponents.crossChainRegistry && !isCrossChainRegistryDeployed(networkConfig)) {
-    missing.push('CrossChainRegistry')
-  }
-
-  if (requiredComponents.bridgeRouter && !isBridgeRouterDeployed(networkConfig)) {
-    missing.push('BridgeRouter')
-  }
-
-  if (requiredComponents.layerZero && !isAdapterDeployed(networkConfig, 'layerZero')) {
-    missing.push('LayerZeroAdapter')
-  }
-
-  if (requiredComponents.stargate && !isAdapterDeployed(networkConfig, 'stargate')) {
-    missing.push('StargateAdapter')
-  }
-
-  return {
-    valid: missing.length === 0,
-    missing,
-  }
+  requiredComponents: BridgeValidationOptions = {},
+): BridgeValidationResult {
+  return validateBridgeComponents(networkConfig, requiredComponents)
 }
 
 /**
