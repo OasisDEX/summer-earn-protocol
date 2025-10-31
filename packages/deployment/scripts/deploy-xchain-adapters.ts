@@ -14,7 +14,7 @@ import { promptForConfigType, promptYesNo } from './lib/infrastructure/prompts'
 import { updateIndexJson } from './lib/infrastructure/update-json'
 import { configureLayerZeroAdapter } from './x-chain/adapters/layerzero'
 import { configureStargateAdapter } from './x-chain/adapters/stargate'
-import { waitForPendingTransactions } from './x-chain/adapters/utils'
+import { waitForPendingTransactions } from './lib/contracts/transactions'
 import { DeployedBridgeAdapters, deployBridgeAdapters } from './x-chain/bridge-adapters'
 
 /**

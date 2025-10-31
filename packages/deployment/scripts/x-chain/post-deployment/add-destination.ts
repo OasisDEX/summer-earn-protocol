@@ -16,7 +16,7 @@ import {
   printValidationErrors,
   printValidationSuccess,
   validateSatellitePhasePrerequisites,
-} from '../../lib/cross-chain/validation'
+} from '../../lib/x-chain/validation'
 import { promptForConfigType } from '../../lib/infrastructure/prompts'
 
 function listCrossChainConfigs(): string[] {

@@ -15,14 +15,14 @@ import {
 } from './lib/config/cross-chain'
 import { getAccessManagerAddress, getBridgeRouterAddress } from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
+import { handleDeploymentId } from './lib/infrastructure/deployment-id-handler'
+import { getChainIdByNetwork } from './lib/infrastructure/get-chainid'
+import { continueDeploymentCheck } from './lib/infrastructure/prompts'
 import {
   printValidationErrors,
   printValidationSuccess,
   validateSatellitePhasePrerequisites,
-} from './lib/cross-chain/validation'
-import { handleDeploymentId } from './lib/infrastructure/deployment-id-handler'
-import { getChainIdByNetwork } from './lib/infrastructure/get-chainid'
-import { continueDeploymentCheck } from './lib/infrastructure/prompts'
+} from './lib/x-chain/validation'
 
 /**
  * Interface for the FleetProxy deployment parameters

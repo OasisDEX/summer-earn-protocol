@@ -33,7 +33,7 @@ import {
   printValidationErrors,
   printValidationSuccess,
   validateHubPhasePrerequisites,
-} from '../lib/cross-chain/validation'
+} from '../lib/x-chain/validation'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'

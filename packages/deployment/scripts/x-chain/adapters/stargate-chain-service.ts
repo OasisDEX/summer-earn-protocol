@@ -5,7 +5,7 @@ import { ADDRESS_ZERO } from '../../lib/infrastructure/constants'
 import { STARGATE_ADD_SUPPORTED_CHAIN_ABI } from './abis'
 import { StargateAdapterContract } from './stargate-asset-service'
 import { ChainInfo, NetworkConfigMap } from './types'
-import { getNetworkNameFromChainId } from './utils'
+import { getChainNameById } from '../../lib/chain/helpers'
 
 /**
  * Configuration for chain operations
@@ -114,7 +114,7 @@ export async function determineAdapterAddress(
   }
 
   try {
-    const targetNetworkName = getNetworkNameFromChainId(chainInfo.chainId)
+    const targetNetworkName = getChainNameById(chainInfo.chainId)
     const targetNetworkConfig = allNetworkConfigs?.[targetNetworkName]
     const existingAdapterAddress =
       targetNetworkConfig?.deployedContracts?.bridge?.adapters?.stargate?.address

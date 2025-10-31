@@ -13,7 +13,8 @@ import {
   deployStargateAdapter,
   updateStargateAdapterAddresses,
 } from './adapters/stargate'
-import { isAdapterRegistered, waitForPendingTransactions } from './adapters/utils'
+import { waitForPendingTransactions } from '../../lib/contracts/transactions'
+import { isAdapterRegistered } from '../../lib/x-chain/adapters'
 
 /**
  * Deploy and configure bridge adapters

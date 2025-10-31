@@ -22,7 +22,8 @@ import {
 } from './stargate-chain-service'
 import { StargateContractValidator } from './stargate-validation-service'
 import { BaseConfig, NetworkConfigMap } from './types'
-import { getSupportedChainsFromConfig, getWalletClient, isAdapterRegistered } from './utils'
+import { getWalletClient } from '../../lib/infrastructure/wallet'
+import { getSupportedChainsFromConfig, isAdapterRegistered } from '../../lib/x-chain/adapters'
 import { validateBridgeConfig } from './validation'
 
 /**
