@@ -364,4 +364,19 @@ abstract contract BaseBridgeAdapter is
         if (userGas == 0) revert InvalidParams();
         return userGas;
     }
+
+    /**
+     * @notice Validates that sufficient msg.value was provided for the operation
+     * @param options Bridge options containing msgValue requirement
+     * @param msgValue The actual msg.value sent with the transaction
+     * @custom:throws InsufficientMsgValue if msg.value is less than required
+     */
+    function _validateFeeRequirements(
+        BridgeTypes.BridgeOptions calldata options,
+        uint256 msgValue
+    ) internal pure {
+        if (options.msgValue > 0 && msgValue < options.msgValue) {
+            revert InsufficientMsgValue(options.msgValue, msgValue);
+        }
+    }
 }

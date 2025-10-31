@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
-import {LayerZeroMessagingHelper} from "../helpers/LayerZeroMessagingHelper.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {ILayerZeroAdapter} from "../interfaces/ILayerZeroAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
@@ -183,9 +182,9 @@ contract LayerZeroAdapter is
         uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
         bytes32 dummyBytes32 = bytes32(uint256(uint160(params.target)));
 
-        // Create realistic payload using LayerZeroMessagingHelper
+        // Create realistic payload using BridgeMessagingHelper
         bytes memory payload = _createMessagePayload(
-            LayerZeroMessagingHelper.createRelayedMessageParams(
+            BridgeMessagingHelper.createRelayedMessageParams(
                 params,
                 dummyBytes32
             )
@@ -213,12 +212,12 @@ contract LayerZeroAdapter is
         // Cache LayerZero EID to avoid redundant storage reads
         uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
 
-        // Validate fee requirements using helper
-        LayerZeroMessagingHelper.validateFeeRequirements(options, msg.value);
+        // Validate fee requirements using base adapter helper
+        _validateFeeRequirements(options, msg.value);
 
-        // Create payload using LayerZeroMessagingHelper
+        // Create payload using BridgeMessagingHelper
         bytes memory payload = _createMessagePayload(
-            LayerZeroMessagingHelper.createRelayedMessageParams(
+            BridgeMessagingHelper.createRelayedMessageParams(
                 params,
                 operationId
             )

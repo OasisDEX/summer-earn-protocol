@@ -100,4 +100,46 @@ library BridgeMessagingHelper {
     {
         return BridgeCodec.decodePayload(payload);
     }
+
+    /**
+     * @notice Creates RelayedMessageParams from ExecuteSendMessageParams
+     * @param params ExecuteSendMessageParams from the bridge operation
+     * @param operationId The operation ID for this transaction
+     * @return RelayedMessageParams struct ready for encoding
+     */
+    function createRelayedMessageParams(
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        bytes32 operationId
+    ) internal view returns (BridgeTypes.RelayedMessageParams memory) {
+        return
+            BridgeTypes.RelayedMessageParams({
+                recipient: params.target,
+                message: params.message,
+                operationId: operationId,
+                originator: params.originator,
+                sourceChainId: uint16(block.chainid)
+            });
+    }
+
+    /**
+     * @notice Creates RelayedTransferParams from ExecuteTransferParams
+     * @param params ExecuteTransferParams from the bridge operation
+     * @param operationId The operation ID for this transaction
+     * @return RelayedTransferParams struct ready for encoding
+     */
+    function createRelayedTransferParams(
+        BridgeTypes.ExecuteTransferParams memory params,
+        bytes32 operationId
+    ) internal view returns (BridgeTypes.RelayedTransferParams memory) {
+        return
+            BridgeTypes.RelayedTransferParams({
+                recipient: params.target,
+                asset: params.asset,
+                amount: params.amount,
+                sourceChainId: uint16(block.chainid),
+                operationId: operationId,
+                originator: params.originator,
+                message: params.message
+            });
+    }
 }
