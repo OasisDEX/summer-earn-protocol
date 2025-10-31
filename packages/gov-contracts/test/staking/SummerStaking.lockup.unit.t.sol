@@ -1902,7 +1902,11 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         aStaking.getRewardFor(user1);
 
         uint256 user1After = rewardToken.balanceOf(user1);
-        assertGt(user1After, user1Before, "Rewards should be transferred after authorized claim");
+        assertGt(
+            user1After,
+            user1Before,
+            "Rewards should be transferred after authorized claim"
+        );
         assertEq(
             aStaking.earned(user1, address(rewardToken)),
             0,
@@ -1939,7 +1943,11 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         aStaking.getRewardFor(user1, address(rewardToken));
 
         uint256 user1After = rewardToken.balanceOf(user1);
-        assertGt(user1After, user1Before, "Rewards should be transferred after authorized claim");
+        assertGt(
+            user1After,
+            user1Before,
+            "Rewards should be transferred after authorized claim"
+        );
         assertEq(
             aStaking.earned(user1, address(rewardToken)),
             0,

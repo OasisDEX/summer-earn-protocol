@@ -133,7 +133,7 @@ contract SummerStaking is
         uint256 _amount,
         uint256 _lockupPeriod
     ) external nonReentrant {
-        _requireAuthorized(_receiver, _msgSender());
+        _validateAuthorization(_receiver, _msgSender());
         _stakeLockup(_msgSender(), _receiver, _amount, _lockupPeriod);
     }
 
@@ -417,7 +417,7 @@ contract SummerStaking is
         address account,
         address rewardToken
     ) public override(ISummerStaking, StakingRewardsManagerBase) {
-        _requireAuthorized(account, _msgSender());
+        _validateAuthorization(account, _msgSender());
         super.getRewardFor(account, rewardToken);
     }
 
@@ -425,7 +425,7 @@ contract SummerStaking is
     function getRewardFor(
         address account
     ) public override(ISummerStaking, StakingRewardsManagerBase) {
-        _requireAuthorized(account, _msgSender());
+        _validateAuthorization(account, _msgSender());
         super.getRewardFor(account);
     }
 
@@ -846,7 +846,7 @@ contract SummerStaking is
      * @param _caller The address to check authorization for
      * @dev Reverts if the caller is not authorized to act on behalf of the receiver
      */
-    function _requireAuthorized(
+    function _validateAuthorization(
         address _receiver,
         address _caller
     ) internal view {
