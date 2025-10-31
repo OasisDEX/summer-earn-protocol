@@ -11,6 +11,7 @@ import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {BridgeMessagingHelper} from "../../../src/libraries/BridgeMessagingHelper.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 contract ExposedAdapter is BaseBridgeAdapter {
     constructor(
@@ -137,6 +138,14 @@ contract BaseBridgeAdapterCoreTest is Test {
     }
 
     // -------- External ID mapping / unmapping --------
+    function testMapExternalId_InvalidParams() public {
+        vm.startPrank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
+
+        adapterA.mapExternalId(0, 0);
+        vm.stopPrank();
+    }
+
     function testMapExternalId_AndResolveBothWays() public {
         uint16 chainId = 1337;
         uint32 eid = 9999;

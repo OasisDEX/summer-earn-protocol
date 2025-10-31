@@ -20,6 +20,10 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
  *      - crossChainRelations: Maps relationship keys to full relationship data
  *      - registeredSourceContracts: Tracks which contracts are registered as sources per relationship type
  *      - sourceToTargetChains: Maps source contracts to their target chain IDs for efficient enumeration
+ *
+ * This contract tries to be a generic base for cross-chain registries, so it can be extended for specific use-cases.
+ * In particular it defines 2 types of relationships that are current to our use case, and then provides a function
+ * `addSupportedRelationshipType` to add more relationship types as needed.
  */
 abstract contract BaseCrossChainRegistry is
     ICrossChainRegistry,
@@ -99,6 +103,7 @@ abstract contract BaseCrossChainRegistry is
         uint16 targetChainId,
         bytes32 relationshipType
     ) internal {
+        // Validate chain IDs
         if (sourceChainId == 0) revert InvalidChainId(sourceChainId);
         if (targetChainId == 0) revert InvalidChainId(targetChainId);
         if (
@@ -112,7 +117,7 @@ abstract contract BaseCrossChainRegistry is
             );
         }
 
-        // basic parameter validation
+        // Validate addresses and relationship type
         if (sourceContract == address(0))
             revert InvalidSourceContract(sourceContract);
         if (targetContract == address(0))
@@ -120,7 +125,7 @@ abstract contract BaseCrossChainRegistry is
         if (relationshipType == bytes32(0))
             revert InvalidRelationshipType(relationshipType);
 
-        // enforce that relationship type must be supported
+        // Enforce that relationship type must be supported
         if (!relationshipTypeSupported[relationshipType]) {
             revert UnsupportedRelationshipType(relationshipType);
         }
@@ -144,12 +149,15 @@ abstract contract BaseCrossChainRegistry is
 
         // For cross-chain relationships, ensure target contract isn't already registered to prevent conflicts
         if (!sameChain) {
+            // Generate target key for reverse lookup
             bytes32 targetKey = _getTargetKey(
                 sourceChainId,
                 targetChainId,
                 targetContract,
                 relationshipType
             );
+
+            // If relationship is already registered, revert with an error
             if (targetToSource[targetKey] != address(0)) {
                 revert TargetContractAlreadyRegistered(
                     targetContract,
@@ -159,6 +167,7 @@ abstract contract BaseCrossChainRegistry is
                     targetToSource[targetKey]
                 );
             }
+            // Otherwise register the new relationship
             targetToSource[targetKey] = sourceContract;
         }
 
@@ -174,6 +183,7 @@ abstract contract BaseCrossChainRegistry is
         // Update tracking structures for efficient lookups
         registeredSourceContracts[relationshipType].add(sourceContract);
 
+        // Update source to target chains mapping
         bytes32 sourceTrackingKey = _getSourceTrackingKey(
             sourceContract,
             relationshipType
@@ -200,12 +210,14 @@ abstract contract BaseCrossChainRegistry is
         bytes32 relationshipType,
         uint16 targetChainId
     ) internal {
+        // Generate the relationship key
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
             relationshipType,
             targetChainId
         );
 
+        // Retrieve the relationship
         CrossChainRelation memory relation = crossChainRelations[
             relationshipKey
         ];
@@ -224,6 +236,8 @@ abstract contract BaseCrossChainRegistry is
             relation.sourceChainId,
             relation.targetChainId
         );
+
+        // Generate target key for reverse lookup
         bytes32 targetKey = _getTargetKey(
             relation.sourceChainId,
             relation.targetChainId,
@@ -231,15 +245,18 @@ abstract contract BaseCrossChainRegistry is
             relationshipType
         );
 
+        // If it is a cross-chain relationship, and the relationship exists, remove the reverse mapping
         if (!sameChain && targetToSource[targetKey] == sourceContract) {
             delete targetToSource[targetKey];
         }
 
-        // Remove from sourceToTargetChains
+        // Generate source tracking key
         bytes32 sourceTrackingKey = _getSourceTrackingKey(
             sourceContract,
             relationshipType
         );
+
+        // Search for the target chain and remove it from the list
         uint16[] storage targetChains = sourceToTargetChains[sourceTrackingKey];
         for (uint256 i = 0; i < targetChains.length; i++) {
             if (targetChains[i] == targetChainId) {
@@ -309,12 +326,14 @@ abstract contract BaseCrossChainRegistry is
         uint16 targetChainId,
         bytes32 relationshipType
     ) internal view returns (bool isValid) {
+        // Generate the relationship key
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
             relationshipType,
             targetChainId
         );
 
+        // Retrieve the relationship
         CrossChainRelation memory relation = crossChainRelations[
             relationshipKey
         ];
@@ -357,13 +376,16 @@ abstract contract BaseCrossChainRegistry is
         address sourceContract,
         bytes32 relationshipType
     ) internal view returns (CrossChainRelation[] memory relationships) {
+        // Get target chain IDs for the source contract and relationship type
         uint16[] memory targetChains = _getTargetChains(
             sourceContract,
             relationshipType
         );
 
+        // Initialize the relationships array
         relationships = new CrossChainRelation[](targetChains.length);
 
+        // Populate the relationships array
         for (uint256 i = 0; i < targetChains.length; i++) {
             bytes32 relationshipKey = _getRelationshipKey(
                 sourceContract,
@@ -392,14 +414,17 @@ abstract contract BaseCrossChainRegistry is
             uint16[] memory targetChainIds
         )
     {
+        // Retrieve all relationships for the source contract
         CrossChainRelation[] memory relationships = _getRelationships(
             sourceContract,
             relationshipType
         );
 
+        // Initialize output arrays
         targetContracts = new address[](relationships.length);
         targetChainIds = new uint16[](relationships.length);
 
+        // Populate output arrays
         for (uint256 i = 0; i < relationships.length; i++) {
             targetContracts[i] = relationships[i].targetContract;
             targetChainIds[i] = relationships[i].targetChainId;
@@ -542,6 +567,7 @@ abstract contract BaseCrossChainRegistry is
      * @param relationshipType The relationship type to add
      */
     function _addRelationshipType(bytes32 relationshipType) internal {
+        // Validate that the relationship type does not already exist
         if (!relationshipTypeSupported[relationshipType]) {
             supportedRelationshipTypes.push(relationshipType);
             relationshipTypeSupported[relationshipType] = true;

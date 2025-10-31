@@ -172,7 +172,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         RejectETH rejectContract = new RejectETH();
 
         vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSelector(Errors.FailedCall.selector));
+        vm.expectRevert("Transfer rejected");
         adapter.sweep(address(0), address(rejectContract), 1 ether);
     }
 

@@ -50,9 +50,9 @@ contract BridgeRouter is
 
     /// @notice Record of failed delivery attempts by operationId
     struct FailedDeliveryRecord {
-        BridgeTypes.OperationType operationType;
-        address adapter;
-        uint16 sourceChainId;
+        BridgeTypes.OperationType operationType; // Type of operation that has failed
+        address adapter; // Adapter used for the operation
+        uint16 sourceChainId; // Source chain ID of the operation
         bytes operationPayload; // original encoded payload
         uint256 failedAt; // block timestamp
     }
@@ -133,6 +133,7 @@ contract BridgeRouter is
     function _assertPeerMappingExistsForChain(
         uint16 sourceChainId
     ) internal view {
+        // Lookup the source contract for the calling adapter on the source chain
         address sourceContract = CROSS_CHAIN_REGISTRY.getSourceForTarget(
             sourceChainId,
             uint16(block.chainid),
@@ -140,6 +141,7 @@ contract BridgeRouter is
             CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
         );
 
+        // Revert if no mapping exists
         if (sourceContract == address(0)) {
             revert ICrossChainRegistry.RelationshipDoesNotExist(
                 address(0),
@@ -157,6 +159,7 @@ contract BridgeRouter is
         uint16 sourceChainId,
         address adapter
     ) internal view {
+        // Lookup the source contract for the specified adapter on the source chain
         address sourceContract = CROSS_CHAIN_REGISTRY.getSourceForTarget(
             sourceChainId,
             uint16(block.chainid),
@@ -164,6 +167,7 @@ contract BridgeRouter is
             CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
         );
 
+        // Revert if no mapping exists
         if (sourceContract == address(0)) {
             revert ICrossChainRegistry.RelationshipDoesNotExist(
                 address(0),
@@ -212,6 +216,10 @@ contract BridgeRouter is
         }
     }
 
+    /**
+     * @dev Internal function to validate the originator matches msg.sender
+     * @param originator The originator address to validate
+     */
     function _validateOriginator(address originator) internal view {
         if (originator != msg.sender) revert InvalidOriginator();
     }
@@ -239,6 +247,7 @@ contract BridgeRouter is
         // Use nonce for better uniqueness and collision resistance
         uint256 currentNonce = _useNonce(address(this));
 
+        // Generate operation ID using chain ID, nonce, and router address
         operationId = keccak256(
             abi.encode(block.chainid, currentNonce, address(this))
         );
@@ -266,12 +275,14 @@ contract BridgeRouter is
     function _requireReceiverIsCrossChainReceiver(
         address receiver
     ) internal view {
+        // Must be a contract
         if (receiver.code.length == 0) revert InvalidParams();
         try
             IERC165(receiver).supportsInterface(
                 type(ICrossChainReceiver).interfaceId
             )
         returns (bool isSupported) {
+            // Must support ICrossChainReceiver
             if (!isSupported) revert InvalidParams();
         } catch {
             revert InvalidParams();
@@ -290,6 +301,7 @@ contract BridgeRouter is
         bytes memory operationPayload,
         bytes memory errorData
     ) internal {
+        // Check if a record already exists
         FailedDeliveryRecord storage existing = failedDeliveries[operationId];
         if (existing.failedAt == 0) {
             // Insert new record
@@ -316,15 +328,27 @@ contract BridgeRouter is
         );
     }
 
+    /**
+     * @dev Clears the failed delivery record for an operationId
+     * @param operationId The operation ID to clear
+     */
     function _clearFailedDelivery(bytes32 operationId) internal {
         failedDeliveryIds.remove(operationId);
         delete failedDeliveries[operationId];
     }
 
+    /**
+     * @dev Decodes minimal metadata from operation payload for logging/recording
+     * @param operationType The type of operation
+     * @param operationPayload The encoded operation payload
+     * @return opId The operation ID
+     * @return sourceChainId The source chain ID
+     */
     function _decodeOperationMeta(
         BridgeTypes.OperationType operationType,
         bytes memory operationPayload
     ) internal pure returns (bytes32 opId, uint16 sourceChainId) {
+        // Decode based on operation type
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             BridgeTypes.RelayedTransferParams memory d = abi.decode(
                 operationPayload,
@@ -338,6 +362,7 @@ contract BridgeRouter is
             );
             return (d.operationId, d.sourceChainId);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            // Unsupported for now
             revert UnsupportedOperationType();
         } else {
             revert UnsupportedOperationType();
@@ -366,7 +391,10 @@ contract BridgeRouter is
         )
         returns (bytes32 operationId)
     {
+        // Gas limit must always be set
         if (options.gasLimit == 0) revert ZeroGasLimit();
+
+        // Validate parameters
         _validateTransferParams(params);
         _validateOriginator(params.originator);
 
@@ -422,7 +450,10 @@ contract BridgeRouter is
         )
         returns (bytes32 operationId)
     {
+        // Gas limit must always be set
         if (options.gasLimit == 0) revert ZeroGasLimit();
+
+        // Validate parameters
         _validateSendMessageParams(params);
         _validateOriginator(params.originator);
 
@@ -467,12 +498,17 @@ contract BridgeRouter is
     {
         specifiedAdapter = options.specifiedAdapter;
 
+        // Gas limit must always be set
         if (options.gasLimit == 0) revert ZeroGasLimit();
 
+        // Validate parameters
         _validateTransferParams(params);
+
+        // Estimate fees via adapter
         (nativeFee, tokenFee) = IAssetAdapter(specifiedAdapter)
             .estimateTransferAssets(params, options);
 
+        // Apply fee buffer
         nativeFee = _applyFeeBuffer(nativeFee);
         tokenFee = _applyFeeBuffer(tokenFee);
     }
@@ -487,13 +523,21 @@ contract BridgeRouter is
         returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
     {
         specifiedAdapter = options.specifiedAdapter;
+
+        // Specified adapter must have a proper address
         if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
+
+        // Adapter must be registered
         if (!adapters.contains(specifiedAdapter)) revert UnknownAdapter();
 
+        // Validate parameters
         _validateSendMessageParams(params);
+
+        // Estimate send message fees via adapter
         (nativeFee, tokenFee) = IMessageAdapter(specifiedAdapter)
             .estimateSendMessage(params, options);
 
+        // Apply fee buffer
         nativeFee = _applyFeeBuffer(nativeFee);
         tokenFee = _applyFeeBuffer(tokenFee);
     }
@@ -538,8 +582,10 @@ contract BridgeRouter is
         bytes calldata operationPayload,
         address adapter
     ) external {
+        // Ensure only callable by this contract
         if (msg.sender != address(this)) revert Unauthorized();
 
+        // Process based on operation type
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             BridgeTypes.RelayedTransferParams memory data = abi.decode(
                 operationPayload,
@@ -582,6 +628,7 @@ contract BridgeRouter is
                 operationPayload
             );
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            // Unsupported for now
             revert UnsupportedOperationType();
         } else {
             revert UnsupportedOperationType();
@@ -606,22 +653,40 @@ contract BridgeRouter is
                           FAILURE VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns a page of failed delivery operationIds
+    /**
+        @notice Returns a page of failed delivery operationIds
+        @param cursor The starting index for pagination
+        @param size The maximum number of IDs to return
+        @return ids An array of operationIds representing failed deliveries
+    */
     function getFailedDeliveryIds(
         uint256 cursor,
         uint256 size
     ) external view returns (bytes32[] memory ids, uint256 nextCursor) {
+        // Retrieve the full length of failed delivery IDs
         uint256 len = failedDeliveryIds.length();
+
+        // Check if cursor is beyond the size of the list
         if (cursor >= len) {
             return (new bytes32[](0), cursor);
         }
+
+        // Normalize the end position
         uint256 end = cursor + size;
         if (end > len) end = len;
+
+        // Calculate the actual page size
         uint256 pageSize = end - cursor;
+
+        // Initialize the result array
         ids = new bytes32[](pageSize);
+
+        // Populate the result array
         for (uint256 i = 0; i < pageSize; i++) {
             ids[i] = failedDeliveryIds.at(cursor + i);
         }
+
+        // Set the next cursor position
         nextCursor = end;
     }
 
@@ -640,9 +705,15 @@ contract BridgeRouter is
 
     /// @inheritdoc IBridgeRouter
     function registerAdapter(address adapter) external onlyGovernor {
+        // Check that adapter is not already registered
         if (adapters.contains(adapter)) revert AdapterAlreadyRegistered();
+
+        // Check that new adapter has a valid address
         if (adapter == address(0)) revert InvalidParams();
+
+        // Check that adapter is a contract
         if (adapter.code.length == 0) revert InvalidParams(); // prevent EOA registration
+
         // Require ERC-165 support for IBridgeAdapter
         if (
             !ERC165Checker.supportsInterface(
@@ -659,6 +730,7 @@ contract BridgeRouter is
 
     /// @inheritdoc IBridgeRouter
     function removeAdapter(address adapter) external onlyGovernor {
+        // Check that adapter is registered
         if (!adapters.contains(adapter)) revert UnknownAdapter();
 
         adapters.remove(adapter);
@@ -683,6 +755,7 @@ contract BridgeRouter is
         address recipient,
         uint256 amount
     ) external nonReentrant onlyGovernor {
+        // Check that recipient has a valid address
         if (recipient == address(0)) revert InvalidParams();
 
         if (token == address(0)) {
@@ -722,6 +795,8 @@ contract BridgeRouter is
             newRecipient
         );
 
+        // Attempt processing in a self-call so we can capture reverts without
+        // rolling back the outer call
         try
             this._processDelivery(
                 r.operationType,
@@ -729,6 +804,7 @@ contract BridgeRouter is
                 effectiveAdapter
             )
         {
+            // Success path - clear the failure record
             _clearFailedDelivery(operationId);
             emit OperationRetrySucceeded(
                 operationId,
@@ -768,6 +844,7 @@ contract BridgeRouter is
         bytes memory originalPayload,
         address newRecipient
     ) internal view returns (bytes memory modifiedPayload) {
+        // Process based on operation type
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             BridgeTypes.RelayedTransferParams memory params = abi.decode(
                 originalPayload,
@@ -833,6 +910,7 @@ contract BridgeRouter is
         address recipient,
         uint16 sourceChainId
     ) internal view {
+        // Validate originator -> recipient relationship
         bool isValidPair = CROSS_CHAIN_REGISTRY.isValidCrossChainPair(
             originator,
             recipient,
