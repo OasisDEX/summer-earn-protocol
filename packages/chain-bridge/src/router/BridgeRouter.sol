@@ -8,6 +8,7 @@ import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {NativeTransfer} from "../libraries/NativeTransfer.sol";
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
@@ -832,10 +833,10 @@ contract BridgeRouter is
             // Recover native ETH
             if (address(this).balance < amount) revert InsufficientBalance();
             if (amount > 0) {
-                (bool ok, ) = payable(recipient).call{
-                    value: amount,
-                    gas: Constants.NATIVE_SEND_GAS_STIPEND
-                }("");
+                bool ok = NativeTransfer.sendNativeValue(
+                    payable(recipient),
+                    amount
+                );
                 if (!ok) {
                     emit SweepFailed(recipient, amount);
                 }

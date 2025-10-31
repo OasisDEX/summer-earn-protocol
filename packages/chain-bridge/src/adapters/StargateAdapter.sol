@@ -21,6 +21,7 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
+import {NativeTransfer} from "../libraries/NativeTransfer.sol";
 
 /**
  * @title StargateAdapter
@@ -222,10 +223,10 @@ contract StargateAdapter is
         // Refund any unused native value (buffer) back to the designated refund address
         uint256 refundAmount = providedFee - messagingFee.nativeFee;
         if (refundAmount > 0) {
-            (bool ok, ) = payable(params.refundAddress).call{
-                value: refundAmount,
-                gas: Constants.NATIVE_SEND_GAS_STIPEND
-            }("");
+            bool ok = NativeTransfer.sendNativeValue(
+                payable(params.refundAddress),
+                refundAmount
+            );
             if (!ok) {
                 emit RefundFailed(params.refundAddress, refundAmount);
             }

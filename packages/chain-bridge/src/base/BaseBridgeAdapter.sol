@@ -15,6 +15,7 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeCodec} from "../libraries/BridgeCodec.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
+import {NativeTransfer} from "../libraries/NativeTransfer.sol";
 
 abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
@@ -321,10 +322,7 @@ abstract contract BaseBridgeAdapter is
             // Handle native ETH
             if (address(this).balance < amount) revert InsufficientBalance();
             if (amount > 0) {
-                (bool ok, ) = payable(to).call{
-                    value: amount,
-                    gas: Constants.NATIVE_SEND_GAS_STIPEND
-                }("");
+                bool ok = NativeTransfer.sendNativeValue(payable(to), amount);
                 if (!ok) {
                     emit SweepFailed(to, amount);
                 }
