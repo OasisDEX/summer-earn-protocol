@@ -12,7 +12,6 @@ export default buildModule('BridgeModule', (m) => {
    * The CrossChainRegistry manages cross-chain relationships between
    * CrossChainArk and FleetProxy contracts. It requires:
    * - ProtocolAccessManager for access control
-   * - Current chain ID is automatically set from block.chainid
    */
   const crossChainRegistry = m.contract('CrossChainRegistry', [protocolAccessManager])
 
