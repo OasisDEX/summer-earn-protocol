@@ -1,19 +1,18 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
 import { Address } from 'viem'
 import {
   createFluidFTokenArkModule,
   FluidFTokenArkContracts,
 } from '../../ignition/modules/arks/fluid-ftoken-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { getFleetConfig } from '../fleets/deployment'
+import { getFleetConfig } from '../fleets/fleet-config'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'
 import { continueDeploymentCheck } from '../lib/infrastructure/prompts'
 import { validateAddress, validateArkDetails } from '../lib/infrastructure/validation'
-import { BaseArkParams } from './deployment'
+import { BaseArkParams } from './ark-types'
 
 export async function deployFluidFTokenArk(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting FluidFTokenArk deployment process...'))

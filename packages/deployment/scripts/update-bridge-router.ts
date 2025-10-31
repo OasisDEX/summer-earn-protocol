@@ -39,13 +39,13 @@ async function updateBridgeRouter() {
   const currentChainId = getChainIdFromConfig(config)
 
   // Get BridgeRouter contract
-  const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', bridgeRouterAddress)
+  const bridgeRouter = await hre.viem.getContractAt('BridgeRouter' as string, bridgeRouterAddress)
 
   console.log(kleur.green().bold('Starting bridge router update...'))
 
   try {
     // Update router addresses from other chains
-    for (const [network, otherConfig] of Object.entries(allConfigs)) {
+    for (const [, otherConfig] of Object.entries(allConfigs)) {
       // Skip if no common.chainId
       if (!otherConfig.common?.chainId) continue
 
@@ -58,8 +58,8 @@ async function updateBridgeRouter() {
       let routerAddress = null
       if (otherConfig.deployedContracts?.bridge?.bridgeRouter?.address) {
         routerAddress = otherConfig.deployedContracts.bridge.bridgeRouter.address
-      } else if (otherConfig.protocolSpecific?.bridge?.bridgeRouter?.address) {
-        routerAddress = otherConfig.protocolSpecific.bridge.bridgeRouter.address
+      } else if (otherConfig.bridge?.bridgeRouter?.address) {
+        routerAddress = otherConfig.bridge.bridgeRouter.address
       }
 
       if (routerAddress && routerAddress !== '0x0000000000000000000000000000000000000000') {

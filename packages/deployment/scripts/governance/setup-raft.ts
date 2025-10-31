@@ -1,7 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'node:path'
-import prompts from 'prompts'
 import { Address, createPublicClient, encodeFunctionData, Hex, http } from 'viem'
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
 import { BaseConfig } from '../../types/config-types'

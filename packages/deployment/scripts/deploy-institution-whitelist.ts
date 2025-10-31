@@ -1,18 +1,17 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
 import { Address as ViemAddress } from 'viem'
 import {
   InstitutionWhitelistContracts,
   InstitutionWhitelistModule,
 } from '../ignition/modules/institution-whitelist'
 import { BaseConfig } from '../types/config-types'
-import { ADDRESS_ZERO } from './lib/infrastructure/constants'
 import { getConfigByNetwork } from './lib/config/handler'
 import {
   promptForInstitutionId,
   updateInstitutionDeployedContracts,
 } from './lib/config/institution'
+import { ADDRESS_ZERO } from './lib/infrastructure/constants'
 import { promptForConfigType } from './lib/infrastructure/prompts'
 import { AddressSchema } from './lib/infrastructure/zod-schemas'
 

@@ -20,7 +20,7 @@ For deploying new cross-chain fleets, follow the satellite-first approach:
 1. **Prerequisites**: Deploy bridge, governance, and core contracts on all chains
 2. **Satellite Phase**: Deploy satellite fleet and FleetProxy (`deploy-xchain-fleetproxy.ts`)
 3. **Hub Phase**: Deploy hub fleet and CrossChainArk (`deploy-xchain-ark.ts`)
-4. **Registration**: Register relationships and executors (`cross-chain/register-relationships.ts`)
+4. **Registration**: Register adapter peers and executors (`cross-chain/register-ark-fleet.ts`)
 5. **Verification**: Verify setup (`cross-chain/verify-setup.ts`)
 
 See `docs/cross-chain/DEPLOYMENT_GUIDE.md` for detailed instructions.

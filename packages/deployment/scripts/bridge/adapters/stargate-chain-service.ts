@@ -3,6 +3,7 @@ import { Address, WalletClient } from 'viem'
 import { waitForTransactionConfirmation, writeContractTx } from '../../lib/contracts/transactions'
 import { ADDRESS_ZERO } from '../../lib/infrastructure/constants'
 import { STARGATE_ADD_SUPPORTED_CHAIN_ABI } from './abis'
+import { StargateAdapterContract } from './stargate-asset-service'
 import { ChainInfo, NetworkConfigMap } from './types'
 import { getNetworkNameFromChainId } from './utils'
 
@@ -10,7 +11,7 @@ import { getNetworkNameFromChainId } from './utils'
  * Configuration for chain operations
  */
 export interface ChainConfigurationParams {
-  stargateAdapter: any
+  stargateAdapter: StargateAdapterContract
   walletClient: WalletClient
   stargateAdapterAddress: Address
   currentChainId: number

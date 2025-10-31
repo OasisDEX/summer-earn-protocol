@@ -1,7 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
-import prompts from 'prompts'
 import { BaseConfig } from '../../types/config-types'
 import {
   getCrossChainConfigStatus,
@@ -203,7 +202,7 @@ export async function addCrossChainDestination() {
   console.log(kleur.cyan('1. Deploy CrossChainArk on the source chain (if not already done)'))
   console.log(
     kleur.cyan(
-      '2. Register relationships: npx hardhat run scripts/cross-chain/register-relationships.ts --network <chain>',
+      '2. Register adapter peers: npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network <chain>',
     ),
   )
   console.log(

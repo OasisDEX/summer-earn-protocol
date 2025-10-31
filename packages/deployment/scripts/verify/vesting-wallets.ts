@@ -1,6 +1,5 @@
 import dotenv from 'dotenv'
 import hre from 'hardhat'
-import prompts from 'prompts'
 
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { resolve } from 'path'

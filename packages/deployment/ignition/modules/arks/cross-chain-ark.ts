@@ -16,8 +16,8 @@ export type CrossChainArkContracts = {
  *
  * Note: FleetProxy can be deployed before or after the CrossChainArk.
  * The relationship between CrossChainArk and FleetProxy is managed through
- * CrossChainRegistry.registerRelationship() and must be registered separately
- * using the register-relationships.ts script after deployment.
+ * CrossChainRegistry.registerAdapterPeerPair() and must be registered separately
+ * using the cross-chain/register-ark-fleet.ts script after deployment.
  *
  * @param {string} moduleName - Name of the module
  * @returns {Function} A function that builds the module

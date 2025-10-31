@@ -1,18 +1,17 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
-import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex } from 'viem'
 import { BaseConfig } from '../../../types/config-types'
-import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../lib/infrastructure/constants'
-import { getChainPublicClient } from '../lib/contracts/client'
 import { getConfigByNetwork } from '../lib/config/handler'
+import { getChainPublicClient } from '../lib/contracts/client'
+import { createGovernanceProposal } from '../lib/governance/proposals'
+import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../lib/infrastructure/constants'
 import { getChainIdByNetwork } from '../lib/infrastructure/get-chainid'
 import { getSipMinorNumber } from '../lib/infrastructure/get-sip-minor-number'
 import { hashDescription } from '../lib/infrastructure/hash-description'
-import { constructLzOptions } from '../lib/layerzero/options'
 import { promptForConfigType } from '../lib/infrastructure/prompts'
-import { createGovernanceProposal } from '../lib/governance/proposals'
+import { constructLzOptions } from '../lib/layerzero/options'
 
 // Target chains for the multi-chain proposal
 const TARGET_CHAINS = ['base', 'arbitrum', 'mainnet', 'sonic']

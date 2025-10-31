@@ -141,19 +141,19 @@ export function getDeploymentGuidance(status: CrossChainConfigStatus): string[] 
       guidance.push('Next steps:')
       guidance.push('1. Deploy FleetProxy on satellite chain: npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network <satellite>')
       guidance.push('2. Deploy hub fleet and CrossChainArk on source chain')
-      guidance.push('3. Register relationships on both chains')
+      guidance.push('3. Register adapter peer relationships on both chains')
       break
 
     case 'hub':
       guidance.push('Next steps:')
       guidance.push('1. Deploy CrossChainArk on source chain: npx hardhat run scripts/arks/deploy-xchain-ark.ts --network <source>')
-      guidance.push('2. Register relationships on both chains')
+      guidance.push('2. Register adapter peer relationships on both chains')
       break
 
     case 'complete':
       guidance.push('Cross-chain setup is complete!')
       guidance.push('Next steps:')
-      guidance.push('1. Register relationships: npx hardhat run scripts/cross-chain/register-relationships.ts --network <chain>')
+      guidance.push('1. Register adapter peers: npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network <chain>')
       guidance.push('2. Verify setup: npx hardhat run scripts/cross-chain/verify-setup.ts --network <chain>')
       break
   }

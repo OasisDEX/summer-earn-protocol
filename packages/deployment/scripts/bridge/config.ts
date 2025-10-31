@@ -1,4 +1,3 @@
-import hre from 'hardhat'
 import fs from 'node:fs'
 import path from 'node:path'
 import { BridgeAdaptersConfig, DeployedBridge } from '../../types/bridge-types'
@@ -28,23 +27,22 @@ export function getBridgeAdapterConfigs(config: any): BridgeAdaptersConfig | und
         endpoint: adapters.layerZero.endpoint,
         supportedChains: adapters.layerZero.supportedChains || [],
         lzEids: adapters.layerZero.lzEids || [],
-        readChannelId: adapters.layerZero.readChannelId,
-        minGasLimits: adapters.layerZero.minGasLimits,
       }
     }
 
     // Stargate adapter config
     if (adapters.stargate?.router) {
-      const chainMappings = (adapters.stargate.supportedChains || []).map((chain) => ({
-        chainId: chain.chainId,
-        stargateChainId: chain.stargateChainId,
-      }))
+      const chainMappings = (adapters.stargate.supportedChains || []).map(
+        (chain: { chainId: number; stargateChainId: number }) => ({
+          chainId: chain.chainId,
+          stargateChainId: chain.stargateChainId,
+        }),
+      )
 
       adapterConfigs.stargate = {
         router: adapters.stargate.router,
         chainMapping: chainMappings,
         supportedAssets: adapters.stargate.supportedAssets || {},
-        // composeGasLimit: adapters.stargate.composeGasLimit, // TODO: Add to BridgeAdaptersConfig type
       }
     }
   }
@@ -86,25 +84,4 @@ export async function saveBridgeDeploymentJson(deployedBridge: DeployedBridge, n
   fs.writeFileSync(filePath, JSON.stringify(deployedBridge, null, 2))
 
   console.log(`Bridge deployment configuration saved to: ${filePath}`)
-}
-
-export async function setupBridgeGovernance(deployedBridge: DeployedBridge, config: any) {
-  const protocolAccessManager = await hre.viem.getContractAt(
-    'ProtocolAccessManager',
-    config.deployedContracts.gov.protocolAccessManager.address,
-  )
-
-  // Set up initial permissions
-  // Add any necessary role assignments here
-  // For example:
-  // await protocolAccessManager.write.grantRole([
-  //   KEEPER_ROLE,
-  //   deployedBridge.bridgeRouter.address
-  // ])
-}
-
-export async function createBridgeGovernanceProposal(deployedBridge: DeployedBridge, config: any) {
-  // Create a governance proposal for bridge setup
-  // This would be similar to other governance proposals in the system
-  // Implementation depends on your governance system
 }

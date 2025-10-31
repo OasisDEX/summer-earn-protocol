@@ -1,19 +1,18 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
 import { Address } from 'viem'
 import {
   createMorphoVaultArkModule,
   MorphoVaultArkContracts,
 } from '../../ignition/modules/arks/morpho-vault-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { getFleetConfig } from '../fleets/deployment'
+import { getFleetConfig } from '../fleets/fleet-config'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../lib/infrastructure/constants'
 import { handleDeploymentId } from '../lib/infrastructure/deployment-id-handler'
 import { getChainId } from '../lib/infrastructure/get-chainid'
 import { continueDeploymentCheck } from '../lib/infrastructure/prompts'
 import { validateAddress, validateArkDetails } from '../lib/infrastructure/validation'
-import { BaseArkParams } from './deployment'
+import { BaseArkParams } from './ark-types'
 
 export interface MorphoVaultArkUserInput extends BaseArkParams {
   vaultId: Address

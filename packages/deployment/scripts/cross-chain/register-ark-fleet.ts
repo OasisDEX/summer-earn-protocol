@@ -2,7 +2,6 @@ import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
-import prompts from 'prompts'
 import { Address, getAddress, isAddressEqual, zeroAddress } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { CrossChainConfig, loadCrossChainConfig } from '../lib/config/cross-chain'
@@ -26,6 +25,18 @@ const REGISTRY_ABI = [
       { internalType: 'bytes32', name: 'relationshipType', type: 'bytes32' },
     ],
     name: 'registerRelationship',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'adapterA', type: 'address' },
+      { internalType: 'address', name: 'adapterB', type: 'address' },
+      { internalType: 'uint16', name: 'chainA', type: 'uint16' },
+      { internalType: 'uint16', name: 'chainB', type: 'uint16' },
+    ],
+    name: 'registerAdapterPeerPair',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -88,6 +99,8 @@ const REGISTRY_ABI = [
   },
 ] as const
 
+let nonInteractive = false
+
 async function ensurePeerRelationship(
   registry: Address,
   sourceArk: Address,
@@ -105,7 +118,7 @@ async function ensurePeerRelationship(
     args: [],
   })) as `0x${string}`
 
-  const already = (await publicClient.readContract({
+  const sourceToTargetValid = (await publicClient.readContract({
     address: getAddress(registry as `0x${string}`),
     abi: REGISTRY_ABI,
     functionName: 'isValidCrossChainPair',
@@ -118,7 +131,20 @@ async function ensurePeerRelationship(
     ],
   })) as boolean
 
-  if (already) return false
+  const targetToSourceValid = (await publicClient.readContract({
+    address: getAddress(registry as `0x${string}`),
+    abi: REGISTRY_ABI,
+    functionName: 'isValidCrossChainPair',
+    args: [
+      getAddress(targetFleetProxy as `0x${string}`),
+      getAddress(sourceArk as `0x${string}`),
+      Number(targetChainId),
+      Number(sourceChainId),
+      peerRelationshipType,
+    ],
+  })) as boolean
+
+  if (sourceToTargetValid && targetToSourceValid) return false
 
   // Pre-state: detect stale mappings and offer to unregister
   // 1) If the source already has a target for this targetChainId and it's different, unregister it first
@@ -165,6 +191,30 @@ async function ensurePeerRelationship(
         console.log(
           kleur.green(`    ✓ Unregistered stale source mapping for chain ${targetChainId}`),
         )
+      } else if (sourceToTargetValid && !targetToSourceValid) {
+        console.log(
+          kleur.yellow(
+            `    SOURCE already mapped to target ${existingTarget} but reverse mapping missing. Re-registering pair…`,
+          ),
+        )
+        const confirmReReg = nonInteractive
+          ? true
+          : await promptYesNo(
+              `Unregister existing SOURCE mapping on chain ${targetChainId} to re-register pair?`,
+            )
+        if (!confirmReReg) return false
+        const unregHashExisting = await wallet.writeContract({
+          address: getAddress(registry as `0x${string}`),
+          abi: REGISTRY_ABI,
+          functionName: 'unregisterRelationship',
+          args: [
+            getAddress(sourceArk as `0x${string}`),
+            peerRelationshipType,
+            Number(targetChainId),
+          ],
+        })
+        await publicClient.waitForTransactionReceipt({ hash: unregHashExisting })
+        console.log(kleur.green(`    ✓ Cleared existing SOURCE mapping for re-registration`))
       }
     }
   } catch {
@@ -249,16 +299,96 @@ async function ensurePeerRelationship(
     )
   }
 
+  if (
+    isAddressEqual(existingSourceForTarget, getAddress(sourceArk as `0x${string}`)) &&
+    !sourceToTargetValid
+  ) {
+    console.log(
+      kleur.yellow(
+        `    TARGET already linked to SOURCE for chain ${sourceChainId}→${targetChainId} but forward mapping missing. Re-registering pair…`,
+      ),
+    )
+    const confirmReverseCleanup = nonInteractive
+      ? true
+      : await promptYesNo(
+          `Unregister existing TARGET mapping (source ${getAddress(
+            sourceArk as `0x${string}`,
+          )}) to re-register pair?`,
+        )
+    if (!confirmReverseCleanup) return false
+    const unregHashReverse = await wallet.writeContract({
+      address: getAddress(registry as `0x${string}`),
+      abi: REGISTRY_ABI,
+      functionName: 'unregisterRelationship',
+      args: [
+        getAddress(targetFleetProxy as `0x${string}`),
+        peerRelationshipType,
+        Number(sourceChainId),
+      ],
+    })
+    await publicClient.waitForTransactionReceipt({ hash: unregHashReverse })
+    console.log(kleur.green(`    ✓ Cleared existing TARGET mapping for re-registration`))
+  }
+
+  // 2b) Ensure TARGET does not have conflicting mapping for reverse direction
+  try {
+    const resultReverse = (await publicClient.readContract({
+      address: getAddress(registry as `0x${string}`),
+      abi: REGISTRY_ABI,
+      functionName: 'getTargetsForSource',
+      args: [getAddress(targetFleetProxy as `0x${string}`), peerRelationshipType],
+    })) as [readonly Address[], readonly number[]]
+
+    const reverseTargets = resultReverse[0] as readonly Address[]
+    const reverseChains = resultReverse[1] as readonly number[]
+    const idxReverse = reverseChains.findIndex((c) => Number(c) === Number(sourceChainId))
+    if (idxReverse !== -1) {
+      const existingReverseTarget = getAddress(reverseTargets[idxReverse] as `0x${string}`)
+      if (!isAddressEqual(existingReverseTarget, getAddress(sourceArk as `0x${string}`))) {
+        console.log(
+          kleur.yellow(
+            `    Detected existing target for TARGET on chain ${sourceChainId}: ${existingReverseTarget}. This must be unregistered first.`,
+          ),
+        )
+        const confirmReverseUnreg = nonInteractive
+          ? true
+          : await promptYesNo(
+              `Unregister mapping for TARGET ${getAddress(
+                targetFleetProxy as `0x${string}`,
+              )} on chain ${sourceChainId} (current target: ${existingReverseTarget})?`,
+            )
+        if (!confirmReverseUnreg) {
+          return false
+        }
+        const unregHashReverseConflicting = await wallet.writeContract({
+          address: getAddress(registry as `0x${string}`),
+          abi: REGISTRY_ABI,
+          functionName: 'unregisterRelationship',
+          args: [
+            getAddress(targetFleetProxy as `0x${string}`),
+            peerRelationshipType,
+            Number(sourceChainId),
+          ],
+        })
+        await publicClient.waitForTransactionReceipt({ hash: unregHashReverseConflicting })
+        console.log(
+          kleur.green(`    ✓ Unregistered stale target mapping for chain ${sourceChainId}`),
+        )
+      }
+    }
+  } catch {
+    // ignore best-effort reverse lookup
+  }
+
   const hash = await wallet.writeContract({
     address: getAddress(registry as `0x${string}`),
     abi: REGISTRY_ABI,
-    functionName: 'registerRelationship',
+    functionName: 'registerAdapterPeerPair',
     args: [
       getAddress(sourceArk as `0x${string}`),
       getAddress(targetFleetProxy as `0x${string}`),
       Number(sourceChainId),
       Number(targetChainId),
-      peerRelationshipType,
     ],
   })
   await publicClient.waitForTransactionReceipt({ hash })
@@ -294,7 +424,7 @@ export async function registerArkFleetRelationships() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
 
-  const nonInteractive =
+  nonInteractive =
     process.argv.includes('--no-prompts') ||
     ['1', 'true'].includes(String(process.env.NON_INTERACTIVE).toLowerCase())
 

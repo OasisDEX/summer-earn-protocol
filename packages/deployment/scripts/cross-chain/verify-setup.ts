@@ -1,7 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
-import prompts from 'prompts'
 import { Address, getAddress } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import {
@@ -332,7 +331,7 @@ export async function verifyCrossChainSetup() {
     )
     console.log(
       kleur.cyan(
-        'Run: npx hardhat run scripts/cross-chain/register-relationships.ts --network <chain>',
+        'Run: npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network <chain>',
       ),
     )
   }

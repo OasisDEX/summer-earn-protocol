@@ -1,6 +1,5 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
 import { createRaftModule } from '../ignition/modules/raftModuleFactory'
 import { getConfigByNetwork } from './lib/config/handler'
 import { handleDeploymentId } from './lib/infrastructure/deployment-id-handler'

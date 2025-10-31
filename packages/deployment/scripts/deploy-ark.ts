@@ -1,6 +1,5 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
 import { ArkType, BaseConfig, arkTypes } from '../types/config-types'
 import { deployArkInteractive } from './arks/deployment'
 import { addArkToFleet } from './fleets/deployment'

@@ -102,9 +102,9 @@ npx hardhat run scripts/arks/deploy-xchain-ark.ts --network <source>
 
 ### 4. Registration Phase (Phase 3)
 ```bash
-# Register relationships and executors on both chains
-npx hardhat run scripts/cross-chain/register-relationships.ts --network <source>
-npx hardhat run scripts/cross-chain/register-relationships.ts --network <satellite>
+# Register adapter peers and executors on both chains
+npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network <source>
+npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network <satellite>
 
 # Verify setup
 npx hardhat run scripts/cross-chain/verify-setup.ts --network <source>
@@ -131,7 +131,7 @@ This will:
 - `deploy-xchain-ark.ts` - Deploy CrossChainArk, update to Phase 2 config
 
 ### Cross-Chain Management Scripts
-- `cross-chain/register-relationships.ts` - Register ARK↔FleetProxy relationships and executors
+- `cross-chain/register-ark-fleet.ts` - Register ARK↔FleetProxy peer relationships and executors
 - `cross-chain/verify-setup.ts` - Verify configuration and on-chain state
 - `cross-chain/add-destination.ts` - Add new satellite to existing cross-chain fleet
 

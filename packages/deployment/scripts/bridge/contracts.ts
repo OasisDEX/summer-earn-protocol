@@ -6,7 +6,6 @@ import { DeployedBridge } from '../../types/bridge-types'
 import { BaseConfig } from '../../types/config-types'
 import { getAccessManagerAddress } from '../lib/config/getters'
 import { ADDRESS_ZERO } from '../lib/infrastructure/constants'
-import { getChainId } from '../lib/infrastructure/get-chainid'
 
 /**
  * Check if address exists and is not zero
@@ -15,15 +14,8 @@ function hasValidAddress(address?: string): boolean {
   return !!(address && address !== ADDRESS_ZERO)
 }
 
-export async function deployBridgeContracts(
-  networkConfig: BaseConfig,
-  allConfigs: Record<string, BaseConfig>,
-  currentChainId?: number,
-): Promise<DeployedBridge> {
+export async function deployBridgeContracts(networkConfig: BaseConfig): Promise<DeployedBridge> {
   console.log(kleur.blue('Deploying bridge contracts'))
-
-  // Get current chain ID if not provided
-  const chainId = currentChainId || getChainId()
 
   // Validate required configuration
   const protocolAccessManager = getAccessManagerAddress(networkConfig)

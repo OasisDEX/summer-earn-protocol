@@ -2,7 +2,6 @@ import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
-import prompts from 'prompts'
 import { TipJarContracts, createTipJarModule } from '../ignition/modules/tipjar'
 import { BaseConfig } from '../types/config-types'
 import {
@@ -56,7 +55,7 @@ async function redeployTipJar() {
   // Display summary and get confirmation
   if (await confirmDeployment(network)) {
     // Deploy the TipJar contract
-    const deployedTipJar = await deployTipJarContract(config)
+    const deployedTipJar = await deployTipJarContract(config as unknown as BaseConfig)
     console.log(kleur.green().bold('TipJar deployed successfully!'))
     console.log(kleur.yellow('TipJar Address:'), kleur.cyan(deployedTipJar.tipJar.address))
 

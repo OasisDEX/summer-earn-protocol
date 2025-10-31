@@ -4,7 +4,6 @@ import { Address, WalletClient, getAddress } from 'viem'
 import StargateAdapterModule from '../../../ignition/modules/adapters/stargate'
 import {
   getAccessManagerAddress,
-  getChainIdFromConfig,
   getCrossChainRegistryAddress,
   getLayerZeroEndpoint,
 } from '../../lib/config/getters'
@@ -29,14 +28,8 @@ import { getSupportedChainsFromConfig, getWalletClient } from './utils'
 /**
  * Deploy Stargate adapter using Ignition module
  */
-export async function deployStargateAdapter(
-  networkConfig: BaseConfig,
-  allNetworkConfigs?: NetworkConfigMap,
-): Promise<Address> {
+export async function deployStargateAdapter(networkConfig: BaseConfig): Promise<Address> {
   console.log(kleur.blue('Deploying Stargate V2 adapter using Ignition module'))
-
-  // Get current chain ID
-  const chainId = getChainIdFromConfig(networkConfig)
 
   // Get the crossChainRegistry address from network config
   const crossChainRegistry = getCrossChainRegistryAddress(networkConfig)
@@ -133,7 +126,7 @@ export async function configureStargateAdapter(
 
   // Configure supported chains
   const chainParams: ChainConfigurationParams = {
-    stargateAdapter,
+    stargateAdapter: stargateAdapter as unknown as StargateAdapterContract,
     walletClient,
     stargateAdapterAddress,
     currentChainId,

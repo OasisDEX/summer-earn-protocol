@@ -123,13 +123,7 @@ export async function configureLayerZeroAdapter(
     return
   }
 
-  const layerZeroAdapter = await hre.viem.getContractAt(
-    'LayerZeroAdapter' as string,
-    getAddress(layerZeroAdapterAddress as `0x${string}`),
-  )
-
   const walletClient = await getWalletClient()
-  const publicClient = await hre.viem.getPublicClient()
 
   // Step 1: Register adapter with bridge router
   await registerWithBridgeRouter(walletClient, bridgeRouterAddress, layerZeroAdapterAddress)

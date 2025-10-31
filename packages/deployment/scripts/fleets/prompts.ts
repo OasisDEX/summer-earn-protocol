@@ -1,6 +1,5 @@
 import fs from 'fs'
 import path from 'path'
-import prompts from 'prompts'
 import { Address, Chain, parseAbi } from 'viem'
 import { BaseConfig, FleetConfig } from '../../../types/config-types'
 import { ChainName } from './chain-configs'

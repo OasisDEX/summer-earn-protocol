@@ -63,16 +63,16 @@ npx hardhat run scripts/arks/deploy-xchain-ark.ts --network optimism
 - CrossChainArk address is recorded
 - Target proxy is set if FleetProxy address is available
 
-### Step 4: Register Relationships
+### Step 4: Register Adapter Peers
 
-Register ARK↔FleetProxy relationships and executors on both chains:
+Register ARK↔FleetProxy peer relationships and executors on both chains:
 
 ```bash
 # On source chain
-npx hardhat run scripts/cross-chain/register-relationships.ts --network optimism
+npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network optimism
 
 # On satellite chain  
-npx hardhat run scripts/cross-chain/register-relationships.ts --network base
+npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network base
 ```
 
 **What happens:**
@@ -116,9 +116,9 @@ npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network base
 npx hardhat run scripts/deploy-fleet.ts --network optimism
 npx hardhat run scripts/arks/deploy-xchain-ark.ts --network optimism
 
-# 4. Register relationships
-npx hardhat run scripts/cross-chain/register-relationships.ts --network optimism
-npx hardhat run scripts/cross-chain/register-relationships.ts --network base
+# 4. Register adapter peers
+npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network optimism
+npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network base
 
 # 5. Verify setup
 npx hardhat run scripts/cross-chain/verify-setup.ts --network optimism
@@ -139,9 +139,9 @@ npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network arbitrum
 # Update CrossChainArk to include new destination (if needed)
 npx hardhat run scripts/arks/deploy-xchain-ark.ts --network optimism
 
-# Register relationships for new destination
-npx hardhat run scripts/cross-chain/register-relationships.ts --network arbitrum
-npx hardhat run scripts/cross-chain/register-relationships.ts --network optimism
+# Register adapter peers for new destination
+npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network arbitrum
+npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network optimism
 
 # Verify updated setup
 npx hardhat run scripts/cross-chain/verify-setup.ts --network arbitrum
@@ -232,7 +232,7 @@ npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network <chain>
 npx hardhat run scripts/cross-chain/verify-setup.ts --network <chain>
 
 # Check registry relationships
-npx hardhat run scripts/cross-chain/register-relationships.ts --network <chain>
+npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network <chain>
 ```
 
 ### Recovery

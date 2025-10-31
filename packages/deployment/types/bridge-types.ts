@@ -19,7 +19,7 @@ export interface BridgeAdaptersConfig {
       chainId: number
       lzEid: number
     }>
-    minGasLimits?: Record<string, number>
+    lzEids?: number[]
   }
   stargate?: {
     router: Address

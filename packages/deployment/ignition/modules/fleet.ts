@@ -29,9 +29,6 @@ export function createFleetModule(moduleName: string) {
     const depositCap = m.getParameter<string>('depositCap')
     const initialTipRate = m.getParameter<string>('initialTipRate')
     const initialWithdrawalFee = m.getParameter<string>('initialWithdrawalFee')
-    const fleetCommanderRewardsManagerFactory = m.getParameter<string>(
-      'fleetCommanderRewardsManagerFactory',
-    )
 
     const fleetCommander = m.contract('FleetCommander', [
       {
