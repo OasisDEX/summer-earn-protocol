@@ -18,8 +18,6 @@ contract StargateAdapterComposeTest is
     MockFleetProxy public fleetProxyA;
     MockFleetProxy public fleetProxyB;
 
-    bytes public testMessage;
-
     function setUp() public override {
         super.setUp();
 
