@@ -1,5 +1,5 @@
 import kleur from 'kleur'
-import { BaseConfig } from '../../types/config-types'
+import { BaseConfig } from '../../../types/config-types'
 import { CrossChainConfig, CrossChainConfigPhase, CrossChainConfigStatus } from '../config/cross-chain'
 import { getBridgeRouterAddress, getCrossChainRegistryAddress } from '../config/getters'
 

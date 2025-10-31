@@ -1,7 +1,7 @@
-import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
+import prompts from 'prompts'
 import { Address } from 'viem'
 import {
   CrossChainArkContracts,
@@ -10,10 +10,14 @@ import {
 import { BaseConfig } from '../../types/config-types'
 import {
   CrossChainConfig,
+  ensureConfigFleetName,
+  ensureCrossChainConfigDirectory,
   getCrossChainConfigStatus,
   loadCrossChainConfig,
   mergeCrossChainConfig,
+  resolveTargetDestination,
   saveCrossChainConfig,
+  selectCrossChainConfig,
   validateCrossChainConfigPhase,
 } from '../lib/config/cross-chain'
 import {
@@ -57,7 +61,6 @@ export async function deployCrossChainArk(
   console.log(kleur.cyan('This creates Phase 2 of the cross-chain configuration.'))
   console.log()
 
-  // Validate prerequisites
   const validation = validateHubPhasePrerequisites(config)
   if (!validation.isValid) {
     printValidationErrors(validation.errors, 'hub')
@@ -65,226 +68,106 @@ export async function deployCrossChainArk(
   }
   printValidationSuccess('hub')
 
-  // If fleetName is not provided in arkParams, prompt for it
-  let fleetName: string | undefined = arkParams?.fleetName
-  if (!fleetName) {
-    const { fleetNameInput } = await prompts({
-      type: 'text',
-      name: 'fleetNameInput',
-      message: 'Enter the fleet name:',
-      validate: (value) => (value.length > 0 ? true : 'Fleet name is required'),
-    })
-    fleetName = fleetNameInput
-  }
+  const fleetName = await resolveFleetName(arkParams)
 
-  // Check for existing cross-chain config
-  console.log(kleur.blue('Looking for cross-chain config files...'))
   const configDir = path.join(process.cwd(), 'config', 'cross-chain')
-  console.log(kleur.blue(`Config directory: ${configDir}`))
+  const configFiles = ensureCrossChainConfigDirectory(configDir)
 
-  // Ensure the directory exists
-  if (!fs.existsSync(configDir)) {
-    console.log(kleur.yellow('Cross-chain config directory does not exist'))
-    fs.mkdirSync(configDir, { recursive: true })
-    console.log(kleur.green('Created cross-chain config directory'))
-  }
-
-  // List available config files
-  const configFiles = fs.readdirSync(configDir).filter((file) => file.endsWith('.json'))
-
-  if (configFiles.length === 0) {
-    console.error(kleur.red('No cross-chain config files found.'))
-    console.error(kleur.red(`Expected config files in: ${configDir}`))
-    console.error(
-      kleur.yellow('The cross-chain config should have been created during FleetProxy deployment.'),
-    )
-    throw new Error('No cross-chain config files found')
-  }
-
-  console.log(kleur.blue('Available cross-chain config files:'))
-  configFiles.forEach((file) => {
-    console.log(kleur.cyan(`  - ${file}`))
+  const configSelection = await selectCrossChainConfig(configDir, configFiles, {
+    targetChainId: arkParams?.targetChainId,
+    targetProtocol: arkParams?.targetProtocol,
   })
-
-  // Let user select a config file
-  let selectedConfigFile: string
-  let crossChainConfig: CrossChainConfig
-
-  if (arkParams?.targetChainId && arkParams?.targetProtocol) {
-    // If specific target chain and protocol are provided, we need to find the matching config file
-    const matchingFile = await findMatchingConfigFile(
-      configDir,
-      configFiles,
-      arkParams.targetChainId,
-      arkParams.targetProtocol,
-    )
-    if (!matchingFile) {
-      throw new Error(
-        `No config file found for chain ${arkParams.targetChainId} and protocol ${arkParams.targetProtocol}`,
-      )
-    }
-    selectedConfigFile = matchingFile
-    const configPath = path.join(configDir, matchingFile)
-    crossChainConfig = JSON.parse(fs.readFileSync(configPath, 'utf8')) as CrossChainConfig
-  } else {
-    // Otherwise let user select from available configs
-    const { configFile } = await prompts({
-      type: 'select',
-      name: 'configFile',
-      message: 'Select a cross-chain configuration file:',
-      choices: configFiles.map((file) => ({ title: file, value: file })),
-    })
-
-    if (!configFile) {
-      console.log(kleur.red().bold('No config file selected. Exiting.'))
-      return null
-    }
-
-    selectedConfigFile = configFile
-    const configPath = path.join(configDir, configFile)
-    console.log(kleur.blue(`Loading config from: ${configPath}`))
-    crossChainConfig = JSON.parse(fs.readFileSync(configPath, 'utf8')) as CrossChainConfig
+  if (!configSelection) {
+    return null
   }
 
+  const { selectedConfigFile, crossChainConfig } = configSelection
   console.log(kleur.green(`Loaded cross-chain config: ${selectedConfigFile}`))
 
-  // Use the fleetName from the loaded config file for config operations
-  // This ensures we're using the correct name that matches the config file
-  const configFleetName = crossChainConfig.fleetName
-  if (!configFleetName || configFleetName.trim() === '') {
-    throw new Error(
-      'Cross-chain config file is missing fleetName. Please ensure the config file is valid.',
-    )
-  }
-  if (configFleetName !== fleetName) {
-    console.log(
-      kleur.yellow(`Using fleet name from config: ${configFleetName} (input was: ${fleetName})`),
-    )
+  const configFleetName = ensureConfigFleetName(crossChainConfig, fleetName)
+
+  const targetSelection = await resolveTargetDestination(crossChainConfig, {
+    targetChainId: arkParams?.targetChainId,
+    targetProtocol: arkParams?.targetProtocol,
+  })
+  if (!targetSelection) {
+    return null
   }
 
-  // Get target chain and protocol
-  let targetChainId: number
-  let targetProtocol: string
+  const { targetChainId, targetProtocol } = targetSelection
 
-  if (arkParams?.targetChainId && arkParams?.targetProtocol) {
-    targetChainId = arkParams.targetChainId
-    targetProtocol = arkParams.targetProtocol
-  } else {
-    // Let user choose which destination to deploy to
-    const destinations = crossChainConfig.destinations.map((dest) => ({
-      title: `${dest.name} (Chain ID: ${dest.chainId})`,
-      value: dest.chainId,
-    }))
+  const userInput = await resolveDeploymentInput(
+    config,
+    selectedConfigFile,
+    targetChainId,
+    targetProtocol,
+    crossChainConfig,
+    arkParams,
+  )
 
-    if (destinations.length === 0) {
-      console.error(kleur.red('No destinations defined in the cross-chain config.'))
-      throw new Error('No destinations defined')
-    }
-
-    const { selectedChainId } = await prompts({
-      type: 'select',
-      name: 'selectedChainId',
-      message: 'Select target chain:',
-      choices: destinations,
-    })
-
-    if (!selectedChainId) {
-      console.log(kleur.red().bold('No chain selected. Exiting.'))
-      return null
-    }
-
-    targetChainId = selectedChainId
-
-    // Now select the protocol
-    const destination = crossChainConfig.destinations.find((d) => d.chainId === targetChainId)
-    if (!destination) {
-      console.error(kleur.red('Selected destination not found in config.'))
-      throw new Error('Invalid destination')
-    }
-
-    const protocols = destination.protocols.map((p) => ({
-      title: p.protocol,
-      value: p.protocol,
-    }))
-
-    const { selectedProtocol } = await prompts({
-      type: 'select',
-      name: 'selectedProtocol',
-      message: 'Select protocol:',
-      choices: protocols,
-    })
-
-    if (!selectedProtocol) {
-      console.log(kleur.red().bold('No protocol selected. Exiting.'))
-      return null
-    }
-
-    targetProtocol = selectedProtocol
-  }
-
-  const userInput =
-    arkParams ||
-    (await getUserInput(
-      config,
-      selectedConfigFile.replace('.json', ''), // Use config file name without extension instead of fleet name
-      targetChainId,
-      targetProtocol,
-      crossChainConfig,
-    ))
-
-  // Auto-populate bridge addresses from config if not provided in arkParams
-  if (arkParams) {
-    if (!arkParams.bridgeRouter) {
-      arkParams.bridgeRouter = getBridgeRouterAddress(config)
-    }
-    if (!arkParams.crossChainRegistry) {
-      arkParams.crossChainRegistry = getCrossChainRegistryAddress(config)
-    }
-    if (!arkParams.accessManager) {
-      arkParams.accessManager = getAccessManagerAddress(config)
-    }
-  }
-
-  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
-    const deployedContracts = await deployCrossChainArkContract(
-      config,
-      userInput,
-      fleetName!,
-      configFleetName,
-    )
-    // Return in the same format as other arks
-    return { ark: deployedContracts.crossChainArk }
-  } else {
+  if (!(await confirmDeployment(userInput, config, arkParams != undefined))) {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
     return null
   }
+
+  const deployedContracts = await deployCrossChainArkContract(
+    config,
+    userInput,
+    fleetName,
+    configFleetName,
+  )
+
+  return { ark: deployedContracts.crossChainArk }
 }
 
-/**
- * Find a matching config file for the given chain ID and protocol
- */
-async function findMatchingConfigFile(
-  configDir: string,
-  configFiles: string[],
+async function resolveFleetName(arkParams?: CrossChainArkDeploymentParams): Promise<string> {
+  if (arkParams?.fleetName) {
+    return arkParams.fleetName
+  }
+
+  const { fleetNameInput } = await prompts({
+    type: 'text',
+    name: 'fleetNameInput',
+    message: 'Enter the fleet name:',
+    validate: (value) => (value.length > 0 ? true : 'Fleet name is required'),
+  })
+
+  return fleetNameInput
+}
+
+async function resolveDeploymentInput(
+  config: BaseConfig,
+  selectedConfigFile: string,
   targetChainId: number,
   targetProtocol: string,
-): Promise<string | null> {
-  for (const file of configFiles) {
-    const configPath = path.join(configDir, file)
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8')) as CrossChainConfig
-      const matchingDest = config.destinations.find((dest) => dest.chainId === targetChainId)
-      if (matchingDest) {
-        const matchingProtocol = matchingDest.protocols.find((p) => p.protocol === targetProtocol)
-        if (matchingProtocol) {
-          return file
-        }
-      }
-    } catch (error) {
-      console.warn(kleur.yellow(`Error reading config file ${file}: ${error}`))
-    }
+  crossChainConfig: CrossChainConfig,
+  arkParams?: CrossChainArkDeploymentParams,
+): Promise<CrossChainArkUserInput> {
+  if (arkParams) {
+    return populateAutomatedDefaults(config, selectedConfigFile, arkParams)
   }
-  return null
+
+  return getUserInput(
+    config,
+    selectedConfigFile.replace('.json', ''),
+    targetChainId,
+    targetProtocol,
+    crossChainConfig,
+  )
+}
+
+function populateAutomatedDefaults(
+  config: BaseConfig,
+  selectedConfigFile: string,
+  arkParams: CrossChainArkDeploymentParams,
+): CrossChainArkUserInput {
+  return {
+    ...arkParams,
+    configName: arkParams.configName || selectedConfigFile.replace('.json', ''),
+    bridgeRouter: arkParams.bridgeRouter || getBridgeRouterAddress(config),
+    crossChainRegistry: arkParams.crossChainRegistry || getCrossChainRegistryAddress(config),
+    accessManager: arkParams.accessManager || getAccessManagerAddress(config),
+  }
 }
 
 /**

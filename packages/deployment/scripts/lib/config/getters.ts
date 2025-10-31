@@ -1,5 +1,5 @@
 import { Address } from 'viem'
-import { BaseConfig } from '../../types/config-types'
+import { BaseConfig } from '../../../types/config-types'
 import { ADDRESS_ZERO } from '../infrastructure/constants'
 
 /**

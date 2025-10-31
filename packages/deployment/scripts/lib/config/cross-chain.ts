@@ -1,5 +1,7 @@
 import fs from 'fs'
 import path from 'path'
+import prompts from 'prompts'
+import kleur from 'kleur'
 
 export interface CrossChainConfig {
   fleetName: string
@@ -26,6 +28,11 @@ export interface CrossChainConfigStatus {
   missingFields: string[]
   isValid: boolean
   errors: string[]
+}
+
+export interface CrossChainConfigSelectionOptions {
+  targetChainId?: number
+  targetProtocol?: string
 }
 
 export function loadCrossChainConfig(fleetName: string): CrossChainConfig | null {
@@ -268,4 +275,204 @@ export function createSatellitePhaseConfig(
       },
     ],
   }
+}
+
+/**
+ * Ensures the cross-chain config directory exists and returns available config files
+ */
+export function ensureCrossChainConfigDirectory(configDir: string): string[] {
+  console.log(kleur.blue('Looking for cross-chain config files...'))
+  console.log(kleur.blue(`Config directory: ${configDir}`))
+
+  if (!fs.existsSync(configDir)) {
+    console.log(kleur.yellow('Cross-chain config directory does not exist'))
+    fs.mkdirSync(configDir, { recursive: true })
+    console.log(kleur.green('Created cross-chain config directory'))
+  }
+
+  const configFiles = fs.readdirSync(configDir).filter((file) => file.endsWith('.json'))
+
+  if (configFiles.length === 0) {
+    console.error(kleur.red('No cross-chain config files found.'))
+    console.error(kleur.red(`Expected config files in: ${configDir}`))
+    console.error(
+      kleur.yellow('The cross-chain config should have been created during FleetProxy deployment.'),
+    )
+    throw new Error('No cross-chain config files found')
+  }
+
+  console.log(kleur.blue('Available cross-chain config files:'))
+  configFiles.forEach((file) => {
+    console.log(kleur.cyan(`  - ${file}`))
+  })
+
+  return configFiles
+}
+
+/**
+ * Selects and loads a cross-chain config file, optionally matching by chain ID and protocol
+ */
+export async function selectCrossChainConfig(
+  configDir: string,
+  configFiles: string[],
+  options?: CrossChainConfigSelectionOptions,
+): Promise<{ selectedConfigFile: string; crossChainConfig: CrossChainConfig } | null> {
+  if (options?.targetChainId && options?.targetProtocol) {
+    const matchingFile = await findMatchingConfigFile(
+      configDir,
+      configFiles,
+      options.targetChainId,
+      options.targetProtocol,
+    )
+    if (!matchingFile) {
+      throw new Error(
+        `No config file found for chain ${options.targetChainId} and protocol ${options.targetProtocol}`,
+      )
+    }
+    return {
+      selectedConfigFile: matchingFile,
+      crossChainConfig: parseCrossChainConfig(configDir, matchingFile),
+    }
+  }
+
+  const { configFile } = await prompts({
+    type: 'select',
+    name: 'configFile',
+    message: 'Select a cross-chain configuration file:',
+    choices: configFiles.map((file) => ({ title: file, value: file })),
+  })
+
+  if (!configFile) {
+    console.log(kleur.red().bold('No config file selected. Exiting.'))
+    return null
+  }
+
+  console.log(kleur.blue(`Loading config from: ${path.join(configDir, configFile)}`))
+  return {
+    selectedConfigFile: configFile,
+    crossChainConfig: parseCrossChainConfig(configDir, configFile),
+  }
+}
+
+/**
+ * Parses a cross-chain config file from a directory
+ */
+export function parseCrossChainConfig(configDir: string, configFile: string): CrossChainConfig {
+  const configPath = path.join(configDir, configFile)
+  return JSON.parse(fs.readFileSync(configPath, 'utf8')) as CrossChainConfig
+}
+
+/**
+ * Validates and returns the fleet name from a cross-chain config
+ */
+export function ensureConfigFleetName(
+  crossChainConfig: CrossChainConfig,
+  providedFleetName: string,
+): string {
+  const configFleetName = crossChainConfig.fleetName
+  if (!configFleetName || configFleetName.trim() === '') {
+    throw new Error(
+      'Cross-chain config file is missing fleetName. Please ensure the config file is valid.',
+    )
+  }
+
+  if (configFleetName !== providedFleetName) {
+    console.log(
+      kleur.yellow(`Using fleet name from config: ${configFleetName} (input was: ${providedFleetName})`),
+    )
+  }
+
+  return configFleetName
+}
+
+/**
+ * Resolves target destination (chain ID and protocol) from config, optionally using provided options
+ */
+export async function resolveTargetDestination(
+  crossChainConfig: CrossChainConfig,
+  options?: CrossChainConfigSelectionOptions,
+): Promise<{ targetChainId: number; targetProtocol: string } | null> {
+  if (options?.targetChainId && options?.targetProtocol) {
+    return {
+      targetChainId: options.targetChainId,
+      targetProtocol: options.targetProtocol,
+    }
+  }
+
+  const destinations = crossChainConfig.destinations.map((dest) => ({
+    title: `${dest.name} (Chain ID: ${dest.chainId})`,
+    value: dest.chainId,
+  }))
+
+  if (destinations.length === 0) {
+    console.error(kleur.red('No destinations defined in the cross-chain config.'))
+    throw new Error('No destinations defined')
+  }
+
+  const { selectedChainId } = await prompts({
+    type: 'select',
+    name: 'selectedChainId',
+    message: 'Select target chain:',
+    choices: destinations,
+  })
+
+  if (!selectedChainId) {
+    console.log(kleur.red().bold('No chain selected. Exiting.'))
+    return null
+  }
+
+  const destination = crossChainConfig.destinations.find((d) => d.chainId === selectedChainId)
+  if (!destination) {
+    console.error(kleur.red('Selected destination not found in config.'))
+    throw new Error('Invalid destination')
+  }
+
+  const protocols = destination.protocols.map((p) => ({
+    title: p.protocol,
+    value: p.protocol,
+  }))
+
+  const { selectedProtocol } = await prompts({
+    type: 'select',
+    name: 'selectedProtocol',
+    message: 'Select protocol:',
+    choices: protocols,
+  })
+
+  if (!selectedProtocol) {
+    console.log(kleur.red().bold('No protocol selected. Exiting.'))
+    return null
+  }
+
+  return {
+    targetChainId: selectedChainId,
+    targetProtocol: selectedProtocol,
+  }
+}
+
+/**
+ * Finds a config file matching the given chain ID and protocol
+ */
+export async function findMatchingConfigFile(
+  configDir: string,
+  configFiles: string[],
+  targetChainId: number,
+  targetProtocol: string,
+): Promise<string | null> {
+  for (const file of configFiles) {
+    const configPath = path.join(configDir, file)
+    try {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8')) as CrossChainConfig
+      const matchingDest = config.destinations.find((dest) => dest.chainId === targetChainId)
+      if (matchingDest) {
+        const matchingProtocol = matchingDest.protocols.find((p) => p.protocol === targetProtocol)
+        if (matchingProtocol) {
+          return file
+        }
+      }
+    } catch (error) {
+      console.warn(kleur.yellow(`Error reading config file ${file}: ${error}`))
+    }
+  }
+  return null
 }
