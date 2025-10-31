@@ -332,7 +332,7 @@ export async function verifyCrossChainSetup() {
     )
     console.log(
       kleur.cyan(
-        'Run: npx hardhat run scripts/bridge/post-deployment/register-ark-fleet.ts --network <chain>',
+        'Run: npx hardhat run scripts/x-chain/post-deployment/register-ark-fleet.ts --network <chain>',
       ),
     )
   }

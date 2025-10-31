@@ -153,8 +153,8 @@ export function getDeploymentGuidance(status: CrossChainConfigStatus): string[] 
     case 'complete':
       guidance.push('Cross-chain setup is complete!')
       guidance.push('Next steps:')
-      guidance.push('1. Register adapter peers: npx hardhat run scripts/bridge/post-deployment/register-ark-fleet.ts --network <chain>')
-      guidance.push('2. Verify setup: npx hardhat run scripts/bridge/post-deployment/verify-setup.ts --network <chain>')
+      guidance.push('1. Register adapter peers: npx hardhat run scripts/x-chain/post-deployment/register-ark-fleet.ts --network <chain>')
+      guidance.push('2. Verify setup: npx hardhat run scripts/x-chain/post-deployment/verify-setup.ts --network <chain>')
       break
   }
 

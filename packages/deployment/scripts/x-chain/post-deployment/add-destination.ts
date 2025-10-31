@@ -203,12 +203,12 @@ export async function addCrossChainDestination() {
   console.log(kleur.cyan('1. Deploy CrossChainArk on the source chain (if not already done)'))
   console.log(
     kleur.cyan(
-      '2. Register adapter peers: npx hardhat run scripts/bridge/post-deployment/register-ark-fleet.ts --network <chain>',
+      '2. Register adapter peers: npx hardhat run scripts/x-chain/post-deployment/register-ark-fleet.ts --network <chain>',
     ),
   )
   console.log(
     kleur.cyan(
-      '3. Verify setup: npx hardhat run scripts/bridge/post-deployment/verify-setup.ts --network <chain>',
+      '3. Verify setup: npx hardhat run scripts/x-chain/post-deployment/verify-setup.ts --network <chain>',
     ),
   )
 }

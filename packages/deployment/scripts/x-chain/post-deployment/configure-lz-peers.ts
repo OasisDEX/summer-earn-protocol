@@ -8,7 +8,7 @@ import { configureLayerZeroAdapterPeersWithConfig } from '../bridge-adapters'
  * This should be run after all chains have deployed their LayerZero adapters
  *
  * Usage:
- * npx hardhat run scripts/bridge/post-deployment/configure-lz-peers.ts --network <network-name>
+ * npx hardhat run scripts/x-chain/post-deployment/configure-lz-peers.ts --network <network-name>
  */
 async function main() {
   console.log(kleur.cyan().bold(`Configuring LayerZero adapter peers on ${hre.network.name}...`))

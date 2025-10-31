@@ -2,10 +2,6 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address } from 'viem'
 import { BaseConfig } from '../types/config-types'
-import { configureLayerZeroAdapter } from './bridge/adapters/layerzero'
-import { configureStargateAdapter } from './bridge/adapters/stargate'
-import { waitForPendingTransactions } from './bridge/adapters/utils'
-import { DeployedBridgeAdapters, deployBridgeAdapters } from './bridge/bridge-adapters'
 import {
   getBridgeRouterAddress,
   hasLayerZeroAdapter,
@@ -14,6 +10,10 @@ import {
 import { getConfigByNetwork } from './lib/config/handler'
 import { promptForConfigType, promptYesNo } from './lib/infrastructure/prompts'
 import { updateIndexJson } from './lib/infrastructure/update-json'
+import { configureLayerZeroAdapter } from './x-chain/adapters/layerzero'
+import { configureStargateAdapter } from './x-chain/adapters/stargate'
+import { waitForPendingTransactions } from './x-chain/adapters/utils'
+import { DeployedBridgeAdapters, deployBridgeAdapters } from './x-chain/bridge-adapters'
 
 // Helper function types
 interface ExistingAdapterAddresses {

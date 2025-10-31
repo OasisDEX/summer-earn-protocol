@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { BaseConfig } from '../types/config-types'
-import { deployBridgeContracts } from './bridge/bridge-contracts'
+import { deployBridgeContracts } from './x-chain/bridge-contracts'
 import { hasBridgeConfig } from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
 import { promptForConfigType } from './lib/infrastructure/prompts'

@@ -103,12 +103,12 @@ npx hardhat run scripts/arks/deploy-xchain-ark.ts --network <source>
 ### 4. Registration Phase (Phase 3)
 ```bash
 # Register adapter peers and executors on both chains
-npx hardhat run scripts/bridge/post-deployment/register-ark-fleet.ts --network <source>
-npx hardhat run scripts/bridge/post-deployment/register-ark-fleet.ts --network <satellite>
+npx hardhat run scripts/x-chain/post-deployment/register-ark-fleet.ts --network <source>
+npx hardhat run scripts/x-chain/post-deployment/register-ark-fleet.ts --network <satellite>
 
 # Verify setup
-npx hardhat run scripts/bridge/post-deployment/verify-setup.ts --network <source>
-npx hardhat run scripts/bridge/post-deployment/verify-setup.ts --network <satellite>
+npx hardhat run scripts/x-chain/post-deployment/verify-setup.ts --network <source>
+npx hardhat run scripts/x-chain/post-deployment/verify-setup.ts --network <satellite>
 ```
 
 ## Adding New Destinations
@@ -116,7 +116,7 @@ npx hardhat run scripts/bridge/post-deployment/verify-setup.ts --network <satell
 To add a new satellite chain to an existing cross-chain fleet:
 
 ```bash
-npx hardhat run scripts/bridge/post-deployment/add-destination.ts --network <new-satellite>
+npx hardhat run scripts/x-chain/post-deployment/add-destination.ts --network <new-satellite>
 ```
 
 This will:
@@ -131,9 +131,9 @@ This will:
 - `deploy-xchain-ark.ts` - Deploy CrossChainArk, update to Phase 2 config
 
 ### Cross-Chain Management Scripts
-- `bridge/post-deployment/register-ark-fleet.ts` - Register ARK↔FleetProxy peer relationships and executors
-- `bridge/post-deployment/verify-setup.ts` - Verify configuration and on-chain state
-- `bridge/post-deployment/add-destination.ts` - Add new satellite to existing cross-chain fleet
+- `x-chain/post-deployment/register-ark-fleet.ts` - Register ARK↔FleetProxy peer relationships and executors
+- `x-chain/post-deployment/verify-setup.ts` - Verify configuration and on-chain state
+- `x-chain/post-deployment/add-destination.ts` - Add new satellite to existing cross-chain fleet
 
 ### Validation
 Each script validates prerequisites and provides clear error messages if dependencies are missing.
@@ -149,7 +149,7 @@ npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network <chain>
 ### Verify On-Chain State
 ```bash
 # Compare config with on-chain registry state
-npx hardhat run scripts/bridge/post-deployment/verify-setup.ts --network <chain>
+npx hardhat run scripts/x-chain/post-deployment/verify-setup.ts --network <chain>
 ```
 
 ### Common Issues
