@@ -1,5 +1,6 @@
 import fs from 'fs'
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { Address, createWalletClient, encodeAbiParameters, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { promptForFleetDeploymentOutput } from '../../fleets/deployment'

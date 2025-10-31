@@ -4,7 +4,6 @@ import { BaseConfig } from '../types/config-types'
 import { deployBridgeContracts } from './bridge/contracts'
 import { hasBridgeConfig } from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
-import { getChainId } from './lib/infrastructure/get-chainid'
 import { promptForConfigType } from './lib/infrastructure/prompts'
 import { updateIndexJson } from './lib/infrastructure/update-json'
 
@@ -31,23 +30,11 @@ async function deployBridge() {
     throw new Error('Bridge configuration is missing')
   }
 
-  // Load all network configs for updating other chain configs
-  const allConfigs = getConfigByNetwork('all', { common: false }, useBummerConfig) as Record<
-    string,
-    BaseConfig
-  >
-  if (!allConfigs) {
-    throw new Error('Failed to load all network configurations')
-  }
-
   console.log(kleur.green().bold('Starting bridge deployment...'))
 
   try {
-    // Get current chain ID for CrossChainRegistry
-    const currentChainId = getChainId()
-
     // Deploy core bridge contracts - handles partial deployment automatically
-    const deployedBridge = await deployBridgeContracts(config, allConfigs, currentChainId)
+    const deployedBridge = await deployBridgeContracts(config)
 
     console.log(kleur.green().bold('Bridge deployment completed successfully!'))
     console.log('Deployed contracts:')

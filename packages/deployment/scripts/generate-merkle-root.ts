@@ -1,6 +1,7 @@
 import { StandardMerkleTree } from '@openzeppelin/merkle-tree'
 import fs from 'fs'
 import path from 'path'
+import prompts from 'prompts'
 
 interface Distribution {
   [address: string]: string

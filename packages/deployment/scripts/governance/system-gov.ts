@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import prompts from 'prompts'
 
 import { GovContracts, GovModule } from '../../ignition/modules/gov'
 import { BaseConfig } from '../../types/config-types'

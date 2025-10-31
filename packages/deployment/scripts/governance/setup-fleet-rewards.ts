@@ -1,6 +1,7 @@
 import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { Address } from 'viem'
 import { promptForFleetDeploymentOutput } from '../fleets/deployment'
 import { createRewardSetupProposal } from '../fleets/governance'

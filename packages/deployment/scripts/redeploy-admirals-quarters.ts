@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { Address } from 'viem'
 import { createAdmiralsQuartersModule } from '../ignition/modules/admiralsQuartersModuleFactory'
 import { BaseConfig } from '../types/config-types'

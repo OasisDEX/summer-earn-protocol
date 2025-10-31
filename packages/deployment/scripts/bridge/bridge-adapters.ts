@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, getAddress } from 'viem'
 import { DeployedBridgeAdapters } from '../../types/bridge-types'
-import { BaseConfig, NetworkConfigMap } from '../../types/config-types'
+import { BaseConfig } from '../../types/config-types'
 import {
   configureLayerZeroAdapter,
   configureLayerZeroAdapterPeersWithConfig,
@@ -48,7 +48,7 @@ async function isAdapterRegistered(
 async function deployBridgeAdapters(
   bridgeRouterAddress: Address,
   networkConfig: BaseConfig,
-  allNetworkConfigs?: NetworkConfigMap,
+  allNetworkConfigs?: Record<string, BaseConfig>,
 ): Promise<DeployedBridgeAdapters> {
   console.log(kleur.cyan().bold('Starting bridge adapters deployment...'))
 
@@ -67,10 +67,7 @@ async function deployBridgeAdapters(
       deployedAdapters.layerZero = { address: existingLayerZeroAddress as Address }
     } else {
       try {
-        const layerZeroAdapterAddress = await deployLayerZeroAdapter(
-          networkConfig,
-          allNetworkConfigs,
-        )
+        const layerZeroAdapterAddress = await deployLayerZeroAdapter(networkConfig)
         deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
         await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
       } catch (error) {
@@ -104,7 +101,7 @@ async function deployBridgeAdapters(
       deployedAdapters.stargate = { address: existingStargateAddress as Address }
     } else {
       try {
-        const stargateAdapterAddress = await deployStargateAdapter(networkConfig, allNetworkConfigs)
+        const stargateAdapterAddress = await deployStargateAdapter(networkConfig)
         deployedAdapters.stargate = { address: stargateAdapterAddress }
         await configureStargateAdapter(
           stargateAdapterAddress,
@@ -118,7 +115,7 @@ async function deployBridgeAdapters(
     }
   } else {
     try {
-      const stargateAdapterAddress = await deployStargateAdapter(networkConfig, allNetworkConfigs)
+      const stargateAdapterAddress = await deployStargateAdapter(networkConfig)
       deployedAdapters.stargate = { address: stargateAdapterAddress }
       await configureStargateAdapter(
         stargateAdapterAddress,

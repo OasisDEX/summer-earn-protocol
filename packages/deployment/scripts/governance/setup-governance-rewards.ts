@@ -1,4 +1,5 @@
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { Address, Hex, encodeFunctionData, parseAbi } from 'viem'
 import { getConfigByNetwork } from '../lib/config/handler'
 import { submitProposal } from '../lib/governance/validation'

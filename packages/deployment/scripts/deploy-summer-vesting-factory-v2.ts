@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { createSummerVestingFactoryV2Module } from '../ignition/modules/summerVestingFactoryV2ModuleFactory'
 import { getConfigByNetwork } from './lib/config/handler'
 import { handleDeploymentId } from './lib/infrastructure/deployment-id-handler'

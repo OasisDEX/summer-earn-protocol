@@ -2,6 +2,7 @@ import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
+import prompts from 'prompts'
 import { TipJarContracts, createTipJarModule } from '../ignition/modules/tipjar'
 import { BaseConfig } from '../types/config-types'
 import {

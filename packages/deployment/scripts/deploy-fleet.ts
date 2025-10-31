@@ -2,6 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import fs from 'node:fs'
 import path from 'node:path'
+import prompts from 'prompts'
 import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig } from '../types/config-types'
 import {

@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { Address, parseAbi } from 'viem'
 import { getConfigByNetwork } from '../lib/config/handler'
 import { ProposalData, loadProposal } from '../lib/governance/proposals'

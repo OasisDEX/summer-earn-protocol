@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { Address as ViemAddress } from 'viem'
 import {
   InstitutionWhitelistContracts,

@@ -1,6 +1,7 @@
 import { exec } from 'child_process'
 import hre from 'hardhat'
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { promisify } from 'util'
 import { finalizeGov } from './governance/finalize-gov'
 import { peerGov } from './governance/peer-gov'

@@ -1,6 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'node:path'
+import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { getConfigByNetwork } from '../lib/config/handler'
