@@ -21,9 +21,9 @@ import {
   logChainConfigurationResults,
 } from './stargate-chain-service'
 import { StargateContractValidator } from './stargate-validation-service'
-import { isAdapterRegistered, validateBridgeConfig } from './transaction-helpers'
 import { BaseConfig, NetworkConfigMap } from './types'
-import { getSupportedChainsFromConfig, getWalletClient } from './utils'
+import { getSupportedChainsFromConfig, getWalletClient, isAdapterRegistered } from './utils'
+import { validateBridgeConfig } from './validation'
 
 /**
  * Deploy Stargate adapter using Ignition module

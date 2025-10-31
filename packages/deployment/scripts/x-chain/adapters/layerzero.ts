@@ -11,9 +11,13 @@ import {
 import { waitForTransactionConfirmation, writeContractTx } from '../../lib/contracts/transactions'
 import { BRIDGE_ROUTER_REGISTER_ADAPTER_ABI, LAYERZERO_SET_PEER_ABI } from './abis'
 import { LayerZeroConfig } from './config-types'
-import { isAdapterRegistered } from './transaction-helpers'
 import { BaseConfig, NetworkConfigMap } from './types'
-import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
+import {
+  getNetworkNameFromChainId,
+  getSupportedChainsFromConfig,
+  getWalletClient,
+  isAdapterRegistered,
+} from './utils'
 
 /**
  * Deploy LayerZero adapter using Ignition module

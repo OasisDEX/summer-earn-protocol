@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import { Address, getAddress } from 'viem'
 import { CHAIN_CONFIG_MAP, RPC_URL_MAP, getChainConfigs } from '../../lib/chain/config'
 import { getChainNameById } from '../../lib/chain/helpers'
 import { isTenderlyVirtualTestnet } from '../../lib/infrastructure/tenderly'
@@ -62,6 +63,28 @@ export async function getWalletClient() {
  */
 export function getNetworkNameFromChainId(chainId: number): string {
   return getChainNameById(chainId)
+}
+
+/**
+ * Check if adapter is already registered with bridge router
+ */
+export async function isAdapterRegistered(
+  bridgeRouterAddress: Address,
+  adapterAddress: Address,
+): Promise<boolean> {
+  try {
+    const bridgeRouter = await hre.viem.getContractAt(
+      'BridgeRouter' as string,
+      getAddress(bridgeRouterAddress as `0x${string}`),
+    )
+
+    return Boolean(
+      await bridgeRouter.read.isValidAdapter([getAddress(adapterAddress as `0x${string}`)]),
+    )
+  } catch (error) {
+    console.error(kleur.red('Error checking if adapter is registered:'), error)
+    return false
+  }
 }
 
 /**

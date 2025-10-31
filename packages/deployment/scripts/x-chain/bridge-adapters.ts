@@ -1,6 +1,5 @@
-import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address, getAddress } from 'viem'
+import { Address } from 'viem'
 import { DeployedBridgeAdapters } from '../../types/bridge-types'
 import { BaseConfig } from '../../types/config-types'
 import {
@@ -14,29 +13,7 @@ import {
   deployStargateAdapter,
   updateStargateAdapterAddresses,
 } from './adapters/stargate'
-import { waitForPendingTransactions } from './adapters/utils'
-
-/**
- * Check if an adapter is already registered with the bridge router
- */
-async function isAdapterRegistered(
-  bridgeRouterAddress: Address,
-  adapterAddress: Address,
-): Promise<boolean> {
-  try {
-    const bridgeRouter = await hre.viem.getContractAt(
-      'BridgeRouter' as string,
-      getAddress(bridgeRouterAddress as `0x${string}`),
-    )
-
-    return Boolean(
-      await bridgeRouter.read.isValidAdapter([getAddress(adapterAddress as `0x${string}`)]),
-    )
-  } catch (error) {
-    console.error(kleur.red('Error checking if adapter is registered:'), error)
-    return false
-  }
-}
+import { isAdapterRegistered, waitForPendingTransactions } from './adapters/utils'
 
 /**
  * Deploy and configure bridge adapters
