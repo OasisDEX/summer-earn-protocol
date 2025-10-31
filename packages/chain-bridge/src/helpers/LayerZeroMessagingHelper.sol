@@ -52,24 +52,4 @@ library LayerZeroMessagingHelper {
             );
         }
     }
-
-    /**
-     * @notice Creates dummy message parameters for fee estimation
-     *
-     * @return params Dummy RelayedMessageParams for estimation purposes
-     */
-    function createDummyMessageParams()
-        internal
-        pure
-        returns (BridgeTypes.RelayedMessageParams memory)
-    {
-        return
-            BridgeTypes.RelayedMessageParams({
-                recipient: address(0),
-                message: abi.encode("dummy message for fee estimation"),
-                operationId: bytes32(0),
-                originator: address(0),
-                sourceChainId: uint16(0)
-            });
-    }
 }

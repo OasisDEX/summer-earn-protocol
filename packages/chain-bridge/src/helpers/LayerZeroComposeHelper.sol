@@ -50,15 +50,4 @@ library LayerZeroComposeHelper {
         composeMsg = OFTComposeMsgCodec.composeMsg(message);
         composeFrom = OFTComposeMsgCodec.composeFrom(message).toAddress();
     }
-
-    /**
-     * @notice Validates that a compose message has the minimum required length
-     * @param message The compose message to validate
-     * @return valid True if the message has sufficient length for decoding
-     */
-    function isValidComposeMessage(
-        bytes calldata message
-    ) internal pure returns (bool) {
-        return message.length >= 76;
-    }
 }
