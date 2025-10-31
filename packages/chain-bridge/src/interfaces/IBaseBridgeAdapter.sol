@@ -15,11 +15,10 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
  *
  * ## Interface Hierarchy
  *
- * This interface serves as the **Base Layer** in the three-tier bridge adapter architecture:
+ * This interface serves as the **Base Layer** in the two-tier bridge adapter architecture:
  *
  * 1. **Base Layer** (`IBaseBridgeAdapter`) - Error/event definitions + core methods ← **This interface**
- * 2. **Core Layer** (`IBridgeAdapter`) - Marker interface for ERC165 support
- * 3. **Capability Layer** (`IAssetAdapter`/`IMessageAdapter`) - Specific capabilities
+ * 2. **Capability Layer** (`IAssetAdapter`/`IMessageAdapter`) - Specific capabilities
  *
  * ## Usage
  *

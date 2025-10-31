@@ -107,7 +107,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
     function testRegisterAdapter_NonAdapterContract_Reverts() public {
         vm.startPrank(governor);
 
-        // mockReceiver is a contract but does not implement IBridgeAdapter
+        // mockReceiver is a contract but does not implement IBaseBridgeAdapter
         vm.expectRevert(IBridgeRouter.InvalidParams.selector);
         router.registerAdapter(address(mockReceiver));
 

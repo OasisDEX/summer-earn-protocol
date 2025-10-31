@@ -18,20 +18,15 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
  *
  * ## Interface Architecture
  *
- * The bridge adapter system follows a three-tier interface hierarchy:
+ * The bridge adapter system follows a two-tier interface hierarchy:
  *
  * ### 1. Base Layer (`IBaseBridgeAdapter`)
  * - **Purpose**: Consolidates error and event definitions for base functionality
- * - **Contains**: `IBaseBridgeAdapterErrors` + `IBaseBridgeAdapterEvents`
+ * - **Contains**: `IBaseBridgeAdapterErrors` + `IBaseBridgeAdapterEvents` + core methods like `supportsOperation()`
  * - **Used by**: All bridge adapters for common error handling and event emission
- *
- * ### 2. Core Layer (`IBridgeAdapter`)
- * - **Purpose**: Defines core bridge functionality (estimation, operation support)
- * - **Contains**: Core methods like `estimateTransferAssets()`, `supportsOperation()`
- * - **Used by**: All bridge adapters + BridgeRouter for adapter registration
  * - **ERC165**: Required for `BridgeRouter.registerAdapter()` security checks
  *
- * ### 3. Capability Layer (`IAssetAdapter`, `IMessageAdapter`)
+ * ### 2. Capability Layer (`IAssetAdapter`, `IMessageAdapter`)
  * - **Purpose**: Defines specific capabilities (asset transfers vs messaging)
  * - **IAssetAdapter**: For adapters that can transfer assets (e.g., StargateAdapter)
  * - **IMessageAdapter**: For adapters that can send messages (e.g., LayerZeroAdapter)
@@ -49,7 +44,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
  * - **Peer Validation**: Ensures only trusted peer adapters can send cross-chain messages
  * - **Token Recovery**: Governance-controlled token recovery functionality for stuck assets
  * - **Message Encoding/Decoding**: Utilities for encoding and decoding cross-chain messages
- * - **ERC165 Support**: Reports `IBridgeAdapter` and `IERC165` interfaces for runtime validation
+ * - **ERC165 Support**: Reports `IBaseBridgeAdapter` and `IERC165` interfaces for runtime validation
  *
  * @dev This contract is abstract and must be extended by concrete bridge implementations
  */
