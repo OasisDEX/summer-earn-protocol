@@ -5,6 +5,9 @@ import {Percentage, PERCENTAGE_FACTOR} from "@summerfi/percentage-solidity/contr
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {Bps, BPS_FACTOR, toBps, fromBps} from "./Bps.sol";
 
+uint256 constant BPS_PER_PERCENT = BPS_FACTOR / 100; // 1% == 100 bps
+uint256 constant PERCENTAGE_PER_BPS = PERCENTAGE_FACTOR / BPS_PER_PERCENT; // 1 bps == 1e16
+
 /**
  * @title BpsUtils
  * @notice Utility library for working with basis points (BPS) calculations
@@ -20,8 +23,8 @@ library BpsUtils {
      */
     function bpsToPercentage(Bps bps) internal pure returns (Percentage) {
         // Convert BPS to percentage with 18 decimals
-        // Formula: (bps * PERCENTAGE_FACTOR) / BPS_FACTOR
-        return Percentage.wrap((fromBps(bps) * PERCENTAGE_FACTOR) / BPS_FACTOR);
+        // Formula: bps * (PERCENTAGE_FACTOR / 100)
+        return Percentage.wrap(fromBps(bps) * PERCENTAGE_PER_BPS);
     }
 
     /**
@@ -33,11 +36,8 @@ library BpsUtils {
         Percentage percentage
     ) internal pure returns (Bps) {
         // Convert percentage to BPS
-        // Formula: (percentage * BPS_FACTOR) / PERCENTAGE_FACTOR
-        return
-            toBps(
-                (Percentage.unwrap(percentage) * BPS_FACTOR) / PERCENTAGE_FACTOR
-            );
+        // Formula: percentage / (PERCENTAGE_FACTOR / 100)
+        return toBps(Percentage.unwrap(percentage) / PERCENTAGE_PER_BPS);
     }
 
     /**
