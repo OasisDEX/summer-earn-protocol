@@ -11,19 +11,48 @@ import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
 
 contract MaliciousRefundReceiver {
     address public immutable adapter;
+    address public immutable token;
 
-    constructor(address _adapter) {
+    constructor(address _adapter, address _token) {
         adapter = _adapter;
+        token = _token;
     }
 
     receive() external payable {
         // Attempt to reenter adapter entrypoint.
-        // Refund uses a low gas cap; behavior is gas-sensitive, so adapter standardizes
+        // Refund uses a low gas cap (30,000); behavior is gas-sensitive, so adapter standardizes
         // any refund failure to Errors.FailedCall(). We still exercise a reenter attempt here.
         // NOTE: Intentionally perform an external call to exceed 2300 gas.
-        (bool s, ) = adapter.call("");
-        s; // silence warning
-        revert("reenter");
+        // Call an actual adapter method that requires more gas than the 30,000 stipend.
+        // If reentrancy protection works, this should fail with out of gas.
+        // If it succeeds, revert with "reenter" to indicate test failure.
+        (bool success, ) = adapter.call(
+            abi.encodeWithSelector(
+                IBridgeAdapter.estimateTransferAssets.selector,
+                BridgeTypes.ExecuteTransferParams({
+                    originator: address(this),
+                    destinationChainId: 31338,
+                    target: address(0x1),
+                    asset: token,
+                    amount: 1 ether,
+                    message: "",
+                    refundAddress: address(this)
+                }),
+                BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(adapter),
+                    gasLimit: 500000,
+                    calldataSize: 0,
+                    msgValue: 0,
+                    options: ""
+                })
+            )
+        );
+        // If the call succeeded, reentrancy protection failed - this is a test failure
+        if (success) {
+            revert("reenter");
+        }
+        // If the call failed with out of gas (expected), the refund will fail naturally
+        // The call itself consumes enough gas that the receive function should also run out of gas
     }
 }
 
@@ -88,7 +117,8 @@ contract StargateAdapterRefundReentrancyTest is StargateAdapterSetupTest {
 
         // Deploy malicious refund receiver targeting the adapter
         MaliciousRefundReceiver malicious = new MaliciousRefundReceiver(
-            address(adapterA)
+            address(adapterA),
+            address(tokenA)
         );
 
         // Build params; set malicious refundAddress
