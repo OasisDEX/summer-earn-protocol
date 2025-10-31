@@ -250,7 +250,7 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
         );
 
         vm.startPrank(keeper);
-        vm.expectRevert(abi.encode("Claim delay not met"));
+        vm.expectRevert("Claim delay not met");
         ark.claimWithdrawal();
 
         vm.warp(block.timestamp + 1 days);
@@ -273,7 +273,7 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
         );
 
         vm.startPrank(keeper);
-        vm.expectRevert(abi.encode("Claim delay not met"));
+        vm.expectRevert("Claim delay not met");
         ark.claimWithdrawal();
 
         vm.warp(block.timestamp + 1 days);
@@ -287,14 +287,14 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
         _test_RequestWithdrawal(100 ether, type(uint256).max);
 
         vm.startPrank(keeper);
-        vm.expectRevert(abi.encode("Claim delay not met"));
+        vm.expectRevert("Claim delay not met");
         ark.claimWithdrawal();
 
         // overwrite the WETH balance of the ARM address
         deal(WETH_ADDRESS, ARM_ADDRESS, 50 ether);
 
         vm.warp(block.timestamp + 1 days);
-        vm.expectRevert(abi.encode("Queue pending liquidity"));
+        vm.expectRevert("Queue pending liquidity");
         ark.claimWithdrawal();
         vm.stopPrank();
     }
