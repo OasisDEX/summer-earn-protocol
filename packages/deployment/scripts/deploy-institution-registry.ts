@@ -1,6 +1,5 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
 import {
   InstitutionRegistryContracts,
   InstitutionRegistryModule,

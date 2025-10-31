@@ -1,18 +1,15 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address } from 'viem'
-import { CHAIN_CONFIG_MAP, RPC_URL_MAP } from '../../lib/chain/config'
-import { getChainConfigs } from '../../lib/chain/config'
+import { CHAIN_CONFIG_MAP, RPC_URL_MAP, getChainConfigs } from '../../lib/chain/config'
 import { getChainNameById } from '../../lib/chain/helpers'
 import { isTenderlyVirtualTestnet } from '../../lib/infrastructure/tenderly'
 import { createClients } from '../../lib/infrastructure/wallet'
+import { BaseConfig, ChainInfo, NetworkConfigMap } from './types'
 
 /**
  * Helper function to get all supported chains with LayerZero endpoint IDs from config
  */
-export function getSupportedChainsFromConfig(
-  allNetworkConfigs?: Record<string, any>,
-): Array<{ chainId: number; endpointId: number }> {
+export function getSupportedChainsFromConfig(allNetworkConfigs?: NetworkConfigMap): ChainInfo[] {
   if (!allNetworkConfigs) {
     // Get chains from our standard chain configs
     const configs = getChainConfigs()
@@ -21,17 +18,18 @@ export function getSupportedChainsFromConfig(
       .filter(({ config }) => config.common?.layerZero?.eID)
       .map(({ chain, config }) => ({
         chainId: chain.id,
-        endpointId: config.common.layerZero.eID,
+        endpointId: Number(config.common.layerZero.eID),
       }))
   }
 
   // Extract from provided config
-  const chains: Array<{ chainId: number; endpointId: number }> = []
+  const chains: ChainInfo[] = []
   for (const [, config] of Object.entries(allNetworkConfigs)) {
-    if (config?.common?.chainId && config?.common?.layerZero?.eID) {
+    const baseConfig = config as BaseConfig
+    if (baseConfig?.common?.chainId && baseConfig?.common?.layerZero?.eID) {
       chains.push({
-        chainId: Number(config.common.chainId),
-        endpointId: Number(config.common.layerZero.eID),
+        chainId: Number(baseConfig.common.chainId),
+        endpointId: Number(baseConfig.common.layerZero.eID),
       })
     }
   }
@@ -61,7 +59,6 @@ export async function getWalletClient() {
 
 /**
  * Helper function to get network name from chain ID
- * @deprecated Use getChainNameById from chain-helpers.ts instead
  */
 export function getNetworkNameFromChainId(chainId: number): string {
   return getChainNameById(chainId)
@@ -167,16 +164,4 @@ export async function waitForPendingTransactions(
   }
 
   console.log(kleur.yellow('Max wait time reached, proceeding anyway...'))
-}
-
-/**
- * Extract the actual bridge router address from the input parameter which can be either
- * a direct Address or an object containing the address
- */
-export function extractBridgeRouterAddress(
-  bridgeRouterAddress: Address | { bridgeRouterAddress: Address },
-): Address {
-  return typeof bridgeRouterAddress === 'object'
-    ? bridgeRouterAddress.bridgeRouterAddress
-    : bridgeRouterAddress
 }

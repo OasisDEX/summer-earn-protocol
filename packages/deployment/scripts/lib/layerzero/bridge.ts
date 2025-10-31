@@ -1,8 +1,12 @@
 import { addressToBytes32, Options } from '@layerzerolabs/lz-v2-utilities'
+import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex, PublicClient } from 'viem'
-import SummerTokenABI from '../../artifacts/src/contracts/SummerToken.sol/SummerToken.json'
+
+// Load SummerToken ABI using Hardhat's artifact system
+const SummerTokenArtifact = hre.artifacts.readArtifactSync('SummerToken')
+const SummerTokenABI = SummerTokenArtifact.abi
 
 /**
  * Prepares actions for bridging tokens across chains using LayerZero
@@ -67,7 +71,7 @@ export async function prepareBridgeTransaction(
       // Get quote for native fee using the complete ABI
       const quoteResult = await publicClient.readContract({
         address: bridgeContractAddress,
-        abi: SummerTokenABI.abi,
+        abi: SummerTokenABI,
         functionName: 'quoteSend',
         args: [sendParam, false],
       })
@@ -104,7 +108,7 @@ export async function prepareBridgeTransaction(
     values.push(feeWithSafetyBuffer)
     calldatas.push(
       encodeFunctionData({
-        abi: SummerTokenABI.abi, // Use the full ABI from the JSON file
+        abi: SummerTokenABI, // Use the full ABI from the artifact
         functionName: 'send',
         args: [
           sendParam,

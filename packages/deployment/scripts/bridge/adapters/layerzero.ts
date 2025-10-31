@@ -1,33 +1,37 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address, getAddress } from 'viem'
+import { Address, WalletClient, getAddress } from 'viem'
 import layerZeroConfig from '../../../config/adapters/layerzero.json'
 import LayerZeroAdapterModule from '../../../ignition/modules/adapters/layerzero'
 import {
-  extractBridgeRouterAddress,
-  getNetworkNameFromChainId,
-  getSupportedChainsFromConfig,
-  getWalletClient,
-} from './utils'
+  getChainIdFromConfig,
+  getCrossChainRegistryAddress,
+  getLayerZeroEndpoint,
+} from '../../lib/config/getters'
+import { waitForTransactionConfirmation, writeContractTx } from '../../lib/contracts/transactions'
+import { BRIDGE_ROUTER_REGISTER_ADAPTER_ABI, LAYERZERO_SET_PEER_ABI } from './abis'
+import { LayerZeroConfig } from './config-types'
+import { isAdapterRegistered } from './transaction-helpers'
+import { BaseConfig, NetworkConfigMap } from './types'
+import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
 
 /**
  * Deploy LayerZero adapter using Ignition module
  */
 export async function deployLayerZeroAdapter(
-  crossChainRegistry: Address,
-  networkConfig: any,
-  allNetworkConfigs?: Record<string, any>,
+  networkConfig: BaseConfig,
+  allNetworkConfigs?: NetworkConfigMap,
 ): Promise<Address> {
   console.log(kleur.blue('Deploying LayerZero adapter using Ignition module'))
 
   // Get current chain ID
-  const chainId = Number(networkConfig.common.chainId)
+  const chainId = getChainIdFromConfig(networkConfig)
 
   // Use endpoint from general config
-  const endpoint = networkConfig.common.layerZero.lzEndpoint
-  if (!endpoint) {
-    throw new Error(`LayerZero endpoint not configured for chain ID ${chainId}`)
-  }
+  const endpoint = getLayerZeroEndpoint(networkConfig)
+
+  // Get the crossChainRegistry address from network config
+  const crossChainRegistry = getCrossChainRegistryAddress(networkConfig)
 
   // Build chain mapping from general config
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
@@ -69,296 +73,26 @@ export async function deployLayerZeroAdapter(
   return layerZeroAdapterAddress
 }
 
-// Helper function to activate read channel
-async function activateReadChannel(
-  layerZeroAdapter: any,
-  walletClient: any,
-  layerZeroAdapterAddress: Address,
-  readChannelId: number,
-): Promise<void> {
-  try {
-    const currentReadChannelId = BigInt(String(await layerZeroAdapter.read.readChannelId()))
-
-    if (currentReadChannelId !== BigInt(readChannelId)) {
-      console.log(`Activating read channel with ID ${readChannelId}`)
-      const hash = await walletClient.writeContract({
-        address: getAddress(layerZeroAdapterAddress as `0x${string}`),
-        abi: [
-          {
-            inputs: [{ internalType: 'uint32', name: 'channelId', type: 'uint32' }],
-            name: 'activateReadChannel',
-            outputs: [],
-            stateMutability: 'nonpayable',
-            type: 'function',
-          },
-        ] as const,
-        functionName: 'activateReadChannel',
-        args: [readChannelId],
-      })
-      console.log(kleur.green(`Read channel activated successfully, tx: ${hash}`))
-
-      const verifyReadChannelId = BigInt(String(await layerZeroAdapter.read.readChannelId()))
-      console.log(kleur.blue(`Read channel ID verified: ${verifyReadChannelId}`))
-    } else {
-      console.log(kleur.yellow(`Read channel ${readChannelId} already active, skipping`))
-    }
-  } catch (error) {
-    console.error(kleur.red('Error activating read channel:'), error)
-    throw error
-  }
-}
-
-// Helper function to configure ReadLib1002 libraries
-async function configureReadLib1002(
-  layerZeroAdapter: any,
-  walletClient: any,
-  publicClient: any,
-  layerZeroAdapterAddress: Address,
-  endpointAddress: Address,
-  readChannelId: number,
-  readLib1002Address: Address,
-): Promise<void> {
-  try {
-    const currentReadChannelId = BigInt(String(await layerZeroAdapter.read.readChannelId()))
-    if (currentReadChannelId === BigInt(0)) {
-      throw new Error('Read channel must be activated before configuring libraries')
-    }
-
-    let needsConfiguration = false
-
-    // Check send library
-    try {
-      const currentSendLib = await publicClient.readContract({
-        address: endpointAddress,
-        abi: [
-          {
-            inputs: [
-              { internalType: 'address', name: 'oApp', type: 'address' },
-              { internalType: 'uint32', name: 'eid', type: 'uint32' },
-            ],
-            name: 'getSendLibrary',
-            outputs: [{ internalType: 'address', name: '', type: 'address' }],
-            stateMutability: 'view',
-            type: 'function',
-          },
-        ] as const,
-        functionName: 'getSendLibrary',
-        args: [getAddress(layerZeroAdapterAddress), readChannelId],
-      })
-
-      if (currentSendLib.toLowerCase() !== readLib1002Address.toLowerCase()) {
-        needsConfiguration = true
-        console.log(`Send library needs update: ${currentSendLib} -> ${readLib1002Address}`)
-      }
-    } catch (error) {
-      needsConfiguration = true
-      console.log('Could not check current send library, assuming needs configuration')
-    }
-
-    // Check receive library if needed
-    if (!needsConfiguration) {
-      try {
-        const currentReceiveLib = await publicClient.readContract({
-          address: endpointAddress,
-          abi: [
-            {
-              inputs: [
-                { internalType: 'address', name: 'oApp', type: 'address' },
-                { internalType: 'uint32', name: 'eid', type: 'uint32' },
-              ],
-              name: 'getReceiveLibrary',
-              outputs: [{ internalType: 'address', name: '', type: 'address' }],
-              stateMutability: 'view',
-              type: 'function',
-            },
-          ] as const,
-          functionName: 'getReceiveLibrary',
-          args: [getAddress(layerZeroAdapterAddress), readChannelId],
-        })
-
-        if (currentReceiveLib.toLowerCase() !== readLib1002Address.toLowerCase()) {
-          needsConfiguration = true
-          console.log(`Receive library needs update: ${currentReceiveLib} -> ${readLib1002Address}`)
-        }
-      } catch (error) {
-        needsConfiguration = true
-        console.log('Could not check current receive library, assuming needs configuration')
-      }
-    }
-
-    if (needsConfiguration) {
-      console.log(`Configuring ReadLib1002 libraries with address ${readLib1002Address}`)
-      const hash = await walletClient.writeContract({
-        address: getAddress(layerZeroAdapterAddress),
-        abi: [
-          {
-            inputs: [{ internalType: 'address', name: 'readLib1002Address', type: 'address' }],
-            name: 'configureReadLibraries',
-            outputs: [],
-            stateMutability: 'nonpayable',
-            type: 'function',
-          },
-        ] as const,
-        functionName: 'configureReadLibraries',
-        args: [readLib1002Address],
-      })
-      console.log(kleur.green(`ReadLib1002 libraries configured successfully, tx: ${hash}`))
-    } else {
-      console.log(kleur.yellow(`ReadLib1002 libraries already configured correctly, skipping`))
-    }
-  } catch (error) {
-    console.error(kleur.red('Error configuring ReadLib1002 libraries:'), error)
-    throw error
-  }
-}
-
-// Helper function to configure DVNs and executor
-async function configureDVNsAndExecutor(
-  layerZeroAdapter: any,
-  walletClient: any,
-  publicClient: any,
-  layerZeroAdapterAddress: Address,
-  readLib1002Address: Address,
-  readDVNs: Address[],
-  executor: Address,
-): Promise<void> {
-  try {
-    const currentReadChannelId = BigInt(String(await layerZeroAdapter.read.readChannelId()))
-    if (currentReadChannelId === BigInt(0)) {
-      throw new Error('Read channel must be activated before configuring DVNs')
-    }
-
-    console.log(`Configuring read DVNs and executor for read operations`)
-    console.log(`- ReadLib1002: ${readLib1002Address}`)
-    console.log(`- DVNs: ${readDVNs.join(', ')}`)
-    console.log(`- Executor: ${executor}`)
-
-    const hash = await walletClient.writeContract({
-      address: getAddress(layerZeroAdapterAddress),
-      abi: [
-        {
-          inputs: [
-            { internalType: 'address', name: 'readLib1002Address', type: 'address' },
-            { internalType: 'address[]', name: 'readDVNs', type: 'address[]' },
-            { internalType: 'address', name: 'executor', type: 'address' },
-          ],
-          name: 'configureReadDVNs',
-          outputs: [],
-          stateMutability: 'nonpayable',
-          type: 'function',
-        },
-      ] as const,
-      functionName: 'configureReadDVNs',
-      args: [readLib1002Address, readDVNs, executor],
-    })
-    console.log(kleur.green(`Read DVNs and executor configured successfully, tx: ${hash}`))
-
-    await publicClient.waitForTransactionReceipt({ hash })
-    console.log(kleur.green(`Read DVNs configuration transaction confirmed`))
-  } catch (error) {
-    console.error(kleur.red('Error configuring read DVNs and executor:'), error)
-    throw error
-  }
-}
-
-// Helper function to set minimum gas limits
-async function setMinimumGasLimits(
-  layerZeroAdapter: any,
-  walletClient: any,
-  layerZeroAdapterAddress: Address,
-  minGasLimits: Record<string, number>,
-): Promise<void> {
-  const messageTypeMap: Record<string, number> = {
-    stateRead: 2,
-    generalMessage: 3,
-  }
-
-  for (const [strMsgType, gasLimit] of Object.entries(minGasLimits)) {
-    const numMsgType = messageTypeMap[strMsgType]
-    if (numMsgType === undefined) {
-      console.error(kleur.red(`Unknown message type: ${strMsgType}, skipping`))
-      continue
-    }
-
-    try {
-      const currentGasLimit = BigInt(String(await layerZeroAdapter.read.minGasLimits([numMsgType])))
-      const configuredGasLimit = BigInt(gasLimit)
-
-      if (currentGasLimit !== configuredGasLimit) {
-        console.log(
-          `Setting minimum gas limit for message type ${strMsgType} (${numMsgType}) to ${gasLimit}`,
-        )
-        const hash = await walletClient.writeContract({
-          address: getAddress(layerZeroAdapterAddress),
-          abi: [
-            {
-              inputs: [
-                { internalType: 'uint16', name: 'msgType', type: 'uint16' },
-                { internalType: 'uint128', name: 'gasLimit', type: 'uint128' },
-              ],
-              name: 'setMinGasLimit',
-              outputs: [],
-              stateMutability: 'nonpayable',
-              type: 'function',
-            },
-          ] as const,
-          functionName: 'setMinGasLimit',
-          args: [numMsgType, configuredGasLimit],
-        })
-        console.log(
-          kleur.green(
-            `Minimum gas limit for message type ${strMsgType} updated successfully, tx: ${hash}`,
-          ),
-        )
-      } else {
-        console.log(
-          kleur.yellow(
-            `Minimum gas limit for message type ${strMsgType} already set to ${currentGasLimit}, skipping`,
-          ),
-        )
-      }
-    } catch (error) {
-      console.error(
-        kleur.red(`Error setting minimum gas limit for message type ${strMsgType}:`),
-        error,
-      )
-    }
-  }
-}
-
 // Helper function to register adapter with bridge router
 async function registerWithBridgeRouter(
-  walletClient: any,
+  walletClient: WalletClient,
   bridgeRouterAddress: Address,
   layerZeroAdapterAddress: Address,
 ): Promise<void> {
   try {
-    const actualAddress = extractBridgeRouterAddress(bridgeRouterAddress)
-
-    const bridgeRouter = await hre.viem.getContractAt(
-      'BridgeRouter' as any,
-      getAddress(actualAddress as `0x${string}`),
-    )
-
-    const alreadyRegistered = Boolean(
-      await bridgeRouter.read.isValidAdapter([getAddress(layerZeroAdapterAddress)]),
+    const alreadyRegistered = await isAdapterRegistered(
+      bridgeRouterAddress,
+      layerZeroAdapterAddress,
     )
 
     if (!alreadyRegistered) {
-      const hash = await walletClient.writeContract({
-        address: getAddress(actualAddress),
-        abi: [
-          {
-            inputs: [{ internalType: 'address', name: 'adapter', type: 'address' }],
-            name: 'registerAdapter',
-            outputs: [],
-            stateMutability: 'nonpayable',
-            type: 'function',
-          },
-        ] as const,
-        functionName: 'registerAdapter',
-        args: [getAddress(layerZeroAdapterAddress)],
-      })
+      const hash = await writeContractTx(
+        walletClient,
+        bridgeRouterAddress,
+        BRIDGE_ROUTER_REGISTER_ADAPTER_ABI,
+        'registerAdapter',
+        [getAddress(layerZeroAdapterAddress)],
+      )
       console.log(kleur.green(`LayerZero adapter registered with bridge router, tx: ${hash}`))
     } else {
       console.log(
@@ -377,85 +111,21 @@ async function registerWithBridgeRouter(
 export async function configureLayerZeroAdapter(
   layerZeroAdapterAddress: Address,
   bridgeRouterAddress: Address,
-  networkConfig: any,
+  networkConfig: BaseConfig,
 ): Promise<void> {
   console.log(kleur.blue('Configuring LayerZero adapter'))
 
   const chainId = Number(networkConfig.common.chainId)
-  const chainConfig = (layerZeroConfig.chainConfig as any)[chainId.toString()]
+  const chainConfig = (layerZeroConfig as LayerZeroConfig).chainConfig[chainId.toString()]
 
   if (!chainConfig) {
     console.log(kleur.yellow(`No LayerZero configuration found for chain ${chainId}, skipping`))
     return
   }
 
-  const layerZeroAdapter = await hre.viem.getContractAt(
-    'LayerZeroAdapter' as any,
-    getAddress(layerZeroAdapterAddress as `0x${string}`),
-  )
-
   const walletClient = await getWalletClient()
-  const publicClient = await hre.viem.getPublicClient()
 
-  // Step 1: Activate read channel
-  if (chainConfig.readChannelId) {
-    await activateReadChannel(
-      layerZeroAdapter,
-      walletClient,
-      layerZeroAdapterAddress,
-      chainConfig.readChannelId,
-    )
-  } else {
-    console.log(kleur.yellow('No read channel ID configured, skipping read channel activation'))
-  }
-
-  // Step 2: Configure ReadLib1002 libraries
-  if (chainConfig.readLib1002 && chainConfig.readChannelId) {
-    await configureReadLib1002(
-      layerZeroAdapter,
-      walletClient,
-      publicClient,
-      layerZeroAdapterAddress,
-      networkConfig.common.layerZero.lzEndpoint,
-      chainConfig.readChannelId,
-      chainConfig.readLib1002,
-    )
-  } else {
-    if (!chainConfig.readLib1002)
-      console.log(kleur.yellow('No ReadLib1002 address configured, skipping library configuration'))
-    if (!chainConfig.readChannelId)
-      console.log(kleur.yellow('No read channel ID configured, skipping library configuration'))
-  }
-
-  // Step 3: Configure DVNs and executor
-  if (chainConfig.readLib1002 && chainConfig.readDVNs && chainConfig.executor) {
-    await configureDVNsAndExecutor(
-      layerZeroAdapter,
-      walletClient,
-      publicClient,
-      layerZeroAdapterAddress,
-      chainConfig.readLib1002,
-      chainConfig.readDVNs,
-      chainConfig.executor,
-    )
-  } else {
-    console.log(kleur.yellow('Missing read configuration parameters, skipping DVN configuration'))
-    if (!chainConfig.readLib1002) console.log(kleur.yellow('  - Missing readLib1002'))
-    if (!chainConfig.readDVNs) console.log(kleur.yellow('  - Missing readDVNs'))
-    if (!chainConfig.executor) console.log(kleur.yellow('  - Missing executor'))
-  }
-
-  // Step 4: Set minimum gas limits
-  if (chainConfig.minGasLimits) {
-    await setMinimumGasLimits(
-      layerZeroAdapter,
-      walletClient,
-      layerZeroAdapterAddress,
-      chainConfig.minGasLimits,
-    )
-  }
-
-  // Step 5: Register adapter with bridge router
+  // Step 1: Register adapter with bridge router
   await registerWithBridgeRouter(walletClient, bridgeRouterAddress, layerZeroAdapterAddress)
 }
 
@@ -464,7 +134,7 @@ export async function configureLayerZeroAdapter(
  */
 export async function updateLayerZeroAdapterPeers(
   layerZeroAdapterAddress: Address,
-  allNetworkConfigs: Record<string, any>,
+  allNetworkConfigs: NetworkConfigMap,
 ): Promise<void> {
   console.log(kleur.blue('Configuring LayerZero adapter peers'))
 
@@ -524,29 +194,17 @@ export async function updateLayerZeroAdapterPeers(
           )
 
           // Use wallet client directly instead of .write
-          const hash = await walletClient.writeContract({
-            address: getAddress(layerZeroAdapterAddress as `0x${string}`),
-            abi: [
-              {
-                inputs: [
-                  { internalType: 'uint32', name: '_eid', type: 'uint32' },
-                  { internalType: 'bytes32', name: '_peer', type: 'bytes32' },
-                ],
-                name: 'setPeer',
-                outputs: [],
-                stateMutability: 'nonpayable',
-                type: 'function',
-              },
-            ] as const,
-            functionName: 'setPeer',
-            args: [chainInfo.endpointId, peerAddressBytes32],
-          })
+          const hash = await writeContractTx(
+            walletClient,
+            layerZeroAdapterAddress,
+            LAYERZERO_SET_PEER_ABI,
+            'setPeer',
+            [chainInfo.endpointId, peerAddressBytes32 as `0x${string}`],
+          )
 
           console.log(kleur.green(`Peer set for EID ${chainInfo.endpointId}, tx: ${hash}`))
 
-          // Wait for transaction confirmation
-          const publicClient = await hre.viem.getPublicClient()
-          await publicClient.waitForTransactionReceipt({ hash })
+          await waitForTransactionConfirmation(hash)
         } else {
           console.log(
             kleur.yellow(`Peer for EID ${chainInfo.endpointId} already set correctly, skipping`),
@@ -606,7 +264,7 @@ export async function configureLayerZeroAdapterPeersWithConfig(
   }
 
   // Load all network configurations
-  const allNetworkConfigs: Record<string, any> = {}
+  const allNetworkConfigs: NetworkConfigMap = {}
 
   for (const network of supportedNetworks) {
     try {

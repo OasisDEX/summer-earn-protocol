@@ -13,6 +13,18 @@ This document provides a practical runbook for keepers and operators.
   - Adapter peer relationships and Ark ↔ Proxy relationships are configured consistently across chains.
   - Rebalance calls include `BridgeOptions` with a non-zero `gasLimit`. There is no default gas limit.
 
+#### Deployment Runbook
+
+For deploying new cross-chain fleets, follow the satellite-first approach:
+
+1. **Prerequisites**: Deploy bridge, governance, and core contracts on all chains
+2. **Satellite Phase**: Deploy satellite fleet and FleetProxy (`deploy-xchain-fleetproxy.ts`)
+3. **Hub Phase**: Deploy hub fleet and CrossChainArk (`deploy-xchain-ark.ts`)
+4. **Registration**: Register adapter peers and executors (`cross-chain/register-ark-fleet.ts`)
+5. **Verification**: Verify setup (`cross-chain/verify-setup.ts`)
+
+See `docs/cross-chain/DEPLOYMENT_GUIDE.md` for detailed instructions.
+
 #### Monitoring and Alerts
 
 - Hub chain: router execution events, adapter send events, Ark transfer events.

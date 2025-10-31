@@ -1,7 +1,30 @@
-import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+import { arbitrum, base, mainnet, optimism, sonic } from 'viem/chains'
+import { defineChain } from 'viem'
 import prodConfig from '../../../config/index.json'
 import testConfig from '../../../config/index.test.json'
 import type { BaseConfig } from '../../../types/config-types'
+
+// Unichain chain definition (not available in viem/chains)
+const unichain = defineChain({
+  id: 130,
+  name: 'Unichain',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Ethereum',
+    symbol: 'ETH',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://rpc.unichain.org'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Uniscan',
+      url: 'https://uniscan.xyz',
+    },
+  },
+})
 
 // Centralized RPC URL mapping
 export const RPC_URL_MAP = {
@@ -9,6 +32,8 @@ export const RPC_URL_MAP = {
   base: process.env.BASE_RPC_URL,
   arbitrum: process.env.ARBITRUM_RPC_URL,
   sonic: process.env.SONIC_RPC_URL,
+  optimism: process.env.OPTIMISM_RPC_URL,
+  unichain: process.env.UNICHAIN_RPC_URL,
 }
 
 // Standard chain mapping
@@ -17,6 +42,8 @@ export const CHAIN_CONFIG_MAP = {
   base,
   arbitrum,
   sonic: sonic,
+  optimism,
+  unichain,
 }
 
 export const CHAIN_MAP_BY_ID = Object.fromEntries(
@@ -46,6 +73,16 @@ export function getChainConfigs(useTestConfig: boolean = false) {
       chain: CHAIN_CONFIG_MAP.sonic,
       config: config.sonic as unknown as BaseConfig,
       rpcUrl: RPC_URL_MAP.sonic as string,
+    },
+    optimism: {
+      chain: CHAIN_CONFIG_MAP.optimism,
+      config: config.optimism as unknown as BaseConfig,
+      rpcUrl: RPC_URL_MAP.optimism as string,
+    },
+    unichain: {
+      chain: CHAIN_CONFIG_MAP.unichain,
+      config: config.unichain as unknown as BaseConfig,
+      rpcUrl: RPC_URL_MAP.unichain as string,
     },
   } as const
 }

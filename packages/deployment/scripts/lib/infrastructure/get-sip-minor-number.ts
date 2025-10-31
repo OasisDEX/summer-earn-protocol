@@ -1,3 +1,5 @@
+import kleur from "kleur"
+
 /**
  * Helper function to prompt for SIP minor number
  */
@@ -11,7 +13,7 @@ export async function getSipMinorNumber(): Promise<number | undefined> {
       name: 'value',
       message:
         'Enter the SIP minor number for this proposal (e.g., for SIP5.1 enter 1, leave empty for no minor number):',
-      validate: (value) =>
+      validate: (value: string | number) =>
         value === '' || (Number.isInteger(Number(value)) && Number(value) >= 0)
           ? true
           : 'Please enter a valid non-negative integer or leave empty',

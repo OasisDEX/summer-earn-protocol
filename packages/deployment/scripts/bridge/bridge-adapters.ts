@@ -1,10 +1,13 @@
+import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, getAddress } from 'viem'
 import { DeployedBridgeAdapters } from '../../types/bridge-types'
+import { BaseConfig } from '../../types/config-types'
 import {
   configureLayerZeroAdapter,
   configureLayerZeroAdapterPeersWithConfig,
   deployLayerZeroAdapter,
+  updateLayerZeroAdapterPeers,
 } from './adapters/layerzero'
 import {
   configureStargateAdapter,
@@ -21,18 +24,9 @@ async function isAdapterRegistered(
   adapterAddress: Address,
 ): Promise<boolean> {
   try {
-    // Handle case where bridgeRouterAddress might be an object
-    let actualAddress: string
-    if (typeof bridgeRouterAddress === 'object' && bridgeRouterAddress !== null) {
-      const addressObj = bridgeRouterAddress as any
-      actualAddress = addressObj.bridgeRouterAddress || String(bridgeRouterAddress)
-    } else {
-      actualAddress = String(bridgeRouterAddress)
-    }
-
     const bridgeRouter = await hre.viem.getContractAt(
       'BridgeRouter' as string,
-      getAddress(actualAddress as `0x${string}`),
+      getAddress(bridgeRouterAddress as `0x${string}`),
     )
 
     return Boolean(
@@ -51,10 +45,10 @@ async function isAdapterRegistered(
  * @param allNetworkConfigs All network configurations for cross-chain setup
  * @returns Deployed bridge adapters
  */
-export async function deployBridgeAdapters(
+async function deployBridgeAdapters(
   bridgeRouterAddress: Address,
-  networkConfig: any,
-  allNetworkConfigs?: Record<string, any>,
+  networkConfig: BaseConfig,
+  allNetworkConfigs?: Record<string, BaseConfig>,
 ): Promise<DeployedBridgeAdapters> {
   console.log(kleur.cyan().bold('Starting bridge adapters deployment...'))
 
@@ -73,11 +67,7 @@ export async function deployBridgeAdapters(
       deployedAdapters.layerZero = { address: existingLayerZeroAddress as Address }
     } else {
       try {
-        const layerZeroAdapterAddress = await deployLayerZeroAdapter(
-          bridgeRouterAddress,
-          networkConfig,
-          allNetworkConfigs,
-        )
+        const layerZeroAdapterAddress = await deployLayerZeroAdapter(networkConfig)
         deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
         await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
       } catch (error) {
@@ -86,11 +76,7 @@ export async function deployBridgeAdapters(
     }
   } else {
     try {
-      const layerZeroAdapterAddress = await deployLayerZeroAdapter(
-        bridgeRouterAddress,
-        networkConfig,
-        allNetworkConfigs,
-      )
+      const layerZeroAdapterAddress = await deployLayerZeroAdapter(networkConfig, allNetworkConfigs)
       deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
       await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
     } catch (error) {
@@ -115,10 +101,7 @@ export async function deployBridgeAdapters(
       deployedAdapters.stargate = { address: existingStargateAddress as Address }
     } else {
       try {
-        const stargateAdapterAddress = await deployStargateAdapter(
-          bridgeRouterAddress,
-          networkConfig,
-        )
+        const stargateAdapterAddress = await deployStargateAdapter(networkConfig)
         deployedAdapters.stargate = { address: stargateAdapterAddress }
         await configureStargateAdapter(
           stargateAdapterAddress,
@@ -132,7 +115,7 @@ export async function deployBridgeAdapters(
     }
   } else {
     try {
-      const stargateAdapterAddress = await deployStargateAdapter(bridgeRouterAddress, networkConfig)
+      const stargateAdapterAddress = await deployStargateAdapter(networkConfig)
       deployedAdapters.stargate = { address: stargateAdapterAddress }
       await configureStargateAdapter(
         stargateAdapterAddress,
@@ -150,7 +133,9 @@ export async function deployBridgeAdapters(
 }
 
 export {
-  configureLayerZeroAdapterPeers,
+  DeployedBridgeAdapters,
   configureLayerZeroAdapterPeersWithConfig,
+  deployBridgeAdapters,
+  updateLayerZeroAdapterPeers,
   updateStargateAdapterAddresses,
 }

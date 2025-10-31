@@ -3,7 +3,6 @@
 
 # dependencies
 node_modules
-!/packages/external-dependencies/node_modules
 .pnp
 .pnp.js
 
@@ -98,8 +97,7 @@ broadcast
 
 cache_forge/
 **/cache_forge/
-packages/external-dependencies
-lib/
-!packages/deployment/scripts/lib/
+!/packages/external-dependencies/node_modules
+!/packages/external-dependencies/lib
 safe*.json
 **/abis/*

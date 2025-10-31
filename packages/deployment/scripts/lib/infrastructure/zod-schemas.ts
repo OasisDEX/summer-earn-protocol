@@ -52,6 +52,7 @@ export const FleetConfigSchema = z.object({
   initialRebalanceCooldown: z.union([z.string(), z.number()]),
   depositCap: z.union([z.string(), z.number(), z.bigint()]),
   initialTipRate: z.union([z.string(), z.number(), z.bigint()]),
+  initialWithdrawalFee: z.union([z.string(), z.number(), z.bigint()]).optional().default('0'),
   network: z.string().min(1),
   details: z.unknown(),
   arks: z.array(z.any()).optional(),

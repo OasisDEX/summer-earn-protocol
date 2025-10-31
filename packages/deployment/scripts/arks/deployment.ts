@@ -7,7 +7,6 @@ import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployAeraArk } from '../arks/deploy-aera-ark'
 import { deployArmArk } from '../arks/deploy-arm-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
-import { deployCrossChainArk } from '../arks/deploy-cross-chain-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployFluidFTokenArk } from '../arks/deploy-fluid-ftoken-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
@@ -28,6 +27,8 @@ import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
+import { deployCrossChainArk } from '../arks/deploy-xchain-ark'
+import { CrossChainConfig } from '../lib/config/cross-chain'
 import { ZERO_STRING } from '../lib/infrastructure/constants'
 import {
   validateAddress,
@@ -36,6 +37,7 @@ import {
   validateString,
   validateToken,
 } from '../lib/infrastructure/validation'
+import { BaseArkParams } from './ark-types'
 
 export type ArkConfig = {
   type: ArkType
@@ -48,17 +50,6 @@ export type ArkConfig = {
     maxRebalanceOutflow?: string // For FluidLiteArk
     maxRebalanceInflow?: string // For FluidLiteArk
   }
-}
-
-export type BaseArkParams = {
-  token: {
-    address: Address
-    symbol: Token
-  }
-  depositCap: string
-  maxRebalanceOutflow: string
-  maxRebalanceInflow: string
-  fleetName: string
 }
 
 export async function deployArk(
@@ -85,27 +76,23 @@ export async function deployArk(
     fleetName: fleetConfig.fleetName,
   }
 
-  let deployedArk
+  let deployedArk: { ark: { address: string } } | null = null
 
   switch (type) {
     case ArkType.FluidLiteArk: {
-      const ark = await deployFluidLiteArk(config, baseArkParams)
-      deployedArk = ark
+      deployedArk = (await deployFluidLiteArk(config, baseArkParams)) ?? null
       break
     }
     case ArkType.AaveV3Ark: {
-      const ark = await deployAaveV3Ark(config, baseArkParams)
-      deployedArk = ark
+      deployedArk = (await deployAaveV3Ark(config, baseArkParams)) ?? null
       break
     }
     case ArkType.SparkArk: {
-      const ark = await deploySparkArk(config, baseArkParams)
-      deployedArk = ark
+      deployedArk = (await deploySparkArk(config, baseArkParams)) ?? null
       break
     }
     case ArkType.CompoundV3Ark: {
-      const ark = await deployCompoundV3Ark(config, baseArkParams)
-      deployedArk = ark
+      deployedArk = (await deployCompoundV3Ark(config, baseArkParams)) ?? null
       break
     }
     case ArkType.ERC4626Ark: {
@@ -114,17 +101,16 @@ export async function deployArk(
         config.protocolSpecific.erc4626[token][validatedVaultName],
         'ERC4626 vault',
       )
-      const ark = await deployERC4626Ark(config, {
-        ...baseArkParams,
-        vaultId: vaultAddress,
-        vaultName: validatedVaultName,
-      })
-      deployedArk = ark
+      deployedArk =
+        (await deployERC4626Ark(config, {
+          ...baseArkParams,
+          vaultId: vaultAddress,
+          vaultName: validatedVaultName,
+        })) ?? null
       break
     }
     case ArkType.FluidFTokenArk: {
-      const ark = await deployFluidFTokenArk(config, baseArkParams)
-      deployedArk = ark
+      deployedArk = (await deployFluidFTokenArk(config, baseArkParams)) ?? null
       break
     }
     case ArkType.MorphoArk: {
@@ -133,12 +119,12 @@ export async function deployArk(
         config.protocolSpecific.morpho.markets[token][marketName],
         'Morpho market ID',
       )
-      const ark = await deployMorphoArk(config, {
-        ...baseArkParams,
-        marketId,
-        marketName,
-      })
-      deployedArk = ark
+      deployedArk =
+        (await deployMorphoArk(config, {
+          ...baseArkParams,
+          marketId,
+          marketName,
+        })) ?? null
       break
     }
     case ArkType.MorphoVaultArk: {
@@ -147,12 +133,12 @@ export async function deployArk(
         config.protocolSpecific.morpho.vaults[token][vaultName],
         'Morpho vault market ID',
       )
-      const ark = await deployMorphoVaultArk(config, {
-        ...baseArkParams,
-        vaultId: marketId as `0x${string}`,
-        vaultName: vaultName,
-      })
-      deployedArk = ark
+      deployedArk =
+        (await deployMorphoVaultArk(config, {
+          ...baseArkParams,
+          vaultId: marketId as `0x${string}`,
+          vaultName: vaultName,
+        })) ?? null
       break
     }
     case ArkType.PendleLPArk: {
@@ -166,7 +152,7 @@ export async function deployArk(
         marketId: pendleMarket,
         marketName: marketName,
       }
-      deployedArk = await deployPendleLPArk(config, pendleLPParams)
+      deployedArk = (await deployPendleLPArk(config, pendleLPParams)) ?? null
       break
     }
 
@@ -181,7 +167,7 @@ export async function deployArk(
         marketId: pendleMarket,
         marketName: marketName,
       }
-      deployedArk = await deployPendlePTArk(config, pendlePTParams)
+      deployedArk = (await deployPendlePTArk(config, pendlePTParams)) ?? null
       break
     }
 
@@ -201,36 +187,33 @@ export async function deployArk(
         marketName: marketName,
         marketAssetOracle,
       }
-      deployedArk = await deployPendlePTOracleArk(config, pendlePTOracleParams)
+      deployedArk = (await deployPendlePTOracleArk(config, pendlePTOracleParams)) ?? null
       break
     }
     case ArkType.SkyUsdsArk: {
-      const ark = await deploySkyUsdsArk(config, baseArkParams)
-      deployedArk = ark
+      deployedArk = (await deploySkyUsdsArk(config, baseArkParams)) ?? null
       break
     }
     case ArkType.SkyUsdsPsm3Ark: {
-      const ark = await deploySkyUsdsPsm3Ark(config, baseArkParams)
-      deployedArk = ark
+      deployedArk = (await deploySkyUsdsPsm3Ark(config, baseArkParams)) ?? null
       break
     }
     case ArkType.MoonwellArk: {
-      const ark = await deployMoonwellArk(config, {
-        ...baseArkParams,
-      })
-      deployedArk = ark
+      deployedArk =
+        (await deployMoonwellArk(config, {
+          ...baseArkParams,
+        })) ?? null
       break
     }
     case ArkType.SyrupArk: {
-      const ark = await deploySyrupArk(config, {
-        ...baseArkParams,
-      })
-      deployedArk = ark
+      deployedArk =
+        (await deploySyrupArk(config, {
+          ...baseArkParams,
+        })) ?? null
       break
     }
     case ArkType.SkyRewardsArk: {
-      const ark = await deploySkyRewardsArk(config, baseArkParams)
-      deployedArk = ark
+      deployedArk = (await deploySkyRewardsArk(config, baseArkParams)) ?? null
       break
     }
     case ArkType.SiloArk: {
@@ -244,7 +227,7 @@ export async function deployArk(
         siloId: vaultId,
         siloName: vaultName,
       }
-      deployedArk = await deploySiloArk(config, siloParams)
+      deployedArk = (await deploySiloArk(config, siloParams)) ?? null
       break
     }
 
@@ -257,13 +240,6 @@ export async function deployArk(
         throw new Error('CrossChainArk requires targetChainId and protocol parameters')
       }
 
-      // Get bridge components from config
-      const bridgeRouter = config.deployedContracts.bridge?.bridgeRouter?.address as Address
-
-      if (!bridgeRouter) {
-        throw new Error('Bridge Router not found in config')
-      }
-
       // Get cross-chain config
       const configDir = path.join(process.cwd(), 'config', 'cross-chain')
       const configFiles = fs.readdirSync(configDir).filter((file) => file.endsWith('.json'))
@@ -274,25 +250,29 @@ export async function deployArk(
 
       // Load the config
       const configPath = path.join(configDir, configFiles[0])
-      const crossChainConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+      const crossChainConfig = JSON.parse(fs.readFileSync(configPath, 'utf8')) as CrossChainConfig
 
       // Find the protocol configuration
-      const destination = crossChainConfig.destinations.find(
-        (d: any) => d.chainId === targetChainId,
-      )
+      const destination = crossChainConfig.destinations.find((d) => d.chainId === targetChainId)
       if (!destination) {
         throw new Error(`Destination with chain ID ${targetChainId} not found in config`)
       }
 
-      const protocol = destination.protocols.find((p: any) => p.protocol === targetProtocol)
+      const protocol = destination.protocols.find((p) => p.protocol === targetProtocol)
+      if (!protocol) {
+        throw new Error(
+          `Protocol ${targetProtocol} not found for chain ID ${targetChainId} in config`,
+        )
+      }
 
-      deployedArk = await deployCrossChainArk(config, {
-        ...baseArkParams,
-        targetChainId,
-        targetProtocol,
-        bridgeRouter,
-        ...protocol,
-      })
+      deployedArk =
+        (await deployCrossChainArk(config, {
+          ...baseArkParams,
+          targetChainId,
+          targetProtocol,
+          // bridgeRouter removed - will be auto-populated
+          ...protocol,
+        })) ?? null
       break
     }
 
@@ -307,12 +287,11 @@ export async function deployArk(
         siloId: vaultId,
         siloName: vaultName,
       }
-      deployedArk = await deploySiloArkV2(config, siloParams)
+      deployedArk = (await deploySiloArkV2(config, siloParams)) ?? null
       break
     }
     case ArkType.OriginETHArk: {
-      const ark = await deployOriginETHArk(config, baseArkParams)
-      deployedArk = ark
+      deployedArk = (await deployOriginETHArk(config, baseArkParams)) ?? null
       break
     }
     case ArkType.ArmArk: {
@@ -325,8 +304,7 @@ export async function deployArk(
         ...baseArkParams,
         vaultName: vaultName,
       }
-      const ark = await deployArmArk(config, armArkParams)
-      deployedArk = ark
+      deployedArk = (await deployArmArk(config, armArkParams)) ?? null
       break
     }
     case ArkType.SiloManagedVaultArk: {
@@ -340,7 +318,7 @@ export async function deployArk(
         vaultId: vaultId,
         vaultName: vaultName,
       }
-      deployedArk = await deploySiloManagedVaultArk(config, siloManagedVaultParams)
+      deployedArk = (await deploySiloManagedVaultArk(config, siloManagedVaultParams)) ?? null
       break
     }
     case ArkType.AeraArk: {
@@ -349,12 +327,12 @@ export async function deployArk(
         config.protocolSpecific.gauntlet.vaults[token][vaultName].provisioner,
         `Aera-${vaultName}`,
       )
-      const ark = await deployAeraArk(config, {
-        ...baseArkParams,
-        provisioner: provisioner,
-        vaultName: vaultName,
-      })
-      deployedArk = ark
+      deployedArk =
+        (await deployAeraArk(config, {
+          ...baseArkParams,
+          provisioner: provisioner,
+          vaultName: vaultName,
+        })) ?? null
       break
     }
     case ArkType.StargateV2PoolArk: {
@@ -362,11 +340,11 @@ export async function deployArk(
         config.protocolSpecific.stargate.pools[token],
         `StargateV2-${token}`,
       )
-      const ark = await deployStargateV2PoolArk(config, {
-        ...baseArkParams,
-        stargatePoolAddress: stargatePoolAddress,
-      })
-      deployedArk = ark
+      deployedArk =
+        (await deployStargateV2PoolArk(config, {
+          ...baseArkParams,
+          stargatePoolAddress: stargatePoolAddress,
+        })) ?? null
       break
     }
     case ArkType.SiUSDArk: {
@@ -377,12 +355,12 @@ export async function deployArk(
       const gateway = validateAddress(config.protocolSpecific.infinifi?.gateway, 'InfiniFi Gateway')
       const siUSD = validateErc4626Address(config.protocolSpecific.infinifi?.siUSD, 'siUSD vault')
       // Enforce USDC + config validations as in deployArk
-      const ark = await deploySiUSDArk(config, {
-        ...baseArkParams,
-        gateway: gateway,
-        siUSD: siUSD,
-      })
-      deployedArk = ark
+      deployedArk =
+        (await deploySiUSDArk(config, {
+          ...baseArkParams,
+          gateway: gateway,
+          siUSD: siUSD,
+        })) ?? null
       break
     }
     default:
@@ -397,107 +375,107 @@ export async function deployArk(
 }
 
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
-  let deployedArk: any
+  let deployedArk: { ark: { address: string } } | null = null
 
   switch (arkType) {
     case ArkType.SyrupArk:
-      deployedArk = await deploySyrupArk(config)
+      deployedArk = (await deploySyrupArk(config)) ?? null
       break
     case ArkType.SkyRewardsArk:
-      deployedArk = await deploySkyRewardsArk(config)
+      deployedArk = (await deploySkyRewardsArk(config)) ?? null
       break
     case ArkType.AaveV3Ark:
-      deployedArk = await deployAaveV3Ark(config)
+      deployedArk = (await deployAaveV3Ark(config)) ?? null
       break
     case ArkType.SparkArk:
-      deployedArk = await deploySparkArk(config)
+      deployedArk = (await deploySparkArk(config)) ?? null
       break
     case ArkType.MoonwellArk:
-      deployedArk = await deployMoonwellArk(config)
+      deployedArk = (await deployMoonwellArk(config)) ?? null
       break
     case ArkType.CompoundV3Ark:
-      deployedArk = await deployCompoundV3Ark(config)
+      deployedArk = (await deployCompoundV3Ark(config)) ?? null
       break
 
     case ArkType.ERC4626Ark:
-      deployedArk = await deployERC4626Ark(config)
+      deployedArk = (await deployERC4626Ark(config)) ?? null
       break
 
     case ArkType.MorphoArk: {
-      deployedArk = await deployMorphoArk(config)
+      deployedArk = (await deployMorphoArk(config)) ?? null
       break
     }
 
     case ArkType.MorphoVaultArk: {
-      deployedArk = await deployMorphoVaultArk(config)
+      deployedArk = (await deployMorphoVaultArk(config)) ?? null
       break
     }
 
     case ArkType.PendleLPArk: {
-      deployedArk = await deployPendleLPArk(config)
+      deployedArk = (await deployPendleLPArk(config)) ?? null
       break
     }
 
     case ArkType.PendlePTArk: {
-      deployedArk = await deployPendlePTArk(config)
+      deployedArk = (await deployPendlePTArk(config)) ?? null
       break
     }
 
     case ArkType.PendlePtOracleArk: {
-      deployedArk = await deployPendlePTOracleArk(config)
+      deployedArk = (await deployPendlePTOracleArk(config)) ?? null
       break
     }
 
     case ArkType.SkyUsdsArk: {
-      deployedArk = await deploySkyUsdsArk(config)
+      deployedArk = (await deploySkyUsdsArk(config)) ?? null
       break
     }
 
     case ArkType.SkyUsdsPsm3Ark: {
-      deployedArk = await deploySkyUsdsPsm3Ark(config)
+      deployedArk = (await deploySkyUsdsPsm3Ark(config)) ?? null
       break
     }
 
     case ArkType.SiloArk: {
-      deployedArk = await deploySiloArk(config)
+      deployedArk = (await deploySiloArk(config)) ?? null
       break
     }
 
     case ArkType.AeraArk: {
-      deployedArk = await deployAeraArk(config)
+      deployedArk = (await deployAeraArk(config)) ?? null
       break
     }
 
     case ArkType.SiloManagedVaultArk: {
-      deployedArk = await deploySiloManagedVaultArk(config)
+      deployedArk = (await deploySiloManagedVaultArk(config)) ?? null
       break
     }
     case ArkType.ArmArk: {
-      deployedArk = await deployArmArk(config)
+      deployedArk = (await deployArmArk(config)) ?? null
       break
     }
 
     case ArkType.CrossChainArk: {
-      deployedArk = await deployCrossChainArk(config)
+      deployedArk = (await deployCrossChainArk(config)) ?? null
       break
     }
 
     case ArkType.StargateV2PoolArk: {
-      deployedArk = await deployStargateV2PoolArk(config)
+      deployedArk = (await deployStargateV2PoolArk(config)) ?? null
       break
     }
 
     case ArkType.SiUSDArk: {
-      deployedArk = await deploySiUSDArk(config)
+      deployedArk = (await deploySiUSDArk(config)) ?? null
       break
     }
 
     case ArkType.FluidFTokenArk: {
-      deployedArk = await deployFluidFTokenArk(config)
+      deployedArk = (await deployFluidFTokenArk(config)) ?? null
       break
     }
     case ArkType.FluidLiteArk: {
-      deployedArk = await deployFluidLiteArk(config)
+      deployedArk = (await deployFluidLiteArk(config)) ?? null
       break
     }
 

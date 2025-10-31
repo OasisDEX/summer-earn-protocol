@@ -68,6 +68,8 @@ export interface Config {
   [key: string]: BaseConfig
 }
 
+export type NetworkConfigMap = Record<string, BaseConfig>
+
 export enum Token {
   USDC = 'usdc',
   DAI = 'dai',
@@ -287,6 +289,7 @@ export interface FleetConfig {
   initialRebalanceCooldown: string
   depositCap: string
   initialTipRate: string
+  initialWithdrawalFee?: string
   network: string
   rewardTokens: string[]
   rewardAmounts: string[]

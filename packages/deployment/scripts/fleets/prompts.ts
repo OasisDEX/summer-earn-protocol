@@ -2,9 +2,9 @@ import fs from 'fs'
 import path from 'path'
 import prompts from 'prompts'
 import { Address, Chain, parseAbi } from 'viem'
-import { BaseConfig, FleetConfig } from '../../../types/config-types'
-import { ChainName } from './chain-configs'
-import { createClients } from './wallet-helper'
+import { BaseConfig, FleetConfig } from '../../types/config-types'
+import { ChainName } from '../lib/chain/config'
+import { createClients } from '../lib/infrastructure/wallet'
 
 const fleetCommanderAbi = parseAbi([
   'function getConfig() view returns ((address bufferArk, uint256 minimumBufferBalance, uint256 depositCap, uint256 maxRebalanceOperations, address stakingRewardsManager))',

@@ -1,27 +1,26 @@
 # Cross-Chain Configuration
 
-This directory contains configuration files that define cross-chain relationships between hub and satellite fleets.
+This directory contains configuration files that define cross-chain relationships between hub and satellite fleets. These files are **generated incrementally** during the deployment process and evolve through three phases.
 
-## Configuration Format
+## Configuration Lifecycle
 
-Each JSON file defines a cross-chain fleet topology with the following structure:
+### Phase 1: Satellite Deployment
+**Created by:** `deploy-xchain-fleetproxy.ts`
 
 ```json
 {
   "fleetName": "LazyVault_LowerRisk_USDC",
-  "sourceChainId": 10,
-  "hubFleetAddress": "0x05Da9eE95BF7f0a37e79a1341706eFB65e385979",
-  "hubFleetName": "Bummer_SuperLazyVault_LowerRisk_USDC",
-  "satelliteFleetName": "LazyVault_LowerRisk_USDC",
+  "sourceChainId": 0,  // Not yet known
+  "hubFleetName": "",
   "destinations": [
     {
       "chainId": 8453,
-      "name": "chain-8453",
+      "name": "base",
       "protocols": [
         {
           "protocol": "summerfi",
           "fleetProxyAddress": "0x6bDCf1dCAd15e11D7d7B90F5b017aB1fc049dC0f",
-          "crossChainArkAddress": "0x5f311c931e03217aa0eae99eaF15A7b33543Ec75",
+          "crossChainArkAddress": "",  // Not yet deployed
           "satelliteFleetAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17"
         }
       ]
@@ -30,36 +29,130 @@ Each JSON file defines a cross-chain fleet topology with the following structure
 }
 ```
 
+### Phase 2: Hub Deployment
+**Updated by:** `deploy-xchain-ark.ts`
+
+```json
+{
+  "fleetName": "LazyVault_LowerRisk_USDC",
+  "sourceChainId": 10,  // Now known
+  "hubFleetName": "Bummer_SuperLazyVault_LowerRisk_USDC",
+  "destinations": [
+    {
+      "chainId": 8453,
+      "name": "base",
+      "protocols": [
+        {
+          "protocol": "summerfi",
+          "fleetProxyAddress": "0x6bDCf1dCAd15e11D7d7B90F5b017aB1fc049dC0f",
+          "crossChainArkAddress": "0x5f311c931e03217aa0eae99eaF15A7b33543Ec75",  // Now deployed
+          "satelliteFleetAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Phase 3: Registration Complete
+**Verified by:** `verify-setup.ts`
+
+All fields populated, relationships registered in CrossChainRegistry on both chains.
+
 ## Field Descriptions
 
 - `fleetName`: Name of the cross-chain fleet configuration
-- `sourceChainId`: Chain ID of the hub chain (where the main fleet is deployed)
-- `hubFleetAddress`: Address of the hub fleet on the source chain
-- `hubFleetName`: Name of the hub fleet
-- `satelliteFleetName`: Name of the satellite fleets on destination chains
+- `sourceChainId`: Chain ID of the hub chain (set in Phase 2)
+- `hubFleetName`: Name of the hub fleet (set in Phase 2)
 - `destinations`: Array of destination chain configurations
   - `chainId`: Chain ID of the destination chain
   - `name`: Human-readable name for the destination chain
   - `protocols`: Array of protocol configurations for this destination
     - `protocol`: Protocol name (e.g., "summerfi")
-    - `fleetProxyAddress`: Address of the FleetProxy on the destination chain
-    - `crossChainArkAddress`: Address of the CrossChainArk on the source chain
+    - `fleetProxyAddress`: Address of the FleetProxy on the destination chain (set in Phase 1)
+    - `crossChainArkAddress`: Address of the CrossChainArk on the source chain (set in Phase 2)
     - `satelliteFleetAddress`: Address of the satellite fleet on the destination chain
 
-## Usage
+## Deployment Order (Satellite-First)
 
-These configuration files are used by:
+### 1. Prerequisites
+```bash
+# Deploy bridge infrastructure on both chains
+npx hardhat run scripts/deploy-xchain-core.ts --network <chain>
+npx hardhat run scripts/deploy-xchain-adapters.ts --network <chain>
+```
 
-1. `register-ark-fleet.ts` - Registers ARK↔FleetProxy relationships in the CrossChainRegistry
-2. `register-executors.ts` - Registers authorized executors (CrossChainArk/FleetProxy addresses)
-3. Cross-chain deployment scripts that need to know the topology
+### 2. Satellite Phase (Phase 1)
+```bash
+# Deploy satellite fleet (if not already deployed)
+npx hardhat run scripts/deploy-fleet.ts --network <satellite>
 
-## Example Workflow
+# Deploy FleetProxy on satellite chain
+npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network <satellite>
+```
 
-1. Deploy hub fleet on source chain (e.g., Optimism)
-2. Deploy satellite fleets on destination chains (e.g., Base, Unichain)
-3. Deploy CrossChainArk on source chain
-4. Deploy FleetProxies on destination chains
-5. Create cross-chain config file with all addresses
-6. Run `register-ark-fleet.ts` on each chain to register relationships
-7. Run `register-executors.ts` on each chain to authorize executors
+### 3. Hub Phase (Phase 2)
+```bash
+# Deploy hub fleet (if not already deployed)
+npx hardhat run scripts/deploy-fleet.ts --network <source>
+
+# Deploy CrossChainArk on source chain
+npx hardhat run scripts/arks/deploy-xchain-ark.ts --network <source>
+```
+
+### 4. Registration Phase (Phase 3)
+```bash
+# Register adapter peers and executors on both chains
+npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network <source>
+npx hardhat run scripts/cross-chain/register-ark-fleet.ts --network <satellite>
+
+# Verify setup
+npx hardhat run scripts/cross-chain/verify-setup.ts --network <source>
+npx hardhat run scripts/cross-chain/verify-setup.ts --network <satellite>
+```
+
+## Adding New Destinations
+
+To add a new satellite chain to an existing cross-chain fleet:
+
+```bash
+npx hardhat run scripts/cross-chain/add-destination.ts --network <new-satellite>
+```
+
+This will:
+1. Prompt for the new destination details
+2. Update the cross-chain config
+3. Guide you through deploying FleetProxy for the new destination
+
+## Scripts Reference
+
+### Core Deployment Scripts
+- `deploy-xchain-fleetproxy.ts` - Deploy FleetProxy, create Phase 1 config
+- `deploy-xchain-ark.ts` - Deploy CrossChainArk, update to Phase 2 config
+
+### Cross-Chain Management Scripts
+- `cross-chain/register-ark-fleet.ts` - Register ARK↔FleetProxy peer relationships and executors
+- `cross-chain/verify-setup.ts` - Verify configuration and on-chain state
+- `cross-chain/add-destination.ts` - Add new satellite to existing cross-chain fleet
+
+### Validation
+Each script validates prerequisites and provides clear error messages if dependencies are missing.
+
+## Troubleshooting
+
+### Check Configuration Status
+```bash
+# The scripts will show current phase and missing fields
+npx hardhat run scripts/deploy-xchain-fleetproxy.ts --network <chain>
+```
+
+### Verify On-Chain State
+```bash
+# Compare config with on-chain registry state
+npx hardhat run scripts/cross-chain/verify-setup.ts --network <chain>
+```
+
+### Common Issues
+- **"Prerequisites not met"**: Run prerequisite scripts first (bridge, governance, core)
+- **"Cross-chain config not found"**: Deploy FleetProxy first to create Phase 1 config
+- **"Configuration is incomplete"**: Complete the satellite-first deployment order

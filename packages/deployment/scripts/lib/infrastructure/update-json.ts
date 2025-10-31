@@ -12,7 +12,7 @@ export async function updateIndexJson<T extends Record<string, any>>(
   console.log(kleur.cyan().bold(`Updating ${configFile} with deployed ${moduleType} addresses...`))
 
   const indexPath = path.join(__dirname, '..', '..', '..', 'config', configFile)
-  let indexJson = JSON.parse(fs.readFileSync(indexPath, 'utf8'))
+  const indexJson = JSON.parse(fs.readFileSync(indexPath, 'utf8'))
 
   // Sanitize deployed contracts by converting any contract-like proxies
   // to plain objects containing only their address. This avoids JSON.stringify

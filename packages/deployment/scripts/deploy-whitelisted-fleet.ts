@@ -6,29 +6,26 @@ import prompts from 'prompts'
 import { Address, Address as ViemAddress } from 'viem'
 import { createFleetWhitelistModule } from '../ignition/modules/fleet-whitelist'
 import { BaseConfig, FleetConfig } from '../types/config-types'
-import { addArkToFleet } from './fleets/deployment'
-import { ADDRESS_ZERO, GOVERNOR_ROLE } from './lib/infrastructure/constants'
 import {
-  loadFleetDeploymentJson,
-  saveFleetDeploymentJson,
-} from './fleets/deployment'
-import { logDeploymentResults } from './fleets/contracts'
-import {
+  addArkToFleet,
   addFleetToHarbor,
   deployArks,
   getRewardsManagerAddress,
   grantCuratorRole,
+  loadFleetDeploymentJson,
+  saveFleetDeploymentJson,
   setupFleetRewards,
 } from './fleets/deployment'
+import { logDeploymentResults } from './fleets/fleet-contracts'
 import { getInstitutionConfigByNetwork } from './lib/config/handler'
 import {
   getInstitutionFleetConfigDir,
   promptForInstitutionId,
   updateInstitutionFleetEntry,
 } from './lib/config/institution'
+import { ADDRESS_ZERO, GOVERNOR_ROLE } from './lib/infrastructure/constants'
 import { promptForConfigType } from './lib/infrastructure/prompts'
-import { getAssetAddress } from './lib/infrastructure/validation'
-import { validateToken } from './lib/infrastructure/validation'
+import { getAssetAddress, validateToken } from './lib/infrastructure/validation'
 import { FleetConfigSchema } from './lib/infrastructure/zod-schemas'
 
 async function selectInstitutionFleetConfig(
@@ -256,7 +253,7 @@ async function main() {
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
         depositCap: fleetDefinition.depositCap,
         initialTipRate: fleetDefinition.initialTipRate,
-        fleetCommanderRewardsManagerFactory: '0x0000000000000000000000000000000000000000',
+        initialWithdrawalFee: fleetDefinition.initialWithdrawalFee || '0',
       },
     },
   })

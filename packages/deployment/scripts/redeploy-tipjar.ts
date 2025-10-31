@@ -3,9 +3,13 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
-import { Address } from 'viem'
 import { TipJarContracts, createTipJarModule } from '../ignition/modules/tipjar'
 import { BaseConfig } from '../types/config-types'
+import {
+  getAccessManagerAddress,
+  getConfigurationManagerAddress,
+  getSummerTokenAddress,
+} from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
 import { handleDeploymentId } from './lib/infrastructure/deployment-id-handler'
 import { getChainId } from './lib/infrastructure/get-chainid'
@@ -52,7 +56,7 @@ async function redeployTipJar() {
   // Display summary and get confirmation
   if (await confirmDeployment(network)) {
     // Deploy the TipJar contract
-    const deployedTipJar = await deployTipJarContract(config)
+    const deployedTipJar = await deployTipJarContract(config as unknown as BaseConfig)
     console.log(kleur.green().bold('TipJar deployed successfully!'))
     console.log(kleur.yellow('TipJar Address:'), kleur.cyan(deployedTipJar.tipJar.address))
 
@@ -78,10 +82,7 @@ async function deployTipJarContract(config: BaseConfig): Promise<TipJarContracts
   const deploymentId = await handleDeploymentId(chainId)
 
   // Get token from configuration (SUMMER token for TipJar)
-  const tokenAddress = config.deployedContracts.gov.summerToken.address
-  if (!tokenAddress) {
-    throw new Error('SUMMER token address not found in configuration')
-  }
+  const tokenAddress = getSummerTokenAddress(config)
 
   console.log(kleur.yellow('SUMMER Token Address:'), kleur.cyan(tokenAddress))
 
@@ -90,8 +91,8 @@ async function deployTipJarContract(config: BaseConfig): Promise<TipJarContracts
   const deployedModule = (await hre.ignition.deploy(tipJarModule, {
     parameters: {
       TipJarModule: {
-        accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
-        configurationManager: config.deployedContracts.core.configurationManager.address as Address,
+        accessManager: getAccessManagerAddress(config),
+        configurationManager: getConfigurationManagerAddress(config),
       },
     },
     deploymentId,

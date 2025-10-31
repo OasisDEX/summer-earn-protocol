@@ -1,6 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { BaseConfig } from '../types/config-types'
+import { getBridgeRouterAddress, getChainIdFromConfig } from './lib/config/getters'
 import { getConfigByNetwork } from './lib/config/handler'
 import { promptForConfigType } from './lib/infrastructure/prompts'
 
@@ -23,9 +24,7 @@ async function updateBridgeRouter() {
     throw new Error(`No configuration found for network ${network}`)
   }
 
-  if (!config.deployedContracts.bridge?.bridgeRouter?.address) {
-    throw new Error('BridgeRouter is not deployed on this network')
-  }
+  const bridgeRouterAddress = getBridgeRouterAddress(config)
 
   // Load all network configs
   const allConfigs = getConfigByNetwork('all', { common: false }, useBummerConfig) as Record<
@@ -37,22 +36,16 @@ async function updateBridgeRouter() {
   }
 
   // Get current chain ID
-  const currentChainId = Number(config.common.chainId)
-  if (!currentChainId) {
-    throw new Error('Chain ID is not configured')
-  }
+  const currentChainId = getChainIdFromConfig(config)
 
   // Get BridgeRouter contract
-  const bridgeRouter = await hre.viem.getContractAt(
-    'BridgeRouter',
-    config.deployedContracts.bridge.bridgeRouter.address,
-  )
+  const bridgeRouter = await hre.viem.getContractAt('BridgeRouter' as string, bridgeRouterAddress)
 
   console.log(kleur.green().bold('Starting bridge router update...'))
 
   try {
     // Update router addresses from other chains
-    for (const [network, otherConfig] of Object.entries(allConfigs)) {
+    for (const [, otherConfig] of Object.entries(allConfigs)) {
       // Skip if no common.chainId
       if (!otherConfig.common?.chainId) continue
 
@@ -65,8 +58,8 @@ async function updateBridgeRouter() {
       let routerAddress = null
       if (otherConfig.deployedContracts?.bridge?.bridgeRouter?.address) {
         routerAddress = otherConfig.deployedContracts.bridge.bridgeRouter.address
-      } else if (otherConfig.protocolSpecific?.bridge?.bridgeRouter?.address) {
-        routerAddress = otherConfig.protocolSpecific.bridge.bridgeRouter.address
+      } else if (otherConfig.bridge?.bridgeRouter?.address) {
+        routerAddress = otherConfig.bridge.bridgeRouter.address
       }
 
       if (routerAddress && routerAddress !== '0x0000000000000000000000000000000000000000') {

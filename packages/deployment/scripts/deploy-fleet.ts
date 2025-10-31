@@ -5,25 +5,22 @@ import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig } from '../types/config-types'
-import { addArkToFleet } from './fleets/deployment'
-import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './lib/infrastructure/constants'
 import {
+  addArkToFleet,
+  addFleetToHarbor,
+  deployArks,
   getFleetConfig,
   getFleetDeploymentDir,
   getFleetDeploymentFileName,
+  getRewardsManagerAddress,
+  grantCommanderRole,
+  grantCuratorRole,
   loadFleetDeployment,
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
-} from './fleets/deployment'
-import { grantCommanderRole } from './fleets/deployment'
-import { deployFleetContracts, logDeploymentResults } from './fleets/contracts'
-import {
-  addFleetToHarbor,
-  deployArks,
-  getRewardsManagerAddress,
-  grantCuratorRole,
   setupFleetRewards,
 } from './fleets/deployment'
+import { deployFleetContracts, logDeploymentResults } from './fleets/fleet-contracts'
 import {
   createArkAdditionCrossChainProposal,
   createArkAdditionProposal,
@@ -31,10 +28,10 @@ import {
   createSatelliteGovernanceProposal,
 } from './fleets/governance'
 import { getConfigByNetwork } from './lib/config/handler'
+import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './lib/infrastructure/constants'
 import { continueDeploymentCheck, promptForConfigType } from './lib/infrastructure/prompts'
 import { warnIfTenderlyVirtualTestnet } from './lib/infrastructure/tenderly'
-import { getAssetAddress } from './lib/infrastructure/validation'
-import { validateToken } from './lib/infrastructure/validation'
+import { getAssetAddress, validateToken } from './lib/infrastructure/validation'
 
 /**
  * Deployment modes for the script

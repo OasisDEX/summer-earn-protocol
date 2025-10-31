@@ -3,12 +3,19 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
-import { Address, getAddress } from 'viem'
+import { Address, getAddress, zeroAddress } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { getConfigByNetwork } from '../lib/config/handler'
 import { promptForConfigType } from '../lib/infrastructure/prompts'
 
 const REGISTRY_ABI = [
+  {
+    inputs: [],
+    name: 'bridgeRouter',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
   {
     inputs: [{ internalType: 'address', name: 'executor', type: 'address' }],
     name: 'registerExecutor',
@@ -23,6 +30,83 @@ const REGISTRY_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  // Custom errors (to decode revert reasons)
+  { type: 'error', name: 'CallerIsNotGovernor', inputs: [{ name: 'caller', type: 'address' }] },
+  { type: 'error', name: 'CallerIsNotKeeper', inputs: [{ name: 'caller', type: 'address' }] },
+  { type: 'error', name: 'CallerIsNotGuardian', inputs: [{ name: 'caller', type: 'address' }] },
+  {
+    type: 'error',
+    name: 'CallerIsNotGuardianOrGovernor',
+    inputs: [{ name: 'caller', type: 'address' }],
+  },
+  { type: 'error', name: 'CallerIsNotSuperKeeper', inputs: [{ name: 'caller', type: 'address' }] },
+  { type: 'error', name: 'CallerIsNotFoundation', inputs: [{ name: 'caller', type: 'address' }] },
+  {
+    type: 'error',
+    name: 'InvalidAccessManagerAddress',
+    inputs: [{ name: 'invalidAddress', type: 'address' }],
+  },
+  // BaseCrossChainRegistry errors
+  { type: 'error', name: 'InvalidChainId', inputs: [{ name: 'invalidChainId', type: 'uint16' }] },
+  {
+    type: 'error',
+    name: 'InvalidChainRelationship',
+    inputs: [
+      { name: 'sourceChainId', type: 'uint16' },
+      { name: 'targetChainId', type: 'uint16' },
+      { name: 'currentChainId', type: 'uint16' },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'InvalidSourceContract',
+    inputs: [{ name: 'sourceContract', type: 'address' }],
+  },
+  {
+    type: 'error',
+    name: 'InvalidTargetContract',
+    inputs: [{ name: 'targetContract', type: 'address' }],
+  },
+  {
+    type: 'error',
+    name: 'InvalidRelationshipType',
+    inputs: [{ name: 'relationshipType', type: 'bytes32' }],
+  },
+  {
+    type: 'error',
+    name: 'UnsupportedRelationshipType',
+    inputs: [{ name: 'relationshipType', type: 'bytes32' }],
+  },
+  {
+    type: 'error',
+    name: 'RelationshipAlreadyExists',
+    inputs: [
+      { name: 'sourceContract', type: 'address' },
+      { name: 'relationshipType', type: 'bytes32' },
+      { name: 'targetChainId', type: 'uint16' },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'TargetContractAlreadyRegistered',
+    inputs: [
+      { name: 'targetContract', type: 'address' },
+      { name: 'sourceChainId', type: 'uint16' },
+      { name: 'targetChainId', type: 'uint16' },
+      { name: 'relationshipType', type: 'bytes32' },
+      { name: 'existingSource', type: 'address' },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'RelationshipDoesNotExist',
+    inputs: [
+      { name: 'sourceContract', type: 'address' },
+      { name: 'relationshipType', type: 'bytes32' },
+      { name: 'targetChainId', type: 'uint16' },
+    ],
+  },
+  { type: 'error', name: 'AddressZero', inputs: [] },
 ] as const
 
 function parseExtraAddresses(input: string | undefined): Address[] {
@@ -59,6 +143,10 @@ export async function registerExecutors() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
 
+  const nonInteractive =
+    process.argv.includes('--no-prompts') ||
+    ['1', 'true'].includes(String(process.env.NON_INTERACTIVE).toLowerCase())
+
   const useBummerConfig = await promptForConfigType()
   const config = getConfigByNetwork(
     network,
@@ -68,6 +156,27 @@ export async function registerExecutors() {
 
   const registryAddress = config.deployedContracts.bridge?.crossChainRegistry?.address as Address
   if (!registryAddress) throw new Error('CrossChainRegistry not deployed on this network')
+
+  // Guard: ensure registry.bridgeRouter is configured
+  const publicClientForGuard = await hre.viem.getPublicClient()
+  const configuredBridgeRouter = (await publicClientForGuard.readContract({
+    address: getAddress(registryAddress as `0x${string}`),
+    abi: REGISTRY_ABI,
+    functionName: 'bridgeRouter',
+    args: [],
+  })) as Address
+
+  if (configuredBridgeRouter === zeroAddress) {
+    console.log(
+      kleur
+        .red()
+        .bold(
+          'CrossChainRegistry.bridgeRouter is not set (0x0). Aborting executor registration.\n' +
+            'Action required: set the BridgeRouter on this chain using setBridgeRouter(), then re-run this script.',
+        ),
+    )
+    return
+  }
 
   const candidates: Address[] = []
 
@@ -129,15 +238,16 @@ export async function registerExecutors() {
     console.log(kleur.red('Failed to load cross-chain executors from config:'), err)
   }
 
-  const { extra } = await prompts({
-    type: 'text',
-    name: 'extra',
-    message:
-      'Optional: enter additional executor addresses (comma-separated 0x addresses), or leave blank:',
-  })
-
-  for (const addr of parseExtraAddresses(extra)) {
-    if (!candidates.includes(addr)) candidates.push(addr)
+  if (!nonInteractive) {
+    const { extra } = await prompts({
+      type: 'text',
+      name: 'extra',
+      message:
+        'Optional: enter additional executor addresses (comma-separated 0x addresses), or leave blank:',
+    })
+    for (const addr of parseExtraAddresses(extra)) {
+      if (!candidates.includes(addr)) candidates.push(addr)
+    }
   }
 
   if (candidates.length === 0) {

@@ -44,8 +44,6 @@ contract FleetCommanderConfigProviderWhitelist is
 
     bool public transfersEnabled;
 
-    event TransfersEnabled();
-
     constructor(
         FleetCommanderParams memory params
     )

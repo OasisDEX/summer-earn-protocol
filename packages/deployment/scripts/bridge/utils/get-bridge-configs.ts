@@ -1,8 +1,9 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { getConfigByNetwork } from '../lib/config/handler'
-import { promptForConfigType } from '../lib/infrastructure/prompts'
-import { getBridgeAdapterConfigs, hasBridgeAdapterConfigs } from './config'
+import { BaseConfig } from '../../../types/config-types'
+import { getConfigByNetwork } from '../../lib/config/handler'
+import { promptForConfigType } from '../../lib/infrastructure/prompts'
+import { getBridgeAdapterConfigs, hasBridgeAdapterConfigs } from '../config/adapter-config'
 
 /**
  * Script that demonstrates using bridge config helpers to extract and display adapter configurations
@@ -15,7 +16,11 @@ async function getBridgeConfigs() {
   const useBummerConfig = await promptForConfigType()
 
   // Load network configuration
-  const config = getConfigByNetwork(network, { common: true, gov: true }, useBummerConfig) as any
+  const config = getConfigByNetwork(
+    network,
+    { common: true, gov: true },
+    useBummerConfig,
+  ) as BaseConfig
 
   // Validate required configuration
   if (!config) {
@@ -39,10 +44,6 @@ async function getBridgeConfigs() {
     console.log(kleur.blue('\nLayerZero Adapter Configuration:'))
     console.log(`- Endpoint: ${adapterConfigs.layerZero.endpoint}`)
     console.log(`- Supported Chains: ${adapterConfigs.layerZero.supportedChains.join(', ')}`)
-    console.log(`- LZ Endpoint IDs: ${adapterConfigs.layerZero.lzEids.join(', ')}`)
-    if (adapterConfigs.layerZero.readChannelId) {
-      console.log(`- Read Channel ID: ${adapterConfigs.layerZero.readChannelId}`)
-    }
     if (adapterConfigs.layerZero.minGasLimits) {
       console.log('- Minimum Gas Limits:')
       for (const [msgType, gasLimit] of Object.entries(adapterConfigs.layerZero.minGasLimits)) {
