@@ -87,7 +87,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @dev Authorization: the caller MUST be on the receiver-managed authorization list.
      *      The receiver adds/removes callers via `setAuthorization(caller, isAuthorized)`.
      *      If the caller is not authorized by `_receiver`, the call reverts with
-     *      `Staking_NotAllowedToStakeOnBehalf(caller, _receiver)`.
+     *      `Staking_NotAuthorized(caller, _receiver)`.
      */
     function stakeLockupOnBehalf(
         address _receiver,
@@ -291,6 +291,28 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     function updatePenaltyEnabled(bool _penaltyEnabled) external;
 
     /**
+     *@notice Claims rewards for a specific account and specific reward token
+     * @dev
+     * @param account The address to claim rewards for
+     * @param rewardToken The address of the reward token to claim
+     * @dev Authorization: the caller MUST be on the receiver-managed authorization list.
+     *      The receiver adds/removes callers via `setAuthorization(caller, isAuthorized)`.
+     *      If the caller is not authorized by `_receiver`, the call reverts with
+     *      `Staking_NotAuthorized(caller, _receiver)`.
+     */
+    function getRewardFor(address account, address rewardToken) external;
+
+    /**
+     * @notice Claims rewards for a specific account
+     * @param account The address to claim rewards for
+     * @dev Authorization: the caller MUST be on the receiver-managed authorization list.
+     *      The receiver adds/removes callers via `setAuthorization(caller, isAuthorized)`.
+     *      If the caller is not authorized by `_receiver`, the call reverts with
+     *      `Staking_NotAuthorized(caller, _receiver)`.
+     */
+    function getRewardFor(address account) external;
+
+    /**
      * @notice Rescues a token and transfers it to the new owner
      * @param _token The address of the token to rescue
      * @param _to The address of the new owner
@@ -416,7 +438,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     error Staking_InvalidAmount(string message);
 
     /**
-     * @notice Thrown when trying to stake on behalf of an address that is not allowed
+     * @notice Thrown when caller is not authorized to act on behalf of the owner
      */
-    error Staking_NotAllowedToStakeOnBehalf(address caller, address receiver);
+    error Staking_NotAuthorized(address caller, address receiver);
 }

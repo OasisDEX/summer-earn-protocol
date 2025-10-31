@@ -133,9 +133,7 @@ contract SummerStaking is
         uint256 _amount,
         uint256 _lockupPeriod
     ) external nonReentrant {
-        if (!isAuthorized[_receiver][_msgSender()]) {
-            revert Staking_NotAllowedToStakeOnBehalf(_msgSender(), _receiver);
-        }
+        _requireAuthorized(_receiver, _msgSender());
         _stakeLockup(_msgSender(), _receiver, _amount, _lockupPeriod);
     }
 
@@ -412,6 +410,23 @@ contract SummerStaking is
                     userRewardPerTokenPaid[rewardToken][account])) /
             Constants.WAD +
             rewards[rewardToken][account];
+    }
+
+    ///  @inheritdoc ISummerStaking
+    function getRewardFor(
+        address account,
+        address rewardToken
+    ) public override(ISummerStaking, StakingRewardsManagerBase) {
+        _requireAuthorized(account, _msgSender());
+        super.getRewardFor(account, rewardToken);
+    }
+
+    ///  @inheritdoc ISummerStaking
+    function getRewardFor(
+        address account
+    ) public override(ISummerStaking, StakingRewardsManagerBase) {
+        _requireAuthorized(account, _msgSender());
+        super.getRewardFor(account);
     }
 
     // ============ PUBLIC OVERRIDE FUNCTIONS - DISABLED FUNCTIONS ============
@@ -821,5 +836,22 @@ contract SummerStaking is
             );
         }
         return stakesByOwner[owner];
+    }
+
+    // ============ INTERNAL - AUTHORIZATION HELPERS ============
+
+    /**
+     * @notice Ensure the caller is authorized to act on behalf of the receiver
+     * @param _receiver The address to check authorization for
+     * @param _caller The address to check authorization for
+     * @dev Reverts if the caller is not authorized to act on behalf of the receiver
+     */
+    function _requireAuthorized(
+        address _receiver,
+        address _caller
+    ) internal view {
+        if (!isAuthorized[_receiver][_caller]) {
+            revert Staking_NotAuthorized(_caller, _receiver);
+        }
     }
 }

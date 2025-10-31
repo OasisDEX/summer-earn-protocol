@@ -1284,7 +1284,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_StakeLockupOnBehalf_RevertOnNotAuthorized() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISummerStaking.Staking_NotAllowedToStakeOnBehalf.selector,
+                ISummerStaking.Staking_NotAuthorized.selector,
                 address(this),
                 user1
             )
@@ -1871,5 +1871,79 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
         assertEq(axSumr.balanceOf(user1), 0, "xSUMR balance should be zero");
         _assertBucket(ISummerStaking.Bucket.NoLockup, 0);
+    }
+
+    function test_GetRewardFor_Account_RevertWithoutAuth_ThenSucceedWithAuth()
+        public
+    {
+        // Stake and fund rewards
+        _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
+        _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
+        vm.warp(block.timestamp + 10 days);
+
+        uint256 user1Before = rewardToken.balanceOf(user1);
+
+        // 1) Not authorized caller should revert
+        vm.prank(user2);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_NotAuthorized.selector,
+                user2,
+                user1
+            )
+        );
+        aStaking.getRewardFor(user1);
+
+        // 2) Whitelist caller and try again
+        vm.prank(user1);
+        aStaking.setAuthorization(user2, true);
+
+        vm.prank(user2);
+        aStaking.getRewardFor(user1);
+
+        uint256 user1After = rewardToken.balanceOf(user1);
+        assertGt(user1After, user1Before, "Rewards should be transferred after authorized claim");
+        assertEq(
+            aStaking.earned(user1, address(rewardToken)),
+            0,
+            "Earned should reset after claim"
+        );
+    }
+
+    function test_GetRewardFor_AccountAndToken_RevertWithoutAuth_ThenSucceedWithAuth()
+        public
+    {
+        // Stake and fund rewards
+        _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
+        _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
+        vm.warp(block.timestamp + 10 days);
+
+        uint256 user1Before = rewardToken.balanceOf(user1);
+
+        // 1) Not authorized caller should revert
+        vm.prank(user2);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_NotAuthorized.selector,
+                user2,
+                user1
+            )
+        );
+        aStaking.getRewardFor(user1, address(rewardToken));
+
+        // 2) Whitelist caller and try again
+        vm.prank(user1);
+        aStaking.setAuthorization(user2, true);
+
+        vm.prank(user2);
+        aStaking.getRewardFor(user1, address(rewardToken));
+
+        uint256 user1After = rewardToken.balanceOf(user1);
+        assertGt(user1After, user1Before, "Rewards should be transferred after authorized claim");
+        assertEq(
+            aStaking.earned(user1, address(rewardToken)),
+            0,
+            "Earned should reset after claim"
+        );
     }
 }
