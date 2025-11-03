@@ -7,6 +7,7 @@ import { useAccount } from 'wagmi'
 import { useSummerStaking } from '../../../hooks/useSummerStaking'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
 import type { ChainId } from '../../../types'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 const MAX_LOCKUP = 3 * 365 * 24 * 60 * 60 // seconds
 const FIXED_PENALTY_PERIOD = 110 * 24 * 60 * 60
@@ -53,20 +54,18 @@ function formatAmountFixed(a: bigint, decimals: number, dp: number) {
 export default function SummerStakingPage() {
   const params = useParams()
   const router = useRouter()
-  const raw = params.chainId as string
-  const normNum = (() => {
-    if (/^\d+$/.test(raw)) return Number(raw)
-    const key = raw.toLowerCase()
-    if (key === 'base') return 8453
-    if (key === 'mainnet' || key === 'ethereum') return 1
-    if (key === 'arbitrum') return 42161
-    if (key === 'sonic') return 146
-    return 8453 // default to Base if unrecognized
-  })()
-  const chainId = String(normNum) as ChainId
+  const chainId = params.chainId as ChainId
+  const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', chainId)
+  const [selectedChain, setSelectedChain] = useState<ChainId>(storedChain)
+  useEffect(() => {
+    setStoredChain(selectedChain)
+  }, [selectedChain, setStoredChain])
+
+  useSyncWalletChain(selectedChain)
+
   const { isConnected } = useAccount()
 
-  useSyncWalletChain(chainId)
+  // useSyncWalletChain(chainId)
 
   const {
     summerAddress,
@@ -85,7 +84,7 @@ export default function SummerStakingPage() {
     needsXSummerApproval,
     isPending,
     isConfirming,
-  } = useSummerStaking(chainId)
+  } = useSummerStaking(selectedChain as ChainId)
 
   const [amountStr, setAmountStr] = useState('')
   const [amount, setAmount] = useState<bigint>(0n)
