@@ -1,4 +1,5 @@
 import { Address } from 'viem'
+
 import { CoreContracts as CoreContractsBase } from '../ignition/modules/core'
 import { DeployedBridge } from './bridge-types'
 
