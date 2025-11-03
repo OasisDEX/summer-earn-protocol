@@ -34,6 +34,7 @@ enum Token {
   USDF = 'usdf',
   EXTRA = 'extra',
   ARB = 'arb',
+  ASONWS = 'asonws',
 }
 const addresses: Record<
   SupportedChain,
@@ -65,6 +66,7 @@ const addresses: Record<
       usdf: '0x0000000000000000000000000000000000000000',
       extra: '0x2dAD3a13ef0C6366220f989157009e501e7938F8',
       arb: '0x0000000000000000000000000000000000000000',
+      asonws: '0x0000000000000000000000000000000000000000',
     },
   },
   mainnet: {
@@ -89,6 +91,7 @@ const addresses: Record<
       usdf: '0xFa2B947eEc368f42195f24F36d2aF29f7c24CeC2',
       extra: '0x0000000000000000000000000000000000000000',
       arb: '0x0000000000000000000000000000000000000000',
+      asonws: '0x0000000000000000000000000000000000000000',
     },
   },
   sonic: {
@@ -110,6 +113,7 @@ const addresses: Record<
       usdf: '0x0000000000000000000000000000000000000000',
       extra: '0x0000000000000000000000000000000000000000',
       arb: '0x0000000000000000000000000000000000000000',
+      asonws: '0x6C5E14A212c1C3e4Baf6f871ac9B1a969918c131',
     },
   },
   arbitrum: {
@@ -131,6 +135,7 @@ const addresses: Record<
       usdf: '0x0000000000000000000000000000000000000000',
       extra: '0x0000000000000000000000000000000000000000',
       arb: '0x912CE59144191C1204E64559FE8253a0e49E6548',
+      asonws: '0x0000000000000000000000000000000000000000',
     },
   },
 }
@@ -446,6 +451,7 @@ function getAssetDecimals(assetSymbol: string): bigint {
     case 'spk':
     case 'usdf':
     case 'extra':
+    case 'asonws':
       return EIGHTEEN_DECIMALS
     case 'usdc':
     case 'usdce':
@@ -529,7 +535,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
     compound_v3: [Token.COMP],
   },
   sonic: {
-    aave_v3: [Token.WS],
+    aave_v3: [Token.WS, Token.ASONWS],
     euler: [Token.WS],
     siloV2: [Token.WS, Token.SILO, Token.XSILO],
   },
