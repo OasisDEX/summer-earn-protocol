@@ -87,7 +87,6 @@
     "@summerfi/rewards-contracts": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
-    "@summerfi/summer-earn-interface": "workspace:*",
     "@summerfi/voting-decay": "workspace:*",
     "@types/lodash": "^4.17.16",
     "@types/prompts": "2.4.9",
