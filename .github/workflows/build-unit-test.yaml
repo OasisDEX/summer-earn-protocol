@@ -48,6 +48,12 @@ jobs:
       - name: Prebuild
         run: pnpm prebuild
 
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format
+        run: pnpm format
+
       - name: Build
         run: pnpm build
 
@@ -59,12 +65,6 @@ jobs:
           BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
           SONIC_RPC_URL: ${{ secrets.SONIC_RPC_URL }}
           OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Format
-        run: pnpm format
 
       - name: Generate coverage reports
         env:
