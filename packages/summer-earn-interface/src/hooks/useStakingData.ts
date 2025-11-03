@@ -1,6 +1,8 @@
-import { ChainId } from '@/types'
 import { erc20Abi } from 'viem'
 import { useAccount, useReadContract } from 'wagmi'
+
+import { ChainId } from '@/types'
+
 import { stakingRewardsManagerAbi } from '../abis/StakingRewardsManager'
 
 interface UseStakingDataProps {

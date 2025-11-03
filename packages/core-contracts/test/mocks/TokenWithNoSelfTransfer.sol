@@ -7,7 +7,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
  * @dev this token represents a token that does not allow self transfer e.g. Silo's xSilo token
  */
 contract TokenWithNoSelfTransfer is ERC20Mock {
-    constructor(string memory name, string memory symbol) ERC20Mock() {}
+    constructor(string memory name, string memory symbol) {}
 
     error SelfTransferNotAllowed();
     error ZeroTransfer();

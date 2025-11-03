@@ -53,9 +53,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
      * @notice Initializes the Raft contract
      * @param _accessManager Address of the access manager contract
      */
-    constructor(
-        address _accessManager
-    ) ArkAccessManaged(_accessManager) AuctionManagerBase() {}
+    constructor(address _accessManager) ArkAccessManaged(_accessManager) {}
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL GOVERNOR FUNCTIONS

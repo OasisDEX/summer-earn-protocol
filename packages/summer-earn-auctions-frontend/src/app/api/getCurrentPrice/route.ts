@@ -1,5 +1,6 @@
-import { CHAIN_CONFIGS } from '@/lib/config'
 import { createPublicClient, http } from 'viem'
+
+import { CHAIN_CONFIGS } from '@/lib/config'
 
 export async function POST(request: Request) {
   try {

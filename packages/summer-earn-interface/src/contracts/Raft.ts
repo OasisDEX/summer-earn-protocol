@@ -1,6 +1,7 @@
 import { Address } from 'viem'
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
 import { useChainId, usePublicClient, useWalletClient } from 'wagmi'
+
 import { RAFT_CONTRACT_ADDRESSES, REWARD_TOKENS } from '../config/environments'
 import { useEnvironment } from '../hooks/useEnvironment'
 

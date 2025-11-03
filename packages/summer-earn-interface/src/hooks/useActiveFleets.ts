@@ -1,8 +1,9 @@
 'use client'
 
+import { useQuery } from '@tanstack/react-query'
+
 import type { Environment } from '@/config/environments'
 import type { FleetCommanderInfo } from '@/types'
-import { useQuery } from '@tanstack/react-query'
 
 interface UseActiveFleetsProps {
   chainId: string

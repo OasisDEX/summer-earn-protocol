@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+
 import type { Environment } from '../config/environments'
 import { useRoleConstants } from '../hooks/useRoleConstants'
 import type { ArkRole, ChainId, FleetRole, GlobalRole } from '../types'

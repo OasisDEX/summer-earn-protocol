@@ -1,7 +1,9 @@
-import { ChainId } from '@/types'
 import { useState } from 'react'
 import { Address } from 'viem'
 import { useChainId } from 'wagmi'
+
+import { ChainId } from '@/types'
+
 import { useRaftContract } from '../contracts/Raft'
 import { ArkManagementForm } from './ArkManagementForm'
 import { AuctionConfigModal } from './AuctionConfigModal'

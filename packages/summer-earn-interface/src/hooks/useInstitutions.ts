@@ -1,8 +1,9 @@
 'use client'
 
+import { useQuery } from '@tanstack/react-query'
+
 import type { ChainId } from '@/types'
 import type { Institution, RoleEntity, VaultEntity } from '@/types/subgraph'
-import { useQuery } from '@tanstack/react-query'
 
 export const useInstitutions = (chainId: ChainId) => {
   return useQuery({

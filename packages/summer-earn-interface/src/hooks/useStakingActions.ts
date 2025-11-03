@@ -1,8 +1,10 @@
-import { CHAIN_BLOCK_EXPLORERS } from '@/config/chains'
-import { ChainId } from '@/types'
 import { toast } from 'sonner'
 import { erc20Abi, parseUnits } from 'viem'
 import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+
+import { CHAIN_BLOCK_EXPLORERS } from '@/config/chains'
+import { ChainId } from '@/types'
+
 import { stakingRewardsManagerAbi } from '../abis/StakingRewardsManager'
 
 interface UseStakingActionsProps {

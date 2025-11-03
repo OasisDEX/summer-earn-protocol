@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+
 // Now proxied via Next API routes with server-side caching
 import { ChainId } from '../types'
 import { DailyInterestRate, HourlyInterestRate, InterestRate, Product } from '../types/subgraph'

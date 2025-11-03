@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { erc20Abi, formatUnits } from 'viem'
 import { multicall } from 'viem/actions'
 import { usePublicClient } from 'wagmi'
+
 import { CHAIN_NAMES } from '../config/chains'
 import type {
   ArkRewardsData,

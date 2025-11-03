@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+
 import type { ChainId } from '../types'
 import { useFleetConfig } from './useFleetConfig'
 import { useStakingActions } from './useStakingActions'

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "sync-config": "node scripts/sync-config.js"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "@summerfi/typescript-config": "workspace:*",
     "autoprefixer": "10.4.17",
     "eslint": "^9.0.0",
+    "eslint-config-next": "^14.2.0",
     "@eslint/eslintrc": "^3.0.0",
     "glob": "^11.0.2",
     "postcss": "8.4.35",

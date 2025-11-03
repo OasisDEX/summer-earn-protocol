@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAccount } from 'wagmi'
+
 import { FleetCommanderInfo, UserFleetInfo } from '../types'
 
 interface UseFleetInfoProps {

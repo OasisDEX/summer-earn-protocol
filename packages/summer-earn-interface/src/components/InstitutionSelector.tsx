@@ -1,9 +1,10 @@
 'use client'
 
-import { useInstitutions } from '@/hooks/useInstitutions'
-import type { ChainId } from '@/types'
 import { useMemo } from 'react'
 import { fromHex } from 'viem'
+
+import { useInstitutions } from '@/hooks/useInstitutions'
+import type { ChainId } from '@/types'
 
 interface InstitutionSelectorProps {
   chainId: ChainId

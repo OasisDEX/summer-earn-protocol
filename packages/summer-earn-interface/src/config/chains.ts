@@ -1,4 +1,5 @@
-import { Chain, arbitrum, base, mainnet, sonic } from 'viem/chains'
+import { arbitrum, base, Chain, mainnet, sonic } from 'viem/chains'
+
 import { ChainId } from '../types'
 
 export const CHAIN_NAMES: Record<ChainId, string> = {

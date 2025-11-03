@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+
 import { useStakingRewards } from '../hooks/useStakingRewards'
 import type { ChainId, UserFleetInfo } from '../types'
 import { formatDecimalOutput } from '../utils/decimals'

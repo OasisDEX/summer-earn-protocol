@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
+
 import type { Environment } from '../../config/environments'
 import { useIntentSystem } from '../../hooks/useIntentSystem'
 import type { ChainId } from '../../types'

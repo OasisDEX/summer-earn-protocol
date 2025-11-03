@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build:app": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@radix-ui/react-tabs": "^1.1.3",
@@ -28,6 +30,7 @@
     "@summerfi/typescript-config": "workspace:*",
     "eslint": "^9.0.0",
     "@eslint/eslintrc": "^3.0.0",
+    "eslint-config-next": "^14.2.0",
     "postcss": "^8.4.35",
     "postcss-import": "^16.0.1",
     "tailwindcss": "^3.4.1",

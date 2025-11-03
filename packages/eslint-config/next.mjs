@@ -6,6 +6,9 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort'
 import globals from 'globals'
 
 export default [
+  {
+    ignores: ['.next/**', '.vercel/**', 'node_modules/**', '.turbo/**', 'coverage/**', 'out/**'],
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -36,6 +39,7 @@ export default [
       'react/jsx-uses-react': 'error',
       'react/jsx-uses-vars': 'error',
       'react/prop-types': 'off',
+      'react/react-in-jsx-scope': 'off',
 
       // TS
       'no-unused-vars': 'off',

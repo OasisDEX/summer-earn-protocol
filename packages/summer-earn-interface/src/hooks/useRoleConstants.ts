@@ -1,4 +1,5 @@
 import { useReadContract } from 'wagmi'
+
 import { protocolAccessManagerAbi } from '../abis/ProtocolAccessManager'
 import type { GlobalRole } from '../types'
 

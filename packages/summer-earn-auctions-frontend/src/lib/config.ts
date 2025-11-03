@@ -1,4 +1,5 @@
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+
 import { ChainConfig } from './types'
 
 // Validate RPC URLs

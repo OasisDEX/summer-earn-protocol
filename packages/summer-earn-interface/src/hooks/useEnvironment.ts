@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+
 import type { Environment } from '../config/environments'
 import { useLocalStorage } from './useLocalStorage'
 

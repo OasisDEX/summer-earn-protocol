@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@reown/appkit": "^1.8.8",
@@ -29,6 +30,7 @@
     "@summerfi/typescript-config": "workspace:*",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.0.0",
+    "eslint-config-next": "^14.2.0",
     "@eslint/eslintrc": "^3.0.0",
     "pino-pretty": "^13.0.0",
     "postcss": "^8.5.3",
