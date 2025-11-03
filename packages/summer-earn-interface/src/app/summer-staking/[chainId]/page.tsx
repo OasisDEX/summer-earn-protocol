@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 
 import { useSummerStaking } from '../../../hooks/useSummerStaking'

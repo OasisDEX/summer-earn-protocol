@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 import { getAddress, isAddress } from 'viem'
 import {
   useAccount,

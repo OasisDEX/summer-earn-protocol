@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 
 import { AdmiralsWhitelistToggle } from '@/components/AdmiralsWhitelistToggle'
@@ -9,7 +9,7 @@ import { ChainSelector } from '@/components/ChainSelector'
 import { InstitutionRolesPanel } from '@/components/InstitutionRolesPanel'
 import { InstitutionSelector } from '@/components/InstitutionSelector'
 import { WhitelistManager } from '@/components/WhitelistManager'
-import { useInstitutionRoles, useInstitutions,useInstitutionVaults } from '@/hooks/useInstitutions'
+import { useInstitutionRoles, useInstitutions, useInstitutionVaults } from '@/hooks/useInstitutions'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import type { ChainId } from '@/types'
 

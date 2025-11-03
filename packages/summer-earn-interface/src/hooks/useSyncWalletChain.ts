@@ -26,7 +26,7 @@ export function useSyncWalletChain(selectedChainId: ChainId | undefined) {
         switchChain({ chainId: desired })
       } catch (err) {
         // Non-fatal: user can decline; UI should still function for read-only
-         
+
         console.warn('Failed to switch chain:', err)
       }
     }

@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 
 import { useRaftContract } from '../../../../components/../contracts/Raft'
