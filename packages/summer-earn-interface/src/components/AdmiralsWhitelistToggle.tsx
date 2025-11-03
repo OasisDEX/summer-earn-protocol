@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 
 // Minimal ABI: IWhitelist.setWhitelisted(address,bool)
 const whitelistAbi = [
@@ -23,16 +23,22 @@ interface AdmiralsWhitelistToggleProps {
 
 export function AdmiralsWhitelistToggle({ admiralsQuarters }: AdmiralsWhitelistToggleProps) {
   const [enabled, setEnabled] = useState<boolean>(false)
+  const { address: walletAddress } = useAccount()
   const { writeContract, data: txHash, isPending, error } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
   const handleToggle = () => {
-    ;(writeContract as any)({
+    if (isPending || isConfirming) return
+    if (!walletAddress) return
+
+    writeContract({
       abi: whitelistAbi,
       address: admiralsQuarters,
       functionName: 'setWhitelisted',
       args: ['0x0000000000000000000000000000000000000000', !enabled],
-    })
+      account: walletAddress,
+    } as unknown as Parameters<typeof writeContract>[0])
+    setEnabled((prev) => !prev)
   }
 
   return (

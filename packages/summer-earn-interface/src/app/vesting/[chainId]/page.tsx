@@ -1,7 +1,7 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { getAddress, isAddress } from 'viem'
 import {
   useAccount,
@@ -11,6 +11,8 @@ import {
   useWriteContract,
 } from 'wagmi'
 import { base as baseChain } from 'wagmi/chains'
+
+import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 
 import { erc20Abi } from '../../../abis/ERC20'
 import { summerVestingWalletAbi } from '../../../abis/SummerVestingWallet'
@@ -25,6 +27,91 @@ import { useEnvironment } from '../../../hooks/useEnvironment'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
 import type { ChainId } from '../../../types'
 import { formatDecimalOutput } from '../../../utils/decimals'
+
+const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
+
+type V2GoalResult = {
+  amount: bigint
+  reached: boolean
+  description?: string
+}
+
+const toBigIntOrNull = (value: unknown): bigint | null => {
+  if (typeof value === 'bigint') return value
+  if (typeof value === 'number') return BigInt(value)
+  if (typeof value === 'string' && value.trim() !== '') {
+    try {
+      return BigInt(value)
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
+const extractVestingParam = (value: unknown, index: number, key?: string): bigint | null => {
+  if (value === null || value === undefined) return null
+  if (Array.isArray(value)) {
+    return toBigIntOrNull(value[index])
+  }
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    if (key && record[key] !== undefined) {
+      const keyed = toBigIntOrNull(record[key])
+      if (keyed !== null) return keyed
+    }
+    if (record[index] !== undefined) {
+      const indexed = toBigIntOrNull(record[index])
+      if (indexed !== null) return indexed
+    }
+    if (record[String(index)] !== undefined) {
+      const named = toBigIntOrNull(record[String(index)])
+      if (named !== null) return named
+    }
+  }
+  return null
+}
+
+const parseV2GoalResult = (value: unknown): V2GoalResult | null => {
+  if (value === null || value === undefined) return null
+  if (Array.isArray(value)) {
+    const [amountValue, reachedValue, descriptionValue] = value as [unknown, unknown, unknown]
+    const amount = toBigIntOrNull(amountValue)
+    if (amount === null) return null
+    const reached = typeof reachedValue === 'boolean' ? reachedValue : Boolean(reachedValue)
+    const description =
+      typeof descriptionValue === 'string' && descriptionValue.length > 0
+        ? descriptionValue
+        : undefined
+    return { amount, reached, description }
+  }
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    const amount =
+      toBigIntOrNull(record.amount) ??
+      toBigIntOrNull(record[0]) ??
+      toBigIntOrNull(record['0']) ??
+      null
+    if (amount === null) return null
+    const reachedRaw = record.reached ?? record[1] ?? record['1']
+    const reached = typeof reachedRaw === 'boolean' ? reachedRaw : Boolean(reachedRaw)
+    const descriptionRaw = record.description ?? record[2] ?? record['2']
+    const description =
+      typeof descriptionRaw === 'string' && descriptionRaw.length > 0 ? descriptionRaw : undefined
+    return { amount, reached, description }
+  }
+  return null
+}
+
+type MulticallResult<T> =
+  | {
+      status: 'success'
+      result: T
+    }
+  | {
+      status: 'failure'
+      result?: undefined
+    }
 
 export default function VestingPage() {
   const params = useParams()
@@ -85,7 +172,6 @@ export default function VestingPage() {
     args: queryAddress ? [queryAddress] : undefined,
     query: { enabled: !!queryAddress && !!factoryV2Address && !vestingWalletAddressV1 },
   })
-  const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
   // Use V1 if found, otherwise V2
   const isV1Valid = !!vestingWalletAddressV1 && vestingWalletAddressV1 !== ADDRESS_ZERO
   const isV2Valid = !!vestingWalletAddressV2 && vestingWalletAddressV2 !== ADDRESS_ZERO
@@ -133,28 +219,13 @@ export default function VestingPage() {
 
   // Extract V2 params by tuple position to avoid ABI name mismatches
   const v2CliffAmount = useMemo(() => {
-    if (!isV2Wallet || !vestingType) return null
-    const vp: any = vestingType
-    const byIndex = vp?.[1]
-    const byName = vp?.cliffAmount
-    try {
-      return BigInt(byIndex ?? byName ?? 0)
-    } catch {
-      return BigInt(0)
-    }
+    if (!isV2Wallet || vestingType === undefined) return null
+    return extractVestingParam(vestingType, 1, 'cliffAmount') ?? BigInt(0)
   }, [isV2Wallet, vestingType])
 
   const v2TotalVestingAmount = useMemo(() => {
-    if (!isV2Wallet || !vestingType) return null
-    const vp: any = vestingType
-    console.log('vp', vp)
-    const byIndex = vp?.[3]
-    const byName = vp?.totalVestingAmount
-    try {
-      return BigInt(byIndex ?? byName ?? 0)
-    } catch {
-      return BigInt(0)
-    }
+    if (!isV2Wallet || vestingType === undefined) return null
+    return extractVestingParam(vestingType, 3, 'totalVestingAmount') ?? BigInt(0)
   }, [isV2Wallet, vestingType])
 
   // For V1 only: read time-based amount directly; for V2 we reuse vestingParams from above
@@ -219,12 +290,27 @@ export default function VestingPage() {
   )
 
   const onClaim = () => {
-    if (!canClaim) return
-    ;(writeContract as any)({
-      abi: isV2Wallet ? summerVestingWalletV2Abi : summerVestingWalletAbi,
+    if (!canClaim || !vestingWalletAddress || !tokenAddress) return
+
+    if (isV2Wallet) {
+      writeContract({
+        abi: summerVestingWalletV2Abi,
+        address: vestingWalletAddress as `0x${string}`,
+        functionName: 'release',
+        args: [tokenAddress as `0x${string}`],
+        chain: VIEM_CHAIN_ENTITIES[chainId],
+        account: address,
+      })
+      return
+    }
+
+    writeContract({
+      abi: summerVestingWalletAbi,
       address: vestingWalletAddress as `0x${string}`,
       functionName: 'release',
       args: [tokenAddress as `0x${string}`],
+      chain: VIEM_CHAIN_ENTITIES[chainId],
+      account: address,
     })
   }
 
@@ -239,10 +325,11 @@ export default function VestingPage() {
     async function loadGoals() {
       if (!publicClient || !vestingWalletAddress) return
 
+      const client = publicClient
+
       if (isV2Wallet) {
         // V2 contract: use performanceGoals function
         try {
-          const pc: any = publicClient
           const maxProbe = 32 // reasonable upper bound; can raise if needed
           const indices = Array.from({ length: maxProbe }, (_, i) => BigInt(i + 1)) // V2 uses 1-indexed goals
 
@@ -251,30 +338,33 @@ export default function VestingPage() {
             abi: summerVestingWalletV2Abi,
             functionName: 'performanceGoals' as const,
             args: [i],
-          })) as any[]
+          }))
 
-          const goalRes = await pc.multicall({ contracts: goalCalls as any, allowFailure: true })
+          const goalResponse = await (
+            client as unknown as {
+              multicall: (params: {
+                contracts: typeof goalCalls
+                allowFailure: true
+              }) => Promise<MulticallResult<readonly [bigint, boolean, string]>[]>
+            }
+          ).multicall({ contracts: goalCalls, allowFailure: true })
+
+          const goalRes = goalResponse ?? []
 
           const items: { amount: bigint; reached: boolean; description?: string }[] = []
           for (let i = 0; i < maxProbe; i++) {
             const goal = goalRes[i]
-            if (goal.status === 'success' && goal.result) {
-              const result = goal.result as any
-              if (result.amount && result.amount > BigInt(0)) {
-                items.push({
-                  amount: result.amount,
-                  reached: result.reached,
-                  description: result.description,
-                })
-              } else {
-                break
-              }
+            if (goal?.status === 'success' && goal.result) {
+              const parsed = parseV2GoalResult(goal.result)
+              if (!parsed || parsed.amount === BigInt(0)) break
+              items.push(parsed)
             } else {
               break
             }
           }
           if (!cancelled) setGoals(items)
-        } catch (e) {
+        } catch (error) {
+          console.error('Failed to load V2 performance goals', error)
           // Non-fatal; just leave goals empty
           if (!cancelled) setGoals([])
         }
@@ -287,36 +377,58 @@ export default function VestingPage() {
           abi: summerVestingWalletAbi,
           functionName: 'goalAmounts' as const,
           args: [i],
-        })) as any[]
+        }))
         const reachedCalls = indices.map((i) => ({
           address: vestingWalletAddress as `0x${string}`,
           abi: summerVestingWalletAbi,
           functionName: 'goalsReached' as const,
           args: [i],
-        })) as any[]
+        }))
 
         try {
-          const pc: any = publicClient
-          const [amountRes, reachedRes] = await Promise.all([
-            pc.multicall({ contracts: amountCalls as any, allowFailure: true }),
-            pc.multicall({ contracts: reachedCalls as any, allowFailure: true }),
+          const [amountResponse, reachedResponse] = await Promise.all([
+            (
+              client as unknown as {
+                multicall: (params: {
+                  contracts: typeof amountCalls
+                  allowFailure: true
+                }) => Promise<MulticallResult<bigint>[]>
+              }
+            ).multicall({ contracts: amountCalls, allowFailure: true }),
+            (
+              client as unknown as {
+                multicall: (params: {
+                  contracts: typeof reachedCalls
+                  allowFailure: true
+                }) => Promise<MulticallResult<boolean>[]>
+              }
+            ).multicall({ contracts: reachedCalls, allowFailure: true }),
           ])
+
+          const amountRes = amountResponse ?? []
+          const reachedRes = reachedResponse ?? []
 
           const items: { amount: bigint; reached: boolean; description?: string }[] = []
           for (let i = 0; i < maxProbe; i++) {
             const a = amountRes[i]
             const r = reachedRes[i]
-            if (a.status === 'success' && r.status === 'success') {
+            if (a?.status === 'success' && r?.status === 'success') {
+              const amountValue = toBigIntOrNull(a.result) ?? BigInt(0)
+              const reachedValueRaw = r.result
+              const reachedValue =
+                typeof reachedValueRaw === 'boolean' ? reachedValueRaw : Boolean(reachedValueRaw)
+
               items.push({
-                amount: a.result as unknown as bigint,
-                reached: r.result as unknown as boolean,
+                amount: amountValue,
+                reached: reachedValue,
               })
             } else {
               break
             }
           }
           if (!cancelled) setGoals(items)
-        } catch (e) {
+        } catch (error) {
+          console.error('Failed to load V1 goal data', error)
           // Non-fatal; just leave goals empty
           if (!cancelled) setGoals([])
         }

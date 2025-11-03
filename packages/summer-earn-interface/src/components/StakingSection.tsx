@@ -32,7 +32,6 @@ export function StakingSection({
     stakedBalance,
     totalStakedSupply,
     earnedRewards,
-    rewardTokens,
     rewardTokensLength,
     stake,
     unstake,
@@ -42,7 +41,6 @@ export function StakingSection({
     isClaimLoading,
     isStakeConfirmed,
     isUnstakeConfirmed,
-    isClaimConfirmed,
   } = useStakingRewards({ fleetAddress, chainId })
 
   if (!stakingRewardsManagerAddress || !userInfo) {

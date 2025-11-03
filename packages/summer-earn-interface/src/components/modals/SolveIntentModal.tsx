@@ -111,7 +111,7 @@ export function SolveIntentModal({
       console.log('Setting form data with defaults:', newFormData)
       setFormData(newFormData)
     }
-  }, [intentData, isOpen, tokens, mockIntentOracle, userAddress])
+  }, [intentData, isOpen, tokens, mockIntentOracle, userAddress, environment, chainId])
 
   // Check if approval is needed for the escrowed yield token
   const checkTokenApproval = async () => {
@@ -315,8 +315,8 @@ export function SolveIntentModal({
               required
             />
             <div className="text-xs text-gray-400 mt-1">
-              USD amount (e.g., enter "1000" for $1000 USD - will be converted to 18 decimals
-              automatically)
+              USD amount (e.g., enter &quot;1000&quot; for $1000 USD - will be converted to 18
+              decimals automatically)
             </div>
           </div>
 

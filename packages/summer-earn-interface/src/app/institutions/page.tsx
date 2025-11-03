@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useAccount } from 'wagmi'
 
 import { AdmiralsWhitelistToggle } from '@/components/AdmiralsWhitelistToggle'
@@ -12,6 +12,7 @@ import { WhitelistManager } from '@/components/WhitelistManager'
 import { useInstitutionRoles, useInstitutions, useInstitutionVaults } from '@/hooks/useInstitutions'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import type { ChainId } from '@/types'
+import type { RoleEntity, VaultEntity } from '@/types/subgraph'
 
 export default function InstitutionsPage() {
   const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', '1')
@@ -41,10 +42,12 @@ export default function InstitutionsPage() {
     )
   }, [roles, connected])
 
+  type ExtendedVaultEntity = VaultEntity & { address?: string | null }
+
   const groupedRoles = useMemo(() => {
-    const groups: Record<string, { name: string; items: typeof roles }> = {}
+    const groups: Record<string, { name: string; items: RoleEntity[] }> = {}
     for (const r of roles) {
-      if (!groups[r.name]) groups[r.name] = { name: r.name, items: [] as any }
+      if (!groups[r.name]) groups[r.name] = { name: r.name, items: [] }
       groups[r.name].items.push(r)
     }
     return groups
@@ -84,20 +87,21 @@ export default function InstitutionsPage() {
                   <p className="text-gray-400">No vaults found for this institution.</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {vaults.map((v: any) => {
-                      const address: string | undefined = (v.address || v.id) as string | undefined
+                    {vaults.map((vault) => {
+                      const { address: maybeAddress, id, name } = vault as ExtendedVaultEntity
+                      const address: string | undefined = maybeAddress ?? id
                       const isAddress =
                         typeof address === 'string' &&
                         address.startsWith('0x') &&
                         address.length === 42
                       return (
                         <div
-                          key={v.id}
+                          key={id}
                           className="p-4 bg-gray-900 rounded-lg border border-white/10 space-y-3"
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <h3 className="text-white font-semibold">{v.name ?? 'Vault'}</h3>
+                              <h3 className="text-white font-semibold">{name ?? 'Vault'}</h3>
                               <p className="text-sm text-blue-300 font-mono break-all">{address}</p>
                             </div>
                           </div>
@@ -198,10 +202,9 @@ export default function InstitutionsPage() {
                       }
                       fleets={
                         vaults
-                          .map((v: any) => {
-                            const address: string | undefined = (v.address || v.id) as
-                              | string
-                              | undefined
+                          .map((vault) => {
+                            const { address: maybeAddress, id, name } = vault as ExtendedVaultEntity
+                            const address: string | undefined = maybeAddress ?? id
                             const isAddress =
                               typeof address === 'string' &&
                               address.startsWith('0x') &&
@@ -209,7 +212,7 @@ export default function InstitutionsPage() {
                             if (!isAddress) return null
                             return {
                               address: address as `0x${string}`,
-                              label: v.name ? `${v.name} (${address})` : address,
+                              label: name ? `${name} (${address})` : address,
                             }
                           })
                           .filter(Boolean) as { address: `0x${string}`; label: string }[]

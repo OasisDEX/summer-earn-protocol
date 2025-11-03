@@ -21,9 +21,15 @@ export function InstitutionSelector({ chainId, value, onChange }: InstitutionSel
       if (typeof i.id === 'string' && i.id.startsWith('0x') && i.id.length === 66) {
         try {
           const decoded = fromHex(i.id as `0x${string}`, 'string')
-          label = decoded.replace(/\u0000+$/g, '') || i.id
-        } catch (_) {
-          // noop – fallback to raw id
+          const NULL_CODE_POINT = 0x0
+          let trimmed = decoded
+          while (trimmed.length > 0 && trimmed.charCodeAt(trimmed.length - 1) === NULL_CODE_POINT) {
+            trimmed = trimmed.slice(0, -1)
+          }
+          label = trimmed || i.id
+        } catch (error) {
+          console.error('Failed to decode institution id', error)
+          // fallback to raw id
         }
       }
       return { id: i.id, label }

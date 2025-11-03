@@ -8,6 +8,12 @@ import { CHAIN_RPC_URLS } from '@/config/chains'
 const TTL_MS = 10 * 60 * 1000
 const cache = new Map<string, { data: unknown; expiry: number }>()
 
+type FleetUserInfo = {
+  balance: string
+  underlyingBalance: string
+  allowance: string
+}
+
 export async function GET(
   request: Request,
   { params }: { params: { chainId: string; address: string } },
@@ -79,7 +85,7 @@ export async function GET(
     }),
   ])
 
-  let userInfo: any = null
+  let userInfo: FleetUserInfo | null = null
   if (user) {
     const [balance, underlyingBalance, allowance] = await Promise.all([
       // @ts-ignore

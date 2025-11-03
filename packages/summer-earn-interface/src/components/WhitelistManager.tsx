@@ -29,21 +29,25 @@ interface WhitelistManagerProps {
 }
 
 export function WhitelistManager({ fleetAddress }: WhitelistManagerProps) {
-  const { isConnected } = useAccount()
+  const { isConnected, chain, address: account } = useAccount()
   const [address, setAddress] = useState('')
   const [allowed, setAllowed] = useState(true)
   const { writeContract, data: txHash, isPending, error } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
-  const canSubmit = isConnected && address.length === 42
+  const normalizedAddress =
+    address.length === 42 && address.startsWith('0x') ? (address as `0x${string}`) : null
+  const canSubmit = isConnected && normalizedAddress !== null
 
   const handleSubmit = () => {
-    if (!canSubmit) return
-    ;(writeContract as any)({
+    if (!normalizedAddress) return
+    writeContract({
       abi: fleetCommanderWhitelistAbi,
       address: fleetAddress,
       functionName: 'setWhitelisted',
-      args: [address as `0x${string}`, allowed],
+      args: [normalizedAddress, allowed],
+      chain: chain,
+      account: account,
     })
   }
 

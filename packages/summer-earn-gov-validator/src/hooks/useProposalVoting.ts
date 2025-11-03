@@ -1,4 +1,5 @@
 import { useAccount, useReadContract, useReadContracts } from 'wagmi'
+
 import config from '../config/index.json'
 
 const GOVERNOR_ABI = [

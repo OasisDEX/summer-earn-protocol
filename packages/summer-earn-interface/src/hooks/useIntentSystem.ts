@@ -47,6 +47,10 @@ export interface IntentEvent {
   expiry: bigint
 }
 
+type EventIntentStruct = IntentData & {
+  [key: number]: unknown
+}
+
 export function useIntentSystem(environment: Environment, chainId: ChainId) {
   const { address: userAddress } = useAccount()
   const publicClient = usePublicClient()
@@ -54,7 +58,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [intentData, setIntentData] = useState<IntentData | null>(null)
   const [solverInfo, setSolverInfo] = useState<SolverInfo | null>(null)
   const [intentEvents, setIntentEvents] = useState<IntentEvent[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
@@ -66,17 +69,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
   const tokens = INTENT_SYSTEM_TOKENS[environment][chainId]
 
   const isDeployed = intentBondFactory !== '0x0000000000000000000000000000000000000000'
-
-  // Get intent data for a user
-  const getIntent = useCallback(
-    async (userAddress: string) => {
-      // This function doesn't exist in the current contract
-      // Intents are created and managed differently
-      console.log('getIntent not implemented in current contract')
-      return null
-    },
-    [publicClient, intentHandler],
-  )
 
   // Get solver information
   const getSolverInfo = useCallback(
@@ -475,19 +467,19 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
       // Process created events
       for (const event of createdEvents) {
         const block = await publicClient.getBlock({ blockHash: event.blockHash! })
-        const intentData = event.args.intent as any
+        const intentStruct = event.args.intent as EventIntentStruct
 
         processedEvents.push({
           intentId: event.args.orderId as string,
-          user: intentData.user,
+          user: intentStruct.user,
           state: 'Created',
           timestamp: Number(block.timestamp),
-          requiredNotional: intentData.requiredNotional,
-          requiredBond: intentData.requiredBond,
-          term: intentData.term,
-          targetYield: intentData.targetYield,
-          token: intentData.token,
-          expiry: intentData.expiry,
+          requiredNotional: intentStruct.requiredNotional,
+          requiredBond: intentStruct.requiredBond,
+          term: intentStruct.term,
+          targetYield: intentStruct.targetYield,
+          token: intentStruct.token,
+          expiry: intentStruct.expiry,
         })
       }
 
@@ -582,7 +574,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
   // Load initial data
   useEffect(() => {
     if (userAddress && isDeployed) {
-      // Don't call getIntent since it's not implemented
       getSolverInfo(userAddress)
     }
   }, [userAddress, isDeployed, getSolverInfo])
@@ -671,7 +662,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
   return {
     loading,
     error,
-    intentData,
     solverInfo,
     isDeployed,
     intentBondFactory,

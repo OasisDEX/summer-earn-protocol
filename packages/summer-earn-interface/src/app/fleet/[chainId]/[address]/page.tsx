@@ -1,11 +1,10 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 
-import { useRaftContract } from '../../../../components/../contracts/Raft'
 import { Ark } from '../../../../components/Ark'
 import { AuctionConfigModal } from '../../../../components/AuctionConfigModal'
 import { ChainSelector } from '../../../../components/ChainSelector'
@@ -19,7 +18,6 @@ import { useFleetArks } from '../../../../hooks/useFleetArks'
 import { useFleetInfo } from '../../../../hooks/useFleetInfo'
 import { useLocalStorage } from '../../../../hooks/useLocalStorage'
 import { useRebalance } from '../../../../hooks/useRebalance'
-import { useStakingRewards } from '../../../../hooks/useStakingRewards'
 import { useSyncWalletChain } from '../../../../hooks/useSyncWalletChain'
 import { ChainId, RebalanceData } from '../../../../types'
 import { formatDecimalOutput, parseDecimalInput } from '../../../../utils/decimals'
@@ -60,8 +58,6 @@ export default function FleetDetail() {
     isDepositLoading,
     isWithdrawLoading,
     isApproveSuccess,
-    isDepositSuccess,
-    isWithdrawSuccess,
   } = useFleetActions({
     fleetAddress: address,
     assetAddress: (fleetInfo?.asset as `0x${string}`) || '0x',
@@ -84,24 +80,6 @@ export default function FleetDetail() {
     fleetAddress: address,
     chainId: selectedChain,
   })
-
-  // Staking rewards hook
-  const {
-    stakingRewardsManagerAddress,
-    stakedBalance,
-    approveStaking,
-    stake: stakeShares,
-    needsStakingApproval,
-    isApproveStakingLoading,
-    isStakeLoading,
-    isApproveStakingConfirmed,
-    isStakeConfirmed,
-  } = useStakingRewards({
-    fleetAddress: address,
-    chainId: selectedChain,
-  })
-
-  const { harvest, harvestAndStartAuction } = useRaftContract()
   const [auctionModalArk, setAuctionModalArk] = useState<null | {
     address: string
     rewardToken: string
@@ -152,8 +130,6 @@ export default function FleetDetail() {
       updateAllowance(BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'))
     }
   }, [isApproveSuccess, updateAllowance])
-
-  const isLoading = fleetLoading
 
   if (fleetError || (!fleetLoading && !fleetInfo)) {
     return (
@@ -313,9 +289,6 @@ export default function FleetDetail() {
                 needsApproval={needsApproval}
               />
             )}
-
-            {/* Old interface removed - now using tabs above */}
-            {false && <div className="hidden"></div>}
 
             {/* Staking Section */}
             {isConnected && userInfo && fleetInfo && (

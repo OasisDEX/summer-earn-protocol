@@ -5,10 +5,9 @@ import type { GlobalRole } from '../types'
 
 interface UseRoleConstantsProps {
   contractAddress: string
-  chainId: string
 }
 
-export function useRoleConstants({ contractAddress, chainId }: UseRoleConstantsProps) {
+export function useRoleConstants({ contractAddress }: UseRoleConstantsProps) {
   const { data: governorRole } = useReadContract({
     abi: protocolAccessManagerAbi,
     address: contractAddress as `0x${string}`,

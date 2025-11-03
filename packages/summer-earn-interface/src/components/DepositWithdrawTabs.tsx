@@ -153,7 +153,7 @@ export function DepositWithdrawTabs({
             <p className="text-xs text-orange-300">
               1. Burn {fleetSymbol} shares → Get {assetSymbol}
               <br />
-              2. You'll receive your share of fleet performance
+              2. You&apos;ll receive your share of fleet performance
               <br />
               3. Note: Unstake first if you have staked shares
             </p>

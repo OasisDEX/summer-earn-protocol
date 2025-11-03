@@ -16,10 +16,7 @@ interface SetPriceModalProps {
 const USD_MULTIPLIER = BigInt(10 ** 18)
 
 export function SetPriceModal({ isOpen, onClose, environment, chainId }: SetPriceModalProps) {
-  const { setPrice, loading, error, tokens, mockIntentOracle } = useIntentSystem(
-    environment,
-    chainId,
-  )
+  const { setPrice, loading, error, tokens } = useIntentSystem(environment, chainId)
 
   const [formData, setFormData] = useState({
     token: tokens?.USDC || '',
@@ -115,8 +112,8 @@ export function SetPriceModal({ isOpen, onClose, environment, chainId }: SetPric
               required
             />
             <div className="text-xs text-gray-400 mt-1">
-              USD price (e.g., enter "1.00" for $1.00 USD - will be converted to 18 decimals
-              automatically)
+              USD price (e.g., enter &quot;1.00&quot; for $1.00 USD - will be converted to 18
+              decimals automatically)
             </div>
           </div>
 
@@ -134,7 +131,7 @@ export function SetPriceModal({ isOpen, onClose, environment, chainId }: SetPric
               required
             />
             <div className="text-xs text-gray-400 mt-1">
-              Token's native decimal places (USDC = 6, SUMMER = 18)
+              Token&apos;s native decimal places (USDC = 6, SUMMER = 18)
             </div>
           </div>
 

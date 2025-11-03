@@ -72,9 +72,6 @@ importers:
       prettier:
         specifier: 3.2.5
         version: 3.2.5
-      prettier-plugin-organize-imports:
-        specifier: 4.0.0
-        version: 4.0.0(prettier@3.2.5)(typescript@5.4.5)
       prettier-plugin-solidity:
         specifier: 1.3.1
         version: 1.3.1(prettier@3.2.5)
@@ -16731,23 +16728,6 @@ packages:
     dependencies:
       fast-diff: 1.3.0
     dev: false
-
-  /prettier-plugin-organize-imports@4.0.0(prettier@3.2.5)(typescript@5.4.5):
-    resolution: {integrity: sha512-vnKSdgv9aOlqKeEFGhf9SCBsTyzDSyScy1k7E0R1Uo4L0cTcOV7c1XQaT7jfXIOc/p08WLBfN2QUQA9zDSZMxA==}
-    peerDependencies:
-      '@vue/language-plugin-pug': ^2.0.24
-      prettier: '>=2.0'
-      typescript: '>=2.9'
-      vue-tsc: ^2.0.24
-    peerDependenciesMeta:
-      '@vue/language-plugin-pug':
-        optional: true
-      vue-tsc:
-        optional: true
-    dependencies:
-      prettier: 3.2.5
-      typescript: 5.4.5
-    dev: true
 
   /prettier-plugin-solidity@1.3.1(prettier@3.0.0):
     resolution: {integrity: sha512-MN4OP5I2gHAzHZG1wcuJl0FsLS3c4Cc5494bbg+6oQWBPuEamjwDvmGfFMZ6NFzsh3Efd9UUxeT7ImgjNH4ozA==}

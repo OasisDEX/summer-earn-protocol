@@ -7,7 +7,6 @@ export function useEnvironment() {
   const [environment, setEnvironment] = useLocalStorage<Environment>('environment', 'production')
 
   const toggleEnvironment = useCallback(() => {
-    console.log('toggling environment', environment)
     setEnvironment((prev) => (prev === 'production' ? 'staging' : 'production'))
   }, [setEnvironment])
 

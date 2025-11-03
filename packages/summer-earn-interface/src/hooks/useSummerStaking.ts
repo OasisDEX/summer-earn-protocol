@@ -55,7 +55,7 @@ const summerStakingAbi = [
     type: 'function',
     name: 'getUserStakesCount',
     stateMutability: 'view',
-    inputs: [{ name: '_user', type: 'address' }],
+    inputs: [{ name: '_user', type: 'account' }],
     outputs: [{ name: 'count', type: 'uint256' }],
   },
   {
@@ -63,7 +63,7 @@ const summerStakingAbi = [
     name: 'getUserStake',
     stateMutability: 'view',
     inputs: [
-      { name: '_user', type: 'address' },
+      { name: '_user', type: 'account' },
       { name: '_index', type: 'uint256' },
     ],
     outputs: [
@@ -78,7 +78,7 @@ const summerStakingAbi = [
     name: 'calculatePenalty',
     stateMutability: 'view',
     inputs: [
-      { name: '_user', type: 'address' },
+      { name: '_user', type: 'account' },
       { name: '_amount', type: 'uint256' },
       { name: '_stakeIndex', type: 'uint256' },
     ],
@@ -89,7 +89,7 @@ const summerStakingAbi = [
     name: 'calculatePenaltyPercentage',
     stateMutability: 'view',
     inputs: [
-      { name: '_user', type: 'address' },
+      { name: '_user', type: 'account' },
       { name: '_stakeIndex', type: 'uint256' },
     ],
     outputs: [{ name: 'penaltyPct', type: 'uint256' }],
@@ -108,7 +108,7 @@ const summerStakingAbi = [
     type: 'function',
     name: 'weightedBalanceOf',
     stateMutability: 'view',
-    inputs: [{ name: 'account', type: 'address' }],
+    inputs: [{ name: 'account', type: 'account' }],
     outputs: [{ name: 'weighted', type: 'uint256' }],
   },
 ] as const
@@ -122,9 +122,11 @@ export interface UserStakeView {
   multiplierWad: bigint // weighted/amount in 1e18
 }
 
+const WAD = BigInt('1000000000000000000')
+
 export function useSummerStaking(chainId: ChainId) {
   const { environment } = useEnvironment()
-  const { address, isConnected } = useAccount()
+  const { address: account, chain } = useAccount()
   // Resolve and sanitize chain id from route param; fall back to Base (8453) if invalid or unmapped
   const rawChainId = Number(chainId)
   const hasMappingFor = (cid: number) =>
@@ -137,7 +139,7 @@ export function useSummerStaking(chainId: ChainId) {
   // Initialize public client for the resolved chain id; also keep a default client as fallback
   const pcForChain = usePublicClient({ chainId: chainIdNumber })
   const pcDefault = usePublicClient()
-  const publicClient = (pcForChain as any) ?? (pcDefault as any)
+  const publicClient = pcForChain ?? pcDefault
 
   const summerAddress = SUMMER_TOKEN_ADDRESSES[environment][chainIdNumber] as `0x${string}`
   const xSummerAddress = STAKED_SUMMER_TOKEN_ADDRESSES[environment][chainIdNumber] as `0x${string}`
@@ -146,29 +148,29 @@ export function useSummerStaking(chainId: ChainId) {
   // Reads
   const { data: bucketInfo } = useReadContract({
     abi: summerStakingAbi,
-    address: stakingAddress,
+    account: stakingAddress,
     functionName: 'getAllBucketInfo',
     query: { enabled: Boolean(stakingAddress) },
   })
-
+  // @ts-expect-error - wagmi types are not up to date
   const { data: userStakeCount } = useReadContract({
     abi: summerStakingAbi,
     address: stakingAddress,
     functionName: 'getUserStakesCount',
-    args: address ? [address] : undefined,
-    query: { enabled: Boolean(stakingAddress && address) },
+    args: account ? [account] : undefined,
+    query: { enabled: Boolean(stakingAddress && account) },
   })
 
   // ERC20 metadata
   const { data: summerDecimals } = useReadContract({
     abi: erc20Abi,
-    address: summerAddress,
+    account: summerAddress,
     functionName: 'decimals',
     query: { enabled: Boolean(summerAddress) },
   })
   const { data: summerSymbol } = useReadContract({
     abi: erc20Abi,
-    address: summerAddress,
+    account: summerAddress,
     functionName: 'symbol',
     query: { enabled: Boolean(summerAddress) },
   })
@@ -176,39 +178,39 @@ export function useSummerStaking(chainId: ChainId) {
   // Allowances
   const { data: summerAllowance, refetch: refetchSummerAllowance } = useReadContract({
     abi: erc20Abi,
-    address: summerAddress,
+    account: summerAddress,
     functionName: 'allowance',
-    args: address ? [address, stakingAddress] : undefined,
-    query: { enabled: Boolean(address && stakingAddress) },
+    args: account ? [account, stakingAddress] : undefined,
+    query: { enabled: Boolean(account && stakingAddress) },
   })
   const { data: xSummerAllowance, refetch: refetchXSummerAllowance } = useReadContract({
     abi: erc20Abi,
-    address: xSummerAddress,
+    account: xSummerAddress,
     functionName: 'allowance',
-    args: address ? [address, stakingAddress] : undefined,
-    query: { enabled: Boolean(address && stakingAddress && xSummerAddress) },
+    args: account ? [account, stakingAddress] : undefined,
+    query: { enabled: Boolean(account && stakingAddress && xSummerAddress) },
   })
 
   // Load stakes list via multicall
   const [stakes, setStakes] = useState<UserStakeView[]>([])
-  const WAD = BigInt('1000000000000000000')
   useEffect(() => {
     let cancelled = false
     async function load() {
-      if (!publicClient || !address || !stakingAddress) return
+      if (!publicClient || !account || !stakingAddress) return
       const count = Number((userStakeCount as bigint) || BigInt(0))
       if (count === 0) {
         if (!cancelled) setStakes([])
         return
       }
       const calls = Array.from({ length: count }, (_, i) => ({
-        address: stakingAddress,
+        account: stakingAddress,
         abi: summerStakingAbi,
         functionName: 'getUserStake' as const,
-        args: [address as `0x${string}`, BigInt(i)],
+        args: [account as `0x${string}`, BigInt(i)],
       }))
       try {
-        const res = await (publicClient as any).multicall({ contracts: calls, allowFailure: true })
+        // @ts-expect-error - wagmi types are not up to date
+        const res = await publicClient.multicall({ contracts: calls, allowFailure: true })
         const items: UserStakeView[] = []
         for (let i = 0; i < res.length; i++) {
           const r = res[i]
@@ -231,7 +233,8 @@ export function useSummerStaking(chainId: ChainId) {
           }
         }
         if (!cancelled) setStakes(items)
-      } catch (e) {
+      } catch (error) {
+        console.error('Failed to load stake data', error)
         if (!cancelled) setStakes([])
       }
     }
@@ -239,7 +242,7 @@ export function useSummerStaking(chainId: ChainId) {
     return () => {
       cancelled = true
     }
-  }, [publicClient, address, stakingAddress, userStakeCount])
+  }, [publicClient, account, stakingAddress, userStakeCount])
 
   // Actions
   const { writeContract: write, data: txHash, isPending } = useWriteContract()
@@ -258,65 +261,66 @@ export function useSummerStaking(chainId: ChainId) {
   }, [txHash, isConfirmed, refetchSummerAllowance, refetchXSummerAllowance])
 
   const approveSummer = useCallback(() => {
-    console.log('approveSummer', summerAddress, stakingAddress)
     if (!summerAddress || !stakingAddress) return
-    console.log('approveSummer', summerAddress, stakingAddress)
     try {
       toast.loading('Approving SUMMER…', { id: 'approve-summer' })
-      ;(write as any)({
+      write({
         abi: erc20Abi,
         address: summerAddress,
+        account: account,
         functionName: 'approve',
         args: [
           stakingAddress,
           BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'),
-        ],
-        chainId: chainIdNumber,
-      })
+        ] as const,
+        chain,
+      } as Parameters<typeof write>[0])
     } catch (e) {
       console.error('approveSummer error', e)
       toast.error('Approve failed', { id: 'approve-summer' })
     }
-  }, [write, summerAddress, stakingAddress, chainIdNumber])
+  }, [write, summerAddress, stakingAddress, account, chain])
 
   const approveXSummer = useCallback(() => {
     if (!xSummerAddress || !stakingAddress) return
     try {
       toast.loading('Approving xSUMR…', { id: 'approve-xsummer' })
-      ;(write as any)({
+      write({
         abi: erc20Abi,
         address: xSummerAddress,
+        account: account,
         functionName: 'approve',
         args: [
           stakingAddress,
           BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'),
-        ],
-        chainId: chainIdNumber,
-      })
+        ] as const,
+        chain,
+      } as Parameters<typeof write>[0])
     } catch (e) {
       console.error('approveXSummer error', e)
       toast.error('Approve failed', { id: 'approve-xsummer' })
     }
-  }, [write, xSummerAddress, stakingAddress, chainIdNumber])
+  }, [write, xSummerAddress, stakingAddress, account, chain])
 
   const stakeLockup = useCallback(
     (amount: bigint, lockup: bigint) => {
       if (!stakingAddress || amount <= BigInt(0)) return
       try {
         toast.loading('Staking…', { id: 'stake' })
-        ;(write as any)({
+        write({
           abi: summerStakingAbi,
           address: stakingAddress,
+          account: account,
           functionName: 'stakeLockup',
-          args: [amount, lockup],
-          chainId: chainIdNumber,
-        })
+          args: [amount, lockup] as const,
+          chain,
+        } as Parameters<typeof write>[0])
       } catch (e) {
         console.error('stakeLockup error', e)
         toast.error('Stake failed', { id: 'stake' })
       }
     },
-    [write, stakingAddress, chainIdNumber],
+    [write, stakingAddress, account, chain],
   )
 
   const unstakeLockup = useCallback(
@@ -324,19 +328,20 @@ export function useSummerStaking(chainId: ChainId) {
       if (!stakingAddress || amount <= BigInt(0)) return
       try {
         toast.loading('Unstaking…', { id: 'unstake' })
-        ;(write as any)({
+        write({
           abi: summerStakingAbi,
           address: stakingAddress,
+          account: account,
           functionName: 'unstakeLockup',
-          args: [BigInt(index), amount],
-          chainId: chainIdNumber,
-        })
+          args: [BigInt(index), amount] as const,
+          chain,
+        } as Parameters<typeof write>[0])
       } catch (e) {
         console.error('unstakeLockup error', e)
         toast.error('Unstake failed', { id: 'unstake' })
       }
     },
-    [write, stakingAddress, chainIdNumber],
+    [write, stakingAddress, account, chain],
   )
 
   // Helpers
@@ -356,17 +361,14 @@ export function useSummerStaking(chainId: ChainId) {
   )
 
   const totalUserAmount = useMemo(() => stakes.reduce((s, x) => s + x.amount, BigInt(0)), [stakes])
-  console.log('totalUserAmount', totalUserAmount)
   const totalUserWeighted = useMemo(
     () => stakes.reduce((s, x) => s + x.weightedAmount, BigInt(0)),
     [stakes],
   )
-  console.log('totalUserWeighted', totalUserWeighted)
   const currentOverallMultiplierWad = useMemo(
     () => (totalUserAmount > BigInt(0) ? (totalUserWeighted * WAD) / totalUserAmount : WAD),
     [totalUserAmount, totalUserWeighted],
   )
-  console.log('currentOverallMultiplierWad', currentOverallMultiplierWad)
 
   // Bucket view model
   const buckets = useMemo(() => {

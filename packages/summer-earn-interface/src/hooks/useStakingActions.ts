@@ -1,6 +1,6 @@
 import { toast } from 'sonner'
 import { erc20Abi, parseUnits } from 'viem'
-import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 
 import { CHAIN_BLOCK_EXPLORERS } from '@/config/chains'
 import { ChainId } from '@/types'
@@ -18,6 +18,7 @@ export function useStakingActions({
   fleetAddress,
   chainId,
 }: UseStakingActionsProps) {
+  const { address: connectedAccount, chain } = useAccount()
   // Contract write functions
   const {
     writeContract: writeApproveStaking,
@@ -93,9 +94,10 @@ export function useStakingActions({
         args: [
           stakingRewardsManagerAddress as `0x${string}`,
           BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'),
-        ], // Max approval
-        chainId: +chainId,
-      } as any)
+        ] as const,
+        chain: chain,
+        account: connectedAccount,
+      })
     } catch (error) {
       console.error('Error approving staking:', error)
       toast.error('Approve staking failed')
@@ -113,9 +115,10 @@ export function useStakingActions({
         abi: stakingRewardsManagerAbi,
         address: stakingRewardsManagerAddress as `0x${string}`,
         functionName: 'stake',
-        args: [parsedAmount],
-        chainId: +chainId,
-      } as any)
+        args: [parsedAmount] as const,
+        chain: chain,
+        account: connectedAccount,
+      })
     } catch (error) {
       console.error('Error staking:', error)
       toast.error('Stake failed')
@@ -133,9 +136,10 @@ export function useStakingActions({
         abi: stakingRewardsManagerAbi,
         address: stakingRewardsManagerAddress as `0x${string}`,
         functionName: 'unstake',
-        args: [parsedAmount],
-        chainId: +chainId,
-      } as any)
+        args: [parsedAmount] as const,
+        chain: chain,
+        account: connectedAccount,
+      } as Parameters<typeof writeUnstake>[0])
     } catch (error) {
       console.error('Error unstaking:', error)
       toast.error('Unstake failed')
@@ -152,9 +156,10 @@ export function useStakingActions({
         abi: stakingRewardsManagerAbi,
         address: stakingRewardsManagerAddress as `0x${string}`,
         functionName: 'getReward',
-        args: [],
-        chainId: +chainId,
-      } as any)
+        args: [] as const,
+        chain: chain,
+        account: connectedAccount,
+      } as Parameters<typeof writeClaim>[0])
     } catch (error) {
       console.error('Error claiming rewards:', error)
       toast.error('Claim rewards failed')
