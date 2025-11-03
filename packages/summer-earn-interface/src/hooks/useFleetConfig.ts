@@ -1,4 +1,5 @@
 import { useReadContract } from 'wagmi'
+
 import { fleetCommanderConfigAbi } from '../abis/FleetCommanderConfig'
 import type { ChainId } from '../types'
 

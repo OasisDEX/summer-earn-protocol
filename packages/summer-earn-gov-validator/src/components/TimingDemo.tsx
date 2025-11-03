@@ -1,7 +1,9 @@
 'use client'
 
-import { GOVERNANCE_TIMING, calculateProposalTiming } from '@/utils/timing'
 import { useEffect, useState } from 'react'
+
+import { calculateProposalTiming, GOVERNANCE_TIMING } from '@/utils/timing'
+
 import { CountdownTimer } from './CountdownTimer'
 import { PhaseIndicator } from './PhaseIndicator'
 import { ProgressBar } from './ProgressBar'

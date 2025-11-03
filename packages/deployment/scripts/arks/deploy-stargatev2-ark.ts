@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 export interface StargateV2ArkParams extends BaseArkParams {
   stargatePoolAddress: Address
@@ -81,6 +81,12 @@ async function getUserInput(config: BaseConfig): Promise<StargateV2ArkParams> {
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
 
   // Set the token address based on the selected pool
@@ -129,7 +135,8 @@ async function deployStargateV2PoolArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `StargateV2-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const stargatePool = validateAddress(userInput.stargatePoolAddress, 'Stargate V2 Pool')
   const stargateStaking = validateAddress(
@@ -137,6 +144,21 @@ async function deployStargateV2PoolArkContract(
     'Stargate V2 Staking',
   )
   const wethAddress = validateAddress(config.tokens.weth, 'WETH')
+
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'StargateV2',
+    type: 'Liquidity Pool',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: stargatePool,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'Stargatev2 ark details')
 
   return (await hre.ignition.deploy(createStargateV2PoolArkModule(moduleName), {
     parameters: {
@@ -146,14 +168,7 @@ async function deployStargateV2PoolArkContract(
         weth: wethAddress,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: 'StargateV2',
-            type: 'Liquidity Pool',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: stargatePool,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -162,7 +177,7 @@ async function deployStargateV2PoolArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

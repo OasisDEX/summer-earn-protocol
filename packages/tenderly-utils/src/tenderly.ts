@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { exec } from 'child_process'
 import { ethers, JsonRpcProvider } from 'ethers'
+
 import { IAccountGuardAbi, IAccountImplementationAbi } from './abis'
 import { getTokenDecimals } from './getTokenDecimals'
 import { NetworkName, tokenAddresses } from './utils'
@@ -170,6 +171,7 @@ export const changeAccountOwner = async ({
     await provider.send('eth_sendTransaction', [{ from: owner, to: guard, input: encoded }])
     return true
   } catch (error) {
+    console.error(error)
     return false
   }
 }

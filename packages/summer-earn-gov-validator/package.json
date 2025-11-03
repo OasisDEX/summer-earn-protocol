@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "sync-config": "node scripts/sync-config.js"
   },
   "dependencies": {
@@ -21,16 +22,20 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
     "sass": "^1.71.0",
-    "viem": "^2.0.0",
-    "wagmi": "^2.0.0"
+    "viem": ">=2.37.1",
+    "wagmi": ">=2.16.9"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "@summerfi/eslint-config": "workspace:*",
+    "@summerfi/jest-config": "workspace:*",
+    "@summerfi/typescript-config": "workspace:*",
     "autoprefixer": "10.4.17",
-    "eslint": "^8.56.0",
-    "eslint-config-next": "^14.1.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^14.2.0",
+    "@eslint/eslintrc": "^3.0.0",
     "glob": "^11.0.2",
     "postcss": "8.4.35",
     "tailwindcss": "3.4.1",

@@ -74,5 +74,9 @@
   "LazyVault_LowerRisk_WETH_MorphoVault_weth_Extrafi_XLend_WETH_8453#MorphoVaultArk": "0xeCe30eBEAA765472895E77Deac35a09ddAe9F8C7",
   "LazyVault_LowerRisk_WETH_MorphoVault_weth_Yearn_OG_WETH_8453#MorphoVaultArk": "0x55BD40FFDBFE45869969a3c10b39C11152A735Bc",
   "LazyVault_LowerRisk_WETH_ERC4626_Euler_Alterscope_LRT_WETH_weth_8453#ERC4626Ark": "0x2a6e16555D377b7fdefA18e1e418FD3634ec5A2C",
-  "SummerVestingFactoryV2Module_20250813T210318042#SummerVestingWalletFactoryV2": "0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB"
+  "SummerVestingFactoryV2Module_20250813T210318042#SummerVestingWalletFactoryV2": "0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB",
+  "LazyVault_LowerRisk_EURC_FluidFToken_eurc_8453#FluidFTokenArk": "0x4E764D15909ab8b413f6A046dDa66408eE5407f1",
+  "LazyVault_LowerRisk_USDC_FluidFToken_usdc_8453#FluidFTokenArk": "0x60A5753d4a95600be5E2381D678752e2d4C3B386",
+  "LazyVault_LowerRisk_WETH_FluidFToken_weth_8453#FluidFTokenArk": "0x24E03538940D84842860C4955Dd826AB908ec05e",
+  "prod_LazyVault_LowerRisk_USDC_Aera_Gauntlet_Alpha_usdc_8453#AeraArk": "0x6B58aeeaDd96dbfEAcF90948e26d51C506213766"
 }

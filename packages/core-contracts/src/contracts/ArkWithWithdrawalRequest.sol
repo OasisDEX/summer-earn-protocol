@@ -11,7 +11,7 @@ import {Ark} from "./Ark.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
-import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 /**
  * @title Ark

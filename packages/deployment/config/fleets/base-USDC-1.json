@@ -156,6 +156,21 @@
         "vaultName": "Euler_Base_USDC",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "fluid"
+      }
+    },
+    {
+      "type": "AeraArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Aera",
+        "vaultName": "Gauntlet_Alpha"
+      }
     }
   ]
 }

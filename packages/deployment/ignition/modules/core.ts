@@ -1,14 +1,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 /**
- * @dev Enum representing different types of auction price decay functions
- */
-enum DecayType {
-  Linear,
-  Exponential,
-}
-
-/**
  * @title Core Protocol Module Deployment Script
  * @notice This module handles the deployment and initialization of the core protocol components
  *
@@ -18,26 +10,17 @@ enum DecayType {
  *    - ProtocolAccessManager (central access control)
  *    - ConfigurationManager (protocol-wide settings)
  *
- * 2. Deploy Protocol Components
- *    - TipJar (fee collection and distribution)
- *    - GovernanceRewardsManager (governance incentives)
+ * 2. Deploy Treasury Components
+ *    - Treasury contract (asset management)
+ *    - TreasuryConfiguredRoles (role-based access for treasury)
  *
  * 3. Deploy Main Protocol Contracts
- *    - HarborCommand (protocol control center)
- *    - Raft (auction mechanics implementation)
+ *    - HarborCommand (fleet operations hub)
+ *    - Raft (auction mechanism)
+ *    - TipJar (protocol fee management)
  *
  * 4. Initialize Configuration
- *    - Link all core contracts in ConfigurationManager
- *    - Set up contract relationships
- *
- * 5. Deploy Supporting Contracts
- *    - AdmiralsQuarters (fleet token management)
- *
- * Security considerations:
- * - ProtocolAccessManager deployment first ensures proper access control
- * - Contracts are deployed in dependency order
- * - Configuration happens after all core contracts are deployed
- * - Supporting contracts deployed last to ensure core system is ready
+ *    - Configures Treasury, HarbourCommand, Raft, and TipJar in ConfigurationManager
  */
 export const CoreModule = buildModule('CoreModule', (m) => {
   const treasury = m.getParameter('treasury')
@@ -73,14 +56,6 @@ export const CoreModule = buildModule('CoreModule', (m) => {
    *
    * Note: Raft requires auction parameters and library linking
    */
-  const raftAuctionDefaultParams = {
-    duration: 7n * 86400n, // 7 days
-    startPrice: 100n ** 18n,
-    endPrice: 10n ** 18n,
-    kickerRewardPercentage: 5n * 10n ** 18n, // 5%
-    decayType: DecayType.Linear,
-  }
-
   const harborCommand = m.contract('HarborCommand', [protocolAccessManager])
 
   const raft = m.contract('Raft', [protocolAccessManager], {

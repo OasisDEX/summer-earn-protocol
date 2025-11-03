@@ -209,3 +209,29 @@ contract SummerVestingWalletFactoryTest is Test {
         vm.stopPrank();
     }
 }
+
+contract MockIncorrectBalanceERC20 is ERC20Mock {
+    constructor() {}
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public override returns (bool) {
+        // Transfer half the amount but return true
+        _transfer(from, to, amount / 2);
+        return true;
+    }
+}
+
+contract MockFailingERC20 is ERC20Mock {
+    constructor() {}
+
+    function transferFrom(
+        address,
+        address,
+        uint256
+    ) public pure override returns (bool) {
+        return false;
+    }
+}

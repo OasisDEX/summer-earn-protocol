@@ -2,7 +2,7 @@ import fs from 'fs'
 import hre from 'hardhat'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import path, { resolve } from 'path'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { promptForConfigType } from '../helpers/prompt-helpers'
 
@@ -99,7 +99,7 @@ async function verifyBufferArks(hre: HardhatRuntimeEnvironment) {
         maxRebalanceOutflow: MAX_UINT256_STRING,
         maxRebalanceInflow: MAX_UINT256_STRING,
         requiresKeeperData: false,
-        maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+        maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
       }
 
       // Log the verification parameters for debugging

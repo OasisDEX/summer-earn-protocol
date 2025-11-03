@@ -1,4 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card'
+
 import { TokenAmount } from './TokenAmount'
 
 interface AuctionPurchaseProps {

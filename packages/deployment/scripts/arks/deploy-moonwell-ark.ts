@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 /**
  * Main function to deploy a MoonwellArk.
@@ -77,6 +77,12 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
 
   // Set the token address based on the selected market
@@ -118,12 +124,26 @@ async function deployMoonwellArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Moonwell-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const mToken = validateAddress(
     config.protocolSpecific.moonwell.pools[userInput.token.symbol].mToken,
     'Moonwell mToken',
   )
+
+  // Create and validate ark details
+  const arkDetails = {
+    protocol: 'Moonwell',
+    type: 'Lending',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: mToken,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+  validateArkDetails(arkDetails, 'Moonwell ark details')
 
   return (await hre.ignition.deploy(createMoonwellArkModule(moduleName), {
     parameters: {
@@ -131,14 +151,7 @@ async function deployMoonwellArkContract(
         mToken: mToken,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: 'Moonwell',
-            type: 'Lending',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: mToken,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -147,7 +160,7 @@ async function deployMoonwellArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

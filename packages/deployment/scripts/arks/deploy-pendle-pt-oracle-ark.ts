@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 export interface PendlePtOracleArkUserInput extends BaseArkParams {
   marketAssetOracle: Address
@@ -104,6 +104,12 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
 
   // Set the token address based on the selected market
@@ -145,13 +151,34 @@ async function deployPendlePtOracleArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `PendlePt-${userInput.token.symbol}-${userInput.marketName}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const routerAddress = validateAddress(config.protocolSpecific.pendle.router, 'Pendle Router')
   const oracleAddress = validateAddress(
     config.protocolSpecific.pendle['lp-oracle'],
     'Pendle LP Oracle',
   )
+
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Pendle',
+
+    type: 'PtOracle',
+
+    asset: userInput.token.address,
+
+    marketAsset: userInput.token.address,
+
+    pool: userInput.marketId,
+
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'PendlePtOracle ark details')
 
   return (await hre.ignition.deploy(createPendlePtOracleArkModule(moduleName), {
     parameters: {
@@ -162,14 +189,7 @@ async function deployPendlePtOracleArkContract(
         marketAssetOracle: userInput.marketAssetOracle,
         arkParams: {
           name: `PendlePt-${userInput.token.symbol}-${userInput.marketName}-${chainId}`,
-          details: JSON.stringify({
-            protocol: 'Pendle',
-            type: 'PtOracle',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: userInput.marketId,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -178,7 +198,7 @@ async function deployPendlePtOracleArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: true,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

@@ -1,7 +1,8 @@
 'use client'
 
-import { calculateAuctionPrice, formatPrice, formatTimeRemaining } from '@/utils/auctionPrice'
 import { useEffect, useState } from 'react'
+
+import { calculateAuctionPrice, formatPrice, formatTimeRemaining } from '@/utils/auctionPrice'
 
 interface LivePriceDisplayProps {
   startPrice: string

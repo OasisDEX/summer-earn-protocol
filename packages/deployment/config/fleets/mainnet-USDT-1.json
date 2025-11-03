@@ -108,6 +108,13 @@
         "asset": "USDT",
         "protocol": "Maple"
       }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "fluid"
+      }
     }
   ]
 }

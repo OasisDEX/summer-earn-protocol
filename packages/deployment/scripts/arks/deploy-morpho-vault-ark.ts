@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 export interface MorphoVaultArkUserInput extends BaseArkParams {
   vaultId: Address
@@ -88,6 +88,12 @@ async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
 
   // Set the token address based on the selected vault
@@ -98,6 +104,7 @@ async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput
     depositCap: responses.depositCap,
     maxRebalanceInflow: responses.maxRebalanceInflow,
     maxRebalanceOutflow: responses.maxRebalanceOutflow,
+    maxDepositPercentageOfTVL: responses.maxDepositPercentageOfTVL,
     token: { address: tokenAddress, symbol: selectedVault.token },
     vaultId: selectedVault.vaultId,
     vaultName: selectedVault.vaultName,
@@ -140,12 +147,35 @@ async function deployMorphoVaultArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `MorphoVault-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const urdFactoryAddress = validateAddress(
     config.protocolSpecific.morpho.urdFactory,
     'Morpho URD Factory',
   )
+
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Morpho',
+
+    type: 'Vault',
+
+    asset: userInput.token.address,
+
+    marketAsset: userInput.token.address,
+
+    pool: userInput.vaultId,
+
+    chainId: chainId,
+
+    vaultName: userInput.vaultName,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'MorphoVault ark details')
 
   return (await hre.ignition.deploy(createMorphoVaultArkModule(moduleName), {
     parameters: {
@@ -154,15 +184,7 @@ async function deployMorphoVaultArkContract(
         urdFactory: urdFactoryAddress,
         arkParams: {
           name: `MorphoVault-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`,
-          details: JSON.stringify({
-            protocol: 'Morpho',
-            type: 'Vault',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: userInput.vaultId,
-            chainId: chainId,
-            vaultName: userInput.vaultName,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -171,7 +193,7 @@ async function deployMorphoVaultArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

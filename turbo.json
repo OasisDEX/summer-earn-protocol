@@ -26,7 +26,10 @@
       "dependsOn": ["prebuild", "build", "^test:integration"]
     },
     "lint": {
-      "dependsOn": ["prebuild", "build", "^lint"]
+      "dependsOn": ["prebuild", "^lint"]
+    },
+    "lint:fix": {
+      "dependsOn": ["prebuild", "build", "^lint:fix"]
     },
     "format": {
       "dependsOn": ["prebuild", "build", "^format"]

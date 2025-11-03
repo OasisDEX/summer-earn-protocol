@@ -1,7 +1,8 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { getAddress, isAddress } from 'viem'
 import {
   useAccount,
   usePublicClient,
@@ -10,6 +11,9 @@ import {
   useWriteContract,
 } from 'wagmi'
 import { base as baseChain } from 'wagmi/chains'
+
+import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
+
 import { erc20Abi } from '../../../abis/ERC20'
 import { summerVestingWalletAbi } from '../../../abis/SummerVestingWallet'
 import { summerVestingWalletFactoryAbi } from '../../../abis/SummerVestingWalletFactory'
@@ -23,6 +27,91 @@ import { useEnvironment } from '../../../hooks/useEnvironment'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
 import type { ChainId } from '../../../types'
 import { formatDecimalOutput } from '../../../utils/decimals'
+
+const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
+
+type V2GoalResult = {
+  amount: bigint
+  reached: boolean
+  description?: string
+}
+
+const toBigIntOrNull = (value: unknown): bigint | null => {
+  if (typeof value === 'bigint') return value
+  if (typeof value === 'number') return BigInt(value)
+  if (typeof value === 'string' && value.trim() !== '') {
+    try {
+      return BigInt(value)
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
+const extractVestingParam = (value: unknown, index: number, key?: string): bigint | null => {
+  if (value === null || value === undefined) return null
+  if (Array.isArray(value)) {
+    return toBigIntOrNull(value[index])
+  }
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    if (key && record[key] !== undefined) {
+      const keyed = toBigIntOrNull(record[key])
+      if (keyed !== null) return keyed
+    }
+    if (record[index] !== undefined) {
+      const indexed = toBigIntOrNull(record[index])
+      if (indexed !== null) return indexed
+    }
+    if (record[String(index)] !== undefined) {
+      const named = toBigIntOrNull(record[String(index)])
+      if (named !== null) return named
+    }
+  }
+  return null
+}
+
+const parseV2GoalResult = (value: unknown): V2GoalResult | null => {
+  if (value === null || value === undefined) return null
+  if (Array.isArray(value)) {
+    const [amountValue, reachedValue, descriptionValue] = value as [unknown, unknown, unknown]
+    const amount = toBigIntOrNull(amountValue)
+    if (amount === null) return null
+    const reached = typeof reachedValue === 'boolean' ? reachedValue : Boolean(reachedValue)
+    const description =
+      typeof descriptionValue === 'string' && descriptionValue.length > 0
+        ? descriptionValue
+        : undefined
+    return { amount, reached, description }
+  }
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    const amount =
+      toBigIntOrNull(record.amount) ??
+      toBigIntOrNull(record[0]) ??
+      toBigIntOrNull(record['0']) ??
+      null
+    if (amount === null) return null
+    const reachedRaw = record.reached ?? record[1] ?? record['1']
+    const reached = typeof reachedRaw === 'boolean' ? reachedRaw : Boolean(reachedRaw)
+    const descriptionRaw = record.description ?? record[2] ?? record['2']
+    const description =
+      typeof descriptionRaw === 'string' && descriptionRaw.length > 0 ? descriptionRaw : undefined
+    return { amount, reached, description }
+  }
+  return null
+}
+
+type MulticallResult<T> =
+  | {
+      status: 'success'
+      result: T
+    }
+  | {
+      status: 'failure'
+      result?: undefined
+    }
 
 export default function VestingPage() {
   const params = useParams()
@@ -38,27 +127,57 @@ export default function VestingPage() {
 
   const isBase = Number(chainId) === baseChain.id
 
-  // Lookup vesting wallet for connected user in V1 factory first
+  // Manual address override for fetching (takes precedence over connected address)
+  const [inputAddress, setInputAddress] = useState('')
+  const [lookupAddress, setLookupAddress] = useState<`0x${string}` | null>(null)
+  const [addressError, setAddressError] = useState<string | null>(null)
+
+  const queryAddress = (lookupAddress ?? address) as `0x${string}` | undefined
+
+  const onFetchAddress = () => {
+    const candidate = inputAddress.trim()
+    if (!candidate) {
+      setLookupAddress(null)
+      setAddressError(null)
+      return
+    }
+    if (isAddress(candidate)) {
+      setLookupAddress(getAddress(candidate) as `0x${string}`)
+      setAddressError(null)
+    } else {
+      setAddressError('Invalid address')
+    }
+  }
+
+  const onClearOverride = () => {
+    setLookupAddress(null)
+    setInputAddress('')
+    setAddressError(null)
+  }
+
+  // Lookup vesting wallet for target user in V1 factory first
   const { data: vestingWalletAddressV1 } = useReadContract({
     abi: summerVestingWalletFactoryAbi,
     address: factoryAddress as `0x${string}`,
     functionName: 'vestingWallets',
-    args: address ? [address] : undefined,
-    query: { enabled: isConnected && !!address && !!factoryAddress },
+    args: queryAddress ? [queryAddress] : undefined,
+    query: { enabled: !!queryAddress && !!factoryAddress },
   })
 
-  // Lookup vesting wallet for connected user in V2 factory if V1 not found
+  // Lookup vesting wallet for target user in V2 factory if V1 not found
   const { data: vestingWalletAddressV2 } = useReadContract({
     abi: summerVestingWalletFactoryV2Abi,
     address: factoryV2Address as `0x${string}`,
     functionName: 'vestingWallets',
-    args: address ? [address] : undefined,
-    query: { enabled: isConnected && !!address && !!factoryV2Address && !vestingWalletAddressV1 },
+    args: queryAddress ? [queryAddress] : undefined,
+    query: { enabled: !!queryAddress && !!factoryV2Address && !vestingWalletAddressV1 },
   })
-
   // Use V1 if found, otherwise V2
-  const vestingWalletAddress = vestingWalletAddressV1 || vestingWalletAddressV2
-  const isV2Wallet = !vestingWalletAddressV1 && !!vestingWalletAddressV2
+  const isV1Valid = !!vestingWalletAddressV1 && vestingWalletAddressV1 !== ADDRESS_ZERO
+  const isV2Valid = !!vestingWalletAddressV2 && vestingWalletAddressV2 !== ADDRESS_ZERO
+  const vestingWalletAddress = isV1Valid ? vestingWalletAddressV1 : vestingWalletAddressV2
+
+  const isV2Wallet = isV2Valid && !isV1Valid
 
   // Underlying token for this vesting wallet
   const { data: tokenAddress } = useReadContract({
@@ -98,11 +217,23 @@ export default function VestingPage() {
     query: { enabled: !!vestingWalletAddress },
   })
 
+  // Extract V2 params by tuple position to avoid ABI name mismatches
+  const v2CliffAmount = useMemo(() => {
+    if (!isV2Wallet || vestingType === undefined) return null
+    return extractVestingParam(vestingType, 1, 'cliffAmount') ?? BigInt(0)
+  }, [isV2Wallet, vestingType])
+
+  const v2TotalVestingAmount = useMemo(() => {
+    if (!isV2Wallet || vestingType === undefined) return null
+    return extractVestingParam(vestingType, 3, 'totalVestingAmount') ?? BigInt(0)
+  }, [isV2Wallet, vestingType])
+
+  // For V1 only: read time-based amount directly; for V2 we reuse vestingParams from above
   const { data: timeBasedAmount } = useReadContract({
-    abi: isV2Wallet ? summerVestingWalletV2Abi : summerVestingWalletAbi,
+    abi: summerVestingWalletAbi,
     address: vestingWalletAddress as `0x${string}` | undefined,
-    functionName: isV2Wallet ? 'vestingParams' : 'timeBasedVestingAmount',
-    query: { enabled: !!vestingWalletAddress },
+    functionName: 'timeBasedVestingAmount',
+    query: { enabled: !!vestingWalletAddress && !isV2Wallet },
   })
 
   // Vested now and releasable
@@ -139,8 +270,19 @@ export default function VestingPage() {
     [releasedTotal, decimals],
   )
 
+  const isLookupSameAsConnected = useMemo(() => {
+    if (!lookupAddress) return true
+    if (!address) return false
+    try {
+      return getAddress(lookupAddress) === getAddress(address)
+    } catch {
+      return false
+    }
+  }, [lookupAddress, address])
+
   const canClaim = Boolean(
     isConnected &&
+      isLookupSameAsConnected &&
       vestingWalletAddress &&
       tokenAddress &&
       (releasableNow as bigint) > BigInt(0) &&
@@ -148,12 +290,27 @@ export default function VestingPage() {
   )
 
   const onClaim = () => {
-    if (!canClaim) return
-    ;(writeContract as any)({
-      abi: isV2Wallet ? summerVestingWalletV2Abi : summerVestingWalletAbi,
+    if (!canClaim || !vestingWalletAddress || !tokenAddress) return
+
+    if (isV2Wallet) {
+      writeContract({
+        abi: summerVestingWalletV2Abi,
+        address: vestingWalletAddress as `0x${string}`,
+        functionName: 'release',
+        args: [tokenAddress as `0x${string}`],
+        chain: VIEM_CHAIN_ENTITIES[chainId],
+        account: address,
+      })
+      return
+    }
+
+    writeContract({
+      abi: summerVestingWalletAbi,
       address: vestingWalletAddress as `0x${string}`,
       functionName: 'release',
       args: [tokenAddress as `0x${string}`],
+      chain: VIEM_CHAIN_ENTITIES[chainId],
+      account: address,
     })
   }
 
@@ -168,10 +325,11 @@ export default function VestingPage() {
     async function loadGoals() {
       if (!publicClient || !vestingWalletAddress) return
 
+      const client = publicClient
+
       if (isV2Wallet) {
         // V2 contract: use performanceGoals function
         try {
-          const pc: any = publicClient
           const maxProbe = 32 // reasonable upper bound; can raise if needed
           const indices = Array.from({ length: maxProbe }, (_, i) => BigInt(i + 1)) // V2 uses 1-indexed goals
 
@@ -180,30 +338,33 @@ export default function VestingPage() {
             abi: summerVestingWalletV2Abi,
             functionName: 'performanceGoals' as const,
             args: [i],
-          })) as any[]
+          }))
 
-          const goalRes = await pc.multicall({ contracts: goalCalls as any, allowFailure: true })
+          const goalResponse = await (
+            client as unknown as {
+              multicall: (params: {
+                contracts: typeof goalCalls
+                allowFailure: true
+              }) => Promise<MulticallResult<readonly [bigint, boolean, string]>[]>
+            }
+          ).multicall({ contracts: goalCalls, allowFailure: true })
+
+          const goalRes = goalResponse ?? []
 
           const items: { amount: bigint; reached: boolean; description?: string }[] = []
           for (let i = 0; i < maxProbe; i++) {
             const goal = goalRes[i]
-            if (goal.status === 'success' && goal.result) {
-              const result = goal.result as any
-              if (result.amount && result.amount > BigInt(0)) {
-                items.push({
-                  amount: result.amount,
-                  reached: result.reached,
-                  description: result.description,
-                })
-              } else {
-                break
-              }
+            if (goal?.status === 'success' && goal.result) {
+              const parsed = parseV2GoalResult(goal.result)
+              if (!parsed || parsed.amount === BigInt(0)) break
+              items.push(parsed)
             } else {
               break
             }
           }
           if (!cancelled) setGoals(items)
-        } catch (e) {
+        } catch (error) {
+          console.error('Failed to load V2 performance goals', error)
           // Non-fatal; just leave goals empty
           if (!cancelled) setGoals([])
         }
@@ -216,36 +377,58 @@ export default function VestingPage() {
           abi: summerVestingWalletAbi,
           functionName: 'goalAmounts' as const,
           args: [i],
-        })) as any[]
+        }))
         const reachedCalls = indices.map((i) => ({
           address: vestingWalletAddress as `0x${string}`,
           abi: summerVestingWalletAbi,
           functionName: 'goalsReached' as const,
           args: [i],
-        })) as any[]
+        }))
 
         try {
-          const pc: any = publicClient
-          const [amountRes, reachedRes] = await Promise.all([
-            pc.multicall({ contracts: amountCalls as any, allowFailure: true }),
-            pc.multicall({ contracts: reachedCalls as any, allowFailure: true }),
+          const [amountResponse, reachedResponse] = await Promise.all([
+            (
+              client as unknown as {
+                multicall: (params: {
+                  contracts: typeof amountCalls
+                  allowFailure: true
+                }) => Promise<MulticallResult<bigint>[]>
+              }
+            ).multicall({ contracts: amountCalls, allowFailure: true }),
+            (
+              client as unknown as {
+                multicall: (params: {
+                  contracts: typeof reachedCalls
+                  allowFailure: true
+                }) => Promise<MulticallResult<boolean>[]>
+              }
+            ).multicall({ contracts: reachedCalls, allowFailure: true }),
           ])
+
+          const amountRes = amountResponse ?? []
+          const reachedRes = reachedResponse ?? []
 
           const items: { amount: bigint; reached: boolean; description?: string }[] = []
           for (let i = 0; i < maxProbe; i++) {
             const a = amountRes[i]
             const r = reachedRes[i]
-            if (a.status === 'success' && r.status === 'success') {
+            if (a?.status === 'success' && r?.status === 'success') {
+              const amountValue = toBigIntOrNull(a.result) ?? BigInt(0)
+              const reachedValueRaw = r.result
+              const reachedValue =
+                typeof reachedValueRaw === 'boolean' ? reachedValueRaw : Boolean(reachedValueRaw)
+
               items.push({
-                amount: a.result as unknown as bigint,
-                reached: r.result as unknown as boolean,
+                amount: amountValue,
+                reached: reachedValue,
               })
             } else {
               break
             }
           }
           if (!cancelled) setGoals(items)
-        } catch (e) {
+        } catch (error) {
+          console.error('Failed to load V1 goal data', error)
           // Non-fatal; just leave goals empty
           if (!cancelled) setGoals([])
         }
@@ -270,6 +453,50 @@ export default function VestingPage() {
           <h1 className="text-3xl md:text-4xl font-extrabold text-white">Your Vesting Wallet ✨</h1>
         </div>
 
+        {/* Address override input */}
+        <div className="mb-6 rounded-2xl p-4 bg-gray-900 border border-gray-800">
+          <div className="flex flex-col md:flex-row md:items-end gap-3">
+            <div className="flex-1">
+              <label className="block text-sm text-gray-400 mb-1">Address to view</label>
+              <input
+                value={inputAddress}
+                onChange={(e) => setInputAddress(e.target.value)}
+                placeholder="0x..."
+                className="w-full px-3 py-2 rounded-md bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={onFetchAddress}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+              >
+                Fetch
+              </button>
+              {lookupAddress && (
+                <button
+                  onClick={onClearOverride}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="mt-2 text-sm">
+            {addressError && <span className="text-red-400">{addressError}</span>}
+            {!addressError && (
+              <span className="text-gray-400">
+                Viewing for: <span className="text-gray-200 font-mono">{queryAddress ?? '—'}</span>
+              </span>
+            )}
+          </div>
+          {!isLookupSameAsConnected && isConnected && (
+            <div className="mt-2 text-yellow-300 text-sm">
+              To claim, connect the same address as the one being viewed or clear the override.
+            </div>
+          )}
+        </div>
+
         {!isBase && (
           <div className="mb-6 p-4 rounded-lg border border-yellow-600 bg-yellow-900/40 text-yellow-200">
             Please switch to Base network to manage vesting.
@@ -278,7 +505,8 @@ export default function VestingPage() {
 
         {!isConnected && (
           <div className="mb-6 p-4 rounded-lg border border-blue-600 bg-blue-900/40 text-blue-200">
-            Connect your wallet to see your vesting details 😊
+            Optional: connect your wallet to claim. You can still fetch any address above to view
+            details.
           </div>
         )}
 
@@ -378,33 +606,21 @@ export default function VestingPage() {
               <div className="flex items-center justify-between gap-3">
                 <span>Time-based Allocation</span>
                 <span className="text-blue-300">
-                  {isV2Wallet &&
-                  vestingType &&
-                  typeof vestingType === 'object' &&
-                  'totalVestingAmount' in vestingType
-                    ? formatDecimalOutput(
-                        (vestingType.totalVestingAmount as bigint) ?? BigInt(0),
-                        decimals,
-                      )
+                  {isV2Wallet && v2TotalVestingAmount !== null
+                    ? formatDecimalOutput(v2TotalVestingAmount ?? BigInt(0), decimals)
                     : formatDecimalOutput((timeBasedAmount as bigint) ?? BigInt(0), decimals)}{' '}
                   {(tokenSymbol as string) || ''}
                 </span>
               </div>
-              {isV2Wallet &&
-                vestingType &&
-                typeof vestingType === 'object' &&
-                'cliffAmount' in vestingType && (
-                  <div className="flex items-center justify-between gap-3">
-                    <span>Cliff Amount</span>
-                    <span className="text-purple-300">
-                      {formatDecimalOutput(
-                        (vestingType.cliffAmount as bigint) ?? BigInt(0),
-                        decimals,
-                      )}{' '}
-                      {(tokenSymbol as string) || ''}
-                    </span>
-                  </div>
-                )}
+              {isV2Wallet && v2CliffAmount !== null && (
+                <div className="flex items-center justify-between gap-3">
+                  <span>Cliff Amount</span>
+                  <span className="text-purple-300">
+                    {formatDecimalOutput(v2CliffAmount ?? BigInt(0), decimals)}{' '}
+                    {(tokenSymbol as string) || ''}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

@@ -1,6 +1,11 @@
-const fs = require('fs')
-const path = require('path')
-const glob = require('glob')
+import fs from 'fs'
+import { globSync } from 'glob'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // Chain ID to name mapping
 const CHAIN_NAMES = {
@@ -31,7 +36,7 @@ try {
   console.log('Successfully synced index.json from deployment config')
 
   // Find all deployed_addresses.json files
-  const deploymentFiles = glob.sync('chain-*/deployed_addresses.json', {
+  const deploymentFiles = globSync('chain-*/deployed_addresses.json', {
     cwd: sourcePaths.deployments,
   })
 
@@ -43,6 +48,12 @@ try {
     if (chainName) {
       const sourcePath = path.join(sourcePaths.deployments, file)
       const targetPath = path.join(targetDir, 'deployed', `${chainName}.json`)
+      const targetDeployedDir = path.join(targetDir, 'deployed')
+
+      // Ensure deployed subdirectory exists
+      if (!fs.existsSync(targetDeployedDir)) {
+        fs.mkdirSync(targetDeployedDir, { recursive: true })
+      }
 
       const deploymentData = fs.readFileSync(sourcePath, 'utf8')
       fs.writeFileSync(targetPath, deploymentData)

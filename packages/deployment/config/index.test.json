@@ -41,6 +41,9 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x90CaD67E09F79436F51E6a07B9267b002DfDFF03"
+        },
+        "institutionalVaultRegistry": {
+          "address": "0xa84B4C9680EFf0334a55661fa371100AEb2F6e02"
         }
       },
       "bridge": {
@@ -94,7 +97,7 @@
       }
     },
     "protocolSpecific": {
-      "gauntlet": {
+      "aera": {
         "vaults": {
           "usdc": {
             "Gauntlet_Alpha": {
@@ -172,6 +175,22 @@
         },
         "rewards": "0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1"
       },
+      "fluid": {
+        "fToken": {
+          "usdc": {
+            "fToken": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
+            "merkleDistributor": "0x94312a608246Cecfce6811Db84B3Ef4B2619054E"
+          },
+          "eurc": {
+            "fToken": "0x1943FA26360f038230442525Cf1B9125b5DCB401",
+            "merkleDistributor": "0x94312a608246Cecfce6811Db84B3Ef4B2619054E"
+          },
+          "weth": {
+            "fToken": "0x9272D6153133175175Bc276512B2336BE3931CE9",
+            "merkleDistributor": "0x94312a608246Cecfce6811Db84B3Ef4B2619054E"
+          }
+        }
+      },
       "erc4626": {
         "usdc": {
           "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
@@ -244,6 +263,9 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xA6040c5A92FFf881b8e74E6a5576DE156C0B6B1a"
+        },
+        "institutionalVaultRegistry": {
+          "address": "0xd641aE747D6dF46786D261818e99725130448Cc2"
         }
       },
       "bridge": {
@@ -293,17 +315,31 @@
       }
     },
     "protocolSpecific": {
+      "fluid": {
+        "fToken": {
+          "usdc": {
+            "fToken": "0x1A996cb54bb95462040408C06122D45D6Cdb6096",
+            "merkleDistributor": "0x94312a608246Cecfce6811Db84B3Ef4B2619054E"
+          },
+          "usdt": {
+            "fToken": "0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03",
+            "merkleDistributor": "0x94312a608246Cecfce6811Db84B3Ef4B2619054E"
+          }
+        }
+      },
       "erc4626": {
         "usdc": {
           "Gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6",
           "Fluid": "0x1A996cb54bb95462040408C06122D45D6Cdb6096",
-          "Sky_sUSDC": "0x940098b108fB7D0a7E374f6eDED7760787464609"
+          "Sky_sUSDC": "0x940098b108fB7D0a7E374f6eDED7760787464609",
+          "Euler_Arbitrum_USDC": "0x0a1eCC5Fe8C9be3C809844fcBe615B46A869b899"
         },
         "usdce": {
           "Gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
         },
         "usdt": {
-          "Fluid": "0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03"
+          "Fluid": "0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03",
+          "Euler_Arbitrum_USDT0": "0x37512F45B4ba8808910632323b73783Ca938CD51"
         }
       },
       "pendle": {
@@ -330,6 +366,20 @@
       },
       "morpho": {
         "blue": "0x0000000000000000000000000000000000000000",
+        "urdFactory": "0x7b792Ef7e91fbc78Ef482E3bBB52193A73367fbf",
+        "vaults": {
+          "usdc": {
+            "Gauntlet_USDC_Prime": "0x7c574174DA4b2be3f705c6244B4BfA0815a8B3Ed",
+            "Gauntlet_USDC_Core": "0x7e97fa6893871A2751B5fE961978DCCb2c201E65",
+            "Yearn_OG_USDC": "0x87DEAE530841A9671326C9D5B9f91bdB11F3162c",
+            "Steakhouse_Prime_USDC": "0x250CF7c82bAc7cB6cf899b6052979d4B5BA1f9ca",
+            "MEV_Capital_USDC": "0xa60643c90A542A95026C0F1dbdB0615fF42019Cf"
+          },
+          "usdt": {
+            "Gauntlet_USDT0_Core": "0x139250CdB310D657eAC506c7C7FC6AcDE34Af1ec",
+            "MEV_Capital_USDT0": "0x6d57dAd0F1c4da0C1d5443AE8F7f8a50BDb9Cf75"
+          }
+        },
         "markets": {
           "usdc": {
             "nomarket": "0x0000000000000000000000000000000000000000"
@@ -473,15 +523,6 @@
           }
         }
       },
-      "fluid": {
-        "lite": {
-          "weth": {
-            "wrapper": "0x64338FD8e7b1918B4a806A175e26eD152B3d0b7b",
-            "vault": "0xa0d3707c569ff8c87fa923d3823ec5d81c98be78",
-            "withdrawalQueue": "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1"
-          }
-        }
-      },
       "syrup": {
         "pools": {
           "usdc": {
@@ -497,6 +538,29 @@
             "poolManager": "0x0cdA32E08B48bFDDbc7eE96B44b09cf286F9E21a",
             "poolPermissionManager": "0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3",
             "withdrawalManager": "0x86eBDf902d800F2a82038290B6DBb2A5eE29eB8C"
+          }
+        }
+      },
+      "fluid": {
+        "lite": {
+          "weth": {
+            "wrapper": "0x64338FD8e7b1918B4a806A175e26eD152B3d0b7b",
+            "vault": "0xa0d3707c569ff8c87fa923d3823ec5d81c98be78",
+            "withdrawalQueue": "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1"
+          }
+        },
+        "fToken": {
+          "usdc": {
+            "fToken": "0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33",
+            "merkleDistributor": "0x7060FE0Dd3E31be01EFAc6B28C8D38018fD163B0"
+          },
+          "usdt": {
+            "fToken": "0x5C20B550819128074FD538Edf79791733ccEdd18",
+            "merkleDistributor": "0x7060FE0Dd3E31be01EFAc6B28C8D38018fD163B0"
+          },
+          "eurc": {
+            "fToken": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
+            "merkleDistributor": "0x7060FE0Dd3E31be01EFAc6B28C8D38018fD163B0"
           }
         }
       },
@@ -529,6 +593,9 @@
           "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2",
           "Euler_Swaap_Lend": "0x716bF454066a84F39A2F78b5707e79a9d64f1225",
           "Term_re7_weth": "0xd5e617420b9ea0be28751435b647328d63b10368"
+        },
+        "usds": {
+          "Sky_Staked_USDS": "0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9"
         }
       },
       "pendle": {

@@ -1,7 +1,8 @@
 'use client'
 
-import { formatTimeRemaining, isTimeSensitive, type ProposalTiming } from '@/utils/timing'
 import { useEffect, useState } from 'react'
+
+import { formatTimeRemaining, isTimeSensitive, type ProposalTiming } from '@/utils/timing'
 
 interface CountdownTimerProps {
   timing: ProposalTiming

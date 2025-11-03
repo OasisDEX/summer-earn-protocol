@@ -1,4 +1,5 @@
 import { default as dotenv } from 'dotenv'
+import 'hardhat-contract-sizer'
 import { resolve } from 'path'
 
 dotenv.config({ path: resolve(__dirname, '../../.env') })
@@ -12,6 +13,12 @@ if (!process.env.API_KEY_ARBISCAN) {
 }
 
 const config: HardhatUserConfig = {
+  contractSizer: {
+    alphaSort: true,
+    disambiguatePaths: false,
+    runOnCompile: process.env.REPORT_CONTRACT_SIZE === 'true',
+    strict: false,
+  },
   etherscan: {
     apiKey: {
       arbitrumOne: process.env.API_KEY_ARBISCAN,

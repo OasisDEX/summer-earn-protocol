@@ -1,8 +1,9 @@
 'use client'
 
-import { Auction } from '@/lib/types'
 import { useEffect, useState } from 'react'
 import { formatUnits } from 'viem'
+
+import { Auction } from '@/lib/types'
 
 export function useCurrentPrice(auction: Auction, chainId: number) {
   const [currentPrice, setCurrentPrice] = useState<string>()
@@ -28,6 +29,7 @@ export function useCurrentPrice(auction: Auction, chainId: number) {
         setCurrentPrice(formattedPrice)
         setError(false)
       } catch (err) {
+        console.error(err)
         setError(true)
       }
     }

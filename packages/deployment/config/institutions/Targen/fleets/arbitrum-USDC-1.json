@@ -1,0 +1,99 @@
+{
+  "fleetName": "TarFi_USDC",
+  "symbol": "tarfiUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "2000000000000000000",
+  "network": "arbitrum",
+  "details": "",
+  "curator": "0xA0d7E9F71597623355e407C0D55047306045cca0",
+  "keeper": "0xc2a8467a52Fec8383c424149000cf384de9Ba1B5",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "aaveV3",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "compoundV3",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Sky_sUSDC",
+        "protocol": "erc4626",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gauntlet_USDC_Prime",
+        "protocol": "morpho",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gauntlet_USDC_Core",
+        "protocol": "morpho",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Euler_Arbitrum_USDC",
+        "protocol": "erc4626",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "fluid",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gearbox",
+        "protocol": "erc4626",
+        "depositCap": "100000000",
+        "maxDepositPercentageOfTVL": "34000000000000000000",
+        "maxRebalanceOutflow": "26300000000",
+        "maxRebalanceInflow": "26300000000"
+      }
+    },
+    {
+      "type": "SiloArkV2",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Swaap_Lend_susdx_usdc_127",
+        "protocol": "silo",
+        "depositCap": "100000000",
+        "maxDepositPercentageOfTVL": "36000000000000000000",
+        "maxRebalanceOutflow": "1490000000000",
+        "maxRebalanceInflow": "1490000000000"
+      }
+    }
+  ]
+}

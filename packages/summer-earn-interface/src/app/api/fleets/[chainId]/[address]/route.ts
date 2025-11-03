@@ -1,11 +1,18 @@
-import { erc20Abi } from '@/abis/ERC20'
-import { fleetCommanderAbi } from '@/abis/FleetCommander'
-import { CHAIN_RPC_URLS } from '@/config/chains'
 import { NextResponse } from 'next/server'
 import { createPublicClient, http } from 'viem'
 
+import { erc20Abi } from '@/abis/ERC20'
+import { fleetCommanderAbi } from '@/abis/FleetCommander'
+import { CHAIN_RPC_URLS } from '@/config/chains'
+
 const TTL_MS = 10 * 60 * 1000
 const cache = new Map<string, { data: unknown; expiry: number }>()
+
+type FleetUserInfo = {
+  balance: string
+  underlyingBalance: string
+  allowance: string
+}
 
 export async function GET(
   request: Request,
@@ -26,31 +33,37 @@ export async function GET(
 
   const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets, fleetDecimals] =
     await Promise.all([
+      // @ts-ignore
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'name',
       }),
+      // @ts-ignore
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'symbol',
       }),
+      // @ts-ignore
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'asset',
       }),
+      // @ts-ignore
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'totalAssets',
       }),
+      // @ts-ignore
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'withdrawableTotalAssets',
       }),
+      // @ts-ignore
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
@@ -58,11 +71,13 @@ export async function GET(
       }),
     ])
   const [assetDecimals, assetSymbol] = await Promise.all([
+    // @ts-ignore
     client.readContract({
       address: assetAddress as `0x${string}`,
       abi: erc20Abi,
       functionName: 'decimals',
     }),
+    // @ts-ignore
     client.readContract({
       address: assetAddress as `0x${string}`,
       abi: erc20Abi,
@@ -70,21 +85,24 @@ export async function GET(
     }),
   ])
 
-  let userInfo: any = null
+  let userInfo: FleetUserInfo | null = null
   if (user) {
     const [balance, underlyingBalance, allowance] = await Promise.all([
+      // @ts-ignore
       client.readContract({
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'balanceOf',
         args: [user as `0x${string}`],
       }),
+      // @ts-ignore
       client.readContract({
         address: assetAddress as `0x${string}`,
         abi: erc20Abi,
         functionName: 'balanceOf',
         args: [user as `0x${string}`],
       }),
+      // @ts-ignore
       client.readContract({
         address: assetAddress as `0x${string}`,
         abi: erc20Abi,

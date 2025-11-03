@@ -1,7 +1,8 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+
 import { ChainSelector } from '../../../components/ChainSelector'
 import { EnvironmentSelector } from '../../../components/EnvironmentSelector'
 import { FleetSelector } from '../../../components/FleetSelector'
@@ -12,9 +13,7 @@ import { useEnvironment } from '../../../hooks/useEnvironment'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
 import type { ArkRole, ChainId, FleetRole, GlobalRole } from '../../../types'
 
-interface AccessManagerPageProps {}
-
-export default function AccessManagerPage({}: AccessManagerPageProps) {
+export default function AccessManagerPage() {
   const params = useParams()
   const router = useRouter()
   const chainId = params.chainId as ChainId
@@ -147,11 +146,9 @@ export default function AccessManagerPage({}: AccessManagerPageProps) {
           {/* Role Management */}
           <div className="bg-gray-900 p-6 rounded-lg">
             <RoleManager
-              chainId={chainId}
               contractAddress={protocolAccessManagerAddress}
               selectedRole={selectedRole}
               targetContract={requiresTargetContract ? selectedFleet : undefined}
-              environment={environment}
             />
           </div>
         </div>

@@ -1,7 +1,9 @@
-import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { Inter } from 'next/font/google'
-import './globals.css'
+
+import { ConnectButton } from '../components/ConnectButton'
 import { Providers } from './providers'
+
+import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 

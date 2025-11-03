@@ -1,14 +1,16 @@
-import '@nomicfoundation/hardhat-verify'
 import { default as dotenv } from 'dotenv'
-import 'hardhat-contract-sizer'
 import { resolve } from 'path'
+
+import '@nomicfoundation/hardhat-verify'
+import 'hardhat-contract-sizer'
 import './plugins/multiSourceCompile'
 
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
+import type { HardhatUserConfig } from 'hardhat/config'
+
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-ignition-viem'
-import type { HardhatUserConfig } from 'hardhat/config'
 
 if (!process.env.API_KEY_ETHERSCAN) {
   throw new Error(

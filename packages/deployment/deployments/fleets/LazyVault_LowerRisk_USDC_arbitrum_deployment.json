@@ -5,10 +5,6 @@
   "fleetAddress": "0x4F63cfEa7458221CB3a0EEE2F31F7424Ad34bb58",
   "bufferArkAddress": "0xbb79242B9518F450cDe8eb957E15c38ab09B1419",
   "network": "arbitrum",
-  "initialMinimumBufferBalance": "100000000",
-  "initialRebalanceCooldown": "600",
-  "depositCap": "0",
-  "initialTipRate": "1000000000000000000",
   "arks": [
     "0x64e3d757d0eA851A79cdC8390c9434a915949461",
     "0x7BB4536e67C804758F77c218D9AF28856566151e",
@@ -23,6 +19,11 @@
     "0x4a45a58838187F939368B08D695A5321a9306140",
     "0xd17c91DDD4bf4CCD34402901697e5Af1927213ce",
     "0x286A55af8a88d3B9937c1303bf945AFe6155A06B",
-    "0x54749c15751137Be18768288D3945C4934fCb800"
-  ]
+    "0x54749c15751137Be18768288D3945C4934fCb800",
+    "0x01f61bFFE1f684F71Fcc40862AfE0FDD4aA462FC"
+  ],
+  "initialMinimumBufferBalance": "100000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "1000000000000000000"
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { formatUnits, parseEther } from 'viem'
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi'
+
 import { IntentBondFactoryABI } from '../abis/IntentBondFactory'
 import { IntentHandlerABI } from '../abis/IntentHandler'
 import type { Environment } from '../config/environments'
@@ -46,6 +47,10 @@ export interface IntentEvent {
   expiry: bigint
 }
 
+type EventIntentStruct = IntentData & {
+  [key: number]: unknown
+}
+
 export function useIntentSystem(environment: Environment, chainId: ChainId) {
   const { address: userAddress } = useAccount()
   const publicClient = usePublicClient()
@@ -53,7 +58,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [intentData, setIntentData] = useState<IntentData | null>(null)
   const [solverInfo, setSolverInfo] = useState<SolverInfo | null>(null)
   const [intentEvents, setIntentEvents] = useState<IntentEvent[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
@@ -66,17 +70,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
 
   const isDeployed = intentBondFactory !== '0x0000000000000000000000000000000000000000'
 
-  // Get intent data for a user
-  const getIntent = useCallback(
-    async (userAddress: string) => {
-      // This function doesn't exist in the current contract
-      // Intents are created and managed differently
-      console.log('getIntent not implemented in current contract')
-      return null
-    },
-    [publicClient, intentHandler],
-  )
-
   // Get solver information
   const getSolverInfo = useCallback(
     async (solverAddress: string) => {
@@ -84,12 +77,14 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
 
       try {
         const [bondAmount, isVouched] = await Promise.all([
+          // @ts-ignore
           publicClient.readContract({
             address: intentBondFactory as `0x${string}`,
             abi: IntentBondFactoryABI,
             functionName: 'getSolverBondAmount',
             args: [solverAddress as `0x${string}`],
           }),
+          // @ts-ignore
           publicClient.readContract({
             address: intentBondFactory as `0x${string}`,
             abi: IntentBondFactoryABI,
@@ -252,7 +247,8 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
 
       try {
         // First get the bond contract address
-        const bondAddress = await publicClient.readContract({
+        const bondAddress = await // @ts-ignore
+        publicClient.readContract({
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'getSolverBond',
@@ -264,7 +260,8 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
         }
 
         // First approve SUMMER tokens for the bond contract
-        const summerTokenAddress = await publicClient.readContract({
+        const summerTokenAddress = await // @ts-ignore
+        publicClient.readContract({
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'summerToken',
@@ -330,7 +327,8 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
       if (!publicClient || !intentBondFactory) return false
 
       try {
-        const isVouched = await publicClient.readContract({
+        const isVouched = await // @ts-ignore
+        publicClient.readContract({
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'isSolverVouched',
@@ -352,7 +350,8 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
       if (!publicClient || !intentBondFactory) return BigInt(0)
 
       try {
-        const bondAmount = await publicClient.readContract({
+        const bondAmount = await // @ts-ignore
+        publicClient.readContract({
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'getSolverBondAmount',
@@ -374,7 +373,8 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
       if (!publicClient || !intentHandler) return null
 
       try {
-        const result = await publicClient.readContract({
+        const result = await // @ts-ignore
+        publicClient.readContract({
           address: intentHandler as `0x${string}`,
           abi: IntentHandlerABI,
           functionName: 'hasCommitted',
@@ -467,19 +467,19 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
       // Process created events
       for (const event of createdEvents) {
         const block = await publicClient.getBlock({ blockHash: event.blockHash! })
-        const intentData = event.args.intent as any
+        const intentStruct = event.args.intent as EventIntentStruct
 
         processedEvents.push({
           intentId: event.args.orderId as string,
-          user: intentData.user,
+          user: intentStruct.user,
           state: 'Created',
           timestamp: Number(block.timestamp),
-          requiredNotional: intentData.requiredNotional,
-          requiredBond: intentData.requiredBond,
-          term: intentData.term,
-          targetYield: intentData.targetYield,
-          token: intentData.token,
-          expiry: intentData.expiry,
+          requiredNotional: intentStruct.requiredNotional,
+          requiredBond: intentStruct.requiredBond,
+          term: intentStruct.term,
+          targetYield: intentStruct.targetYield,
+          token: intentStruct.token,
+          expiry: intentStruct.expiry,
         })
       }
 
@@ -536,13 +536,15 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
       if (!publicClient || !intentBondFactory) return BigInt(0)
 
       try {
-        const summerTokenAddress = await publicClient.readContract({
+        const summerTokenAddress = await // @ts-ignore
+        publicClient.readContract({
           address: intentBondFactory as `0x${string}`,
           abi: IntentBondFactoryABI,
           functionName: 'summerToken',
         })
 
-        const allowance = await publicClient.readContract({
+        const allowance = await // @ts-ignore
+        publicClient.readContract({
           address: summerTokenAddress as `0x${string}`,
           abi: [
             {
@@ -572,7 +574,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
   // Load initial data
   useEffect(() => {
     if (userAddress && isDeployed) {
-      // Don't call getIntent since it's not implemented
       getSolverInfo(userAddress)
     }
   }, [userAddress, isDeployed, getSolverInfo])
@@ -661,7 +662,6 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
   return {
     loading,
     error,
-    intentData,
     solverInfo,
     isDeployed,
     intentBondFactory,

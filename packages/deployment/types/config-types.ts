@@ -1,4 +1,6 @@
 import { Address } from 'viem'
+
+import { CoreContracts as CoreContractsBase } from '../ignition/modules/core'
 import { DeployedBridge } from './bridge-types'
 
 export enum SupportedNetworks {
@@ -32,6 +34,10 @@ export enum ArkType {
   FluidLiteArk = 'FluidLiteArk',
   AeraArk = 'AeraArk',
   StargateV2PoolArk = 'StargateV2PoolArk',
+  SiUSDArk = 'SiUSDArk',
+  FluidFTokenArk = 'FluidFTokenArk',
+  PsmLiteERC4626Ark = 'PsmLiteERC4626Ark',
+  Psm3ERC4626Ark = 'Psm3ERC4626Ark',
 }
 
 export const arkTypes = [
@@ -57,6 +63,10 @@ export const arkTypes = [
   { title: 'FluidLiteArk', value: ArkType.FluidLiteArk },
   { title: 'AeraArk', value: ArkType.AeraArk },
   { title: 'StargateV2PoolArk', value: ArkType.StargateV2PoolArk },
+  { title: 'SiUSDArk', value: ArkType.SiUSDArk },
+  { title: 'FluidFTokenArk', value: ArkType.FluidFTokenArk },
+  { title: 'PsmLiteERC4626Ark', value: ArkType.PsmLiteERC4626Ark },
+  { title: 'Psm3ERC4626Ark', value: ArkType.Psm3ERC4626Ark },
 ]
 
 export interface Config {
@@ -84,6 +94,7 @@ export enum Token {
   SILO = 'silo',
   SKY = 'sky',
   XSILO = 'xsilo',
+  ASONW = 'asonw',
 }
 
 export interface BaseConfig {
@@ -109,6 +120,7 @@ export interface BaseConfig {
       harborCommand: { address: string }
       admiralsQuarters: { address: string }
       fleetCommanderRewardsManagerFactory: { address: string }
+      institutionalVaultRegistry?: { address: string }
     }
     bridge?: {
       bridgeRouter: { address: string }
@@ -121,16 +133,7 @@ export interface BaseConfig {
     }
   }
   tokens: {
-    usdc: string
-    dai: string
-    weth: string
-    usds: string
-    stakedUsds: string
-    morpho: string
-    reul: string
-    eurc: string
-    seam: string
-    ws: string
+    [key in Token]: Address
   }
   common: {
     chainId: string
@@ -158,6 +161,10 @@ export interface BaseConfig {
       pool: string
       rewards: string
     }
+    spark: {
+      pool: string
+      rewards: string
+    }
     morpho: {
       blue: string
       urdFactory: string
@@ -170,6 +177,9 @@ export interface BaseConfig {
     }
     erc4626: Record<string, Record<string, string>>
     sky: {
+      psmLite: {
+        [key in Token]: Address
+      }
       psm3: {
         [key in Token]: Address
       }
@@ -213,6 +223,12 @@ export interface BaseConfig {
           withdrawalQueue: Address
         }
       }
+      fToken: {
+        [key in Token]: {
+          fToken: Address
+          merkleDistributor: Address
+        }
+      }
     }
     originETH: {
       originETH: Address
@@ -223,7 +239,7 @@ export interface BaseConfig {
         }
       }
     }
-    gauntlet: {
+    aera: {
       vaults: {
         [key in Token]: {
           [key: string]: {
@@ -237,6 +253,24 @@ export interface BaseConfig {
       pools: {
         [key in Token]: Address
       }
+    }
+    infinifi?: {
+      gateway: Address
+      siUSD: Address
+    }
+    pendle: {
+      router: Address
+      'lp-oracle': Address
+      markets: Record<
+        Token,
+        {
+          marketAddresses: Record<string, Address>
+          swapInTokens: {
+            token: Token
+            oracle: Address
+          }[]
+        }
+      >
     }
   }
   bridge?: DeployedBridge
@@ -258,6 +292,7 @@ export interface ArkConfig {
 
 export interface FleetConfig {
   fleetName: string
+  isBummer?: boolean
   symbol: string
   assetSymbol: string
   initialMinimumBufferBalance: string
@@ -274,14 +309,25 @@ export interface FleetConfig {
   sipNumber?: string
   details: string
   curator?: Address
+  keeper?: Address
 }
 
 export interface FleetDeployment {
   fleetName: string
+  isBummer?: boolean
   fleetSymbol: string
   assetSymbol: string
   fleetAddress: Address
   bufferArkAddress: Address
   network: string
   arks: Address[]
+  initialMinimumBufferBalance?: string
+  initialRebalanceCooldown?: string
+  depositCap?: string
+  initialTipRate?: string
+}
+
+// Extend CoreContracts to include InstitutionalVaultRegistry for networks
+export interface CoreContracts extends CoreContractsBase {
+  institutionalVaultRegistry?: { address: Address }
 }

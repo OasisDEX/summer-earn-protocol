@@ -2,7 +2,7 @@ import { extendConfig, task } from 'hardhat/config'
 import { HardhatConfig, HardhatUserConfig } from 'hardhat/types'
 import { resolve } from 'path'
 
-extendConfig((config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
+extendConfig((config: HardhatConfig, _userConfig: Readonly<HardhatUserConfig>) => {
   config.paths.multiSources = [
     // resolve(__dirname, '../../chain-bridge/src'),
     resolve(__dirname, '../../core-contracts/src'),

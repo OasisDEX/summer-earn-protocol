@@ -1,8 +1,10 @@
 'use client'
 
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { useMemo } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+
 import { LivePriceDisplay } from './LivePriceDisplay'
 import { TokenAmount } from './TokenAmount'
 

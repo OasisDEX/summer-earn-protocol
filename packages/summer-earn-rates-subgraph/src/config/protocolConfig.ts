@@ -641,6 +641,12 @@ class ProtocolConfig {
           BigInt.fromI32(22373484),
           'Origin',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x85B78AcA6Deae198fBF201c82DAF6Ca21942acc6'),
+          BigInt.fromI32(23471001),
+          'Origin',
+        ),
       ]),
       new Protocol('Term', [
         new ERC4626ManualAssetsProduct(
@@ -668,6 +674,14 @@ class ProtocolConfig {
           Address.fromString('0x8399C8Fc273bD165C346Af74A02e65f10e4FD78F'),
           BigInt.fromI32(23388531),
           'Silo',
+        ),
+      ]),
+      new Protocol('InfiniFi', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB'),
+          BigInt.fromI32(23631727),
+          'InfiniFi',
         ),
       ]),
     ]
