@@ -8,6 +8,7 @@ import { ADDRESS_ZERO } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { ModuleLogger } from '../helpers/module-logger'
 import { updateIndexJson } from '../helpers/update-json'
+import { validateAddress } from '../helpers/validation'
 
 export async function deployGov(config: BaseConfig, useBummerConfig?: boolean) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
@@ -33,27 +34,20 @@ async function deployGovContracts(
   console.log(kleur.cyan().bold('Deploying Gov Contracts...'))
 
   const deployConfig = await getDeploymentConfig(useBummerConfig)
-  const stakedSummerToken = config.deployedContracts.gov.stakedSummerToken.address
-  if (!stakedSummerToken || stakedSummerToken === ADDRESS_ZERO) {
-    throw new Error('Staked Summer Token is not set up correctly')
-  }
-  const timelock = config.deployedContracts.gov.timelock.address
-  if (!timelock || timelock === ADDRESS_ZERO) {
-    throw new Error('Timelock is not set up correctly')
-  }
-  const accessManager = config.deployedContracts.gov.protocolAccessManager.address
-  if (!accessManager || accessManager === ADDRESS_ZERO) {
-    throw new Error('Access Manager is not set up correctly')
-  }
+  const stakedSummerToken = validateAddress(
+    config.deployedContracts.govV2.summerGovernanceToken.address,
+    'govV2.summerGovernanceToken',
+  )
+  const timelock = validateAddress(config.deployedContracts.gov.timelock.address, 'gov.timelock')
+  const accessManager = validateAddress(
+    config.deployedContracts.gov.protocolAccessManager.address,
+    'gov.protocolAccessManager',
+  )
   const proposalThreshold = 10000n * 10n ** 18n
-  const quorumFraction = 40n
+  const quorumFraction = 15n
 
   console.log('\n', kleur.yellow().bold('Please confirm governance configuration:'), '\n')
   console.log('\n', kleur.blue('Governance Configuration:'))
-  console.log(
-    '- Timelock Delay:',
-    kleur.cyan(`${deployConfig.minDelay} seconds (${deployConfig.minDelay / 86400n} days)`),
-  )
   console.log(
     '- Voting Delay:',
     kleur.cyan(`${deployConfig.votingDelay} seconds (${deployConfig.votingDelay / 86400n} days)`),
@@ -112,17 +106,10 @@ async function getDeploymentConfig(useBummerConfig?: boolean) {
   // Use the passed useBummerConfig instead of asking again
   const isTest = useBummerConfig === true
 
-  const defaultMinDelay = isTest ? 300n : 172800n // 5 mins or 2 day
   const defaultVotingDelay = isTest ? 60n : 86400n // 1 min or 1 day
-  const defaultVotingPeriod = isTest ? 600n : 345600n // 10 mins or 4 days
+  const defaultVotingPeriod = isTest ? 600n : 259200n // 10 mins or 3 days
 
   const responses = await prompts([
-    {
-      type: 'number',
-      name: 'minDelay',
-      message: 'Enter minimum delay for timelock (in seconds):',
-      initial: Number(defaultMinDelay),
-    },
     {
       type: 'number',
       name: 'votingDelay',
@@ -138,7 +125,6 @@ async function getDeploymentConfig(useBummerConfig?: boolean) {
   ])
 
   return {
-    minDelay: BigInt(responses.minDelay),
     votingDelay: BigInt(responses.votingDelay),
     votingPeriod: BigInt(responses.votingPeriod),
   }

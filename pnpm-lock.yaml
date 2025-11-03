@@ -417,9 +417,6 @@ importers:
       '@summerfi/dependencies':
         specifier: workspace:*
         version: link:../external-dependencies
-      '@summerfi/earn-protocol-contracts':
-        specifier: workspace:*
-        version: link:../core-contracts
       '@summerfi/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config

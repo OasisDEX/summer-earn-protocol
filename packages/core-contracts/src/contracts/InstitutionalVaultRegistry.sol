@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IInstitutionalVaultRegistry} from "../interfaces/IInstitutionalVaultRegistry.sol";
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "@summerfi/earn-gov-contracts/interfaces/IConfigurationManager.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /**
  * @title InstitutionalVaultRegistry

@@ -13,7 +13,7 @@ import {IAToken} from "../interfaces/aave-v3/IAtoken.sol";
 import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
 import {IComet} from "../interfaces/compound-v3/IComet.sol";
 import {IWETH} from "../interfaces/misc/IWETH.sol";
-import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {ConfigurationManaged} from "@summerfi/earn-gov-contracts/contracts/ConfigurationManaged.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 

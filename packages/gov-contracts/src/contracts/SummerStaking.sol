@@ -7,7 +7,7 @@ import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
 import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
 import {WrappedStakingToken} from "./WrappedStakingToken.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
-import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManaged.sol";
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
 import {ISummerStaking} from "../interfaces/ISummerStaking.sol";

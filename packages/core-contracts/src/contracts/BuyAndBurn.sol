@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IBuyAndBurn} from "../interfaces/IBuyAndBurn.sol";
 import {AuctionManagerBase, BaseAuctionParameters, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
-import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {ConfigurationManaged} from "@summerfi/earn-gov-contracts/contracts/ConfigurationManaged.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";

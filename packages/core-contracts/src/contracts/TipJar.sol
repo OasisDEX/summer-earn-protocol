@@ -9,7 +9,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
-import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {ConfigurationManaged} from "@summerfi/earn-gov-contracts/contracts/ConfigurationManaged.sol";
 
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 

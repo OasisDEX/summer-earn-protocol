@@ -8,7 +8,7 @@ import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
 import {IFleetCommanderConfigProviderWhitelist} from "../interfaces/IFleetCommanderConfigProviderWhitelist.sol";
 
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
-import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {ConfigurationManaged} from "@summerfi/earn-gov-contracts/contracts/ConfigurationManaged.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";

@@ -79,8 +79,10 @@ export const StakingModule = buildModule('StakingModule', (m) => {
    * - SummerVestingWalletsEscrow gets MINTER_ROLE and BURNER_ROLE
    * - This allows them to mint/burn xSUMR tokens
    */
-  m.call(stakedSummerToken, 'addStakingModule', [summerStaking])
-  m.call(stakedSummerToken, 'addStakingModule', [summerVestingWalletsEscrow])
+  m.call(stakedSummerToken, 'addStakingModule', [summerStaking], { id: 'v2_staking_module' })
+  m.call(stakedSummerToken, 'addStakingModule', [summerVestingWalletsEscrow], {
+    id: 'v2_escrow_module',
+  })
 
   return {
     stakedSummerToken,
