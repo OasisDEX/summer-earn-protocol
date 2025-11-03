@@ -293,7 +293,7 @@ contract SummerVestingWalletFactoryV2Test is Test {
 
 // Mock contract for testing transfer amount mismatch
 contract MockIncorrectBalanceERC20V2 is ERC20Mock {
-    constructor() ERC20Mock() {}
+    constructor() {}
 
     function transferFrom(
         address from,

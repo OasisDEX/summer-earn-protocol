@@ -15,7 +15,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.
 import {Constants} from "@summerfi/constants/Constants.sol";
 
 contract ERC20MockWithoutDecimals is ERC20Mock {
-    constructor() ERC20Mock() {}
+    constructor() {}
 
     function decimals() public pure override returns (uint8) {
         revert("decimals() not implemented");

@@ -28,6 +28,9 @@
     "lint": {
       "dependsOn": ["prebuild", "build", "^lint"]
     },
+    "lint:fix": {
+      "dependsOn": ["prebuild", "build", "^lint:fix"]
+    },
     "format": {
       "dependsOn": ["prebuild", "build", "^format"]
     },
