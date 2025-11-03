@@ -30,6 +30,7 @@
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
+    "eslint": "^9.0.0",
     "axios": "1.12.1",
     "ethers": "6.11.1"
   }

@@ -211,7 +211,7 @@ contract SummerVestingWalletFactoryTest is Test {
 }
 
 contract MockIncorrectBalanceERC20 is ERC20Mock {
-    constructor() ERC20Mock() {}
+    constructor() {}
 
     function transferFrom(
         address from,
@@ -225,7 +225,7 @@ contract MockIncorrectBalanceERC20 is ERC20Mock {
 }
 
 contract MockFailingERC20 is ERC20Mock {
-    constructor() ERC20Mock() {}
+    constructor() {}
 
     function transferFrom(
         address,

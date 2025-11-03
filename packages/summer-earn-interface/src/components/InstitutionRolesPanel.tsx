@@ -151,67 +151,107 @@ interface InstitutionRolesPanelProps {
   fleets?: FleetOption[]
 }
 
+type SingleArgFunction =
+  | 'grantGovernorRole'
+  | 'revokeGovernorRole'
+  | 'grantSuperKeeperRole'
+  | 'revokeSuperKeeperRole'
+  | 'grantGuardianRole'
+  | 'revokeGuardianRole'
+  | 'grantDecayControllerRole'
+  | 'revokeDecayControllerRole'
+  | 'grantAdmiralsQuartersRole'
+  | 'revokeAdmiralsQuartersRole'
+  | 'grantFoundationRole'
+  | 'revokeFoundationRole'
+
+type DualArgFunction =
+  | 'grantCuratorRole'
+  | 'revokeCuratorRole'
+  | 'grantKeeperRole'
+  | 'revokeKeeperRole'
+
 export function InstitutionRolesPanel({
   protocolAccessManager,
   fleets = [],
 }: InstitutionRolesPanelProps) {
-  const { isConnected } = useAccount()
+  const { isConnected, chain } = useAccount()
   const [selectedRole, setSelectedRole] = useState<GlobalRole | FleetRole>('GOVERNOR_ROLE')
   const [userAddress, setUserAddress] = useState('')
   const [selectedFleetAddress, setSelectedFleetAddress] = useState('')
   const [action, setAction] = useState<'grant' | 'revoke'>('grant')
 
   const requiresTarget = selectedRole === 'CURATOR_ROLE' || selectedRole === 'KEEPER_ROLE'
-  const canSubmit =
-    isConnected &&
-    userAddress.length === 42 &&
-    (!requiresTarget || (selectedFleetAddress && selectedFleetAddress.length === 42))
+  const isUserAddressValid = userAddress.length === 42 && userAddress.startsWith('0x')
+  const isFleetAddressValid =
+    selectedFleetAddress.length === 42 && selectedFleetAddress.startsWith('0x')
+  const canSubmit = isConnected && isUserAddressValid && (!requiresTarget || isFleetAddressValid)
 
   const { writeContract, data: txHash, isPending, error } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
   const onSubmit = () => {
     if (!canSubmit) return
-    let functionName: string
-    let args: any[]
+    const account = userAddress as `0x${string}`
+
+    const submitSingleRole = (fn: SingleArgFunction) =>
+      writeContract({
+        abi: pamAbi,
+        address: protocolAccessManager,
+        functionName: fn,
+        args: [account] as const,
+        chain: chain,
+        account: account,
+      })
+
+    const submitDualRole = (fn: DualArgFunction, target: `0x${string}`) =>
+      writeContract({
+        abi: pamAbi,
+        address: protocolAccessManager,
+        functionName: fn,
+        args: [target, account] as const,
+        chain: chain,
+        account: account,
+      })
+
     switch (selectedRole) {
       case 'GOVERNOR_ROLE':
-        functionName = action === 'grant' ? 'grantGovernorRole' : 'revokeGovernorRole'
-        args = [userAddress]
+        submitSingleRole(action === 'grant' ? 'grantGovernorRole' : 'revokeGovernorRole')
         break
       case 'SUPER_KEEPER_ROLE':
-        functionName = action === 'grant' ? 'grantSuperKeeperRole' : 'revokeSuperKeeperRole'
-        args = [userAddress]
+        submitSingleRole(action === 'grant' ? 'grantSuperKeeperRole' : 'revokeSuperKeeperRole')
         break
       case 'GUARDIAN_ROLE':
-        functionName = action === 'grant' ? 'grantGuardianRole' : 'revokeGuardianRole'
-        args = [userAddress]
+        submitSingleRole(action === 'grant' ? 'grantGuardianRole' : 'revokeGuardianRole')
         break
       case 'DECAY_CONTROLLER_ROLE':
-        functionName = action === 'grant' ? 'grantDecayControllerRole' : 'revokeDecayControllerRole'
-        args = [userAddress]
+        submitSingleRole(
+          action === 'grant' ? 'grantDecayControllerRole' : 'revokeDecayControllerRole',
+        )
         break
       case 'ADMIRALS_QUARTERS_ROLE':
-        functionName =
-          action === 'grant' ? 'grantAdmiralsQuartersRole' : 'revokeAdmiralsQuartersRole'
-        args = [userAddress]
+        submitSingleRole(
+          action === 'grant' ? 'grantAdmiralsQuartersRole' : 'revokeAdmiralsQuartersRole',
+        )
         break
       case 'FOUNDATION_ROLE':
-        functionName = action === 'grant' ? 'grantFoundationRole' : 'revokeFoundationRole'
-        args = [userAddress]
+        submitSingleRole(action === 'grant' ? 'grantFoundationRole' : 'revokeFoundationRole')
         break
       case 'CURATOR_ROLE':
-        functionName = action === 'grant' ? 'grantCuratorRole' : 'revokeCuratorRole'
-        args = [selectedFleetAddress, userAddress]
+        submitDualRole(
+          action === 'grant' ? 'grantCuratorRole' : 'revokeCuratorRole',
+          selectedFleetAddress as `0x${string}`,
+        )
         break
       case 'KEEPER_ROLE':
-        functionName = action === 'grant' ? 'grantKeeperRole' : 'revokeKeeperRole'
-        args = [selectedFleetAddress, userAddress]
+        submitDualRole(
+          action === 'grant' ? 'grantKeeperRole' : 'revokeKeeperRole',
+          selectedFleetAddress as `0x${string}`,
+        )
         break
       default:
         return
     }
-    ;(writeContract as any)({ abi: pamAbi, address: protocolAccessManager, functionName, args })
   }
 
   useEffect(() => {
@@ -230,7 +270,7 @@ export function InstitutionRolesPanel({
           <label className="block text-sm font-medium text-gray-300 mb-2">Role</label>
           <select
             value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value as any)}
+            onChange={(e) => setSelectedRole(e.target.value as GlobalRole | FleetRole)}
             className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white"
           >
             <option value="GOVERNOR_ROLE">GOVERNOR_ROLE</option>

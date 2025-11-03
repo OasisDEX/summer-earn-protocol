@@ -1,7 +1,8 @@
 'use client'
 
-import { PHASE_INFO, isTimeSensitive, type ProposalTiming } from '@/utils/timing'
 import { useEffect, useState } from 'react'
+
+import { isTimeSensitive, PHASE_INFO, type ProposalTiming } from '@/utils/timing'
 
 interface ProgressBarProps {
   timing: ProposalTiming
@@ -137,7 +138,6 @@ export function CompactProgressBar({ timing, className = '' }: CompactProgressBa
     requestAnimationFrame(animate)
   }, [timing.progressPercentage, displayProgress])
 
-  const phaseInfo = PHASE_INFO[timing.phase]
   const isUrgent = timing.timeRemaining < 60 * 60
   const showUrgency = isTimeSensitive(timing.phase)
 
@@ -175,7 +175,6 @@ export function PhaseProgressBar({ timing, className = '' }: PhaseProgressBarPro
           const phaseInfo = PHASE_INFO[phase]
           const isActive = index === currentPhaseIndex
           const isCompleted = index < currentPhaseIndex
-          const isUpcoming = index > currentPhaseIndex
 
           return (
             <div key={phase} className="flex flex-col items-center space-y-1">

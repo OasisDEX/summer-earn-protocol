@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+
 import type { ChainId } from '../types'
 import { useFleetConfig } from './useFleetConfig'
 import { useStakingActions } from './useStakingActions'
@@ -11,7 +12,7 @@ interface UseStakingRewardsProps {
 
 export function useStakingRewards({ fleetAddress, chainId }: UseStakingRewardsProps) {
   // Step 1: Get fleet config and staking rewards manager address
-  const { fleetConfig, stakingRewardsManagerAddress, configError, configLoading } = useFleetConfig({
+  const { fleetConfig, stakingRewardsManagerAddress } = useFleetConfig({
     fleetAddress,
     chainId,
   })

@@ -1,6 +1,6 @@
-const fs = require('fs')
-const path = require('path')
-const glob = require('glob')
+import fs from 'fs'
+import glob from 'glob'
+import path from 'path'
 
 // Chain ID to name mapping
 const CHAIN_NAMES = {

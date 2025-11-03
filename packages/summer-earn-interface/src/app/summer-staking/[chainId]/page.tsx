@@ -1,8 +1,9 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
+
 import { useSummerStaking } from '../../../hooks/useSummerStaking'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
 import type { ChainId } from '../../../types'
@@ -76,8 +77,6 @@ export default function SummerStakingPage() {
     buckets,
     stakes,
     currentOverallMultiplierWad,
-    summerAllowance,
-    xSummerAllowance,
     approveSummer,
     approveXSummer,
     stakeLockup,
@@ -86,7 +85,6 @@ export default function SummerStakingPage() {
     needsXSummerApproval,
     isPending,
     isConfirming,
-    isConfirmed,
   } = useSummerStaking(chainId)
 
   const [amountStr, setAmountStr] = useState('')

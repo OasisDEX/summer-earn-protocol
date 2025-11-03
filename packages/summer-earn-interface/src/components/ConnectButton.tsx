@@ -3,18 +3,26 @@
 import { useCallback } from 'react'
 import { useAccount, useDisconnect } from 'wagmi'
 
+type WindowWithAppKit = typeof window & {
+  appKit?: {
+    open?: () => void
+  }
+}
+
 export function ConnectButton() {
   const { address, isConnected, chain } = useAccount()
   const { disconnectAsync } = useDisconnect()
 
   const onOpen = useCallback(() => {
-    ;(window as any).appKit?.open?.()
+    ;(window as WindowWithAppKit).appKit?.open?.()
   }, [])
 
   const onDisconnect = useCallback(async () => {
     try {
       await disconnectAsync()
-    } catch {}
+    } catch (error) {
+      console.error('Failed to disconnect wallet', error)
+    }
   }, [disconnectAsync])
 
   if (!isConnected) {

@@ -1,10 +1,12 @@
-import { calculateProposalTiming } from '@/utils/timing'
-import { ethers } from 'ethers'
 import React, { useEffect, useState } from 'react'
+import { ethers } from 'ethers'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
+
+import { calculateProposalTiming } from '@/utils/timing'
+
 import config from '../config/index.json'
 import { useMultipleProposalVoting } from '../hooks/useProposalVoting'
-import { CrossChainProposal, ProposalWithCrossChain, fetchAllProposals } from '../services/subgraph'
+import { CrossChainProposal, fetchAllProposals, ProposalWithCrossChain } from '../services/subgraph'
 import { PhaseIndicator } from './PhaseIndicator'
 import { ProposalFilter, ProposalStatus } from './ProposalFilter'
 
@@ -84,17 +86,6 @@ const GOVERNOR_ABI = [
   },
 ] as const
 
-// Summer Token ABI for voting power
-const SUMMER_TOKEN_ABI = [
-  {
-    inputs: [{ name: 'account', type: 'address' }],
-    name: 'getVotes',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const
-
 // Chain ID to network name mapping
 const CHAIN_ID_TO_NETWORK: Record<string, keyof typeof config> = {
   '1': 'mainnet',
@@ -154,7 +145,7 @@ export const CrossChainProposals: React.FC = () => {
   ])
 
   const { address, isConnected, chainId } = useAccount()
-  const { writeContract, isPending, error: writeContractError } = useWriteContract()
+  const { writeContract, isPending } = useWriteContract()
   const { switchChain } = useSwitchChain()
 
   // Get active proposal IDs for voting data (including PENDING proposals that are now active)
@@ -540,7 +531,6 @@ export const CrossChainProposals: React.FC = () => {
           const baseStatus = baseProposal.status.toUpperCase()
           const currentTimestamp = Math.floor(Date.now() / 1000)
           const baseEta = Number(baseProposal.eta)
-          const createdAt = Number(baseProposal.createdAt)
           const isBaseQueued = baseStatus === 'QUEUED'
           const isBaseReady = isBaseQueued && baseEta > 0 && currentTimestamp >= baseEta
 

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { erc20Abi, formatUnits } from 'viem'
 import { multicall } from 'viem/actions'
 import { usePublicClient } from 'wagmi'
+
 import { CHAIN_NAMES } from '../config/chains'
 import type {
   ArkRewardsData,
@@ -332,12 +333,7 @@ export function useRewardsData(chainId: ChainId) {
           ark.tokenBalances = tokenBalances
 
           // Get claimable rewards
-          const claimableRewards = await getClaimableRewards(
-            publicClient,
-            ark,
-            parseInt(chainId),
-            multicallAddress,
-          )
+          const claimableRewards = await getClaimableRewards(publicClient, ark, parseInt(chainId))
           ark.claimableRewards = claimableRewards
         }
       }
@@ -488,7 +484,6 @@ async function getClaimableRewards(
   publicClient: any,
   ark: ArkRewardsData,
   chainId: number,
-  multicallAddress: string,
 ): Promise<ClaimableReward[]> {
   const claimableRewards: ClaimableReward[] = []
 

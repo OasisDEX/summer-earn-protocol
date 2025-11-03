@@ -1,4 +1,9 @@
 import { ethers } from 'ethers'
+
+import deployedArbitrum from '../config/deployed/arbitrum.json'
+import deployedBase from '../config/deployed/base.json'
+import deployedMainnet from '../config/deployed/mainnet.json'
+import deployedSonic from '../config/deployed/sonic.json'
 import config from '../config/index.json'
 
 export enum SupportedNetworks {
@@ -46,6 +51,13 @@ type Config = {
 
 // Cast the imported config to our defined type
 const typedConfig = config as unknown as Config
+
+const deployedAddressesByNetwork: Record<SupportedNetworks, Record<string, string>> = {
+  [SupportedNetworks.MAINNET]: deployedMainnet,
+  [SupportedNetworks.BASE]: deployedBase,
+  [SupportedNetworks.ARBITRUM]: deployedArbitrum,
+  [SupportedNetworks.SONIC]: deployedSonic,
+}
 
 interface ValidationResult {
   isValid: boolean
@@ -239,6 +251,7 @@ export const decodeCalldata = (calldata: string): DecodedFunction | null => {
         }
       }
     } catch (error) {
+      console.error('Error decoding calldata:', error)
       // Continue to next interface
     }
   }
@@ -262,7 +275,6 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
 
     // Decode nested calldatas
     const decodedCalldatas = dstCalldatas.map((calldata: string) => decodeCalldata(calldata))
-    const networkConfig = typedConfig[network]
 
     // Get contract names for the targets
     const targetContractNames = dstTargets.map((target: string) =>
@@ -322,25 +334,16 @@ export function addresToContractName(address: string, network: SupportedNetworks
     }
   }
 
-  // Check network-specific deployed addresses
-  try {
-    const deployedAddresses = require(`../config/deployed/${network}.json`) as Record<
-      string,
-      string
-    >
-
-    // Iterate through all contracts in the deployed addresses
-    for (const [contractName, contractAddress] of Object.entries(deployedAddresses)) {
-      if (
-        typeof contractAddress === 'string' &&
-        contractAddress.toLowerCase() === normalizedAddress
-      ) {
-        return `${contractName}`
-      }
-    }
-  } catch (error) {
-    // If file doesn't exist or can't be loaded, just continue
+  const deployedAddresses = deployedAddressesByNetwork[network]
+  if (!deployedAddresses) {
     console.warn(`No deployed addresses found for network ${network}`)
+    return 'Unknown'
+  }
+
+  for (const [contractName, contractAddress] of Object.entries(deployedAddresses)) {
+    if (contractAddress.toLowerCase() === normalizedAddress) {
+      return contractName
+    }
   }
 
   return 'Unknown'
@@ -458,14 +461,14 @@ export const validateCalldatas = (calldatas: string[]): ValidationResult => {
 
     // Try to decode the calldata with known ABIs
     let decoded = false
-    for (const [name, iface] of Object.entries(interfaces)) {
+    for (const iface of Object.values(interfaces)) {
       try {
         const parsed = iface.parseTransaction({ data: calldata })
         if (parsed) {
           decoded = true
           break
         }
-      } catch (error) {
+      } catch {
         // Continue to next interface
       }
     }
@@ -496,7 +499,7 @@ export const isCrossChainExecution = (target: string, calldata: string): boolean
       target.toLowerCase() === governorAddress.toLowerCase() &&
       calldata.toLowerCase().startsWith(selector)
     )
-  } catch (error) {
+  } catch {
     return false
   }
 }
