@@ -67,5 +67,6 @@
   "prod_TarFi_USDC_ERC4626_Euler_Arbitrum_USDC_usdc_42161#ERC4626Ark": "0x65ef675C5D2C28DDaA18fCd127dF16aF9BCD0094",
   "prod_TarFi_USDC_FluidFToken_usdc_42161#FluidFTokenArk": "0x3D3e4973ce9DD6CDDEE76a499f20BEE6085881C7",
   "prod_TarFi_USDC_ERC4626_Gearbox_usdc_42161#ERC4626Ark": "0xCF5870Ab4cc9d3de9D68e3B5222B7fBDcf841985",
-  "prod_TarFi_USDC_Silo_Swaap_Lend_susdx_usdc_127_usdc_42161#SiloVaultArkV2": "0x269938dF5C0110a9e8De1f76cF8279F745895d28"
+  "prod_TarFi_USDC_Silo_Swaap_Lend_susdx_usdc_127_usdc_42161#SiloVaultArkV2": "0x269938dF5C0110a9e8De1f76cF8279F745895d28",
+  "GovModuleV2#SummerGovernorV2": "0x5c841955d7EE3E2F7a077Aa0aCa3A7d724b15Da2"
 }

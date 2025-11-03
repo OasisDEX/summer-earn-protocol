@@ -9,6 +9,7 @@ import { getConfigByNetwork } from '../helpers/config-handler'
 import { ModuleLogger } from '../helpers/module-logger'
 import { updateIndexJson } from '../helpers/update-json'
 import { validateAddress } from '../helpers/validation'
+import { isHubChain } from '../helpers/get-hub-chain'
 
 export async function deployGovV2(config: BaseConfig, useBummerConfig?: boolean) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
@@ -41,10 +42,12 @@ async function deployGovContracts(
   console.log(kleur.cyan().bold('Deploying Gov Contracts...'))
 
   const deployConfig = await getDeploymentConfig(useBummerConfig)
-  const summerGovernanceToken = validateAddress(
-    config.deployedContracts.govV2.summerGovernanceToken.address,
-    'govV2.summerGovernanceToken',
-  )
+  const summerGovernanceToken = isHubChain(hre.network.name)
+    ? validateAddress(
+        config.deployedContracts.govV2.summerGovernanceToken.address,
+        'govV2.summerGovernanceToken',
+      )
+    : validateAddress(config.deployedContracts.gov.summerToken.address, 'gov.summerToken')
   const timelock = validateAddress(config.deployedContracts.gov.timelock.address, 'gov.timelock')
   const accessManager = validateAddress(
     config.deployedContracts.gov.protocolAccessManager.address,
