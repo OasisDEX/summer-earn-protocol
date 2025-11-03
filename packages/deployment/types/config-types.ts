@@ -93,6 +93,7 @@ export enum Token {
   SILO = 'silo',
   SKY = 'sky',
   XSILO = 'xsilo',
+  ASONW = 'asonw',
 }
 
 export interface BaseConfig {
