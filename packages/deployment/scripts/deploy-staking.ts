@@ -9,12 +9,17 @@ import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
+import { isSatelliteChain } from './helpers/get-hub-chain'
 
-export async function deployStaking() {
+export async function deployStaking(_useBummerConfig: boolean) {
+  if (isSatelliteChain(hre.network.name)) {
+    console.log(kleur.yellow().bold('Staking can only be deployed on the hub chain'))
+    return
+  }
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
 
   // Ask about using bummer config at the beginning
-  const useBummerConfig = await promptForConfigType()
+  const useBummerConfig = _useBummerConfig || (await promptForConfigType())
 
   const config = getConfigByNetwork(
     hre.network.name,
@@ -39,7 +44,7 @@ async function deployStakingContracts(
 ): Promise<StakingContracts> {
   console.log(kleur.cyan().bold('Deploying Staking Contracts...'))
 
-  checkExistingContracts(config, 'gov')
+  checkExistingContracts(config, 'govV2')
 
   // Validate required dependencies
   if (config.deployedContracts.gov.protocolAccessManager.address === ADDRESS_ZERO) {
@@ -53,16 +58,16 @@ async function deployStakingContracts(
   }
 
   // Check if staking contracts are already deployed
-  if (config.deployedContracts.gov.stakedSummerToken.address !== ADDRESS_ZERO) {
+  if (config.deployedContracts.govV2.summerGovernanceToken.address !== ADDRESS_ZERO) {
     console.log(
       kleur.yellow().bold('StakedSummerToken already deployed at:'),
-      config.deployedContracts.gov.stakedSummerToken.address,
+      config.deployedContracts.govV2.summerGovernanceToken.address,
     )
   }
-  if (config.deployedContracts.gov.summerStakingContract.address !== ADDRESS_ZERO) {
+  if (config.deployedContracts.govV2.summerStaking.address !== ADDRESS_ZERO) {
     console.log(
       kleur.yellow().bold('SummerStaking already deployed at:'),
-      config.deployedContracts.gov.summerStakingContract.address,
+      config.deployedContracts.govV2.summerStaking.address,
     )
   }
 
@@ -79,7 +84,7 @@ async function deployStakingContracts(
 
   console.log(kleur.green().bold('All Staking Contracts Deployed Successfully!'))
 
-  updateIndexJson('staking', hre.network.name, staking, useBummerConfig)
+  updateIndexJson('govV2', hre.network.name, staking, useBummerConfig)
 
   const updatedConfig = getConfigByNetwork(
     hre.network.name,
@@ -114,7 +119,7 @@ async function setupStakingRoles(config: BaseConfig) {
   )
 
   // Check if SummerStaking has the necessary roles
-  const summerStakingAddress = config.deployedContracts.gov.summerStakingContract.address
+  const summerStakingAddress = config.deployedContracts.govV2.summerStaking.address
   if (summerStakingAddress !== ADDRESS_ZERO) {
     // Grant any necessary roles to SummerStaking contract
     // Note: The specific roles depend on the ProtocolAccessManager implementation
@@ -130,7 +135,7 @@ async function setupStakingRoles(config: BaseConfig) {
 
 // When script is run directly
 if (require.main === module) {
-  deployStaking().catch((error) => {
+  deployStaking(false).catch((error) => {
     console.error(kleur.red().bold('An error occurred:'), error)
     process.exit(1)
   })

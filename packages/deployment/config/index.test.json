@@ -18,6 +18,26 @@
           "address": "0x2aF041B4505743f0C01Dd4C6AA8e23bD22dE379e"
         }
       },
+      "govV2": {
+        "summerGovernor": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerGovernanceToken": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelock": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "protocolAccessManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerStaking": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerVestingWalletsEscrow": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
       "buyAndBurn": {
         "buyAndBurn": {
           "address": "0x0000000000000000000000000000000000000000"
@@ -240,6 +260,26 @@
           "address": "0x5e09d02aE0C1A5537F590152e999e577dA53ea5d"
         }
       },
+      "govV2": {
+        "summerGovernor": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerGovernanceToken": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelock": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "protocolAccessManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerStaking": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerVestingWalletsEscrow": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
       "buyAndBurn": {
         "buyAndBurn": {
           "address": "0x0000000000000000000000000000000000000000"
@@ -437,6 +477,26 @@
         },
         "rewardsRedeemer": {
           "address": "0xf5731e25F9FC734b1450a2Bcf6aC665B65a88515"
+        }
+      },
+      "govV2": {
+        "summerGovernor": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerGovernanceToken": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelock": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "protocolAccessManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerStaking": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerVestingWalletsEscrow": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "buyAndBurn": {
@@ -753,6 +813,26 @@
           "address": "0x3E516345E8B212E35c8fDEbcf74360d765Be78e4"
         }
       },
+      "govV2": {
+        "summerGovernor": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerGovernanceToken": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelock": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "protocolAccessManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerStaking": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerVestingWalletsEscrow": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
       "buyAndBurn": {
         "buyAndBurn": {
           "address": "0x0000000000000000000000000000000000000000"
@@ -896,6 +976,26 @@
           "address": "0x424aA31D64cabd39ea8B133BE844d935d666f40e"
         }
       },
+      "govV2": {
+        "summerGovernor": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerGovernanceToken": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelock": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "protocolAccessManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerStaking": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerVestingWalletsEscrow": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
       "buyAndBurn": {
         "buyAndBurn": {
           "address": "0x0000000000000000000000000000000000000000"
@@ -962,6 +1062,26 @@
         },
         "rewardsRedeemer": {
           "address": "0x424aA31D64cabd39ea8B133BE844d935d666f40e"
+        }
+      },
+      "govV2": {
+        "summerGovernor": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerGovernanceToken": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelock": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "protocolAccessManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerStaking": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerVestingWalletsEscrow": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "buyAndBurn": {

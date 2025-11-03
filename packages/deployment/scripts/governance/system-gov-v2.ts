@@ -10,13 +10,20 @@ import { ModuleLogger } from '../helpers/module-logger'
 import { updateIndexJson } from '../helpers/update-json'
 import { validateAddress } from '../helpers/validation'
 
-export async function deployGov(config: BaseConfig, useBummerConfig?: boolean) {
+export async function deployGovV2(config: BaseConfig, useBummerConfig?: boolean) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
   const deployedGov = await deployGovContracts(config, useBummerConfig)
   ModuleLogger.logGovV2(deployedGov)
 
   console.log('Updating index.json...')
-  updateIndexJson('gov', hre.network.name, deployedGov, useBummerConfig)
+  const contracts = {
+    ...deployedGov,
+    timelock: JSON.parse(JSON.stringify(config.deployedContracts.gov.timelock)),
+    protocolAccessManager: JSON.parse(
+      JSON.stringify(config.deployedContracts.gov.protocolAccessManager),
+    ),
+  }
+  updateIndexJson('govV2', hre.network.name, contracts, useBummerConfig)
 
   return deployedGov
 }
@@ -34,7 +41,7 @@ async function deployGovContracts(
   console.log(kleur.cyan().bold('Deploying Gov Contracts...'))
 
   const deployConfig = await getDeploymentConfig(useBummerConfig)
-  const stakedSummerToken = validateAddress(
+  const summerGovernanceToken = validateAddress(
     config.deployedContracts.govV2.summerGovernanceToken.address,
     'govV2.summerGovernanceToken',
   )
@@ -85,7 +92,7 @@ async function deployGovContracts(
         votingPeriod: deployConfig.votingPeriod,
         proposalThreshold: proposalThreshold,
         quorumFraction: quorumFraction,
-        stakedSummerToken: stakedSummerToken,
+        summerGovernanceToken: summerGovernanceToken,
         timelock: timelock,
         accessManager: accessManager,
       },
@@ -154,7 +161,7 @@ if (require.main === module) {
 
   getConfig()
     .then(({ config, useBummerConfig }) => {
-      return deployGov(config, useBummerConfig)
+      return deployGovV2(config, useBummerConfig)
     })
     .catch((error) => {
       console.error(kleur.red().bold('An error occurred:'), error)

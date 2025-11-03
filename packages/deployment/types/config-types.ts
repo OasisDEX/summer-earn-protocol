@@ -112,7 +112,7 @@ export interface BaseConfig {
       summerGovernanceToken: { address: string }
       timelock: { address: string }
       protocolAccessManager: { address: string }
-      summerStakingContract: { address: string }
+      summerStaking: { address: string }
       summerVestingWalletsEscrow: { address: string }
     }
     buyAndBurn: {

@@ -123,7 +123,7 @@ export class ModuleLogger {
 
   static logStaking(contracts: StakingContracts): void {
     const logger = new ModuleLogger('StakingModule', {
-      'Staked Summer Token (xSUMR)': contracts.stakedSummerToken,
+      'Summer Governance Token     ': contracts.summerGovernanceToken,
       'Summer Staking Contract     ': contracts.summerStaking,
       'Vesting Wallets Escrow      ': contracts.summerVestingWalletsEscrow,
     })

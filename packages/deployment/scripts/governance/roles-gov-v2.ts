@@ -4,6 +4,7 @@ import { Address } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { CANCELLER_ROLE, EXECUTOR_ROLE, GOVERNOR_ROLE, PROPOSER_ROLE } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
+import { validateAddress } from '../helpers/validation'
 
 /**
  * @dev Post-deployment governance setup
@@ -29,20 +30,23 @@ export async function rolesGovV2(useBummerConfig = false) {
 
   const timelock = await hre.viem.getContractAt(
     'TimelockController' as string,
-    config.deployedContracts.gov.timelock.address as Address,
+    validateAddress(config.deployedContracts.govV2.timelock.address, 'govV2.timelock'),
   )
 
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernorV2' as string,
-    config.deployedContracts.gov.summerGovernorV2.address as Address,
+    validateAddress(config.deployedContracts.govV2.summerGovernor.address, 'govV2.summerGovernor'),
   )
   const protocolAccessManager = await hre.viem.getContractAt(
     'ProtocolAccessManager' as string,
-    config.deployedContracts.gov.protocolAccessManager.address as Address,
+    validateAddress(
+      config.deployedContracts.govV2.protocolAccessManager.address,
+      'govV2.protocolAccessManager',
+    ),
   )
 
   // Determine if we're on HUB chain (currently BASE chain)
-  const isHubChain = (await summerGovernor.read.hubChainId()) === hre.network.config.chainId
+  const isHubChain = (await summerGovernor.read.HUB_CHAIN_ID()) === hre.network.config.chainId
 
   // Set timelock as governor in ProtocolAccessManager
   console.log('[PROTOCOL ACCESS MANAGER] - Setting up governance...')
@@ -55,6 +59,16 @@ export async function rolesGovV2(useBummerConfig = false) {
   if (!hasGovernorRole) {
     console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
     const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
+    await publicClient.waitForTransactionReceipt({ hash })
+  }
+
+  const governorHasGovernorRole = await protocolAccessManager.read.hasRole([
+    GOVERNOR_ROLE,
+    summerGovernor.address,
+  ])
+  if (!governorHasGovernorRole) {
+    console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to SummerGovernor...')
+    const hash = await protocolAccessManager.write.grantGovernorRole([summerGovernor.address])
     await publicClient.waitForTransactionReceipt({ hash })
   }
 
