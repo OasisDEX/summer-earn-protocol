@@ -175,6 +175,23 @@ export function useSummerStaking(chainId: ChainId) {
     query: { enabled: Boolean(summerAddress) },
   })
 
+  // Balances
+  const { data: summerBalance } = useReadContract({
+    abi: erc20Abi,
+    address: summerAddress,
+    functionName: 'balanceOf',
+    args: account ? [account] : undefined,
+    query: { enabled: Boolean(summerAddress && account) },
+  })
+
+  const { data: xSummerBalance } = useReadContract({
+    abi: erc20Abi,
+    address: xSummerAddress,
+    functionName: 'balanceOf',
+    args: account ? [account] : undefined,
+    query: { enabled: Boolean(xSummerAddress && account) },
+  })
+
   // Allowances
   const { data: summerAllowance, refetch: refetchSummerAllowance } = useReadContract({
     abi: erc20Abi,
@@ -435,6 +452,10 @@ export function useSummerStaking(chainId: ChainId) {
     stakes,
     userStakeCount: Number((userStakeCount as bigint) || BigInt(0)),
     currentOverallMultiplierWad,
+
+    // balances
+    summerBalance: (summerBalance as bigint) || BigInt(0),
+    xSummerBalance: (xSummerBalance as bigint) || BigInt(0),
 
     // allowances
     summerAllowance: (summerAllowance as bigint) || BigInt(0),

@@ -82,5 +82,6 @@
   "StakingModule#StakedSummerToken": "0xcd19c8540421CEd9B09f08F1887951da3F193851",
   "StakingModule#SummerStaking": "0x6B94fD1Cbf967c6441764a5AcB84eF2B3774c09f",
   "StakingModule#SummerVestingWalletsEscrow": "0xD67818c79ef3a8EfB7383fe3Ecc5C55a2221F674",
-  "GovModuleV2#SummerGovernorV2": "0xB9b60E3546916C45F4a0eAB357653c75937d7188"
+  "GovModuleV2#SummerGovernorV2": "0xB9b60E3546916C45F4a0eAB357653c75937d7188",
+  "SummerVestingFactoryV2Module_20251104T110244229#SummerVestingWalletFactoryV2": "0xBceCc704edB1A65b65Ffe6505011f96252a7892B"
 }

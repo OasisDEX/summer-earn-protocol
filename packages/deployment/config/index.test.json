@@ -16,6 +16,9 @@
         },
         "rewardsRedeemer": {
           "address": "0x2aF041B4505743f0C01Dd4C6AA8e23bD22dE379e"
+        },
+        "summerVestingFactoryV2": {
+          "address": "0xBceCc704edB1A65b65Ffe6505011f96252a7892B"
         }
       },
       "govV2": {

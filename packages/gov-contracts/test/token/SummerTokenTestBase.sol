@@ -16,8 +16,8 @@ import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/
 import {Test, console} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {ConfigurationManager} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManager.sol";
-import {ConfigurationManagerParams} from "@summerfi/earn-protocol-contracts/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
 import {SummerTimelockController} from "../../src/contracts/SummerTimelockController.sol";

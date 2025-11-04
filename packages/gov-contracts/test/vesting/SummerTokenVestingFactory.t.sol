@@ -210,7 +210,7 @@ contract SummerVestingWalletFactoryTest is Test {
     }
 }
 
-contract MockIncorrectBalanceERC20 is ERC20Mock {
+contract MockIncorrectBalanceERC20 is MockERC20 {
     constructor() {}
 
     function transferFrom(
@@ -219,12 +219,12 @@ contract MockIncorrectBalanceERC20 is ERC20Mock {
         uint256 amount
     ) public override returns (bool) {
         // Transfer half the amount but return true
-        _transfer(from, to, amount / 2);
+        super.transferFrom(from, to, amount / 2);
         return true;
     }
 }
 
-contract MockFailingERC20 is ERC20Mock {
+contract MockFailingERC20 is MockERC20 {
     constructor() {}
 
     function transferFrom(
