@@ -95,6 +95,9 @@ interface IBridgeRouter is IERC165 {
         bytes errorData
     );
 
+    /// @notice Emitted when a native sweep transfer fails; operation continues
+    event SweepFailed(address indexed to, uint256 amount);
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/

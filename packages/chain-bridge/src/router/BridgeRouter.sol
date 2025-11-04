@@ -8,18 +8,21 @@ import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {NativeTransfer} from "../libraries/NativeTransfer.sol";
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
 
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
+
 /**
  * @title BridgeRouter
  * @notice Central router that coordinates cross-chain asset transfers and data queries
@@ -829,7 +832,15 @@ contract BridgeRouter is
         if (token == address(0)) {
             // Recover native ETH
             if (address(this).balance < amount) revert InsufficientBalance();
-            Address.sendValue(payable(recipient), amount);
+            if (amount > 0) {
+                bool ok = NativeTransfer.sendNativeValue(
+                    payable(recipient),
+                    amount
+                );
+                if (!ok) {
+                    emit SweepFailed(recipient, amount);
+                }
+            }
         } else {
             // Recover ERC20 using SafeERC20
             IERC20(token).safeTransfer(recipient, amount);

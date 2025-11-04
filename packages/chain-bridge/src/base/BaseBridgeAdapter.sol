@@ -9,11 +9,13 @@ import {IBaseBridgeAdapterEvents} from "../interfaces/IBaseBridgeAdapterEvents.s
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeCodec} from "../libraries/BridgeCodec.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
+import {NativeTransfer} from "../libraries/NativeTransfer.sol";
 
 abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
@@ -26,6 +28,9 @@ abstract contract BaseBridgeAdapter is
     using SafeERC20 for IERC20;
 
     uint16 public immutable THIS_CHAIN;
+
+    /// @notice Emitted when a native sweep transfer fails; operation continues
+    event SweepFailed(address indexed to, uint256 amount);
 
     /// @notice Mapping of supported chains to their external bridge protocol IDs
     mapping(uint16 chainId => uint32 externalId) public chainToExternalId;
@@ -316,7 +321,12 @@ abstract contract BaseBridgeAdapter is
         if (asset == address(0)) {
             // Handle native ETH
             if (address(this).balance < amount) revert InsufficientBalance();
-            Address.sendValue(payable(to), amount);
+            if (amount > 0) {
+                bool ok = NativeTransfer.sendNativeValue(payable(to), amount);
+                if (!ok) {
+                    emit SweepFailed(to, amount);
+                }
+            }
         } else {
             // Handle ERC20 tokens
             uint256 balance = IERC20(asset).balanceOf(address(this));

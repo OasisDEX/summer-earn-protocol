@@ -20,6 +20,9 @@ library Constants {
     // Maximum value for uint256
     uint256 public constant MAX_UINT256 = type(uint256).max;
 
+    // Standard gas stipend for safe native sends to contracts (avoid DoS, allow simple receivers)
+    uint256 public constant NATIVE_SEND_GAS_STIPEND = 30_000;
+
     // AAVE V3 POOL CONFIG DATA MASK
 
     uint256 internal constant ACTIVE_MASK =

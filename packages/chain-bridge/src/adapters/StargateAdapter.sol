@@ -9,7 +9,7 @@ import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
@@ -20,6 +20,8 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
+import {NativeTransfer} from "../libraries/NativeTransfer.sol";
 
 /**
  * @title StargateAdapter
@@ -221,7 +223,13 @@ contract StargateAdapter is
         // Refund any unused native value (buffer) back to the designated refund address
         uint256 refundAmount = providedFee - messagingFee.nativeFee;
         if (refundAmount > 0) {
-            Address.sendValue(payable(params.refundAddress), refundAmount);
+            bool ok = NativeTransfer.sendNativeValue(
+                payable(params.refundAddress),
+                refundAmount
+            );
+            if (!ok) {
+                emit RefundFailed(params.refundAddress, refundAmount);
+            }
         }
     }
 
