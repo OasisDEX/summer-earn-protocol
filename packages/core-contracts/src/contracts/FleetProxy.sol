@@ -245,7 +245,10 @@ contract FleetProxy is
         );
         // Increment sequence for this balance update
         balanceSequence += 1;
-        uint256 inboundExpected = inflightWithdrawals;
+        // Inbound expected is always 0 because we revert if inflightWithdrawals is not 0
+        // But, inbound expected is part of the message payload, given there may be situations in the future where
+        // we want to allow for more flexibility in the message payload
+        uint256 inboundExpected = 0;
         _sendNotification(
             hubChainId,
             _getHubChainArk(hubChainId),
