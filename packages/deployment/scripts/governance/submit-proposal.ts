@@ -13,6 +13,7 @@ import {
   loadProposalFile,
   promptForProposalFile,
 } from '../helpers/proposal-helpers'
+import { BaseConfig } from '../../types/config-types'
 
 /**
  * Script to submit a governance proposal from a saved JSON file
@@ -32,10 +33,10 @@ async function main() {
     network,
     { common: true, gov: true, core: true },
     useBummerConfig,
-  )
+  ) as BaseConfig
 
   // Get the governor address from config
-  const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
+  const governorAddress = config.deployedContracts.govV2.summerGovernor.address as Address
   console.log(kleur.yellow(`Governor address: ${governorAddress}`))
 
   // Load proposal from file

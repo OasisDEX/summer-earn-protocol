@@ -4,6 +4,7 @@ import prompts from 'prompts'
 import { Address, parseAbi } from 'viem'
 import { getConfigByNetwork } from './config-handler'
 import { hashDescription } from './hash-description'
+import { BaseConfig } from '../../types/config-types'
 
 /**
  * Checks if the user has enough SUMR tokens to create a governance proposal
@@ -297,8 +298,8 @@ export async function getSumrTokenAddress(useBummerConfig: boolean): Promise<Add
     network,
     { common: true, gov: true, core: true },
     useBummerConfig,
-  )
-  return config.deployedContracts.gov.summerToken.address as Address
+  ) as BaseConfig
+  return config.deployedContracts.govV2.summerGovernanceToken.address as Address
 }
 
 /**
