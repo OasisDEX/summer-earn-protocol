@@ -128,18 +128,6 @@ contract FleetProxy is
         }
     }
 
-    /// @notice SuperKeeper ACK to clear inflight withdrawals once hub receipt is verified off-chain
-    /// @param operationId The outbound transfer operation ID being acknowledged (for audit/logging)
-    /// @dev Emits InflightCleared event
-    function acknowledgeHubReceipt(
-        bytes32 operationId
-    ) external whenNotPaused nonReentrant onlySuperKeeper {
-        uint256 previous = inflightWithdrawals;
-        if (previous == 0) revert InvalidOperation();
-        inflightWithdrawals = 0;
-        emit InflightCleared(operationId, previous);
-    }
-
     /// @notice Emitted when inflight withdrawals are set locally
     event InflightSet(uint256 amount, bytes32 operationId);
     /// @notice Emitted when inflight withdrawals are cleared
