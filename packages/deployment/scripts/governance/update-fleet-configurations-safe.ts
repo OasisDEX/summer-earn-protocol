@@ -35,6 +35,7 @@ enum Token {
   EXTRA = 'extra',
   ARB = 'arb',
   ASONWS = 'asonws',
+  FLUID = 'fluid',
 }
 const addresses: Record<
   SupportedChain,
@@ -67,6 +68,7 @@ const addresses: Record<
       extra: '0x2dAD3a13ef0C6366220f989157009e501e7938F8',
       arb: '0x0000000000000000000000000000000000000000',
       asonws: '0x0000000000000000000000000000000000000000',
+      fluid: '0x61E030A56D33e8260FdD81f03B162A79Fe3449Cd',
     },
   },
   mainnet: {
@@ -92,6 +94,7 @@ const addresses: Record<
       extra: '0x0000000000000000000000000000000000000000',
       arb: '0x0000000000000000000000000000000000000000',
       asonws: '0x0000000000000000000000000000000000000000',
+      fluid: '0x6f40d4A6237C257fff2dB00FA0510DeEECd303eb',
     },
   },
   sonic: {
@@ -136,6 +139,7 @@ const addresses: Record<
       extra: '0x0000000000000000000000000000000000000000',
       arb: '0x912CE59144191C1204E64559FE8253a0e49E6548',
       asonws: '0x0000000000000000000000000000000000000000',
+      fluid: '0x61E030A56D33e8260FdD81f03B162A79Fe3449Cd',
     },
   },
 }
@@ -452,6 +456,7 @@ function getAssetDecimals(assetSymbol: string): bigint {
     case 'usdf':
     case 'extra':
     case 'asonws':
+    case 'fluid':
       return EIGHTEEN_DECIMALS
     case 'usdc':
     case 'usdce':
@@ -523,7 +528,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
     siloV2: [Token.SILO, Token.XSILO, Token.SPK],
     compound_v3: [Token.COMP, Token.SPK],
     maple: [Token.SYRUP],
-    fluid: [Token.SPK],
+    fluid: [Token.SPK, Token.FLUID],
     spark: [Token.SPK],
     sky: [Token.SPK],
     aave_v3: [Token.SPK],
@@ -533,6 +538,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
     euler: [Token.REUL],
     moonwell: [Token.WELL],
     compound_v3: [Token.COMP],
+    fluid: [Token.FLUID],
   },
   sonic: {
     aave_v3: [Token.WS, Token.ASONWS],
@@ -541,7 +547,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
   },
   arbitrum: {
     compound_v3: [Token.COMP],
-    fluid: [Token.ARB],
+    fluid: [Token.ARB, Token.FLUID],
     siloV2: [Token.ARB],
   },
 }
@@ -1081,7 +1087,7 @@ async function main() {
       }
 
       // Write to file
-      const outputPath = path.join(__dirname, `../../safe-transactions-${chain}-${Date.now()}.json`)
+      const outputPath = path.join(__dirname, `../../proposals/curation/safe-transactions-${chain}-${Date.now()}.json`)
       fs.writeFileSync(outputPath, JSON.stringify(safeTransactionsJson, null, 2))
       console.log(`\n✅ Saved transactions to ${outputPath}`)
     } else {
