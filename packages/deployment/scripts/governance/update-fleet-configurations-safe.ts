@@ -1087,7 +1087,10 @@ async function main() {
       }
 
       // Write to file
-      const outputPath = path.join(__dirname, `../../proposals/curation/safe-transactions-${chain}-${Date.now()}.json`)
+      const outputPath = path.join(
+        __dirname,
+        `../../proposals/curation/safe-transactions-${chain}-${Date.now()}.json`,
+      )
       fs.writeFileSync(outputPath, JSON.stringify(safeTransactionsJson, null, 2))
       console.log(`\n✅ Saved transactions to ${outputPath}`)
     } else {
