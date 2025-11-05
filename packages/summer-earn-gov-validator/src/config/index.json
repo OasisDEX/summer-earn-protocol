@@ -181,7 +181,8 @@
       "erc4626": {
         "usdc": {
           "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
-          "Euler_Base_USDC": "0x085178078796Da17B191f9081b5E2fCCc79A7eE7"
+          "Euler_Base_USDC": "0x085178078796Da17B191f9081b5E2fCCc79A7eE7",
+          "Extrafi_XLend_USDC": "0x589A7339C6d0c8777E7429F57f2f95c069c37288"
         },
         "eurc": {
           "Fluid": "0x1943FA26360f038230442525Cf1B9125b5DCB401"

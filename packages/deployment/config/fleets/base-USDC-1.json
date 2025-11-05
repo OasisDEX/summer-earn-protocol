@@ -171,6 +171,14 @@
         "protocol": "Aera",
         "vaultName": "Gauntlet_Alpha"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Extrafi_XLend_USDC",
+        "protocol": "erc4626"
+      }
     }
   ]
 }

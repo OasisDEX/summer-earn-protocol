@@ -78,5 +78,6 @@
   "LazyVault_LowerRisk_EURC_FluidFToken_eurc_8453#FluidFTokenArk": "0x4E764D15909ab8b413f6A046dDa66408eE5407f1",
   "LazyVault_LowerRisk_USDC_FluidFToken_usdc_8453#FluidFTokenArk": "0x60A5753d4a95600be5E2381D678752e2d4C3B386",
   "LazyVault_LowerRisk_WETH_FluidFToken_weth_8453#FluidFTokenArk": "0x24E03538940D84842860C4955Dd826AB908ec05e",
-  "prod_LazyVault_LowerRisk_USDC_Aera_Gauntlet_Alpha_usdc_8453#AeraArk": "0x6B58aeeaDd96dbfEAcF90948e26d51C506213766"
+  "prod_LazyVault_LowerRisk_USDC_Aera_Gauntlet_Alpha_usdc_8453#AeraArk": "0x6B58aeeaDd96dbfEAcF90948e26d51C506213766",
+  "prod_LazyVault_LowerRisk_USDC_ERC4626_Extrafi_XLend_USDC_usdc_8453#ERC4626Ark": "0x903fB67e7c50A26F34c43efB86b49Bed5e14e7D5"
 }

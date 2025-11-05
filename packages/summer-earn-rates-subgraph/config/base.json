@@ -1,8 +1,8 @@
 {
   "network": "base",
   "enable-grafting": true,
-  "grafting-base": "QmSuBBo4UPxpcBKAXQjEG2CVHA1zDiXRSwvbSugSAVqKwg",
-  "grafting-block": "34234415",
+  "grafting-base": "Qmb9Xi6FfW8R4hjYyL5KruCGtv3XBzLonemMWdXS2ZrrGz",
+  "grafting-block": "37783000",
   "entry_point_address": "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
   "entry_point_start_block": 24744895,
   "interval-handler-block-interval": 300
