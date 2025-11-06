@@ -60,6 +60,7 @@
     "gov:execute-proposal": "hardhat run scripts/governance/execute-proposal.ts --network $NETWORK",
     "gov:create-fleet-rewards-proposals": "hardhat run scripts/governance/create-fleet-rewards-proposals.ts --network $NETWORK",
     "gov:enable-fleet-transferability": "hardhat run scripts/governance/enable-fleet-transferability-proposal.ts --network $NETWORK",
+    "gov:setup-foundation-roles": "hardhat run scripts/governance/setup-foundation-roles.ts --network $NETWORK",
     "gov:merge-proposals": "hardhat run scripts/merge-proposals.ts --network mainnet",
     "update-vesting-goals": "hardhat run scripts/governance/update-vesting-goals-safe.ts --network $NETWORK",
     "check-morpho-rewards": "tsx scripts/check-morpho-rewards.ts",
