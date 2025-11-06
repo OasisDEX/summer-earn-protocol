@@ -24,6 +24,28 @@ const dstEidToChainIdMap: Record<string, string> = {
 // Define DstId type
 type DstId = '30101' | '30110' | '30184' | '30332'
 
+// Role constants (matching OpenZeppelin TimelockController)
+export const PROPOSER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('PROPOSER_ROLE'))
+export const EXECUTOR_ROLE = ethers.keccak256(ethers.toUtf8Bytes('EXECUTOR_ROLE'))
+export const CANCELLER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('CANCELLER_ROLE'))
+export const DEFAULT_ADMIN_ROLE =
+  '0x0000000000000000000000000000000000000000000000000000000000000000'
+
+// Mapping of role hashes to role names for decoding (normalized to lowercase)
+const ROLE_HASH_TO_NAME: Record<string, string> = {
+  [PROPOSER_ROLE.toLowerCase()]: 'PROPOSER_ROLE',
+  [EXECUTOR_ROLE.toLowerCase()]: 'EXECUTOR_ROLE',
+  [CANCELLER_ROLE.toLowerCase()]: 'CANCELLER_ROLE',
+  [DEFAULT_ADMIN_ROLE.toLowerCase()]: 'DEFAULT_ADMIN_ROLE',
+}
+
+// Type for role information
+export type RoleInfo = {
+  proposer?: boolean
+  executor?: boolean
+  canceller?: boolean
+}
+
 // Define config type
 type NetworkConfig = {
   deployedContracts: {
@@ -130,7 +152,16 @@ const KNOWN_ABIS = {
   grantCommanderRole: 'function grantCommanderRole(address arkAddress, address account) external',
   addArk: 'function addArk(address ark) external',
   enlistFleetCommander: 'function enlistFleetCommander(address fleetCommander) external',
-
+  grantRole: 'function grantRole(bytes32 role, address account) external',
+  revokeRole: 'function revokeRole(bytes32 role, address account) external',
+  grantGovernorRole: 'function grantGovernorRole(address account) external',
+  revokeGovernorRole: 'function revokeGovernorRole(address account) external',
+  grantSuperKeeperRole: 'function grantSuperKeeperRole(address account) external',
+  revokeSuperKeeperRole: 'function revokeSuperKeeperRole(address account) external',
+  grantGuardianRole: 'function grantGuardianRole(address account) external',
+  revokeGuardianRole: 'function revokeGuardianRole(address account) external',
+  grantDecayControllerRole: 'function grantDecayControllerRole(address account) external',
+  revokeDecayControllerRole: 'function revokeDecayControllerRole(address account) external',
   // Rewards functions
   notifyRewardAmount:
     'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration) external',
@@ -158,6 +189,33 @@ const KNOWN_ABIS = {
 
   // fleet commander functions
   setFleetTokenTransferability: 'function setFleetTokenTransferability() external',
+
+  // TimelockController functions
+  timelockSchedule:
+    'function schedule(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt, uint256 delay) public',
+  timelockScheduleBatch:
+    'function scheduleBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt, uint256 delay) public',
+  timelockExecute:
+    'function execute(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public payable',
+  timelockExecuteBatch:
+    'function executeBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt) public payable',
+  timelockCancel: 'function cancel(bytes32 id) public',
+  hashOperation:
+    'function hashOperation(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public pure returns (bytes32)',
+  hashOperationBatch:
+    'function hashOperationBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt) public pure returns (bytes32)',
+  hasRole: 'function hasRole(bytes32 role, address account) public view returns (bool)',
+
+  // Governor functions (for completeness)
+  castVote: 'function castVote(uint256 proposalId, uint8 support) public returns (uint256)',
+  governorPropose:
+    'function propose(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) public returns (uint256)',
+  governorExecute:
+    'function execute(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) public payable returns (uint256)',
+  governorCancel:
+    'function cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) public returns (uint256)',
+  createCampaign:
+    'function createCampaign((bytes32 campaignId, address creator, address rewardToken, uint256 amount, uint32 campaignType, uint32 startTimestamp, uint32 duration, bytes campaignData)) external returns (uint256)',
 }
 
 // Create interfaces for each ABI
@@ -168,6 +226,60 @@ const interfaces = Object.entries(KNOWN_ABIS).reduce(
   },
   {} as Record<string, ethers.Interface>,
 )
+
+/**
+ * Gets role information for an address based on known contract addresses
+ * @param address The address to check
+ * @param network The network to check on
+ * @returns RoleInfo object with role flags
+ */
+function getRoleInfoForAddress(address: string, network: SupportedNetworks): RoleInfo {
+  const networkConfig = typedConfig[network]
+  const normalizedAddress = address.toLowerCase()
+
+  // Get governor and timelock addresses from config
+  const governorAddress =
+    networkConfig.deployedContracts?.gov?.summerGovernor?.address?.toLowerCase()
+  const timelockAddress = networkConfig.deployedContracts?.gov?.timelock?.address?.toLowerCase()
+
+  const roleInfo: RoleInfo = {}
+
+  // SummerGovernor typically has all three roles on hub chain (Base)
+  // On satellite chains, governor has PROPOSER_ROLE, timelock has CANCELLER_ROLE
+  if (normalizedAddress === governorAddress) {
+    // Hub chain (Base) - governor has all roles
+    if (network === SupportedNetworks.BASE) {
+      roleInfo.proposer = true
+      roleInfo.executor = true
+      roleInfo.canceller = true
+    } else {
+      // Satellite chains - governor has PROPOSER_ROLE
+      roleInfo.proposer = true
+    }
+  }
+
+  // Timelock on satellite chains has CANCELLER_ROLE
+  if (normalizedAddress === timelockAddress && network !== SupportedNetworks.BASE) {
+    roleInfo.canceller = true
+  }
+
+  return roleInfo
+}
+
+/**
+ * Gets role tags for an address based on role information
+ * @param address The address to get role tags for
+ * @param roleInfo Optional role information object
+ * @returns Array of role tags (e.g., ['PROPOSER', 'EXECUTOR'])
+ */
+export function getRoleTags(address: string, roleInfo?: RoleInfo): string[] {
+  if (!roleInfo) return []
+  const tags: string[] = []
+  if (roleInfo.proposer) tags.push('PROPOSER')
+  if (roleInfo.executor) tags.push('EXECUTOR')
+  if (roleInfo.canceller) tags.push('CANCELLER')
+  return tags
+}
 
 // Helper function to decode an address to its contract name
 function decodeAddress(address: string): string {
@@ -236,6 +348,14 @@ export const decodeCalldata = (calldata: string): DecodedFunction | null => {
             }
             return processedObj
           }
+          // Check if it's a bytes32 role hash
+          if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 66) {
+            const normalizedHash = arg.toLowerCase()
+            if (ROLE_HASH_TO_NAME[normalizedHash]) {
+              return `${ROLE_HASH_TO_NAME[normalizedHash]} (${arg})`
+            }
+          }
+          // Check if it's an address (42 chars: 0x + 40 hex)
           if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
             return decodeAddress(arg)
           }
