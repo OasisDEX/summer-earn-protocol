@@ -45,7 +45,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         address arkAddress,
         uint256 balance,
         uint16 sourceChainId,
-        bytes32 latestOutgoingTransferId
+        bytes32 latestOutgoingTransferId,
+        uint256 notificationSequence
     ) internal view returns (BridgeTypes.RelayedMessageParams memory) {
         return
             BridgeTypes.RelayedMessageParams({
@@ -56,7 +57,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 message: abi.encode(
                     balance,
                     latestOutgoingTransferId,
-                    block.timestamp
+                    notificationSequence
                 )
             });
     }
@@ -644,7 +645,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: DEST_CHAIN_ID,
                 target: address(ark),
-                message: abi.encode("remote-balance-read"),
+                message: abi.encode("remote-balance-read", 1),
                 originator: commander,
                 refundAddress: commander
             }),
@@ -662,7 +663,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(ark),
             mockRemoteBalance,
             DEST_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            1
         );
         vm.prank(address(bridgeRouter));
         ark.receiveOperation(
@@ -688,6 +690,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Simulate the adapter calling deliver()
         vm.prank(address(layerZeroAdapter));
+        BridgeTypes.RelayedMessageParams memory deliverMessage = _encodeMessage(
+            bytes32(0),
+            ARK_PROXY,
+            address(ark),
+            mockRemoteBalance,
+            DEST_CHAIN_ID,
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            2
+        );
         bridgeRouter.deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
@@ -696,7 +707,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                     originator: ARK_PROXY,
                     sourceChainId: DEST_CHAIN_ID,
                     recipient: address(ark),
-                    message: params.message
+                    message: deliverMessage.message
                 })
             )
         );
@@ -774,7 +785,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(ark),
             mockRemoteBalance,
             DEST_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            1
         );
 
         // Test 1: Unauthorized adapter trying to deliver response
@@ -821,7 +833,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(ark),
             mockRemoteBalance,
             DEST_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            1
         );
 
         // Test 1: Unauthorized caller (not BridgeRouter)
