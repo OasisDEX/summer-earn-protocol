@@ -337,33 +337,26 @@ contract SummerGovernorV2 is
             descriptionHash
         );
         address proposer = proposalProposer(proposalId);
+        bool hasExpiryProposal = false;
         for (uint256 i = 0; i < calldatas.length; i++) {
-            if (
-                _isGuardianExpiryProposal(calldatas[i]) &&
-                isGuardian(_msgSender())
-            ) {
-                revert SummerGovernorUnauthorizedCancellation(
-                    _msgSender(),
-                    proposer,
-                    getVotes(proposer, block.timestamp - 1),
-                    proposalThreshold()
-                );
+            if (_isGuardianExpiryProposal(calldatas[i])) {
+                hasExpiryProposal = true;
+                break;
             }
         }
         if (
-            _msgSender() != proposer &&
-            getVotes(proposer, block.timestamp - 1) >= proposalThreshold() &&
-            !isActiveGuardian(_msgSender())
+            _msgSender() == proposer ||
+            getVotes(proposer, block.timestamp - 1) < proposalThreshold() ||
+            (isActiveGuardian(_msgSender()) && !hasExpiryProposal)
         ) {
-            revert SummerGovernorUnauthorizedCancellation(
-                _msgSender(),
-                proposer,
-                getVotes(proposer, block.timestamp - 1),
-                proposalThreshold()
-            );
+            return _cancel(targets, values, calldatas, descriptionHash);
         }
-
-        return _cancel(targets, values, calldatas, descriptionHash);
+        revert SummerGovernorUnauthorizedCancellation(
+            _msgSender(),
+            proposer,
+            getVotes(proposer, block.timestamp - 1),
+            proposalThreshold()
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -374,16 +367,6 @@ contract SummerGovernorV2 is
     function isActiveGuardian(address account) public view returns (bool) {
         // Delegate guardian status to the shared ProtocolAccessManager
         return IProtocolAccessManager(ACCESS_MANAGER).isActiveGuardian(account);
-    }
-
-    /// @inheritdoc ISummerGovernorV2
-    function isGuardian(address account) public view returns (bool) {
-        // Delegate guardian status to the shared ProtocolAccessManager
-        return
-            IProtocolAccessManager(ACCESS_MANAGER).hasRole(
-                IProtocolAccessManager(ACCESS_MANAGER).GUARDIAN_ROLE(),
-                account
-            );
     }
 
     /*//////////////////////////////////////////////////////////////

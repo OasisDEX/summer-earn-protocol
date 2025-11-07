@@ -259,6 +259,10 @@ contract SummerGovernorV2GovernorTest is SummerGovernorV2TestBase {
         // Ensure guardian is active
         vm.startPrank(address(timelockA));
         accessManagerA.grantGuardianRole(guardian);
+        // accessManagerA.setGuardianExpiration(
+        //     guardian,
+        //     block.timestamp + 8 days
+        // );
         vm.stopPrank();
 
         // Give Alice enough voting power to propose
