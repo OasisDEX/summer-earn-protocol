@@ -228,45 +228,6 @@ const interfaces = Object.entries(KNOWN_ABIS).reduce(
 )
 
 /**
- * Gets role information for an address based on known contract addresses
- * @param address The address to check
- * @param network The network to check on
- * @returns RoleInfo object with role flags
- */
-function getRoleInfoForAddress(address: string, network: SupportedNetworks): RoleInfo {
-  const networkConfig = typedConfig[network]
-  const normalizedAddress = address.toLowerCase()
-
-  // Get governor and timelock addresses from config
-  const governorAddress =
-    networkConfig.deployedContracts?.gov?.summerGovernor?.address?.toLowerCase()
-  const timelockAddress = networkConfig.deployedContracts?.gov?.timelock?.address?.toLowerCase()
-
-  const roleInfo: RoleInfo = {}
-
-  // SummerGovernor typically has all three roles on hub chain (Base)
-  // On satellite chains, governor has PROPOSER_ROLE, timelock has CANCELLER_ROLE
-  if (normalizedAddress === governorAddress) {
-    // Hub chain (Base) - governor has all roles
-    if (network === SupportedNetworks.BASE) {
-      roleInfo.proposer = true
-      roleInfo.executor = true
-      roleInfo.canceller = true
-    } else {
-      // Satellite chains - governor has PROPOSER_ROLE
-      roleInfo.proposer = true
-    }
-  }
-
-  // Timelock on satellite chains has CANCELLER_ROLE
-  if (normalizedAddress === timelockAddress && network !== SupportedNetworks.BASE) {
-    roleInfo.canceller = true
-  }
-
-  return roleInfo
-}
-
-/**
  * Gets role tags for an address based on role information
  * @param address The address to get role tags for
  * @param roleInfo Optional role information object
