@@ -255,14 +255,14 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     }
 
     function test_Revert_StakeWhenMaxStakesReached() public {
-        // Create 10 stakes to reach the maximum
+        // Create 999 stakes to reach the maximum (+1 noLockup lazily initialized)
         for (uint256 i = 0; i < 999; i++) {
             _stake(aStaking, user1, STAKE_AMOUNT / 999, aMinLockupPeriod);
         }
 
         assertEq(aStaking.getUserStakesCount(user1), 1000);
 
-        // Attempt to create an 11th stake should revert
+        // Attempt to create an 1001st stake with lockup should revert
         vm.startPrank(user1);
         aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
         vm.expectRevert(
@@ -271,6 +271,21 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             )
         );
         aStaking.stakeLockup(STAKE_AMOUNT, aMinLockupPeriod);
+        vm.stopPrank();
+    }
+
+    function test_StakeNoLockupWhenMaxStakesReached() public {
+        // Create 999 stakes to reach the maximum (+1 noLockup lazily initialized)
+        for (uint256 i = 0; i < 999; i++) {
+            _stake(aStaking, user1, STAKE_AMOUNT / 999, aMinLockupPeriod);
+        }
+
+        assertEq(aStaking.getUserStakesCount(user1), 1000);
+
+        // Attempt to create an 1001st stake with no lockup should not revert - uses the 0 slot
+        vm.startPrank(user1);
+        aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
+        aStaking.stakeLockup(STAKE_AMOUNT, 0);
         vm.stopPrank();
     }
 
