@@ -226,6 +226,9 @@ contract FleetProxy is
         if (!_isValidSourceChain(hubChainId)) revert InvalidSourceChain();
         // Security: include replay guard context - require we have a non-zero last transfer id
         if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
+        // Do not interleave notifications with an inflight withdrawal
+        if (inflightWithdrawals != 0) revert InFlight();
+
         uint256 fleetShares = IFleetCommander(fleetAddress).balanceOf(
             address(this)
         );
