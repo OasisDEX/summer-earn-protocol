@@ -85,6 +85,8 @@ contract SummerStaking is
 
     mapping(address owner => uint256 weightedBalance) public weightedBalances;
     mapping(Bucket bucketId => BucketData bucketData) public bucketData;
+    mapping(address owner => mapping(address authorizedCaller => bool isAuthorized))
+        public isAuthorized;
     bool public penaltyEnabled = true;
 
     // ============ CONSTRUCTOR ============
@@ -131,6 +133,7 @@ contract SummerStaking is
         uint256 _amount,
         uint256 _lockupPeriod
     ) external nonReentrant {
+        _validateAuthorization(_receiver, _msgSender());
         _stakeLockup(_msgSender(), _receiver, _amount, _lockupPeriod);
     }
 
@@ -192,6 +195,15 @@ contract SummerStaking is
             _amount - unstakePenalty
         );
         emit Unstaked(_msgSender(), _msgSender(), _amount);
+    }
+
+    ///  @inheritdoc ISummerStaking
+    function setAuthorization(
+        address _authorizedCaller,
+        bool _isAuthorized
+    ) external {
+        isAuthorized[_msgSender()][_authorizedCaller] = _isAuthorized;
+        emit AuthorizationSet(_msgSender(), _authorizedCaller, _isAuthorized);
     }
 
     // ============ EXTERNAL FUNCTIONS - ADMIN ============
@@ -398,6 +410,23 @@ contract SummerStaking is
                     userRewardPerTokenPaid[rewardToken][account])) /
             Constants.WAD +
             rewards[rewardToken][account];
+    }
+
+    ///  @inheritdoc ISummerStaking
+    function getRewardFor(
+        address account,
+        address rewardToken
+    ) public override(ISummerStaking, StakingRewardsManagerBase) {
+        _validateAuthorization(account, _msgSender());
+        super.getRewardFor(account, rewardToken);
+    }
+
+    ///  @inheritdoc ISummerStaking
+    function getRewardFor(
+        address account
+    ) public override(ISummerStaking, StakingRewardsManagerBase) {
+        _validateAuthorization(account, _msgSender());
+        super.getRewardFor(account);
     }
 
     // ============ PUBLIC OVERRIDE FUNCTIONS - DISABLED FUNCTIONS ============
@@ -808,5 +837,22 @@ contract SummerStaking is
             );
         }
         return stakesByOwner[owner];
+    }
+
+    // ============ INTERNAL - AUTHORIZATION HELPERS ============
+
+    /**
+     * @notice Ensure the caller is authorized to act on behalf of the receiver
+     * @param _receiver The address to check authorization for
+     * @param _caller The address to check authorization for
+     * @dev Reverts if the caller is not authorized to act on behalf of the receiver
+     */
+    function _validateAuthorization(
+        address _receiver,
+        address _caller
+    ) internal view {
+        if (!isAuthorized[_receiver][_caller]) {
+            revert Staking_NotAuthorized(_caller, _receiver);
+        }
     }
 }
