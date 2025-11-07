@@ -337,6 +337,19 @@ contract SummerGovernorV2 is
             descriptionHash
         );
         address proposer = proposalProposer(proposalId);
+        for (uint256 i = 0; i < calldatas.length; i++) {
+            if (
+                _isGuardianExpiryProposal(calldatas[i]) &&
+                isGuardian(_msgSender())
+            ) {
+                revert SummerGovernorUnauthorizedCancellation(
+                    _msgSender(),
+                    proposer,
+                    getVotes(proposer, block.timestamp - 1),
+                    proposalThreshold()
+                );
+            }
+        }
         if (
             _msgSender() != proposer &&
             getVotes(proposer, block.timestamp - 1) >= proposalThreshold() &&
@@ -361,6 +374,16 @@ contract SummerGovernorV2 is
     function isActiveGuardian(address account) public view returns (bool) {
         // Delegate guardian status to the shared ProtocolAccessManager
         return IProtocolAccessManager(ACCESS_MANAGER).isActiveGuardian(account);
+    }
+
+    /// @inheritdoc ISummerGovernorV2
+    function isGuardian(address account) public view returns (bool) {
+        // Delegate guardian status to the shared ProtocolAccessManager
+        return
+            IProtocolAccessManager(ACCESS_MANAGER).hasRole(
+                IProtocolAccessManager(ACCESS_MANAGER).GUARDIAN_ROLE(),
+                account
+            );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -400,6 +423,23 @@ contract SummerGovernorV2 is
                 MAX_PROPOSAL_THRESHOLD
             );
         }
+    }
+
+    /**
+     * @dev Checks if the provided operation data corresponds to a guardian expiry proposal.
+     *
+     * Guardian expiry proposals are special operations that set the expiration time for guardians.
+     * These proposals have additional restrictions on who can cancel them to prevent guardians
+     * from blocking their own expiry mechanisms.
+     *
+     * @return bool True if the operation is a guardian expiry proposal
+     */
+    function _isGuardianExpiryProposal(
+        bytes memory _calldata
+    ) internal view returns (bool) {
+        return
+            bytes4(_calldata) ==
+            IProtocolAccessManager.setGuardianExpiration.selector;
     }
 
     /*//////////////////////////////////////////////////////////////

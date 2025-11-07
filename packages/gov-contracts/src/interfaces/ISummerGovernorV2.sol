@@ -149,4 +149,13 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
     function isActiveGuardian(
         address account
     ) external view returns (bool isGuardian);
+
+    /**
+     * @notice Returns whether an account is a guardian according to the ProtocolAccessManager.
+     * @param account Address to query
+     * @return isGuardian True if the account is a guardian
+     */
+    function isGuardian(
+        address account
+    ) external view returns (bool isGuardian);
 }
