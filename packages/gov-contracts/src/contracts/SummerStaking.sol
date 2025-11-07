@@ -213,15 +213,15 @@ contract SummerStaking is
     }
 
     ///  @inheritdoc ISummerStaking
-    function rescueToken(address _token, address _to) external onlyGovernor {
+    function rescueToken(
+        address _token,
+        address _to
+    ) public override(StakingRewardsManagerBase, ISummerStaking) onlyGovernor {
         if (_token == address(WRAPPED_SUMMER_TOKEN)) {
             revert Staking_InvalidAddress("Cannot rescue wrapped summer token");
         }
         // Sweep entire token balance to the target; used for emergency recovery only
-        IERC20(_token).safeTransfer(
-            _to,
-            IERC20(_token).balanceOf(address(this))
-        );
+        super.rescueToken(_token, _to);
     }
 
     // ============ EXTERNAL VIEW FUNCTIONS - STAKE INFORMATION ============

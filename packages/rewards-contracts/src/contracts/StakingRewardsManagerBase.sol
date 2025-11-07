@@ -287,6 +287,18 @@ abstract contract StakingRewardsManagerBase is
         emit RewardTokenRemoved(address(rewardToken));
     }
 
+    /// @inheritdoc IStakingRewardsManagerBase
+    function rescueToken(
+        address _token,
+        address _to
+    ) public virtual onlyGovernor {
+        // Sweep entire token balance to the target; used for emergency recovery only
+        IERC20(_token).safeTransfer(
+            _to,
+            IERC20(_token).balanceOf(address(this))
+        );
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
