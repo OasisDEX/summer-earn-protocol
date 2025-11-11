@@ -1795,7 +1795,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.prank(address(0xdead));
         vm.expectRevert(
             abi.encodeWithSignature(
-                "CallerIsNotCurator(address)",
+                "CallerIsNotGovernor(address)",
                 address(0xdead)
             )
         );

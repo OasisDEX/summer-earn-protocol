@@ -146,7 +146,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         address ark,
         address token,
         bool isSweepable
-    ) external onlyCurator(IArk(ark).commander()) {
+    ) external onlyGovernor {
         sweepableTokens[ark][token] = isSweepable;
         emit SweepableTokenSet(ark, token, isSweepable);
     }
