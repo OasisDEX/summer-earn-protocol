@@ -421,4 +421,54 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
             "Commander role not granted"
         );
     }
+
+    function test_SocializeLosses() public {
+        // Setup: Mint base tokens to the mock Ark
+        uint256 mintedAmount = 1000 * 1e18;
+
+        deal(address(ark.asset()), address(ark), mintedAmount);
+        uint256 amountBaseToken = ark.asset().balanceOf(address(ark));
+
+        uint256 amountOnRaftBefore = ark.asset().balanceOf(address(raft));
+
+        vm.prank(address(raft));
+        uint256 socializedAmount = ark.socializeLosses();
+
+        uint256 amountOnRaftAfter = ark.asset().balanceOf(address(raft));
+
+        // Verify the base token was swept to the BufferArk
+        assertEq(
+            socializedAmount,
+            amountBaseToken,
+            "Socialized amount should match base token amount"
+        );
+
+        assertEq(
+            ark.asset().balanceOf(address(raft)),
+            amountBaseToken,
+            "Buffer Ark should have received all base tokens"
+        );
+
+        // Verify the Ark's balance is now zero
+        assertEq(
+            ark.asset().balanceOf(address(ark)),
+            0,
+            "Ark should have no base tokens left"
+        );
+
+        assertEq(
+            amountOnRaftAfter - amountOnRaftBefore,
+            amountBaseToken,
+            "Raft should have received all base tokens"
+        );
+    }
+
+    function test_SocializeLosses_RevertAccessControl() public {
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotRaft(address)", address(0xdead))
+        );
+
+        vm.prank(address(0xdead));
+        ark.socializeLosses();
+    }
 }

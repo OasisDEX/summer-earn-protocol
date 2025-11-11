@@ -109,7 +109,16 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
             asset.forceApprove(bufferArk, asset.balanceOf(address(this)));
             IArk(bufferArk).board(asset.balanceOf(address(this)), bytes(""));
         }
+
         for (uint256 i = 0; i < tokens.length; i++) {
+            address token = tokens[i];
+
+            if (token == address(asset)) {
+                // An event could be emitted here for a best-effort approach but
+                // since this should never happen, we revert the transaction.
+                revert CannotSweepManagedAsset();
+            }
+
             uint256 amount = IERC20(tokens[i]).balanceOf(address(this));
             if (amount > 0) {
                 IERC20(tokens[i]).safeTransfer(
@@ -121,6 +130,15 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
             }
         }
         emit ArkSwept(sweptTokens, sweptAmounts);
+    }
+
+    /// @inheritdoc IArk
+    function socializeLosses() external onlyRaft returns (uint256 amount) {
+        IERC20 asset = config.asset;
+        amount = asset.balanceOf(address(this));
+        if (amount > 0) {
+            IERC20(asset).safeTransfer(raft(), amount);
+        }
     }
 
     function whitelistMerklOperator(address operator) external onlyKeeper {

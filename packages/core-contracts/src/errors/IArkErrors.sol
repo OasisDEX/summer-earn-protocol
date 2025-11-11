@@ -37,4 +37,9 @@ interface IArkErrors {
      * @notice Thrown when invalid disembark data is provided.
      */
     error InvalidDisembarkData();
+
+    /**
+     * @notice Thrown when trying to sweep the managed asset of the Ark.
+     */
+    error CannotSweepManagedAsset();
 }
