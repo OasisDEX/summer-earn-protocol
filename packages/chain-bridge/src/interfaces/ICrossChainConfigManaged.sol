@@ -16,6 +16,9 @@ interface ICrossChainConfigManaged {
     /// @notice Thrown when the caller is not the bridge router
     error OnlyBridgeRouter();
 
+    /// @notice Error thrown when CrossChainRegistry address is zero
+    error CrossChainRegistryZeroAddress();
+
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/

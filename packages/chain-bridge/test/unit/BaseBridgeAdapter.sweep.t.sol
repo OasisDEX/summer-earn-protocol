@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../src/interfaces/IBaseBridgeAdapterErrors.sol";
+import {IBaseBridgeAdapterEvents} from "../../src/interfaces/IBaseBridgeAdapterEvents.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
@@ -185,7 +186,10 @@ contract BaseBridgeAdapterSweepTest is Test {
 
         // Expect SweepFailed event and no revert
         vm.expectEmit(true, false, false, true);
-        emit BaseBridgeAdapter.SweepFailed(address(rejectContract), 1 ether);
+        emit IBaseBridgeAdapterEvents.SweepFailed(
+            address(rejectContract),
+            1 ether
+        );
         vm.prank(governor);
         adapter.sweep(address(0), address(rejectContract), 1 ether);
 

@@ -689,8 +689,6 @@ contract CrossChainFleetProxyTest is Test {
 
         // Clear any previous message calls
         mockBridgeRouter.clearCalls();
-        uint256 initialMessageCallCount = mockBridgeRouter
-            .getMessageCallCount();
 
         // Give the governor some ETH for the transaction
         vm.deal(governor, 1 ether);
@@ -719,8 +717,6 @@ contract CrossChainFleetProxyTest is Test {
 
         // Clear any previous message calls
         mockBridgeRouter.clearCalls();
-        uint256 initialMessageCallCount = mockBridgeRouter
-            .getMessageCallCount();
 
         // Mint underlying to FleetCommander and shares to proxy so withdraw works
         uint256 assets = 1_000 ether;
@@ -751,8 +747,8 @@ contract CrossChainFleetProxyTest is Test {
         // Get the last transfer call
         (
             uint16 destinationChainId,
-            address asset,
-            uint256 amount,
+            ,
+            ,
             address target,
             bytes memory message
         ) = mockBridgeRouter.transferCalls(finalTransferCallCount - 1);
@@ -824,7 +820,8 @@ contract CrossChainFleetProxyTest is Test {
         vm.deal(governor, 1 ether);
 
         // Call notifySourceChain
-        vm.prank(governor);
+        vm.startPrank(governor);
+        proxy.forceUpdateInflightAssets(0); // Ensure we can call notifyHubChain
         proxy.notifyHubChain{value: 0.1 ether}(
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
@@ -834,6 +831,7 @@ contract CrossChainFleetProxyTest is Test {
                 options: ""
             })
         );
+        vm.stopPrank();
 
         // Verify a message was sent
         uint256 finalMessageCallCount = mockBridgeRouter.getMessageCallCount();
