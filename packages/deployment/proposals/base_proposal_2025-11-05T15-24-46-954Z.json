@@ -1,0 +1,14 @@
+{
+  "title": "SIP2.37: Add 1 Ark to LazyVault_LowerRisk_USDC Fleet",
+  "description": "# SIP2.37: Add Ark to LazyVault_LowerRisk_USDC Fleet\n\n## Summary\nThis proposal adds 1 new Ark to the existing LazyVault_LowerRisk_USDC Fleet.\n\n## New Ark Address\n1. `0x903fB67e7c50A26F34c43efB86b49Bed5e14e7D5`\n\n## Actions\n1. Grant COMMANDER_ROLE to Fleet Commander for the Ark\n2. Add the Ark to the Fleet Commander\n\n## References\nDiscourse: https://forum.summer.fi/t/sip2-38-add-extrafi-xlend-s-usdc-pool-to-lower-risk-usdc-vault/448\n",
+  "targets": [
+    "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
+    "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17"
+  ],
+  "values": ["0", "0"],
+  "calldatas": [
+    "0x1981b9a7000000000000000000000000903fb67e7c50a26f34c43efb86b49bed5e14e7d500000000000000000000000098c49e13bf99d7cad8069faa2a370933ec9ecf17",
+    "0xe37d5b7f000000000000000000000000903fb67e7c50a26f34c43efb86b49bed5e14e7d5"
+  ],
+  "proposalTxHash": "0x5a01438a0cb355311470031f00e4df88edea669b5def64b9a5a0819d09806323"
+}

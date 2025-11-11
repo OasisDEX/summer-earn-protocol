@@ -1109,6 +1109,14 @@ class ProtocolConfig {
           'Euler',
         ),
       ]),
+      new Protocol('Extrafi', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x589A7339C6d0c8777E7429F57f2f95c069c37288'),
+          BigInt.fromI32(37783000),
+          'Extrafi',
+        ),
+      ]),
     ]
   }
   private initSonic(): Protocol[] {

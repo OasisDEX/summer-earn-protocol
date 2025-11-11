@@ -5,15 +5,15 @@ schema:
 features:
   - grafting
 graft:
-  base: QmNa1dUvMJmo325aJ6NiiYjMZpyTaAppvEBZ3SZn1zwhjV
-  block: 23388000
+  base: QmSd8SAf6aiLG12GFKFDjQs8Jtst8xLNF6SJjc76LpfQcv
+  block: 396229273
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
-    network: mainnet
+    network: arbitrum-one
     source:
       abi: Comet
-      startBlock: 23383121
+      startBlock: 293165006
       address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
     mapping:
       kind: ethereum/events
@@ -93,5 +93,5 @@ dataSources:
         - handler: handleBlock
           filter:
             kind: polling
-            every: 50    
+            every: 240    
       file: ./src/mapping.ts

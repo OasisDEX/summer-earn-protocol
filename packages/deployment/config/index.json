@@ -86,6 +86,7 @@
       "chainId": "8453",
       "initialSupply": "1000000000",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
@@ -201,7 +202,8 @@
       "erc4626": {
         "usdc": {
           "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
-          "Euler_Base_USDC": "0x085178078796Da17B191f9081b5E2fCCc79A7eE7"
+          "Euler_Base_USDC": "0x085178078796Da17B191f9081b5E2fCCc79A7eE7",
+          "Extrafi_XLend_USDC": "0x589A7339C6d0c8777E7429F57f2f95c069c37288"
         },
         "eurc": {
           "Fluid": "0x1943FA26360f038230442525Cf1B9125b5DCB401"
@@ -334,6 +336,7 @@
       "chainId": "42161",
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
       "tipRate": "100",
       "layerZero": {
         "eID": "30110",
@@ -569,6 +572,7 @@
       "chainId": "1",
       "initialSupply": "0",
       "swapProvider": "0x111111125421cA6dc452d289314280a0f8842A65",
+      "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
       "tipRate": "100",
       "layerZero": {
         "eID": "30101",
@@ -924,6 +928,7 @@
       "chainId": "146",
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
