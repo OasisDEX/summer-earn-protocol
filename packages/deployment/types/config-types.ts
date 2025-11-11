@@ -101,7 +101,6 @@ export interface BaseConfig {
   deployedContracts: {
     gov: {
       summerGovernor: { address: string }
-      deprecatedSummerGovernor: { address: string }
       summerToken: { address: string }
       timelock: { address: string }
       protocolAccessManager: { address: string }
