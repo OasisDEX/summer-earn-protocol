@@ -17,6 +17,7 @@ import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReceiptNotifier} from "./common/ReceiptNotifier.sol";
+import {SequenceCounters, SequenceCounter} from "../utils/SequenceCounters/SequenceCounters.sol";
 
 /**
  * @title FleetProxy
@@ -33,6 +34,7 @@ contract FleetProxy is
     ReceiptNotifier
 {
     using SafeERC20 for IERC20;
+    using SequenceCounters for SequenceCounter;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -52,6 +54,10 @@ contract FleetProxy is
 
     /// @notice The latest outgoing transfer ID
     bytes32 public latestOutgoingTransferId;
+
+    /// @notice Notifications sequence counter to prevent older notifications
+    ///         from being processed
+    SequenceCounter public notificationSequence;
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -173,6 +179,9 @@ contract FleetProxy is
         // 5. Approve the bridge router to transfer the assets
         IERC20(asset).forceApprove(address(bridgeRouter), amount);
 
+        // 6. Increment notification counter
+        notificationSequence.increment();
+
         // 6. Prepare the transfer parameters
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
@@ -217,16 +226,26 @@ contract FleetProxy is
         if (!_isValidSourceChain(hubChainId)) revert InvalidSourceChain();
         // Security: include replay guard context - require we have a non-zero last transfer id
         if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
+        // Do not interleave notifications with an inflight withdrawal
+        if (inflightWithdrawals != 0) revert InFlight();
+
         uint256 fleetShares = IFleetCommander(fleetAddress).balanceOf(
             address(this)
         );
         uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
             fleetShares
         );
+        // Increment notification counter
+        notificationSequence.increment();
+
         _sendNotification(
             hubChainId,
             _getHubChainArk(hubChainId),
-            abi.encode(fleetAssets, latestIncomingTransferId, block.timestamp),
+            abi.encode(
+                fleetAssets,
+                latestIncomingTransferId,
+                notificationSequence.current()
+            ),
             options,
             msg.sender
         );

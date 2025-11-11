@@ -29,9 +29,6 @@ abstract contract BaseBridgeAdapter is
 
     uint16 public immutable THIS_CHAIN;
 
-    /// @notice Emitted when a native sweep transfer fails; operation continues
-    event SweepFailed(address indexed to, uint256 amount);
-
     /// @notice Mapping of supported chains to their external bridge protocol IDs
     mapping(uint16 chainId => uint32 externalId) public chainToExternalId;
 

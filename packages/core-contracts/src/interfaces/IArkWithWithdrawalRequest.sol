@@ -26,7 +26,7 @@ interface IArkWithWithdrawalRequest is IArk {
     error SlippageTooHigh();
 
     /// @notice Error thrown when the received amount is less than expected
-    error ReceivedLessThanExpected();
+    error ReceivedLessThanExpected(uint256 expected, uint256 received);
 
     /// @notice Struct for the swap data
     struct SwapData {

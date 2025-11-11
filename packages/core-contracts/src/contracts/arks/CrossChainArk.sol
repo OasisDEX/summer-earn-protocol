@@ -50,14 +50,14 @@ contract CrossChainArk is
     /// @notice The latest incoming transfer ID received from the satellite proxy
     bytes32 public latestIncomingTransferId;
 
-    /// @notice Timestamp of the last processed balance notification
-    uint256 public lastNotificationTimestamp;
-
     /// @notice Pending transfer params for the cross-chain transfer
     BridgeTypes.ExecuteTransferParams public pendingTransferParams;
 
     /// @notice Pending transfer options for the cross-chain transfer
     BridgeTypes.BridgeOptions public pendingTransferOptions;
+
+    /// @notice Last processed sequence across notifications and withdrawals
+    uint256 public lastProcessedSequence;
 
     /// @notice Emitted when inflight is set for an outbound transfer
     event InflightSet(uint256 amount, bytes32 operationId);
@@ -307,7 +307,7 @@ contract CrossChainArk is
         (
             uint256 newRemoteBalance,
             bytes32 latestReceivedTransferId,
-            uint256 timestamp
+            uint256 notificationSequence
         ) = abi.decode(params.message, (uint256, bytes32, uint256));
         if (latestReceivedTransferId != latestOutgoingTransferId) {
             // we skip updating the remote balance if the transfer id (received in FleetProxy) is not the latest
@@ -319,16 +319,15 @@ contract CrossChainArk is
             return;
         }
 
-        // Reject stale notifications to prevent race conditions
-        if (timestamp < lastNotificationTimestamp) {
-            emit StaleNotification(timestamp, lastNotificationTimestamp);
+        // Discard notifications that are older or equal to the last processed sequence
+        if (notificationSequence <= lastProcessedSequence) {
             return;
         }
 
-        lastNotificationTimestamp = timestamp;
-
         lastRemoteAssetBalance = newRemoteBalance;
         lastRemoteBalanceUpdateTime = block.timestamp;
+        lastProcessedSequence = notificationSequence;
+
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
@@ -369,16 +368,19 @@ contract CrossChainArk is
         if (params.asset != address(config.asset)) revert InvalidAsset();
         if (params.originator != _getTargetProxy()) revert InvalidRequestor();
 
-        uint256 remoteBalance = abi.decode(params.message, (uint256));
-        // Update the remote asset tracking
-
-        lastRemoteAssetBalance = remoteBalance;
-        lastRemoteBalanceUpdateTime = block.timestamp;
-        emit RemoteAssetBalanceUpdated(
-            lastRemoteAssetBalance,
-            params.operationId
+        (uint256 remoteBalance, uint256 notificationSequence) = abi.decode(
+            params.message,
+            (uint256, uint256)
         );
-
+        // If stale sequence, do not overwrite remote balance; still clear inbound inflight
+        if (notificationSequence > lastProcessedSequence) {
+            lastRemoteAssetBalance = remoteBalance;
+            lastProcessedSequence = notificationSequence;
+            emit RemoteAssetBalanceUpdated(
+                lastRemoteAssetBalance,
+                params.operationId
+            );
+        }
         emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
 
         // Track the latest incoming transfer id to ACK back to satellite

@@ -19,4 +19,7 @@ interface IBaseBridgeAdapterEvents {
         uint256 amount,
         address indexed recipient
     );
+
+    /// @notice Emitted when a native sweep transfer fails; operation continues
+    event SweepFailed(address indexed to, uint256 amount);
 }
