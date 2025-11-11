@@ -165,6 +165,13 @@
         "vaultName": "steth",
         "protocol": "origin-arm"
       }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "fluid"
+      }
     }
   ]
 }

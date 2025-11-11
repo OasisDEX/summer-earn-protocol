@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 /**
  * Main function to deploy a SkyUsdsArk.
@@ -81,6 +81,12 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
   return {
     ...responses,
@@ -122,7 +128,8 @@ async function deploySkyUsdsArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `SkyUsds-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const psmLiteAddress = validateAddress(
     config.protocolSpecific.sky.psmLite[userInput.token.symbol],
@@ -130,6 +137,21 @@ async function deploySkyUsdsArkContract(
   )
   const usdsAddress = validateAddress(config.tokens.usds, 'USDS')
   const stakedUsdsAddress = validateAddress(config.tokens.stakedUsds, 'Staked USDS')
+
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Sky',
+    type: 'Staking',
+    asset: userInput.token.address,
+    marketAsset: config.tokens.usds,
+    pool: psmLiteAddress,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'SkyUsds ark details')
 
   return (await hre.ignition.deploy(createSkyUsdsArkModule(moduleName), {
     parameters: {
@@ -140,14 +162,7 @@ async function deploySkyUsdsArkContract(
 
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: 'Sky',
-            type: 'Staking',
-            asset: userInput.token.address,
-            marketAsset: config.tokens.usds,
-            pool: psmLiteAddress,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -156,7 +171,7 @@ async function deploySkyUsdsArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

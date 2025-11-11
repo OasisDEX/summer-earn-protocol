@@ -7,20 +7,13 @@ import {
   createSkyRewardsArkModule,
 } from '../../ignition/modules/arks/sky-rewards-ark'
 import { BaseConfig, Token } from '../../types/config-types'
+import { BaseArkParams } from '../common/ark-deployment'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
-
-export interface SkyRewardsArkUserInput {
-  fleetName: string
-  token: { address: Address; symbol: Token }
-  depositCap: string
-  maxRebalanceOutflow: string
-  maxRebalanceInflow: string
-}
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 /**
  * Main function to deploy a SkyUsdsArk.
@@ -31,7 +24,7 @@ export interface SkyRewardsArkUserInput {
  * - Deploying the SkyUsdsArk contract
  * - Logging deployment results
  */
-export async function deploySkyRewardsArk(config: BaseConfig, arkParams?: SkyRewardsArkUserInput) {
+export async function deploySkyRewardsArk(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting SkyRewardsArk deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))
@@ -49,7 +42,7 @@ export async function deploySkyRewardsArk(config: BaseConfig, arkParams?: SkyRew
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<SkyUsdsArkUserInput>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput(config: BaseConfig): Promise<SkyRewardsArkUserInput> {
+async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
   const tokens = []
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as Token]
@@ -88,6 +81,12 @@ async function getUserInput(config: BaseConfig): Promise<SkyRewardsArkUserInput>
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
   return {
     fleetName: fleetDefinition.fleetName,
@@ -97,15 +96,11 @@ async function getUserInput(config: BaseConfig): Promise<SkyRewardsArkUserInput>
 
 /**
  * Displays a summary of the deployment parameters and asks for user confirmation.
- * @param {SkyRewardsArkUserInput} userInput - The user's input for deployment parameters.
+ * @param {BaseArkParams} userInput - The user's input for deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(
-  userInput: SkyRewardsArkUserInput,
-  config: BaseConfig,
-  skip: boolean,
-) {
+async function confirmDeployment(userInput: BaseArkParams, config: BaseConfig, skip: boolean) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(
@@ -129,12 +124,13 @@ async function confirmDeployment(
  */
 async function deploySkyRewardsArkContract(
   config: BaseConfig,
-  userInput: SkyRewardsArkUserInput,
+  userInput: BaseArkParams,
 ): Promise<SkyRewardsArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `SkyRewards-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const psmLiteAddress = validateAddress(
     config.protocolSpecific.sky.psmLite[userInput.token.symbol],
@@ -146,6 +142,21 @@ async function deploySkyRewardsArkContract(
     'Staking Rewards',
   )
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Sky',
+    type: 'Rewards',
+    asset: userInput.token.address,
+    marketAsset: config.tokens.usds,
+    pool: stakingRewardsAddress,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'SkyRewards ark details')
+
   return (await hre.ignition.deploy(createSkyRewardsArkModule(moduleName), {
     parameters: {
       [moduleName]: {
@@ -154,14 +165,7 @@ async function deploySkyRewardsArkContract(
         stakingRewards: stakingRewardsAddress,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: 'Sky',
-            type: 'Rewards',
-            asset: userInput.token.address,
-            marketAsset: config.tokens.usds,
-            pool: stakingRewardsAddress,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -170,7 +174,7 @@ async function deploySkyRewardsArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+
 import type { ArkRewardsData, FleetRewardsData } from '../types'
 
 interface FleetRewardsProps {

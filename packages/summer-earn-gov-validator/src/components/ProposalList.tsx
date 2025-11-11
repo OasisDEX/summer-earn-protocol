@@ -1,6 +1,8 @@
-import { SupportedNetworks, addresToContractName } from '@/services/validation'
-import { calculateProposalTiming } from '@/utils/timing'
 import { useEffect, useState } from 'react'
+
+import { addresToContractName, SupportedNetworks } from '@/services/validation'
+import { calculateProposalTiming } from '@/utils/timing'
+
 import { PhaseIndicator } from './PhaseIndicator'
 import { ProposalModal } from './ProposalModal'
 
@@ -85,22 +87,6 @@ export function ProposalList({
 
     fetchProposals()
   }, [])
-
-  const filteredProposals = proposals.filter(
-    (proposal) => proposal.status.toLowerCase() === statusFilter,
-  )
-
-  const proposalsByStatus = filteredProposals.reduce(
-    (acc, proposal) => {
-      const status = proposal.status
-      if (!acc[status]) {
-        acc[status] = []
-      }
-      acc[status].push(proposal)
-      return acc
-    },
-    {} as Record<string, Proposal[]>,
-  )
 
   const getProposalTitle = (description: string) => {
     const firstLine = description.split('\n')[0]

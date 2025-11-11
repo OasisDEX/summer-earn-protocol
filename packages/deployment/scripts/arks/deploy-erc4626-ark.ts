@@ -13,6 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateArkDetails, validateVaultName } from '../helpers/validation'
 
 export interface ERC4626ArkUserInput extends BaseArkParams {
   vaultId: string
@@ -73,6 +74,12 @@ async function getUserInput(config: BaseConfig): Promise<ERC4626ArkUserInput> {
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
 
   // Set the token address based on the selected vault
@@ -83,6 +90,7 @@ async function getUserInput(config: BaseConfig): Promise<ERC4626ArkUserInput> {
     depositCap: responses.depositCap,
     maxRebalanceOutflow: responses.maxRebalanceOutflow,
     maxRebalanceInflow: responses.maxRebalanceInflow,
+    maxDepositPercentageOfTVL: responses.maxDepositPercentageOfTVL,
     token: { address: tokenAddress, symbol: selectedVault.token },
     vaultId: selectedVault.vaultId,
     vaultName: selectedVault.vaultName,
@@ -116,9 +124,26 @@ async function deployERC4626ArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `ERC4626-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
-  console.log(moduleName)
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
+
+  // Validate vault name format and extract protocol
+  validateVaultName(userInput.vaultName, 'ERC4626 vault name')
   const protocol = userInput.vaultName.split('_')[0]
+
+  // Create and validate ark details
+  const arkDetails = {
+    protocol: protocol,
+    type: 'ERC4626',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: userInput.vaultId,
+    chainId: chainId,
+    vaultName: userInput.vaultName,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+  validateArkDetails(arkDetails, 'ERC4626 ark details')
 
   return (await hre.ignition.deploy(createERC4626ArkModule(moduleName), {
     parameters: {
@@ -126,15 +151,7 @@ async function deployERC4626ArkContract(
         vault: userInput.vaultId,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: protocol,
-            type: 'ERC4626',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: userInput.vaultId,
-            chainId: chainId,
-            vaultName: userInput.vaultName,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -143,7 +160,7 @@ async function deployERC4626ArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

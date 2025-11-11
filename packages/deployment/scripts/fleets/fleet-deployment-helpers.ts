@@ -129,7 +129,34 @@ export async function grantCuratorRole(
   await publicClient.waitForTransactionReceipt({ hash })
   console.log(kleur.green('CURATOR_ROLE granted successfully!'))
 }
+/**
+ * Grant keeper role to an account for a fleet
+ */
+export async function grantKeeperRole(
+  protocolAccessManagerAddress: Address,
+  fleetCommanderAddress: Address,
+  keeperAddress: Address,
+  hre: any,
+) {
+  const publicClient = await hre.viem.getPublicClient()
+  const protocolAccessManager = await hre.viem.getContractAt(
+    'ProtocolAccessManager' as string,
+    protocolAccessManagerAddress,
+  )
 
+  console.log(
+    kleur.blue('Granting KEEPER_ROLE to'),
+    kleur.cyan(keeperAddress),
+    kleur.blue('for fleet'),
+    kleur.cyan(fleetCommanderAddress),
+  )
+  const hash = await protocolAccessManager.write.grantKeeperRole([
+    fleetCommanderAddress,
+    keeperAddress,
+  ])
+  await publicClient.waitForTransactionReceipt({ hash })
+  console.log(kleur.green('CURATOR_ROLE granted successfully!'))
+}
 /**
  * Configures initial rewards for a fleet's reward manager
  * @param fleetCommanderRewardsManager Address of the rewards manager contract

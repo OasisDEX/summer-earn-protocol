@@ -1,8 +1,9 @@
 'use client'
 
+import { useMemo, useState } from 'react'
+
 import { FinishedAuctionCard } from '@/components/FinishedAuctionCard'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { useMemo, useState } from 'react'
 
 type Purchase = {
   id: string

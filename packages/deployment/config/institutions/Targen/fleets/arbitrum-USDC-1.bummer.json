@@ -1,0 +1,75 @@
+{
+  "fleetName": "Bummer_TarFi_USDC",
+  "isBummer": true,
+  "symbol": "tarfiUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "0",
+  "network": "arbitrum",
+  "details": "",
+  "curator": "0xA0d7E9F71597623355e407C0D55047306045cca0",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "aaveV3",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "compoundV3",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Sky_sUSDC",
+        "protocol": "erc4626",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gauntlet_USDC_Prime",
+        "protocol": "morpho",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gauntlet_USDC_Core",
+        "protocol": "morpho",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Euler_Arbitrum_USDC",
+        "protocol": "erc4626",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "fluid",
+        "depositCap": "100000000"
+      }
+    }
+  ]
+}

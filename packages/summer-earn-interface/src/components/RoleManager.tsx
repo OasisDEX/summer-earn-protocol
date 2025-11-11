@@ -2,27 +2,217 @@
 
 import { useEffect, useState } from 'react'
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
-import { protocolAccessManagerAbi } from '../abis/ProtocolAccessManager'
-import type { Environment } from '../config/environments'
+
 import { useRoleConstants } from '../hooks/useRoleConstants'
-import type { ArkRole, ChainId, FleetRole, GlobalRole } from '../types'
+import type { ArkRole, FleetRole, GlobalRole } from '../types'
+// Inline minimal ABI for ProtocolAccessManager to avoid external import coupling
+const protocolAccessManagerAbi = [
+  {
+    type: 'function',
+    name: 'hasRole',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [{ type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'GOVERNOR_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'SUPER_KEEPER_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'GUARDIAN_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'DECAY_CONTROLLER_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'ADMIRALS_QUARTERS_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'FOUNDATION_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'grantFoundationRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeFoundationRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantGovernorRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeGovernorRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantSuperKeeperRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeSuperKeeperRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantGuardianRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeGuardianRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantCuratorRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'fleetCommanderAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeCuratorRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'fleetCommanderAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantKeeperRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'fleetCommanderAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeKeeperRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'fleetCommanderAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantCommanderRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'arkAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeCommanderRole',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { type: 'address', name: 'arkAddress' },
+      { type: 'address', name: 'account' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantDecayControllerRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeDecayControllerRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grantAdmiralsQuartersRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'revokeAdmiralsQuartersRole',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address', name: 'account' }],
+    outputs: [],
+  },
+] as const
 
 interface RoleManagerProps {
-  chainId: ChainId
   contractAddress: string
   selectedRole: GlobalRole | FleetRole | ArkRole
   targetContract?: string
-  environment: Environment
 }
 
-export function RoleManager({
-  chainId,
-  contractAddress,
-  selectedRole,
-  targetContract,
-  environment,
-}: RoleManagerProps) {
-  const { address: connectedAddress, isConnected } = useAccount()
+export function RoleManager({ contractAddress, selectedRole, targetContract }: RoleManagerProps) {
+  const { address: connectedAccount, isConnected, chain } = useAccount()
   const [userAddress, setUserAddress] = useState('')
   const [action, setAction] = useState<'grant' | 'revoke'>('grant')
 
@@ -32,15 +222,25 @@ export function RoleManager({
     error: writeError,
     data: txHash,
   } = useWriteContract()
-  const { getRoleHash } = useRoleConstants({ contractAddress, chainId })
+  const { getRoleHash } = useRoleConstants({ contractAddress })
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: txHash,
   })
 
+  const normalizedUserAddress =
+    userAddress.length === 42 && userAddress.startsWith('0x')
+      ? (userAddress as `0x${string}`)
+      : null
+
+  const normalizedTargetAddress =
+    targetContract && targetContract.length === 42 && targetContract.startsWith('0x')
+      ? (targetContract as `0x${string}`)
+      : null
+
   // Get the role hash for checking current status
   const getRoleHashForCheck = (): `0x${string}` | undefined => {
-    if (!userAddress || userAddress.length !== 42) return undefined
+    if (!normalizedUserAddress) return undefined
 
     // For global roles, use the role constant
     if (
@@ -68,11 +268,11 @@ export function RoleManager({
     address: contractAddress as `0x${string}`,
     functionName: 'hasRole',
     args:
-      roleHashForCheck && userAddress.length === 42
-        ? [roleHashForCheck, userAddress as `0x${string}`]
+      roleHashForCheck && normalizedUserAddress
+        ? [roleHashForCheck, normalizedUserAddress]
         : undefined,
     query: {
-      enabled: !!roleHashForCheck && !!userAddress && userAddress.length === 42,
+      enabled: Boolean(roleHashForCheck && normalizedUserAddress),
     },
   })
 
@@ -82,55 +282,112 @@ export function RoleManager({
 
   const canSubmit =
     isConnected &&
-    userAddress.length === 42 &&
-    (!requiresTargetContract || (targetContract && targetContract.length === 42))
+    normalizedUserAddress !== null &&
+    (!requiresTargetContract || normalizedTargetAddress !== null)
 
   const handleSubmit = async () => {
-    if (!canSubmit) return
+    if (!canSubmit || !normalizedUserAddress || !connectedAccount || !chain) return
 
     try {
-      let functionName: string
-      let args: any[]
-
-      // Determine the correct function and arguments based on role and action
-      if (selectedRole === 'GOVERNOR_ROLE') {
-        functionName = action === 'grant' ? 'grantGovernorRole' : 'revokeGovernorRole'
-        args = [userAddress]
-      } else if (selectedRole === 'SUPER_KEEPER_ROLE') {
-        functionName = action === 'grant' ? 'grantSuperKeeperRole' : 'revokeSuperKeeperRole'
-        args = [userAddress]
-      } else if (selectedRole === 'GUARDIAN_ROLE') {
-        functionName = action === 'grant' ? 'grantGuardianRole' : 'revokeGuardianRole'
-        args = [userAddress]
-      } else if (selectedRole === 'DECAY_CONTROLLER_ROLE') {
-        functionName = action === 'grant' ? 'grantDecayControllerRole' : 'revokeDecayControllerRole'
-        args = [userAddress]
-      } else if (selectedRole === 'ADMIRALS_QUARTERS_ROLE') {
-        functionName =
-          action === 'grant' ? 'grantAdmiralsQuartersRole' : 'revokeAdmiralsQuartersRole'
-        args = [userAddress]
-      } else if (selectedRole === 'FOUNDATION_ROLE') {
-        functionName = action === 'grant' ? 'grantFoundationRole' : 'revokeFoundationRole'
-        args = [userAddress]
-      } else if (selectedRole === 'CURATOR_ROLE') {
-        functionName = action === 'grant' ? 'grantCuratorRole' : 'revokeCuratorRole'
-        args = [targetContract, userAddress]
-      } else if (selectedRole === 'KEEPER_ROLE') {
-        functionName = action === 'grant' ? 'grantKeeperRole' : 'revokeKeeperRole'
-        args = [targetContract, userAddress]
-      } else if (selectedRole === 'COMMANDER_ROLE') {
-        functionName = action === 'grant' ? 'grantCommanderRole' : 'revokeCommanderRole'
-        args = [targetContract, userAddress]
-      } else {
-        throw new Error(`Unsupported role: ${selectedRole}`)
+      switch (selectedRole) {
+        case 'GOVERNOR_ROLE':
+          await writeContract({
+            abi: protocolAccessManagerAbi,
+            address: contractAddress as `0x${string}`,
+            functionName: action === 'grant' ? 'grantGovernorRole' : 'revokeGovernorRole',
+            args: [normalizedUserAddress] as const,
+            chain: chain,
+            account: connectedAccount,
+          })
+          break
+        case 'SUPER_KEEPER_ROLE':
+          await writeContract({
+            abi: protocolAccessManagerAbi,
+            address: contractAddress as `0x${string}`,
+            functionName: action === 'grant' ? 'grantSuperKeeperRole' : 'revokeSuperKeeperRole',
+            args: [normalizedUserAddress] as const,
+            chain: chain,
+            account: connectedAccount,
+          })
+          break
+        case 'GUARDIAN_ROLE':
+          await writeContract({
+            abi: protocolAccessManagerAbi,
+            address: contractAddress as `0x${string}`,
+            functionName: action === 'grant' ? 'grantGuardianRole' : 'revokeGuardianRole',
+            args: [normalizedUserAddress] as const,
+            chain: chain,
+            account: connectedAccount,
+          })
+          break
+        case 'DECAY_CONTROLLER_ROLE':
+          await writeContract({
+            abi: protocolAccessManagerAbi,
+            address: contractAddress as `0x${string}`,
+            functionName:
+              action === 'grant' ? 'grantDecayControllerRole' : 'revokeDecayControllerRole',
+            args: [normalizedUserAddress] as const,
+            chain: chain,
+            account: connectedAccount,
+          })
+          break
+        case 'ADMIRALS_QUARTERS_ROLE':
+          await writeContract({
+            abi: protocolAccessManagerAbi,
+            address: contractAddress as `0x${string}`,
+            functionName:
+              action === 'grant' ? 'grantAdmiralsQuartersRole' : 'revokeAdmiralsQuartersRole',
+            args: [normalizedUserAddress] as const,
+            chain: chain,
+            account: connectedAccount,
+          })
+          break
+        case 'FOUNDATION_ROLE':
+          await writeContract({
+            abi: protocolAccessManagerAbi,
+            address: contractAddress as `0x${string}`,
+            functionName: action === 'grant' ? 'grantFoundationRole' : 'revokeFoundationRole',
+            args: [normalizedUserAddress] as const,
+            chain: chain,
+            account: connectedAccount,
+          })
+          break
+        case 'CURATOR_ROLE':
+          if (!normalizedTargetAddress) return
+          await writeContract({
+            abi: protocolAccessManagerAbi,
+            address: contractAddress as `0x${string}`,
+            functionName: action === 'grant' ? 'grantCuratorRole' : 'revokeCuratorRole',
+            args: [normalizedTargetAddress, normalizedUserAddress] as const,
+            chain: chain,
+            account: connectedAccount,
+          })
+          break
+        case 'KEEPER_ROLE':
+          if (!normalizedTargetAddress) return
+          await writeContract({
+            abi: protocolAccessManagerAbi,
+            address: contractAddress as `0x${string}`,
+            functionName: action === 'grant' ? 'grantKeeperRole' : 'revokeKeeperRole',
+            args: [normalizedTargetAddress, normalizedUserAddress] as const,
+            chain: chain,
+            account: connectedAccount,
+          })
+          break
+        case 'COMMANDER_ROLE':
+          if (!normalizedTargetAddress) return
+          await writeContract({
+            abi: protocolAccessManagerAbi,
+            address: contractAddress as `0x${string}`,
+            functionName: action === 'grant' ? 'grantCommanderRole' : 'revokeCommanderRole',
+            args: [normalizedTargetAddress, normalizedUserAddress] as const,
+            chain: chain,
+            account: connectedAccount,
+          })
+          break
+        default:
+          throw new Error(`Unsupported role: ${selectedRole}`)
       }
-
-      ;(writeContract as any)({
-        abi: protocolAccessManagerAbi,
-        address: contractAddress as `0x${string}`,
-        functionName,
-        args,
-      })
     } catch (error) {
       console.error('Transaction failed:', error)
     }
@@ -191,7 +448,7 @@ export function RoleManager({
           </div>
         )}
 
-        {userAddress.length === 42 && hasRole !== undefined && (
+        {normalizedUserAddress && hasRole !== undefined && (
           <div className="p-4 bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-300">
               <strong>Current Status:</strong>{' '}

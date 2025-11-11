@@ -1,0 +1,13 @@
+{
+  "arbitrum": {
+    "treasury": "0xA0d7E9F71597623355e407C0D55047306045cca0",
+    "governor": [
+      "0xA0d7E9F71597623355e407C0D55047306045cca0",
+      "0xb0f758323D3798a6A567C1601d84f30d1BCAAA0b"
+    ],
+    "guardian": [
+      "0xA0d7E9F71597623355e407C0D55047306045cca0",
+      "0xb0f758323D3798a6A567C1601d84f30d1BCAAA0b"
+    ]
+  }
+}

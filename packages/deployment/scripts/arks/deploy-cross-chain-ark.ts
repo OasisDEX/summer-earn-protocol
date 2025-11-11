@@ -335,6 +335,12 @@ async function getUserInput(
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
 
   // Get the asset from the cross-chain config or prompt user
@@ -463,7 +469,7 @@ async function deployCrossChainArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

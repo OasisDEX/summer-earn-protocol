@@ -3,6 +3,7 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+
 import { DarkModeToggle } from './DarkModeToggle'
 
 export function Header() {

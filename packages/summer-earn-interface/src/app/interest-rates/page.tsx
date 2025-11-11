@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
+
 import { InterestRateChart } from '../../components/InterestRateChart'
 import {
+  getFromTimestampForRange,
   RangeOption,
   RangeSelector,
-  getFromTimestampForRange,
 } from '../../components/RangeSelector'
 import { CHAIN_NAMES } from '../../config/chains'
 import { useProducts } from '../../hooks/useInterestRates'

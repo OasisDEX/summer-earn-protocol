@@ -15,7 +15,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 /**
  * Main function to deploy an OriginETHArk.
@@ -68,6 +68,7 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
     depositCap: '0',
     maxRebalanceOutflow: MAX_UINT256_STRING,
     maxRebalanceInflow: MAX_UINT256_STRING,
+    maxDepositPercentageOfTVL: HUNDRED_PERCENT,
     fleetName: fleetConfig.fleetName,
   }
 }
@@ -109,20 +110,35 @@ async function deployOriginETHArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Origin-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_') + '_' + 'gov'
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName =
+    `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}` + '_' + 'gov'
 
   const originETHAddress = validateAddress(config.protocolSpecific.originETH.originETH, 'OriginETH')
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Origin',
+
+    type: 'Lending',
+
+    asset: userInput.token.address,
+
+    marketAsset: userInput.token.address,
+
+    pool: originETHAddress,
+
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'Origineth ark details')
+
   const arkParams = {
     name: arkName,
-    details: JSON.stringify({
-      protocol: 'Origin',
-      type: 'Lending',
-      asset: userInput.token.address,
-      marketAsset: userInput.token.address,
-      pool: originETHAddress,
-      chainId: chainId,
-    }),
+    details: JSON.stringify(arkDetails),
     accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
     configurationManager: config.deployedContracts.core.configurationManager.address as Address,
     asset: userInput.token.address,
@@ -130,7 +146,7 @@ async function deployOriginETHArkContract(
     maxRebalanceOutflow: userInput.maxRebalanceOutflow,
     maxRebalanceInflow: userInput.maxRebalanceInflow,
     requiresKeeperData: false,
-    maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+    maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
   }
 
   console.log('arkParams', arkParams)

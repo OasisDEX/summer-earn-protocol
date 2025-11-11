@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+
 import type { Environment } from '../../config/environments'
 import { useIntentSystem } from '../../hooks/useIntentSystem'
 import type { ChainId } from '../../types'

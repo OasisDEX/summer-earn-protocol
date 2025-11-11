@@ -135,5 +135,12 @@
   "LazyVault_HigherRisk_WETH_ERC4626_Euler_Frontier_Upshift_weth_1#ERC4626Ark": "0x0264f3A10526B5Eb5F75Eb4004Df6E3Ccc3b45e3",
   "LazyVault_HigherRisk_WETH_ERC4626_Euler_Alterscope_LRT_WETH_weth_1#ERC4626Ark": "0xdc931F070DFe8680CE0c76e16D8b626ab7b49CE9",
   "BummerLazyVault_WETH_Origin_ARM_weth_steth_1_gov#ArmArk": "0x42f4BeA2F645D24016c53d57C60fd3813030BCeB",
-  "LazyVault_HigherRisk_WETH_Origin_ARM_weth_steth_1_gov#ArmArk": "0x219CCBf0d3990e1CdAaF3ea840c7B233553c86a3"
+  "LazyVault_HigherRisk_WETH_Origin_ARM_weth_steth_1_gov#ArmArk": "0x219CCBf0d3990e1CdAaF3ea840c7B233553c86a3",
+  "LazyVault_HigherRisk_USDC_SiUSDArk_usdc_1#SiUSDArk": "0x5Ebbc493fD41dD607cDAd244a9E6CA7466A3F264",
+  "LazyVault_LowerRisk_USDC_FluidFToken_usdc_1#FluidFTokenArk": "0x7B1e86949C7B74761046d79Fb457985FB3a494F3",
+  "LazyVault_HigherRisk_USDC_FluidFToken_usdc_1#FluidFTokenArk": "0x78D0bf191f3D38713270E56d9b879A54C2864CFD",
+  "LazyVault_LowerRisk_USDT_FluidFToken_usdt_1#FluidFTokenArk": "0x9BD1564739Bf9cB5AE1a639B59240fE3c5a089B6",
+  "LazyVault_LowerRisk_WETH_FluidFToken_weth_1#FluidFTokenArk": "0x41eE965F5D3CCc914E2E18c5319B75B91577A5fD",
+  "LazyVault_HigherRisk_WETH_FluidFToken_weth_1#FluidFTokenArk": "0x7a9b57Dc5A063a90CA2390d10AB9bB7C909c771f",
+  "BummerLazyVault_USDC_ERC4626_PSMLITE_Sky_Staked_USDS_usdc_1#PsmLiteERC4626Ark": "0x534162a2072A2929B6713065414EEdC53E1Faeb3"
 }

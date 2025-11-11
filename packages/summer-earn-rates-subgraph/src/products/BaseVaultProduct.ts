@@ -36,6 +36,13 @@ export abstract class BaseVaultProduct extends Product {
   abstract getSharePrice(): BigDecimal
 
   getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
+    if (
+      currentBlock.ge(BigInt.fromI32(396229273)) &&
+      this.name ==
+        'Silo-0xaf88d065e77c8cc2239327c5edb3a432268e5831-0x2433d6ac11193b4695d9ca73530de93c538ad18a-42161'
+    ) {
+      return BigDecimalConstants.ZERO
+    }
     if (currentBlock.lt(this.startBlock)) {
       return BigDecimalConstants.ZERO
     }

@@ -34,7 +34,7 @@ Restart your terminal after running the above commands.
 - `eslint-config`: Base `eslint` configurations
 - `jest-config`: Base `jest` configurations
 - `tenderly-utils`: Utility functions for interacting with Tenderly API
-- `typescript-config`: Base `tsconfig.json`s configurations
+- `typescript-config`: Base `tsconfig.json` configurations
 
 ## Commands
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+
 import type { Environment } from '../../config/environments'
 import { useIntentSystem } from '../../hooks/useIntentSystem'
 import type { ChainId } from '../../types'
@@ -135,8 +136,8 @@ export function CreateIntentModal({
               required
             />
             <div className="text-xs text-gray-400 mt-1">
-              USD amount (e.g., enter "1000" for $1000 USD - will be converted to 18 decimals
-              automatically)
+              USD amount (e.g., enter &quot;1000&quot; for $1000 USD - will be converted to 18
+              decimals automatically)
             </div>
           </div>
 

@@ -52,7 +52,6 @@ contract BuyAndBurn is
         address _configurationManager
     )
         ProtocolAccessManaged(_accessManager)
-        AuctionManagerBase()
         ConfigurationManaged(_configurationManager)
     {
         summerToken = ERC20Burnable(_summer);

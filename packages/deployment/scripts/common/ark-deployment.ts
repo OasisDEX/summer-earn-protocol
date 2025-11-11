@@ -9,6 +9,7 @@ import { deployArmArk } from '../arks/deploy-arm-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployCrossChainArk } from '../arks/deploy-cross-chain-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
+import { deployFluidFTokenArk } from '../arks/deploy-fluid-ftoken-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { deployMorphoArk } from '../arks/deploy-morpho-ark'
@@ -17,9 +18,11 @@ import { deployOriginETHArk } from '../arks/deploy-origineth-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
+import { deployPsmERC4626Ark } from '../arks/deploy-psm-erc4626-ark'
 import { deploySiloArk } from '../arks/deploy-silo-ark'
 import { deploySiloArkV2 } from '../arks/deploy-silo-ark-v2'
 import { deploySiloManagedVaultArk } from '../arks/deploy-silo-managed-vault-ark'
+import { deploySiUSDArk } from '../arks/deploy-siusd-ark'
 import { deploySkyRewardsArk } from '../arks/deploy-sky-rewards-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
@@ -42,9 +45,11 @@ export type ArkConfig = {
     protocol?: string
     vaultName?: string
     targetChainId?: string
-    depositCap?: string // For FluidLiteArk
-    maxRebalanceOutflow?: string // For FluidLiteArk
-    maxRebalanceInflow?: string // For FluidLiteArk
+    depositCap?: string
+    maxRebalanceOutflow?: string
+    maxRebalanceInflow?: string
+    maxDepositPercentageOfTVL?: string
+    vaultToken?: string // for arks with underlying token different than fleet asset
   }
 }
 
@@ -56,7 +61,9 @@ export type BaseArkParams = {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
+  maxDepositPercentageOfTVL: string
   fleetName: string
+  isBummer?: boolean
 }
 
 export async function deployArk(
@@ -80,7 +87,9 @@ export async function deployArk(
     depositCap: params.depositCap || ZERO_STRING,
     maxRebalanceOutflow: params.maxRebalanceOutflow || ZERO_STRING,
     maxRebalanceInflow: params.maxRebalanceInflow || ZERO_STRING,
+    maxDepositPercentageOfTVL: params.maxDepositPercentageOfTVL || ZERO_STRING,
     fleetName: fleetConfig.fleetName,
+    isBummer: fleetConfig.isBummer,
   }
 
   let deployedArk
@@ -117,6 +126,11 @@ export async function deployArk(
         vaultId: vaultAddress,
         vaultName: validatedVaultName,
       })
+      deployedArk = ark
+      break
+    }
+    case ArkType.FluidFTokenArk: {
+      const ark = await deployFluidFTokenArk(config, baseArkParams)
       deployedArk = ark
       break
     }
@@ -341,7 +355,7 @@ export async function deployArk(
     case ArkType.AeraArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
       const provisioner = validateAddress(
-        config.protocolSpecific.gauntlet.vaults[token][vaultName].provisioner,
+        config.protocolSpecific.aera.vaults[token][vaultName].provisioner,
         `Aera-${vaultName}`,
       )
       const ark = await deployAeraArk(config, {
@@ -362,6 +376,55 @@ export async function deployArk(
         stargatePoolAddress: stargatePoolAddress,
       })
       deployedArk = ark
+      break
+    }
+    case ArkType.SiUSDArk: {
+      // SiUSDArk only supports USDC
+      if (token !== Token.USDC) {
+        throw new Error('SiUSDArk only supports USDC as the asset')
+      }
+      const gateway = validateAddress(config.protocolSpecific.infinifi?.gateway, 'InfiniFi Gateway')
+      const siUSD = validateErc4626Address(config.protocolSpecific.infinifi?.siUSD, 'siUSD vault')
+      // Enforce USDC + config validations as in deployArk
+      const ark = await deploySiUSDArk(config, {
+        ...baseArkParams,
+        gateway: gateway,
+        siUSD: siUSD,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.PsmLiteERC4626Ark: {
+      const vaultToken = validateToken(config, arkConfig.params.vaultToken || '')
+      const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626VaultId = validateErc4626Address(
+        config.protocolSpecific.erc4626[vaultToken][erc4626VaultName],
+        `ERC4626-${erc4626VaultName}`,
+      )
+      deployedArk = await deployPsmERC4626Ark(config, {
+        ...baseArkParams,
+        psmType: 'psmlite',
+        vaultToken: config.tokens[vaultToken],
+        vaultId: erc4626VaultId,
+        vaultName: erc4626VaultName,
+      })
+      break
+    }
+
+    case ArkType.Psm3ERC4626Ark: {
+      const vaultToken = validateToken(config, arkConfig.params.vaultToken || '')
+      const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626VaultId = validateErc4626Address(
+        config.protocolSpecific.erc4626[vaultToken][erc4626VaultName],
+        `ERC4626-${erc4626VaultName}`,
+      )
+      deployedArk = await deployPsmERC4626Ark(config, {
+        ...baseArkParams,
+        psmType: 'psm3',
+        vaultToken: config.tokens[vaultToken],
+        vaultId: erc4626VaultId,
+        vaultName: erc4626VaultName,
+      })
       break
     }
     default:
@@ -466,6 +529,28 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
       break
     }
 
+    case ArkType.SiUSDArk: {
+      deployedArk = await deploySiUSDArk(config)
+      break
+    }
+
+    case ArkType.FluidFTokenArk: {
+      deployedArk = await deployFluidFTokenArk(config)
+      break
+    }
+    case ArkType.FluidLiteArk: {
+      deployedArk = await deployFluidLiteArk(config)
+      break
+    }
+    case ArkType.PsmLiteERC4626Ark: {
+      deployedArk = await deployPsmERC4626Ark(config)
+      break
+    }
+
+    case ArkType.Psm3ERC4626Ark: {
+      deployedArk = await deployPsmERC4626Ark(config)
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${arkType}`)
   }

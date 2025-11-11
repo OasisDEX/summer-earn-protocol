@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Address } from 'viem'
 import { useChainId } from 'wagmi'
+
 import { BaseAuctionParameters, useRaftContract } from '../contracts/Raft'
 
 interface AuctionConfigModalProps {

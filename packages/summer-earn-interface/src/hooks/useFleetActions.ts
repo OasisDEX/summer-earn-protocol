@@ -1,10 +1,12 @@
 'use client'
 
-import { CHAIN_BLOCK_EXPLORERS, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { parseUnits } from 'viem'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+
+import { CHAIN_BLOCK_EXPLORERS, VIEM_CHAIN_ENTITIES } from '@/config/chains'
+
 import { erc20Abi } from '../abis/ERC20'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
 import type { ChainId } from '../types'
@@ -205,6 +207,11 @@ export function useFleetActions({
     isApproveLoading: isApproveLoading || isApproveWritePending || approvePending,
     isDepositLoading: isDepositLoading || isDepositWritePending || depositPending,
     isWithdrawLoading: isWithdrawLoading || isWithdrawWritePending || withdrawPending,
+
+    // Success flags
+    isApproveSuccess,
+    isDepositSuccess,
+    isWithdrawSuccess,
 
     // Errors
     approveError,

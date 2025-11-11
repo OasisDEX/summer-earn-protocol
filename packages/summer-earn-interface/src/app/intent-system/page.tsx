@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { formatEther, formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
+
 import { ChainSelector } from '../../components/ChainSelector'
 import { EnvironmentSelector } from '../../components/EnvironmentSelector'
 import { CreateBondModal } from '../../components/modals/CreateBondModal'
@@ -10,10 +11,36 @@ import { CreateIntentModal } from '../../components/modals/CreateIntentModal'
 import { SetPriceModal } from '../../components/modals/SetPriceModal'
 import { SolveIntentModal } from '../../components/modals/SolveIntentModal'
 import { useEnvironment } from '../../hooks/useEnvironment'
+import type { IntentEvent } from '../../hooks/useIntentSystem'
 import { useIntentSystem } from '../../hooks/useIntentSystem'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useSyncWalletChain } from '../../hooks/useSyncWalletChain'
 import type { ChainId } from '../../types'
+
+type PrefilledIntentData = {
+  intentId: string
+  user: string
+  requiredNotional: bigint
+  requiredBond: bigint
+  term: bigint
+  targetYield: bigint
+  token: string
+  oracle: string
+  expiry: bigint
+}
+
+type FormattedIntentEvent = IntentEvent & {
+  formattedTime: string
+  shortUser: string
+  shortSolver: string
+  shortIntentId: string
+  termDays: string
+  requiredNotionalFormatted: string
+  requiredBondFormatted: string
+  targetYieldFormatted: string
+}
+
+const DEFAULT_ORACLE_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 export default function IntentSystemPage() {
   const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', '8453')
@@ -26,7 +53,8 @@ export default function IntentSystemPage() {
   const [showSolveIntent, setShowSolveIntent] = useState(false)
   const [showCreateBond, setShowCreateBond] = useState(false)
   const [showSetPrice, setShowSetPrice] = useState(false)
-  const [selectedIntentForSolving, setSelectedIntentForSolving] = useState<any>(null)
+  const [selectedIntentForSolving, setSelectedIntentForSolving] =
+    useState<PrefilledIntentData | null>(null)
 
   useSyncWalletChain(selectedChain)
 
@@ -48,8 +76,6 @@ export default function IntentSystemPage() {
   } = useIntentSystem(environment, selectedChain)
 
   // Bond state
-  const [bondContractAddress, setBondContractAddress] = useState<string | null>(null)
-  const [bondAllowance, setBondAllowance] = useState<bigint>(BigInt(0))
   const [bondAmount, setBondAmount] = useState<bigint>(BigInt(0))
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
 
@@ -72,13 +98,7 @@ export default function IntentSystemPage() {
           const amount = await getSolverBondAmount(userAddress)
           setBondAmount(amount)
 
-          if (amount > BigInt(0)) {
-            setBondContractAddress('bond-exists')
-            setBondAllowance(BigInt(0))
-          } else {
-            setBondContractAddress(null)
-            setBondAllowance(BigInt(0))
-          }
+          // Bond contracts are abstracted for now; updating amount is sufficient in UI
         } catch (error) {
           console.error('Error fetching bond info:', error)
         }
@@ -96,11 +116,6 @@ export default function IntentSystemPage() {
   useEffect(() => {
     if (solverInfo && userAddress && solverInfo.address === userAddress) {
       setBondAmount(solverInfo.bondAmount)
-      if (solverInfo.bondAmount > BigInt(0)) {
-        setBondContractAddress('bond-exists')
-      } else {
-        setBondContractAddress(null)
-      }
     }
   }, [solverInfo, userAddress])
 
@@ -124,8 +139,20 @@ export default function IntentSystemPage() {
   }
 
   // Function to open solve modal with prefilled intent data
-  const openSolveModal = (intent: any) => {
-    setSelectedIntentForSolving(intent)
+  const openSolveModal = (event: FormattedIntentEvent) => {
+    const prefilledData: PrefilledIntentData = {
+      intentId: event.intentId,
+      user: event.user,
+      requiredNotional: event.requiredNotional,
+      requiredBond: event.requiredBond,
+      term: event.term,
+      targetYield: event.targetYield,
+      token: event.token,
+      oracle: DEFAULT_ORACLE_ADDRESS,
+      expiry: event.expiry,
+    }
+
+    setSelectedIntentForSolving(prefilledData)
     setShowSolveIntent(true)
   }
 
@@ -137,7 +164,7 @@ export default function IntentSystemPage() {
   }, [isDeployed, intentHandler, selectedChain, fetchIntentEvents])
 
   // Helper function to format intent events for display
-  const formatIntentEvents = () => {
+  const formatIntentEvents = (): FormattedIntentEvent[] => {
     if (!intentEvents || intentEvents.length === 0) {
       return []
     }
@@ -561,7 +588,7 @@ export default function IntentSystemPage() {
           }}
           environment={environment}
           chainId={selectedChain}
-          intentData={selectedIntentForSolving}
+          intentData={selectedIntentForSolving ?? undefined}
         />
 
         <CreateBondModal

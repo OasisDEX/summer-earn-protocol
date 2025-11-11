@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { formatUnits } from 'viem'
-import { MAX_UINT256, formatDecimalOutput, parseDecimalInput } from '../utils/decimals'
+
+import { formatDecimalOutput, MAX_UINT256, parseDecimalInput } from '../utils/decimals'
 
 interface AmountInputProps {
   value: string

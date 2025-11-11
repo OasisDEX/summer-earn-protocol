@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 import { Header } from '@/components/Header'
 import { ProposalList } from '@/components/ProposalList'
 import {
@@ -11,7 +13,6 @@ import {
   validateTargets,
   validateValues,
 } from '@/services/validation'
-import { useState } from 'react'
 
 interface ValidationErrors {
   targets: string[]
@@ -41,42 +42,6 @@ const convertBigIntToString = (value: any): any => {
     return result
   }
   return value
-}
-
-// Helper function to format argument value
-const formatArgValue = (arg: any): React.ReactNode => {
-  if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
-    return <span className="font-mono text-blue-600 dark:text-blue-400 text-sm">{arg}</span>
-  }
-  if (typeof arg === 'object' && arg !== null) {
-    if (Array.isArray(arg)) {
-      return (
-        <ul className="list-none p-0 m-2 font-mono pl-4 border-l border-gray-200 dark:border-gray-600">
-          {arg.map((value, index) => (
-            <li key={index} className="my-1 py-1">
-              <span className="text-gray-500 dark:text-gray-400 font-medium font-mono text-sm min-w-[120px]">
-                {index}:
-              </span>{' '}
-              {formatArgValue(value)}
-            </li>
-          ))}
-        </ul>
-      )
-    }
-    return (
-      <ul className="list-none p-0 m-2 font-mono pl-4 border-l border-gray-200 dark:border-gray-600">
-        {Object.entries(arg).map(([key, value]) => (
-          <li key={key} className="my-1 py-1">
-            <span className="text-gray-500 dark:text-gray-400 font-medium font-mono text-sm min-w-[120px]">
-              {key}:
-            </span>{' '}
-            {formatArgValue(value)}
-          </li>
-        ))}
-      </ul>
-    )
-  }
-  return <span>{String(arg)}</span>
 }
 
 export default function Home() {

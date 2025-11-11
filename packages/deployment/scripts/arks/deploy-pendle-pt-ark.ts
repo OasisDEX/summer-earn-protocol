@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 export interface PendlePTArkUserInput extends BaseArkParams {
   marketId: string
@@ -80,6 +80,12 @@ async function getUserInput(config: BaseConfig) {
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
 
   // Set the token address based on the selected market
@@ -90,6 +96,7 @@ async function getUserInput(config: BaseConfig) {
     depositCap: responses.depositCap,
     maxRebalanceOutflow: responses.maxRebalanceOutflow,
     maxRebalanceInflow: responses.maxRebalanceInflow,
+    maxDepositPercentageOfTVL: responses.maxDepositPercentageOfTVL,
     token: { address: tokenAddress, symbol: selectedMarket.token },
     marketId: selectedMarket.marketId,
     marketName: selectedMarket.marketName,
@@ -121,13 +128,29 @@ async function deployPendlePTArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const routerAddress = validateAddress(config.protocolSpecific.pendle.router, 'Pendle Router')
   const oracleAddress = validateAddress(
     config.protocolSpecific.pendle['lp-oracle'],
     'Pendle LP Oracle',
   )
+
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Pendle',
+    type: 'Pt',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: userInput.marketId,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'PendlePt ark details')
 
   return (await hre.ignition.deploy(createPendlePTArkModule(moduleName), {
     parameters: {
@@ -137,14 +160,7 @@ async function deployPendlePTArkContract(
         router: routerAddress,
         arkParams: {
           name: `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`,
-          details: JSON.stringify({
-            protocol: 'Pendle',
-            type: 'Pt',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: userInput.marketId,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -153,7 +169,7 @@ async function deployPendlePTArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+
 import { ChainSelector } from '../components/ChainSelector'
 import { EnvironmentSelector } from '../components/EnvironmentSelector'
 import { FleetCard } from '../components/FleetCard'
@@ -70,6 +71,12 @@ export default function Home() {
               className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
             >
               📊 Interest Rates
+            </a>
+            <a
+              href={`/institutions`}
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              🏦 Institutions
             </a>
             <a
               href={`/vesting/8453`}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+
 import { ProposalList } from './ProposalList'
 
 interface Proposal {

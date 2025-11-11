@@ -5,12 +5,6 @@ const SUBGRAPH_URL = 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-
 // Cache duration in seconds (5 minutes)
 const CACHE_DURATION = 5 * 60
 
-// In-memory cache
-let cache: {
-  data: any
-  timestamp: number
-} | null = null
-
 export async function GET() {
   try {
     const query = `

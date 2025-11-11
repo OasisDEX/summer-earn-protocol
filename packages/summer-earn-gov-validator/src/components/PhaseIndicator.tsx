@@ -1,6 +1,7 @@
 'use client'
 
-import { PHASE_INFO, getNextPhaseInfo, isTimeSensitive, type ProposalTiming } from '@/utils/timing'
+import { getNextPhaseInfo, isTimeSensitive, PHASE_INFO, type ProposalTiming } from '@/utils/timing'
+
 import { CountdownTimer } from './CountdownTimer'
 import { ProgressBar } from './ProgressBar'
 
@@ -145,7 +146,6 @@ export function PhaseTimeline({ timing, className = '' }: PhaseTimelineProps) {
           const phaseInfo = PHASE_INFO[phase]
           const isActive = index === currentPhaseIndex
           const isCompleted = index < currentPhaseIndex
-          const isUpcoming = index > currentPhaseIndex
 
           return (
             <div key={phase} className="flex items-center space-x-3">

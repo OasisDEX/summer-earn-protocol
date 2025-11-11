@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 export async function deploySyrupArk(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting SyrupArk deployment process...'))
@@ -66,6 +66,12 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
 
   // Set the token address based on the selected vault
@@ -76,6 +82,7 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
     depositCap: responses.depositCap,
     maxRebalanceOutflow: responses.maxRebalanceOutflow,
     maxRebalanceInflow: responses.maxRebalanceInflow,
+    maxDepositPercentageOfTVL: responses.maxDepositPercentageOfTVL,
     token: { address: tokenAddress, symbol: selectedVault.token },
     fleetName: fleetDefinition.fleetName,
   }
@@ -102,7 +109,9 @@ async function deploySyrupArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Syrup-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_') + '_' + 'gov'
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName =
+    `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}` + '_' + 'gov'
 
   const protocol = `Syrup`
 
@@ -115,6 +124,21 @@ async function deploySyrupArkContract(
     'Syrup Router',
   )
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: protocol,
+    type: 'Syrup',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: syrupAddress,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'Syrup ark details')
+
   return (await hre.ignition.deploy(createSyrupArkModule(moduleName), {
     parameters: {
       [moduleName]: {
@@ -122,14 +146,7 @@ async function deploySyrupArkContract(
         router: routerAddress,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: protocol,
-            type: 'Syrup',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: syrupAddress,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -138,7 +155,7 @@ async function deploySyrupArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },

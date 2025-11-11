@@ -36,7 +36,7 @@ export async function grantCommanderRole(
       fleetCommanderAddress,
     ])
 
-    await publicClient.waitForTransactionReceipt({ hash })
+    await publicClient.waitForTransactionReceipt({ hash, confirmations: 2 })
     console.log(kleur.green('Successfully granted COMMANDER_ROLE'))
   } catch (error) {
     console.error(kleur.red('Failed to grant COMMANDER_ROLE:'), error)

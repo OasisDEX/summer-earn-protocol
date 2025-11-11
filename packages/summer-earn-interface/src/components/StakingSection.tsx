@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+
 import { useStakingRewards } from '../hooks/useStakingRewards'
 import type { ChainId, UserFleetInfo } from '../types'
 import { formatDecimalOutput } from '../utils/decimals'
@@ -31,7 +32,6 @@ export function StakingSection({
     stakedBalance,
     totalStakedSupply,
     earnedRewards,
-    rewardTokens,
     rewardTokensLength,
     stake,
     unstake,
@@ -41,7 +41,6 @@ export function StakingSection({
     isClaimLoading,
     isStakeConfirmed,
     isUnstakeConfirmed,
-    isClaimConfirmed,
   } = useStakingRewards({ fleetAddress, chainId })
 
   if (!stakingRewardsManagerAddress || !userInfo) {

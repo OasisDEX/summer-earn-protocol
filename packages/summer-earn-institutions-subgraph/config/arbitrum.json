@@ -1,0 +1,9 @@
+{
+  "network": "arbitrum-one",
+  "registry-address": "0x209dCC11C4A3424d7AA6c0690cbEa07de9d6D9B6",
+  "registry-start-block": 394646348,
+  "interval-handler-block-interval": 240,
+  "enable-grafting": false,
+  "grafting-base": "QmSKcDsPtJSdVW2eqVFQVrHD3jJGxq8Zoay7EPMhZ6wBCu",
+  "grafting-block": "30609070"
+}

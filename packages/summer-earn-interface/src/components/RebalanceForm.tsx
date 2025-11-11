@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+
 import type { ArkInfo } from '../types'
 import { AmountInput } from './AmountInput'
 

@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 /**
  * Main function to deploy an ArmArk.
@@ -71,6 +71,7 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams & { vault
     depositCap: '0',
     maxRebalanceOutflow: MAX_UINT256_STRING,
     maxRebalanceInflow: MAX_UINT256_STRING,
+    maxDepositPercentageOfTVL: HUNDRED_PERCENT,
     fleetName: fleetConfig.fleetName,
     vaultName: armChoice.value,
   }
@@ -115,7 +116,8 @@ async function deployArmArkContract(
   const deploymentId = await handleDeploymentId(chainId)
   const vaultName = userInput.vaultName || 'default'
   const arkName = `Origin_ARM-${userInput.token.symbol}-${vaultName}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_') + '_' + 'gov'
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   // Look up ARM address from config based on token and vaultName
   const armConfigs = config.protocolSpecific.originETH.arms[userInput.token.symbol as Token]
@@ -126,17 +128,25 @@ async function deployArmArkContract(
   }
   const armAddress = validateAddress(armConfigs[vaultName], `OriginETH ARM ${vaultName}`)
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Origin',
+    type: 'ARM',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: armAddress,
+    armStrategy: vaultName,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'Arm ark details')
+
   const arkParams = {
     name: arkName,
-    details: JSON.stringify({
-      protocol: 'Origin',
-      type: 'ARM',
-      asset: userInput.token.address,
-      marketAsset: userInput.token.address,
-      pool: armAddress,
-      armStrategy: vaultName,
-      chainId: chainId,
-    }),
+    details: JSON.stringify(arkDetails),
     accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
     configurationManager: config.deployedContracts.core.configurationManager.address as Address,
     asset: userInput.token.address,
@@ -144,7 +154,7 @@ async function deployArmArkContract(
     maxRebalanceOutflow: userInput.maxRebalanceOutflow,
     maxRebalanceInflow: userInput.maxRebalanceInflow,
     requiresKeeperData: false,
-    maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+    maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
   }
 
   console.log('arkParams', arkParams)

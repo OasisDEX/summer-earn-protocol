@@ -1,5 +1,6 @@
 import FinishedAuctionsView from '@/components/FinishedAuctionsView'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { AuctionCard } from './AuctionCard'
 
 interface Auction {

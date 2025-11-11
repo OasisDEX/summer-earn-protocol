@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+
 import type { UserFleetInfo } from '../types'
 import { formatDecimalOutput } from '../utils/decimals'
 import { AmountInput } from './AmountInput'

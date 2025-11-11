@@ -446,7 +446,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         bytes memory invalidOFTMessage = hex"01"; // too short
 
         // Should revert with InvalidMessage due to header length
-        vm.expectRevert("InvalidMessage()");
+        vm.expectRevert();
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),

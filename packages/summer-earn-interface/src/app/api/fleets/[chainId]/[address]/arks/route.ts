@@ -1,8 +1,9 @@
+import { NextResponse } from 'next/server'
+import { createPublicClient, http } from 'viem'
+
 import { arkAbi } from '@/abis/Ark'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
 import { CHAIN_RPC_URLS } from '@/config/chains'
-import { NextResponse } from 'next/server'
-import { createPublicClient, http } from 'viem'
 
 const TTL_MS = 10 * 60 * 1000
 const cache = new Map<string, { data: unknown; expiry: number }>()
@@ -23,11 +24,13 @@ export async function GET(
   const client = createPublicClient({ transport: http(rpcUrl) })
 
   const [activeArks, bufferArkAddress] = await Promise.all([
+    // @ts-ignore
     client.readContract({
       address: address as `0x${string}`,
       abi: fleetCommanderAbi,
       functionName: 'getActiveArks',
     }) as Promise<`0x${string}`[]>,
+    // @ts-ignore
     client.readContract({
       address: address as `0x${string}`,
       abi: fleetCommanderAbi,
@@ -41,13 +44,24 @@ export async function GET(
   const results = await Promise.all(
     allArks.map(async (arkAddress) => {
       const [totalAssets, withdrawableTotalAssets, name] = await Promise.all([
-        client.readContract({ address: arkAddress, abi: arkAbi, functionName: 'totalAssets' }),
+        // @ts-ignore
+        client.readContract({
+          address: arkAddress,
+          abi: arkAbi,
+          functionName: 'totalAssets',
+        }),
+        // @ts-ignore
         client.readContract({
           address: arkAddress,
           abi: arkAbi,
           functionName: 'withdrawableTotalAssets',
         }),
-        client.readContract({ address: arkAddress, abi: arkAbi, functionName: 'name' }),
+        // @ts-ignore
+        client.readContract({
+          address: arkAddress,
+          abi: arkAbi,
+          functionName: 'name',
+        }),
       ])
       return {
         address: arkAddress,

@@ -1,6 +1,8 @@
-import { calculateProposalTiming } from '@/utils/timing'
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
+
+import { calculateProposalTiming } from '@/utils/timing'
+
 import { PhaseIndicator } from './PhaseIndicator'
 
 interface Proposal {

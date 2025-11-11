@@ -1,5 +1,6 @@
-import '@/styles/globals.scss'
 import { Providers } from '../components/Providers'
+
+import '@/styles/globals.scss'
 
 export const metadata = {
   title: 'Summer Earn Governance Validator',

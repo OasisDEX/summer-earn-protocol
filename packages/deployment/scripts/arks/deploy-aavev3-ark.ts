@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 /**
  * Main function to deploy an AaveV3Ark.
@@ -73,6 +73,12 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
       initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
+    {
+      type: 'text',
+      name: 'maxDepositPercentageOfTVL',
+      initial: HUNDRED_PERCENT,
+      message: 'Enter the max deposit percentage of TVL:',
+    },
   ])
   return {
     ...reponses,
@@ -108,10 +114,24 @@ async function deployAaveV3ArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `AaveV3-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const envLabel = userInput.isBummer ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const aaveV3Pool = validateAddress(config.protocolSpecific.aaveV3.pool, 'aaveV3 pool')
   const aaveV3Rewards = validateAddress(config.protocolSpecific.aaveV3.rewards, 'aaveV3 rewards')
+
+  // Create and validate ark details
+  const arkDetails = {
+    protocol: 'AaveV3',
+    type: 'Lending',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: aaveV3Pool,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+  validateArkDetails(arkDetails, 'AaveV3 ark details')
 
   return (await hre.ignition.deploy(createAaveV3ArkModule(moduleName), {
     parameters: {
@@ -120,14 +140,7 @@ async function deployAaveV3ArkContract(
         rewardsController: aaveV3Rewards,
         arkParams: {
           name: `AaveV3-${userInput.token.symbol}-${chainId}`,
-          details: JSON.stringify({
-            protocol: 'AaveV3',
-            type: 'Lending',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: aaveV3Pool,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -136,7 +149,7 @@ async function deployAaveV3ArkContract(
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
-          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          maxDepositPercentageOfTVL: userInput.maxDepositPercentageOfTVL,
         },
       },
     },
