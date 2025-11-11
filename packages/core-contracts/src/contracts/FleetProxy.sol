@@ -249,6 +249,9 @@ contract FleetProxy is
             options,
             msg.sender
         );
+
+        // Once the Hub is notified, reset the latest incoming transfer ID
+        latestIncomingTransferId = 0;
     }
 
     /// @inheritdoc IERC165
