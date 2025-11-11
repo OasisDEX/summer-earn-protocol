@@ -10,6 +10,8 @@ import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {TestMockERC721} from "../mocks/MockTokens.sol";
 import {TestMockERC1155} from "../mocks/MockTokens.sol";
 import {TestMockReceiver} from "../mocks/MockReceiver.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
 
 contract SummerGovernorV2GovernorTest is SummerGovernorV2TestBase {
     TestMockERC721 public mockNFT;
@@ -251,5 +253,55 @@ contract SummerGovernorV2GovernorTest is SummerGovernorV2TestBase {
             initialBalance + 0.1 ether,
             "Balance should increase when sent from timelock"
         );
+    }
+
+    function test_GuardianCannotCancelGuardianExpiryProposal() public {
+        // Ensure guardian is active
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantGuardianRole(guardian);
+        // accessManagerA.setGuardianExpiration(
+        //     guardian,
+        //     block.timestamp + 8 days
+        // );
+        vm.stopPrank();
+
+        // Give Alice enough voting power to propose
+        stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
+        vm.prank(alice);
+        axSumr.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Build guardian expiry proposal
+        address[] memory targets = new address[](1);
+        targets[0] = address(accessManagerA);
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSelector(
+            IProtocolAccessManager.setGuardianExpiration.selector,
+            guardian,
+            block.timestamp + 8 days
+        );
+        string memory description = "Set guardian expiration";
+
+        vm.prank(alice);
+        governorA.propose(targets, values, calldatas, description);
+
+        bytes32 descriptionHash = keccak256(bytes(description));
+
+        // Guardian attempts to cancel → must revert with unauthorized cancellation
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerGovernorErrors
+                    .SummerGovernorUnauthorizedCancellation
+                    .selector,
+                guardian,
+                alice,
+                axSumr.getVotes(alice),
+                governorA.proposalThreshold()
+            )
+        );
+        vm.prank(guardian);
+        governorA.cancel(targets, values, calldatas, descriptionHash);
     }
 }

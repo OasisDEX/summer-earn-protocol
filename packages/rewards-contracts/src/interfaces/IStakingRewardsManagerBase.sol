@@ -154,6 +154,13 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      */
     function removeRewardToken(address rewardToken) external;
 
+    /* @notice Rescues a token from the contract
+     * @dev Can only be called by governor
+     * @param _token The address of the token to rescue
+     * @param _to The address to send the rescued tokens to
+     */
+    function rescueToken(address _token, address _to) external;
+
     // Events
 
     /* @notice Emitted when a new reward is added

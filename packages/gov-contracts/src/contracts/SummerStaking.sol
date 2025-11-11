@@ -85,6 +85,8 @@ contract SummerStaking is
 
     mapping(address owner => uint256 weightedBalance) public weightedBalances;
     mapping(Bucket bucketId => BucketData bucketData) public bucketData;
+    mapping(address owner => mapping(address authorizedCaller => bool isAuthorized))
+        public isAuthorized;
     bool public penaltyEnabled = true;
 
     // ============ CONSTRUCTOR ============
@@ -131,6 +133,7 @@ contract SummerStaking is
         uint256 _amount,
         uint256 _lockupPeriod
     ) external nonReentrant {
+        _validateAuthorization(_receiver, _msgSender());
         _stakeLockup(_msgSender(), _receiver, _amount, _lockupPeriod);
     }
 
@@ -194,6 +197,15 @@ contract SummerStaking is
         emit Unstaked(_msgSender(), _msgSender(), _amount);
     }
 
+    ///  @inheritdoc ISummerStaking
+    function setAuthorization(
+        address _authorizedCaller,
+        bool _isAuthorized
+    ) external {
+        isAuthorized[_msgSender()][_authorizedCaller] = _isAuthorized;
+        emit AuthorizationSet(_msgSender(), _authorizedCaller, _isAuthorized);
+    }
+
     // ============ EXTERNAL FUNCTIONS - ADMIN ============
     ///  @inheritdoc ISummerStaking
     function updateLockupBucketCap(
@@ -213,15 +225,15 @@ contract SummerStaking is
     }
 
     ///  @inheritdoc ISummerStaking
-    function rescueToken(address _token, address _to) external onlyGovernor {
+    function rescueToken(
+        address _token,
+        address _to
+    ) public override(StakingRewardsManagerBase, ISummerStaking) onlyGovernor {
         if (_token == address(WRAPPED_SUMMER_TOKEN)) {
             revert Staking_InvalidAddress("Cannot rescue wrapped summer token");
         }
         // Sweep entire token balance to the target; used for emergency recovery only
-        IERC20(_token).safeTransfer(
-            _to,
-            IERC20(_token).balanceOf(address(this))
-        );
+        super.rescueToken(_token, _to);
     }
 
     // ============ EXTERNAL VIEW FUNCTIONS - STAKE INFORMATION ============
@@ -400,6 +412,23 @@ contract SummerStaking is
             rewards[rewardToken][account];
     }
 
+    ///  @inheritdoc ISummerStaking
+    function getRewardFor(
+        address account,
+        address rewardToken
+    ) public override(ISummerStaking, StakingRewardsManagerBase) {
+        _validateAuthorization(account, _msgSender());
+        super.getRewardFor(account, rewardToken);
+    }
+
+    ///  @inheritdoc ISummerStaking
+    function getRewardFor(
+        address account
+    ) public override(ISummerStaking, StakingRewardsManagerBase) {
+        _validateAuthorization(account, _msgSender());
+        super.getRewardFor(account);
+    }
+
     // ============ PUBLIC OVERRIDE FUNCTIONS - DISABLED FUNCTIONS ============
     ///  @inheritdoc IStakingRewardsManagerBase
     function stakeOnBehalfOf(
@@ -485,10 +514,7 @@ contract SummerStaking is
                 "Lockup period cannot exceed 3 years"
             );
         }
-        // Enforce per-portfolio stake count bound and bucket caps on raw amount
-        if (stakesByOwner[_receiver].length >= MAX_AMOUNT_OF_STAKES) {
-            revert Staking_MaxStakesReached();
-        }
+        // Enforce bucket cap on raw amount
         if (_wouldExceedBucketCap(_lockupPeriod, _amount)) {
             revert Staking_BucketCapExceeded();
         }
@@ -509,6 +535,10 @@ contract SummerStaking is
             noLockupStake.lockupEndTime = block.timestamp;
             _stakeIndex = NO_LOCKUP_INDEX;
         } else {
+            // Enforce per-portfolio stake count bound
+            if (stakesByOwner[_receiver].length >= MAX_AMOUNT_OF_STAKES) {
+                revert Staking_MaxStakesReached();
+            }
             // Append an independent lockup position
             _stakePortfolio.push(
                 UserStake({
@@ -807,5 +837,22 @@ contract SummerStaking is
             );
         }
         return stakesByOwner[owner];
+    }
+
+    // ============ INTERNAL - AUTHORIZATION HELPERS ============
+
+    /**
+     * @notice Ensure the caller is authorized to act on behalf of the receiver
+     * @param _receiver The address to check authorization for
+     * @param _caller The address to check authorization for
+     * @dev Reverts if the caller is not authorized to act on behalf of the receiver
+     */
+    function _validateAuthorization(
+        address _receiver,
+        address _caller
+    ) internal view {
+        if (!isAuthorized[_receiver][_caller]) {
+            revert Staking_NotAuthorized(_caller, _receiver);
+        }
     }
 }
