@@ -1,19 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { erc20Abi, zeroAddress } from 'viem'
-import {
-  useAccount,
-  usePublicClient,
-  useReadContract,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from 'wagmi'
+import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 
 import {
-  SUMMER_VESTING_WALLETS_ESCROW_ADDRESSES,
-  SUMMER_VESTING_WALLET_FACTORY_V2_ADDRESSES,
-  SUMMER_TOKEN_ADDRESSES,
   STAKED_SUMMER_TOKEN_ADDRESSES,
+  SUMMER_TOKEN_ADDRESSES,
+  SUMMER_VESTING_WALLET_FACTORY_V2_ADDRESSES,
+  SUMMER_VESTING_WALLETS_ESCROW_ADDRESSES,
 } from '../config/environments'
 import type { ChainId } from '../types'
 import { useEnvironment } from './useEnvironment'
@@ -153,10 +147,6 @@ export function useVestingWallets(chainId: ChainId) {
   const { address: account, chain } = useAccount()
   const rawChainId = Number(chainId)
   const chainIdNumber = Number.isFinite(rawChainId) ? rawChainId : 8453
-
-  const pcForChain = usePublicClient({ chainId: chainIdNumber })
-  const pcDefault = usePublicClient()
-  const publicClient = pcForChain ?? pcDefault
 
   const escrowAddress = SUMMER_VESTING_WALLETS_ESCROW_ADDRESSES[environment]?.[chainIdNumber] as
     | `0x${string}`

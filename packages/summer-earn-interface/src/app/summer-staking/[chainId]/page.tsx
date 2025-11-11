@@ -4,13 +4,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
 
+import { useLocalStorage } from '@/hooks/useLocalStorage'
+
 import { EnvironmentSelector } from '../../../components/EnvironmentSelector'
+import { useEnvironment } from '../../../hooks/useEnvironment'
 import { useSummerStaking } from '../../../hooks/useSummerStaking'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
 import { useVestingWallets } from '../../../hooks/useVestingWallets'
-import { useEnvironment } from '../../../hooks/useEnvironment'
 import type { ChainId } from '../../../types'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 const MAX_LOCKUP = 3 * 365 * 24 * 60 * 60 // seconds
 const FIXED_PENALTY_PERIOD = 110 * 24 * 60 * 60
@@ -59,7 +60,7 @@ export default function SummerStakingPage() {
   const router = useRouter()
   const chainId = params.chainId as ChainId
   const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', chainId)
-  const [selectedChain, setSelectedChain] = useState<ChainId>(storedChain)
+  const [selectedChain] = useState<ChainId>(storedChain)
   const { environment, setEnvironment } = useEnvironment()
   useEffect(() => {
     setStoredChain(selectedChain)
@@ -106,13 +107,11 @@ export default function SummerStakingPage() {
     factoryV2Address,
     userVestingWallet,
     enabledFactories,
-    userStakedFactories,
     isOwnedByEscrow,
     isFactoryStaked,
     vestingWalletBalance,
     vestingWalletReleased,
     summerBalance: vestingSummerBalance,
-    summerAllowance: vestingSummerAllowance,
     needsFactoryApproval,
     needsEscrowApproval,
     createVestingWallet,
