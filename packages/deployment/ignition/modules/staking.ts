@@ -20,7 +20,6 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  * - All administrative actions require proper access control
  */
 export const StakingModule = buildModule('StakingModule', (m) => {
-  const deployer = m.getAccount(0)
   const protocolAccessManager = m.getParameter('protocolAccessManager')
   const configurationManager = m.getParameter('configurationManager')
   const summerToken = m.getParameter('summerToken')
