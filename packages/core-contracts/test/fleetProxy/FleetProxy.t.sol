@@ -14,7 +14,7 @@ import {ArkMock} from "../mocks/ArkMock.sol";
 import {ArkParams} from "../../src/contracts/Ark.sol";
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
 import {FleetProxy} from "../../src/contracts/FleetProxy.sol";
 import {IFleetProxy} from "../../src/interfaces/IFleetProxy.sol";

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 import {AaveV3Ark, ArkParams} from "../../src/contracts/arks/AaveV3Ark.sol";
@@ -9,11 +9,11 @@ import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 import {IArkConfigProvider} from "../../src/interfaces/IArkConfigProvider.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {Test, console} from "forge-std/Test.sol";

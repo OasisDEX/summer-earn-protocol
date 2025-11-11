@@ -4,14 +4,14 @@ pragma solidity 0.8.28;
 import {ArkParams, CompoundV3Ark} from "../../src/contracts/arks/CompoundV3Ark.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
 
 import {ICometRewards} from "../../src/interfaces/compound-v3/ICometRewards.sol";
 import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 

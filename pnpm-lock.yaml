@@ -115,6 +115,15 @@ importers:
         specifier: 0.8.2
         version: 0.8.2
 
+  packages/config-contracts:
+    dependencies:
+      '@summerfi/access-contracts':
+        specifier: workspace:*
+        version: link:../access-contracts
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
+
   packages/constants: {}
 
   packages/core-contracts:
@@ -135,6 +144,9 @@ importers:
       '@summerfi/chain-bridge-contracts':
         specifier: workspace:*
         version: link:../chain-bridge
+      '@summerfi/config-contracts':
+        specifier: workspace:*
+        version: link:../config-contracts
       '@summerfi/constants':
         specifier: workspace:*
         version: link:../constants
@@ -337,7 +349,7 @@ importers:
         version: 9.39.0
       eslint-import-resolver-typescript:
         specifier: ^3.6.1
-        version: 3.6.1(@typescript-eslint/parser@8.46.2)(eslint-plugin-import@2.29.1)(eslint@9.39.0)
+        version: 3.6.1(@typescript-eslint/parser@8.46.2)(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.32.0)(eslint@9.39.0)
       eslint-plugin-import-x:
         specifier: ^4.6.1
         version: 4.16.1(eslint@9.39.0)
@@ -411,6 +423,9 @@ importers:
       '@summerfi/access-contracts':
         specifier: workspace:*
         version: link:../access-contracts
+      '@summerfi/config-contracts':
+        specifier: workspace:*
+        version: link:../config-contracts
       '@summerfi/constants':
         specifier: workspace:*
         version: link:../constants
@@ -5598,7 +5613,7 @@ packages:
       viem: 2.38.3(typescript@5.4.5)(zod@3.22.4)
       wagmi: 2.18.2(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(zod@3.22.4)
     optionalDependencies:
-      '@wagmi/connectors': 6.1.0(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(wagmi@2.18.2)(zod@3.22.4)
+      '@wagmi/connectors': 6.1.0(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(viem@2.38.3)(wagmi@2.18.2)(zod@3.22.4)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -6183,7 +6198,6 @@ packages:
 
   /@rtsao/scc@1.1.0:
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
-    dev: true
 
   /@rushstack/eslint-patch@1.14.1:
     resolution: {integrity: sha512-jGTk8UD/RdjsNZW8qq10r0RBvxL8OWtoT+kImlzPDFilmozzM+9QmIJsmze9UiSBrFU45ZxhTYBypn9q9z/VfQ==}
@@ -7535,62 +7549,6 @@ packages:
       - wagmi
       - zod
     dev: false
-
-  /@wagmi/connectors@6.1.0(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(wagmi@2.18.2)(zod@3.22.4):
-    resolution: {integrity: sha512-MnpJHEABUIsajNxLc6br0LiqJvoFZbavQ6yG+mQb7Xlb3Hmm3IRjH5NU1g2zw5PCTRd3BFQLjwniLdwDnUPYNw==}
-    peerDependencies:
-      '@wagmi/core': 2.22.1
-      typescript: '>=5.0.4'
-      viem: 2.x
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-    dependencies:
-      '@base-org/account': 1.1.1(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(zod@3.22.4)
-      '@coinbase/wallet-sdk': 4.3.6(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(zod@3.22.4)
-      '@gemini-wallet/core': 0.2.0(viem@2.38.3)
-      '@metamask/sdk': 0.33.1
-      '@safe-global/safe-apps-provider': 0.18.6(typescript@5.4.5)(zod@3.22.4)
-      '@safe-global/safe-apps-sdk': 9.1.0(typescript@5.4.5)(zod@3.22.4)
-      '@wagmi/core': 2.22.1(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(viem@2.38.3)
-      '@walletconnect/ethereum-provider': 2.21.1(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(zod@3.22.4)
-      cbw-sdk: /@coinbase/wallet-sdk@3.9.3
-      porto: 0.2.19(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(wagmi@2.18.2)
-      typescript: 5.4.5
-      viem: 2.38.3(typescript@5.4.5)(zod@3.22.4)
-    transitivePeerDependencies:
-      - '@azure/app-configuration'
-      - '@azure/cosmos'
-      - '@azure/data-tables'
-      - '@azure/identity'
-      - '@azure/keyvault-secrets'
-      - '@azure/storage-blob'
-      - '@capacitor/preferences'
-      - '@deno/kv'
-      - '@netlify/blobs'
-      - '@planetscale/database'
-      - '@react-native-async-storage/async-storage'
-      - '@tanstack/react-query'
-      - '@types/react'
-      - '@upstash/redis'
-      - '@vercel/blob'
-      - '@vercel/functions'
-      - '@vercel/kv'
-      - aws4fetch
-      - bufferutil
-      - db0
-      - encoding
-      - immer
-      - ioredis
-      - react
-      - supports-color
-      - uploadthing
-      - use-sync-external-store
-      - utf-8-validate
-      - wagmi
-      - zod
-    dev: false
-    optional: true
 
   /@wagmi/core@2.21.2(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(viem@2.37.9):
     resolution: {integrity: sha512-Rp4waam2z0FQUDINkJ91jq38PI5wFUHCv1YBL2LXzAQswaEk1ZY8d6+WG3vYGhFHQ22DXy2AlQ8IWmj+2EG3zQ==}
@@ -11265,29 +11223,6 @@ packages:
       - eslint-import-resolver-node
       - eslint-import-resolver-webpack
       - supports-color
-    dev: true
-
-  /eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@8.46.2)(eslint-plugin-import@2.29.1)(eslint@9.39.0):
-    resolution: {integrity: sha512-xgdptdoi5W3niYeuQxKmzVDTATvLYqhpwmykwsh7f6HIOStGWEIL9iqZgQDF9u9OEzrRwR8no5q2VT+bjAujTg==}
-    engines: {node: ^14.18.0 || >=16.0.0}
-    peerDependencies:
-      eslint: '*'
-      eslint-plugin-import: '*'
-    dependencies:
-      debug: 4.4.3(supports-color@8.1.1)
-      enhanced-resolve: 5.18.3
-      eslint: 9.39.0
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.2)(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@9.39.0)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@8.46.2)(eslint-import-resolver-typescript@3.6.1)(eslint@9.39.0)
-      fast-glob: 3.3.3
-      get-tsconfig: 4.10.1
-      is-core-module: 2.16.1
-      is-glob: 4.0.3
-    transitivePeerDependencies:
-      - '@typescript-eslint/parser'
-      - eslint-import-resolver-node
-      - eslint-import-resolver-webpack
-      - supports-color
 
   /eslint-module-utils@2.12.1(@typescript-eslint/parser@8.46.2)(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@9.39.0):
     resolution: {integrity: sha512-L8jSWTze7K2mTg0vos/RuLRS5soomksDPoJLXIslC7c8Wmut3bx7CPpJijDcBZtxQ5lrbUdM+s0OlNbz0DCDNw==}
@@ -11314,7 +11249,7 @@ packages:
       debug: 3.2.7
       eslint: 9.39.0
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@8.46.2)(eslint-plugin-import@2.29.1)(eslint@9.39.0)
+      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@8.46.2)(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.32.0)(eslint@9.39.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -11344,40 +11279,6 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: false
-
-  /eslint-plugin-import@2.29.1(@typescript-eslint/parser@8.46.2)(eslint-import-resolver-typescript@3.6.1)(eslint@9.39.0):
-    resolution: {integrity: sha512-BbPC0cuExzhiMo4Ff1BTVwHpjjv28C5R+btTOGaCRC7UEz801up0JadwkeSk5Ued6TG34uaczuVuH6qyy5YUxw==}
-    engines: {node: '>=4'}
-    peerDependencies:
-      '@typescript-eslint/parser': '*'
-      eslint: ^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8
-    peerDependenciesMeta:
-      '@typescript-eslint/parser':
-        optional: true
-    dependencies:
-      '@typescript-eslint/parser': 8.46.2(eslint@9.39.0)(typescript@5.4.5)
-      array-includes: 3.1.9
-      array.prototype.findlastindex: 1.2.6
-      array.prototype.flat: 1.3.3
-      array.prototype.flatmap: 1.3.3
-      debug: 3.2.7
-      doctrine: 2.1.0
-      eslint: 9.39.0
-      eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.2)(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@9.39.0)
-      hasown: 2.0.2
-      is-core-module: 2.16.1
-      is-glob: 4.0.3
-      minimatch: 3.1.2
-      object.fromentries: 2.0.8
-      object.groupby: 1.0.3
-      object.values: 1.2.1
-      semver: 6.3.1
-      tsconfig-paths: 3.15.0
-    transitivePeerDependencies:
-      - eslint-import-resolver-typescript
-      - eslint-import-resolver-webpack
-      - supports-color
 
   /eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.2)(eslint-import-resolver-typescript@3.6.1)(eslint@9.39.0):
     resolution: {integrity: sha512-whOE1HFo/qJDyX4SnXzP4N6zOWn79WhnCUY/iDR0mPfQZO8wcYE4JClzI2oZrhBnnMUCBCHZhO6VQyoBU95mZA==}
@@ -11414,7 +11315,6 @@ packages:
       - eslint-import-resolver-typescript
       - eslint-import-resolver-webpack
       - supports-color
-    dev: true
 
   /eslint-plugin-jsx-a11y@6.10.2(eslint@9.39.0):
     resolution: {integrity: sha512-scB3nz4WmG75pV8+3eRUQOHZlNSUhFNq37xnpgRkCCELU3XMvXAxLk1eqWWyE22Ki4Q01Fnsw9BA3cJHDPgn2Q==}
@@ -16621,45 +16521,6 @@ packages:
       - immer
       - use-sync-external-store
     dev: false
-
-  /porto@0.2.19(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(@wagmi/core@2.22.1)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(wagmi@2.18.2):
-    resolution: {integrity: sha512-q1vEJgdtlEOf6byWgD31GHiMwpfLuxFSfx9f7Sw4RGdvpQs2ANBGfnzzardADZegr87ZXsebSp+3vaaznEUzPQ==}
-    hasBin: true
-    peerDependencies:
-      '@tanstack/react-query': '>=5.59.0'
-      '@wagmi/core': '>=2.16.3'
-      react: '>=18'
-      typescript: '>=5.4.0'
-      viem: '>=2.37.0'
-      wagmi: '>=2.0.0'
-    peerDependenciesMeta:
-      '@tanstack/react-query':
-        optional: true
-      react:
-        optional: true
-      typescript:
-        optional: true
-      wagmi:
-        optional: true
-    dependencies:
-      '@tanstack/react-query': 5.90.2(react@18.2.0)
-      '@wagmi/core': 2.22.1(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(viem@2.38.3)
-      hono: 4.9.9
-      idb-keyval: 6.2.2
-      mipd: 0.0.7(typescript@5.4.5)
-      ox: 0.9.7(typescript@5.4.5)(zod@4.1.12)
-      react: 18.2.0
-      typescript: 5.4.5
-      viem: 2.38.3(typescript@5.4.5)(zod@3.22.4)
-      wagmi: 2.18.2(@tanstack/react-query@5.90.2)(@types/react@18.3.25)(react@18.2.0)(typescript@5.4.5)(viem@2.38.3)(zod@3.22.4)
-      zod: 4.1.12
-      zustand: 5.0.8(@types/react@18.3.25)(react@18.2.0)(use-sync-external-store@1.4.0)
-    transitivePeerDependencies:
-      - '@types/react'
-      - immer
-      - use-sync-external-store
-    dev: false
-    optional: true
 
   /porto@0.2.19(@tanstack/react-query@5.90.5)(@types/react@18.3.25)(@wagmi/core@2.21.2)(react@18.2.0)(typescript@5.4.5)(use-sync-external-store@1.4.0)(viem@2.37.9)(wagmi@2.17.5):
     resolution: {integrity: sha512-q1vEJgdtlEOf6byWgD31GHiMwpfLuxFSfx9f7Sw4RGdvpQs2ANBGfnzzardADZegr87ZXsebSp+3vaaznEUzPQ==}

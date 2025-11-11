@@ -30,6 +30,7 @@
     "@layerzerolabs/test-devtools-evm-foundry": "0.2.12",
     "@layerzerolabs/toolbox-foundry": "0.1.9",
     "@summerfi/access-contracts": "workspace:*",
+    "@summerfi/config-contracts": "workspace:*",
     "@summerfi/constants": "workspace:*",
     "@summerfi/dependencies": "workspace:*",
     "@summerfi/legacy-dependencies": "workspace:*",

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
 import "../../src/errors/IRaftErrors.sol";
 
 import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IRaftEvents} from "../../src/events/IRaftEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
 import "./AuctionTestBase.sol";
 

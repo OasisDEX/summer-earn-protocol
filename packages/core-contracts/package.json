@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@summerfi/access-contracts": "workspace:*",
+    "@summerfi/config-contracts": "workspace:*",
     "@summerfi/chain-bridge-contracts": "workspace:*",
     "@summerfi/constants": "workspace:*",
     "@summerfi/dependencies": "workspace:*",
