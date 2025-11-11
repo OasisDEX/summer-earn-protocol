@@ -548,6 +548,19 @@
   },
   {
     "type": "function",
+    "name": "socializeLosses",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "sweep",
     "inputs": [
       {
@@ -1058,6 +1071,11 @@
   {
     "type": "error",
     "name": "CannotRemoveCommanderFromArkWithAssets",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CannotSweepManagedAsset",
     "inputs": []
   },
   {

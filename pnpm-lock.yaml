@@ -11631,6 +11631,7 @@ packages:
       combined-stream: 1.0.8
       es-set-tostringtag: 2.1.0
       mime-types: 2.1.35
+    dev: false
 
   /form-data@4.0.4:
     resolution: {integrity: sha512-KrGhL9Q4zjj0kiUt5OO4Mr/A/jlI2jDYs5eHBpYHPcBEVSiipAvn2Ko2HnPe20rmcuuvMHNdZFp+4IlGTMF0Ow==}
@@ -12172,7 +12173,7 @@ packages:
       debug: 4.4.0(supports-color@8.1.1)
       enquirer: 2.4.1
       ethers: 5.8.0
-      form-data: 4.0.2
+      form-data: 4.0.4
       fs-extra: 10.1.0
       match-all: 1.2.7
       murmur-128: 0.2.1

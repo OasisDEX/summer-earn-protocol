@@ -1560,6 +1560,82 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
     }
 
+    function test_SweepBaseToken_Revert() public {
+        // Prepare the tokens array for sweeping
+        address[] memory tokensToSweep = new address[](1);
+        tokensToSweep[0] = address(mockArk1.asset());
+
+        vm.startPrank(governor);
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(mockArk1.asset()),
+            true
+        );
+        vm.stopPrank();
+
+        // Execute the sweep function
+        vm.expectRevert(abi.encodeWithSignature("CannotSweepManagedAsset()"));
+
+        vm.prank(governor);
+        raftContract.sweep(address(mockArk1), tokensToSweep);
+    }
+
+    function test_SocializeLosses() public {
+        // Setup: Mint base tokens to the mock Ark
+        uint256 mintedAmount = 1000 * 1e18;
+
+        deal(address(mockArk1.asset()), address(mockArk1), mintedAmount);
+        uint256 amountBaseToken = mockArk1.asset().balanceOf(address(mockArk1));
+
+        uint256 amountOnRaftBefore = mockArk1.asset().balanceOf(
+            address(raftContract)
+        );
+
+        vm.prank(address(governor));
+        uint256 socializedAmount = raftContract.socializeLosses(
+            address(mockArk1)
+        );
+
+        uint256 amountOnRaftAfter = mockArk1.asset().balanceOf(
+            address(raftContract)
+        );
+
+        // Verify the base token was swept to the BufferArk
+        assertEq(
+            socializedAmount,
+            amountBaseToken,
+            "Socialized amount should match base token amount"
+        );
+
+        assertEq(
+            mockArk1.asset().balanceOf(address(raftContract)),
+            amountBaseToken,
+            "Buffer Ark should have received all base tokens"
+        );
+
+        // Verify the Ark's balance is now zero
+        assertEq(
+            mockArk1.asset().balanceOf(address(mockArk1)),
+            0,
+            "Ark should have no base tokens left"
+        );
+
+        assertEq(
+            amountOnRaftAfter - amountOnRaftBefore,
+            amountBaseToken,
+            "Raft should have received all base tokens"
+        );
+    }
+
+    function test_SocializeLosses_RevertAccessControl() public {
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", nonOwner)
+        );
+
+        vm.prank(nonOwner);
+        raftContract.socializeLosses(address(mockArk1));
+    }
+
     function test_SweepWithNoTokens() public {
         // Prepare an empty array for sweeping
         address[] memory tokensToSweep = new address[](0);
@@ -1791,11 +1867,11 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.stopPrank();
     }
 
-    function test_NonGovernorCannotSetSweepableToken() public {
+    function test_NonCuratorCannotSetSweepableToken() public {
         vm.prank(address(0xdead));
         vm.expectRevert(
             abi.encodeWithSignature(
-                "CallerIsNotGovernor(address)",
+                "CallerIsNotCurator(address)",
                 address(0xdead)
             )
         );

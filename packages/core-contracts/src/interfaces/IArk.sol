@@ -49,6 +49,12 @@ interface IArk is
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts);
 
     /**
+     * @notice Socializes losses for the Ark by sweeping the underlying asset
+     * @return amount The amount of the underlying asset that was socialized to the raft
+     */
+    function socializeLosses() external returns (uint256 amount);
+
+    /**
      * @notice Deposits (boards) tokens into the Ark
      * @dev This function is called by the Fleet Commander to deposit assets into the Ark.
      *      It transfers tokens from the caller to this contract and then calls the internal _board function.

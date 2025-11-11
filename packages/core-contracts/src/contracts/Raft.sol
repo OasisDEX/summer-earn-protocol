@@ -148,7 +148,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         address ark,
         address token,
         bool isSweepable
-    ) external onlyGovernor {
+    ) external onlyCurator(IArk(ark).commander()) {
         sweepableTokens[ark][token] = isSweepable;
         emit SweepableTokenSet(ark, token, isSweepable);
     }
@@ -164,6 +164,13 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         }
         arkAuctionParameters[ark][rewardToken] = parameters;
         emit ArkAuctionParametersSet(ark, rewardToken, parameters);
+    }
+
+    /// @inheritdoc IRaft
+    function socializeLosses(
+        address ark
+    ) external onlyGovernor returns (uint256 amount) {
+        amount = IArk(ark).socializeLosses();
     }
 
     /*//////////////////////////////////////////////////////////////

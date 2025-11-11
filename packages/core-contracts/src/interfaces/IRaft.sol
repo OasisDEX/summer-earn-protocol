@@ -223,4 +223,13 @@ interface IRaft is IRaftEvents, IRaftErrors {
         address rewardToken,
         BaseAuctionParameters calldata parameters
     ) external;
+
+    /**
+     * @notice Socializes losses for the given ark by sweeping the underlying asset.
+     *
+     * @param ark The address of the Ark
+     *
+     * @return amount The amount of the underlying asset that was socialized to the raft
+     */
+    function socializeLosses(address ark) external returns (uint256 amount);
 }
