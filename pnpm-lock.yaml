@@ -490,6 +490,9 @@ importers:
       '@summerfi/access-contracts':
         specifier: workspace:*
         version: link:../access-contracts
+      '@summerfi/config-contracts':
+        specifier: workspace:*
+        version: link:../config-contracts
       '@summerfi/constants':
         specifier: workspace:*
         version: link:../constants
