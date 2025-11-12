@@ -242,5 +242,3 @@ contract ConfigurationManagerTest is Test {
         configurationManager.setTreasury(newTreasury);
     }
 }
-
-
