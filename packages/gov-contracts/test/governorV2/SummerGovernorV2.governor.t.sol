@@ -1,0 +1,307 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.28;
+
+import {SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import {TestMockERC721} from "../mocks/MockTokens.sol";
+import {TestMockERC1155} from "../mocks/MockTokens.sol";
+import {TestMockReceiver} from "../mocks/MockReceiver.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
+
+contract SummerGovernorV2GovernorTest is SummerGovernorV2TestBase {
+    TestMockERC721 public mockNFT;
+    TestMockERC1155 public mockERC1155;
+
+    function setUp() public override {
+        super.setUp();
+        mockNFT = new TestMockERC721("Mock NFT", "MNFT");
+        mockERC1155 = new TestMockERC1155("uri/");
+    }
+
+    function test_OnERC721Received() public {
+        // Test receiving an ERC721 token
+        uint256 tokenId = 1;
+        mockNFT.mint(address(this), tokenId);
+
+        // Should revert because deposits are disabled when using timelock
+        vm.expectRevert(abi.encodeWithSignature("GovernorDisabledDeposit()"));
+        mockNFT.safeTransferTestFrom(
+            address(this),
+            address(governorA),
+            tokenId,
+            ""
+        );
+    }
+
+    function test_OnERC1155Received() public {
+        // Test receiving a single ERC1155 token
+        uint256 tokenId = 1;
+        uint256 amount = 1;
+
+        // Should revert because deposits are disabled when using timelock
+        vm.expectRevert(abi.encodeWithSignature("GovernorDisabledDeposit()"));
+        mockERC1155.mint(address(governorA), tokenId, amount, "");
+    }
+
+    function test_OnERC1155BatchReceived() public {
+        // Test receiving multiple ERC1155 tokens
+        uint256[] memory ids = new uint256[](2);
+        ids[0] = 1;
+        ids[1] = 2;
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 10;
+        amounts[1] = 20;
+
+        // Should revert because deposits are disabled when using timelock
+        vm.expectRevert(abi.encodeWithSignature("GovernorDisabledDeposit()"));
+        mockERC1155.mintBatch(address(governorA), ids, amounts, "");
+    }
+
+    /**
+     * @notice Test simple ETH relay functionality
+     * @dev While direct deposits to the governor are disabled, we use vm.deal() to simulate
+     * ETH that could have been received through the LayerZero endpoint. This lets us test
+     * the relay functionality independently of deposit restrictions.
+     */
+    function test_Relay2() public {
+        // Force ETH into the governor (simulating funds received through LZ endpoint)
+        vm.deal(address(governorA), 1 ether);
+
+        // Create a proposal to relay funds from governor to bob
+        address payable target = payable(bob);
+        uint256 value = 0.5 ether;
+        bytes memory data = "";
+
+        address[] memory targets = new address[](1);
+        targets[0] = address(governorA);
+
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSelector(
+            governorA.relay.selector,
+            target,
+            value,
+            data
+        );
+
+        string memory description = "Relay funds to bob";
+
+        // Rest of the proposal flow
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+
+        vm.prank(alice);
+        axSumr.delegate(alice);
+        advanceTimeAndBlock();
+
+        vm.prank(alice);
+        uint256 proposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        advanceTimeForVotingDelay();
+
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        advanceTimeForVotingPeriod();
+
+        bytes32 descriptionHash = keccak256(bytes(description));
+        governorA.queue(targets, values, calldatas, descriptionHash);
+
+        advanceTimeForTimelockMinDelay();
+
+        uint256 initialBalance = bob.balance;
+
+        governorA.execute(targets, values, calldatas, descriptionHash);
+
+        assertEq(
+            bob.balance,
+            initialBalance + value,
+            "Transfer should send correct amount"
+        );
+    }
+
+    /**
+     * @notice Test ETH relay with additional call data functionality
+     * @dev Similar to test_Relay, we use vm.deal() to simulate ETH in the governor
+     * that could have been received through the LayerZero endpoint. This test verifies
+     * that the governor can not only relay ETH but also execute arbitrary calls on the
+     * target contract.
+     */
+    function test_RelayWithData() public {
+        // Setup a mock contract that will receive the relay call
+        TestMockReceiver mockReceiver = new TestMockReceiver();
+
+        // Force ETH into the governor (simulating funds received through LZ endpoint)
+        vm.deal(address(governorA), 1 ether);
+
+        // Create relay data
+        bytes memory data = abi.encodeWithSelector(
+            TestMockReceiver.receiveCall.selector,
+            "test message"
+        );
+
+        // Create proposal to call governor's relay function
+        address[] memory targets = new address[](1);
+        targets[0] = address(governorA);
+
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSelector(
+            governorA.relay.selector,
+            mockReceiver,
+            0.1 ether,
+            data
+        );
+
+        string memory description = "Relay with data";
+
+        // Rest of proposal flow
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+
+        vm.prank(alice);
+        axSumr.delegate(alice);
+        advanceTimeAndBlock();
+
+        vm.prank(alice);
+        uint256 proposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        advanceTimeForVotingDelay();
+
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        advanceTimeForVotingPeriod();
+
+        bytes32 descriptionHash = keccak256(bytes(description));
+        governorA.queue(targets, values, calldatas, descriptionHash);
+
+        advanceTimeForTimelockMinDelay();
+
+        uint256 initialBalance = address(mockReceiver).balance;
+
+        governorA.execute(targets, values, calldatas, descriptionHash);
+
+        assertEq(
+            address(mockReceiver).balance,
+            initialBalance + 0.1 ether,
+            "Receiver should have received ETH"
+        );
+
+        // Verify the call data was processed
+        TestMockReceiver receiver = TestMockReceiver(mockReceiver);
+        assertTrue(receiver.lastCalled(), "Receiver should have been called");
+        assertEq(
+            receiver.lastMessage(),
+            "test message",
+            "Message should match"
+        );
+    }
+
+    function test_GovernorDepositsDisabled() public {
+        // Fund the test contract and alice
+        vm.deal(address(this), 1 ether);
+        vm.deal(alice, 1 ether);
+        vm.deal(address(lzEndpointA), 1 ether);
+        vm.deal(address(timelockA), 1 ether);
+
+        // Test 1: Direct transfer should revert
+        vm.expectRevert(IGovernor.GovernorDisabledDeposit.selector);
+        (bool success, ) = address(governorA).call{value: 0.1 ether}("");
+
+        // Test 2: Transfer from non-LayerZero endpoint should revert
+        vm.prank(alice);
+        vm.expectRevert(IGovernor.GovernorDisabledDeposit.selector);
+        (success, ) = address(governorA).call{value: 0.1 ether}("");
+
+        // Test 3: Transfer from LayerZero endpoint should succeed
+        uint256 initialBalance = address(governorA).balance;
+        vm.prank(address(lzEndpointA));
+        (success, ) = address(governorA).call{value: 0.1 ether}("");
+        assertTrue(success, "Transfer from endpoint should succeed");
+        assertEq(
+            address(governorA).balance,
+            initialBalance + 0.1 ether,
+            "Balance should increase when sent from endpoint"
+        );
+
+        // Test 4: Transfer from timelock should succeed
+        initialBalance = address(governorA).balance;
+        vm.prank(address(timelockA));
+        (success, ) = address(governorA).call{value: 0.1 ether}("");
+        assertTrue(success, "Transfer from timelock should succeed");
+        assertEq(
+            address(governorA).balance,
+            initialBalance + 0.1 ether,
+            "Balance should increase when sent from timelock"
+        );
+    }
+
+    function test_GuardianCannotCancelGuardianExpiryProposal() public {
+        // Ensure guardian is active
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantGuardianRole(guardian);
+        // accessManagerA.setGuardianExpiration(
+        //     guardian,
+        //     block.timestamp + 8 days
+        // );
+        vm.stopPrank();
+
+        // Give Alice enough voting power to propose
+        stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
+        vm.prank(alice);
+        axSumr.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Build guardian expiry proposal
+        address[] memory targets = new address[](1);
+        targets[0] = address(accessManagerA);
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSelector(
+            IProtocolAccessManager.setGuardianExpiration.selector,
+            guardian,
+            block.timestamp + 8 days
+        );
+        string memory description = "Set guardian expiration";
+
+        vm.prank(alice);
+        governorA.propose(targets, values, calldatas, description);
+
+        bytes32 descriptionHash = keccak256(bytes(description));
+
+        // Guardian attempts to cancel → must revert with unauthorized cancellation
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerGovernorErrors
+                    .SummerGovernorUnauthorizedCancellation
+                    .selector,
+                guardian,
+                alice,
+                axSumr.getVotes(alice),
+                governorA.proposalThreshold()
+            )
+        );
+        vm.prank(guardian);
+        governorA.cancel(targets, values, calldatas, descriptionHash);
+    }
+}

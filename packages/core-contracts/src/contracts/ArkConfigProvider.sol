@@ -7,7 +7,7 @@ import {IArkConfigProvider} from "../interfaces/IArkConfigProvider.sol";
 
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 
-import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 

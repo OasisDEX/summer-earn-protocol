@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
 
-import {IConfigurationManaged} from "../interfaces/IConfigurationManaged.sol";
+import {IConfigurationManaged} from "@summerfi/config-contracts/interfaces/IConfigurationManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 

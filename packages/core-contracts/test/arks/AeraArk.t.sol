@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 
 import "../../src/contracts/arks/AeraArk.sol";
 import "../../src/events/IArkEvents.sol";
 import "../../src/interfaces/IArkWithWithdrawalRequest.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
 import {IProvisioner} from "../../src/interfaces/gauntlet/IProvisioner.sol";
 import {IPriceAndFeeCalculator} from "../../src/interfaces/gauntlet/IPriceFeeCalculator.sol";
 import {Request, RequestType, VaultPriceState} from "../../src/interfaces/gauntlet/Types.sol";
@@ -18,7 +18,7 @@ interface IAuth {
     function authority() external view returns (address);
 }
 
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 

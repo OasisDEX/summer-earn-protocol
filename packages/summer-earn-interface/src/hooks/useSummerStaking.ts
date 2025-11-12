@@ -148,7 +148,7 @@ export function useSummerStaking(chainId: ChainId) {
   // Reads
   const { data: bucketInfo } = useReadContract({
     abi: summerStakingAbi,
-    account: stakingAddress,
+    address: stakingAddress,
     functionName: 'getAllBucketInfo',
     query: { enabled: Boolean(stakingAddress) },
   })
@@ -164,28 +164,45 @@ export function useSummerStaking(chainId: ChainId) {
   // ERC20 metadata
   const { data: summerDecimals } = useReadContract({
     abi: erc20Abi,
-    account: summerAddress,
+    address: summerAddress,
     functionName: 'decimals',
     query: { enabled: Boolean(summerAddress) },
   })
   const { data: summerSymbol } = useReadContract({
     abi: erc20Abi,
-    account: summerAddress,
+    address: summerAddress,
     functionName: 'symbol',
     query: { enabled: Boolean(summerAddress) },
+  })
+
+  // Balances
+  const { data: summerBalance } = useReadContract({
+    abi: erc20Abi,
+    address: summerAddress,
+    functionName: 'balanceOf',
+    args: account ? [account] : undefined,
+    query: { enabled: Boolean(summerAddress && account) },
+  })
+
+  const { data: xSummerBalance } = useReadContract({
+    abi: erc20Abi,
+    address: xSummerAddress,
+    functionName: 'balanceOf',
+    args: account ? [account] : undefined,
+    query: { enabled: Boolean(xSummerAddress && account) },
   })
 
   // Allowances
   const { data: summerAllowance, refetch: refetchSummerAllowance } = useReadContract({
     abi: erc20Abi,
-    account: summerAddress,
+    address: summerAddress,
     functionName: 'allowance',
     args: account ? [account, stakingAddress] : undefined,
     query: { enabled: Boolean(account && stakingAddress) },
   })
   const { data: xSummerAllowance, refetch: refetchXSummerAllowance } = useReadContract({
     abi: erc20Abi,
-    account: xSummerAddress,
+    address: xSummerAddress,
     functionName: 'allowance',
     args: account ? [account, stakingAddress] : undefined,
     query: { enabled: Boolean(account && stakingAddress && xSummerAddress) },
@@ -203,7 +220,7 @@ export function useSummerStaking(chainId: ChainId) {
         return
       }
       const calls = Array.from({ length: count }, (_, i) => ({
-        account: stakingAddress,
+        address: stakingAddress,
         abi: summerStakingAbi,
         functionName: 'getUserStake' as const,
         args: [account as `0x${string}`, BigInt(i)],
@@ -435,6 +452,10 @@ export function useSummerStaking(chainId: ChainId) {
     stakes,
     userStakeCount: Number((userStakeCount as bigint) || BigInt(0)),
     currentOverallMultiplierWad,
+
+    // balances
+    summerBalance: (summerBalance as bigint) || BigInt(0),
+    xSummerBalance: (xSummerBalance as bigint) || BigInt(0),
 
     // allowances
     summerAllowance: (summerAllowance as bigint) || BigInt(0),

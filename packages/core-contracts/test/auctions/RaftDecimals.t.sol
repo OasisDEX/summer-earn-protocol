@@ -3,11 +3,11 @@ pragma solidity 0.8.28;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
 
 import {IArkConfigProvider} from "../../src/interfaces/IArk.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
 import "./AuctionTestBase.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";

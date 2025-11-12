@@ -150,9 +150,19 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @dev Can only be called by governor
      * @dev Can only be called after reward period is complete
      * @dev Can only be called if remaining balance is below dust threshold
+     * @dev Can be multi-called by governor preceded by rescueToken for each reward token
      * @param rewardToken The address of the reward token to remove
      */
     function removeRewardToken(address rewardToken) external;
+
+    /* @notice Rescues a token from the contract
+     * @dev Can only be called by governor
+     * @dev Can be multi-called by governor followed by removeRewardToken for each token
+     * @dev To clean the dust balance, call rescueToken for each token
+     * @param _token The address of the token to rescue
+     * @param _to The address to send the rescued tokens to
+     */
+    function rescueToken(address _token, address _to) external;
 
     // Events
 

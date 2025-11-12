@@ -4,9 +4,10 @@ import { resolve } from 'path'
 
 extendConfig((config: HardhatConfig, _userConfig: Readonly<HardhatUserConfig>) => {
   config.paths.multiSources = [
-    resolve(__dirname, '../../chain-bridge/src'),
-    resolve(__dirname, '../../gov-contracts/src'),
+    // resolve(__dirname, '../../chain-bridge/src'),
     resolve(__dirname, '../../core-contracts/src'),
+    resolve(__dirname, '../../gov-contracts/src'),
+
     resolve(__dirname, '../../rewards-contracts/src'),
   ]
 })

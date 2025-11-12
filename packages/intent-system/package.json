@@ -24,6 +24,7 @@
     "@summerfi/dependencies": "workspace:*",
     "@summerfi/dutch-auction": "workspace:*",
     "@summerfi/earn-gov-contracts": "workspace:*",
+    "@summerfi/config-contracts": "workspace:*",
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/math-utils": "workspace:*",

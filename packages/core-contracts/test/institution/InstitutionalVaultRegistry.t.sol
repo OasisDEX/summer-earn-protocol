@@ -4,11 +4,11 @@ pragma solidity 0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {InstitutionalVaultRegistry} from "../../src/contracts/InstitutionalVaultRegistry.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import {IInstitutionalVaultRegistry} from "../../src/interfaces/IInstitutionalVaultRegistry.sol";
 import {IInstitutionalVaultRegistryErrors} from "../../src/interfaces/IInstitutionalVaultRegistryErrors.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 
 contract InstitutionalVaultRegistryTest is Test {
     ProtocolAccessManager public accessManager;

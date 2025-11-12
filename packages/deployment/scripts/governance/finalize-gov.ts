@@ -1,6 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, keccak256, toBytes } from 'viem'
+import { BaseConfig } from '../../types/config-types'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { LZ_ENDPOINT_ABI } from './bridge/lz-endpoint-abi'
 
@@ -15,7 +16,7 @@ export async function finalizeGov(
     hre.network.name,
     { common: false, gov: true, core: false },
     useBummerConfig,
-  )
+  ) as BaseConfig
 
   const summerToken = await hre.viem.getContractAt(
     'SummerToken' as string,

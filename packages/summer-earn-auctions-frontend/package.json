@@ -30,7 +30,7 @@
     "@summerfi/typescript-config": "workspace:*",
     "eslint": "^9.0.0",
     "@eslint/eslintrc": "^3.0.0",
-    "eslint-config-next": "^14.2.0",
+    "eslint-config-next": "^15.5.6",
     "postcss": "^8.4.35",
     "postcss-import": "^16.0.1",
     "tailwindcss": "^3.4.1",
