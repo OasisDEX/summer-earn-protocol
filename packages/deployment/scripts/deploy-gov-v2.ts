@@ -8,7 +8,7 @@ import { deployStaking } from './deploy-staking'
 import { finalizeGovV2 } from './governance/finalize-gov-v2'
 import { peerGovV2 } from './governance/peer-gov-v2'
 import { rolesGovV2 } from './governance/roles-gov-v2'
-import { deployGov as systemGov } from './governance/system-gov-v2'
+import { deployGovV2 as systemGovV2 } from './governance/system-gov-v2'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType } from './helpers/prompt-helpers'
 
@@ -96,10 +96,10 @@ async function deployGov() {
 
       switch (step) {
         case STEPS.STAKING:
-          await deployStaking()
+          await deployStaking(useBummerConfig)
           break
         case STEPS.SYSTEM:
-          await systemGov(config, useBummerConfig)
+          await systemGovV2(config, useBummerConfig)
           break
         case STEPS.VERIFY:
           console.log(kleur.yellow().bold('\nVerifying contracts...\n'))

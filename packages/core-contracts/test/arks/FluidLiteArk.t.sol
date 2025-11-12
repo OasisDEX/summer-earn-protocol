@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 
 import "../../src/contracts/arks/FluidLiteArk.sol";
 import "../../src/events/IArkEvents.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
 import {IEthVaultWrapperV2} from "../../src/interfaces/fluid/IEthVaultWrapperV2.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 

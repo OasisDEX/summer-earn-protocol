@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManager, ConfigurationManagerParams} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import "../../src/types/CommonAuctionTypes.sol";
 
 import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";

@@ -20,7 +20,6 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  * - All administrative actions require proper access control
  */
 export const StakingModule = buildModule('StakingModule', (m) => {
-  const deployer = m.getAccount(0)
   const protocolAccessManager = m.getParameter('protocolAccessManager')
   const configurationManager = m.getParameter('configurationManager')
   const summerToken = m.getParameter('summerToken')
@@ -36,7 +35,7 @@ export const StakingModule = buildModule('StakingModule', (m) => {
    * - Access control via ProtocolAccessManager
    * - Only authorized staking modules can mint/burn
    */
-  const stakedSummerToken = m.contract('StakedSummerToken', [protocolAccessManager])
+  const summerGovernanceToken = m.contract('StakedSummerToken', [protocolAccessManager])
 
   /**
    * @dev Step 2: Deploy SummerStaking
@@ -52,7 +51,7 @@ export const StakingModule = buildModule('StakingModule', (m) => {
     protocolAccessManager,
     configurationManager,
     summerToken,
-    stakedSummerToken,
+    summerGovernanceToken,
   ])
 
   /**
@@ -67,7 +66,7 @@ export const StakingModule = buildModule('StakingModule', (m) => {
   const summerVestingWalletsEscrow = m.contract('SummerVestingWalletsEscrow', [
     protocolAccessManager,
     summerToken,
-    stakedSummerToken,
+    summerGovernanceToken,
     initialVestingFactories,
   ])
 
@@ -79,18 +78,20 @@ export const StakingModule = buildModule('StakingModule', (m) => {
    * - SummerVestingWalletsEscrow gets MINTER_ROLE and BURNER_ROLE
    * - This allows them to mint/burn xSUMR tokens
    */
-  m.call(stakedSummerToken, 'addStakingModule', [summerStaking])
-  m.call(stakedSummerToken, 'addStakingModule', [summerVestingWalletsEscrow])
+  m.call(summerGovernanceToken, 'addStakingModule', [summerStaking], { id: 'v2_staking_module' })
+  m.call(summerGovernanceToken, 'addStakingModule', [summerVestingWalletsEscrow], {
+    id: 'v2_escrow_module',
+  })
 
   return {
-    stakedSummerToken,
+    summerGovernanceToken,
     summerStaking,
     summerVestingWalletsEscrow,
   }
 })
 
 export type StakingContracts = {
-  stakedSummerToken: { address: string }
+  summerGovernanceToken: { address: string }
   summerStaking: { address: string }
   summerVestingWalletsEscrow: { address: string }
 }

@@ -6,6 +6,7 @@ import { BaseConfig, SupportedNetworks } from '../../types/config-types'
 import { ADDRESS_ZERO } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { configureNewChainLayerZero } from './bridge/configure-new-chain-lz'
+import { validateAddress } from '../helpers/validation'
 
 interface PeerConfig {
   eid: number
@@ -63,7 +64,7 @@ export async function peerGovV2(useBummerConfig = false) {
   // Get contract instances
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernorV2' as string,
-    config.deployedContracts.gov.summerGovernorV2.address as Address,
+    validateAddress(config.deployedContracts.govV2.summerGovernor.address, 'govV2.summerGovernor'),
   )
   const publicClient = await hre.viem.getPublicClient()
 
@@ -105,7 +106,10 @@ function getGovernorPeers(sourceNetwork: string, useBummerConfig = false): PeerC
   return getPeersForContract(
     sourceNetwork,
     (config) => ({
-      address: config.deployedContracts?.gov?.summerGovernor?.address,
+      address: validateAddress(
+        config.deployedContracts.govV2.summerGovernor.address,
+        'govV2.summerGovernor',
+      ),
       skipSatelliteToSatellite: true,
       label: 'GOVERNOR',
     }),

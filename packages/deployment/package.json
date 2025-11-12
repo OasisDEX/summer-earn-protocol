@@ -59,6 +59,7 @@
     "update-fleet-configurations": "tsx scripts/governance/update-fleet-configurations-safe.ts",
     "configure:new-chain-layerzero": "hardhat run scripts/bridge/configure-new-chain-lz.ts --network $NETWORK --no-compile",
     "gov:submit-proposal": "hardhat run scripts/governance/submit-proposal.ts --network $NETWORK",
+    "gov:test-transfer-bummer-tokens": "hardhat run scripts/governance/test-transfer-bummer-tokens.ts --network $NETWORK",
     "gov:execute-proposal": "hardhat run scripts/governance/execute-proposal.ts --network $NETWORK",
     "gov:create-fleet-rewards-proposals": "hardhat run scripts/governance/create-fleet-rewards-proposals.ts --network $NETWORK",
     "gov:enable-fleet-transferability": "hardhat run scripts/governance/enable-fleet-transferability-proposal.ts --network $NETWORK",

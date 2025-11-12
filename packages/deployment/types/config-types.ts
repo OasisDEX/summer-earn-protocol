@@ -101,13 +101,17 @@ export interface BaseConfig {
   deployedContracts: {
     gov: {
       summerGovernor: { address: string }
-      summerGovernorV2: { address: string }
       summerToken: { address: string }
       timelock: { address: string }
       protocolAccessManager: { address: string }
       rewardsRedeemer: { address: string }
-      stakedSummerToken: { address: string }
-      summerStakingContract: { address: string }
+    }
+    govV2: {
+      summerGovernor: { address: string }
+      summerGovernanceToken: { address: string }
+      timelock: { address: string }
+      protocolAccessManager: { address: string }
+      summerStaking: { address: string }
       summerVestingWalletsEscrow: { address: string }
     }
     buyAndBurn: {
