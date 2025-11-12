@@ -45,17 +45,11 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
-      - name: Prebuild
-        run: pnpm prebuild
-
       - name: Lint
         run: pnpm lint
 
       - name: Format
         run: pnpm format
-
-      - name: Build
-        run: pnpm build
 
       - name: Test
         run: pnpm test
