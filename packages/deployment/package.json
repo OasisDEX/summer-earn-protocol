@@ -78,6 +78,7 @@
     "@nomicfoundation/hardhat-ignition-viem": "0.15.13",
     "@nomicfoundation/hardhat-verify": "2.1.1",
     "@summerfi/access-contracts": "workspace:*",
+    "@summerfi/config-contracts": "workspace:*",
     "@summerfi/chain-bridge-contracts": "workspace:*",
     "@summerfi/constants": "workspace:*",
     "@summerfi/dependencies": "workspace:*",
