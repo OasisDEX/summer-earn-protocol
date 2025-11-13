@@ -35,7 +35,7 @@ export async function checkProposerTokenRequirements(useBummerConfig: boolean): 
       network,
       { common: true, gov: true, core: true },
       useBummerConfig,
-    )
+    ) as BaseConfig
     const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
     const governor = await hre.viem.getContractAt('SummerGovernor' as string, governorAddress)
     const minRequiredTokens = await governor.read.proposalThreshold()
@@ -299,7 +299,7 @@ export async function getSumrTokenAddress(useBummerConfig: boolean): Promise<Add
     { common: true, gov: true, core: true },
     useBummerConfig,
   ) as BaseConfig
-  return config.deployedContracts.govV2.summerGovernanceToken.address as Address
+  return config.deployedContracts.gov.summerToken.address as Address
 }
 
 /**
