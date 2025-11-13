@@ -80,5 +80,7 @@
   "LazyVault_LowerRisk_WETH_FluidFToken_weth_8453#FluidFTokenArk": "0x24E03538940D84842860C4955Dd826AB908ec05e",
   "prod_LazyVault_LowerRisk_USDC_Aera_Gauntlet_Alpha_usdc_8453#AeraArk": "0x6B58aeeaDd96dbfEAcF90948e26d51C506213766",
   "SummerVestingFactoryV2Module_20251104T110244229#SummerVestingWalletFactoryV2": "0xBceCc704edB1A65b65Ffe6505011f96252a7892B",
-  "prod_LazyVault_LowerRisk_USDC_ERC4626_Extrafi_XLend_USDC_usdc_8453#ERC4626Ark": "0x903fB67e7c50A26F34c43efB86b49Bed5e14e7D5"
+  "prod_LazyVault_LowerRisk_USDC_ERC4626_Extrafi_XLend_USDC_usdc_8453#ERC4626Ark": "0x903fB67e7c50A26F34c43efB86b49Bed5e14e7D5",
+  "RaftModule_20251113T150931378#DutchAuctionLibrary": "0x0A2AD35C0b90a205cCbcDf1a6ddC03787483f827",
+  "RaftModule_20251113T150931378#Raft": "0x7839d904D05d3D6B5F1D87eb93e1dcD5746AbC6E"
 }

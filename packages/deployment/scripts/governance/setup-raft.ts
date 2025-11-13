@@ -74,7 +74,7 @@ async function setupRaft() {
     HUB_CHAIN_NAME,
     { common: true, core: true, gov: true },
     useBummerConfig,
-  )
+  ) as BaseConfig
 
   // Load configurations for satellite chains
   const satelliteConfigs: Record<string, BaseConfig> = {}
@@ -83,7 +83,7 @@ async function setupRaft() {
       chain,
       { common: true, core: true, gov: true },
       useBummerConfig,
-    )
+    ) as BaseConfig
   }
 
   // Display chains being targeted based on bummer config
