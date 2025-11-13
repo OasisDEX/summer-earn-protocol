@@ -171,6 +171,8 @@ const KNOWN_ABIS = {
   setRaft: 'function setRaft(address raft) external',
   // raft functions
   sweep: 'function sweep(address ark,address[] tokens) external',
+  // ark sweep functions
+  sweepArk: 'function sweep(address[] tokens) external',
 
   // ERC20 functions
   approve: 'function approve(address spender, uint256 amount) external returns (bool)',
