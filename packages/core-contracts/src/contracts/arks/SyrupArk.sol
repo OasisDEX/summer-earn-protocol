@@ -100,15 +100,15 @@ contract SyrupArk is ArkWithWithdrawalRequest {
      * @inheritdoc IArkWithWithdrawalRequest
      */
     function assetsInWithdrawalQueue() public view returns (uint256) {
-        uint128 withdrawalRequestId = withdrawalManager.requestIds(
+        uint128 _withdrawalRequestId = withdrawalManager.requestIds(
             address(this)
         );
-        if (withdrawalRequestId == 0) {
+        if (_withdrawalRequestId == 0) {
             return 0;
         }
         ISyrupWithdrawalManager.WithdrawalRequest
             memory withdrawalRequest = withdrawalManager.requests(
-                withdrawalRequestId
+                _withdrawalRequestId
             );
         return vault.convertToAssets(withdrawalRequest.shares);
     }

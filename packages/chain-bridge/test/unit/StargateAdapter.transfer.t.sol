@@ -406,7 +406,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         );
     }
 
-    function testTransferAssetMsgValueConsistencyX() public {
+    function testTransferAssetMsgValueConsistency() public {
         useNetworkA();
         vm.deal(address(routerA), 10 ether); // Provide enough ETH
 

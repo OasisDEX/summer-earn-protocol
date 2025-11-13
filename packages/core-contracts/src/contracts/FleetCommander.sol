@@ -680,13 +680,13 @@ contract FleetCommander is
      * @notice Executes the common arks withdrawal logic
      * @dev This function handles fee calculation, asset disembarkment from arks, and withdrawal execution
      * @param shares The number of shares to redeem
-     * @param totalAssets The total amount of assets to withdraw from arks
+     * @param _totalAssets The total amount of assets to withdraw from arks
      * @param receiver The address to receive the assets
      * @param owner The address of the owner of the shares
      */
     function _executeArksWithdrawal(
         uint256 shares,
-        uint256 totalAssets,
+        uint256 _totalAssets,
         address receiver,
         address owner
     ) internal {
@@ -698,14 +698,14 @@ contract FleetCommander is
         if (feeShares > 0) {
             _transfer(owner, tipJar(), feeShares);
             // Emit withdrawal fee event
-            uint256 feeAssets = _calculateWithdrawalFee(totalAssets);
-            emit WithdrawalFeeCollected(owner, totalAssets, feeAssets);
+            uint256 feeAssets = _calculateWithdrawalFee(_totalAssets);
+            emit WithdrawalFeeCollected(owner, _totalAssets, feeAssets);
         }
 
         // Calculate assets based on user's shares (after fee)
         uint256 assetsAfterFee = previewRedeem(userShares);
 
-        _forceDisembarkFromSortedArks(totalAssets);
+        _forceDisembarkFromSortedArks(_totalAssets);
         _withdraw(_msgSender(), receiver, owner, assetsAfterFee, userShares);
     }
 

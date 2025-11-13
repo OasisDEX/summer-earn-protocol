@@ -10,6 +10,7 @@ import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAcces
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
 import {RejectETH} from "../mocks/RejectETH.sol";
+import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
 
 // Reentrancy attack contract
 contract ReentrancyAttacker {
@@ -525,7 +526,8 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         RejectETH rejectContract = new RejectETH();
 
         vm.startPrank(governor);
-        vm.expectRevert(IBridgeRouter.TransferFailed.selector);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.SweepFailed(address(rejectContract), 1 ether);
         router.sweep(address(0), address(rejectContract), 1 ether);
         vm.stopPrank();
     }
@@ -574,7 +576,8 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         ReentrancyAttacker attacker = new ReentrancyAttacker(router);
 
         vm.startPrank(governor);
-        vm.expectRevert(IBridgeRouter.TransferFailed.selector);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.SweepFailed(address(attacker), 1 ether);
         router.sweep(address(0), address(attacker), 1 ether);
         vm.stopPrank();
 
@@ -756,7 +759,8 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         RejectETH rejectContract = new RejectETH();
 
         vm.startPrank(governor);
-        vm.expectRevert(IBridgeRouter.TransferFailed.selector);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.SweepFailed(address(rejectContract), 1 ether);
         router.sweep(address(0), address(rejectContract), 1 ether);
         vm.stopPrank();
     }

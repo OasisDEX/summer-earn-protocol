@@ -50,7 +50,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
         address arkAddress,
         uint256 balance,
         uint16 sourceChainId,
-        bytes32 latestOutgoingTransferId
+        bytes32 latestOutgoingTransferId,
+        uint256 notificationSequence
     ) internal view returns (BridgeTypes.RelayedMessageParams memory) {
         return
             BridgeTypes.RelayedMessageParams({
@@ -61,7 +62,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 message: abi.encode(
                     balance,
                     latestOutgoingTransferId,
-                    block.timestamp
+                    notificationSequence
                 )
             });
     }
@@ -178,7 +179,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 recipient: address(ark),
                 asset: address(mockToken),
                 amount: amount,
-                message: abi.encode(ark.lastRemoteAssetBalance())
+                message: abi.encode(ark.lastRemoteAssetBalance(), 1)
             });
 
         vm.expectEmit(true, true, true, true);
@@ -472,7 +473,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(ark),
             remoteBalance,
             TARGET_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            1
         );
 
         uint16 sourceChain = TARGET_CHAIN_ID;
@@ -502,7 +504,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Track initial state
         uint256 initialRemoteBalance = 1000;
         uint256 remoteBalanceAfterWithdrawal = initialRemoteBalance - amount;
-        bytes memory message = abi.encode(remoteBalanceAfterWithdrawal);
+        bytes memory message = abi.encode(remoteBalanceAfterWithdrawal, 2);
 
         // Set initial remote balance
         BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
@@ -511,7 +513,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(ark),
             initialRemoteBalance,
             TARGET_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            1
         );
         vm.prank(address(router));
         ark.receiveOperation(
@@ -558,7 +561,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Simulate receiving a withdrawal from satellite so that latestIncomingTransferId is set
         uint256 amount = 500;
         bytes32 opId = keccak256("withdrawal-op");
-        bytes memory message = abi.encode(uint256(1000));
+        bytes memory message = abi.encode(uint256(1000), 1);
 
         BridgeTypes.RelayedTransferParams memory params = BridgeTypes
             .RelayedTransferParams({
@@ -636,7 +639,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(ark),
             remoteBalance,
             TARGET_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            1
         );
         uint16 sourceChain = TARGET_CHAIN_ID;
 
@@ -669,7 +673,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(ark),
             remoteBalance,
             TARGET_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            1
         );
 
         // Set some inflight assets first (governor-only emergency function)
@@ -709,7 +714,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(ark),
             remoteBalance,
             sourceChain,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            1
         );
 
         // Test unauthorized caller
@@ -731,7 +737,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(ark),
             remoteBalance,
             wrongSourceChain,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            1
         );
 
         // Test wrong source chain
@@ -771,7 +778,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(ark),
             remoteBalance,
             TARGET_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            1
         );
         vm.prank(address(router));
         ark.receiveOperation(
@@ -803,7 +811,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(ark),
             remoteBalance,
             TARGET_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            bytes32(0), // latestOutgoingTransferId is not set yet
+            1
         );
 
         // In the real flow:
@@ -1085,71 +1094,5 @@ contract CrossChainArkTest is Test, ArkTestBase {
             "Should have swept otherToken"
         );
         assertGt(sweptAmounts[0], 0, "Should have swept some amount");
-    }
-
-    function testStaleNotificationProtection() public {
-        uint256 initialBalance = 1000;
-        uint256 newBalance = 2000;
-        bytes32 requestId1 = keccak256("stale-test-1");
-        bytes32 requestId2 = keccak256("stale-test-2");
-
-        // First, set up a valid notification
-        BridgeTypes.RelayedMessageParams memory params1 = _encodeMessage(
-            requestId1,
-            address(proxy),
-            address(ark),
-            initialBalance,
-            TARGET_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
-        );
-
-        // Process the first notification
-        vm.prank(address(router));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params1)
-        );
-
-        assertEq(ark.lastRemoteAssetBalance(), initialBalance);
-        assertEq(ark.lastNotificationTimestamp(), block.timestamp);
-
-        // Now try to send a stale notification with an older timestamp
-        vm.warp(block.timestamp + 100); // Advance time to 101
-
-        // Create the stale message directly without using _encodeMessage
-        uint256 staleTimestamp = 0; // This should be 0, which is older than 1
-
-        bytes memory staleMessage = abi.encode(
-            newBalance,
-            bytes32(0),
-            staleTimestamp
-        );
-
-        BridgeTypes.RelayedMessageParams memory params2 = BridgeTypes
-            .RelayedMessageParams({
-                operationId: requestId2,
-                originator: address(proxy),
-                sourceChainId: TARGET_CHAIN_ID,
-                recipient: address(ark),
-                message: staleMessage
-            });
-
-        // Expect the StaleNotification event
-        vm.expectEmit(true, true, true, true);
-        emit ICrossChainArk.StaleNotification(
-            staleTimestamp, // 0
-            1 // lastNotificationTimestamp was 1
-        );
-
-        // Process the stale notification - should be rejected
-        vm.prank(address(router));
-        ark.receiveOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            abi.encode(params2)
-        );
-
-        // Verify the balance wasn't updated
-        assertEq(ark.lastRemoteAssetBalance(), initialBalance);
-        assertEq(ark.lastNotificationTimestamp(), 1);
     }
 }

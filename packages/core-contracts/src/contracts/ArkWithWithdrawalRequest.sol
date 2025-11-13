@@ -13,6 +13,7 @@ import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+
 /**
  * @title Ark
  * @author SummerFi
@@ -118,6 +119,7 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         if (!whitelistedRouters[router]) {
             revert RouterNotWhitelisted();
         }
+
         IERC20(sellToken).approve(router, amountIn);
         uint256 buyTokenBalanceBefore = IERC20(buyToken).balanceOf(
             address(this)
@@ -128,7 +130,7 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         );
         amountOut = buyTokenBalanceAfter - buyTokenBalanceBefore;
         if (amountOut < amountOutMin) {
-            revert ReceivedLessThanExpected();
+            revert ReceivedLessThanExpected(amountOutMin, amountOut);
         }
         emit Swapped(sellToken, router, amountIn, swapCalldata);
     }

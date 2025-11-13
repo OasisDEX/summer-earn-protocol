@@ -3,10 +3,12 @@ pragma solidity ^0.8.26;
 
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../src/interfaces/IBaseBridgeAdapterErrors.sol";
+import {IBaseBridgeAdapterEvents} from "../../src/interfaces/IBaseBridgeAdapterEvents.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {Errors} from "@openzeppelin/contracts/utils/Errors.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract MinimalAdapter is BaseBridgeAdapter {
@@ -182,13 +184,18 @@ contract BaseBridgeAdapterSweepTest is Test {
 
         RejectETH rejectContract = new RejectETH();
 
-        vm.prank(governor);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBaseBridgeAdapterErrors.TransferFailed.selector
-            )
+        // Expect SweepFailed event and no revert
+        vm.expectEmit(true, false, false, true);
+        emit IBaseBridgeAdapterEvents.SweepFailed(
+            address(rejectContract),
+            1 ether
         );
+        vm.prank(governor);
         adapter.sweep(address(0), address(rejectContract), 1 ether);
+
+        // Balance should remain as transfer failed silently
+        assertEq(address(adapter).balance, 1 ether);
+        assertEq(address(rejectContract).balance, 0);
     }
 
     function testSweep_Native_ZeroAmount_EmitsEventOnly() public {

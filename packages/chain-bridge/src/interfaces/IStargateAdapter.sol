@@ -17,10 +17,6 @@ interface IStargateAdapter {
     /// @notice Emitted when slippage tolerance is updated
     event SlippageToleranceUpdated(uint256 newSlippageBps);
 
-    /*//////////////////////////////////////////////////////////////
-                                 ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Thrown when refunding excess native fee to `refundAddress` fails
-    error RefundFailed(address recipient, uint256 amount);
+    /// @notice Emitted when a native refund fails; operation continues
+    event RefundFailed(address indexed to, uint256 amount);
 }

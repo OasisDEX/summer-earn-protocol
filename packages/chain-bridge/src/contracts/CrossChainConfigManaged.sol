@@ -65,7 +65,4 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
     function isExecutor(address executor) public view virtual returns (bool) {
         return CROSS_CHAIN_REGISTRY.isAuthorizedExecutor(executor);
     }
-
-    /// @notice Error thrown when CrossChainRegistry address is zero
-    error CrossChainRegistryZeroAddress();
 }
