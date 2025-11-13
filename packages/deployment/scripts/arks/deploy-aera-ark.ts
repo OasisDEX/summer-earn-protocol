@@ -10,6 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateArkDetails } from '../helpers/validation'
 
 export interface AeraArkUserInput extends BaseArkParams {
   provisioner: string
@@ -120,20 +121,26 @@ async function deployAeraArkContract(
   const poolAddress = await multiDepositorVault.read.MULTI_DEPOSITOR_VAULT()
   const protocol = 'Aera'
 
+  // Create and validate ark details
+  const arkDetails = {
+    protocol: protocol,
+    type: 'Aera',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: poolAddress,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+  validateArkDetails(arkDetails, 'Aera ark details')
+
   return (await hre.ignition.deploy(createAeraArkModule(moduleName), {
     parameters: {
       [moduleName]: {
         provisioner: userInput.provisioner,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: protocol,
-            type: 'Aera',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: poolAddress,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,

@@ -206,6 +206,11 @@ export function useFleetActions({
     isDepositLoading: isDepositLoading || isDepositWritePending || depositPending,
     isWithdrawLoading: isWithdrawLoading || isWithdrawWritePending || withdrawPending,
 
+    // Success flags
+    isApproveSuccess,
+    isDepositSuccess,
+    isWithdrawSuccess,
+
     // Errors
     approveError,
     depositError,

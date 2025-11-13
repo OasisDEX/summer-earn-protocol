@@ -72,6 +72,12 @@ export default function Home() {
               📊 Interest Rates
             </a>
             <a
+              href={`/institutions`}
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              🏦 Institutions
+            </a>
+            <a
               href={`/vesting/8453`}
               className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
             >

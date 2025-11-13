@@ -38,6 +38,8 @@ contract FleetCommanderConfigProvider is
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
 
+    bool public transfersEnabled;
+
     constructor(
         FleetCommanderParams memory params
     )
@@ -194,6 +196,18 @@ contract FleetCommanderConfigProvider is
         emit FleetCommanderMaxRebalanceOperationsUpdated(
             newMaxRebalanceOperations
         );
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProvider
+    function setFleetTokenTransferability()
+        external
+        onlyGovernor
+        whenNotPaused
+    {
+        if (!transfersEnabled) {
+            transfersEnabled = true;
+            emit TransfersEnabled();
+        }
     }
 
     // INTERNAL FUNCTIONS

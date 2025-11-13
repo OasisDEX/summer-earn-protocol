@@ -61,6 +61,13 @@
         "asset": "EURC",
         "protocol": "moonwell"
       }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "EURC",
+        "protocol": "fluid"
+      }
     }
   ]
 }

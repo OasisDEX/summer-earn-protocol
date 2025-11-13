@@ -565,17 +565,21 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
     `${networkName}_proposal_${timestamp}.json`,
   )
 
-  // Submit proposal
-  await createGovernanceProposal(
-    title,
-    description,
-    actions,
-    governorAddress,
-    chainId,
-    discourseURL,
-    [],
-    savePath,
-  )
+  try {
+    // Submit proposal
+    await createGovernanceProposal(
+      title,
+      description,
+      actions,
+      governorAddress,
+      chainId,
+      discourseURL,
+      [],
+      savePath,
+    )
+  } catch (error: any) {
+    console.error(kleur.red('Error creating proposal on tally:'), error)
+  }
 }
 
 /**

@@ -1,0 +1,16 @@
+{
+  "title": "SIP2.X: Add 1 Ark to LazyVault_LowerRisk_EURC Fleet",
+  "description": "# SIP2.X: Add Ark to LazyVault_LowerRisk_EURC Fleet\n\n## Summary\nThis proposal adds 1 new Ark to the existing LazyVault_LowerRisk_EURC Fleet.\n\n## New Ark Address\n1. `0x4E764D15909ab8b413f6A046dDa66408eE5407f1`\n\n## Actions\n1. Grant COMMANDER_ROLE to Fleet Commander for the Ark\n2. Add the Ark to the Fleet Commander\n\n## References\nDiscourse: https://forum.summer.fi/t/sip2-36-expedited-upgrade-of-legacy-fluid-arks-to-enable-reward-harvesting/428\n",
+  "governorId": "eip155:8453:0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa",
+  "targets": [
+    "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
+    "0x64Db8f51f1bf7064BB5A361a7265F602d348E0f0"
+  ],
+  "values": ["0", "0"],
+  "calldatas": [
+    "0x1981b9a70000000000000000000000004e764d15909ab8b413f6a046dda66408ee5407f100000000000000000000000064db8f51f1bf7064bb5a361a7265f602d348e0f0",
+    "0xe37d5b7f0000000000000000000000004e764d15909ab8b413f6a046dda66408ee5407f1"
+  ],
+  "discourseURL": "https://forum.summer.fi/t/sip2-36-expedited-upgrade-of-legacy-fluid-arks-to-enable-reward-harvesting/428",
+  "timestamp": 1761138513095
+}

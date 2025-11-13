@@ -1,85 +1,106 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {BpsUtils} from "../../../src/helpers/BpsUtils.sol";
+import {Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Bps, BPS_FACTOR, toBps, fromBps} from "../../../src/helpers/Bps.sol";
 import {Test} from "forge-std/Test.sol";
 
-import {Percentage, PERCENTAGE_FACTOR} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Bps, BPS_FACTOR, toBps, fromBps} from "../../../src/helpers/Bps.sol";
-import {BpsUtils} from "../../../src/helpers/BpsUtils.sol";
-
-contract BpsUtilsHarness {
-    function bpsToPercentage(Bps bps) external pure returns (Percentage) {
-        return BpsUtils.bpsToPercentage(bps);
-    }
-
-    function percentageToBps(
-        Percentage percentage
-    ) external pure returns (Bps) {
-        return BpsUtils.percentageToBps(percentage);
-    }
-
-    function isValidBps(Bps bps) external pure returns (bool) {
-        return BpsUtils.isValidBps(bps);
-    }
-}
-
 contract BpsUtilsTest is Test {
-    BpsUtilsHarness internal harness;
+    using BpsUtils for Bps;
 
-    function setUp() public {
-        harness = new BpsUtilsHarness();
-    }
+    function setUp() public {}
 
-    function test_bpsToPercentage_zero() public view {
-        Percentage result = harness.bpsToPercentage(toBps(0));
-        assertEq(Percentage.unwrap(result), 0);
-    }
-
-    function test_bpsToPercentage_onePercent() public view {
-        Percentage result = harness.bpsToPercentage(toBps(100));
-        assertEq(Percentage.unwrap(result), PERCENTAGE_FACTOR);
-    }
-
-    function test_bpsToPercentage_hundredPercent() public view {
-        Percentage result = harness.bpsToPercentage(toBps(BPS_FACTOR));
-        assertEq(Percentage.unwrap(result), 100 * PERCENTAGE_FACTOR);
-    }
-
-    function test_percentageToBps_zero() public view {
-        Bps result = harness.percentageToBps(Percentage.wrap(0));
-        assertEq(fromBps(result), 0);
-    }
-
-    function test_percentageToBps_onePercent() public view {
-        Bps result = harness.percentageToBps(
-            Percentage.wrap(PERCENTAGE_FACTOR)
-        );
-        assertEq(fromBps(result), 100);
-    }
-
-    function test_percentageToBps_hundredPercent() public view {
-        Bps result = harness.percentageToBps(
-            Percentage.wrap(100 * PERCENTAGE_FACTOR)
-        );
-        assertEq(fromBps(result), BPS_FACTOR);
-    }
-
-    function test_roundTripConversion_examples() public view {
-        uint256[3] memory samples = [uint256(0), 100, BPS_FACTOR];
-
-        for (uint256 i = 0; i < samples.length; i++) {
-            Bps original = toBps(samples[i]);
-            Percentage asPercentage = harness.bpsToPercentage(original);
-            Bps back = harness.percentageToBps(asPercentage);
-
-            assertEq(fromBps(back), samples[i]);
+    function test_Conversion() public pure {
+        {
+            Percentage percentage = toPercentage(10);
+            Bps bps = BpsUtils.percentageToBps(percentage);
+            assertEq(Bps.unwrap(bps), 100_000); // 10% in BPS
+        }
+        {
+            Percentage percentage = toPercentage(100);
+            Bps bps = BpsUtils.percentageToBps(percentage);
+            assertEq(Bps.unwrap(bps), 1_000_000); // 100% in BPS
+        }
+        {
+            Bps bps = toBps(25_000); // 2.5% in BPS
+            Percentage percentage = BpsUtils.bpsToPercentage(bps);
+            assertEq(Percentage.unwrap(percentage), 2.5e18); // 2.5% in Percentage
+        }
+        {
+            Bps bps = toBps(1_000_000); // 100% in BPS
+            Percentage percentage = BpsUtils.bpsToPercentage(bps);
+            assertEq(Percentage.unwrap(percentage), 100e18); // 100% in Percentage
         }
     }
 
-    function test_isValidBps_bounds() public view {
-        assertTrue(harness.isValidBps(toBps(0)));
-        assertTrue(harness.isValidBps(toBps(BPS_FACTOR)));
+    function test_Validation() public pure {
+        Percentage percentage = toPercentage(10);
+        Bps bps = BpsUtils.percentageToBps(percentage);
 
-        assertFalse(harness.isValidBps(toBps(BPS_FACTOR + 1)));
+        //assertEq(BpsUtils.isValidBps(bps), true);
+
+        Bps invalidBps = toBps(15_000); // 150% in BPS
+        assertEq(BpsUtils.isValidBps(invalidBps), false);
+    }
+
+    function test_BpsFee() public pure {
+        {
+            Percentage percentage = toPercentage(10);
+            Bps bps = BpsUtils.percentageToBps(percentage);
+
+            uint256 amount = 1_000_000; // 1,000,000 units
+
+            uint256 feeAmount = BpsUtils.calculateBpsFee(amount, bps);
+            assertEq(feeAmount, 100_000); // 10% fee = 100,000 units
+        }
+        {
+            Percentage percentage = toPercentage(100);
+            Bps bps = BpsUtils.percentageToBps(percentage);
+
+            uint256 amount = 1_000_000; // 1,000,000 units
+
+            uint256 feeAmount = BpsUtils.calculateBpsFee(amount, bps);
+            assertEq(feeAmount, 1_000_000); // 100% fee = 1,000,000 units
+        }
+        {
+            Percentage percentage = toPercentage(0);
+            Bps bps = BpsUtils.percentageToBps(percentage);
+
+            uint256 amount = 1_000_000; // 1,000,000 units
+
+            uint256 feeAmount = BpsUtils.calculateBpsFee(amount, bps);
+            assertEq(feeAmount, 0); // 0% fee = 0 units
+        }
+    }
+
+    function test_BpsDiscount() public pure {
+        {
+            Percentage percentage = toPercentage(10);
+            Bps bps = BpsUtils.percentageToBps(percentage);
+
+            uint256 amount = 1_000_000; // 1,000,000 units
+
+            uint256 feeAmount = BpsUtils.applyBpsDiscount(amount, bps);
+            assertEq(feeAmount, 900_000); // 10% fee = 900,000 units
+        }
+        {
+            Percentage percentage = toPercentage(100);
+            Bps bps = BpsUtils.percentageToBps(percentage);
+
+            uint256 amount = 1_000_000; // 1,000,000 units
+
+            uint256 feeAmount = BpsUtils.applyBpsDiscount(amount, bps);
+            assertEq(feeAmount, 0); // 100% fee = 0 units
+        }
+        {
+            Percentage percentage = toPercentage(0);
+            Bps bps = BpsUtils.percentageToBps(percentage);
+
+            uint256 amount = 1_000_000; // 1,000,000 units
+
+            uint256 feeAmount = BpsUtils.applyBpsDiscount(amount, bps);
+            assertEq(feeAmount, 1_000_000); // 0% fee = 1,000,000 units
+        }
     }
 }

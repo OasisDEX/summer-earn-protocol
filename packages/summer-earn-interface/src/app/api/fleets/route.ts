@@ -28,21 +28,22 @@ export async function GET(request: Request) {
     if (cached && cached.expiry > now) {
       return NextResponse.json(cached.data)
     }
-
+    console.log('chainId', chainId)
     const rpcUrl = CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]
     const harbor = HARBOR_COMMAND_ADDRESSES[environment][Number(chainId)]
     if (!rpcUrl || !harbor) {
       return NextResponse.json({ error: 'Unsupported chain or environment' }, { status: 400 })
     }
-
+    console.log('rpcUrl', rpcUrl)
     const client = createPublicClient({ transport: http(rpcUrl) })
-
-    const activeFleets = (await client.readContract({
+    const activeFleets = (await // @ts-ignore
+    client.readContract({
       address: harbor as `0x${string}`,
       abi: harborCommandAbi,
       functionName: 'getActiveFleetCommanders',
     })) as `0x${string}`[]
 
+    console.log('activeFleets', activeFleets)
     const allFleets = [...activeFleets]
     // Preserve existing Base chain special-case if needed
     if (chainId === '8453') {
@@ -53,26 +54,31 @@ export async function GET(request: Request) {
       allFleets.map(async (fleetAddress) => {
         const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets] =
           await Promise.all([
+            // @ts-ignore
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'name',
             }),
+            // @ts-ignore
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'symbol',
             }),
+            // @ts-ignore
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'asset',
             }),
+            // @ts-ignore
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
               functionName: 'totalAssets',
             }),
+            // @ts-ignore
             client.readContract({
               address: fleetAddress,
               abi: fleetCommanderAbi,
@@ -81,11 +87,13 @@ export async function GET(request: Request) {
           ])
 
         const [assetDecimals, assetSymbol] = await Promise.all([
+          // @ts-ignore
           client.readContract({
             address: assetAddress as `0x${string}`,
             abi: erc20Abi,
             functionName: 'decimals',
           }),
+          // @ts-ignore
           client.readContract({
             address: assetAddress as `0x${string}`,
             abi: erc20Abi,

@@ -98,6 +98,7 @@ export async function addArkToFleet(
         const hash = await fleetContract.write.addArk([arkAddress])
         await publicClient.waitForTransactionReceipt({
           hash: hash,
+          confirmations: 2,
         })
         console.log(kleur.green('Ark added to fleet successfully!'))
       } catch (error) {

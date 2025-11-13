@@ -5,9 +5,11 @@ import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployAeraArk } from '../arks/deploy-aera-ark'
+import { deployArmArk } from '../arks/deploy-arm-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployCrossChainArk } from '../arks/deploy-cross-chain-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
+import { deployFluidFTokenArk } from '../arks/deploy-fluid-ftoken-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { deployMorphoArk } from '../arks/deploy-morpho-ark'
@@ -19,6 +21,7 @@ import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
 import { deploySiloArk } from '../arks/deploy-silo-ark'
 import { deploySiloArkV2 } from '../arks/deploy-silo-ark-v2'
 import { deploySiloManagedVaultArk } from '../arks/deploy-silo-managed-vault-ark'
+import { deploySiUSDArk } from '../arks/deploy-siusd-ark'
 import { deploySkyRewardsArk } from '../arks/deploy-sky-rewards-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
@@ -116,6 +119,11 @@ export async function deployArk(
         vaultId: vaultAddress,
         vaultName: validatedVaultName,
       })
+      deployedArk = ark
+      break
+    }
+    case ArkType.FluidFTokenArk: {
+      const ark = await deployFluidFTokenArk(config, baseArkParams)
       deployedArk = ark
       break
     }
@@ -309,6 +317,20 @@ export async function deployArk(
       deployedArk = ark
       break
     }
+    case ArkType.ArmArk: {
+      // ArmArk only supports WETH
+      if (token !== Token.WETH) {
+        throw new Error('ArmArk only supports WETH as the asset')
+      }
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const armArkParams = {
+        ...baseArkParams,
+        vaultName: vaultName,
+      }
+      const ark = await deployArmArk(config, armArkParams)
+      deployedArk = ark
+      break
+    }
     case ArkType.SiloManagedVaultArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
       const vaultId = validateErc4626Address(
@@ -345,6 +367,22 @@ export async function deployArk(
       const ark = await deployStargateV2PoolArk(config, {
         ...baseArkParams,
         stargatePoolAddress: stargatePoolAddress,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.SiUSDArk: {
+      // SiUSDArk only supports USDC
+      if (token !== Token.USDC) {
+        throw new Error('SiUSDArk only supports USDC as the asset')
+      }
+      const gateway = validateAddress(config.protocolSpecific.infinifi?.gateway, 'InfiniFi Gateway')
+      const siUSD = validateErc4626Address(config.protocolSpecific.infinifi?.siUSD, 'siUSD vault')
+      // Enforce USDC + config validations as in deployArk
+      const ark = await deploySiUSDArk(config, {
+        ...baseArkParams,
+        gateway: gateway,
+        siUSD: siUSD,
       })
       deployedArk = ark
       break
@@ -436,6 +474,10 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
       deployedArk = await deploySiloManagedVaultArk(config)
       break
     }
+    case ArkType.ArmArk: {
+      deployedArk = await deployArmArk(config)
+      break
+    }
 
     case ArkType.CrossChainArk: {
       deployedArk = await deployCrossChainArk(config)
@@ -444,6 +486,20 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.StargateV2PoolArk: {
       deployedArk = await deployStargateV2PoolArk(config)
+      break
+    }
+
+    case ArkType.SiUSDArk: {
+      deployedArk = await deploySiUSDArk(config)
+      break
+    }
+
+    case ArkType.FluidFTokenArk: {
+      deployedArk = await deployFluidFTokenArk(config)
+      break
+    }
+    case ArkType.FluidLiteArk: {
+      deployedArk = await deployFluidLiteArk(config)
       break
     }
 

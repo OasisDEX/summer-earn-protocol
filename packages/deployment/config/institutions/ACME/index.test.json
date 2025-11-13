@@ -1,0 +1,42 @@
+{
+  "base": {
+    "deployedContracts": {
+      "gov": {
+        "protocolAccessManager": {
+          "address": "0x47979863ad333A9a0427292bA5a7c16FDe2F4F1C"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0x8D22E6807d5372807A2C67c933e8413c87909E95"
+        },
+        "configurationManager": {
+          "address": "0xfDA0A2B4a1D4bE7c86C1de5eb72791b58681E71a"
+        },
+        "harborCommand": {
+          "address": "0x1Fa02171ac9907d3DeB39a3Fc1dc5EeeF30F49dE"
+        },
+        "admiralsQuarters": {
+          "address": "0xAae3f78433A13E3C2aa440600CbD22081B579d15"
+        },
+        "raft": {
+          "address": "0x424B9E75D22c9F206447A7a2285963720a8B30dD"
+        }
+      }
+    },
+    "fleets": {
+      "LazyVault_Institutional_ACME_USDC": {
+        "fleetCommander": "0xfB42001C8C39011c96b6181ced913AEfA0d53514",
+        "bufferArk": "0x3B9A5597b8927caC5bed68376aDc27a9D2ec21eC",
+        "arks": [
+          "0x5B3aEabe3Da0eaAFbAd01f28Dcf3B6462c0479E1",
+          "0xA7fe05ad70567241295E12c6B4e97123e614cB6B",
+          "0x43D9553C5C93B70fF0D62bEC6Ea1fe5407189f30",
+          "0x894645186514570b4A0574f42C04C2C503f619Ea",
+          "0x22b3D508952B502273F4FBDE743745B4ca01551C",
+          "0x2AB23a9636E9b77ff112829FF0d703d691D19eE2"
+        ]
+      }
+    }
+  }
+}

@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { ArkType, FleetConfig } from '../types/config-types'
+import { ArkType, BaseConfig, FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './common/constants'
 import {
@@ -90,7 +90,11 @@ async function deployFleet() {
   // Ask about using bummer config at the beginning
   const useBummerConfig = await promptForConfigType()
 
-  const config = getConfigByNetwork(network, { gov: true, core: true }, useBummerConfig)
+  const config = getConfigByNetwork(
+    network,
+    { gov: true, core: true },
+    useBummerConfig,
+  ) as BaseConfig
 
   // Determine if this is a hub or satellite chain
   const isHubChain = network === HUB_CHAIN_NAME
@@ -351,9 +355,47 @@ async function handleArkAddition(
     console.log(kleur.blue('Buffer Ark:'), kleur.cyan(bufferArkAddress))
     console.log(kleur.blue('Fleet Commander:'), kleur.cyan(fleetCommanderAddress))
 
-    // Get existing arks from deployment data
+    // Get on-chain arks
+    const onChainArks = (await fleetCommander.read.getActiveArks()) as Address[]
+    console.log(kleur.blue('On-chain Active Arks:'), kleur.cyan(onChainArks.length.toString()))
+
+    // Get existing arks from deployment file
     const existingArks = deploymentData.arks || []
-    console.log(kleur.blue('Existing Arks:'), kleur.cyan(existingArks.length.toString()))
+    console.log(kleur.blue('Deployment File Arks:'), kleur.cyan(existingArks.length.toString()))
+
+    // Compare on-chain state with deployment file
+    if (onChainArks.length !== existingArks.length) {
+      console.log(
+        kleur.red().bold('ERROR: Mismatch detected between on-chain and deployment file!'),
+      )
+      console.log(kleur.red(`On-chain arks: ${onChainArks.length}`))
+      console.log(kleur.red(`Deployment file arks: ${existingArks.length}`))
+
+      onChainArks.forEach((ark) => {
+        if (!existingArks.includes(ark)) {
+          console.log(kleur.red(`    Ark ${ark} is not in the deployment file.`))
+        }
+      })
+
+      existingArks.forEach((ark) => {
+        if (!onChainArks.includes(ark)) {
+          console.log(kleur.red(`    Ark ${ark} is not on the on-chain.`))
+        }
+      })
+
+      console.log(kleur.yellow('\nOn-chain arks:'))
+      onChainArks.forEach((ark, i) => console.log(kleur.cyan(`  ${i + 1}. ${ark}`)))
+      console.log(kleur.yellow('\nDeployment file arks:'))
+      existingArks.forEach((ark, i) => console.log(kleur.cyan(`  ${i + 1}. ${ark}`)))
+
+      throw new Error(
+        'Deployment file state does not match on-chain state. Please reconcile the deployment file before adding new arks.',
+      )
+    }
+
+    console.log(
+      kleur.green('✓ On-chain state matches deployment file. Safe to proceed with ark addition.'),
+    )
 
     // First, ask if we're adding an already deployed ark
     const { isAlreadyDeployed } = await prompts({

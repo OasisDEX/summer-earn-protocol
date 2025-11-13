@@ -130,6 +130,7 @@ contract BridgeRouter is
         // Use nonce for better uniqueness and collision resistance
         uint256 currentNonce = _useNonce(address(this));
 
+        // Generate operation ID using chain ID, nonce, and router address
         operationId = keccak256(
             abi.encode(block.chainid, currentNonce, address(this))
         );
@@ -171,7 +172,10 @@ contract BridgeRouter is
         )
         returns (bytes32 operationId)
     {
+        // Gas limit must always be set
         if (options.gasLimit == 0) revert ZeroGasLimit();
+
+        // Validate parameters
         _validateTransferParams(params);
         _validateOriginator(params.originator);
 
@@ -227,7 +231,10 @@ contract BridgeRouter is
         )
         returns (bytes32 operationId)
     {
+        // Gas limit must always be set
         if (options.gasLimit == 0) revert ZeroGasLimit();
+
+        // Validate parameters
         _validateSendMessageParams(params);
         _validateOriginator(params.originator);
 
@@ -272,12 +279,17 @@ contract BridgeRouter is
     {
         specifiedAdapter = options.specifiedAdapter;
 
+        // Gas limit must always be set
         if (options.gasLimit == 0) revert ZeroGasLimit();
 
+        // Validate parameters
         _validateTransferParams(params);
+
+        // Estimate fees via adapter
         (nativeFee, tokenFee) = IAssetAdapter(specifiedAdapter)
             .estimateTransferAssets(params, options);
 
+        // Apply fee buffer
         nativeFee = _applyFeeBuffer(nativeFee);
         tokenFee = _applyFeeBuffer(tokenFee);
     }
@@ -292,13 +304,21 @@ contract BridgeRouter is
         returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
     {
         specifiedAdapter = options.specifiedAdapter;
+
+        // Specified adapter must have a proper address
         if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
+
+        // Adapter must be registered
         if (!adapters.contains(specifiedAdapter)) revert UnknownAdapter();
 
+        // Validate parameters
         _validateSendMessageParams(params);
+
+        // Estimate send message fees via adapter
         (nativeFee, tokenFee) = IMessageAdapter(specifiedAdapter)
             .estimateSendMessage(params, options);
 
+        // Apply fee buffer
         nativeFee = _applyFeeBuffer(nativeFee);
         tokenFee = _applyFeeBuffer(tokenFee);
     }
@@ -364,9 +384,15 @@ contract BridgeRouter is
 
     /// @inheritdoc IBridgeRouter
     function registerAdapter(address adapter) external onlyGovernor {
+        // Check that adapter is not already registered
         if (adapters.contains(adapter)) revert AdapterAlreadyRegistered();
+
+        // Check that new adapter has a valid address
         if (adapter == address(0)) revert InvalidParams();
+
+        // Check that adapter is a contract
         if (adapter.code.length == 0) revert InvalidParams(); // prevent EOA registration
+
         // Require ERC-165 support for IBridgeAdapter
         if (
             !ERC165Checker.supportsInterface(
@@ -383,6 +409,7 @@ contract BridgeRouter is
 
     /// @inheritdoc IBridgeRouter
     function removeAdapter(address adapter) external onlyGovernor {
+        // Check that adapter is registered
         if (!adapters.contains(adapter)) revert UnknownAdapter();
 
         adapters.remove(adapter);
@@ -407,6 +434,7 @@ contract BridgeRouter is
         address recipient,
         uint256 amount
     ) external nonReentrant onlyGovernor {
+        // Check that recipient has a valid address
         if (recipient == address(0)) revert InvalidParams();
 
         if (token == address(0)) {
@@ -470,6 +498,7 @@ contract BridgeRouter is
                 effectiveAdapter
             )
         {
+            // Success path - clear the failure record
             _clearFailedDelivery(operationId);
             emit OperationRetrySucceeded(
                 operationId,
