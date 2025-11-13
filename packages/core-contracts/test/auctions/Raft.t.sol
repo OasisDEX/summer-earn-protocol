@@ -1586,6 +1586,56 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         mockArk1.sweep(tokensToSweep);
     }
 
+    function test_SocializeLosses() public {
+        // Setup: create mock tokens and mint them to the Ark
+        ERC20Mock token1 = new ERC20Mock();
+        ERC20Mock token2 = new ERC20Mock();
+
+        uint256 amount1 = 1000 * 10 ** 18;
+        uint256 amount2 = 500 * 10 ** 18;
+        deal(address(token1), address(mockArk1), amount1);
+        deal(address(token2), address(mockArk1), amount2);
+
+        // Mark tokens as sweepable (required by _sweep validation)
+        vm.startPrank(curator);
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(token1),
+            true
+        );
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(token2),
+            true
+        );
+        vm.stopPrank();
+
+        // Prepare token list
+        address[] memory tokensToSweep = new address[](2);
+        tokensToSweep[0] = address(token1);
+        tokensToSweep[1] = address(token2);
+
+        // Expect LossesSocialized event and call socializeLosses as governor
+        vm.startPrank(governor);
+        vm.expectEmit(true, true, true, true);
+        emit LossesSocialized(address(mockArk1), tokensToSweep);
+        raftContract.socializeLosses(address(mockArk1), tokensToSweep);
+        vm.stopPrank();
+
+        // After socializeLosses:
+        // - Ark should have no balances for the tokens
+        // - Raft should have no balances (transferred out to governor)
+        // - Governor should have received the swept amounts
+        assertEq(token1.balanceOf(address(mockArk1)), 0);
+        assertEq(token2.balanceOf(address(mockArk1)), 0);
+
+        assertEq(token1.balanceOf(address(raftContract)), 0);
+        assertEq(token2.balanceOf(address(raftContract)), 0);
+
+        assertEq(token1.balanceOf(governor), amount1);
+        assertEq(token2.balanceOf(governor), amount2);
+    }
+
     function test_SweepAndStartAuction() public {
         // Setup: mint tokens to the mock Ark
         uint256 amount1 = 1000 * 10 ** 18;

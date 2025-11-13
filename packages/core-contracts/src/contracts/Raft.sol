@@ -96,6 +96,23 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
 
     /// @inheritdoc IRaft
+    function socializeLosses(
+        address ark,
+        address[] calldata tokens
+    ) external onlyGovernor {
+        _sweep(ark, tokens);
+        for (uint256 i = 0; i < tokens.length; i++) {
+            // Transfer the token to the caller (governor) who socialized the losses
+            // no additional validation of the receiver is needed as the governor role is trusted
+            IERC20(tokens[i]).safeTransfer(
+                msg.sender,
+                IERC20(tokens[i]).balanceOf(address(this))
+            );
+        }
+        emit LossesSocialized(ark, tokens);
+    }
+
+    /// @inheritdoc IRaft
     function sweep(
         address ark,
         address[] calldata tokens
