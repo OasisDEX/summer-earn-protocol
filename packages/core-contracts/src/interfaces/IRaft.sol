@@ -197,13 +197,32 @@ interface IRaft is IRaftEvents, IRaftErrors {
      * @custom:effects
      * - Updates the sweepableTokens mapping
      * @custom:security-considerations
-     * - Ensure only authorized addresses can call this function
+     * - Ensure only authorized addresses can call this function (curator)
      * - Validate the Ark address and token address
      */
     function setSweepableToken(
         address ark,
         address token,
         bool isSweepable
+    ) external;
+
+    /**
+     * @notice Sets a token as non-sweepable for an Ark
+     * @param ark The address of the Ark
+     * @param token The token address
+     * @param isNonSweepable Whether the token should be non-sweepable
+     * @custom:internal-logic
+     * - Sets the nonSweepableTokens mapping for the specified Ark and token to true
+     * @custom:effects
+     * - Updates the nonSweepableTokens mapping
+     * @custom:security-considerations
+     * - Ensure only authorized addresses can call this function (governance)
+     * - Validate the Ark address and token address
+     */
+    function setNonSweepableToken(
+        address ark,
+        address token,
+        bool isNonSweepable
     ) external;
 
     /**

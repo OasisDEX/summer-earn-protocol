@@ -61,6 +61,18 @@ interface IRaftEvents {
     );
 
     /**
+     * @notice Emitted when a non-sweepable token is set for an Ark
+     * @param ark The address of the Ark contract
+     * @param token The address of the token
+     * @param isNonSweepable Whether the token is non-sweepable
+     */
+    event NonSweepableTokenSet(
+        address indexed ark,
+        address indexed token,
+        bool isNonSweepable
+    );
+
+    /**
      * @notice Emitted when auction parameters are set for an Ark's reward token
      * @param ark The address of the Ark contract
      * @param rewardToken The address of the reward token

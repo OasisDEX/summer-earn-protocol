@@ -55,7 +55,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             "RWDNS"
         );
 
-        vm.startPrank(governor);
+        vm.startPrank(curator);
         raftContract.setArkAuctionParameters(
             address(mockArk1),
             address(mockRewardToken),
@@ -99,7 +99,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
     function test_Constructor() public {
         Raft newRaft = new Raft(address(accessManager));
-        vm.startPrank(governor);
+        vm.startPrank(curator);
         newRaft.setArkAuctionParameters(
             address(mockArk1),
             address(mockRewardToken),
@@ -1222,7 +1222,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             decayType: DecayFunctions.DecayType.Quadratic
         });
 
-        vm.prank(governor);
+        vm.prank(curator);
         vm.expectEmit(true, true, true, true);
         emit IRaftEvents.ArkAuctionParametersSet(
             address(mockArk1),
@@ -1597,7 +1597,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         tokensToSweep[0] = address(mockRewardToken);
         tokensToSweep[1] = address(mockRewardToken2);
 
-        vm.startPrank(governor); // governor is also curator for that fleet
+        vm.startPrank(curator);
         raftContract.setSweepableToken(
             address(mockArk1),
             address(mockRewardToken2),
@@ -1612,7 +1612,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
             1,
-            governor,
+            curator,
             amount1 -
                 amount1.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
@@ -1622,7 +1622,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
             2,
-            governor,
+            curator,
             amount2 -
                 amount2.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
@@ -1670,7 +1670,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     }
 
     function test_SetSweepableToken() public {
-        vm.startPrank(governor);
+        vm.startPrank(curator);
 
         // Set token as sweepable
         vm.expectEmit(true, true, true, true);
@@ -1737,7 +1737,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
     function test_SweepMultipleTokens_MixedSweepable() public {
         // Setup: mark first token as sweepable, leave second token as not sweepable
-        vm.startPrank(governor);
+        vm.startPrank(curator);
         raftContract.setSweepableToken(
             address(mockArk1),
             address(mockRewardToken),
@@ -1768,7 +1768,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         deal(address(mockRewardToken), address(mockArk1), amount1);
         deal(address(mockRewardToken2), address(mockArk1), amount2);
 
-        vm.startPrank(governor);
+        vm.startPrank(curator);
         raftContract.setSweepableToken(
             address(mockArk1),
             address(mockRewardToken),
@@ -1791,7 +1791,51 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.stopPrank();
     }
 
-    function test_NonGovernorCannotSetSweepableToken() public {
+    function test_SweepAndStartAuction_OnlySweepableAndNonSweepableTokens()
+        public
+    {
+        // Setup: mint tokens and mark first token as sweepable
+        uint256 amount1 = 1000 * 10 ** 18;
+        uint256 amount2 = 500 * 10 ** 18;
+        deal(address(mockRewardToken), address(mockArk1), amount1);
+        deal(address(mockRewardToken2), address(mockArk1), amount2);
+
+        vm.startPrank(curator);
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(mockRewardToken),
+            true
+        );
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(mockRewardToken2),
+            true
+        );
+        vm.stopPrank();
+        vm.startPrank(governor);
+        raftContract.setNonSweepableToken(
+            address(mockArk1),
+            address(mockRewardToken2),
+            true
+        );
+        vm.stopPrank();
+        // Try to sweep and start auction with mix of sweepable and non-sweepable tokens
+        address[] memory tokensToSweep = new address[](2);
+        tokensToSweep[0] = address(mockRewardToken);
+        tokensToSweep[1] = address(mockRewardToken2);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "RaftTokenNotSweepable(address,address)",
+                address(mockArk1),
+                address(mockRewardToken2)
+            )
+        );
+        raftContract.sweepAndStartAuction(address(mockArk1), tokensToSweep);
+        vm.stopPrank();
+    }
+    
+    function test_NonCuratorCannotSetSweepableToken() public {
         vm.prank(address(0xdead));
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -1800,6 +1844,21 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             )
         );
         raftContract.setSweepableToken(
+            address(mockArk1),
+            address(mockRewardToken),
+            true
+        );
+    }
+
+    function test_NonGovernorCannotSetNonSweepableToken() public {
+        vm.prank(address(0xdead));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotGovernor(address)",
+                address(0xdead)
+            )
+        );
+        raftContract.setNonSweepableToken(
             address(mockArk1),
             address(mockRewardToken),
             true

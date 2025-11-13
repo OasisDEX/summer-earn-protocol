@@ -27,7 +27,7 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommander.deposit(DEPOSIT_AMOUNT, mockUser);
         vm.stopPrank();
 
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setMinimumBufferBalance(0);
     }
 
@@ -255,7 +255,7 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_RedeemWithRebalancedFunds() public {
         uint256 userShares = fleetCommander.balanceOf(mockUser);
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setMinimumBufferBalance(0);
         FleetConfig memory config = fleetCommander.getConfig();
 

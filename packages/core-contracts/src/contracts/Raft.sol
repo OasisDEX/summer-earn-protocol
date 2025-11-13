@@ -37,9 +37,13 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     mapping(address ark => mapping(address rewardToken => uint256 paymentTokensToBoard))
         public paymentTokensToBoard;
 
-    /// @notice Mapping of tokens that are allowed to be swept for each Ark
+    /// @notice Mapping of tokens that are allowed to be swept for each Ark (curator maintained whitelist)
     mapping(address ark => mapping(address token => bool isSweepable))
         public sweepableTokens;
+
+    /// @notice Mapping of tokens that are not allowed to be swept for each Ark (e.g. receipt tokens) (governance maintained blacklist)
+    mapping(address ark => mapping(address token => bool isNonSweepable))
+        public nonSweepableTokens;
 
     /// @notice Mapping of custom auction parameters for each Ark and reward token
     mapping(address ark => mapping(address rewardToken => BaseAuctionParameters))
@@ -152,6 +156,16 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
 
     /// @inheritdoc IRaft
+    function setNonSweepableToken(
+        address ark,
+        address token,
+        bool isNonSweepable
+    ) external onlyGovernor {
+        nonSweepableTokens[ark][token] = isNonSweepable;
+        emit NonSweepableTokenSet(ark, token, isNonSweepable);
+    }
+
+    /// @inheritdoc IRaft
     function setArkAuctionParameters(
         address ark,
         address rewardToken,
@@ -223,6 +237,8 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
      * - Validate the Ark address and token addresses
      * - Handle potential failures in the Ark's sweep function
      * - Be aware of potential gas limitations when sweeping a large number of tokens
+     * - Validate that the token is not non-sweepable (governance maintained blacklist)
+     * - Validate that the token is sweepable (curator maintained whitelist)
      */
     function _sweep(
         address ark,
@@ -233,7 +249,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     {
         // Add validation for sweepable tokens
         for (uint256 i = 0; i < tokens.length; i++) {
-            if (!sweepableTokens[ark][tokens[i]]) {
+            if (!_isTokenSweepable(ark, tokens[i])) {
                 revert RaftTokenNotSweepable(ark, tokens[i]);
             }
         }
@@ -241,6 +257,20 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         for (uint256 i = 0; i < sweptTokens.length; i++) {
             obtainedTokens[ark][sweptTokens[i]] += sweptAmounts[i];
         }
+    }
+
+    /**
+    * @notice Checks if a token is sweepable for an Ark
+    * @dev Checks if the token is in the sweepableTokens mapping and not in the nonSweepableTokens mapping
+    * @param ark The address of the Ark
+    * @param token The address of the token
+    * @return True if the token is sweepable, false otherwise
+    */
+    function _isTokenSweepable(
+        address ark,
+        address token
+    ) internal view returns (bool) {
+        return sweepableTokens[ark][token] && !nonSweepableTokens[ark][token];
     }
 
     /**
