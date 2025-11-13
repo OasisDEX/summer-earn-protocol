@@ -101,14 +101,14 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         address[] calldata tokens,
         address receiver
     ) external onlyGovernor {
-        _sweep(ark, tokens);
-        for (uint256 i = 0; i < tokens.length; i++) {
+        (address[] memory sweptTokens, uint256[] memory sweptAmounts) = _sweep(
+            ark,
+            tokens
+        );
+        for (uint256 i = 0; i < sweptTokens.length; i++) {
             // Transfer the token to the caller (governor) who socialized the losses
             // no additional validation of the receiver is needed as the governor role is trusted
-            IERC20(tokens[i]).safeTransfer(
-                receiver,
-                IERC20(tokens[i]).balanceOf(address(this))
-            );
+            IERC20(sweptTokens[i]).safeTransfer(receiver, sweptAmounts[i]);
         }
         emit LossesSocialized(ark, tokens, receiver);
     }
