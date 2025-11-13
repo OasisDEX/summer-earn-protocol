@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
-import {Bps, toBps} from "../../../src/helpers/Bps.sol";
+import {Bps, toBps, fromBps} from "../../../src/helpers/Bps.sol";
 import {BpsUtils} from "../../../src/helpers/BpsUtils.sol";
 
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
@@ -530,9 +530,10 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
         uint256 receivedAmount = 0.94 ether; // 6% slippage (exceeds 0.5% default tolerance)
 
         // Calculate expected minimum amount using the library helper (0.5% tolerance)
-        uint256 expectedMinAmount = BpsUtils.applyBpsDiscount(
+        Bps tolerance = BpsUtils.fromIntegerBPS(50);
+        uint256 expectedMinAmount = BpsUtils.subtractBps(
             inputAmount,
-            toBps(50)
+            tolerance
         );
 
         // Setup adapter params
@@ -599,7 +600,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
                 IBridgeAdapter.SlippageExceedsTolerance.selector,
                 expectedMinAmount,
                 receivedAmount, // 0.94 ether
-                Bps.wrap(50) // 50 basis points (0.5%)
+                fromBps(tolerance)
             )
         );
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes

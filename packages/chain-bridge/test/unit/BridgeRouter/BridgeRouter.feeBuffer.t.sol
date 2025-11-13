@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
-import {Bps, BPS_FACTOR, toBps} from "../../../src/helpers/Bps.sol";
+import {Bps, toBps, fromBps} from "../../../src/helpers/Bps.sol";
 import {BpsUtils} from "../../../src/helpers/BpsUtils.sol";
 import {BridgeOptionsTestHelper} from "../../helpers/BridgeOptionsTestHelper.sol";
 
@@ -16,8 +16,8 @@ contract BridgeRouterFeeBufferTest is BridgeRouterSetup {
     function testGetFeeBufferBps_ReturnsDefaultValue() public {
         Bps bufferBps = router.getFeeBufferBps();
         assertEq(
-            Bps.unwrap(bufferBps),
-            100,
+            fromBps(bufferBps),
+            fromBps(BpsUtils.fromIntegerBPS(100)),
             "Default fee buffer should be 1% (100 bps)"
         );
     }
@@ -27,15 +27,15 @@ contract BridgeRouterFeeBufferTest is BridgeRouterSetup {
     //////////////////////////////////////////////////////////////*/
 
     function testSetFeeBufferBps_ByGovernor() public {
-        Bps newBufferBps = toBps(200); // 2%
+        Bps newBufferBps = BpsUtils.fromIntegerBPS(200); // 2%
 
         vm.prank(governor);
         router.setFeeBufferBps(newBufferBps);
 
         Bps currentBufferBps = router.getFeeBufferBps();
         assertEq(
-            Bps.unwrap(currentBufferBps),
-            200,
+            fromBps(currentBufferBps),
+            fromBps(newBufferBps),
             "Fee buffer should be updated to 2%"
         );
     }
@@ -73,38 +73,43 @@ contract BridgeRouterFeeBufferTest is BridgeRouterSetup {
     }
 
     function testSetFeeBufferBps_EmitsEvent() public {
-        Bps newBufferBps = toBps(250); // 2.5%
+        Bps initialBufferBps = router.getFeeBufferBps();
+
+        Bps newBufferBps = BpsUtils.fromIntegerBPS(250); // 2.5%
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit IBridgeRouter.FeeBufferUpdated(100, 250);
+        emit IBridgeRouter.FeeBufferUpdated(
+            fromBps(initialBufferBps),
+            fromBps(newBufferBps)
+        );
         router.setFeeBufferBps(newBufferBps);
     }
 
     function testSetFeeBufferBps_AllowsMinimumValue() public {
-        Bps minimumBufferBps = toBps(100); // 1% - minimum allowed
+        Bps minimumBufferBps = BpsUtils.fromIntegerBPS(100); // 1% - minimum allowed
 
         vm.prank(governor);
         router.setFeeBufferBps(minimumBufferBps);
 
         Bps currentBufferBps = router.getFeeBufferBps();
         assertEq(
-            Bps.unwrap(currentBufferBps),
-            100,
+            fromBps(currentBufferBps),
+            fromBps(minimumBufferBps),
             "Fee buffer should be set to minimum 1%"
         );
     }
 
     function testSetFeeBufferBps_AllowsMaximumValue() public {
-        Bps maximumBufferBps = toBps(1000); // 10% - maximum allowed
+        Bps maximumBufferBps = BpsUtils.fromIntegerBPS(1000); // 10% - maximum allowed
 
         vm.prank(governor);
         router.setFeeBufferBps(maximumBufferBps);
 
         Bps currentBufferBps = router.getFeeBufferBps();
         assertEq(
-            Bps.unwrap(currentBufferBps),
-            1000,
+            fromBps(currentBufferBps),
+            fromBps(maximumBufferBps),
             "Fee buffer should be set to maximum 10%"
         );
     }
@@ -114,9 +119,11 @@ contract BridgeRouterFeeBufferTest is BridgeRouterSetup {
     //////////////////////////////////////////////////////////////*/
 
     function testQuoteTransferAssets_AppliesFeeBuffer() public {
+        Bps bufferFee = BpsUtils.fromIntegerBPS(200);
+
         // Set custom fee buffer
         vm.prank(governor);
-        router.setFeeBufferBps(toBps(200)); // 2%
+        router.setFeeBufferBps(bufferFee);
 
         BridgeTypes.BridgeOptions memory options = BridgeOptionsTestHelper
             .defaultOptions(address(mockAdapter));
@@ -136,8 +143,8 @@ contract BridgeRouterFeeBufferTest is BridgeRouterSetup {
         );
 
         // MockAdapter returns 0.1 ether base fee
-        uint256 expectedNativeFee = BpsUtils.addBps(0.1 ether, toBps(200));
-        uint256 expectedTokenFee = BpsUtils.addBps(0, toBps(200));
+        uint256 expectedNativeFee = BpsUtils.addBps(0.1 ether, bufferFee);
+        uint256 expectedTokenFee = BpsUtils.addBps(0, bufferFee);
 
         assertEq(
             nativeFee,
@@ -152,9 +159,11 @@ contract BridgeRouterFeeBufferTest is BridgeRouterSetup {
     }
 
     function testQuoteSendMessage_AppliesFeeBuffer() public {
+        Bps bufferFee = BpsUtils.fromIntegerBPS(300);
+
         // Set custom fee buffer
         vm.prank(governor);
-        router.setFeeBufferBps(toBps(300)); // 3%
+        router.setFeeBufferBps(bufferFee); // 3%
 
         BridgeTypes.BridgeOptions memory options = BridgeOptionsTestHelper
             .defaultOptions(address(mockAdapter));
@@ -172,8 +181,8 @@ contract BridgeRouterFeeBufferTest is BridgeRouterSetup {
         );
 
         // MockAdapter returns 0.02 ether base fee for messages
-        uint256 expectedNativeFee = BpsUtils.addBps(0.02 ether, toBps(300));
-        uint256 expectedTokenFee = BpsUtils.addBps(0, toBps(300));
+        uint256 expectedNativeFee = BpsUtils.addBps(0.02 ether, bufferFee);
+        uint256 expectedTokenFee = BpsUtils.addBps(0, bufferFee);
 
         assertEq(
             nativeFee,
@@ -187,38 +196,32 @@ contract BridgeRouterFeeBufferTest is BridgeRouterSetup {
         );
     }
 
-    function testFeeBufferCalculation_WithDifferentValues() public {
+    function testFeeBufferCalculation_SetFee() public {
         uint256 baseFee = 1000; // 1000 wei base fee
+        Bps initialBps = BpsUtils.fromIntegerBPS(100); // 1%
 
-        // Test 1% buffer (default)
-        vm.prank(governor);
-        router.setFeeBufferBps(toBps(100));
-        uint256 bufferedFee1 = (baseFee * (BPS_FACTOR + 100)) / BPS_FACTOR;
-        assertEq(bufferedFee1, 1010, "1% buffer should add 10 wei");
+        assertEq(
+            fromBps(router.getFeeBufferBps()),
+            fromBps(initialBps),
+            "Initial buffer should be 1%"
+        );
 
-        // Test 2% buffer
-        vm.prank(governor);
-        router.setFeeBufferBps(toBps(200));
-        uint256 bufferedFee2 = (baseFee * (BPS_FACTOR + 200)) / BPS_FACTOR;
-        assertEq(bufferedFee2, 1020, "2% buffer should add 20 wei");
+        Bps newBps = BpsUtils.fromIntegerBPS(1000); // 10%
 
-        // Test 5% buffer
-        vm.prank(governor);
-        router.setFeeBufferBps(toBps(500));
-        uint256 bufferedFee5 = (baseFee * (BPS_FACTOR + 500)) / BPS_FACTOR;
-        assertEq(bufferedFee5, 1050, "5% buffer should add 50 wei");
+        vm.expectEmit(true, true, true, true);
+        emit IBridgeRouter.FeeBufferUpdated(
+            fromBps(initialBps),
+            fromBps(newBps)
+        );
 
-        // Test 10% buffer (maximum)
         vm.prank(governor);
-        router.setFeeBufferBps(toBps(1000));
-        uint256 bufferedFee10 = (baseFee * (BPS_FACTOR + 1000)) / BPS_FACTOR;
-        assertEq(bufferedFee10, 1100, "10% buffer should add 100 wei");
+        router.setFeeBufferBps(newBps);
     }
 
     function testFeeBufferCalculation_WithZeroBaseFee() public {
         // Test that zero base fee remains zero regardless of buffer
         vm.prank(governor);
-        router.setFeeBufferBps(toBps(500)); // 5% buffer
+        router.setFeeBufferBps(BpsUtils.fromIntegerBPS(500)); // 5% buffer
 
         BridgeTypes.BridgeOptions memory options = BridgeOptionsTestHelper
             .defaultOptions(address(mockAdapter));
@@ -250,7 +253,7 @@ contract BridgeRouterFeeBufferTest is BridgeRouterSetup {
     function testFeeBufferCalculation_WithLargeBaseFee() public {
         // Test with large base fee to ensure no overflow
         vm.prank(governor);
-        router.setFeeBufferBps(toBps(1000)); // 10% buffer
+        router.setFeeBufferBps(BpsUtils.fromIntegerBPS(1000)); // 10% buffer
 
         BridgeTypes.BridgeOptions memory options = BridgeOptionsTestHelper
             .defaultOptions(address(mockAdapter));
@@ -276,7 +279,10 @@ contract BridgeRouterFeeBufferTest is BridgeRouterSetup {
             options
         );
 
-        uint256 expectedFee = BpsUtils.addBps(largeFee, toBps(1000));
+        uint256 expectedFee = BpsUtils.addBps(
+            largeFee,
+            BpsUtils.fromIntegerBPS(1000)
+        );
         assertEq(
             nativeFee,
             expectedFee,

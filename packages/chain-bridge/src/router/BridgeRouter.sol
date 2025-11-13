@@ -21,7 +21,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
-import {Bps, BPS_FACTOR, BPS_1, BPS_10} from "../helpers/Bps.sol";
+import {Bps} from "../helpers/Bps.sol";
 import {BpsUtils} from "../helpers/BpsUtils.sol";
 
 import {BridgeRouterValidationBase} from "./base/BridgeRouterValidationBase.sol";
@@ -51,6 +51,13 @@ contract BridgeRouter is
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
     /*//////////////////////////////////////////////////////////////
+                            CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+    Bps immutable BPS_100;
+    Bps immutable BPS_1000;
+    Bps immutable BPS_10000;
+
+    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
@@ -76,8 +83,12 @@ contract BridgeRouter is
         address accessManager,
         address _registry
     ) ProtocolAccessManaged(accessManager) CrossChainConfigManaged(_registry) {
+        BPS_100 = BpsUtils.fromIntegerBPS(100); // 1 BPS
+        BPS_1000 = BpsUtils.fromIntegerBPS(1000); // 10 BPS
+        BPS_10000 = BpsUtils.fromIntegerBPS(10000); //
+
         // Initialize fee buffer to 1% (100 basis points)
-        feeBufferBps = BPS_1;
+        feeBufferBps = BPS_100;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -452,7 +463,7 @@ contract BridgeRouter is
     /// @inheritdoc IBridgeRouter
     function setFeeBufferBps(Bps newBufferBps) external onlyGovernor {
         // Validate buffer is within allowed range (1% to 10%)
-        if (newBufferBps < BPS_1 || newBufferBps > BPS_10) {
+        if (newBufferBps < BPS_100 || newBufferBps > BPS_1000) {
             revert InvalidFeeBuffer();
         }
 

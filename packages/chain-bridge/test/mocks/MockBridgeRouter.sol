@@ -558,7 +558,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     }
 
     // Add missing interface methods
-    function getFeeBufferBps() external view returns (Bps bufferBps) {
+    function getFeeBufferBps() external pure returns (Bps bufferBps) {
         return toBps(100); // Default 1% buffer
     }
 
