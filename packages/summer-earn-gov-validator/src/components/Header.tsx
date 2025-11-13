@@ -1,9 +1,9 @@
 'use client'
 
-import { ConnectButton } from './ConnectButton'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+import { ConnectButton } from './ConnectButton'
 import { DarkModeToggle } from './DarkModeToggle'
 
 export function Header() {
