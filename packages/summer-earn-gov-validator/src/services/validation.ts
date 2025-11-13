@@ -167,6 +167,10 @@ const KNOWN_ABIS = {
     'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration) external',
   setRewardsDuration:
     'function setRewardsDuration(address rewardToken, uint256 _rewardsDuration) external',
+  // configuration manager functions
+  setRaft: 'function setRaft(address raft) external',
+  // raft functions
+  sweep: 'function sweep(address ark,address[] tokens) external',
 
   // ERC20 functions
   approve: 'function approve(address spender, uint256 amount) external returns (bool)',
@@ -185,7 +189,6 @@ const KNOWN_ABIS = {
     'function setProposalMaxDuration(uint256 newProposalMaxDuration) external',
   updateDelay: 'function updateDelay(uint256 newDelay) external',
   addToWhitelist: 'function addToWhitelist(address account) external',
-  setRaft: 'function setRaft(address raft) external',
 
   // fleet commander functions
   setFleetTokenTransferability: 'function setFleetTokenTransferability() external',
