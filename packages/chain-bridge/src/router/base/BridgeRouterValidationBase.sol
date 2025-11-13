@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../../libraries/BridgeTypes.sol";
-import {IBridgeAdapter} from "../../interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapter} from "../../interfaces/IBaseBridgeAdapter.sol";
 import {ICrossChainReceiver} from "../../interfaces/ICrossChainReceiver.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IBridgeRouter} from "../../interfaces/IBridgeRouter.sol";
@@ -71,7 +71,7 @@ abstract contract BridgeRouterValidationBase is CrossChainConfigManaged {
         BridgeTypes.OperationType operationType
     ) internal view {
         if (adapter == address(0)) revert IBridgeRouter.NoSuitableAdapter();
-        if (!IBridgeAdapter(adapter).supportsOperation(operationType)) {
+        if (!IBaseBridgeAdapter(adapter).supportsOperation(operationType)) {
             revert IBridgeRouter.UnsupportedAdapterOperation();
         }
     }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapter} from "../interfaces/IBaseBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 
@@ -403,12 +403,11 @@ contract BridgeRouter is
 
         // Check that adapter is a contract
         if (adapter.code.length == 0) revert InvalidParams(); // prevent EOA registration
-
-        // Require ERC-165 support for IBridgeAdapter
+        // Require ERC-165 support for IBaseBridgeAdapter
         if (
             !ERC165Checker.supportsInterface(
                 adapter,
-                type(IBridgeAdapter).interfaceId
+                type(IBaseBridgeAdapter).interfaceId
             )
         ) {
             revert InvalidParams();

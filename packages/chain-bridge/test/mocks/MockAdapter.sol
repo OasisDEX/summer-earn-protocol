@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {IAssetAdapter} from "../../src/interfaces/IAssetAdapter.sol";
 import {IMessageAdapter} from "../../src/interfaces/IMessageAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
@@ -11,12 +10,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {console} from "forge-std/console.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 
-contract MockAdapter is
-    BaseBridgeAdapter,
-    IAssetAdapter,
-    IMessageAdapter,
-    IBridgeAdapter
-{
+contract MockAdapter is BaseBridgeAdapter, IAssetAdapter, IMessageAdapter {
     using SafeERC20 for IERC20;
 
     // Add a fee multiplier state variable with a default value of 100 (100%)
@@ -163,10 +157,14 @@ contract MockAdapter is
         return supportedChains[chainId];
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function supportsOperation(
+    /**
+     * @notice Override the base class implementation to define MockAdapter-specific operation support
+     * @param operationType The operation type to check
+     * @return true if the operation is supported
+     */
+    function _supportsOperation(
         BridgeTypes.OperationType operationType
-    ) external view returns (bool) {
+    ) internal view override returns (bool) {
         return supportedOperations[operationType];
     }
 

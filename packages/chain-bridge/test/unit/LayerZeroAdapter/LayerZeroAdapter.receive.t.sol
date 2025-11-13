@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 
 import {MockCrossChainReceiver} from "../../mocks/MockCrossChainReceiver.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
@@ -86,7 +86,9 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
 
         bytes memory tooShortPayload = hex"01";
 
-        vm.expectRevert(IBridgeAdapter.UnsupportedMessageType.selector);
+        vm.expectRevert(
+            IBaseBridgeAdapterErrors.UnsupportedMessageType.selector
+        );
 
         adapterA.lzReceiveTest(
             origin,
