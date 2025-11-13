@@ -1834,7 +1834,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         raftContract.sweepAndStartAuction(address(mockArk1), tokensToSweep);
         vm.stopPrank();
     }
-    
+
     function test_NonCuratorCannotSetSweepableToken() public {
         vm.prank(address(0xdead));
         vm.expectRevert(

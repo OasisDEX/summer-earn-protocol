@@ -260,12 +260,12 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
 
     /**
-    * @notice Checks if a token is sweepable for an Ark
-    * @dev Checks if the token is in the sweepableTokens mapping and not in the nonSweepableTokens mapping
-    * @param ark The address of the Ark
-    * @param token The address of the token
-    * @return True if the token is sweepable, false otherwise
-    */
+     * @notice Checks if a token is sweepable for an Ark
+     * @dev Checks if the token is in the sweepableTokens mapping and not in the nonSweepableTokens mapping
+     * @param ark The address of the Ark
+     * @param token The address of the token
+     * @return True if the token is sweepable, false otherwise
+     */
     function _isTokenSweepable(
         address ark,
         address token
