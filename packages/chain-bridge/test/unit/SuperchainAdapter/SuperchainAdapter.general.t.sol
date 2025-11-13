@@ -5,7 +5,6 @@ import {SuperchainAdapterSetupTest} from "./SuperchainAdapter.setup.t.sol";
 import {SuperchainAdapter} from "../../../src/adapters/SuperchainAdapter.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract SuperchainAdapterGeneralTest is SuperchainAdapterSetupTest {
@@ -162,7 +161,9 @@ contract SuperchainAdapterGeneralTest is SuperchainAdapterSetupTest {
         });
 
         vm.expectRevert(
-            abi.encodeWithSelector(IBaseBridgeAdapterErrors.UnsupportedAsset.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.UnsupportedAsset.selector
+            )
         );
         adapterA.estimateTransferAssets(params, options);
     }

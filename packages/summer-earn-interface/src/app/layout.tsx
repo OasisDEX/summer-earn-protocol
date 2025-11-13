@@ -1,5 +1,5 @@
-import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { Inter } from 'next/font/google'
+import { ConnectButton } from '../components/ConnectButton'
 import './globals.css'
 import { Providers } from './providers'
 

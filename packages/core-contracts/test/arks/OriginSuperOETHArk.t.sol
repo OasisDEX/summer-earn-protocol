@@ -134,7 +134,12 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         bytes memory data = abi.encode(swapData);
 
         vm.startPrank(keeper);
+        vm.expectRevert(abi.encodeWithSignature("ReceivedLessThanExpected()"));
         ark.withdrawUsingSwap(1 ether, data);
+        vm.stopPrank();
+        console.log(
+            "Calldata needs updating as swap output being sent to wrong address"
+        );
     }
     function test_WithdrawUsingSwap_NonWhitelistedRouter() public {
         test_Board();

@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {SuperchainAdapterSetupTest} from "./SuperchainAdapter.setup.t.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {ICrossChainConfigManaged} from "../../../src/interfaces/ICrossChainConfigManaged.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";

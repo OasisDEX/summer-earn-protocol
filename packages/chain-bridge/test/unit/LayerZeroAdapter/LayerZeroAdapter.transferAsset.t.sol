@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {IProtocolFeeTokenHandlerErrors} from "../../../src/interfaces/IProtocolFeeTokenHandlerErrors.sol";
 import {ICrossChainConfigManaged} from "../../../src/interfaces/ICrossChainConfigManaged.sol";

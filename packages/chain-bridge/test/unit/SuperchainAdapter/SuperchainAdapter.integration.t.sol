@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {SuperchainAdapterSetupTest} from "./SuperchainAdapter.setup.t.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeMessagingHelper} from "../../../src/libraries/BridgeMessagingHelper.sol";
 
@@ -383,7 +382,9 @@ contract SuperchainAdapterIntegrationTest is SuperchainAdapterSetupTest {
 
         vm.prank(address(routerA));
         vm.expectRevert(
-            abi.encodeWithSelector(IBaseBridgeAdapterErrors.UnsupportedAsset.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.UnsupportedAsset.selector
+            )
         );
         adapterA.transferAsset(keccak256("test"), params, options);
 

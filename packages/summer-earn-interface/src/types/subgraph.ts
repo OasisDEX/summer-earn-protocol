@@ -52,3 +52,38 @@ export interface HourlyInterestRate {
   product: Product
   interestRates: InterestRate[]
 }
+
+// Institutions subgraph types
+export interface Institution {
+  id: string
+  configurationManager: string
+  protocolAccessManager: string
+  admiralsQuarters: string
+  harborCommand: string
+  active: boolean
+  createdTimestamp: string
+  createdBlockNumber: string
+  vaults: {
+    id: string
+  }[]
+}
+
+export interface RoleEntity {
+  id: string
+  name: string
+  owner: string
+  targetContract: string
+  accessController: string
+  createdTimestamp: string
+  createdBlockNumber: string
+  institution: { id: string }
+}
+
+export interface VaultEntity {
+  id: string
+  name: string
+  inputToken: { id: string }
+  createdTimestamp: string
+  createdBlockNumber: string
+  institution: { id: string }
+}

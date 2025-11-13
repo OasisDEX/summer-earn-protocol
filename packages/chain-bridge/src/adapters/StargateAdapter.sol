@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {IStargateAdapter} from "../interfaces/IStargateAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
@@ -24,11 +23,10 @@ import {LayerZeroComposeHelper} from "../helpers/LayerZeroComposeHelper.sol";
 /**
  * @title StargateAdapter
  * @notice Adapter for Stargate V2 Protocol - all V2 contracts are OFT-enabled
- * @dev Implements IAssetAdapter and IBridgeAdapter interfaces and connects to Stargate V2 for efficient cross-chain transfers
+ * @dev Implements IAssetAdapter interface and connects to Stargate V2 for efficient cross-chain transfers
  */
 contract StargateAdapter is
     IAssetAdapter,
-    IBridgeAdapter,
     IStargateAdapter,
     ILayerZeroComposer,
     BaseBridgeAdapter
@@ -77,6 +75,7 @@ contract StargateAdapter is
         address _accessManager,
         address _lzEndpoint
     ) BaseBridgeAdapter(_crossChainRegistry, _accessManager) {
+        // Validate LayerZero endpoint
         if (_lzEndpoint == address(0)) revert InvalidLzEndpoint();
 
         LZ_ENDPOINT = _lzEndpoint;
@@ -91,6 +90,7 @@ contract StargateAdapter is
      * @param _slippageBps New slippage tolerance in basis points (e.g., 50 = 0.5%)
      */
     function setSlippageTolerance(Bps _slippageBps) external onlyGovernor {
+        // Validate slippage bounds
         if (
             _slippageBps < MIN_SLIPPAGE_BPS || _slippageBps > MAX_SLIPPAGE_BPS
         ) {
@@ -109,6 +109,7 @@ contract StargateAdapter is
         address asset,
         address stargateContract
     ) external onlyGovernor {
+        // Basic validations
         if (asset == address(0)) revert InvalidAssetAddress();
         if (stargateContract == address(0)) revert InvalidStargateContract();
 
@@ -116,6 +117,7 @@ contract StargateAdapter is
         try IStargateV2(stargateContract).stargateType() returns (
             IStargateV2.StargateType stargateTypeValue
         ) {
+            // Only Pool type is supported for asset transfers
             if (stargateTypeValue != IStargateV2.StargateType.Pool) {
                 revert InvalidStargateType();
             }
@@ -123,11 +125,13 @@ contract StargateAdapter is
             revert InvalidStargateType();
         }
 
+        // Verify that the Stargate pool token matches the provided asset
         address stargatePoolToken = IStargateV2(stargateContract).token();
         if (stargatePoolToken != asset) {
             revert InvalidStargatePoolToken(asset, stargatePoolToken);
         }
 
+        // Register the asset and its Stargate contract
         assetToStargateContract[asset] = stargateContract;
         stargateContractToAsset[stargateContract] = asset;
 
@@ -164,6 +168,7 @@ contract StargateAdapter is
             params.amount
         );
 
+        // Send tokens via Stargate
         _executeSendToken(operationId, params, providedFee, options);
 
         // Emit the TransferInitiated event
@@ -177,7 +182,11 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Execute the actual sendToken call with consolidated logic
+     * @notice Execute the actual sendToken call with consolidated logic
+     * @param operationId The operation ID for this transfer
+     * @param params Transfer parameters
+     * @param providedFee Native fee provided by caller
+     * @param options Bridge options
      */
     function _executeSendToken(
         bytes32 operationId,
@@ -208,6 +217,7 @@ contract StargateAdapter is
             payInToken
         );
 
+        // Execute payment based on fee mode
         if (payInToken) {
             _executeTokenPayment(
                 operationId,
@@ -273,7 +283,7 @@ contract StargateAdapter is
         );
 
         // Refund any provided native buffer fully (since nativeFee == 0)
-        _refundNative(params.refundAddress, providedFee);
+        _refundExcessNative(params.refundAddress, providedFee);
     }
 
     /**
@@ -305,7 +315,7 @@ contract StargateAdapter is
 
         // Refund any unused native value (buffer) back to the designated refund address
         uint256 refundAmount = providedFee - messagingFee.nativeFee;
-        _refundNative(params.refundAddress, refundAmount);
+        _refundExcessNative(params.refundAddress, refundAmount);
     }
 
     /// @inheritdoc IAssetAdapter
@@ -342,6 +352,7 @@ contract StargateAdapter is
             stargateContract
         );
 
+        // Determine fee payment mode
         bool payInToken = options.payInProtocolToken &&
             protocolFeeToken != address(0);
         MessagingFee memory msgFee = IStargateV2(stargateContract).quoteSend(
@@ -349,19 +360,7 @@ contract StargateAdapter is
             payInToken
         );
 
-        // If paying in protocol token, validate that provided amount matches required amount
-        if (payInToken && options.feeTokenAmount != msgFee.lzTokenFee) {
-            revert InsufficientFee(msgFee.lzTokenFee, options.feeTokenAmount);
-        }
-
         return (msgFee.nativeFee, msgFee.lzTokenFee);
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsOperation(
-        BridgeTypes.OperationType operationType
-    ) external pure override returns (bool) {
-        return _supportsOperation(operationType);
     }
 
     /**
@@ -372,6 +371,7 @@ contract StargateAdapter is
     function _supportsOperation(
         BridgeTypes.OperationType operationType
     ) internal pure override returns (bool) {
+        // Only TRANSFER_ASSET operation is supported
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
 

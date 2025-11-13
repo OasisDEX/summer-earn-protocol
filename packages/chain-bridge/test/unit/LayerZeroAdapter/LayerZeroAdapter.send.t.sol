@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {MockCrossChainReceiver} from "../../mocks/MockCrossChainReceiver.sol";
@@ -238,6 +237,15 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         // Generate a fake operation ID
         bytes32 operationId = keccak256(abi.encode("fake-operation"));
 
+        // Should revert with InsufficientMsgValue since we only provide 0.1 ether
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InsufficientMsgValue.selector,
+                uint128(0.5 ether),
+                0.1 ether
+            )
+        );
+
         BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
             .ExecuteSendMessageParams({
                 destinationChainId: CHAIN_ID_B,
@@ -257,7 +265,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBridgeAdapter.InsufficientMsgValue.selector,
+                IBaseBridgeAdapterErrors.InsufficientMsgValue.selector,
                 totalRequired, // Actual required amount (fee + msgValue)
                 0.005 ether // msg.value provided
             )

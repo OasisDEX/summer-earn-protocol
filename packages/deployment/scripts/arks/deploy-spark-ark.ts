@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 /**
  * Main function to deploy a SparkArk.
@@ -114,6 +114,19 @@ async function deploySparkArkContract(
   const sparkPool = validateAddress(config.protocolSpecific.spark.pool, 'spark pool')
   const sparkRewards = validateAddress(config.protocolSpecific.spark.rewards, 'spark rewards')
 
+  // Create and validate ark details
+  const arkDetails = {
+    protocol: 'Spark',
+    type: 'Lending',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: sparkPool,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+  validateArkDetails(arkDetails, 'Spark ark details')
+
   return (await hre.ignition.deploy(createSparkArkModule(moduleName), {
     parameters: {
       [moduleName]: {
@@ -121,14 +134,7 @@ async function deploySparkArkContract(
         rewardsController: sparkRewards,
         arkParams: {
           name: `Spark-${userInput.token.symbol}-${chainId}`,
-          details: JSON.stringify({
-            protocol: 'Spark',
-            type: 'Lending',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: sparkPool,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,

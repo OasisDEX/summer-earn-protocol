@@ -5,7 +5,7 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeMessagingHelper} from "../libraries/BridgeMessagingHelper.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -28,7 +28,7 @@ import {IL2ToL2CrossDomainMessenger} from "../interfaces/IL2ToL2CrossDomainMesse
  * This eliminates the need for manual keeper intervention, providing automated delivery
  * similar to StargateAdapter's lzCompose pattern.
  */
-contract SuperchainAdapter is BaseBridgeAdapter, IAssetAdapter, IBridgeAdapter {
+contract SuperchainAdapter is BaseBridgeAdapter, IAssetAdapter {
     using SafeERC20 for IERC20;
     ISuperchainTokenBridge public immutable SUPERCHAIN_BRIDGE;
     IL2ToL2CrossDomainMessenger public immutable L2_TO_L2_MESSENGER;
@@ -152,10 +152,10 @@ contract SuperchainAdapter is BaseBridgeAdapter, IAssetAdapter, IBridgeAdapter {
                         BRIDGE ADAPTER IMPLEMENTATION
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IBridgeAdapter
-    function supportsOperation(
+    /// @inheritdoc BaseBridgeAdapter
+    function _supportsOperation(
         BridgeTypes.OperationType operationType
-    ) external pure returns (bool) {
+    ) internal pure override returns (bool) {
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
 

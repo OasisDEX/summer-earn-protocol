@@ -13,6 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateArkDetails } from '../helpers/validation'
 
 export interface SiloManagedVaultArkUserInput extends BaseArkParams {
   vaultId: string
@@ -123,21 +124,29 @@ async function deploySiloManagedVaultArkContract(
 
   const protocol = 'Silo'
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: protocol,
+    type: 'SiloManagedVault',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: userInput.vaultId,
+    chainId: chainId,
+    vaultName: userInput.vaultName,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'SiloManagedVault ark details')
+
   return (await hre.ignition.deploy(createSiloManagedVaultArkModule(moduleName), {
     parameters: {
       [moduleName]: {
         vault: userInput.vaultId,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: protocol,
-            type: 'SiloManagedVault',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: userInput.vaultId,
-            chainId: chainId,
-            vaultName: userInput.vaultName,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,

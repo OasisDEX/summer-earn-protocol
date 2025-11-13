@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {SuperchainAdapterSetupTest} from "./SuperchainAdapter.setup.t.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {BridgeMessagingHelper} from "../../../src/libraries/BridgeMessagingHelper.sol";
 
@@ -185,7 +184,9 @@ contract SuperchainAdapterRelayTest is SuperchainAdapterSetupTest {
         // Should revert when asset is not supported
         vm.prank(address(l2ToL2MessengerB));
         vm.expectRevert(
-            abi.encodeWithSelector(IBaseBridgeAdapterErrors.UnsupportedAsset.selector)
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.UnsupportedAsset.selector
+            )
         );
         adapterB.relayMessage(message);
     }

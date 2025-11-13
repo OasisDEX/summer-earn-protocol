@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
 import {IAdmiralsQuarters} from "../interfaces/IAdmiralsQuarters.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
@@ -32,8 +32,6 @@ import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
  *      with integrated swapping functionality using 1inch Router.
  * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas
  * efficiency.
- * @notice When it was developed the OpenZeppelin version was 5.0.2 ( hence the use of locally stored
- * ReentrancyGuardTransient )
  *
  * @dev How to use this contract:
  * 1. Deposit tokens: Use `depositTokens` to deposit ERC20 tokens into the contract.
@@ -330,7 +328,7 @@ contract AdmiralsQuarters is
     ) internal view {
         if (amount != msgValue) revert InvalidNativeAmount();
         // https://github.com/Uniswap/v3-periphery/issues/52
-        if (msgValue > address(this).balance) revert InvalidNativeAmount();
+        if (msgValue > address(this).balance) revert InsufficientNativeAmount();
     }
 
     /// @inheritdoc IAdmiralsQuarters

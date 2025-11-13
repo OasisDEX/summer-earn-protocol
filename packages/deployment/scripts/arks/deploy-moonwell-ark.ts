@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 /**
  * Main function to deploy a MoonwellArk.
@@ -125,20 +125,26 @@ async function deployMoonwellArkContract(
     'Moonwell mToken',
   )
 
+  // Create and validate ark details
+  const arkDetails = {
+    protocol: 'Moonwell',
+    type: 'Lending',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: mToken,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+  validateArkDetails(arkDetails, 'Moonwell ark details')
+
   return (await hre.ignition.deploy(createMoonwellArkModule(moduleName), {
     parameters: {
       [moduleName]: {
         mToken: mToken,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: 'Moonwell',
-            type: 'Lending',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: mToken,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,

@@ -7,7 +7,6 @@ import {ILayerZeroAdapter} from "../../../src/interfaces/ILayerZeroAdapter.sol";
 import {MockOFT} from "../../mocks/MockOFT.sol";
 import {MockFleetProxy} from "../../mocks/MockFleetProxy.sol";
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../../../src/interfaces/IBridgeRouter.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {LayerZeroComposeHelper} from "../../../src/helpers/LayerZeroComposeHelper.sol";

@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {LayerZeroComposeHelper} from "../helpers/LayerZeroComposeHelper.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {ILayerZeroAdapter} from "../interfaces/ILayerZeroAdapter.sol";
@@ -29,12 +28,11 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
- * @dev Implements IMessageAdapter and IBridgeAdapter interfaces and connects to LayerZero's messaging service using OApp standard
+ * @dev Implements IMessageAdapter interface and connects to LayerZero's messaging service using OApp standard
  */
 contract LayerZeroAdapter is
     OApp,
     IMessageAdapter,
-    IBridgeAdapter,
     IAssetAdapter,
     ILayerZeroComposer,
     ILayerZeroAdapter,
@@ -341,6 +339,9 @@ contract LayerZeroAdapter is
         // Cache LayerZero EID to avoid redundant storage reads
         uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
 
+        // Validate fee requirements using base adapter helper
+        _validateFeeRequirements(options, msg.value);
+
         // Create payload using BridgeMessagingHelper
         bytes memory payload = _createMessagePayload(
             BridgeMessagingHelper.createRelayedMessageParams(
@@ -461,13 +462,6 @@ contract LayerZeroAdapter is
     /*//////////////////////////////////////////////////////////////
                         PUBLIC INTERFACE
     //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsOperation(
-        BridgeTypes.OperationType operationType
-    ) public pure override returns (bool) {
-        return _supportsOperation(operationType);
-    }
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
@@ -766,7 +760,7 @@ contract LayerZeroAdapter is
         // Refund any excess native value (msg.value - options.msgValue)
         if (msg.value > options.msgValue) {
             uint256 excess = msg.value - options.msgValue;
-            _refundNative(params.refundAddress, excess);
+            _refundExcessNative(params.refundAddress, excess);
         }
 
         // Emit protocol fee spent event
@@ -805,7 +799,7 @@ contract LayerZeroAdapter is
         // Refund excess native value
         if (msg.value > totalRequired) {
             uint256 excess = msg.value - totalRequired;
-            _refundNative(params.refundAddress, excess);
+            _refundExcessNative(params.refundAddress, excess);
         }
     }
 }

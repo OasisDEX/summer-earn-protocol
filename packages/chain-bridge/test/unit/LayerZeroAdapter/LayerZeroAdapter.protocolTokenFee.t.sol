@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
-import {IBridgeAdapter} from "../../../src/interfaces/IBridgeAdapter.sol";
 import {IProtocolFeeTokenHandlerErrors} from "../../../src/interfaces/IProtocolFeeTokenHandlerErrors.sol";
 import {MockOFT} from "../../mocks/MockOFT.sol";
 import {LayerZeroAdapter} from "../../../src/adapters/LayerZeroAdapter.sol";
@@ -566,7 +565,7 @@ contract LayerZeroAdapterProtocolTokenFeeTest is
         // Should revert when native fee is not zero in token payment mode
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBridgeAdapter.InsufficientFee.selector,
+                IBaseBridgeAdapterErrors.InsufficientFee.selector,
                 0,
                 0.01 ether
             )

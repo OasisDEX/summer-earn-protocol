@@ -9,7 +9,7 @@ import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
-import { validateAddress } from '../helpers/validation'
+import { validateAddress, validateArkDetails } from '../helpers/validation'
 
 export interface FluidLiteArkUserInput extends BaseArkParams {
   token: { address: Address; symbol: Token }
@@ -126,6 +126,26 @@ async function deployFluidLiteArkContract(
     'Fluid Lite withdrawal queue',
   )
 
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: 'Fluid',
+
+    type: 'Lite',
+
+    asset: userInput.token.address,
+
+    marketAsset: userInput.token.address,
+
+    pool: vault,
+
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'FluidLite ark details')
+
   return (await hre.ignition.deploy(createFluidLiteArkModule(moduleName), {
     parameters: {
       [moduleName]: {
@@ -136,14 +156,7 @@ async function deployFluidLiteArkContract(
         withdrawalQueue,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: 'Fluid',
-            type: 'Lite',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: vault,
-            chainId: chainId,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
