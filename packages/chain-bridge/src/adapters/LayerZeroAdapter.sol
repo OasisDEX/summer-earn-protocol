@@ -2,8 +2,6 @@
 pragma solidity 0.8.28;
 
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
-import {LayerZeroMessagingHelper} from "../helpers/LayerZeroMessagingHelper.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {ILayerZeroAdapter} from "../interfaces/ILayerZeroAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
@@ -22,12 +20,11 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
- * @dev Implements IMessageAdapter and IBridgeAdapter interfaces and connects to LayerZero's messaging service using OApp standard
+ * @dev Implements IMessageAdapter interface and connects to LayerZero's messaging service using OApp standard
  */
 contract LayerZeroAdapter is
     OApp,
     IMessageAdapter,
-    IBridgeAdapter,
     ILayerZeroAdapter,
     BaseBridgeAdapter
 {
@@ -185,9 +182,9 @@ contract LayerZeroAdapter is
         uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
         bytes32 dummyBytes32 = bytes32(uint256(uint160(params.target)));
 
-        // Create realistic payload using LayerZeroMessagingHelper
+        // Create realistic payload using BridgeMessagingHelper
         bytes memory payload = _createMessagePayload(
-            LayerZeroMessagingHelper.createRelayedMessageParams(
+            BridgeMessagingHelper.createRelayedMessageParams(
                 params,
                 dummyBytes32
             )
@@ -215,12 +212,12 @@ contract LayerZeroAdapter is
         // Cache LayerZero EID to avoid redundant storage reads
         uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
 
-        // Validate fee requirements using helper
-        LayerZeroMessagingHelper.validateFeeRequirements(options, msg.value);
+        // Validate fee requirements using base adapter helper
+        _validateFeeRequirements(options, msg.value);
 
-        // Create payload using LayerZeroMessagingHelper
+        // Create payload using BridgeMessagingHelper
         bytes memory payload = _createMessagePayload(
-            LayerZeroMessagingHelper.createRelayedMessageParams(
+            BridgeMessagingHelper.createRelayedMessageParams(
                 params,
                 operationId
             )
@@ -261,13 +258,6 @@ contract LayerZeroAdapter is
     /*//////////////////////////////////////////////////////////////
                         PUBLIC INTERFACE
     //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsOperation(
-        BridgeTypes.OperationType operationType
-    ) public pure override returns (bool) {
-        return _supportsOperation(operationType);
-    }
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS

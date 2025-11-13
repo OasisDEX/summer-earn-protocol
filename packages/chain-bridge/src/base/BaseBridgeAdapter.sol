@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBaseBridgeAdapter} from "../interfaces/IBaseBridgeAdapter.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
@@ -19,20 +18,15 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
  *
  * ## Interface Architecture
  *
- * The bridge adapter system follows a three-tier interface hierarchy:
+ * The bridge adapter system follows a two-tier interface hierarchy:
  *
  * ### 1. Base Layer (`IBaseBridgeAdapter`)
  * - **Purpose**: Consolidates error and event definitions for base functionality
- * - **Contains**: `IBaseBridgeAdapterErrors` + `IBaseBridgeAdapterEvents`
+ * - **Contains**: `IBaseBridgeAdapterErrors` + `IBaseBridgeAdapterEvents` + core methods like `supportsOperation()`
  * - **Used by**: All bridge adapters for common error handling and event emission
- *
- * ### 2. Core Layer (`IBridgeAdapter`)
- * - **Purpose**: Defines core bridge functionality (estimation, operation support)
- * - **Contains**: Core methods like `estimateTransferAssets()`, `supportsOperation()`
- * - **Used by**: All bridge adapters + BridgeRouter for adapter registration
  * - **ERC165**: Required for `BridgeRouter.registerAdapter()` security checks
  *
- * ### 3. Capability Layer (`IAssetAdapter`, `IMessageAdapter`)
+ * ### 2. Capability Layer (`IAssetAdapter`, `IMessageAdapter`)
  * - **Purpose**: Defines specific capabilities (asset transfers vs messaging)
  * - **IAssetAdapter**: For adapters that can transfer assets (e.g., StargateAdapter)
  * - **IMessageAdapter**: For adapters that can send messages (e.g., LayerZeroAdapter)
@@ -50,7 +44,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
  * - **Peer Validation**: Ensures only trusted peer adapters can send cross-chain messages
  * - **Token Recovery**: Governance-controlled token recovery functionality for stuck assets
  * - **Message Encoding/Decoding**: Utilities for encoding and decoding cross-chain messages
- * - **ERC165 Support**: Reports `IBridgeAdapter` and `IERC165` interfaces for runtime validation
+ * - **ERC165 Support**: Reports `IBaseBridgeAdapter` and `IERC165` interfaces for runtime validation
  *
  * @dev This contract is abstract and must be extended by concrete bridge implementations
  */
@@ -164,7 +158,7 @@ abstract contract BaseBridgeAdapter is
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual returns (bool) {
-        return (interfaceId == type(IBridgeAdapter).interfaceId ||
+        return (interfaceId == type(IBaseBridgeAdapter).interfaceId ||
             interfaceId == type(IERC165).interfaceId);
     }
 
@@ -191,7 +185,7 @@ abstract contract BaseBridgeAdapter is
      */
     modifier withSupportedOperation(BridgeTypes.OperationType operationType) {
         if (!_supportsOperation(operationType)) {
-            revert IBridgeAdapter.OperationNotSupported();
+            revert OperationNotSupported();
         }
         _;
     }
@@ -202,9 +196,21 @@ abstract contract BaseBridgeAdapter is
      */
     modifier withSupportedDestinationChain(uint16 destinationChainId) {
         if (chainToExternalId[destinationChainId] == 0) {
-            revert IBridgeAdapter.UnsupportedChain();
+            revert UnsupportedChain();
         }
         _;
+    }
+
+    /**
+     * @notice Check if an adapter supports a specific operation type
+     * @param operationType Type of operation to check support for
+     * @return Whether the adapter supports the operation type
+     * @dev This method delegates to the internal _supportsOperation method
+     */
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) external view returns (bool) {
+        return _supportsOperation(operationType);
     }
 
     /**
@@ -321,7 +327,7 @@ abstract contract BaseBridgeAdapter is
     ) internal view returns (uint32 externalId) {
         externalId = chainToExternalId[chainId];
         if (externalId == 0) {
-            revert IBridgeAdapter.UnsupportedChain();
+            revert UnsupportedChain();
         }
         return externalId;
     }
@@ -337,7 +343,7 @@ abstract contract BaseBridgeAdapter is
     ) internal view returns (uint16 chainId) {
         chainId = externalIdToChainId[externalId];
         if (chainId == 0) {
-            revert IBridgeAdapter.UnsupportedChain();
+            revert UnsupportedChain();
         }
         return chainId;
     }
@@ -354,5 +360,20 @@ abstract contract BaseBridgeAdapter is
     function _requireGasLimit(uint64 userGas) internal pure returns (uint64) {
         if (userGas == 0) revert InvalidParams();
         return userGas;
+    }
+
+    /**
+     * @notice Validates that sufficient msg.value was provided for the operation
+     * @param options Bridge options containing msgValue requirement
+     * @param msgValue The actual msg.value sent with the transaction
+     * @custom:throws InsufficientMsgValue if msg.value is less than required
+     */
+    function _validateFeeRequirements(
+        BridgeTypes.BridgeOptions calldata options,
+        uint256 msgValue
+    ) internal pure {
+        if (options.msgValue > 0 && msgValue < options.msgValue) {
+            revert InsufficientMsgValue(options.msgValue, msgValue);
+        }
     }
 }

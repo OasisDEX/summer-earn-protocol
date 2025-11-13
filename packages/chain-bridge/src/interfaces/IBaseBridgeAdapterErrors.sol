@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {Bps} from "../helpers/Bps.sol";
+
 /**
  * @title IBaseBridgeAdapterErrors
  * @notice Interface containing all error definitions for BaseBridgeAdapter
@@ -33,4 +35,36 @@ interface IBaseBridgeAdapterErrors {
 
     /// @notice Thrown when a native token transfer fails
     error TransferFailed();
+
+    /// @notice Thrown when insufficient msg.value is provided for the specified msgValue
+    error InsufficientMsgValue(uint128 required, uint256 provided);
+
+    /// @notice Thrown when a chain is not supported
+    error UnsupportedChain();
+
+    /// @notice Thrown when the operation is not supported by the adapter
+    error OperationNotSupported();
+
+    /// @notice Thrown when insufficient fee is provided for an operation
+    error InsufficientFee(uint256 required, uint256 provided);
+
+    /// @notice Thrown when an asset is not supported by the adapter
+    error UnsupportedAsset();
+
+    /// @notice Thrown when an unsupported message type is received
+    error UnsupportedMessageType();
+
+    /// @notice Error for slippage exceeding tolerance
+    error SlippageExceedsTolerance(
+        uint256 expectedAmount,
+        uint256 receivedAmount,
+        Bps toleranceBps
+    );
+
+    /// @notice Error for untrusted external contracts or entities that fail validation
+    /// @param what Description of what failed validation (e.g., "Stargate pool", "bridge contract")
+    /// @param from Address of the untrusted contract or entity
+    /// @param additionalInfo Additional context address (e.g., expected address, related contract)
+    /// @dev Used for general validation failures not covered by more specific errors like UntrustedSourceAdapter
+    error Untrusted(string what, address from, address additionalInfo);
 }
