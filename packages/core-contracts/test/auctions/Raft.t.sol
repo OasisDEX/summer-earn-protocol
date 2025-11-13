@@ -1618,8 +1618,12 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         // Expect LossesSocialized event and call socializeLosses as governor
         vm.startPrank(governor);
         vm.expectEmit(true, true, true, true);
-        emit LossesSocialized(address(mockArk1), tokensToSweep);
-        raftContract.socializeLosses(address(mockArk1), tokensToSweep);
+        emit LossesSocialized(address(mockArk1), tokensToSweep, governor);
+        raftContract.socializeLosses(
+            address(mockArk1),
+            tokensToSweep,
+            governor
+        );
         vm.stopPrank();
 
         // After socializeLosses:

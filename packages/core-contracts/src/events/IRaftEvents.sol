@@ -76,8 +76,13 @@ interface IRaftEvents {
      * @notice Emitted when losses are socialized from an Ark
      * @param ark The address of the Ark contract
      * @param tokens The addresses of the tokens that were socialized
+     * @param receiver The address of the receiver who received the tokens
      */
-    event LossesSocialized(address indexed ark, address[] indexed tokens);
+    event LossesSocialized(
+        address indexed ark,
+        address[] indexed tokens,
+        address indexed receiver
+    );
 
     /**
      * @notice Emitted when auction parameters are set for an Ark's reward token

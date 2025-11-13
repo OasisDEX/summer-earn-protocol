@@ -51,6 +51,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
      * @dev Socializes losses from the specified Ark and reward token
      * @param ark The address of the Ark contract to socialize losses from
      * @param tokens The addresses of the tokens to socialize losses from ( e.g. receipt tokens)
+     * @param receiver The address of the receiver who will receive the tokens (e.g. treasury)
      * @custom:internal-logic
      * - Sweeps the tokens from the Ark
      * - Transfers the tokens to the caller (governor) who socialized the losses
@@ -61,7 +62,11 @@ interface IRaft is IRaftEvents, IRaftErrors {
      * - Ensure only authorized addresses can call this function (governor)
      * - Validate the Ark address and token address
      */
-    function socializeLosses(address ark, address[] calldata tokens) external;
+    function socializeLosses(
+        address ark,
+        address[] calldata tokens,
+        address receiver
+    ) external;
 
     /**
      * @dev Sweeps tokens from the specified Ark and returns them to the caller
