@@ -15,7 +15,7 @@
   },
   "scripts": {
     "start:node": "hardhat node",
-    "build": "forge build && bash ./abi.sh",
+    "build": "forge build ./src/ && bash ./abi.sh",
     "spawn:devnet": "export $(pnpx tsx scripts/node/spawn-devnet.ts)",
     "test": "FOUNDRY_PROFILE=test forge test",
     "lint": "forge lint src/contracts/",

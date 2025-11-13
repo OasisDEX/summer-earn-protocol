@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "forge test",
-    "build": "forge build --extra-output-files abi"
+    "build": "forge build ./src/ --extra-output-files abi"
   },
   "devDependencies": {
     "@summerfi/access-contracts": "workspace:*",

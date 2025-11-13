@@ -26,7 +26,7 @@
   "private": true,
   "scripts": {
     "clean": "rm -rf cache out",
-    "build": "forge build",
+    "build": "forge build ./src/ ",
     "prettier:check": "prettier --check \"**/*.{json,md,yml}\" --ignore-path \".prettierignore\"",
     "prettier:write": "prettier --write \"**/*.{json,md,yml}\" --ignore-path \".prettierignore\"",
     "test": "forge test",
