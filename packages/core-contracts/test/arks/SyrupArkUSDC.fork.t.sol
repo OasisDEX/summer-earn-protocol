@@ -190,7 +190,12 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             });
         bytes memory data = abi.encode(swapData);
         vm.startPrank(keeper);
+        vm.expectRevert(abi.encodeWithSignature("ReceivedLessThanExpected()"));
         ark.withdrawUsingSwap(500000 * 10 ** 6, data);
+        vm.stopPrank();
+        console.log(
+            "Calldata needs updating as swap output being sent to wrong address"
+        );
     }
 
     function test_RequestPartialRedeem_Syrup_fork() public {

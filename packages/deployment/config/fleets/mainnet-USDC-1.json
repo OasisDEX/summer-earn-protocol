@@ -133,14 +133,6 @@
       }
     },
     {
-      "type": "SiloManagedVaultArk",
-      "params": {
-        "asset": "USDC",
-        "vaultName": "apostro",
-        "protocol": "silo"
-      }
-    },
-    {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
@@ -162,6 +154,13 @@
         "asset": "USDC",
         "vaultName": "valamore_usdc_growth",
         "protocol": "silo"
+      }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "fluid"
       }
     }
   ]

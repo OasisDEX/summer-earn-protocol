@@ -107,6 +107,13 @@
         "vaultName": "Euler_Alterscope_LRT_WETH",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "fluid"
+      }
     }
   ]
 }

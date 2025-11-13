@@ -37,4 +37,9 @@ interface IFleetCommanderConfigProviderEvents {
      * @param newCooldownPeriod The new cooldown period in seconds
      */
     event FleetCommanderCooldownPeriodUpdated(uint256 newCooldownPeriod);
+
+    /**
+     * @notice Emitted when transfers are enabled for the FleetCommander
+     */
+    event TransfersEnabled();
 }

@@ -49,10 +49,16 @@ export function getArkProductId(ark: Ark): string | null {
   if (!jsonData.isSet('protocol') || !jsonData.isSet('chainId')) {
     return null
   }
-  if (!jsonData.isSet('pool') && !jsonData.isSet('vault')) {
+  if (!jsonData.isSet('pool') && !jsonData.isSet('vault') && !jsonData.isSet('siUSDVault')) {
     return null
   }
-  const poolValue = !jsonData.isSet('pool') ? jsonData.get('vault') : jsonData.get('pool')
+  const hasPool = jsonData.isSet('pool')
+  const hasVault = jsonData.isSet('vault')
+  const poolValue = hasPool
+    ? jsonData.get('pool')
+    : hasVault
+      ? jsonData.get('vault')
+      : jsonData.get('siUSDVault')
   const protocolValue = jsonData.get('protocol')
   const chainIdValue = jsonData.get('chainId')
 

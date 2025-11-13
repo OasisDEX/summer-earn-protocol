@@ -466,6 +466,34 @@ contract FleetCommander is
     }
 
     /*//////////////////////////////////////////////////////////////
+                        PUBLIC ERC20 FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IERC20
+    function transfer(
+        address to,
+        uint256 amount
+    ) public override(IERC20, ERC20) returns (bool) {
+        if (transfersEnabled) {
+            return super.transfer(to, amount);
+        }
+
+        revert FleetCommanderTransfersDisabled();
+    }
+
+    /// @inheritdoc IERC20
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public override(IERC20, ERC20) returns (bool) {
+        if (transfersEnabled) {
+            return super.transferFrom(from, to, amount);
+        }
+        revert FleetCommanderTransfersDisabled();
+    }
+
+    /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 

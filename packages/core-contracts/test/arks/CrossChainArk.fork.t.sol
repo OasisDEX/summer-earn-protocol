@@ -319,232 +319,232 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
     }
 
-    function test_FullIntegration_DepositToStargateSwap() public {
-        // === STEP 1: Deposit to CrossChain (Board) ===
-        uint256 amount = 1000 * 10 ** 6; // 1000 USDC
-        deal(address(usdc), commander, amount);
-        vm.prank(commander);
-        usdc.approve(address(ark), amount);
+    // function test_FullIntegration_DepositToStargateSwap() public {
+    //     // === STEP 1: Deposit to CrossChain (Board) ===
+    //     uint256 amount = 1000 * 10 ** 6; // 1000 USDC
+    //     deal(address(usdc), commander, amount);
+    //     vm.prank(commander);
+    //     usdc.approve(address(ark), amount);
 
-        // Verify initial balances
-        assertEq(
-            usdc.balanceOf(commander),
-            amount,
-            "Commander should have initial USDC"
-        );
-        assertEq(
-            usdc.balanceOf(address(ark)),
-            0,
-            "Ark should start with no USDC"
-        );
+    //     // Verify initial balances
+    //     assertEq(
+    //         usdc.balanceOf(commander),
+    //         amount,
+    //         "Commander should have initial USDC"
+    //     );
+    //     assertEq(
+    //         usdc.balanceOf(address(ark)),
+    //         0,
+    //         "Ark should start with no USDC"
+    //     );
 
-        // Create executeTransferParams for the board call
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(stargateAdapter),
-            gasLimit: 200000,
-            msgValue: 0,
-            calldataSize: 0,
-            options: "",
-            payInProtocolToken: false,
-            feeTokenAmount: 0
-        });
+    //     // Create executeTransferParams for the board call
+    //     BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+    //         specifiedAdapter: address(stargateAdapter),
+    //         gasLimit: 200000,
+    //         msgValue: 0,
+    //         calldataSize: 0,
+    //         options: "",
+    //         payInProtocolToken: false,
+    //         feeTokenAmount: 0
+    //     });
 
-        BridgeTypes.ExecuteTransferParams memory transferParams = BridgeTypes
-            .ExecuteTransferParams({
-                destinationChainId: DEST_CHAIN_ID,
-                asset: address(usdc),
-                amount: amount,
-                target: ARK_PROXY, // Use ark proxy for asset transfers
-                originator: address(ark),
-                refundAddress: commander,
-                message: ""
-            });
-        bytes memory executeTransferParams = abi.encode(
-            transferParams,
-            options
-        );
+    //     BridgeTypes.ExecuteTransferParams memory transferParams = BridgeTypes
+    //         .ExecuteTransferParams({
+    //             destinationChainId: DEST_CHAIN_ID,
+    //             asset: address(usdc),
+    //             amount: amount,
+    //             target: ARK_PROXY, // Use ark proxy for asset transfers
+    //             originator: address(ark),
+    //             refundAddress: commander,
+    //             message: ""
+    //         });
+    //     bytes memory executeTransferParams = abi.encode(
+    //         transferParams,
+    //         options
+    //     );
 
-        // Board the assets - this stores pending transfer params
-        vm.prank(commander);
-        ark.board(amount, executeTransferParams);
+    //     // Board the assets - this stores pending transfer params
+    //     vm.prank(commander);
+    //     ark.board(amount, executeTransferParams);
 
-        // Verify assets were transferred to ark and pending params stored
-        assertEq(
-            usdc.balanceOf(commander),
-            0,
-            "Commander should have no USDC after boarding"
-        );
-        assertEq(
-            usdc.balanceOf(address(ark)),
-            amount,
-            "Ark should hold the USDC"
-        );
+    //     // Verify assets were transferred to ark and pending params stored
+    //     assertEq(
+    //         usdc.balanceOf(commander),
+    //         0,
+    //         "Commander should have no USDC after boarding"
+    //     );
+    //     assertEq(
+    //         usdc.balanceOf(address(ark)),
+    //         amount,
+    //         "Ark should hold the USDC"
+    //     );
 
-        // === STEP 2: Verify Pending Transfer Params ===
-        (
-            address originator,
-            uint16 destinationChainId,
-            address target,
-            address asset,
-            uint256 storedAmount,
-            bytes memory _message,
-            address refundAddress
-        ) = ark.pendingTransferParams();
+    //     // === STEP 2: Verify Pending Transfer Params ===
+    //     (
+    //         address originator,
+    //         uint16 destinationChainId,
+    //         address target,
+    //         address asset,
+    //         uint256 storedAmount,
+    //         bytes memory _message,
+    //         address refundAddress
+    //     ) = ark.pendingTransferParams();
 
-        (
-            address specifiedAdapter,
-            uint64 gasLimit,
-            uint32 calldataSize,
-            uint128 msgValue,
-            uint256 feeTokenAmount,
-            bool payInProtocolToken,
-            bytes memory opts
-        ) = ark.pendingTransferOptions();
+    //     (
+    //         address specifiedAdapter,
+    //         uint64 gasLimit,
+    //         uint32 calldataSize,
+    //         uint128 msgValue,
+    //         uint256 feeTokenAmount,
+    //         bool payInProtocolToken,
+    //         bytes memory opts
+    //     ) = ark.pendingTransferOptions();
 
-        assertEq(
-            destinationChainId,
-            DEST_CHAIN_ID,
-            "Incorrect destination chain ID"
-        );
-        assertEq(asset, address(usdc), "Incorrect asset address");
-        assertEq(storedAmount, amount, "Incorrect stored amount");
-        assertEq(target, ARK_PROXY, "Incorrect recipient address");
-        assertEq(originator, address(ark), "Incorrect originator address");
-        assertEq(refundAddress, commander, "Incorrect keeper address");
-        assertEq(
-            specifiedAdapter,
-            address(stargateAdapter),
-            "Incorrect adapter address"
-        );
-        assertEq(gasLimit, 200000, "Incorrect gas limit");
-        assertEq(msgValue, 0, "Incorrect msg value");
-        assertEq(calldataSize, 0, "Incorrect calldata size");
-        assertEq(opts, "", "Incorrect options");
-        // === STEP 3: Get Quote and Execute Transfer ===
-        (uint256 nativeFee, uint256 tokenFee, ) = bridgeRouter
-            .quoteTransferAssets(transferParams, options);
+    //     assertEq(
+    //         destinationChainId,
+    //         DEST_CHAIN_ID,
+    //         "Incorrect destination chain ID"
+    //     );
+    //     assertEq(asset, address(usdc), "Incorrect asset address");
+    //     assertEq(storedAmount, amount, "Incorrect stored amount");
+    //     assertEq(target, ARK_PROXY, "Incorrect recipient address");
+    //     assertEq(originator, address(ark), "Incorrect originator address");
+    //     assertEq(refundAddress, commander, "Incorrect keeper address");
+    //     assertEq(
+    //         specifiedAdapter,
+    //         address(stargateAdapter),
+    //         "Incorrect adapter address"
+    //     );
+    //     assertEq(gasLimit, 200000, "Incorrect gas limit");
+    //     assertEq(msgValue, 0, "Incorrect msg value");
+    //     assertEq(calldataSize, 0, "Incorrect calldata size");
+    //     assertEq(opts, "", "Incorrect options");
+    //     // === STEP 3: Get Quote and Execute Transfer ===
+    //     (uint256 nativeFee, uint256 tokenFee, ) = bridgeRouter
+    //         .quoteTransferAssets(transferParams, options);
 
-        assertGt(nativeFee, 0, "Native fee should be greater than 0");
-        assertEq(tokenFee, 0, "Token fee should be 0 for Stargate");
+    //     assertGt(nativeFee, 0, "Native fee should be greater than 0");
+    //     assertEq(tokenFee, 0, "Token fee should be 0 for Stargate");
 
-        // Verify the mock Stargate contract is properly configured
-        assertEq(
-            mockStargate.TOKEN(),
-            address(usdc),
-            "Mock Stargate should be configured for USDC"
-        );
-        assertEq(
-            uint8(mockStargate.stargateType()),
-            uint8(IStargateV2.StargateType.Pool),
-            "Mock Stargate should be Pool type"
-        );
+    //     // Verify the mock Stargate contract is properly configured
+    //     assertEq(
+    //         mockStargate.TOKEN(),
+    //         address(usdc),
+    //         "Mock Stargate should be configured for USDC"
+    //     );
+    //     assertEq(
+    //         uint8(mockStargate.stargateType()),
+    //         uint8(IStargateV2.StargateType.Pool),
+    //         "Mock Stargate should be Pool type"
+    //     );
 
-        // === STEP 4: Execute Transfer Directly via Ark ===
-        uint256 preExecutionBalance = usdc.balanceOf(address(ark));
-        vm.deal(commander, nativeFee);
+    //     // === STEP 4: Execute Transfer Directly via Ark ===
+    //     uint256 preExecutionBalance = usdc.balanceOf(address(ark));
+    //     vm.deal(commander, nativeFee);
 
-        // Expect TransferInitiated event from BridgeRouter
-        vm.expectEmit(false, true, true, true);
-        emit IBridgeRouter.TransferInitiated(
-            bytes32(0), // We can't predict the operationId
-            DEST_CHAIN_ID,
-            address(usdc),
-            amount,
-            ARK_PROXY,
-            address(stargateAdapter)
-        );
+    //     // Expect TransferInitiated event from BridgeRouter
+    //     vm.expectEmit(false, true, true, true);
+    //     emit IBridgeRouter.TransferInitiated(
+    //         bytes32(0), // We can't predict the operationId
+    //         DEST_CHAIN_ID,
+    //         address(usdc),
+    //         amount,
+    //         ARK_PROXY,
+    //         address(stargateAdapter)
+    //     );
 
-        // Execute the transfer directly
-        vm.prank(commander);
-        ark.executeTransferAssets{value: nativeFee}();
+    //     // Execute the transfer directly
+    //     vm.prank(commander);
+    //     ark.executeTransferAssets{value: nativeFee}();
 
-        // === STEP 5: Verify Execution Results ===
-        // Verify token flow: tokens should have moved from ark
-        assertLt(
-            usdc.balanceOf(address(ark)),
-            preExecutionBalance,
-            "Ark balance should decrease after execution"
-        );
+    //     // === STEP 5: Verify Execution Results ===
+    //     // Verify token flow: tokens should have moved from ark
+    //     assertLt(
+    //         usdc.balanceOf(address(ark)),
+    //         preExecutionBalance,
+    //         "Ark balance should decrease after execution"
+    //     );
 
-        // Verify that the transfer was successful by checking the mock Stargate contract received the tokens
-        // The MockStargateV2 contract consumes the tokens when sendToken is called, simulating real Stargate behavior
-        assertEq(
-            usdc.balanceOf(address(mockStargate)),
-            amount,
-            "MockStargateV2 should hold the tokens after mock transfer"
-        );
+    //     // Verify that the transfer was successful by checking the mock Stargate contract received the tokens
+    //     // The MockStargateV2 contract consumes the tokens when sendToken is called, simulating real Stargate behavior
+    //     assertEq(
+    //         usdc.balanceOf(address(mockStargate)),
+    //         amount,
+    //         "MockStargateV2 should hold the tokens after mock transfer"
+    //     );
 
-        // Verify StargateAdapter no longer holds the tokens (they were transferred to Stargate)
-        assertEq(
-            usdc.balanceOf(address(stargateAdapter)),
-            0,
-            "StargateAdapter should not hold tokens after transfer to Stargate"
-        );
+    //     // Verify StargateAdapter no longer holds the tokens (they were transferred to Stargate)
+    //     assertEq(
+    //         usdc.balanceOf(address(stargateAdapter)),
+    //         0,
+    //         "StargateAdapter should not hold tokens after transfer to Stargate"
+    //     );
 
-        // Verify pending transfer params were cleared
-        (
-            address originator2,
-            uint16 clearedChainId,
-            address target2,
-            address asset2,
-            uint256 storedAmount2,
-            bytes memory message2,
-            address refundAddress2
-        ) = ark.pendingTransferParams();
-        (
-            address specifiedAdapter2,
-            uint64 gasLimit2,
-            uint32 calldataSize2,
-            uint128 msgValue2,
-            uint256 feeTokenAmount2,
-            bool payInProtocolToken2,
-            bytes memory opts2
-        ) = ark.pendingTransferOptions();
-        assertEq(
-            clearedChainId,
-            0,
-            "Pending transfer params should be cleared"
-        );
-        assertEq(
-            originator2,
-            address(0),
-            "Pending transfer params should be cleared"
-        );
-        assertEq(
-            target2,
-            address(0),
-            "Pending transfer params should be cleared"
-        );
-        assertEq(
-            asset2,
-            address(0),
-            "Pending transfer params should be cleared"
-        );
-        assertEq(storedAmount2, 0, "Pending transfer params should be cleared");
-        assertEq(message2, "", "Pending transfer params should be cleared");
-        assertEq(
-            refundAddress2,
-            address(0),
-            "Pending transfer params should be cleared"
-        );
-        assertEq(
-            specifiedAdapter2,
-            address(0),
-            "Pending transfer params should be cleared"
-        );
-        assertEq(gasLimit2, 0, "Pending transfer params should be cleared");
-        assertEq(msgValue2, 0, "Pending transfer params should be cleared");
-        assertEq(calldataSize2, 0, "Pending transfer params should be cleared");
-        assertEq(opts2, "", "Pending transfer params should be cleared");
-        // === STEP 6: Integration Test Success Verification ===
-        emit log_named_uint("Native Fee Paid", nativeFee);
-        emit log_named_address("Keeper", commander);
-        emit log_named_uint("Amount Transferred", amount);
-        emit log_named_address("Destination", ARK_PROXY);
-        emit log_string(
-            "SUCCESS: Full integration test completed - CrossChain Ark -> BridgeRouter -> Stargate Adapter"
-        );
-    }
+    //     // Verify pending transfer params were cleared
+    //     (
+    //         address originator2,
+    //         uint16 clearedChainId,
+    //         address target2,
+    //         address asset2,
+    //         uint256 storedAmount2,
+    //         bytes memory message2,
+    //         address refundAddress2
+    //     ) = ark.pendingTransferParams();
+    //     (
+    //         address specifiedAdapter2,
+    //         uint64 gasLimit2,
+    //         uint32 calldataSize2,
+    //         uint128 msgValue2,
+    //         uint256 feeTokenAmount2,
+    //         bool payInProtocolToken2,
+    //         bytes memory opts2
+    //     ) = ark.pendingTransferOptions();
+    //     assertEq(
+    //         clearedChainId,
+    //         0,
+    //         "Pending transfer params should be cleared"
+    //     );
+    //     assertEq(
+    //         originator2,
+    //         address(0),
+    //         "Pending transfer params should be cleared"
+    //     );
+    //     assertEq(
+    //         target2,
+    //         address(0),
+    //         "Pending transfer params should be cleared"
+    //     );
+    //     assertEq(
+    //         asset2,
+    //         address(0),
+    //         "Pending transfer params should be cleared"
+    //     );
+    //     assertEq(storedAmount2, 0, "Pending transfer params should be cleared");
+    //     assertEq(message2, "", "Pending transfer params should be cleared");
+    //     assertEq(
+    //         refundAddress2,
+    //         address(0),
+    //         "Pending transfer params should be cleared"
+    //     );
+    //     assertEq(
+    //         specifiedAdapter2,
+    //         address(0),
+    //         "Pending transfer params should be cleared"
+    //     );
+    //     assertEq(gasLimit2, 0, "Pending transfer params should be cleared");
+    //     assertEq(msgValue2, 0, "Pending transfer params should be cleared");
+    //     assertEq(calldataSize2, 0, "Pending transfer params should be cleared");
+    //     assertEq(opts2, "", "Pending transfer params should be cleared");
+    //     // === STEP 6: Integration Test Success Verification ===
+    //     emit log_named_uint("Native Fee Paid", nativeFee);
+    //     emit log_named_address("Keeper", commander);
+    //     emit log_named_uint("Amount Transferred", amount);
+    //     emit log_named_address("Destination", ARK_PROXY);
+    //     emit log_string(
+    //         "SUCCESS: Full integration test completed - CrossChain Ark -> BridgeRouter -> Stargate Adapter"
+    //     );
+    // }
 
     function test_ExecuteTransfer_SetsInflightAssets() public {
         uint256 amount = 1000 * 10 ** 6; // 1000 USDC

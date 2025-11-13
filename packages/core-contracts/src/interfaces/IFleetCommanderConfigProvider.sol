@@ -117,4 +117,10 @@ interface IFleetCommanderConfigProvider is
         address ark,
         uint256 newMaxRebalanceInflow
     ) external;
+
+    /**
+     * @notice Enables or disables transfers of fleet commander shares
+     * @dev Only callable by the governor when not paused
+     */
+    function setFleetTokenTransferability() external;
 }

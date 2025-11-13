@@ -15,7 +15,9 @@ import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChain
 
 /**
  * @title CrossChainArk
+ *
  * @notice Ark contract for managing cross-chain deposits and withdrawals
+ *
  * @dev Implements strategy for depositing tokens to a satellite chain proxy and handling cross-chain messages.
  *      Supports cross-chain asset reception, state read responses, and inflight asset tracking.
  */
@@ -70,6 +72,7 @@ contract CrossChainArk is
 
     /**
      * @notice Constructor to set up the CrossChainArk
+     *
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _satelliteChainId ID of the satellite chain where the fleet proxy operates
      * @param _params ArkParams struct containing initialization parameters
@@ -79,6 +82,7 @@ contract CrossChainArk is
         uint16 _satelliteChainId,
         ArkParams memory _params
     ) Ark(_params) CrossChainConfigManaged(_crossChainRegistry) {
+        // Validate satellite chain ID
         if (_satelliteChainId == 0) revert InvalidSatelliteChain();
 
         satelliteChainId = _satelliteChainId;
@@ -103,7 +107,9 @@ contract CrossChainArk is
 
     /**
      * @inheritdoc IArk
+     *
      * @notice Returns the total assets managed by this Ark
+     *
      * @return assets The total balance of underlying assets held by this Ark
      */
     function totalAssets() public view override returns (uint256 assets) {
@@ -115,6 +121,7 @@ contract CrossChainArk is
 
     /**
      * @notice Alias using hub/satellite terminology
+     *
      * @return The satellite proxy address
      */
     function getSatelliteProxy() external view returns (address) {
@@ -123,7 +130,9 @@ contract CrossChainArk is
 
     /**
      * @notice Gets the timestamp of the last remote balance update
+     *
      * @return The timestamp when the last remote balance update was received
+     *
      * @dev Returns 0 if no remote balance update has been received yet
      */
     function getLastRemoteBalanceUpdateTime() external view returns (uint256) {
@@ -152,7 +161,9 @@ contract CrossChainArk is
 
     /**
      * @notice Boards the Ark by initiating a cross-chain transfer
+     *
      * @param amount Amount of tokens to transfer
+     *
      * @dev This function queues a cross-chain transfer to the target proxy using the registry
      */
     function _board(
@@ -183,6 +194,7 @@ contract CrossChainArk is
     }
 
     /// @notice Executes the pending cross-chain transfer to the satellite chain
+    ///
     /// @dev This function initiates the actual bridge transfer after validation
     /// @dev Only callable by keeper role
     /// @dev Emits InflightSet and PendingTransferQueued events
@@ -213,6 +225,7 @@ contract CrossChainArk is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Cancels a queued pending transfer
+    ///
     /// @dev Resets pending transfer params and options; callable by keeper
     /// @dev Returns the pending transfer amount back to the buffer ark
     function cancelPendingTransfer() external onlyKeeper {
@@ -237,7 +250,9 @@ contract CrossChainArk is
 
     /**
      * @notice Disembarks the Ark by withdrawing assets that are available on the contract
+     *
      * @param amount Amount of tokens to withdraw
+     *
      * @dev This function only validates that enough assets are available on this contract
      * The actual withdrawal from the satellite chain is processed by a keeper through
      * FleetProxy.withdrawAndTransfer() which transfers assets back to this contract
@@ -260,6 +275,7 @@ contract CrossChainArk is
 
     /**
      * @notice Validates that the caller is authorized (only bridge router)
+     *
      * @dev Implementation of abstract method from CrossChainReceiverBase
      */
     function _requireAuthorizedCaller() internal view override {
@@ -270,6 +286,7 @@ contract CrossChainArk is
 
     /**
      * @notice Returns the operation types supported by CrossChainArk
+     *
      * @return supportedTypes Array containing MESSAGE and TRANSFER_ASSET operation types
      */
     function _getSupportedOperationTypes()
@@ -285,6 +302,7 @@ contract CrossChainArk is
 
     /**
      * @notice Handles MESSAGE operation type (balance updates from FleetProxy)
+     *
      * @param params Decoded message parameters
      */
     function _handleMessage(
@@ -335,6 +353,7 @@ contract CrossChainArk is
 
     /**
      * @notice Validates that the board or disembark can be performed
+     *
      * @dev This function validates that no inflight transfer exists and no pending transfer is queued
      */
     function _validateCanBoardOrDisembark() internal view {
@@ -346,6 +365,7 @@ contract CrossChainArk is
 
     /**
      * @notice Handles TRANSFER_ASSET operation type (asset withdrawals from FleetProxy)
+     *
      * @param params Decoded transfer parameters
      * @dev Emits RemoteAssetBalanceUpdated and AssetsReceived events
      */
@@ -378,6 +398,7 @@ contract CrossChainArk is
     }
 
     /// @notice Notifies the satellite chain proxy that assets have been received on the hub
+    ///
     /// @dev Keeper-triggered message to clear inflight on FleetProxy via ACK
     function notifySatelliteChain(
         BridgeTypes.BridgeOptions calldata options
@@ -398,6 +419,7 @@ contract CrossChainArk is
 
     /**
      * @notice Ensures ready for executing a pending transfer: no inflight and has pending
+     *
      * @dev Used to gate executeTransferAssets
      */
     function _assertCanExecuteTransfer() internal view {
@@ -409,7 +431,9 @@ contract CrossChainArk is
 
     /**
      * @notice Gets the satellite proxy address from the registry
+     *
      * @return proxyAddress The satellite proxy address
+     *
      * @dev Reverts if no relationship exists for the satellite chain
      */
     function _getSatelliteProxy() internal view returns (address proxyAddress) {
@@ -431,20 +455,25 @@ contract CrossChainArk is
 
     /**
      * @notice Validates the board data
+     *
      * @dev This Ark does not require any validation for board data
+     *
      * @param data Additional data to validate (unused in this implementation)
      */
     function _validateBoardData(bytes calldata data) internal override {}
 
     /**
      * @notice Validates the disembark data
+     *
      * @dev This Ark does not require any validation for disembark data
+     *
      * @param data Additional data to validate (unused in this implementation)
      */
     function _validateDisembarkData(bytes calldata data) internal override {}
 
     /**
      * @notice Returns the total withdrawable assets
+     *
      * @return The total balance of the underlying asset
      */
     function _withdrawableTotalAssets()
@@ -458,6 +487,7 @@ contract CrossChainArk is
 
     /**
      * @notice Resets the pending transfer params
+     *
      * @dev This function is used to reset the pending transfer params after the transfer has been executed
      */
     function _resetPendingTransferParams() internal {
@@ -467,7 +497,9 @@ contract CrossChainArk is
 
     /**
      * @notice Harvests rewards from the Ark
+     *
      * @dev This Ark does not implement harvesting as it's a cross-chain bridge
+     *
      * @return rewardTokens Empty array of reward tokens
      * @return rewardAmounts Empty array of reward amounts
      */

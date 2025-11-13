@@ -13,6 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateArkDetails } from '../helpers/validation'
 
 export interface ERC4626ArkUserInput extends BaseArkParams {
   vaultId: string
@@ -117,8 +118,21 @@ async function deployERC4626ArkContract(
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `ERC4626-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
   const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
-  console.log(moduleName)
   const protocol = userInput.vaultName.split('_')[0]
+
+  // Create and validate ark details
+  const arkDetails = {
+    protocol: protocol,
+    type: 'ERC4626',
+    asset: userInput.token.address,
+    marketAsset: userInput.token.address,
+    pool: userInput.vaultId,
+    chainId: chainId,
+    vaultName: userInput.vaultName,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+  validateArkDetails(arkDetails, 'ERC4626 ark details')
 
   return (await hre.ignition.deploy(createERC4626ArkModule(moduleName), {
     parameters: {
@@ -126,15 +140,7 @@ async function deployERC4626ArkContract(
         vault: userInput.vaultId,
         arkParams: {
           name: arkName,
-          details: JSON.stringify({
-            protocol: protocol,
-            type: 'ERC4626',
-            asset: userInput.token.address,
-            marketAsset: userInput.token.address,
-            pool: userInput.vaultId,
-            chainId: chainId,
-            vaultName: userInput.vaultName,
-          }),
+          details: JSON.stringify(arkDetails),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
