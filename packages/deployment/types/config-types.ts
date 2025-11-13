@@ -106,6 +106,14 @@ export interface BaseConfig {
       protocolAccessManager: { address: string }
       rewardsRedeemer: { address: string }
     }
+    govV2: {
+      summerGovernor: { address: string }
+      summerGovernanceToken: { address: string }
+      timelock: { address: string }
+      protocolAccessManager: { address: string }
+      summerStaking: { address: string }
+      summerVestingWalletsEscrow: { address: string }
+    }
     buyAndBurn: {
       buyAndBurn: { address: string }
     }

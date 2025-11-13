@@ -324,7 +324,7 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         uint256 cooldown = 1 days;
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.updateRebalanceCooldown(cooldown);
 
         // Try to rebalance again immediately

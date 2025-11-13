@@ -4,15 +4,15 @@ pragma solidity 0.8.28;
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {Test} from "forge-std/Test.sol";
 
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
 
 import {ArkParams} from "../../src/types/ArkTypes.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
@@ -79,7 +79,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     address public invalidArk = address(999);
     address public treasury = address(777);
     address public nonOwner = address(0xdeadbeef);
-    address public guardian = address(1);
+    address public guardian = makeAddr("guardian");
+    address public curator = makeAddr("curator");
 
     // Other variables
     string public fleetName = "OK_Fleet";
@@ -241,7 +242,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     ) internal {
         vm.startPrank(governor);
         accessManager.grantKeeperRole(address(fleetCommander), _keeper);
-        accessManager.grantCuratorRole(address(fleetCommander), governor);
+        accessManager.grantCuratorRole(address(fleetCommander), curator);
         accessManager.grantCommanderRole(
             address(_bufferArkAddress),
             address(fleetCommander)

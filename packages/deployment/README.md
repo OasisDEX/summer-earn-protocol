@@ -5,7 +5,7 @@ This package contains deployment scripts and Merkle tree generation tools for th
 ## Overview
 
 The package handles two main functionalities:
-1. Protocol Deployment Scripts (Core, Governance, and Fleet systems)
+1. Protocol Deployment Scripts (Core, Governance, Staking, and Fleet systems)
 2. Merkle Tree Generation for Rewards Distribution
 
 ## Directory Structure
@@ -16,10 +16,12 @@ packages/deployment/
 │   └── modules/
 │       ├── core.ts       # Core protocol module
 │       ├── gov.ts        # Governance module
+│       ├── staking.ts    # Staking module
 │       └── fleet.ts      # Fleet module
 ├── scripts/
 │   ├── deploy-core.ts    # Core deployment script
 │   ├── deploy-gov.ts     # Governance deployment script
+│   ├── deploy-staking.ts # Staking deployment script
 │   ├── deploy-fleet.ts   # Fleet deployment script
 │   └── generate-merkle-root.ts
 └── token-distributions/
@@ -49,7 +51,25 @@ Key Parameters:
 - Proposal threshold: 10,000 SUMMER
 - Quorum fraction: 4%
 
-### 2. Core Protocol Deployment (`deploy-core`)
+### 2. Staking Deployment (`deploy-staking`)
+
+Deploys the staking system components:
+1. StakedSummerToken (xSUMR) - Non-transferable governance token
+2. SummerStaking - Main staking contract with lockup periods and rewards
+3. SummerVestingWalletsEscrow - Escrow for vesting wallet staking
+
+```bash
+NETWORK=<network> pnpm deploy:staking
+```
+
+Key Features:
+- Lockup periods from 0 to 3 years
+- Weighted rewards based on lockup duration
+- Early unstake penalties (2-20%)
+- Bucket caps for different lockup periods
+- Integration with vesting wallets
+
+### 3. Core Protocol Deployment (`deploy-core`)
 
 Deploys core protocol components:
 1. Core Infrastructure
@@ -68,7 +88,7 @@ Deploys core protocol components:
 NETWORK=<network> pnpm deploy:core
 ```
 
-### 3. Fleet Deployment (`deploy-fleet`)
+### 4. Fleet Deployment (`deploy-fleet`)
 
 Deploys individual fleet instances:
 1. FleetCommander contract
@@ -90,6 +110,7 @@ NETWORK=<network> pnpm deploy:fleet
 ```bash
 # Deployment Commands
 pnpm deploy:gov              # Deploy governance system
+pnpm deploy:staking          # Deploy staking system
 pnpm deploy:core             # Deploy core protocol
 pnpm deploy:fleet            # Deploy fleet system
 pnpm deploy:ark              # Deploy individual ark

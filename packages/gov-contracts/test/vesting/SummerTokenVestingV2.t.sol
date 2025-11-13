@@ -7,6 +7,7 @@ import {ISummerVestingWalletV2} from "../../src/interfaces/ISummerVestingWalletV
 import {ISummerVestingWalletFactoryV2} from "../../src/interfaces/ISummerVestingWalletFactoryV2.sol";
 import {SummerTokenTestBase} from "../token/SummerTokenTestBase.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -731,11 +732,13 @@ contract SummerVestingV2Test is SummerTokenTestBase {
             memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(foundation);
+
         factoryV2.createVestingWallet(
             beneficiary,
             vestingParams,
             performanceGoals
         );
+        vm.prank(foundation);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ISummerVestingWalletFactoryV2
@@ -744,7 +747,6 @@ contract SummerVestingV2Test is SummerTokenTestBase {
                 beneficiary
             )
         );
-        vm.prank(foundation);
         factoryV2.createVestingWallet(
             beneficiary,
             vestingParams,

@@ -9,7 +9,7 @@ import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfig
 
 import {IFleetCommanderRewardsManagerFactory} from "../interfaces/IFleetCommanderRewardsManagerFactory.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
-import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
 import {FleetCommanderRewardsManager} from "./FleetCommanderRewardsManager.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 

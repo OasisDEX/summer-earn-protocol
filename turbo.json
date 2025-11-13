@@ -32,7 +32,7 @@
       "dependsOn": ["prebuild", "build", "^lint:fix"]
     },
     "format": {
-      "dependsOn": ["prebuild", "build", "^format"]
+      "dependsOn": ["^format"]
     },
     "check-circular": {
       "dependsOn": ["prebuild", "build", "^check-circular"]

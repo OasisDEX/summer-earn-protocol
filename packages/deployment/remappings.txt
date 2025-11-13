@@ -17,4 +17,5 @@ metamorpho/=node_modules/@summerfi/dependencies/lib/metamorpho-local/src/
 @summerfi/voting-decay/=node_modules/@summerfi/voting-decay/src/
 @summerfi/dependencies/=node_modules/@summerfi/dependencies/lib/
 @summerfi/chain-bridge/=node_modules/@summerfi/chain-bridge-contracts/src/
+@summerfi/config-contracts/=node_modules/@summerfi/config-contracts/src/
 solmate/=node_modules/@summerfi/dependencies/lib/solmate/

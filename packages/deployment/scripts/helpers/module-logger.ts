@@ -9,7 +9,8 @@ import { BuyAndBurnContracts } from '../../ignition/modules/buy-and-burn'
 import { CoreContracts } from '../../ignition/modules/core'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { GovContracts } from '../../ignition/modules/gov'
-import { ArkContracts } from '../deploy-ark'
+import { GovContractsV2 } from '../../ignition/modules/gov-v2'
+import { StakingContracts } from '../../ignition/modules/staking'
 
 export class ModuleLogger {
   private moduleName: string
@@ -51,6 +52,13 @@ export class ModuleLogger {
     })
     logger.logAddresses()
   }
+
+  static logGovV2(contracts: GovContractsV2): void {
+    const logger = new ModuleLogger('GovModuleV2', {
+      'Summer Governor': contracts.summerGovernor,
+    })
+    logger.logAddresses()
+  }
   static logBuyAndBurn(contracts: BuyAndBurnContracts): void {
     const logger = new ModuleLogger('BuyAndBurnModule', {
       'Buy and Burn': contracts.buyAndBurn,
@@ -70,12 +78,7 @@ export class ModuleLogger {
     })
     logger.logAddresses()
   }
-  static logArk(contracts: ArkContracts): void {
-    const logger = new ModuleLogger('ArkModule', {
-      Ark: contracts.ark,
-    })
-    logger.logAddresses()
-  }
+
   static logFleet(contracts: FleetContracts): void {
     const logger = new ModuleLogger('FleetModule', {
       'Fleet Commander': contracts.fleetCommander,
@@ -114,6 +117,15 @@ export class ModuleLogger {
   static logPendleLPArk(contracts: PendleLPArkContracts): void {
     const logger = new ModuleLogger('PendleLPArkModule', {
       'Pendle LP Ark': contracts.pendleLPArk,
+    })
+    logger.logAddresses()
+  }
+
+  static logStaking(contracts: StakingContracts): void {
+    const logger = new ModuleLogger('StakingModule', {
+      'Summer Governance Token     ': contracts.summerGovernanceToken,
+      'Summer Staking Contract     ': contracts.summerStaking,
+      'Vesting Wallets Escrow      ': contracts.summerVestingWalletsEscrow,
     })
     logger.logAddresses()
   }

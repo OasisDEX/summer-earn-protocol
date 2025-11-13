@@ -17,8 +17,8 @@
     "react-dom": "18.2.0",
     "recharts": "^2.12.1",
     "tailwind-merge": "^3.0.2",
-    "viem": ">=2.37.1",
-    "wagmi": ">=2.16.9"
+    "viem": "^2.38.6",
+    "wagmi": "2.19.3"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
@@ -30,7 +30,7 @@
     "@summerfi/typescript-config": "workspace:*",
     "eslint": "^9.0.0",
     "@eslint/eslintrc": "^3.0.0",
-    "eslint-config-next": "^15.0.3",
+    "eslint-config-next": "^15.5.6",
     "postcss": "^8.4.35",
     "postcss-import": "^16.0.1",
     "tailwindcss": "^3.4.1",

@@ -41,7 +41,7 @@ contract WithdrawTest is Test, TestHelpers, FleetCommanderTestBase {
 
         initialConversionRate = fleetCommander.convertToAssets(1000000);
 
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setMinimumBufferBalance(0);
     }
 

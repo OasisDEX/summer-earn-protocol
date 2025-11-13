@@ -23,7 +23,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {ExposedSummerGovernor, SummerGovernorTestBase} from "./SummerGovernorTestBase.sol";
+import {SummerGovernorTestBase} from "./SummerGovernorTestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ExposedSummerTimelockController} from "../token/SummerTokenTestBase.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -848,9 +848,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
                 initialOwner: address(timelockA)
             });
 
-        ExposedSummerGovernor wrongChainGovernor = new ExposedSummerGovernor(
-            params
-        );
+        SummerGovernor wrongChainGovernor = new SummerGovernor(params);
 
         vm.startPrank(address(timelockA));
         accessManagerA.revokeDecayControllerRole(address(governorA));
@@ -984,8 +982,8 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             payable(vestingWalletAddress)
         );
 
-        // Need to initialize decay account for vesting wallet to read votes
-        governorA.forceUpdateDecay(vestingWalletAddress);
+        // // Need to initialize decay account for vesting wallet to read votes
+        // governorA.updateDecayFactor(vestingWalletAddress);
 
         // Alice delegates to herself
         vm.prank(alice);

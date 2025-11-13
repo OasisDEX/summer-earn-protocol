@@ -12,8 +12,8 @@ import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
 contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
     using OptionsBuilder for bytes;
 
-    ExposedSummerGovernor public governorA;
-    ExposedSummerGovernor public governorB;
+    SummerGovernor public governorA;
+    SummerGovernor public governorB;
 
     uint48 public constant VOTING_DELAY = 1 days;
     uint32 public constant VOTING_PERIOD = 1 weeks;
@@ -63,8 +63,8 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
                 hubChainId: 31337,
                 initialOwner: address(timelockB)
             });
-        governorA = new ExposedSummerGovernor(paramsA);
-        governorB = new ExposedSummerGovernor(paramsB);
+        governorA = new SummerGovernor(paramsA);
+        governorB = new SummerGovernor(paramsB);
 
         vm.prank(address(timelockA));
         accessManagerA.grantDecayControllerRole(address(governorA));
@@ -264,31 +264,6 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
         vm.warp(block.timestamp + VOTING_DELAY + 1);
         vm.roll(block.number + 1);
     }
-}
 
-contract ExposedSummerGovernor is SummerGovernor {
-    constructor(GovernorParams memory params) SummerGovernor(params) {}
-
-    function exposedSendProposalToTargetChain(
-        uint32 _dstEid,
-        address[] memory _dstTargets,
-        uint256[] memory _dstValues,
-        bytes[] memory _dstCalldatas,
-        bytes32 _dstDescriptionHash,
-        bytes calldata _options
-    ) public {
-        _sendProposalToTargetChain(
-            _dstEid,
-            _dstTargets,
-            _dstValues,
-            _dstCalldatas,
-            _dstDescriptionHash,
-            _options
-        );
-    }
-
-    // Test skipper function
-    function test() public {}
-
-    function forceUpdateDecay(address account) public updateDecay(account) {}
+    function test_skipper() public {}
 }
