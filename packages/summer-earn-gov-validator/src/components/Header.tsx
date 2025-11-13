@@ -1,6 +1,6 @@
 'use client'
 
-import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { ConnectButton } from './ConnectButton'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
