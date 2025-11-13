@@ -66,7 +66,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
     }
 
     function test_SetMaxAllocationArkNotFound() public {
-        vm.prank(governor);
+        vm.prank(curator);
         vm.expectRevert(
             abi.encodeWithSignature(
                 "FleetCommanderArkNotFound(address)",
@@ -79,7 +79,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
     function test_SetMinBufferBalance() public {
         uint256 newBalance = 2000;
 
-        vm.prank(governor);
+        vm.prank(curator);
         vm.expectEmit(false, false, false, true);
         emit IFleetCommanderConfigProviderEvents
             .FleetCommanderminimumBufferBalanceUpdated(newBalance);
@@ -130,7 +130,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
     function test_RemoveSuccessful() public {
         // First, set max allocation to 0
         uint256 initialArksCount = fleetCommander.getActiveArks().length;
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setArkDepositCap(address(mockArk1), 0);
 
         vm.expectEmit();
@@ -155,7 +155,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_RemoveArkWithNonZeroAssets() public {
         // First, set max allocation to 0
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setArkDepositCap(address(mockArk1), 0);
 
         // Mock non-zero assets
@@ -194,7 +194,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_RebalanceToArkWithZeroMaxAllocation() public {
         // Set max allocation of mockArk1 to 0
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setArkDepositCap(address(mockArk1), 0);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
@@ -219,7 +219,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_SetMaxRebalanceOperations() public {
         uint256 newMaxRebalanceOperations = 20;
-        vm.prank(governor);
+        vm.prank(curator);
         vm.expectEmit();
         emit IFleetCommanderConfigProviderEvents
             .FleetCommanderMaxRebalanceOperationsUpdated(
@@ -234,7 +234,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_SetDepositCap() public {
         uint256 newDepositCap = 10000;
-        vm.prank(governor);
+        vm.prank(curator);
         vm.expectEmit();
         emit IFleetCommanderConfigProviderEvents
             .FleetCommanderDepositCapUpdated(newDepositCap);
@@ -247,7 +247,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_setArkDepositCap() public {
         uint256 newDepositCap = 10000;
-        vm.prank(governor);
+        vm.prank(curator);
         vm.expectEmit();
         emit IArkConfigProviderEvents.DepositCapUpdated(newDepositCap);
         fleetCommander.setArkDepositCap(address(mockArk2), newDepositCap);
@@ -255,7 +255,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
     }
 
     function test_SetArkMaxDepositPercentageOfTVL() public {
-        vm.prank(governor);
+        vm.prank(curator);
         vm.expectEmit();
         emit IArkConfigProviderEvents.MaxDepositPercentageOfTVLUpdated(
             PERCENTAGE_100
@@ -285,7 +285,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
                 address(0x123)
             )
         );
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setArkDepositCap(address(0x123), 1000);
     }
 
@@ -298,7 +298,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
                 address(0x123)
             )
         );
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setArkMaxDepositPercentageOfTVL(
             address(0x123),
             PERCENTAGE_100
@@ -307,7 +307,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_SetArkMoveToMax() public {
         uint256 maxMoveTo = 1000;
-        vm.prank(governor);
+        vm.prank(curator);
         vm.expectEmit();
         emit IArkConfigProviderEvents.MaxRebalanceInflowUpdated(maxMoveTo);
         fleetCommander.setArkMaxRebalanceInflow(address(mockArk2), maxMoveTo);
@@ -332,7 +332,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
                 address(0x123)
             )
         );
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setArkMaxRebalanceInflow(
             address(0x123),
             type(uint256).max
@@ -341,7 +341,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_SetArkMoveMaxRebalanceOutflow() public {
         uint256 maxMoveFrom = 1000;
-        vm.prank(governor);
+        vm.prank(curator);
         vm.expectEmit();
         emit IArkConfigProviderEvents.MaxRebalanceOutflowUpdated(maxMoveFrom);
         fleetCommander.setArkMaxRebalanceOutflow(
@@ -359,7 +359,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
                 address(0x123)
             )
         );
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setArkMaxRebalanceOutflow(
             address(0x123),
             type(uint256).max
@@ -518,7 +518,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(governor);
         fleetCommander.pause();
 
-        vm.prank(governor);
+        vm.prank(curator);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         fleetCommander.setFleetDepositCap(1000);
     }
@@ -528,7 +528,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             .getConfig()
             .stakingRewardsManager;
 
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.updateStakingRewardsManager();
 
         FleetConfig memory config = fleetCommander.getConfig();

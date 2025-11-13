@@ -38,7 +38,7 @@ contract RedeemWithInterestTest is Test, TestHelpers, FleetCommanderTestBase {
         // Simulate interest accrual
         mockToken.mint(address(config.bufferArk), INTEREST_AMOUNT);
 
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setMinimumBufferBalance(0);
     }
 

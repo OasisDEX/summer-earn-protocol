@@ -48,6 +48,27 @@ interface IRaft is IRaftEvents, IRaftErrors {
     function harvest(address ark, bytes calldata rewardData) external;
 
     /**
+     * @dev Socializes losses from the specified Ark and reward token
+     * @param ark The address of the Ark contract to socialize losses from
+     * @param tokens The addresses of the tokens to socialize losses from ( e.g. receipt tokens)
+     * @param receiver The address of the receiver who will receive the tokens (e.g. treasury)
+     * @custom:internal-logic
+     * - Sweeps the tokens from the Ark
+     * - Transfers the tokens to the caller (governor) who socialized the losses
+     * @custom:effects
+     * - Updates the obtainedTokens mapping
+     * - Transfers the tokens to the caller (governor) who socialized the losses
+     * @custom:security-considerations
+     * - Ensure only authorized addresses can call this function (governor)
+     * - Validate the Ark address and token address
+     */
+    function socializeLosses(
+        address ark,
+        address[] calldata tokens,
+        address receiver
+    ) external;
+
+    /**
      * @dev Sweeps tokens from the specified Ark and returns them to the caller
      * @param ark The address of the Ark contract to sweep tokens from
      * @param tokens The addresses of the tokens to sweep
@@ -197,13 +218,32 @@ interface IRaft is IRaftEvents, IRaftErrors {
      * @custom:effects
      * - Updates the sweepableTokens mapping
      * @custom:security-considerations
-     * - Ensure only authorized addresses can call this function
+     * - Ensure only authorized addresses can call this function (curator)
      * - Validate the Ark address and token address
      */
     function setSweepableToken(
         address ark,
         address token,
         bool isSweepable
+    ) external;
+
+    /**
+     * @notice Sets a token as non-sweepable for an Ark
+     * @param ark The address of the Ark
+     * @param token The token address
+     * @param isNonSweepable Whether the token should be non-sweepable
+     * @custom:internal-logic
+     * - Sets the nonSweepableTokens mapping for the specified Ark and token to true
+     * @custom:effects
+     * - Updates the nonSweepableTokens mapping
+     * @custom:security-considerations
+     * - Ensure only authorized addresses can call this function (governance)
+     * - Validate the Ark address and token address
+     */
+    function setNonSweepableToken(
+        address ark,
+        address token,
+        bool isNonSweepable
     ) external;
 
     /**

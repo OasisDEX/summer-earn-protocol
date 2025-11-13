@@ -38,7 +38,7 @@ contract WithdrawWithInterestTest is Test, TestHelpers, FleetCommanderTestBase {
         FleetConfig memory config = fleetCommander.getConfig();
         mockToken.mint(address(config.bufferArk), INTEREST_AMOUNT);
 
-        vm.prank(governor);
+        vm.prank(curator);
         fleetCommander.setMinimumBufferBalance(0);
     }
 
