@@ -137,8 +137,8 @@ function equalTo(Bps a, Bps b) pure returns (bool) {
 }
 
 /**
- * @dev Converts a uint256 to a Bps value
- * @param value The uint256 value to convert
+ * @dev Casts a uint256 to a Bps value by wrapping it
+ * @param value The uint256 value to be casted
  * @return The Bps representation of the value
  */
 function toBps(uint256 value) pure returns (Bps) {
@@ -146,8 +146,8 @@ function toBps(uint256 value) pure returns (Bps) {
 }
 
 /**
- * @dev Converts a Bps value to a uint256
- * @param bps The Bps value to convert
+ * @dev Casts a Bps value to a uint256 by unwrapping it
+ * @param bps The Bps value to be casted
  * @return The uint256 representation of the Bps value
  */
 function fromBps(Bps bps) pure returns (uint256) {
