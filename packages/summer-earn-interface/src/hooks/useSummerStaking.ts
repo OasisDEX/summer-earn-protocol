@@ -128,7 +128,6 @@ export function useSummerStaking(chainId: ChainId) {
   const { environment } = useEnvironment()
   // Log environment changes only (avoid logging on every render)
   useEffect(() => {
-     
     console.log('environment useSummerStaking', environment)
   }, [environment])
   const { address: account, chain } = useAccount()
