@@ -55,7 +55,7 @@ const summerStakingAbi = [
     type: 'function',
     name: 'getUserStakesCount',
     stateMutability: 'view',
-    inputs: [{ name: '_user', type: 'account' }],
+    inputs: [{ name: '_user', type: 'address' }],
     outputs: [{ name: 'count', type: 'uint256' }],
   },
   {
@@ -63,7 +63,7 @@ const summerStakingAbi = [
     name: 'getUserStake',
     stateMutability: 'view',
     inputs: [
-      { name: '_user', type: 'account' },
+      { name: '_user', type: 'address' },
       { name: '_index', type: 'uint256' },
     ],
     outputs: [
@@ -78,7 +78,7 @@ const summerStakingAbi = [
     name: 'calculatePenalty',
     stateMutability: 'view',
     inputs: [
-      { name: '_user', type: 'account' },
+      { name: '_user', type: 'address' },
       { name: '_amount', type: 'uint256' },
       { name: '_stakeIndex', type: 'uint256' },
     ],
@@ -89,7 +89,7 @@ const summerStakingAbi = [
     name: 'calculatePenaltyPercentage',
     stateMutability: 'view',
     inputs: [
-      { name: '_user', type: 'account' },
+      { name: '_user', type: 'address' },
       { name: '_stakeIndex', type: 'uint256' },
     ],
     outputs: [{ name: 'penaltyPct', type: 'uint256' }],
@@ -108,7 +108,7 @@ const summerStakingAbi = [
     type: 'function',
     name: 'weightedBalanceOf',
     stateMutability: 'view',
-    inputs: [{ name: 'account', type: 'account' }],
+    inputs: [{ name: 'address', type: 'address' }],
     outputs: [{ name: 'weighted', type: 'uint256' }],
   },
 ] as const
@@ -123,57 +123,55 @@ export interface UserStakeView {
 }
 
 const WAD = BigInt('1000000000000000000')
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+const isNonZeroAddress = (addr: string | undefined): addr is `0x${string}` =>
+  Boolean(addr && addr !== ZERO_ADDRESS)
 
 export function useSummerStaking(chainId: ChainId) {
   const { environment } = useEnvironment()
-  // Log environment changes only (avoid logging on every render)
-  useEffect(() => {
-    console.log('environment useSummerStaking', environment)
-  }, [environment])
   const { address: account, chain } = useAccount()
   // Resolve and sanitize chain id from route param; fall back to Base (8453) if invalid or unmapped
   const rawChainId = Number(chainId)
-  const hasMappingFor = (cid: number) =>
-    Boolean(
-      SUMMER_TOKEN_ADDRESSES[environment]?.[cid] &&
-        STAKED_SUMMER_TOKEN_ADDRESSES[environment]?.[cid] &&
-        SUMMER_STAKING_ADDRESSES[environment]?.[cid],
+  const hasMappingFor = (cid: number) => {
+    const summer = SUMMER_TOKEN_ADDRESSES[environment]?.[cid]
+    const xSummer = STAKED_SUMMER_TOKEN_ADDRESSES[environment]?.[cid]
+    const staking = SUMMER_STAKING_ADDRESSES[environment]?.[cid]
+    return Boolean(
+      isNonZeroAddress(summer) && isNonZeroAddress(xSummer) && isNonZeroAddress(staking),
     )
+  }
   const chainIdNumber = Number.isFinite(rawChainId) && hasMappingFor(rawChainId) ? rawChainId : 8453
   // Initialize public client for the resolved chain id; also keep a default client as fallback
   const pcForChain = usePublicClient({ chainId: chainIdNumber })
   const publicClient = pcForChain
 
   // Memoize addresses to ensure they update when environment or chainId changes
-  const { summerAddress, xSummerAddress, stakingAddress } = useMemo(
-    () => ({
-      summerAddress: SUMMER_TOKEN_ADDRESSES[environment]?.[chainIdNumber] as
-        | `0x${string}`
-        | undefined,
-      xSummerAddress: STAKED_SUMMER_TOKEN_ADDRESSES[environment]?.[chainIdNumber] as
-        | `0x${string}`
-        | undefined,
-      stakingAddress: SUMMER_STAKING_ADDRESSES[environment]?.[chainIdNumber] as
-        | `0x${string}`
-        | undefined,
-    }),
-    [environment, chainIdNumber],
-  )
-
+  const { summerAddress, xSummerAddress, stakingAddress } = useMemo(() => {
+    const summer = SUMMER_TOKEN_ADDRESSES[environment]?.[chainIdNumber]
+    const xSummer = STAKED_SUMMER_TOKEN_ADDRESSES[environment]?.[chainIdNumber]
+    const staking = SUMMER_STAKING_ADDRESSES[environment]?.[chainIdNumber]
+    return {
+      summerAddress: isNonZeroAddress(summer) ? summer : undefined,
+      xSummerAddress: isNonZeroAddress(xSummer) ? xSummer : undefined,
+      stakingAddress: isNonZeroAddress(staking) ? staking : undefined,
+    }
+  }, [environment, chainIdNumber])
   // Reads
   const { data: bucketInfo } = useReadContract({
     abi: summerStakingAbi,
     address: stakingAddress!,
     functionName: 'getAllBucketInfo',
-    query: { enabled: Boolean(stakingAddress) },
+    query: { enabled: Boolean(isNonZeroAddress(stakingAddress)) },
   })
-  // @ts-expect-error - wagmi types are not up to date
+
   const { data: userStakeCount } = useReadContract({
     abi: summerStakingAbi,
     address: stakingAddress!,
     functionName: 'getUserStakesCount',
     args: account ? [account] : undefined,
-    query: { enabled: Boolean(stakingAddress && account) },
+    query: { enabled: Boolean(isNonZeroAddress(stakingAddress) && account) },
+    chainId: chainIdNumber,
   })
 
   // ERC20 metadata
@@ -181,13 +179,15 @@ export function useSummerStaking(chainId: ChainId) {
     abi: erc20Abi,
     address: summerAddress!,
     functionName: 'decimals',
-    query: { enabled: Boolean(summerAddress) },
+    query: { enabled: Boolean(isNonZeroAddress(summerAddress)) },
+    chainId: chainIdNumber,
   })
   const { data: summerSymbol } = useReadContract({
     abi: erc20Abi,
     address: summerAddress!,
     functionName: 'symbol',
-    query: { enabled: Boolean(summerAddress) },
+    query: { enabled: Boolean(isNonZeroAddress(summerAddress)) },
+    chainId: chainIdNumber,
   })
 
   // Balances
@@ -196,7 +196,8 @@ export function useSummerStaking(chainId: ChainId) {
     address: summerAddress!,
     functionName: 'balanceOf',
     args: account ? [account] : undefined,
-    query: { enabled: Boolean(summerAddress && account) },
+    query: { enabled: Boolean(isNonZeroAddress(summerAddress) && account) },
+    chainId: chainIdNumber,
   })
 
   const { data: xSummerBalance } = useReadContract({
@@ -204,7 +205,8 @@ export function useSummerStaking(chainId: ChainId) {
     address: xSummerAddress!,
     functionName: 'balanceOf',
     args: account ? [account] : undefined,
-    query: { enabled: Boolean(xSummerAddress && account) },
+    query: { enabled: Boolean(isNonZeroAddress(xSummerAddress) && account) },
+    chainId: chainIdNumber,
   })
 
   // Allowances
@@ -213,14 +215,24 @@ export function useSummerStaking(chainId: ChainId) {
     address: summerAddress!,
     functionName: 'allowance',
     args: account && stakingAddress ? [account, stakingAddress] : undefined,
-    query: { enabled: Boolean(account && stakingAddress) },
+    query: {
+      enabled: Boolean(
+        account && isNonZeroAddress(summerAddress) && isNonZeroAddress(stakingAddress),
+      ),
+    },
+    chainId: chainIdNumber,
   })
   const { data: xSummerAllowance, refetch: refetchXSummerAllowance } = useReadContract({
     abi: erc20Abi,
     address: xSummerAddress!,
     functionName: 'allowance',
     args: account && stakingAddress ? [account, stakingAddress] : undefined,
-    query: { enabled: Boolean(account && stakingAddress && xSummerAddress) },
+    query: {
+      enabled: Boolean(
+        account && isNonZeroAddress(xSummerAddress) && isNonZeroAddress(stakingAddress),
+      ),
+    },
+    chainId: chainIdNumber,
   })
 
   // Load stakes list via multicall
@@ -228,7 +240,10 @@ export function useSummerStaking(chainId: ChainId) {
   useEffect(() => {
     let cancelled = false
     async function load() {
-      if (!publicClient || !account || !stakingAddress) return
+      if (!publicClient || !account || !isNonZeroAddress(stakingAddress)) {
+        if (!cancelled) setStakes([])
+        return
+      }
       const count = Number((userStakeCount as bigint) || BigInt(0))
       if (count === 0) {
         if (!cancelled) setStakes([])
@@ -254,6 +269,7 @@ export function useSummerStaking(chainId: ChainId) {
               bigint,
             ]
             const multiplierWad = amount > BigInt(0) ? (weightedAmount * WAD) / amount : BigInt(0)
+            console.log(weightedAmount)
             items.push({
               index: i,
               amount,
