@@ -2,12 +2,9 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/SiUSDArk.sol";
-import {IInfiniFiGateway} from "../../src/interfaces/infinifi/IInfiniFiGateway.sol";
-
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
@@ -17,7 +14,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
  *
  * ✅ These tests use the real InfiniFi Gateway contract deployed on mainnet
  */
-contract SiUSDArkTestFork is Test, IArkEvents, ArkTestBase {
+contract SiUSDArkTestFork is  IArkEvents, ArkTestBase {
     SiUSDArk public ark;
 
     // Known contract addresses on mainnet

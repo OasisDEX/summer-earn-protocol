@@ -2,22 +2,14 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/AaveV3Ark.sol";
-import {Test, console} from "forge-std/Test.sol";
-
-import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 
 import "../../src/events/IArkEvents.sol";
-import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
-
-import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 import {ArkTestBase} from "./ArkTestBase.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
+contract AaveV3ArkTest is  IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     AaveV3Ark public ark;

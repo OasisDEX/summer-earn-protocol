@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../../src/contracts/arks/PsmLiteERC4626Ark.sol";
-
+import {PsmLiteERC4626Ark} from "../../src/contracts/arks/PsmLiteERC4626Ark.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IPsmLite} from "../../src/interfaces/sky/IPsmLite.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
 
-contract PsmLiteERC4626ArkTestFork_Mainnet is Test, IArkEvents, ArkTestBase {
+contract PsmLiteERC4626ArkTestFork_Mainnet is  IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     PsmLiteERC4626Ark public ark;

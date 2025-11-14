@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
-
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
-import {IArk} from "../../src/interfaces/IArk.sol";
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -21,7 +18,7 @@ import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.s
  * - Deposit
  * - Error cases and edge scenarios
  */
-contract DepositTest is Test, TestHelpers, FleetCommanderTestBase {
+contract DepositTest is  TestHelpers, FleetCommanderTestBase {
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
     uint256 constant MAX_DEPOSIT_CAP = 100000 * 10 ** 6;
 

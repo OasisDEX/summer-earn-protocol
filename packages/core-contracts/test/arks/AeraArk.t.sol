@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
-
-import "../../src/contracts/arks/AeraArk.sol";
-import "../../src/events/IArkEvents.sol";
-import "../../src/interfaces/IArkWithWithdrawalRequest.sol";
-import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
+import {AeraArk} from "../../src/contracts/arks/AeraArk.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
+import {IArkWithWithdrawalRequest} from "../../src/interfaces/IArkWithWithdrawalRequest.sol";
 import {IProvisioner} from "../../src/interfaces/gauntlet/IProvisioner.sol";
 import {IPriceAndFeeCalculator} from "../../src/interfaces/gauntlet/IPriceFeeCalculator.sol";
 import {Request, RequestType, VaultPriceState} from "../../src/interfaces/gauntlet/Types.sol";
@@ -18,18 +15,14 @@ interface IAuth {
     function authority() external view returns (address);
 }
 
-import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-
+import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Test, console} from "forge-std/Test.sol";
+import { console} from "forge-std/Test.sol";
 
-contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
+contract AeraArkTestFork is  IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     AeraArk public ark;
@@ -55,13 +48,13 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Request deadline used in tests (24 hours)
-    uint256 private REQUEST_DEADLINE = 0;
+    uint256 private requestDeadline = 0;
 
     /// @notice Maximum price age used in tests (1 hour)
-    uint256 private MAX_PRICE_AGE = 0;
+    uint256 private maxPriceAge = 0;
 
     /// @notice Default solver tip (0 for auto-price requests)
-    uint256 private DEFAULT_SOLVER_TIP = 0;
+    uint256 private defaultSolverTip = 0;
 
     /// @notice Buffer time for expired request tests (1 hour past deadline)
     uint256 private constant EXPIRY_BUFFER = 1 hours;
@@ -107,15 +100,15 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         });
 
         ark = new AeraArk(PROVISIONER_ADDRESS, params);
-        REQUEST_DEADLINE = ark.REQUEST_DEADLINE();
+        requestDeadline = ark.REQUEST_DEADLINE();
         assertGt(
-            REQUEST_DEADLINE,
+            requestDeadline,
             0,
-            "REQUEST_DEADLINE should be greater than 0"
+            "requestDeadline should be greater than 0"
         );
-        MAX_PRICE_AGE = ark.MAX_PRICE_AGE();
-        assertGt(MAX_PRICE_AGE, 0, "MAX_PRICE_AGE should be greater than 0");
-        DEFAULT_SOLVER_TIP = ark.DEFAULT_SOLVER_TIP();
+        maxPriceAge = ark.MAX_PRICE_AGE();
+        assertGt(maxPriceAge, 0, "maxPriceAge should be greater than 0");
+        defaultSolverTip = ark.DEFAULT_SOLVER_TIP();
 
         // Permissioning
         vm.startPrank(governor);
@@ -154,9 +147,9 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
             user: address(ark),
             units: _applySlippage(minUnitsOut),
             tokens: tokensIn,
-            solverTip: DEFAULT_SOLVER_TIP,
-            deadline: block.timestamp + REQUEST_DEADLINE,
-            maxPriceAge: MAX_PRICE_AGE
+            solverTip: defaultSolverTip,
+            deadline: block.timestamp + requestDeadline,
+            maxPriceAge: maxPriceAge
         });
 
         Request[] memory requests = new Request[](1);
@@ -181,9 +174,9 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
             user: address(ark),
             units: sharesToRedeem,
             tokens: _applySlippage(withdrawAmount), // This should now be solvable due to higher unit price
-            solverTip: DEFAULT_SOLVER_TIP,
+            solverTip: defaultSolverTip,
             deadline: deadline,
-            maxPriceAge: MAX_PRICE_AGE
+            maxPriceAge: maxPriceAge
         });
 
         console.log("Solving redeem request:");
@@ -210,13 +203,13 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
             user: address(ark),
             units: _applySlippage(minUnitsOut),
             tokens: tokensIn,
-            solverTip: DEFAULT_SOLVER_TIP,
-            deadline: block.timestamp + REQUEST_DEADLINE,
-            maxPriceAge: MAX_PRICE_AGE
+            solverTip: defaultSolverTip,
+            deadline: block.timestamp + requestDeadline,
+            maxPriceAge: maxPriceAge
         });
 
         // 4. Fast forward past deadline to allow refund
-        vm.warp(block.timestamp + REQUEST_DEADLINE + EXPIRY_BUFFER);
+        vm.warp(block.timestamp + requestDeadline + EXPIRY_BUFFER);
 
         // 5. Refund the request directly
         console.log("Refunding deposit request directly");
@@ -231,13 +224,13 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
             user: address(ark),
             units: unitsIn,
             tokens: _applySlippage(minTokensOut),
-            solverTip: DEFAULT_SOLVER_TIP,
-            deadline: block.timestamp + REQUEST_DEADLINE,
-            maxPriceAge: MAX_PRICE_AGE
+            solverTip: defaultSolverTip,
+            deadline: block.timestamp + requestDeadline,
+            maxPriceAge: maxPriceAge
         });
 
         // 3. Fast forward past deadline to expire the request
-        vm.warp(block.timestamp + REQUEST_DEADLINE + EXPIRY_BUFFER);
+        vm.warp(block.timestamp + requestDeadline + EXPIRY_BUFFER);
 
         // 5. Refund the request directly
         console.log("Refunding redeem request directly");
@@ -290,7 +283,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
 
         console.log("Initial unit price:", initialPrice);
 
-        vm.warp(block.timestamp + MAX_PRICE_AGE);
+        vm.warp(block.timestamp + maxPriceAge);
         // Increase price by 5%
         _increaseUnitPrice(10005);
 
@@ -786,7 +779,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         // 3. Request withdrawal
         uint256 withdrawAmount = 500 * 1e6;
         uint sharesToRedeem;
-        uint deadline = block.timestamp + REQUEST_DEADLINE;
+        uint deadline = block.timestamp + requestDeadline;
         if (withdrawAmount == type(uint256).max) {
             sharesToRedeem = vault.balanceOf(address(ark));
             withdrawAmount = priceCalculator.convertUnitsToTokenIfActive(
@@ -810,7 +803,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         uint256 assetsInQueue = ark.assetsInWithdrawalQueue();
         assertGt(assetsInQueue, 0, "Assets should be in withdrawal queue");
 
-        vm.warp(block.timestamp + MAX_PRICE_AGE);
+        vm.warp(block.timestamp + maxPriceAge);
         // 4. Increase unit price to make redeem request solvable
         _increaseUnitPrice(PRICE_INCREASE_BPS); // Increase by 0.01% to account for rounding
 
@@ -1173,7 +1166,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         // 3. Request withdrawal
         uint256 withdrawAmount = type(uint256).max;
         uint sharesToRedeem;
-        uint deadline = block.timestamp + REQUEST_DEADLINE;
+        uint deadline = block.timestamp + requestDeadline;
         if (withdrawAmount == type(uint256).max) {
             sharesToRedeem = vault.balanceOf(address(ark));
             withdrawAmount = priceCalculator.convertUnitsToTokenIfActive(
@@ -1197,7 +1190,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         uint256 assetsInQueue = ark.assetsInWithdrawalQueue();
         assertGt(assetsInQueue, 0, "Assets should be in withdrawal queue");
 
-        vm.warp(block.timestamp + MAX_PRICE_AGE);
+        vm.warp(block.timestamp + maxPriceAge);
         // 4. Increase unit price to make redeem request solvable
         _increaseUnitPrice(PRICE_INCREASE_BPS); // Increase by 0.01% to account for rounding
 

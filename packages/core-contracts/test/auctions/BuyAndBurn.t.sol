@@ -6,7 +6,6 @@ import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 import "../../src/errors/IBuyAndBurnErrors.sol";
 import "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
-import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IBuyAndBurnEvents} from "../../src/events/IBuyAndBurnEvents.sol";
 import {MockSummerToken} from "@summerfi/gov-contracts/test/mocks/MockSummerToken.sol";
 import "./AuctionTestBase.sol";

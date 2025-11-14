@@ -5,7 +5,7 @@ import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 
 import {IHarborCommandEvents} from "../../src/events/IHarborCommandEvents.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 contract HarborCommandTest is Test {
     HarborCommand public harborCommand;

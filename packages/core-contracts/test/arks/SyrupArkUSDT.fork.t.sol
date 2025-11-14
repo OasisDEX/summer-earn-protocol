@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../../src/contracts/arks/SyrupArk.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {SyrupArk} from "../../src/contracts/arks/SyrupArk.sol";
+import { console} from "forge-std/Test.sol";
 
-import "../../src/events/IArkEvents.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISyrupPool} from "../../src/interfaces/syrup/ISyrupPool.sol";
 import {ISyrupRouter} from "../../src/interfaces/syrup/ISyrupRouter.sol";
-
+import {ArkParams} from "../../src/types/ArkTypes.sol";
+import {IArkWithWithdrawalRequest} from "../../src/interfaces/IArkWithWithdrawalRequest.sol";
 // Mock interface for PoolPermissionManager
 interface IPoolPermissionManager {
     function setLenderAllowlist(
@@ -21,7 +22,7 @@ interface IPoolPermissionManager {
     ) external;
 }
 
-contract SyrupArkUSDTTestFork is Test, IArkEvents, ArkTestBase {
+contract SyrupArkUSDTTestFork is  IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     SyrupArk public ark;
     IMapleWithdrawalManager public withdrawalManager;

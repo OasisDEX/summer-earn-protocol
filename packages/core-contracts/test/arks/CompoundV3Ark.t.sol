@@ -2,30 +2,22 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/CompoundV3Ark.sol";
-import {Test, console} from "forge-std/Test.sol";
-
-import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
-import "../../src/events/IArkEvents.sol";
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-
-import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
+contract CompoundV3ArkTest is  IArkEvents, ArkTestBase {
     CompoundV3Ark public ark;
 
-    address public constant cometAddress =
+    address public constant COMET_ADDRESS =
         0xc3d688B66703497DAA19211EEdff47f25384cdc3;
-    address public constant cometRewards = address(5);
+    address public constant COMET_REWARDS = address(5);
 
     IComet public comet;
 
     function setUp() public {
         initializeCoreContracts();
-        comet = IComet(cometAddress);
+        comet = IComet(COMET_ADDRESS);
         ArkParams memory params = ArkParams({
             name: "TestArk",
             details: "TestArk details",
@@ -38,7 +30,7 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
             requiresKeeperData: false,
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
-        ark = new CompoundV3Ark(address(comet), cometRewards, params);
+        ark = new CompoundV3Ark(address(comet), COMET_REWARDS, params);
 
         // Permissioning
         vm.prank(governor);
@@ -65,7 +57,7 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
             requiresKeeperData: false,
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
-        ark = new CompoundV3Ark(address(comet), cometRewards, params);
+        ark = new CompoundV3Ark(address(comet), COMET_REWARDS, params);
         assertEq(address(ark.comet()), address(comet));
         assertEq(address(ark.asset()), address(mockToken));
         assertEq(ark.depositCap(), type(uint256).max);
@@ -145,7 +137,7 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
 
         // Mock the rewardConfig call
         vm.mockCall(
-            address(cometRewards),
+            address(COMET_REWARDS),
             abi.encodeWithSelector(
                 ICometRewards.rewardConfig.selector,
                 address(comet)
@@ -161,7 +153,7 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
 
         // Mock the claimTo call instead of claim
         vm.mockCall(
-            address(cometRewards),
+            address(COMET_REWARDS),
             abi.encodeWithSelector(
                 ICometRewards.claimTo.selector,
                 address(comet),

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../../src/contracts/arks/SkyUsdsPsm3Ark.sol";
-
+import {SkyUsdsPsm3Ark, IPSM3} from "../../src/contracts/arks/SkyUsdsPsm3Ark.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
 
-contract USDSPsm3ArkTestFork is Test, IArkEvents, ArkTestBase {
+contract USDSPsm3ArkTestFork is  IArkEvents, ArkTestBase {
     SkyUsdsPsm3Ark public ark;
     SkyUsdsPsm3Ark public nextArk;
 

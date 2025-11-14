@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
-
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {CooldownNotElapsed} from "../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
@@ -16,7 +14,7 @@ import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {console} from "forge-std/console.sol";
 /**
  * @title Rebalance test suite for FleetCommander
@@ -29,7 +27,7 @@ import {console} from "forge-std/console.sol";
  * - Error cases and edge scenarios
  */
 
-contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
+contract RebalanceTest is  TestHelpers, FleetCommanderTestBase {
     using Math for uint256;
     using PercentageUtils for uint256;
 

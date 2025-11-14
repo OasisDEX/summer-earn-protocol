@@ -3,19 +3,9 @@ pragma solidity 0.8.28;
 
 import {AdmiralsQuarters} from "../../src/contracts/AdmiralsQuarters.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {IAdmiralsQuartersErrors} from "../../src/errors/IAdmiralsQuartersErrors.sol";
-import {IAdmiralsQuarters} from "../../src/interfaces/IAdmiralsQuarters.sol";
 import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
 import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {Test, console} from "forge-std/Test.sol";
-import {IAdmiralsQuarters} from "../../src/interfaces/IAdmiralsQuarters.sol";
-import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
-import {ISummerRewardsRedeemer} from "@summerfi/rewards-contracts/interfaces/ISummerRewardsRedeemer.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {Constants} from "@summerfi/constants/Constants.sol";
 import {IDistributor} from "../../src/interfaces/merkl/IDistributor.sol";
 
 bytes4 constant ENTER_FLEET_SELECTOR = bytes4(

@@ -2,10 +2,9 @@
 pragma solidity 0.8.28;
 
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {ITipperEvents} from "../../src/events/ITipperEvents.sol";
-import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
 
 import {Tipper} from "../../src/contracts/Tipper.sol";
 
@@ -17,7 +16,7 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
-contract TipperTest is Test, ITipperEvents {
+contract TipperTest is Test,  ITipperEvents {
     using PercentageUtils for uint256;
 
     address public mockUser = address(1);

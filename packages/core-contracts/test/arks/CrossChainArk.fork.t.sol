@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
-import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {BridgeRouter, IBridgeRouter} from "@summerfi/chain-bridge/router/BridgeRouter.sol";
 import {LayerZeroAdapter} from "@summerfi/chain-bridge/adapters/LayerZeroAdapter.sol";
 import {StargateAdapter} from "@summerfi/chain-bridge/adapters/StargateAdapter.sol";
@@ -20,10 +18,9 @@ import {MockStargateV2Pool} from "@summerfi/chain-bridge-test/mocks/MockStargate
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
-import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
-contract CrossChainArkForkTest is Test, ArkTestBase {
+contract CrossChainArkForkTest is  ArkTestBase {
     CrossChainArk public ark;
     BridgeRouter public bridgeRouter;
 
@@ -173,8 +170,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         layerZeroAdapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
 
         // Activate the read channel for state reading operations
-        uint32 READ_CHANNEL_ID = 4294967295;
-        layerZeroAdapter.activateReadChannel(READ_CHANNEL_ID);
+        uint32 readChannelId = 4294967295;
+        layerZeroAdapter.activateReadChannel(readChannelId);
 
         // Register cross-chain relationships in registry
         registry.registerRelationship(

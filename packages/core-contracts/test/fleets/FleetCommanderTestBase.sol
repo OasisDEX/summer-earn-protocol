@@ -15,9 +15,6 @@ import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-
-import {FleetCommanderRewardsManager} from "../../src/contracts/FleetCommanderRewardsManager.sol";
 
 import {FleetCommanderRewardsManagerFactory} from "../../src/contracts/FleetCommanderRewardsManagerFactory.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
@@ -30,12 +27,9 @@ import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
-import {console} from "forge-std/console.sol";
 
-abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
+abstract contract FleetCommanderTestBase is Test,  FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
 
     uint256 public BUFFER_BALANCE_SLOT;

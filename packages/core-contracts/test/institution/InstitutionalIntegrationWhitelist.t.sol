@@ -5,7 +5,6 @@ import {FleetCommanderWhitelistInstitutionalTestBase} from "../fleets/FleetComma
 import {FleetCommanderWhitelist} from "../../src/contracts/FleetCommanderWhitelist.sol";
 import {AdmiralsQuartersWhitelist} from "../../src/contracts/AdmiralsQuartersWhitelist.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";

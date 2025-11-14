@@ -2,12 +2,11 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/SparkArk.sol";
-import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract SparkArkForkTest is Test, ArkTestBase {
+contract SparkArkForkTest is  ArkTestBase {
     SparkArk public ark;
 
     address public constant SPARK_POOL =

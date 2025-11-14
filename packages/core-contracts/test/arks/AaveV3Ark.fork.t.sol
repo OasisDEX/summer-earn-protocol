@@ -1,27 +1,20 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../../src/contracts/arks/AaveV3Ark.sol";
-import {Test, console} from "forge-std/Test.sol";
-
-import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
-
-import "../../src/events/IArkEvents.sol";
-import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
-
-import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
+import {AaveV3Ark} from "../../src/contracts/arks/AaveV3Ark.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IPoolV3} from "../../src/interfaces/aave-v3/IPoolV3.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
 
-contract AaveV3ArkTestFork is Test, IArkEvents, ArkTestBase {
+contract AaveV3ArkTestFork is  IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     AaveV3Ark public ark;
     AaveV3Ark public nextArk;
 
-    address public constant aaveV3PoolAddress =
+    address public constant AAVE_V3_POOL_ADDRESS =
         0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     address public aaveAddressProvider =
         0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
@@ -41,7 +34,7 @@ contract AaveV3ArkTestFork is Test, IArkEvents, ArkTestBase {
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         usdt = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
-        aaveV3Pool = IPoolV3(aaveV3PoolAddress);
+        aaveV3Pool = IPoolV3(AAVE_V3_POOL_ADDRESS);
 
         ArkParams memory params = ArkParams({
             name: "TestArk",

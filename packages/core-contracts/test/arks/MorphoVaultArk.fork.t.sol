@@ -1,26 +1,21 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {Test, console} from "forge-std/Test.sol";
-
-import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-
-import "../../src/contracts/arks/MorphoVaultArk.sol";
-import "../../src/events/IArkEvents.sol";
-
-import {IArk} from "../../src/interfaces/IArk.sol";
+import { console} from "forge-std/Test.sol";
+import {MorphoVaultArk} from "../../src/contracts/arks/MorphoVaultArk.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IRaft} from "../../src/interfaces/IRaft.sol";
 import {BaseAuctionParameters} from "../../src/types/CommonAuctionTypes.sol";
 import {DecayFunctions} from "@summerfi/dutch-auction/DecayFunctions.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
 
-contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
+contract MetaMorphoArkTestFork is  IArkEvents, ArkTestBase {
     MorphoVaultArk public ark;
 
     address public constant METAMORPHO_ADDRESS =
@@ -29,11 +24,11 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         0x9baA51245CDD28D8D74Afe8B3959b616E9ee7c8D;
     address public constant USDC_ADDRESS =
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    address public USDC_ADDRESS_BASE =
+    address public usdcAddressBase =
         0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
-    address REWARD_TOKEN = 0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842;
-    address CURATOR = 0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d;
-    IERC20 rewardToken = IERC20(REWARD_TOKEN);
+    address rewardTokenAddress = 0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842;
+    address curatorAddress = 0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d;
+    IERC20 rewardToken = IERC20(rewardTokenAddress);
 
     address public usdFleet = 0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17;
 
@@ -207,11 +202,11 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         // Fork at specific block where we know there are rewards
         vm.createSelectFork(vm.rpcUrl("base"), 27199730);
 
-        address ARK_ADDRESS = 0x165D1accC5C6326e7EE4deeF75Ac3ffC8ce4D79B;
-        address KEEPER = 0xc2a8467a52Fec8383c424149000cf384de9Ba1B5;
-        usdc = IERC20(USDC_ADDRESS_BASE);
-        asset = IERC20(USDC_ADDRESS_BASE);
-        ark = MorphoVaultArk(ARK_ADDRESS);
+        address arkAddress = 0x165D1accC5C6326e7EE4deeF75Ac3ffC8ce4D79B;
+        address keeperAddress = 0xc2a8467a52Fec8383c424149000cf384de9Ba1B5;
+        usdc = IERC20(usdcAddressBase);
+        asset = IERC20(usdcAddressBase);
+        ark = MorphoVaultArk(arkAddress);
 
         // params taken from the already deployed ark
         ArkParams memory params = ArkParams({
@@ -232,8 +227,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
             params
         );
         // we need to etch the code at the target address and make it persistent (after fork roll)
-        vm.etch(ARK_ADDRESS, address(modifiedArk).code);
-        vm.makePersistent(ARK_ADDRESS);
+        vm.etch(arkAddress, address(modifiedArk).code);
+        vm.makePersistent(arkAddress);
 
         vm.prank(address(raft));
 
@@ -245,8 +240,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         bytes
             memory claimData = hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000000010000000000000000000000005400dbb270c956e8985184335a1c62aca6ce13330000000000000000000000000000000000000000000000000000000000000001000000000000000000000000baa5cc21fd487b8fcc2f632f3f4e8d37262a08420000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000003e8585846bb84f663000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000011b2dad367fe730f0258f7aed1493cbdbd4859ff8fe0f5b1692b778e7d9f02cebe137d0f6c2742e2b70c922c1f3db064822caa8a65292377c8e9696edb84087c35a2274692ef25fe4ff0612ef836a261a6bcd743e2c6bf637d984da8f3144ebfdb3e0dd37a5b4a2fe555997e278a2eade8c0e9967aac5bca962f6fbc0d63dcfead99688c3871fc3c8425b8fa6bd35d10060e25abfe26657c55f206e1155232a35c97587e06cdf437b8b0e735d0ca69a63a38df5ff322aecf126101dde8d22ada08c8286ad50fafa0d0accb9fdeeba68709aa9b8cf8a2cf6163973e703ba8eec2cde3b408604ddaddcf672ce9f12299ffd4719994ba15e002b5965973ad4f0e6402ce4d8d84eff1939dfc87bcd837e522a9d9a8ad0a5cb969d65a3b9aac61cbcaf3a7c8f50901fbcfd07b2373c78c983744c818663916ed1b1db0a1b79df9a4d26b985e18978a9e2cbd963c2560413962a4cc97fe187129a7e24a2a09c5feacd713869d931b5a0a05093f5c48c6bdb01799af1f4a71cceea8317534db4b16c925398a49edd6975437c1a357810ebd578fc3b9febb8a903d89ebf3ae661571083579ae8f5dd9a89bcc79af2cacd72152b51e69a7e33adab57321c458a1a3f873c0b67e3ccf5212061ad907d28d0727fb23516f4fbdf58d0eb6681b77a0cda5ffc20e5bd637f62588af7878bcff06ce35e0b7b9e262dda80699068ef49fdfb8eb90daa1f2e7703be4c88a8191d3453245bc0b04ebaa3195ee84eeb25957789ac0ac8f";
 
-        vm.prank(KEEPER);
-        raftInstance.harvest(ARK_ADDRESS, claimData);
+        vm.prank(keeperAddress);
+        raftInstance.harvest(arkAddress, claimData);
         uint256 claimable = 72082460896695481955;
         assertEq(
             rewardToken.balanceOf(address(raftInstance)) -
@@ -266,26 +261,26 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         });
 
         // Update auction parameters
-        vm.prank(CURATOR);
+        vm.prank(curatorAddress);
         raftInstance.setArkAuctionParameters(
-            ARK_ADDRESS,
-            address(REWARD_TOKEN),
+            arkAddress,
+            address(rewardTokenAddress),
             newParams
         );
 
-        raftInstance.startAuction(ARK_ADDRESS, REWARD_TOKEN);
+        raftInstance.startAuction(arkAddress, rewardTokenAddress);
         assertEq(
-            raftInstance.getCurrentPrice(ARK_ADDRESS, REWARD_TOKEN),
+            raftInstance.getCurrentPrice(arkAddress, rewardTokenAddress),
             newParams.startPrice
         );
 
         console.log(
             "price after startAuction (decimals)    ",
-            raftInstance.getCurrentPrice(ARK_ADDRESS, REWARD_TOKEN)
+            raftInstance.getCurrentPrice(arkAddress, rewardTokenAddress)
         );
         console.log(
             "price after startAuction (no decimals) ",
-            raftInstance.getCurrentPrice(ARK_ADDRESS, REWARD_TOKEN) / 1e6
+            raftInstance.getCurrentPrice(arkAddress, rewardTokenAddress) / 1e6
         );
 
         // buying
@@ -294,14 +289,14 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         uint256 expectedCost = (amountToBuy * newParams.startPrice + 1) / 1e18;
         console.log("expectedCost", expectedCost);
 
-        deal(USDC_ADDRESS_BASE, buyer, expectedCost);
+        deal(usdcAddressBase, buyer, expectedCost);
 
         vm.startPrank(buyer);
         asset.approve(address(raftInstance), amountToBuy);
 
         uint256 paid = raftInstance.buyTokens(
-            ARK_ADDRESS,
-            REWARD_TOKEN,
+            arkAddress,
+            rewardTokenAddress,
             amountToBuy
         );
         console.log("paid", paid);
@@ -314,19 +309,19 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.rollFork(27542291);
 
         bytes memory claimDataNew = _getForkTestHarvestData();
-        vm.prank(KEEPER);
-        raftInstance.harvest(ARK_ADDRESS, claimDataNew);
+        vm.prank(keeperAddress);
+        raftInstance.harvest(arkAddress, claimDataNew);
     }
 
     function _getForkTestHarvestData() internal pure returns (bytes memory) {
         // The URD address from the data
-        address URD_ADDRESS = 0x5400dBb270c956E8985184335A1C62AcA6Ce1333;
-        address _REWARD_TOKEN = 0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842;
+        address urdAddress = 0x5400dBb270c956E8985184335A1C62AcA6Ce1333;
+        address proofRewardToken = 0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842;
         address[] memory rewards = new address[](1);
-        rewards[0] = _REWARD_TOKEN;
+        rewards[0] = proofRewardToken;
 
         address[] memory urd = new address[](1);
-        urd[0] = URD_ADDRESS;
+        urd[0] = urdAddress;
 
         uint256[] memory claimable = new uint256[](1);
         claimable[0] = 83016174938586317674; // The exact amount from the data

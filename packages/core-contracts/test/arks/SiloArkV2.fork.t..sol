@@ -1,15 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
-
 import "../../src/contracts/arks/SiloVaultArkV2.sol";
 import "../../src/events/IArkEvents.sol";
-import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
-
-import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
@@ -17,9 +10,8 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Raft} from "../../src/contracts/Raft.sol";
 
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Test, console} from "forge-std/Test.sol";
 
-contract SonicArkTestFork is Test, IArkEvents, ArkTestBase {
+contract SonicArkTestFork is  IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     SiloVaultArkV2 public ark;
     IERC4626 public silo;

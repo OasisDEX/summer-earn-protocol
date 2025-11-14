@@ -17,6 +17,9 @@ via_ir = true
 optimizer = true
 optimizer_runs = 50
 
+[lint]
+exclude_lints = ["mixed-case-function"]
+
 [fmt]
   bracket_spacing = true
   int_types = "long"

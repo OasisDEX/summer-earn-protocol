@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {ITipJarEvents} from "../../src/events/ITipJarEvents.sol";
 import {ITipJar} from "../../src/interfaces/ITipJar.sol";
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {TipJar} from "../../src/contracts/TipJar.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
@@ -22,7 +22,7 @@ import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProt
 import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
-contract TipJarTest is Test, ITipJarEvents {
+contract TipJarTest is Test,  ITipJarEvents {
     using PercentageUtils for uint256;
 
     address public governor = address(1);

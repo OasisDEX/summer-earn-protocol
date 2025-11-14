@@ -1,22 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
-
 import {TestHelpers} from "../helpers/TestHelpers.sol";
-
-import {IArk} from "../../src/interfaces/IArk.sol";
-
-import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
-
-import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 /**
  * @title ERC4626 methods test suite for FleetCommander
  * @dev Test suite for the FleetCommander contract's ERC4626 methods
  */
-contract ERC4626Test is Test, TestHelpers, FleetCommanderTestBase {
+contract ERC4626Test is  TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);

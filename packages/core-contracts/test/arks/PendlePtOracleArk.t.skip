@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/PendlePTArk.sol";
-import {Test, console} from "forge-std/Test.sol";
+import { console} from "forge-std/Test.sol";
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
@@ -30,7 +30,7 @@ import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLi
 import {SwapData, SwapType} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {StdStorage, stdStorage} from "forge-std/Test.sol";
 
-contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
+contract PendlePTArkTestFork2 is  IArkEvents, ArkTestBase {
     using stdStorage for StdStorage;
 
     PendlePtOracleArk public usdcArk;

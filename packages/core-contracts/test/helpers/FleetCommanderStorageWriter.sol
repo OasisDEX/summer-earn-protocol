@@ -2,8 +2,7 @@
 pragma solidity 0.8.28;
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
-import {StdStorage, Test, console, stdStorage} from "forge-std/Test.sol";
+import {StdStorage, Test, stdStorage} from "forge-std/Test.sol";
 
 /**
  * @title FleetCommanderStorageWriter

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
-
 import {FleetConfig, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
@@ -21,7 +19,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * - Buffer adjustment
  * - Error cases and edge scenarios
  */
-contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
+contract BufferTest is  TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);

@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
-
 import {TestHelpers} from "../helpers/TestHelpers.sol";
-
-import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
-contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
+contract RedeemTest is  TestHelpers, FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;

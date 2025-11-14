@@ -1,17 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager, ConfigurationManagerParams} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import "../../src/types/CommonAuctionTypes.sol";
 
 import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";
-import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
+import {ArkMock} from "../mocks/ArkMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DecayFunctions} from "@summerfi/dutch-auction/DecayFunctions.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {console} from "forge-std/console.sol";
 
 contract AuctionTestBase is FleetCommanderTestBase {
     using PercentageUtils for uint256;

@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
-import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
-import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
@@ -17,7 +15,6 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
 import {FleetProxy} from "../../src/contracts/FleetProxy.sol";
-import {IFleetProxy} from "../../src/interfaces/IFleetProxy.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 
 uint16 constant DEST_CHAIN_ID = 42161;

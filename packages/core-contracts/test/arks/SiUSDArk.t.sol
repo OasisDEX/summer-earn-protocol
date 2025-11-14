@@ -7,7 +7,6 @@ import {IInfiniFiGateway} from "../../src/interfaces/infinifi/IInfiniFiGateway.s
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Test, console} from "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ERC4626Mock} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
 
@@ -16,7 +15,7 @@ import {ERC4626Mock} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
  * @notice Unit tests for SiUSDArk using mocked contracts
  * @dev These tests don't require forking mainnet, making them faster for CI/CD
  */
-contract SiUSDArkUnitTest is Test, IArkEvents, ArkTestBase {
+contract SiUSDArkUnitTest is  IArkEvents, ArkTestBase {
     SiUSDArk public ark;
 
     ERC20Mock public mockUSDC;

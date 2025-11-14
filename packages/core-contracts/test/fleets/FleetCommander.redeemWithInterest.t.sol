@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
-
-import {IArk} from "../../src/interfaces/IArk.sol";
+import {console} from "forge-std/Test.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
@@ -13,7 +11,7 @@ import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol"
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
-contract RedeemWithInterestTest is Test, TestHelpers, FleetCommanderTestBase {
+contract RedeemWithInterestTest is  TestHelpers, FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;

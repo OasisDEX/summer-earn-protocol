@@ -1,25 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
-
-import "../../src/contracts/arks/SiloVaultArk.sol";
-import "../../src/events/IArkEvents.sol";
-import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
-
-import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-
+import {SiloVaultArk} from "../../src/contracts/arks/SiloVaultArk.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
-
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
 
-contract SonicArkTestFork is Test, IArkEvents, ArkTestBase {
+contract SonicArkTestFork is  IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     SiloVaultArk public ark;
     IERC4626 public silo;
@@ -158,7 +149,7 @@ contract SonicArkTestFork is Test, IArkEvents, ArkTestBase {
         usdce.forceApprove(address(ark), amount);
         ark.board(amount, bytes(""));
 
-        uint256 initialUSDCEBalance = usdce.balanceOf(commander);
+        uint256 initialUsdceBalance = usdce.balanceOf(commander);
         uint256 amountToDisembark = IERC4626(SILO_ADDRESS).maxWithdraw(
             address(ark)
         );
@@ -169,10 +160,10 @@ contract SonicArkTestFork is Test, IArkEvents, ArkTestBase {
         ark.disembark(amountToDisembark, bytes(""));
         vm.stopPrank();
 
-        uint256 finalUSDCEBalance = usdce.balanceOf(commander);
+        uint256 finalUsdceBalance = usdce.balanceOf(commander);
         assertEq(
-            finalUSDCEBalance,
-            initialUSDCEBalance + amountToDisembark,
+            finalUsdceBalance,
+            initialUsdceBalance + amountToDisembark,
             "USDCE balance should increase by disembarked amount"
         );
     }

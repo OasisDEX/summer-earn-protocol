@@ -5,7 +5,7 @@ import {ArkTestHelpers} from "./ArkTestHelpers.sol";
 import {FleetCommanderTestHelpers} from "./FleetCommanderTestHelpers.sol";
 import {OneInchTestHelpers} from "./OneInchTestHelpers.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 contract TestHelpers is
     Test,

@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {CooldownEnforcerMock} from "../../mocks/CooldownEnforcerMock.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 /**
  * @title CooldownEnforcerTestBase

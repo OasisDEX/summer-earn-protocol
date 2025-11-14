@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
+import {CooldownNotElapsed} from "../../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
 
 import {CooldownEnforcer_TestBase} from "./CooldownEnforcerTestBase.sol";
 

@@ -2,23 +2,17 @@
 pragma solidity 0.8.28;
 
 import {ArkParams, CompoundV3Ark} from "../../src/contracts/arks/CompoundV3Ark.sol";
-import {Test, console} from "forge-std/Test.sol";
-
-import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
-import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
 
 import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
-import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {console} from "forge-std/Test.sol";
 
-contract CompoundV3ArkArbitrumTest is Test, IArkEvents, ArkTestBase {
+contract CompoundV3ArkArbitrumTest is  IArkEvents, ArkTestBase {
     CompoundV3Ark public ark;
 
     address public constant cometAddress =

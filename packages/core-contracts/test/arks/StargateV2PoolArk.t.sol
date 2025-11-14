@@ -1,27 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
-
-import "../../src/contracts/arks/StargateV2PoolArk.sol";
-import "../../src/events/IArkEvents.sol";
-import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
+import {StargateV2PoolArk} from "../../src/contracts/arks/StargateV2PoolArk.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IStargatePool} from "../../src/interfaces/stargate/IStargatePool.sol";
 import {IStargateStaking} from "../../src/interfaces/stargate/IStargateStaking.sol";
-import {IMultiRewarder} from "../../src/interfaces/stargate/IMultiRewarder.sol";
 import {IWETH} from "../../src/interfaces/misc/IWETH.sol";
-
-import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Test, console} from "forge-std/Test.sol";
 
-contract StargateV2PoolArkTestFork is Test, IArkEvents, ArkTestBase {
+contract StargateV2PoolArkTestFork is  IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     StargateV2PoolArk public ark;
