@@ -126,6 +126,10 @@ const WAD = BigInt('1000000000000000000')
 
 export function useSummerStaking(chainId: ChainId) {
   const { environment } = useEnvironment()
+  // Log environment changes only (avoid logging on every render)
+  useEffect(() => {
+    console.log('environment useSummerStaking', environment)
+  }, [environment])
   const { address: account, chain } = useAccount()
   // Resolve and sanitize chain id from route param; fall back to Base (8453) if invalid or unmapped
   const rawChainId = Number(chainId)
@@ -138,24 +142,35 @@ export function useSummerStaking(chainId: ChainId) {
   const chainIdNumber = Number.isFinite(rawChainId) && hasMappingFor(rawChainId) ? rawChainId : 8453
   // Initialize public client for the resolved chain id; also keep a default client as fallback
   const pcForChain = usePublicClient({ chainId: chainIdNumber })
-  const pcDefault = usePublicClient()
-  const publicClient = pcForChain ?? pcDefault
+  const publicClient = pcForChain
 
-  const summerAddress = SUMMER_TOKEN_ADDRESSES[environment][chainIdNumber] as `0x${string}`
-  const xSummerAddress = STAKED_SUMMER_TOKEN_ADDRESSES[environment][chainIdNumber] as `0x${string}`
-  const stakingAddress = SUMMER_STAKING_ADDRESSES[environment][chainIdNumber] as `0x${string}`
+  // Memoize addresses to ensure they update when environment or chainId changes
+  const { summerAddress, xSummerAddress, stakingAddress } = useMemo(
+    () => ({
+      summerAddress: SUMMER_TOKEN_ADDRESSES[environment]?.[chainIdNumber] as
+        | `0x${string}`
+        | undefined,
+      xSummerAddress: STAKED_SUMMER_TOKEN_ADDRESSES[environment]?.[chainIdNumber] as
+        | `0x${string}`
+        | undefined,
+      stakingAddress: SUMMER_STAKING_ADDRESSES[environment]?.[chainIdNumber] as
+        | `0x${string}`
+        | undefined,
+    }),
+    [environment, chainIdNumber],
+  )
 
   // Reads
   const { data: bucketInfo } = useReadContract({
     abi: summerStakingAbi,
-    address: stakingAddress,
+    address: stakingAddress!,
     functionName: 'getAllBucketInfo',
     query: { enabled: Boolean(stakingAddress) },
   })
   // @ts-expect-error - wagmi types are not up to date
   const { data: userStakeCount } = useReadContract({
     abi: summerStakingAbi,
-    address: stakingAddress,
+    address: stakingAddress!,
     functionName: 'getUserStakesCount',
     args: account ? [account] : undefined,
     query: { enabled: Boolean(stakingAddress && account) },
@@ -164,13 +179,13 @@ export function useSummerStaking(chainId: ChainId) {
   // ERC20 metadata
   const { data: summerDecimals } = useReadContract({
     abi: erc20Abi,
-    address: summerAddress,
+    address: summerAddress!,
     functionName: 'decimals',
     query: { enabled: Boolean(summerAddress) },
   })
   const { data: summerSymbol } = useReadContract({
     abi: erc20Abi,
-    address: summerAddress,
+    address: summerAddress!,
     functionName: 'symbol',
     query: { enabled: Boolean(summerAddress) },
   })
@@ -178,7 +193,7 @@ export function useSummerStaking(chainId: ChainId) {
   // Balances
   const { data: summerBalance } = useReadContract({
     abi: erc20Abi,
-    address: summerAddress,
+    address: summerAddress!,
     functionName: 'balanceOf',
     args: account ? [account] : undefined,
     query: { enabled: Boolean(summerAddress && account) },
@@ -186,7 +201,7 @@ export function useSummerStaking(chainId: ChainId) {
 
   const { data: xSummerBalance } = useReadContract({
     abi: erc20Abi,
-    address: xSummerAddress,
+    address: xSummerAddress!,
     functionName: 'balanceOf',
     args: account ? [account] : undefined,
     query: { enabled: Boolean(xSummerAddress && account) },
@@ -195,16 +210,16 @@ export function useSummerStaking(chainId: ChainId) {
   // Allowances
   const { data: summerAllowance, refetch: refetchSummerAllowance } = useReadContract({
     abi: erc20Abi,
-    address: summerAddress,
+    address: summerAddress!,
     functionName: 'allowance',
-    args: account ? [account, stakingAddress] : undefined,
+    args: account && stakingAddress ? [account, stakingAddress] : undefined,
     query: { enabled: Boolean(account && stakingAddress) },
   })
   const { data: xSummerAllowance, refetch: refetchXSummerAllowance } = useReadContract({
     abi: erc20Abi,
-    address: xSummerAddress,
+    address: xSummerAddress!,
     functionName: 'allowance',
-    args: account ? [account, stakingAddress] : undefined,
+    args: account && stakingAddress ? [account, stakingAddress] : undefined,
     query: { enabled: Boolean(account && stakingAddress && xSummerAddress) },
   })
 
@@ -259,7 +274,7 @@ export function useSummerStaking(chainId: ChainId) {
     return () => {
       cancelled = true
     }
-  }, [publicClient, account, stakingAddress, userStakeCount])
+  }, [publicClient, account, stakingAddress, userStakeCount, environment])
 
   // Actions
   const { writeContract: write, data: txHash, isPending } = useWriteContract()

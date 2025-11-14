@@ -14,6 +14,7 @@ import { http, WagmiProvider } from 'wagmi'
 import { arbitrum, base, mainnet, sonic } from 'wagmi/chains'
 
 import { CHAIN_RPC_URLS } from '@/config/chains'
+import { EnvironmentProvider } from '@/hooks/useEnvironment'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
@@ -62,8 +63,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={wagmiAdapter.wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        {children}
-        <Toaster richColors position="top-right" />
+        <EnvironmentProvider>
+          {children}
+          <Toaster richColors position="top-right" />
+        </EnvironmentProvider>
       </QueryClientProvider>
     </WagmiProvider>
   )
