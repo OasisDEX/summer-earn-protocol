@@ -8,6 +8,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 import { EnvironmentSelector } from '../../../components/EnvironmentSelector'
 import { useEnvironment } from '../../../hooks/useEnvironment'
+import { useStakingAPR } from '../../../hooks/useStakingAPR'
 import { useSummerStaking } from '../../../hooks/useSummerStaking'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
 import { useVestingWallets } from '../../../hooks/useVestingWallets'
@@ -59,14 +60,15 @@ export default function SummerStakingPage() {
   const params = useParams()
   const router = useRouter()
   const chainId = params.chainId as ChainId
-  const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', chainId)
-  const [selectedChain] = useState<ChainId>(storedChain)
+  const [selectedChain, _setSelectedChain] = useLocalStorage<ChainId>('selectedChain', chainId)
   const { environment, setEnvironment } = useEnvironment()
-  useEffect(() => {
-    setStoredChain(selectedChain)
-  }, [selectedChain, setStoredChain])
 
   useSyncWalletChain(selectedChain)
+
+  // APR calculation hook
+  const { apr, annualRewardAmount, annualRewardValue, totalStakedValue, isActive } = useStakingAPR(
+    selectedChain as ChainId,
+  )
 
   const { isConnected, address: account } = useAccount()
 
@@ -321,6 +323,7 @@ export default function SummerStakingPage() {
 
   return (
     <main className="min-h-screen bg-charcoal-900 p-6 md:p-10">
+      {environment}
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center gap-4 mb-2">
           <button
@@ -335,6 +338,42 @@ export default function SummerStakingPage() {
         {/* Environment Selector */}
         <div className="rounded-2xl p-4 bg-charcoal-800 border border-white/10">
           <EnvironmentSelector selectedEnvironment={environment} onChange={setEnvironment} />
+        </div>
+
+        {/* Staking APR */}
+        <div className="rounded-2xl p-6 bg-charcoal-900 border border-white/10">
+          <h2 className="text-xl font-semibold text-white mb-4">Staking Rewards</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 bg-charcoal-800 rounded border border-white/10">
+              <div className="text-xs text-gray-400 mb-1">Current APR</div>
+              <div className="text-2xl font-bold text-magenta-400">
+                {apr > 0 ? `${apr.toFixed(2)}%` : '—'}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">{isActive ? 'Active' : 'Inactive'}</div>
+            </div>
+            <div className="p-4 bg-charcoal-800 rounded border border-white/10">
+              <div className="text-xs text-gray-400 mb-1">Annual Rewards</div>
+
+              <div className="text-lg font-semibold text-white">
+                {annualRewardAmount > 0 ? annualRewardAmount.toFixed(2) : '—'}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">{summerSymbol}</div>
+            </div>
+            <div className="p-4 bg-charcoal-800 rounded border border-white/10">
+              <div className="text-xs text-gray-400 mb-1">Annual Value</div>
+              <div className="text-lg font-semibold text-green-400">
+                {annualRewardValue > 0 ? `$${annualRewardValue.toFixed(2)}` : '—'}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">USD</div>
+            </div>
+            <div className="p-4 bg-charcoal-800 rounded border border-white/10">
+              <div className="text-xs text-gray-400 mb-1">Total Staked Value</div>
+              <div className="text-lg font-semibold text-blue-400">
+                {totalStakedValue > 0 ? `$${totalStakedValue.toFixed(2)}` : '—'}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">USD</div>
+            </div>
+          </div>
         </div>
 
         {/* Wallet Balances */}

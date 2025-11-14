@@ -166,7 +166,9 @@ export function useVestingWallets(chainId: ChainId) {
     abi: escrowAbi,
     address: escrowAddress,
     functionName: 'vestingFactories',
-    query: { enabled: Boolean(escrowAddress) },
+    query: {
+      enabled: Boolean(escrowAddress),
+    },
   })
 
   const { data: userStakedFactories, refetch: refetchUserStakedFactories } = useReadContract({
@@ -174,7 +176,9 @@ export function useVestingWallets(chainId: ChainId) {
     address: escrowAddress,
     functionName: 'userStakedVestingFactories',
     args: account ? [account] : undefined,
-    query: { enabled: Boolean(escrowAddress && account) },
+    query: {
+      enabled: Boolean(escrowAddress && account),
+    },
   })
 
   const { data: userVestingWallet } = useReadContract({
@@ -182,7 +186,9 @@ export function useVestingWallets(chainId: ChainId) {
     address: factoryV2Address,
     functionName: 'vestingWallets',
     args: account ? [account] : undefined,
-    query: { enabled: Boolean(factoryV2Address && account) },
+    query: {
+      enabled: Boolean(factoryV2Address && account),
+    },
   })
 
   const { data: vestingWalletOwner } = useReadContract({
