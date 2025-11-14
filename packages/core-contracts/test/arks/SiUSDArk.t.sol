@@ -15,7 +15,7 @@ import {ERC4626Mock} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
  * @notice Unit tests for SiUSDArk using mocked contracts
  * @dev These tests don't require forking mainnet, making them faster for CI/CD
  */
-contract SiUSDArkUnitTest is  IArkEvents, ArkTestBase {
+contract SiUSDArkUnitTest is IArkEvents, ArkTestBase {
     SiUSDArk public ark;
 
     ERC20Mock public mockUSDC;

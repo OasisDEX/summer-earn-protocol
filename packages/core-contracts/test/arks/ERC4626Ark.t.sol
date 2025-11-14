@@ -10,7 +10,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract ERC4626ArkTestFork is  IArkEvents, ArkTestBase {
+contract ERC4626ArkTestFork is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     ERC4626Ark public ark;
     IERC4626 public vault;

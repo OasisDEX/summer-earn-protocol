@@ -20,9 +20,9 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import { console} from "forge-std/Test.sol";
+import {console} from "forge-std/Test.sol";
 
-contract AeraArkTestFork is  IArkEvents, ArkTestBase {
+contract AeraArkTestFork is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     AeraArk public ark;

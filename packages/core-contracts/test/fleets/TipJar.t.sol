@@ -22,7 +22,7 @@ import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProt
 import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
-contract TipJarTest is Test,  ITipJarEvents {
+contract TipJarTest is Test, ITipJarEvents {
     using PercentageUtils for uint256;
 
     address public governor = address(1);

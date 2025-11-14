@@ -27,7 +27,7 @@ import {console} from "forge-std/console.sol";
  * - Error cases and edge scenarios
  */
 
-contract RebalanceTest is  TestHelpers, FleetCommanderTestBase {
+contract RebalanceTest is TestHelpers, FleetCommanderTestBase {
     using Math for uint256;
     using PercentageUtils for uint256;
 

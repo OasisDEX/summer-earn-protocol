@@ -18,7 +18,7 @@ import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.s
  * - Deposit
  * - Error cases and edge scenarios
  */
-contract DepositTest is  TestHelpers, FleetCommanderTestBase {
+contract DepositTest is TestHelpers, FleetCommanderTestBase {
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
     uint256 constant MAX_DEPOSIT_CAP = 100000 * 10 ** 6;
 

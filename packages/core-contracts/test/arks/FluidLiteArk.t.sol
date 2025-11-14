@@ -12,9 +12,9 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {IWETH} from "../../src/interfaces/misc/IWETH.sol";
 
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import { console} from "forge-std/Test.sol";
+import {console} from "forge-std/Test.sol";
 
-contract FluidLiteArkTestFork is  IArkEvents, ArkTestBase {
+contract FluidLiteArkTestFork is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     FluidLiteArk public ark;
     IERC4626 public vault;

@@ -20,7 +20,7 @@ import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract ManagementTest is  TestHelpers, FleetCommanderTestBase {
+contract ManagementTest is TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);

@@ -21,7 +21,7 @@ interface IPoolPermissionManager {
     ) external;
 }
 
-contract SyrupArkTestFork is  IArkEvents, ArkTestBase {
+contract SyrupArkTestFork is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     SyrupArk public ark;
     IMapleWithdrawalManager public withdrawalManager;

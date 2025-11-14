@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import { console} from "forge-std/Test.sol";
+import {console} from "forge-std/Test.sol";
 import {MorphoVaultArk} from "../../src/contracts/arks/MorphoVaultArk.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
@@ -15,7 +15,7 @@ import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 
-contract MetaMorphoArkTestFork is  IArkEvents, ArkTestBase {
+contract MetaMorphoArkTestFork is IArkEvents, ArkTestBase {
     MorphoVaultArk public ark;
 
     address public constant METAMORPHO_ADDRESS =
@@ -24,8 +24,7 @@ contract MetaMorphoArkTestFork is  IArkEvents, ArkTestBase {
         0x9baA51245CDD28D8D74Afe8B3959b616E9ee7c8D;
     address public constant USDC_ADDRESS =
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    address public usdcAddressBase =
-        0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+    address public usdcAddressBase = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address rewardTokenAddress = 0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842;
     address curatorAddress = 0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d;
     IERC20 rewardToken = IERC20(rewardTokenAddress);

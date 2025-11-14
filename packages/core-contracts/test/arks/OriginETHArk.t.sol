@@ -12,7 +12,7 @@ import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage
 import {IWETH} from "../../src/interfaces/misc/IWETH.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {IArkWithWithdrawalRequest} from "../../src/interfaces/IArkWithWithdrawalRequest.sol";
-contract OriginETHArkTest is  IArkEvents, ArkTestBase {
+contract OriginETHArkTest is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     OriginETHArk public ark;
     IOriginETH public originETH;

@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {SyrupArk} from "../../src/contracts/arks/SyrupArk.sol";
-import { console} from "forge-std/Test.sol";
+import {console} from "forge-std/Test.sol";
 
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
@@ -22,7 +22,7 @@ interface IPoolPermissionManager {
     ) external;
 }
 
-contract SyrupArkUSDTTestFork is  IArkEvents, ArkTestBase {
+contract SyrupArkUSDTTestFork is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     SyrupArk public ark;
     IMapleWithdrawalManager public withdrawalManager;

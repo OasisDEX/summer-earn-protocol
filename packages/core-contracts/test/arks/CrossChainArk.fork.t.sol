@@ -20,7 +20,7 @@ import {ConfigurationManager, ConfigurationManagerParams} from "@summerfi/config
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
-contract CrossChainArkForkTest is  ArkTestBase {
+contract CrossChainArkForkTest is ArkTestBase {
     CrossChainArk public ark;
     BridgeRouter public bridgeRouter;
 

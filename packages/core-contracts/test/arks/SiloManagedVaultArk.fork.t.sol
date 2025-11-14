@@ -13,9 +13,9 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Raft} from "../../src/contracts/Raft.sol";
 
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import { console} from "forge-std/Test.sol";
+import {console} from "forge-std/Test.sol";
 
-contract SiloManagedVaultArkTestFork is  IArkEvents, ArkTestBase {
+contract SiloManagedVaultArkTestFork is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     SiloManagedVaultArk public ark;
     IERC4626 public vault;

@@ -8,7 +8,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
-contract RedeemTest is  TestHelpers, FleetCommanderTestBase {
+contract RedeemTest is TestHelpers, FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;

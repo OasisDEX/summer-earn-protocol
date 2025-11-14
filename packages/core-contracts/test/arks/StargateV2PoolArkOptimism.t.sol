@@ -12,7 +12,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract StargateV2PoolArkOptimismTestFork is  IArkEvents, ArkTestBase {
+contract StargateV2PoolArkOptimismTestFork is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     StargateV2PoolArk public ark;

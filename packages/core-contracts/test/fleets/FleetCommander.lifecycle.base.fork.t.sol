@@ -22,7 +22,7 @@ import {console} from "forge-std/Test.sol";
  * @title Lifecycle test suite for FleetCommander on Base network
  * @dev Test suite of full lifecycle tests for USDC fleet using all available Morpho vaults
  */
-contract BaseLifecycleTest is  TestHelpers, FleetCommanderTestBase {
+contract BaseLifecycleTest is TestHelpers, FleetCommanderTestBase {
     // USDC Fleet Arks - All available Morpho vaults on Base
     CompoundV3Ark public usdcCompoundArk;
     AaveV3Ark public usdcAaveArk;

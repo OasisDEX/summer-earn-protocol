@@ -19,7 +19,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * - Withdraw
  * - Error cases and edge scenarios
  */
-contract WithdrawTest is  TestHelpers, FleetCommanderTestBase {
+contract WithdrawTest is TestHelpers, FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;

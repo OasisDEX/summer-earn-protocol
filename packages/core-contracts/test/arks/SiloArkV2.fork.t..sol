@@ -11,7 +11,7 @@ import {Raft} from "../../src/contracts/Raft.sol";
 
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract SonicArkTestFork is  IArkEvents, ArkTestBase {
+contract SonicArkTestFork is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     SiloVaultArkV2 public ark;
     IERC4626 public silo;

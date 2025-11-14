@@ -16,7 +16,7 @@ import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInfligh
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 
-contract CrossChainArkTest is  ArkTestBase {
+contract CrossChainArkTest is ArkTestBase {
     CrossChainArk ark;
     MockBridgeRouter router;
     CrossChainRegistry registry;

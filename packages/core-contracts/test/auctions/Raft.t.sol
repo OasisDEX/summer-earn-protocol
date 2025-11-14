@@ -14,7 +14,6 @@ import {DutchAuctionEvents} from "@summerfi/dutch-auction/DutchAuctionEvents.sol
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.sol";
 import {TokenWithNoSelfTransfer} from "../mocks/TokenWithNoSelfTransfer.sol";
 
-
 contract RaftTest is AuctionTestBase, IRaftEvents {
     using PercentageUtils for uint256;
 

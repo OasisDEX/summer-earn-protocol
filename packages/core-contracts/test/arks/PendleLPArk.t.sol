@@ -10,7 +10,7 @@ import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PERCENTAGE_100, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 
-contract PendleLPArkTestFork is  IArkEvents, ArkTestBase {
+contract PendleLPArkTestFork is IArkEvents, ArkTestBase {
     PendleLPArk public ark;
 
     address constant USDE = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;

@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract SparkArkForkTest is  ArkTestBase {
+contract SparkArkForkTest is ArkTestBase {
     SparkArk public ark;
 
     address public constant SPARK_POOL =

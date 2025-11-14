@@ -9,7 +9,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {IPoolV3} from "../../src/interfaces/aave-v3/IPoolV3.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 
-contract AaveV3ArkTestFork is  IArkEvents, ArkTestBase {
+contract AaveV3ArkTestFork is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     AaveV3Ark public ark;
     AaveV3Ark public nextArk;

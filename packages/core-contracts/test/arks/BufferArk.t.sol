@@ -9,7 +9,7 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract BufferArkTest is  IArkEvents, ArkTestBase {
+contract BufferArkTest is IArkEvents, ArkTestBase {
     BufferArk public ark;
 
     function setUp() public {

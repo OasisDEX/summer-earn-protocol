@@ -14,7 +14,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
  *
  * ✅ These tests use the real InfiniFi Gateway contract deployed on mainnet
  */
-contract SiUSDArkTestFork is  IArkEvents, ArkTestBase {
+contract SiUSDArkTestFork is IArkEvents, ArkTestBase {
     SiUSDArk public ark;
 
     // Known contract addresses on mainnet

@@ -10,7 +10,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPsmLite} from "../../src/interfaces/sky/IPsmLite.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 
-contract PsmLiteERC4626ArkTestFork_Mainnet is  IArkEvents, ArkTestBase {
+contract PsmLiteERC4626ArkTestFork_Mainnet is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     PsmLiteERC4626Ark public ark;

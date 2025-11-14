@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {PendlePTArk} from "../../src/contracts/arks/PendlePTArk.sol";
-import { console} from "forge-std/Test.sol";
+import {console} from "forge-std/Test.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -12,7 +12,7 @@ import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {PendlePtArkConstructorParams} from "../../src/contracts/arks/PendlePTArk.sol";
 
-contract PendlePTArkTestFork is  IArkEvents, ArkTestBase {
+contract PendlePTArkTestFork is IArkEvents, ArkTestBase {
     PendlePTArk public ark;
 
     address constant USDE = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;

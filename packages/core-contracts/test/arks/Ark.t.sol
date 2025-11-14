@@ -11,7 +11,7 @@ import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.so
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract ArkTest is  IArkEvents, ArkTestBase {
+contract ArkTest is IArkEvents, ArkTestBase {
     ArkMock public ark;
     RestictedWithdrawalArkMock public unrestrictedArk;
     ArkMock public otherArk;

@@ -27,7 +27,7 @@ import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage
  * @title Lifecycle test suite for FleetCommander
  * @dev Test suite of full lifecycle tests for both USDC and DAI fleets
  */
-contract LifecycleTest is  TestHelpers, FleetCommanderTestBase {
+contract LifecycleTest is TestHelpers, FleetCommanderTestBase {
     // USDC Fleet Arks
     CompoundV3Ark public usdcCompoundArk;
     AaveV3Ark public usdcAaveArk;

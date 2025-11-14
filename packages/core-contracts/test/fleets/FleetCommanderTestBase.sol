@@ -29,7 +29,7 @@ import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.so
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
-abstract contract FleetCommanderTestBase is Test,  FleetCommanderTestHelpers {
+abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
 
     uint256 public BUFFER_BALANCE_SLOT;

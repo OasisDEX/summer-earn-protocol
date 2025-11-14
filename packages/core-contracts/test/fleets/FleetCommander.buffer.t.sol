@@ -19,7 +19,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * - Buffer adjustment
  * - Error cases and edge scenarios
  */
-contract BufferTest is  TestHelpers, FleetCommanderTestBase {
+contract BufferTest is TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);

@@ -6,7 +6,7 @@ import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract CompoundV3ArkTest is  IArkEvents, ArkTestBase {
+contract CompoundV3ArkTest is IArkEvents, ArkTestBase {
     CompoundV3Ark public ark;
 
     address public constant COMET_ADDRESS =

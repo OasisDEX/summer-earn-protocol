@@ -14,7 +14,7 @@ import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {IUrdFactory} from "morpho-blue/interfaces/IUrdFactory.sol";
 import {IUniversalRewardsDistributor} from "../../src/interfaces/morpho/IUniversalRewardsDistributor.sol";
 
-contract MorphoArkTestFork is  IArkEvents, ArkTestBase {
+contract MorphoArkTestFork is IArkEvents, ArkTestBase {
     MorphoArk public ark;
 
     address public constant MORPHO_ADDRESS =

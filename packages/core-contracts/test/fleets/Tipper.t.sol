@@ -16,7 +16,7 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
-contract TipperTest is Test,  ITipperEvents {
+contract TipperTest is Test, ITipperEvents {
     using PercentageUtils for uint256;
 
     address public mockUser = address(1);

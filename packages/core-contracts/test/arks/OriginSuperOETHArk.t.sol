@@ -13,7 +13,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IWETH} from "../../src/interfaces/misc/IWETH.sol";
 
-contract OriginETHArkTest is  IArkEvents, ArkTestBase {
+contract OriginETHArkTest is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     OriginSuperOETHArk public ark;
     IOriginETH public originETH;

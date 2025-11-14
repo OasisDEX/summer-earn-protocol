@@ -8,7 +8,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * @title ERC4626 methods test suite for FleetCommander
  * @dev Test suite for the FleetCommander contract's ERC4626 methods
  */
-contract ERC4626Test is  TestHelpers, FleetCommanderTestBase {
+contract ERC4626Test is TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);

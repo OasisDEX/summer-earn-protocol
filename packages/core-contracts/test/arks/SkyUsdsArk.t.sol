@@ -7,7 +7,7 @@ import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract USDSArkTestFork is  IArkEvents, ArkTestBase {
+contract USDSArkTestFork is IArkEvents, ArkTestBase {
     SkyUsdsArk public ark;
     SkyUsdsArk public nextArk;
 

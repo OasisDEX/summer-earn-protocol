@@ -9,7 +9,7 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract SparkArkTest is  IArkEvents, ArkTestBase {
+contract SparkArkTest is IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     SparkArk public ark;

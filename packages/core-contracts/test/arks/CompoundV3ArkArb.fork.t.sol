@@ -12,7 +12,7 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {console} from "forge-std/Test.sol";
 
-contract CompoundV3ArkArbitrumTest is  IArkEvents, ArkTestBase {
+contract CompoundV3ArkArbitrumTest is IArkEvents, ArkTestBase {
     CompoundV3Ark public ark;
 
     address public constant cometAddress =
