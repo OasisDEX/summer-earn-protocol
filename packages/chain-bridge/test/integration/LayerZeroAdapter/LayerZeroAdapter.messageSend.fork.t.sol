@@ -257,42 +257,32 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         console.log("[SUCCESS] Protocol token payment with msgValue completed");
     }
 
-    function testEstimateSendMessageWithProtocolTokenFork() public view {
+    function testEstimateSendMessageWithProtocolTokenFork() public {
         console.log("=== Testing Protocol Token Fee Estimation on Fork ===");
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),
             gasLimit: 500000,
             calldataSize: 0,
-            msgValue: 0.5 ether,
+            msgValue: 0.2 ether,
             options: "",
             payInProtocolToken: true,
             feeTokenAmount: PROTOCOL_FEE_AMOUNT
         });
 
-        // Call estimateSendMessage with protocol token payment
-        (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter
-            .estimateSendMessage(
-                BridgeTypes.ExecuteSendMessageParams({
-                    destinationChainId: DEST_CHAIN_ID,
-                    target: user,
-                    message: abi.encode("Protocol token estimation test"),
-                    originator: keeper,
-                    refundAddress: keeper
-                }),
-                options
-            );
+        // Call estimateSendMessage with protocol token payment. This currently reverts when trying to pay in LZ tokens
+        // as it seems that the LayerZero endpoint does not support it yet.
+        vm.expectRevert(abi.encodeWithSignature("LZ_LzTokenUnavailable()"));
 
-        // When paying in protocol tokens, native fee should be 0
-        assertEq(
-            nativeFee,
-            0,
-            "Native fee should be 0 when paying in protocol tokens"
+        layerZeroAdapter.estimateSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: user,
+                message: abi.encode("Protocol token estimation test"),
+                originator: keeper,
+                refundAddress: keeper
+            }),
+            options
         );
-        assertGt(tokenFee, 0, "Token fee should be greater than 0");
-
-        console.log("Native fee:", nativeFee);
-        console.log("Token fee:", tokenFee);
-        console.log("[SUCCESS] Protocol token fee estimation working on fork");
     }
 }

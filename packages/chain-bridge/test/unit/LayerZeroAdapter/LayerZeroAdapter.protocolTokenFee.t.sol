@@ -5,6 +5,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {IProtocolFeeTokenHandlerErrors} from "../../../src/interfaces/IProtocolFeeTokenHandlerErrors.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
 import {MockOFT} from "../../mocks/MockOFT.sol";
 import {LayerZeroAdapter} from "../../../src/adapters/LayerZeroAdapter.sol";
 import {LayerZeroAdapterTestHelper} from "../../helpers/LayerZeroAdapterTestHelper.sol";

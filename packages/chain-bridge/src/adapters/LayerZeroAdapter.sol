@@ -25,6 +25,8 @@ import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/in
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
+import "forge-std/console.sol";
+
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
@@ -319,7 +321,14 @@ contract LayerZeroAdapter is
 
         bytes memory lzOptions = _createLzOptions(options);
 
-        EndpointFee memory fee = _quote(lzDstEid, payload, lzOptions, false);
+        console.log("Pay in protocol token:", options.payInProtocolToken);
+
+        EndpointFee memory fee = _quote(
+            lzDstEid,
+            payload,
+            lzOptions,
+            options.payInProtocolToken
+        );
 
         return (fee.nativeFee, fee.lzTokenFee);
     }
