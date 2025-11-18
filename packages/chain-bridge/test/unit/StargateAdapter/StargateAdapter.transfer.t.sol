@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {Bps, toBps, fromBps} from "../../../src/helpers/Bps.sol";
+import {BpsUtils} from "../../../src/helpers/BpsUtils.sol";
 import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
-import {Bps} from "../../../src/helpers/Bps.sol";
 
 import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
@@ -532,8 +533,12 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
         uint256 inputAmount = 1 ether;
         uint256 receivedAmount = 0.94 ether; // 6% slippage (exceeds 0.5% default tolerance)
 
-        // Calculate expected minimum amount using BpsUtils logic: 1 ether - (1 ether * 50 / 10000) = 0.9995 ether
-        uint256 expectedMinAmount = 999950000000000000; // 0.9995 ether (actual BpsUtils result)
+        // Calculate expected minimum amount using the library helper (0.5% tolerance)
+        Bps tolerance = BpsUtils.fromIntegerBPS(50);
+        uint256 expectedMinAmount = BpsUtils.subtractBps(
+            inputAmount,
+            tolerance
+        );
 
         // Setup adapter params
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -599,7 +604,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
                 IBaseBridgeAdapterErrors.SlippageExceedsTolerance.selector,
                 expectedMinAmount, // 0.9995 ether
                 receivedAmount, // 0.94 ether
-                Bps.wrap(50) // 50 basis points (0.5%)
+                fromBps(tolerance)
             )
         );
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes

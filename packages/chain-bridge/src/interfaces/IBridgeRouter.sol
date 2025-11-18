@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {Bps} from "../helpers/Bps.sol";
 
 /**
  * @title IBridgeRouter
@@ -84,6 +85,9 @@ interface IBridgeRouter is IERC165 {
         bytes errorData
     );
 
+    /// @notice Emitted when the fee buffer is updated
+    event FeeBufferUpdated(uint256 oldBufferBps, uint256 newBufferBps);
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -118,6 +122,9 @@ interface IBridgeRouter is IERC165 {
 
     /// @notice Thrown when the recipient address is invalid (not a registered ark/fleet proxy)
     error InvalidRecipient();
+
+    /// @notice Thrown when the fee buffer value is invalid (outside allowed range)
+    error InvalidFeeBuffer();
 
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS
@@ -222,6 +229,12 @@ interface IBridgeRouter is IERC165 {
      */
     function isValidAdapter(address adapter) external view returns (bool);
 
+    /**
+     * @notice Get the current fee buffer in basis points
+     * @return bufferBps The fee buffer in basis points
+     */
+    function getFeeBufferBps() external view returns (Bps bufferBps);
+
     /*//////////////////////////////////////////////////////////////
                          GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -260,4 +273,11 @@ interface IBridgeRouter is IERC165 {
      * @dev Governor role required. Uses SafeERC20 for token transfers and a low-level call for native ETH.
      */
     function sweep(address token, address recipient, uint256 amount) external;
+
+    /**
+     * @notice Set the fee buffer for cross-chain operations
+     * @param newBufferBps New fee buffer in basis points (max 1000 bps = 10%)
+     * @dev Governor role required. Maximum buffer is 10% to prevent excessive fees.
+     */
+    function setFeeBufferBps(Bps newBufferBps) external;
 }

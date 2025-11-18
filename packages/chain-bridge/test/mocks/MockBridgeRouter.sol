@@ -6,6 +6,7 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
+import {Bps, toBps, fromBps} from "../../src/helpers/Bps.sol";
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -554,5 +555,15 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         shouldRevert = _shouldRevert;
         mockFee = _mockFee;
         // Note: We don't have mockSpecifiedAdapter in this version as we use MOCK_ADAPTER_ADDRESS
+    }
+
+    // Add missing interface methods
+    function getFeeBufferBps() external pure returns (Bps bufferBps) {
+        return toBps(100); // Default 1% buffer
+    }
+
+    function setFeeBufferBps(Bps newBufferBps) external {
+        // Mock implementation - just emit event
+        emit FeeBufferUpdated(100, fromBps(newBufferBps));
     }
 }

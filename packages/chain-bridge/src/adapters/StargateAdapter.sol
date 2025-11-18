@@ -54,13 +54,13 @@ contract StargateAdapter is
         public stargateContractToAsset;
 
     /// @notice Maximum slippage tolerance (10% = 1000 basis points)
-    Bps public constant MAX_SLIPPAGE_BPS = Bps.wrap(1000);
+    Bps public immutable MAX_SLIPPAGE_BPS;
 
     /// @notice Minimum slippage tolerance (0.01% = 1 basis point)
-    Bps public constant MIN_SLIPPAGE_BPS = Bps.wrap(1);
+    Bps public immutable MIN_SLIPPAGE_BPS;
 
     /// @notice Default slippage tolerance in basis points (0.5% = 50 basis points)
-    Bps public slippageToleranceBps = Bps.wrap(50);
+    Bps public slippageToleranceBps = BpsUtils.fromIntegerBPS(50);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -77,6 +77,9 @@ contract StargateAdapter is
         address _accessManager,
         address _lzEndpoint
     ) BaseBridgeAdapter(_crossChainRegistry, _accessManager) {
+        MAX_SLIPPAGE_BPS = BpsUtils.fromIntegerBPS(1000);
+        MIN_SLIPPAGE_BPS = BpsUtils.fromIntegerBPS(1);
+
         // Validate LayerZero endpoint
         if (_lzEndpoint == address(0)) revert InvalidLzEndpoint();
 
@@ -556,7 +559,7 @@ contract StargateAdapter is
         (, , oftReceipt) = IStargateV2(stargateContract).quoteOFT(sendParam);
 
         // Calculate minimum slippage threshold using BPS utility
-        uint256 minExpectedAmount = BpsUtils.applyBpsDiscount(
+        uint256 minExpectedAmount = BpsUtils.subtractBps(
             params.amount,
             slippageToleranceBps
         );

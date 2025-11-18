@@ -1,12 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
 /**
  * @title Bps
  * @author James Tuckett
+ * @author Roberto Cano
  * @notice Custom type for Basis Points (BPS) values with associated utility functions
  * @dev This contract defines a custom Bps type and overloaded operators
  *      to perform arithmetic and comparison operations on Bps values.
+ *
+ *      The Bps type uses the same representation as the Percentage type from
+ *      the Percentage library, but scales values by a factor of 100 to represent
+ *      basis points (1 BPS = 0.01%).
  */
 
 /**
@@ -32,30 +39,8 @@ using {
     equalTo as ==
 } for Bps global;
 
-/**
- * @dev The factor used for basis points calculations
- *  This constant is used to convert between human-readable basis points
- *         and the internal representation (10000 = 100%)
- */
-uint256 constant BPS_FACTOR = 10000;
-
-/**
- * @dev BPS of 100% (10000 basis points)
- *  This constant represents 100% in the Bps type
- */
-Bps constant BPS_100 = Bps.wrap(10000);
-
-/**
- * @dev BPS of 1% (100 basis points)
- *  This constant represents 1% in the Bps type
- */
-Bps constant BPS_1 = Bps.wrap(100);
-
-/**
- * @dev BPS of 0.5% (50 basis points)
- *  This constant represents 0.5% in the Bps type
- */
-Bps constant BPS_0_5 = Bps.wrap(50);
+/// @dev The factor used to convert BPS to a percentage
+uint256 constant BPS_PER_PERCENTAGE = 100; // 0.01% == 1 bps
 
 /**
  * OPERATOR FUNCTIONS
@@ -68,7 +53,7 @@ Bps constant BPS_0_5 = Bps.wrap(50);
  * @return The sum of a and b as a Bps
  */
 function add(Bps a, Bps b) pure returns (Bps) {
-    return Bps.wrap(Bps.unwrap(a) + Bps.unwrap(b));
+    return fromPercentage(toPercentage(a) + toPercentage(b));
 }
 
 /**
@@ -78,7 +63,7 @@ function add(Bps a, Bps b) pure returns (Bps) {
  * @return The difference of a and b as a Bps
  */
 function subtract(Bps a, Bps b) pure returns (Bps) {
-    return Bps.wrap(Bps.unwrap(a) - Bps.unwrap(b));
+    return fromPercentage(toPercentage(a) - toPercentage(b));
 }
 
 /**
@@ -88,7 +73,7 @@ function subtract(Bps a, Bps b) pure returns (Bps) {
  * @return The product as a Bps
  */
 function multiply(Bps a, Bps b) pure returns (Bps) {
-    return Bps.wrap(Bps.unwrap(a) * Bps.unwrap(b));
+    return fromPercentage(toPercentage(a) * toPercentage(b));
 }
 
 /**
@@ -98,7 +83,7 @@ function multiply(Bps a, Bps b) pure returns (Bps) {
  * @return The quotient as a Bps
  */
 function divide(Bps a, Bps b) pure returns (Bps) {
-    return Bps.wrap(Bps.unwrap(a) / Bps.unwrap(b));
+    return fromPercentage(toPercentage(a) / toPercentage(b));
 }
 
 /**
@@ -108,7 +93,7 @@ function divide(Bps a, Bps b) pure returns (Bps) {
  * @return True if a <= b, false otherwise
  */
 function lessOrEqualThan(Bps a, Bps b) pure returns (bool) {
-    return Bps.unwrap(a) <= Bps.unwrap(b);
+    return toPercentage(a) <= toPercentage(b);
 }
 
 /**
@@ -118,7 +103,7 @@ function lessOrEqualThan(Bps a, Bps b) pure returns (bool) {
  * @return True if a < b, false otherwise
  */
 function lessThan(Bps a, Bps b) pure returns (bool) {
-    return Bps.unwrap(a) < Bps.unwrap(b);
+    return toPercentage(a) < toPercentage(b);
 }
 
 /**
@@ -128,7 +113,7 @@ function lessThan(Bps a, Bps b) pure returns (bool) {
  * @return True if a >= b, false otherwise
  */
 function greaterOrEqualThan(Bps a, Bps b) pure returns (bool) {
-    return Bps.unwrap(a) >= Bps.unwrap(b);
+    return toPercentage(a) >= toPercentage(b);
 }
 
 /**
@@ -138,7 +123,7 @@ function greaterOrEqualThan(Bps a, Bps b) pure returns (bool) {
  * @return True if a > b, false otherwise
  */
 function greaterThan(Bps a, Bps b) pure returns (bool) {
-    return Bps.unwrap(a) > Bps.unwrap(b);
+    return toPercentage(a) > toPercentage(b);
 }
 
 /**
@@ -148,12 +133,12 @@ function greaterThan(Bps a, Bps b) pure returns (bool) {
  * @return True if a == b, false otherwise
  */
 function equalTo(Bps a, Bps b) pure returns (bool) {
-    return Bps.unwrap(a) == Bps.unwrap(b);
+    return toPercentage(a) == toPercentage(b);
 }
 
 /**
- * @dev Converts a uint256 to a Bps value
- * @param value The uint256 value to convert
+ * @dev Casts a uint256 to a Bps value by wrapping it
+ * @param value The uint256 value to be casted
  * @return The Bps representation of the value
  */
 function toBps(uint256 value) pure returns (Bps) {
@@ -161,10 +146,28 @@ function toBps(uint256 value) pure returns (Bps) {
 }
 
 /**
- * @dev Converts a Bps value to a uint256
- * @param bps The Bps value to convert
+ * @dev Casts a Bps value to a uint256 by unwrapping it
+ * @param bps The Bps value to be casted
  * @return The uint256 representation of the Bps value
  */
 function fromBps(Bps bps) pure returns (uint256) {
     return Bps.unwrap(bps);
+}
+
+/**
+ * @dev Converts Bps to Percentage type
+ * @param bps Basis points value
+ * @return percentage The equivalent Percentage value
+ */
+function toPercentage(Bps bps) pure returns (Percentage) {
+    return Percentage.wrap(fromBps(bps) / BPS_PER_PERCENTAGE);
+}
+
+/**
+ * @dev Converts Percentage type to Bps
+ * @param percentage The Percentage value
+ * @return bps The equivalent basis points value
+ */
+function fromPercentage(Percentage percentage) pure returns (Bps) {
+    return toBps(Percentage.unwrap(percentage) * BPS_PER_PERCENTAGE);
 }
