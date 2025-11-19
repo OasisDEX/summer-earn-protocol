@@ -3,5 +3,7 @@
   "raft-address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E",
   "raft-start-block": 21745357,
   "raft-2-address": "0xB8BBC85cEE0ea08Cf35B63c23bfE95fA444C5F07",
-  "raft-2-start-block": 21745357
+  "raft-2-start-block": 21745357,
+  "raft-3-address": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+  "raft-3-start-block": 21745357
 }
