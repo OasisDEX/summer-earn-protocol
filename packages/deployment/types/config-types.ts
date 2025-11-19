@@ -125,6 +125,12 @@ export interface BaseConfig {
       admiralsQuarters: { address: string }
       fleetCommanderRewardsManagerFactory: { address: string }
       institutionalVaultRegistry?: { address: string }
+      /**
+       * @notice Optional cross-chain / validation infrastructure
+       * @dev These are populated by dedicated deployment scripts when used.
+       */
+      callValidationRegistry?: { address: string }
+      crossChainManager?: { address: string }
     }
     bridge?: {
       bridgeRouter: { address: string }
