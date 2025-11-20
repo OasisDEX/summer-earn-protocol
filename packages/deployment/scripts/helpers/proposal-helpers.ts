@@ -303,23 +303,24 @@ export async function createGovernanceProposal(
 
       saveProposalToFile(proposalDetails, savePath)
     }
+    // reenable this block of code once mutations are supported in Tally API
+    // // Submit to Tally API
+    // const response = await createTallyProposal(
+    //   governorId,
+    //   title,
+    //   description,
+    //   executableCalls,
+    //   discourseURL,
+    // )
 
-    // Submit to Tally API
-    const response = await createTallyProposal(
-      governorId,
-      title,
-      description,
-      executableCalls,
-      discourseURL,
-    )
+    // // Get proposal ID and display URL
+    // const proposalId = response.data.createProposal.id
+    // console.log(kleur.green(`Tally proposal created successfully! ID: ${proposalId}`))
+    // const proposalUrl = formatTallyProposalUrl(governorId, proposalId)
+    // console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
 
-    // Get proposal ID and display URL
-    const proposalId = response.data.createProposal.id
-    console.log(kleur.green(`Tally proposal created successfully! ID: ${proposalId}`))
-    const proposalUrl = formatTallyProposalUrl(governorId, proposalId)
-    console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
-
-    return proposalId
+    // return proposalId
+    return undefined
   } catch (error: any) {
     console.error(kleur.red('Error creating Tally draft proposal:'), error)
     if (

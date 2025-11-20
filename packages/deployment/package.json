@@ -58,6 +58,7 @@
     "whitelist-vesting-wallets-tx": "hardhat run scripts/governance/whitelist-vesting-wallets-safe.ts --network $NETWORK",
     "generate-merkle-root": "tsx scripts/generate-merkle-root.ts",
     "update-fleet-configurations": "tsx scripts/governance/update-fleet-configurations-safe.ts",
+    "update-non-sweepable-tokens": "tsx scripts/governance/set-non-sweepable-tokens-proposal.ts",
     "configure:new-chain-layerzero": "hardhat run scripts/bridge/configure-new-chain-lz.ts --network $NETWORK --no-compile",
     "gov:submit-proposal": "hardhat run scripts/governance/submit-proposal.ts --network $NETWORK",
     "gov:test-transfer-bummer-tokens": "hardhat run scripts/governance/test-transfer-bummer-tokens.ts --network $NETWORK",

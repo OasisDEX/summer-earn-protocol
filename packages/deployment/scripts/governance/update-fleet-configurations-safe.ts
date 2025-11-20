@@ -45,7 +45,7 @@ const addresses: Record<
   }
 > = {
   base: {
-    raft: '0x95107E3C932865733e8feCF971e9051DA62FE59A',
+    raft: '0x7839d904D05d3D6B5F1D87eb93e1dcD5746AbC6E',
     tokens: {
       usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
       dai: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb',
@@ -72,7 +72,7 @@ const addresses: Record<
     },
   },
   mainnet: {
-    raft: '0xB8BBC85cEE0ea08Cf35B63c23bfE95fA444C5F07',
+    raft: '0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2',
     tokens: {
       usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
       weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
@@ -98,7 +98,7 @@ const addresses: Record<
     },
   },
   sonic: {
-    raft: '0xd03414b3E3463DDC471555850F6BdD5322b97d60',
+    raft: '0x2a828B0E5cB549eE568923E815D9A781b6f4F018',
     tokens: {
       usdce: '0x29219dd400f2Bf60E5a23d13Be72B486D4038894',
       dai: '0x0000000000000000000000000000000000000000',
@@ -120,7 +120,7 @@ const addresses: Record<
     },
   },
   arbitrum: {
-    raft: '0x2E6FBcefA0480cF9f7920d98804A9BD72e1eFEc9',
+    raft: '0x60A81C58F37527FdEcc968FC8B834Ed00b65926d',
     tokens: {
       usdc: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
       dai: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
