@@ -11,7 +11,7 @@
       "usdce": 1.66,
       "eurc": 1.5
     },
-    "duration": "4d",
+    "duration": "2d",
     "kickerRewardPercentage": 0,
     "decayType": "linear",
     "maxMultiplier": 2,
@@ -29,7 +29,7 @@
       "usdce": 5.685,
       "eurc": 5.5
     },
-    "duration": "4d",
+    "duration": "2d",
     "kickerRewardPercentage": 0,
     "decayType": "linear",
     "maxMultiplier": 1,
@@ -47,7 +47,7 @@
       "usdce": 0.5,
       "eurc": 0.45
     },
-    "duration": "4d",
+    "duration": "2d",
     "kickerRewardPercentage": 0,
     "decayType": "linear",
     "maxMultiplier": 2,
