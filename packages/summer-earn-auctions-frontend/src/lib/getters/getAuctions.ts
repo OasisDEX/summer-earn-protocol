@@ -1,7 +1,7 @@
 import { CHAIN_CONFIGS } from '../config'
 const AUCTIONS_QUERY = `
   query GetAuctions {
-    auctions(where: { isFinalized: false }) {
+    auctions(where: { isFinalized: false, startTimestamp_gt: 1763714837 }) {
       id
       auctionId
       ark {
