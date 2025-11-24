@@ -3,12 +3,12 @@ import kleur from 'kleur'
 import { Address, keccak256, toBytes } from 'viem'
 import { CoreContracts, CoreModule } from '../ignition/modules/core'
 import { BaseConfig } from '../types/config-types'
-import { ADDRESS_ZERO } from './common/constants'
 import { checkExistingContracts } from './helpers/check-existing-contracts'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
+import { validateAddress } from './helpers/validation'
 
 const ADMIRALS_QUARTERS_ROLE = keccak256(toBytes('ADMIRALS_QUARTERS_ROLE'))
 
@@ -40,22 +40,19 @@ async function deployCoreContracts(
   console.log(kleur.cyan().bold('Deploying Core Contracts...'))
 
   checkExistingContracts(config, 'core')
-  if (config.deployedContracts.gov.protocolAccessManager.address === ADDRESS_ZERO) {
-    throw new Error('ProtocolAccessManager is not deployed')
-  }
-  if (config.deployedContracts.gov.timelock.address === ADDRESS_ZERO) {
-    throw new Error('TimelockController is not deployed')
-  }
-  if (config.common.swapProvider === ADDRESS_ZERO) {
-    throw new Error('SwapProvider is not deployed')
-  }
+  const protocolAccessManager = validateAddress(
+    config.deployedContracts.gov.protocolAccessManager.address,
+    'gov.protocolAccessManager',
+  )
+  const timelock = validateAddress(config.deployedContracts.gov.timelock.address, 'gov.timelock')
+  const swapProvider = validateAddress(config.common.swapProvider, 'common.swapProvider')
 
   const core = await hre.ignition.deploy(CoreModule, {
     parameters: {
       CoreModule: {
-        swapProvider: config.common.swapProvider,
-        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
-        treasury: config.deployedContracts.gov.timelock.address,
+        swapProvider: swapProvider,
+        protocolAccessManager: protocolAccessManager,
+        treasury: timelock,
         weth: config.tokens.weth,
       },
     },
@@ -107,7 +104,10 @@ async function setupGovernanceRoles(config: BaseConfig) {
   )
 
   const hasAdmiralsQuartersRole =
-    config.deployedContracts.core.admiralsQuarters.address !== ADDRESS_ZERO &&
+    validateAddress(
+      config.deployedContracts.core.admiralsQuarters.address,
+      'core.admiralsQuarters',
+    ) &&
     (await protocolAccessManager.read.hasRole([
       ADMIRALS_QUARTERS_ROLE,
       config.deployedContracts.core.admiralsQuarters.address,

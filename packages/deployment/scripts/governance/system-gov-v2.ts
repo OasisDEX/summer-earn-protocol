@@ -10,38 +10,67 @@ import { ModuleLogger } from '../helpers/module-logger'
 import { updateIndexJson } from '../helpers/update-json'
 import { validateAddress } from '../helpers/validation'
 import { isHubChain } from '../helpers/get-hub-chain'
+import { TimelockAndProtocolAccessManagerModule } from '../../ignition/modules/timelock-and-protocol-access-manager'
 
 export async function deployGovV2(config: BaseConfig, useBummerConfig?: boolean) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const deployedGov = await deployGovContracts(config, useBummerConfig)
-  ModuleLogger.logGovV2(deployedGov)
-
-  console.log('Updating index.json...')
-  const contracts = {
-    ...deployedGov,
-    timelock: JSON.parse(JSON.stringify(config.deployedContracts.gov.timelock)),
-    protocolAccessManager: JSON.parse(
-      JSON.stringify(config.deployedContracts.gov.protocolAccessManager),
-    ),
+  const deployConfig = await getDeploymentConfig(useBummerConfig)
+  if (
+    config.deployedContracts.gov.timelock.address === ADDRESS_ZERO ||
+    config.deployedContracts.gov.protocolAccessManager.address === ADDRESS_ZERO
+  ) {
+    console.log(
+      'Timelock or access manager is not deployed, deploying TimelockAndProtocolAccessManagerModule...',
+    )
+    const timelockAndProtocolAccessManager = await deployTimelockAndProtocolAccessManager(
+      deployConfig,
+      useBummerConfig,
+    )
+    ModuleLogger.logTimelockAndProtocolAccessManager(timelockAndProtocolAccessManager)
   }
-  updateIndexJson('govV2', hre.network.name, contracts, useBummerConfig)
+
+  const deployedGov = await deployGovV2Contracts(deployConfig, useBummerConfig)
+  ModuleLogger.logGovV2(deployedGov)
 
   return deployedGov
 }
 
 /**
+ * Deploys the timelock and protocol access manager contracts using Hardhat Ignition.
+ * @param {Object} deployConfig - The deployment configuration object.
+ * @param {boolean} useBummerConfig - Whether to use the bummer configuration.
+ * @returns {Promise<TimelockAndProtocolAccessManagerContracts>} The deployed timelock and protocol access manager contracts.
+ */
+async function deployTimelockAndProtocolAccessManager(
+  deployConfig: { minDelay: bigint },
+  useBummerConfig?: boolean,
+) {
+  console.log(kleur.cyan().bold('Deploying Timelock and Protocol Access Manager...'))
+  const timelockAndProtocolAccessManager = await hre.ignition.deploy(
+    TimelockAndProtocolAccessManagerModule,
+    {
+      parameters: {
+        TimelockAndProtocolAccessManagerModule: {
+          minDelay: deployConfig.minDelay,
+        },
+      },
+    },
+  )
+  updateIndexJson('gov', hre.network.name, timelockAndProtocolAccessManager, useBummerConfig)
+  return timelockAndProtocolAccessManager
+}
+/**
  * Deploys the gov contracts using Hardhat Ignition.
- * @param {BaseConfig} config - The configuration object for the current network.
- * @param {boolean} [useBummerConfig] - Whether to use the bummer (test) configuration.
+ * @param {Object} deployConfig - The deployment configuration object.
+ * @param {boolean} useBummerConfig - Whether to use the bummer configuration.
  * @returns {Promise<GovContractsV2>} The deployed gov contracts.
  */
-async function deployGovContracts(
-  config: BaseConfig,
+async function deployGovV2Contracts(
+  deployConfig: { votingDelay: bigint; votingPeriod: bigint },
   useBummerConfig?: boolean,
 ): Promise<GovContractsV2> {
+  const config = getConfigByNetwork(hre.network.name, { gov: false }, useBummerConfig) as BaseConfig
   console.log(kleur.cyan().bold('Deploying Gov Contracts...'))
-
-  const deployConfig = await getDeploymentConfig(useBummerConfig)
   const summerGovernanceToken = isHubChain(hre.network.name)
     ? validateAddress(
         config.deployedContracts.govV2.summerGovernanceToken.address,
@@ -104,6 +133,16 @@ async function deployGovContracts(
 
   console.log(kleur.green().bold('All Gov Contracts Deployed Successfully!'))
 
+  console.log('Updating index.json...')
+  const contracts = {
+    ...gov,
+    timelock: JSON.parse(JSON.stringify(config.deployedContracts.gov.timelock)),
+    protocolAccessManager: JSON.parse(
+      JSON.stringify(config.deployedContracts.gov.protocolAccessManager),
+    ),
+  }
+  updateIndexJson('govV2', hre.network.name, contracts, useBummerConfig)
+
   return gov
 }
 
@@ -118,6 +157,7 @@ async function getDeploymentConfig(useBummerConfig?: boolean) {
 
   const defaultVotingDelay = isTest ? 60n : 86400n // 1 min or 1 day
   const defaultVotingPeriod = isTest ? 600n : 259200n // 10 mins or 3 days
+  const defaultMinDelay = isTest ? 60n : 86400n // 1 min or 1 day
 
   const responses = await prompts([
     {
@@ -132,11 +172,18 @@ async function getDeploymentConfig(useBummerConfig?: boolean) {
       message: 'Enter voting period (in seconds):',
       initial: Number(defaultVotingPeriod),
     },
+    {
+      type: 'number',
+      name: 'minDelay',
+      message: 'Enter min delay for timelock (in seconds):',
+      initial: Number(defaultMinDelay),
+    },
   ])
 
   return {
     votingDelay: BigInt(responses.votingDelay),
     votingPeriod: BigInt(responses.votingPeriod),
+    minDelay: BigInt(responses.minDelay),
   }
 }
 

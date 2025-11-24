@@ -4,8 +4,7 @@ import { Address, keccak256, toBytes } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { LZ_ENDPOINT_ABI } from './bridge/lz-endpoint-abi'
-
-const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
+import { GOVERNOR_ROLE } from '../common/constants'
 
 export async function finalizeGov(
   governorAddressesToRevoke: string[] = [],

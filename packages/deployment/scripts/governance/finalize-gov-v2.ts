@@ -4,8 +4,7 @@ import { Address, keccak256, toBytes } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { LZ_ENDPOINT_ABI } from './bridge/lz-endpoint-abi'
-
-const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
+import { DEFAULT_ADMIN_ROLE, GOVERNOR_ROLE } from '../common/constants'
 
 export async function finalizeGovV2(
   governorAddressesToRevoke: string[] = [],
@@ -20,15 +19,15 @@ export async function finalizeGovV2(
 
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernorV2' as string,
-    config.deployedContracts.gov.summerGovernorV2.address as Address,
+    config.deployedContracts.govV2.summerGovernor.address as Address,
   )
   const timelock = await hre.viem.getContractAt(
     'TimelockController' as string,
-    config.deployedContracts.gov.timelock.address as Address,
+    config.deployedContracts.govV2.timelock.address as Address,
   )
   const protocolAccessManager = await hre.viem.getContractAt(
     'ProtocolAccessManager' as string,
-    config.deployedContracts.gov.protocolAccessManager.address as Address,
+    config.deployedContracts.govV2.protocolAccessManager.address as Address,
   )
   const publicClient = await hre.viem.getPublicClient()
 
@@ -65,6 +64,24 @@ export async function finalizeGovV2(
     console.log(kleur.green('✓ SummerGovernor ownership transferred to timelock'))
   } else {
     console.log(kleur.yellow('! SummerGovernor ownership already transferred'))
+  }
+
+  // Revoke deployer's DEFAULT_ADMIN_ROLE from timelock
+  console.log(kleur.cyan().bold('\nChecking deployer DEFAULT_ADMIN_ROLE in timelock...'))
+  try {
+    const deployerAddress = (await hre.viem.getWalletClients())[0].account.address as Address
+
+    const hasAdminRole = await timelock.read.hasRole([DEFAULT_ADMIN_ROLE, deployerAddress])
+    if (hasAdminRole) {
+      console.log(`[TIMELOCK] - Revoking DEFAULT_ADMIN_ROLE from deployer ${deployerAddress}...`)
+      const hash = await timelock.write.revokeRole([DEFAULT_ADMIN_ROLE, deployerAddress])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`✓ DEFAULT_ADMIN_ROLE revoked from deployer`))
+    } else {
+      console.log(kleur.yellow('! Deployer does not have DEFAULT_ADMIN_ROLE in timelock'))
+    }
+  } catch (error) {
+    console.log(kleur.red('✗ Failed to revoke deployer DEFAULT_ADMIN_ROLE from timelock'), error)
   }
 
   // Revoke governor roles from additional addresses
