@@ -10,7 +10,7 @@ type Proposal @entity {
     dstIds: [String!]!
     eta: BigInt!
     createdAt: BigInt!
-    governor: Bytes!
+    governor: String!
 }
 
 type CrossChainProposal @entity {
