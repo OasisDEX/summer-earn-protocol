@@ -25,6 +25,7 @@ export function handleProposalCreated(event: ProposalCreated): void {
     return
   }
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
+  proposal.governor = event.address.toHexString()
   proposal.targets = event.params.targets.map<string>((target) => target.toHexString())
   proposal.values = event.params.values
   proposal.calldatas = event.params.calldatas

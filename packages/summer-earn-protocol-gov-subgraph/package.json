@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-gov-subgraph",
-  "version": "0.2.7-add-created-at",
+  "version": "1.0.0-governance-v2",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
