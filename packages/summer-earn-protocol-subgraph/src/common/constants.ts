@@ -91,6 +91,9 @@ export const PROTOCOL_ID = dataSource.address().toHexString()
 export const SUMMER_TREASURY_VAULT = Address.fromString(
   '0x0000000000000000000000000000000000000000',
 )
+export const SUMMER_STAKING_V2_ADDRESS = Address.fromString(
+  '0x6B94fD1Cbf967c6441764a5AcB84eF2B3774c09f',
+)
 
 export const MAX_UINT256 = BigInt.fromI32(
   // eslint-disable-next-line @typescript-eslint/no-loss-of-precision

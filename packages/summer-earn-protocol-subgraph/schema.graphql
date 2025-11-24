@@ -1659,6 +1659,9 @@ type GovernanceStaking @entity {
   summerStaked: BigInt!
   summerStakedNormalized: BigDecimal!
   accounts: [Account!]!
+
+  averageLockupPeriod: BigInt
+  amountOfLockedStakes: BigInt
 }
 
 
@@ -1671,3 +1674,16 @@ type ReferralData @entity {
   referredPositions: [Position!]! @derivedFrom(field: "referralData")
   protocol: YieldAggregator!
   }
+
+type StakeLockup @entity {
+  id: ID!
+  index: BigInt!
+  account: Account!
+  amount: BigInt!
+  amountNormalized: BigDecimal!
+  weightedAmount: BigInt!
+  weightedAmountNormalized: BigDecimal!
+  lockupPeriod: BigInt!
+  startTimestamp: BigInt!
+  endTimestamp: BigInt!
+}
