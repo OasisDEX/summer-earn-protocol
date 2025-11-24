@@ -1,15 +1,19 @@
+import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address } from 'viem'
-import { StakingContracts, StakingModule } from '../ignition/modules/staking'
+import path from 'path'
+import { Address, encodeFunctionData, getAddress, parseAbi } from 'viem'
+import { StakingContracts, createStakingModule } from '../ignition/modules/staking'
 import { BaseConfig } from '../types/config-types'
-import { ADDRESS_ZERO } from './common/constants'
+import { ADDRESS_ZERO, HUB_CHAIN_NAME } from './common/constants'
 import { checkExistingContracts } from './helpers/check-existing-contracts'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
 import { isSatelliteChain } from './helpers/get-hub-chain'
+import { GOVERNOR_ROLE } from './common/constants'
+import { validateAddress } from './helpers/validation'
 
 export async function deployStaking(_useBummerConfig: boolean) {
   if (isSatelliteChain(hre.network.name)) {
@@ -71,9 +75,13 @@ async function deployStakingContracts(
     )
   }
 
-  const staking = await hre.ignition.deploy(StakingModule, {
+  const envLabel = useBummerConfig ? 'staging' : 'prod'
+  const moduleName = `${envLabel}_StakingModule`
+  const stakingModule = createStakingModule(moduleName)
+
+  const staking = await hre.ignition.deploy(stakingModule, {
     parameters: {
-      StakingModule: {
+      [moduleName]: {
         protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         configurationManager: config.deployedContracts.core.configurationManager.address,
         summerToken: config.deployedContracts.gov.summerToken.address,
@@ -96,41 +104,146 @@ async function deployStakingContracts(
     useBummerConfig,
   ) as BaseConfig
 
-  await setupStakingRoles(updatedConfig)
+  // Create Safe transaction proposal to add staking modules
+  await createStakingSafeProposal(updatedConfig, staking)
 
   return staking
 }
 
 /**
- * @dev Configures the staking roles in the ProtocolAccessManager
- *
- * Sets up the necessary roles for the staking contracts to function properly.
- * This includes granting the appropriate roles to the staking contracts.
- *
- * @param config - The BaseConfig object containing deployment addresses and settings
+ * Creates a Safe transaction proposal to add staking modules to StakedSummerToken
+ * This is required because the deployer typically doesn't have the permissions to call addStakingModule directly.
  */
-async function setupStakingRoles(config: BaseConfig) {
-  console.log(kleur.cyan().bold('Setting up staking roles...'))
-  const publicClient = await hre.viem.getPublicClient()
+async function createStakingSafeProposal(config: BaseConfig, stakingContracts: StakingContracts) {
+  console.log(kleur.cyan().bold('\nCreating Safe transaction proposal for Staking Modules...'))
 
-  const protocolAccessManager = await hre.viem.getContractAt(
-    'ProtocolAccessManager' as string,
-    config.deployedContracts.gov.protocolAccessManager.address as Address,
-  )
-
-  // Check if SummerStaking has the necessary roles
-  const summerStakingAddress = config.deployedContracts.govV2.summerStaking.address
-  if (summerStakingAddress !== ADDRESS_ZERO) {
-    // Grant any necessary roles to SummerStaking contract
-    // Note: The specific roles depend on the ProtocolAccessManager implementation
-    console.log(kleur.green('[PROTOCOL ACCESS MANAGER] - SummerStaking roles configured'))
+  // Ensure we are on the Hub chain
+  if (hre.network.name !== HUB_CHAIN_NAME) {
+    console.log(kleur.yellow(`Skipping proposal creation: Not on Hub Chain (${HUB_CHAIN_NAME})`))
+    return
   }
 
-  // Check if SummerVestingWalletsEscrow has the necessary roles
-  // Note: This would need to be added to the config types first
-  console.log(
-    kleur.green('[PROTOCOL ACCESS MANAGER] - SummerVestingWalletsEscrow roles configured'),
+  const foundationMultisig = process.env.FOUNDATION_MULTISIG_ADDRESS
+  if (!foundationMultisig) {
+    console.log(kleur.yellow('Skipping Safe proposal: FOUNDATION_MULTISIG_ADDRESS not set'))
+    return
+  }
+
+  const multisigAddress = validateAddress(foundationMultisig, 'FOUNDATION_MULTISIG_ADDRESS')
+  const protocolAccessManagerAddress = validateAddress(
+    config.deployedContracts.gov.protocolAccessManager.address,
+    'protocolAccessManager.address',
   )
+  const stakedSummerTokenAddress = validateAddress(
+    stakingContracts.summerGovernanceToken.address,
+    'summerGovernanceToken.address',
+  )
+  const summerStakingAddress = validateAddress(
+    stakingContracts.summerStaking.address,
+    'summerStaking.address',
+  )
+  const escrowAddress = validateAddress(
+    stakingContracts.summerVestingWalletsEscrow.address,
+    'summerVestingWalletsEscrow.address',
+  )
+
+  // Check if the multisig has the necessary permissions (Governor rights)
+  const publicClient = await hre.viem.getPublicClient()
+
+  // Using ProtocolAccessManager to check roles
+  // We check for GOVERNOR_ROLE as a proxy for high-level permissions
+
+  const hasRole = await publicClient.readContract({
+    address: protocolAccessManagerAddress,
+    abi: parseAbi(['function hasRole(bytes32 role, address account) external view returns (bool)']),
+    functionName: 'hasRole',
+    args: [GOVERNOR_ROLE, multisigAddress],
+  })
+
+  if (!hasRole) {
+    throw new Error(
+      `FOUNDATION_MULTISIG_ADDRESS (${multisigAddress}) does not have DEFAULT_ADMIN_ROLE on ProtocolAccessManager. Cannot proceed with Safe proposal generation.`,
+    )
+  }
+
+  console.log(kleur.green(`✓ FOUNDATION_MULTISIG_ADDRESS has required permissions`))
+
+  // ABI for addStakingModule
+  const addStakingModuleAbi = parseAbi(['function addStakingModule(address module) external'])
+
+  const transactions = []
+
+  // Transaction 1: Add SummerStaking
+  transactions.push({
+    to: stakedSummerTokenAddress,
+    value: '0',
+    data: encodeFunctionData({
+      abi: addStakingModuleAbi,
+      functionName: 'addStakingModule',
+      args: [summerStakingAddress],
+    }),
+    contractMethod: {
+      inputs: [{ name: 'module', type: 'address' }],
+      name: 'addStakingModule',
+      payable: false,
+    },
+    contractInputsValues: {
+      module: summerStakingAddress,
+    },
+  })
+
+  // Transaction 2: Add SummerVestingWalletsEscrow
+  transactions.push({
+    to: stakedSummerTokenAddress,
+    value: '0',
+    data: encodeFunctionData({
+      abi: addStakingModuleAbi,
+      functionName: 'addStakingModule',
+      args: [escrowAddress],
+    }),
+    contractMethod: {
+      inputs: [{ name: 'module', type: 'address' }],
+      name: 'addStakingModule',
+      payable: false,
+    },
+    contractInputsValues: {
+      module: escrowAddress,
+    },
+  })
+
+  // Create Safe transaction JSON
+  const chainId = (await publicClient.getChainId()).toString()
+  const timestamp = Date.now()
+
+  const safeTransactionsJson = {
+    version: '1.0',
+    chainId: chainId,
+    createdAt: timestamp,
+    meta: {
+      name: 'Add Staking Modules',
+      description:
+        'Add SummerStaking and SummerVestingWalletsEscrow as staking modules to StakedSummerToken',
+      txBuilderVersion: '1.16.3',
+      createdFromSafeAddress: multisigAddress,
+      createdFromOwnerAddress: '',
+      checksum: '',
+    },
+    transactions,
+  }
+
+  // Ensure proposals directory exists
+  const proposalsDir = path.join(process.cwd(), 'proposals')
+  if (!fs.existsSync(proposalsDir)) {
+    fs.mkdirSync(proposalsDir, { recursive: true })
+  }
+
+  const fileName = `add_staking_modules_safe_tx_${timestamp}.json`
+  const outputPath = path.join(proposalsDir, fileName)
+
+  fs.writeFileSync(outputPath, JSON.stringify(safeTransactionsJson, null, 2))
+
+  console.log(kleur.green(`✅ Saved Safe transaction proposal to ${outputPath}`))
+  console.log(kleur.yellow('Please execute this transaction via the Safe Transaction Builder.'))
 }
 
 // When script is run directly

@@ -42,7 +42,7 @@ contract StakedSummerToken is
     constructor(
         address _protocolAccessManager
     )
-        ERC20("StakedSummerToken", "xSUMR")
+        ERC20("StakedSummerToken", "stSUMR")
         ERC20Permit("StakedSummerToken")
         ProtocolAccessManaged(_protocolAccessManager)
     {}

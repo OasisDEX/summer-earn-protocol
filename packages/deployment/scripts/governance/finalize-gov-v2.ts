@@ -4,8 +4,7 @@ import { Address, keccak256, toBytes } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { LZ_ENDPOINT_ABI } from './bridge/lz-endpoint-abi'
-
-const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
+import { GOVERNOR_ROLE } from '../common/constants'
 
 export async function finalizeGovV2(
   governorAddressesToRevoke: string[] = [],
@@ -20,15 +19,15 @@ export async function finalizeGovV2(
 
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernorV2' as string,
-    config.deployedContracts.gov.summerGovernorV2.address as Address,
+    config.deployedContracts.govV2.summerGovernor.address as Address,
   )
   const timelock = await hre.viem.getContractAt(
     'TimelockController' as string,
-    config.deployedContracts.gov.timelock.address as Address,
+    config.deployedContracts.govV2.timelock.address as Address,
   )
   const protocolAccessManager = await hre.viem.getContractAt(
     'ProtocolAccessManager' as string,
-    config.deployedContracts.gov.protocolAccessManager.address as Address,
+    config.deployedContracts.govV2.protocolAccessManager.address as Address,
   )
   const publicClient = await hre.viem.getPublicClient()
 

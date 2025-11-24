@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "chainId": "8453",
+  "createdAt": 1763980310747,
+  "meta": {
+    "name": "Add Staking Modules",
+    "description": "Add SummerStaking and SummerVestingWalletsEscrow as staking modules to StakedSummerToken",
+    "txBuilderVersion": "1.16.3",
+    "createdFromSafeAddress": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0x7cC488F2681cFC2A5E8A00184bfA94ea6d520D1c",
+      "value": "0",
+      "data": "0xcdbaf37e000000000000000000000000ca2e14c7c03c9961c296c89e2d2279f5f7db15b4",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "module",
+            "type": "address"
+          }
+        ],
+        "name": "addStakingModule",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "module": "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4"
+      }
+    },
+    {
+      "to": "0x7cC488F2681cFC2A5E8A00184bfA94ea6d520D1c",
+      "value": "0",
+      "data": "0xcdbaf37e000000000000000000000000df8b1e08679d6035b6c1504e04c5c9e72a0555fe",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "module",
+            "type": "address"
+          }
+        ],
+        "name": "addStakingModule",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "module": "0xdF8b1E08679D6035b6c1504e04C5C9e72a0555Fe"
+      }
+    }
+  ]
+}
