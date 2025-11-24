@@ -1,5 +1,4 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { ADDRESS_ZERO } from '../../scripts/common/constants'
 
 const HUB_CHAIN_ID = 8453n // BASE
 

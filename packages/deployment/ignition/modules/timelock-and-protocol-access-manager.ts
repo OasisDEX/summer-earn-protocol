@@ -2,28 +2,29 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import { ADDRESS_ZERO } from '../../scripts/common/constants'
 
-const HUB_CHAIN_ID = 8453n // BASE
-
 /**
- * @title Governance Module Deployment Script
- * @notice This module handles the deployment and initialization of the governance system
+ * @title Timelock and Protocol Access Manager Module
+ * @notice This module handles the deployment of the TimelockController and ProtocolAccessManager
+ *         contracts, which form the foundation of the governance system's access control and
+ *         time-delayed execution mechanisms.
  *
- * @dev Deployment and initialization sequence:
+ * @dev Deployment sequence:
  * 0. Deploy ProtocolAccessManager
- * 1. Deploy TimelockController (timelock for governance actions)
- * 2. Deploy SummerToken (governance token)
- * 3. Deploy SummerGovernor (governance logic)
- * 4. Configure contract relationships and permissions:
- *    - Transfer SummerToken ownership to TimelockController
- *    - Set SummerGovernor as decay manager for SummerToken
- *    - Grant PROPOSER, CANCELLER, and EXECUTOR roles to SummerGovernor in TimelockController
- *    - Configure ProtocolAccessManager permissions
- *    - Revoke deployer's temporary permissions
+ *    - Manages access control for the protocol
+ *    - Initially owned by deployer (temporary)
+ * 1. Deploy SummerTimelockController
+ *    - Adds a time delay to governance actions for security
+ *    - Initially configured with:
+ *      - deployer as proposer (temporary, will be replaced by governance)
+ *      - ADDRESS_ZERO as executor (anyone can execute after delay)
+ *      - deployer as admin (temporary, will be transferred to governance)
+ *      - ProtocolAccessManager for access control integration
  *
- * Post-deployment security considerations:
- * - The TimelockController becomes the ultimate owner of the system
- * - The SummerGovernor can only execute actions through the TimelockController
- * - All administrative actions must go through the governance process
+ * @dev Post-deployment considerations:
+ * - Initial roles are temporary and should be transferred to the governance system
+ * - The TimelockController will become the executor for governance proposals
+ * - ProtocolAccessManager permissions should be configured after governance deployment
+ * - This module is typically deployed before the governance token and governor contracts
  */
 export const TimelockAndProtocolAccessManagerModule = buildModule(
   'TimelockAndProtocolAccessManagerModule',
@@ -32,18 +33,23 @@ export const TimelockAndProtocolAccessManagerModule = buildModule(
     const minDelay = m.getParameter('minDelay', 0n)
 
     /**
-     * @dev Step 0: Deploy ProtocolAccessManager
-     * This contract manages access control for the protocol
+     * @dev Deploy ProtocolAccessManager
+     * Manages access control for protocol-wide permissions and role-based access.
+     * Initially owned by deployer; ownership should be transferred to governance after setup.
      */
     const accessManager = m.contract('ProtocolAccessManager', [deployer])
 
     /**
-     * @dev Step 1: Deploy SummerTimelockController
-     * This contract adds a time delay to governance actions
-     * Initially configured with:
-     * - deployer as proposer (temporary)
-     * - ADDRESS_ZERO as executor (anyone can execute)
-     * - deployer as admin (temporary)
+     * @dev Deploy SummerTimelockController
+     * Implements time-delayed execution for governance proposals, providing a security buffer
+     * for critical protocol changes.
+     *
+     * Constructor parameters:
+     * - minDelay: Minimum delay before proposals can be executed
+     * - proposers: Initial proposer addresses (deployer, temporary)
+     * - executors: Executor addresses (ADDRESS_ZERO = anyone can execute after delay)
+     * - admin: Initial admin address (deployer, temporary)
+     * - accessManager: ProtocolAccessManager contract for access control
      */
     const timelock = m.contract('SummerTimelockController', [
       minDelay,
