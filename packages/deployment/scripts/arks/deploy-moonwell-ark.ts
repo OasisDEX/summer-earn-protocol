@@ -124,8 +124,8 @@ async function deployMoonwellArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Moonwell-${userInput.token.symbol}-${chainId}`
-  const envLabel = userInput.isBummer ? 'staging' : 'prod'
-  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
+  const envLabel = userInput.isBummer ? 'staging_' : ''
+  const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const mToken = validateAddress(
     config.protocolSpecific.moonwell.pools[userInput.token.symbol].mToken,

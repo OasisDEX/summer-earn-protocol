@@ -14,9 +14,9 @@ interface PeerConfig {
 }
 
 interface NetworkPeers {
+  tokenPeers: PeerConfig[]
   governorPeers: PeerConfig[]
 }
-
 export async function peerGovV2(useBummerConfig = false) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
 
@@ -62,6 +62,12 @@ export async function peerGovV2(useBummerConfig = false) {
   }
 
   // Get contract instances
+  const summerToken = await hre.viem.getContractAt(
+    'SummerToken' as string,
+    config.deployedContracts.gov.summerToken.address as Address,
+  )
+
+  // Get contract instances
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernorV2' as string,
     validateAddress(config.deployedContracts.govV2.summerGovernor.address, 'govV2.summerGovernor'),
@@ -70,6 +76,28 @@ export async function peerGovV2(useBummerConfig = false) {
 
   // Get peers using existing configuration logic
   const peers = getPeersFromConfig(hre.network.name, useBummerConfig)
+
+  // Set token peers
+  console.log(kleur.cyan().bold('Setting token peers...'))
+  for (const peer of peers.tokenPeers) {
+    console.log(`Checking token peer for endpoint ${peer.eid}: ${peer.address}`)
+    const peerAddressAsBytes32 = `0x000000000000000000000000${peer.address.slice(2)}` as Hex
+
+    try {
+      // Check if peer already exists with the same address
+      const existingPeerAsBytes32 = await summerToken.read.peers([peer.eid])
+      if ((existingPeerAsBytes32 as string).toLowerCase() === peerAddressAsBytes32.toLowerCase()) {
+        console.log(kleur.yellow(`⚠ Token peer already set correctly for endpoint ${peer.eid}`))
+        continue
+      }
+
+      const hash = await summerToken.write.setPeer([peer.eid, peerAddressAsBytes32])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`✓ Token peer set successfully for endpoint ${peer.eid}`))
+    } catch (error) {
+      console.error(kleur.red(`✗ Failed to set token peer for endpoint ${peer.eid}:`), error)
+    }
+  }
 
   // Set governor peers
   console.log(kleur.cyan().bold('\nSetting governor peers...'))
@@ -98,8 +126,23 @@ export async function peerGovV2(useBummerConfig = false) {
 // Reuse the existing peer configuration functions
 function getPeersFromConfig(sourceNetwork: string, useBummerConfig = false): NetworkPeers {
   return {
+    tokenPeers: getTokenPeers(sourceNetwork, useBummerConfig),
     governorPeers: getGovernorPeers(sourceNetwork, useBummerConfig),
   }
+}
+function getTokenPeers(sourceNetwork: string, useBummerConfig = false): PeerConfig[] {
+  return getPeersForContract(
+    sourceNetwork,
+    (config) => ({
+      address: validateAddress(
+        config.deployedContracts.gov.summerToken.address,
+        'govV2.summerToken',
+      ),
+      skipSatelliteToSatellite: false,
+      label: 'TOKEN',
+    }),
+    useBummerConfig,
+  )
 }
 
 function getGovernorPeers(sourceNetwork: string, useBummerConfig = false): PeerConfig[] {

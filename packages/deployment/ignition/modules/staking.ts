@@ -5,7 +5,7 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  *
  * This function creates a module that deploys the staking system contracts.
  *
- * @param {string} moduleName - Name of the module (e.g., 'prod_StakingModule' or 'staging_StakingModule')
+ * @param {string} moduleName - Name of the module (e.g., 'StakingModule' or 'staging_StakingModule')
  * @returns {Function} A function that builds the module
  */
 export function createStakingModule(moduleName: string) {

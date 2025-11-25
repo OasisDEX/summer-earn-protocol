@@ -7,6 +7,7 @@ extendConfig((config: HardhatConfig, _userConfig: Readonly<HardhatUserConfig>) =
     // resolve(__dirname, '../../chain-bridge/src'),
     resolve(__dirname, '../../core-contracts/src'),
     resolve(__dirname, '../../gov-contracts/src'),
+    resolve(__dirname, '../../config-contracts/src'),
 
     resolve(__dirname, '../../rewards-contracts/src'),
   ]

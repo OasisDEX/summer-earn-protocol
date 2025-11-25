@@ -205,7 +205,7 @@ if (require.main === module) {
       { common: true, gov: false, core: false },
       useBummerConfig,
     )
-    return { config, useBummerConfig }
+    return { config: config as BaseConfig, useBummerConfig }
   }
 
   getConfig()

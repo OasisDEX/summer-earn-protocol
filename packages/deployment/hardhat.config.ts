@@ -105,6 +105,16 @@ const config: HardhatUserConfig = {
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
       chainId: 146,
     },
+    monad: {
+      url: `${process.env.MONAD_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 143,
+    },
+    hyperliquid: {
+      url: `${process.env.HYPERLIQUID_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 999,
+    },
 
     // testnets
     sepolia_mainnet: {

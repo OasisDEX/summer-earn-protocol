@@ -75,8 +75,8 @@ async function deployStakingContracts(
     )
   }
 
-  const envLabel = useBummerConfig ? 'staging' : 'prod'
-  const moduleName = `${envLabel}_StakingModule`
+  // Only add 'staging' prefix if bummer, no prefix for prod (for compatibility)
+  const moduleName = useBummerConfig ? 'staging_StakingModule' : 'StakingModule'
   const stakingModule = createStakingModule(moduleName)
 
   const staking = await hre.ignition.deploy(stakingModule, {

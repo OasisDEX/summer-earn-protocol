@@ -147,8 +147,8 @@ async function deployMorphoVaultArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `MorphoVault-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`
-  const envLabel = userInput.isBummer ? 'staging' : 'prod'
-  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
+  const envLabel = userInput.isBummer ? 'staging_' : ''
+  const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const urdFactoryAddress = validateAddress(
     config.protocolSpecific.morpho.urdFactory,

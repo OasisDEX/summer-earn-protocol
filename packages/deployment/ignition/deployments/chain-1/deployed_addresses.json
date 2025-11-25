@@ -145,8 +145,8 @@
   "BummerLazyVault_USDC_ERC4626_PSMLITE_Sky_Staked_USDS_usdc_1#PsmLiteERC4626Ark": "0x534162a2072A2929B6713065414EEdC53E1Faeb3",
   "RaftModule_20251113T151131831#DutchAuctionLibrary": "0x5dFacd9C14bA264D76548549Af1d27440B877407",
   "RaftModule_20251113T151131831#Raft": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
-  "prod_LazyVault_HigherRisk_WETH_AaveV3_weth_1#AaveV3Ark": "0xD33E132C34c978C18ACd8CD90D14467C1BF10f30",
-  "prod_LazyVault_HigherRisk_WETH_CompoundV3_weth_1#CompoundV3Ark": "0xc41AF022a0cBBbD95b4A4Eb5B9EbB51bB888bB0D",
-  "prod_LazyVault_HigherRisk_WETH_Spark_weth_1#SparkArk": "0xa3B8e720cFff63fd47Ea80e18b773965E25c2b6c",
+  "LazyVault_HigherRisk_WETH_AaveV3_weth_1#AaveV3Ark": "0xD33E132C34c978C18ACd8CD90D14467C1BF10f30",
+  "LazyVault_HigherRisk_WETH_CompoundV3_weth_1#CompoundV3Ark": "0xc41AF022a0cBBbD95b4A4Eb5B9EbB51bB888bB0D",
+  "LazyVault_HigherRisk_WETH_Spark_weth_1#SparkArk": "0xa3B8e720cFff63fd47Ea80e18b773965E25c2b6c",
   "GovModuleV2#SummerGovernorV2": "0x94F29e66fE35Ee2BC03EC9D8C3fb6d9E183f3572"
 }

@@ -239,9 +239,9 @@ async function main() {
   }
 
   // Deploy via whitelist module (FleetCommanderWhitelist)
-  const envLabel = useBummerConfig ? 'staging' : 'prod'
+  const envLabel = useBummerConfig ? 'staging_' : ''
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
-  const moduleName = `${envLabel}_FleetWhitelist_${name}`
+  const moduleName = `${envLabel}FleetWhitelist_${name}`
   const fleetModule = createFleetWhitelistModule(moduleName)
 
   // Use addresses directly from merged config (ensures propagation is correct)
