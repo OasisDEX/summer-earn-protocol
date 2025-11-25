@@ -94,31 +94,6 @@ export function createGovV1CoreModule(moduleName: string) {
   })
 }
 
-/**
- * @title Timelock and Protocol Access Manager Module
- * @notice This module handles the deployment of the TimelockController and ProtocolAccessManager
- *         contracts, which form the foundation of the governance system's access control and
- *         time-delayed execution mechanisms.
- *
- * @dev Deployment sequence:
- * 0. Deploy ProtocolAccessManager
- *    - Manages access control for the protocol
- *    - Initially owned by deployer (temporary)
- * 1. Deploy SummerTimelockController
- *    - Adds a time delay to governance actions for security
- *    - Initially configured with:
- *      - deployer as proposer (temporary, will be replaced by governance)
- *      - ADDRESS_ZERO as executor (anyone can execute after delay)
- *      - deployer as admin (temporary, will be transferred to governance)
- *      - ProtocolAccessManager for access control integration
- *
- * @dev Post-deployment considerations:
- * - Initial roles are temporary and should be transferred to the governance system
- * - The TimelockController will become the executor for governance proposals
- * - ProtocolAccessManager permissions should be configured after governance deployment
- * - This module is typically deployed before the governance token and governor contracts
- */
-
 // Legacy export for backward compatibility
 export const GovV1CoreModule = createGovV1CoreModule('GovV1CoreModule')
 
