@@ -98,7 +98,7 @@
     "@types/lodash": "^4.17.16",
     "@types/prompts": "2.4.9",
     "chalk": "^4.1.2",
-    "hardhat": "2.26.3",
+    "hardhat": "2.27.0",
     "hardhat-contract-sizer": "2.10.1",
     "kleur": "4.1.5",
     "prompts": "2.4.2",
