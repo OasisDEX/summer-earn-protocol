@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 
-import { GovContractsV2, GovModuleV2 } from '../../ignition/modules/gov-v2'
+import { GovContractsV2, createGovV2Module } from '../../ignition/modules/gov-v2'
 import { BaseConfig } from '../../types/config-types'
 import { ADDRESS_ZERO } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
@@ -10,7 +10,7 @@ import { ModuleLogger } from '../helpers/module-logger'
 import { updateIndexJson } from '../helpers/update-json'
 import { validateAddress } from '../helpers/validation'
 import { isHubChain } from '../helpers/get-hub-chain'
-import { GovV1CoreModule } from '../../ignition/modules/gov-v1-core'
+import { createGovV1CoreModule } from '../../ignition/modules/gov-v1-core'
 
 type DeployConfig = {
   tokenName: string
@@ -54,9 +54,12 @@ async function deployGovV1Core(deployConfig: DeployConfig, useBummerConfig?: boo
   if (config.common.layerZero.lzEndpoint === ADDRESS_ZERO) {
     throw new Error('LayerZero is not set up correctly')
   }
-  const govV1Core = await hre.ignition.deploy(GovV1CoreModule, {
+  // Only add 'staging' prefix if bummer, no prefix for prod (for compatibility)
+  const moduleName = useBummerConfig ? 'staging_GovV1CoreModule' : 'GovV1CoreModule'
+  const govV1CoreModule = createGovV1CoreModule(moduleName)
+  const govV1Core = await hre.ignition.deploy(govV1CoreModule, {
     parameters: {
-      GovV1CoreModule: {
+      [moduleName]: {
         minDelay: deployConfig.minDelay,
         tokenName: deployConfig.tokenName,
         tokenSymbol: deployConfig.tokenSymbol,
@@ -124,9 +127,12 @@ async function deployGovV2Contracts(
   }
 
   console.log('Deploying Gov Module...')
-  const gov = await hre.ignition.deploy(GovModuleV2, {
+  // Only add 'staging' prefix if bummer, no prefix for prod (for compatibility)
+  const moduleName = useBummerConfig ? 'staging_GovModuleV2' : 'GovModuleV2'
+  const govModule = createGovV2Module(moduleName)
+  const gov = await hre.ignition.deploy(govModule, {
     parameters: {
-      GovModuleV2: {
+      [moduleName]: {
         lzEndpoint: config.common.layerZero.lzEndpoint,
         hubChainId: config.common.chainId,
         votingDelay: deployConfig.votingDelay,

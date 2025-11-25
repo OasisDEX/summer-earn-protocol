@@ -29,8 +29,8 @@ async function main() {
   })
 
   console.log(kleur.cyan().bold('Deploying InstitutionalVaultRegistry...'))
-  const envLabel = useBummerConfig ? 'staging' : 'prod'
-  const moduleName = `InstitutionRegistry_${envLabel}`
+  const envLabel = useBummerConfig ? 'staging_' : ''
+  const moduleName = `${envLabel}InstitutionRegistry`
   const RegistryModule = createInstitutionRegistryModule(moduleName)
   const deployed = (await hre.ignition.deploy(RegistryModule, {
     parameters: { [moduleName]: { owner } },

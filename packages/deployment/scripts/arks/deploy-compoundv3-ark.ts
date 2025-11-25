@@ -124,8 +124,8 @@ async function deployCompoundV3ArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `CompoundV3-${userInput.token.symbol}-${chainId}`
-  const envLabel = userInput.isBummer ? 'staging' : 'prod'
-  const moduleName = `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
+  const envLabel = userInput.isBummer ? 'staging_' : ''
+  const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const compoundV3Pool = validateAddress(
     config.protocolSpecific.compoundV3.pools[userInput.token.symbol].cToken,
