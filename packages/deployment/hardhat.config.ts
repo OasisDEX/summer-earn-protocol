@@ -108,7 +108,7 @@ const config: HardhatUserConfig = {
     monad: {
       url: `${process.env.MONAD_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
-      chainId: 16661,
+      chainId: 143,
     },
     hyperliquid: {
       url: `${process.env.HYPERLIQUID_RPC_URL}`,
