@@ -13,6 +13,7 @@ import { warnIfTenderlyVirtualTestnet } from '../../helpers/tenderly-helpers'
 import { createUnifiedLzConfigProposal } from './helpers/bridge-governance-helper'
 import { checkLzAuthorization } from './helpers/lz-authorization-helper'
 import { LZ_ENDPOINT_ABI } from './lz-endpoint-abi'
+import { BaseConfig } from '../../../types/config-types'
 
 // Interface for LayerZero configuration
 interface LzEndpointConfig {
@@ -45,14 +46,25 @@ interface ConfigurationAttempt {
  */
 async function getDeployedChains(useBummerConfig: boolean): Promise<string[]> {
   // List of chains that might have deployed contracts
-  const potentialChains = ['mainnet', 'base', 'arbitrum', 'sonic', 'optimism']
+  const potentialChains = [
+    'mainnet',
+    'base',
+    'arbitrum',
+    'sonic',
+    'optimism',
+    'hyperliquid',
+    'monad',
+  ]
   const deployedChains: string[] = []
 
   for (const chain of potentialChains) {
     try {
-      const config = getConfigByNetwork(chain, { gov: true }, useBummerConfig)
+      const config = getConfigByNetwork(chain, { gov: true }, useBummerConfig) as BaseConfig
       // Check if SummerToken exists on this chain as a basic deployment check
-      if (config.deployedContracts?.gov?.summerToken?.address) {
+      if (
+        config.deployedContracts?.gov?.summerToken?.address ||
+        config.deployedContracts?.govV2?.summerGovernor?.address
+      ) {
         deployedChains.push(chain)
       }
     } catch (error) {

@@ -75,13 +75,16 @@ export function createGovV1CoreModule(moduleName: string) {
     }
 
     const summerToken = m.contract('SummerToken', [summerTokenConstructorParams])
-
+    const vestingWalletFactory = m.contract('SummerVestingWalletFactory', [
+      summerToken,
+      accessManager,
+    ])
     const summerTokenInitParams = {
       initialSupply: 0n,
       initialDecayFreeWindow: 60n * 24n * 60n * 60n, // 60 days
       initialYearlyDecayRate: BigInt(0.1e18), // ~10% per year
       initialDecayFunction: DecayType.Linear,
-      vestingWalletFactory: '0x0000000000000000000000000000000000000000',
+      vestingWalletFactory: vestingWalletFactory,
     }
 
     m.call(summerToken, 'initialize', [summerTokenInitParams])

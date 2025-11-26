@@ -1,0 +1,7 @@
+{
+  "staging_GovV1CoreModule#ProtocolAccessManager": "0xeaDBbFC3aD27a6CFE1e785598F4Ff6909DeC2D82",
+  "staging_GovV1CoreModule#SummerTimelockController": "0x0C939b702524fDaBa4914E905Bcb850182308141",
+  "staging_GovV1CoreModule#SummerToken": "0x77e5f42d5cf2d1B9849AE6A5d2D7dC5b774f8290",
+  "staging_GovV1CoreModule#SummerVestingWalletFactory": "0x47F73542a9b59C2316832775C51cC99E6B468A67",
+  "staging_GovModuleV2#SummerGovernorV2": "0xEE828F95f95F0a0bbec792C4c9D2aF86918F1e4e"
+}

@@ -176,12 +176,8 @@ async function getDeploymentConfig(useBummerConfig?: boolean) {
   const defaultVotingPeriod = isTest ? 600n : 259200n // 10 mins or 3 days
   const defaultMinDelay = isTest ? 60n : 86400n // 1 min or 1 day
 
-  // Calculate default transfer enable date
-  const now = Math.floor(Date.now() / 1000)
   const july1st2025UTC = 1751328000 // July 1st, 2025 00:00 UTC
-  const defaultTransferEnableDate = isTest
-    ? now + 5 * 60 // 5 minutes from now
-    : july1st2025UTC
+  const defaultTransferEnableDate = isTest ? 0 : july1st2025UTC
 
   const responses = await prompts([
     {
