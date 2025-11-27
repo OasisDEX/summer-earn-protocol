@@ -2,6 +2,7 @@
   "name": "summer-earn-interface",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@8.15.4",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

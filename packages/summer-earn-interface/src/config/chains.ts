@@ -38,6 +38,13 @@ export const CHAIN_INSTITUTIONS_SUBGRAPH_URLS: Record<ChainId, string> = {
   [sonic.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-sonic',
 }
 
+export const CHAIN_PROTOCOL_SUBGRAPH_URLS: Record<ChainId, string> = {
+  [mainnet.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol',
+  [arbitrum.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-arbitrum',
+  [base.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-base',
+  [sonic.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-sonic',
+}
+
 export const VIEM_CHAIN_ENTITIES: Record<ChainId, Chain> = {
   [mainnet.id]: mainnet,
   [arbitrum.id]: arbitrum,
