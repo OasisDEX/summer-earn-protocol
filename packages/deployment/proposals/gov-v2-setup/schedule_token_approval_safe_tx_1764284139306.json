@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "chainId": "42161",
+  "createdAt": 1764284139306,
+  "meta": {
+    "name": "Schedule ERC20 Approval in Timelock",
+    "description": "Schedule approval of 115792089237316195423570985008687907853269984665640564039457584007913129639935 tokens for 0x77e5f42d5cf2d1B9849AE6A5d2D7dC5b774f8290 on token 0x2433D6AC11193b4695D9ca73530de93c538aD18a",
+    "txBuilderVersion": "1.16.3",
+    "createdFromSafeAddress": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796",
+      "value": "0",
+      "data": "0x01d5062a0000000000000000000000002433d6ac11193b4695d9ca73530de93c538ad18a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000086f053288735280c610cc92b7b6067681dc3e77416307fb99cf1d006eff2c22a00000000000000000000000000000000000000000000000000000000000151800000000000000000000000000000000000000000000000000000000000000044095ea7b300000000000000000000000077e5f42d5cf2d1b9849ae6a5d2d7dc5b774f8290ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000000",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "target",
+            "type": "address"
+          },
+          {
+            "name": "value",
+            "type": "uint256"
+          },
+          {
+            "name": "data",
+            "type": "bytes"
+          },
+          {
+            "name": "predecessor",
+            "type": "bytes32"
+          },
+          {
+            "name": "salt",
+            "type": "bytes32"
+          },
+          {
+            "name": "delay",
+            "type": "uint256"
+          }
+        ],
+        "name": "schedule",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "target": "0x2433D6AC11193b4695D9ca73530de93c538aD18a",
+        "value": "0",
+        "data": "0x095ea7b300000000000000000000000077e5f42d5cf2d1b9849ae6a5d2d7dc5b774f8290ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "predecessor": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "salt": "0x86f053288735280c610cc92b7b6067681dc3e77416307fb99cf1d006eff2c22a",
+        "delay": "86400"
+      }
+    }
+  ]
+}
