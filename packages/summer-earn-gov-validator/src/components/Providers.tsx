@@ -46,6 +46,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       adapters: [wagmiAdapter],
       networks: appkitNetworks,
       projectId,
+      allowUnsupportedChain: true,
       metadata: {
         name: 'Summer Earn Governance Validator',
         description: 'Validate governance proposals for Summer Earn Protocol',
