@@ -248,9 +248,19 @@ export function getRoleTags(address: string, roleInfo?: RoleInfo): string[] {
 }
 
 // Helper function to decode an address to its contract name
-function decodeAddress(address: string, network: SupportedNetworks): string {
+function decodeAddress(address: string, network?: SupportedNetworks): string {
   // Try to find the contract name in each network
-  const name = addresToContractName(address, network)
+  let name = ''
+  if (!network) {
+    for (const network of Object.values(SupportedNetworks)) {
+      name = addresToContractName(address, network)
+      if (name !== 'Unknown') {
+        break
+      }
+    }
+  } else {
+    name = addresToContractName(address, network)
+  }
   if (name !== 'Unknown') {
     return `${network}:${name}(${address})`
   }
@@ -260,7 +270,7 @@ function decodeAddress(address: string, network: SupportedNetworks): string {
 // Function to decode any calldata using known ABIs
 export const decodeCalldata = (
   calldata: string,
-  network: SupportedNetworks,
+  network?: SupportedNetworks,
 ): DecodedFunction | null => {
   for (const [name, iface] of Object.entries(interfaces)) {
     try {
