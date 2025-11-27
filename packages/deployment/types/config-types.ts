@@ -106,6 +106,8 @@ export interface BaseConfig {
       timelock: { address: string }
       protocolAccessManager: { address: string }
       rewardsRedeemer: { address: string }
+      summerVestingFactory?: { address: string }
+      summerVestingFactoryV2?: { address: string }
     }
     govV2: {
       summerGovernor: { address: string }

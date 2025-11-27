@@ -20,6 +20,9 @@
         "oazoSummerRewardsRedeemer": {
           "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
         },
+        "summerVestingFactory": {
+          "address": "0x5f3cd3a45E6B8c2B29DDC80411C58291740E8886"
+        },
         "summerVestingFactoryV2": {
           "address": "0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB"
         }
