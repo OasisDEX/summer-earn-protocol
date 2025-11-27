@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "chainId": "8453",
+  "createdAt": 1764247636776,
+  "meta": {
+    "name": "Add Vesting Factories to Escrow",
+    "description": "Add 2 vesting factory(ies) to SummerVestingWalletsEscrow",
+    "txBuilderVersion": "1.16.3",
+    "createdFromSafeAddress": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0xdF8b1E08679D6035b6c1504e04C5C9e72a0555Fe",
+      "value": "0",
+      "data": "0xda357c780000000000000000000000005f3cd3a45e6b8c2b29ddc80411c58291740e8886",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "vestingFactory",
+            "type": "address"
+          }
+        ],
+        "name": "addVestingFactory",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "vestingFactory": "0x5f3cd3a45E6B8c2B29DDC80411C58291740E8886"
+      }
+    },
+    {
+      "to": "0xdF8b1E08679D6035b6c1504e04C5C9e72a0555Fe",
+      "value": "0",
+      "data": "0xda357c780000000000000000000000003aa85a023c0e935cdb5d1cbb2d7bc5eac5c69beb",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "vestingFactory",
+            "type": "address"
+          }
+        ],
+        "name": "addVestingFactory",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "vestingFactory": "0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB"
+      }
+    }
+  ]
+}
