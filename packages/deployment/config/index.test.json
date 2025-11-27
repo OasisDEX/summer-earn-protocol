@@ -116,6 +116,18 @@
           "sonic": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
             "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          },
+          "hyperliquid": {
+            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
+            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          },
+          "arbitrum": {
+            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
+            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          },
+          "mainnet": {
+            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
+            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
           }
         }
       }
@@ -355,6 +367,18 @@
           "sonic": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
             "stargate": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+          },
+          "hyperliquid": {
+            "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
+            "stargate": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+          },
+          "base": {
+            "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
+            "stargate": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+          },
+          "mainnet": {
+            "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
+            "stargate": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
           }
         }
       }
@@ -574,6 +598,18 @@
         "lzDeadDVN": "0x747C741496a507E4B404b50463e691A8d692f6Ac",
         "dvns": {
           "sonic": {
+            "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
+            "stargate": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+          },
+          "hyperliquid": {
+            "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
+            "stargate": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+          },
+          "arbitrum": {
+            "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
+            "stargate": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+          },
+          "base": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
             "stargate": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
           }
@@ -918,6 +954,10 @@
           "mainnet": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
             "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+          },
+          "hyperliquid": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
           }
         }
       }
@@ -1239,7 +1279,7 @@
         "lzDeadDVN": "0x6788f52439ACA6BFF597d3eeC2DC9a44B8FEE842",
         "dvns": {
           "sonic": {
-            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
             "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
           }
         }
@@ -1346,8 +1386,20 @@
         "lzDeadDVN": "0xcCE466a522984415bC91338c232d98869193D46e",
         "dvns": {
           "sonic": {
-            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
-            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
+            "stargate": "0xcCE466a522984415bC91338c232d98869193D46e"
+          },
+          "mainnet": {
+            "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
+            "stargate": "0xcCE466a522984415bC91338c232d98869193D46e"
+          },
+          "arbitrum": {
+            "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
+            "stargate": "0xcCE466a522984415bC91338c232d98869193D46e"
+          },
+          "base": {
+            "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
+            "stargate": "0xcCE466a522984415bC91338c232d98869193D46e"
           }
         }
       }

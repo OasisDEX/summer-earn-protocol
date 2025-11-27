@@ -46,15 +46,7 @@ interface ConfigurationAttempt {
  */
 async function getDeployedChains(useBummerConfig: boolean): Promise<string[]> {
   // List of chains that might have deployed contracts
-  const potentialChains = [
-    'mainnet',
-    'base',
-    'arbitrum',
-    'sonic',
-    'optimism',
-    'hyperliquid',
-    'monad',
-  ]
+  const potentialChains = ['mainnet', 'base', 'arbitrum', 'sonic', 'hyperliquid']
   const deployedChains: string[] = []
 
   for (const chain of potentialChains) {
@@ -93,17 +85,25 @@ async function createRouteConfiguration(
   receiveConfigParams: any[]
 }> {
   // Get source chain configuration
-  const sourceConfig = getConfigByNetwork(sourceChain, { gov: true, common: true }, useBummerConfig)
+  const sourceConfig = getConfigByNetwork(
+    sourceChain,
+    { gov: true, common: true },
+    useBummerConfig,
+  ) as BaseConfig
 
   // Get target chain configuration
-  const targetConfig = getConfigByNetwork(targetChain, { common: true }, useBummerConfig)
+  const targetConfig = getConfigByNetwork(
+    targetChain,
+    { common: true },
+    useBummerConfig,
+  ) as BaseConfig
 
   // Determine OApp address based on type
   let oAppAddress: Address
   if (oAppType === 'summerToken') {
     oAppAddress = sourceConfig.deployedContracts.gov.summerToken.address as Address
   } else {
-    oAppAddress = sourceConfig.deployedContracts.gov.summerGovernor.address as Address
+    oAppAddress = sourceConfig.deployedContracts.govV2.summerGovernor.address as Address
   }
 
   // Get LZ configuration parameters
@@ -533,7 +533,7 @@ async function generatePeerConfigurations(newChainName: string, useBummerConfig:
     newChainName,
     { common: true, gov: true },
     useBummerConfig,
-  )
+  ) as BaseConfig
 
   // Initialize peer configurations
   const tokenPeers: Array<{
@@ -553,7 +553,7 @@ async function generatePeerConfigurations(newChainName: string, useBummerConfig:
 
   // Get the contract addresses for the new chain
   const newChainTokenAddress = newChainConfig.deployedContracts?.gov?.summerToken?.address
-  const newChainGovernorAddress = newChainConfig.deployedContracts?.gov?.summerGovernor?.address
+  const newChainGovernorAddress = newChainConfig.deployedContracts?.govV2.summerGovernor?.address
 
   if (!newChainTokenAddress || !newChainGovernorAddress) {
     console.log(kleur.red(`Missing contract addresses for ${newChainName}`))
@@ -727,23 +727,31 @@ async function configureNewChainLayerZero(useBummerConfigOverride?: boolean) {
   )
 
   // Ask for the new chain to configure
-  const { newChain } = await prompts({
-    type: 'text',
-    name: 'newChain',
-    message: 'Enter the name of the new chain to configure:',
-    validate: (value) => {
-      if (!value) return 'Chain name is required'
-      if (value === getHubChain()) return 'Cannot use hub chain as new chain'
-      try {
-        getConfigByNetwork(value, { common: true }, useBummerConfig)
-        return true
-      } catch (error) {
-        return `Configuration not found for chain ${value}`
-      }
+  const { newChain, onlyGovV2 } = await prompts([
+    {
+      type: 'text',
+      name: 'newChain',
+      message: 'Enter the name of the chain to update LayerZero configuration for:',
+      validate: (value) => {
+        if (!value) return 'Chain name is required'
+        if (value === getHubChain()) return 'Cannot use hub chain as new chain'
+        try {
+          getConfigByNetwork(value, { common: true }, useBummerConfig)
+          return true
+        } catch (error) {
+          return `Configuration not found for chain ${value}`
+        }
+      },
     },
-  })
+    {
+      type: 'confirm',
+      name: 'onlyGovV2',
+      message: 'Do you want to only configure GovV2 contracts?',
+      initial: false,
+    },
+  ])
 
-  console.log(kleur.cyan(`\n🔄 Configuring LayerZero for new chain: ${newChain}\n`))
+  console.log(kleur.cyan(`\n🔄 Configuring LayerZero for chain: ${newChain}\n`))
 
   // Track all configuration attempts
   const configurationAttempts: ConfigurationAttempt[] = []
@@ -751,90 +759,12 @@ async function configureNewChainLayerZero(useBummerConfigOverride?: boolean) {
   // Phase 1: Configure SummerToken routes
   console.log(kleur.cyan('\n--- Phase 1: Configuring SummerToken Routes ---'))
   console.log(kleur.cyan('SummerToken requires all chains to be connected with each other.'))
+  if (!onlyGovV2) {
+    // Create routes from all deployed chains to the new chain
+    for (const sourceChain of deployedChains) {
+      if (sourceChain === newChain) continue // Skip self-connections
 
-  // Create routes from all deployed chains to the new chain
-  for (const sourceChain of deployedChains) {
-    if (sourceChain === newChain) continue // Skip self-connections
-
-    console.log(kleur.yellow(`\nConfiguring ${sourceChain} → ${newChain} for SummerToken...`))
-    // Create the configuration parameters
-    const {
-      oAppAddress,
-      lzEndpointAddress,
-      sendLibraryAddress,
-      receiveLibraryAddress,
-      sendConfigParams,
-      receiveConfigParams,
-    } = await createRouteConfiguration(sourceChain, newChain, 'summerToken', useBummerConfig)
-    try {
-      console.log(kleur.yellow(`  Attempting direct execution...`))
-      const { success, error } = await tryDirectExecution(
-        sourceChain,
-        oAppAddress,
-        lzEndpointAddress,
-        sendLibraryAddress,
-        receiveLibraryAddress,
-        sendConfigParams,
-        receiveConfigParams,
-        false, // Not a new chain targeting existing
-        useBummerConfig,
-      )
-
-      if (!success) {
-        throw new Error(
-          `Failed to configure ${sourceChain} → ${newChain}: ${error}\n` +
-            `Likely requires governance proposal to be created.`,
-        )
-      }
-
-      // Record the attempt
-      configurationAttempts.push({
-        sourceChain,
-        targetChain: newChain,
-        oAppType: 'summerToken',
-        oAppAddress,
-        directExecution: true,
-        success,
-        error,
-        lzEndpointAddress,
-        sendLibraryAddress,
-        receiveLibraryAddress,
-        sendConfigParams,
-        receiveConfigParams,
-      })
-
-      if (success) {
-        console.log(kleur.green(`  ✓ Successfully configured ${sourceChain} → ${newChain}`))
-      } else {
-        console.log(kleur.red(`  ❌ Direct execution failed: ${error}`))
-      }
-    } catch (error: any) {
-      console.log(kleur.red(`  ❌ Error configuring route: ${error.message}`))
-      // Still record the attempt
-      configurationAttempts.push({
-        sourceChain,
-        targetChain: newChain,
-        oAppType: 'summerToken',
-        oAppAddress,
-        directExecution: false,
-        success: false,
-        error: error.message,
-        lzEndpointAddress,
-        sendLibraryAddress,
-        receiveLibraryAddress,
-        sendConfigParams,
-        receiveConfigParams,
-      })
-    }
-  }
-
-  // Create routes from the new chain to all deployed chains
-  console.log(kleur.yellow(`\nConfiguring routes from ${newChain} to all other chains...`))
-  for (const targetChain of deployedChains) {
-    if (targetChain === newChain) continue // Skip self-connections
-
-    console.log(kleur.yellow(`\nConfiguring ${newChain} → ${targetChain} for SummerToken...`))
-    try {
+      console.log(kleur.yellow(`\nConfiguring ${sourceChain} → ${newChain} for SummerToken...`))
       // Create the configuration parameters
       const {
         oAppAddress,
@@ -843,57 +773,135 @@ async function configureNewChainLayerZero(useBummerConfigOverride?: boolean) {
         receiveLibraryAddress,
         sendConfigParams,
         receiveConfigParams,
-      } = await createRouteConfiguration(newChain, targetChain, 'summerToken', useBummerConfig)
+      } = await createRouteConfiguration(sourceChain, newChain, 'summerToken', useBummerConfig)
+      try {
+        console.log(kleur.yellow(`  Attempting direct execution...`))
+        const { success, error } = await tryDirectExecution(
+          sourceChain,
+          oAppAddress,
+          lzEndpointAddress,
+          sendLibraryAddress,
+          receiveLibraryAddress,
+          sendConfigParams,
+          receiveConfigParams,
+          false, // Not a new chain targeting existing
+          useBummerConfig,
+        )
 
-      console.log(kleur.yellow(`  Attempting direct execution...`))
-      const { success, error } = await tryDirectExecution(
-        newChain,
-        oAppAddress,
-        lzEndpointAddress,
-        sendLibraryAddress,
-        receiveLibraryAddress,
-        sendConfigParams,
-        receiveConfigParams,
-        true, // This is a new chain targeting existing chains
-        useBummerConfig,
-      )
+        if (!success) {
+          throw new Error(
+            `Failed to configure ${sourceChain} → ${newChain}: ${error}\n` +
+              `Likely requires governance proposal to be created.`,
+          )
+        }
 
-      if (!success) {
+        // Record the attempt
+        configurationAttempts.push({
+          sourceChain,
+          targetChain: newChain,
+          oAppType: 'summerToken',
+          oAppAddress,
+          directExecution: true,
+          success,
+          error,
+          lzEndpointAddress,
+          sendLibraryAddress,
+          receiveLibraryAddress,
+          sendConfigParams,
+          receiveConfigParams,
+        })
+
+        if (success) {
+          console.log(kleur.green(`  ✓ Successfully configured ${sourceChain} → ${newChain}`))
+        } else {
+          console.log(kleur.red(`  ❌ Direct execution failed: ${error}`))
+        }
+      } catch (error: any) {
+        console.log(kleur.red(`  ❌ Error configuring route: ${error.message}`))
+        // Still record the attempt
+        configurationAttempts.push({
+          sourceChain,
+          targetChain: newChain,
+          oAppType: 'summerToken',
+          oAppAddress,
+          directExecution: false,
+          success: false,
+          error: error.message,
+          lzEndpointAddress,
+          sendLibraryAddress,
+          receiveLibraryAddress,
+          sendConfigParams,
+          receiveConfigParams,
+        })
+      }
+    }
+
+    // Create routes from the new chain to all deployed chains
+    console.log(kleur.yellow(`\nConfiguring routes from ${newChain} to all other chains...`))
+    for (const targetChain of deployedChains) {
+      if (targetChain === newChain) continue // Skip self-connections
+
+      console.log(kleur.yellow(`\nConfiguring ${newChain} → ${targetChain} for SummerToken...`))
+      try {
+        // Create the configuration parameters
+        const {
+          oAppAddress,
+          lzEndpointAddress,
+          sendLibraryAddress,
+          receiveLibraryAddress,
+          sendConfigParams,
+          receiveConfigParams,
+        } = await createRouteConfiguration(newChain, targetChain, 'summerToken', useBummerConfig)
+
+        console.log(kleur.yellow(`  Attempting direct execution...`))
+        const { success, error } = await tryDirectExecution(
+          newChain,
+          oAppAddress,
+          lzEndpointAddress,
+          sendLibraryAddress,
+          receiveLibraryAddress,
+          sendConfigParams,
+          receiveConfigParams,
+          true, // This is a new chain targeting existing chains
+          useBummerConfig,
+        )
+
+        if (!success) {
+          throw new Error(
+            `Failed to configure ${newChain} → ${targetChain}: ${error}\n` +
+              `You need to ensure deployer has permissions to configure OApp on ${newChain}.`,
+          )
+        }
+
+        // Record the successful attempt
+        configurationAttempts.push({
+          sourceChain: newChain,
+          targetChain,
+          oAppType: 'summerToken',
+          oAppAddress,
+          directExecution: true,
+          success,
+          error,
+          lzEndpointAddress,
+          sendLibraryAddress,
+          receiveLibraryAddress,
+          sendConfigParams,
+          receiveConfigParams,
+        })
+
+        console.log(kleur.green(`  ✓ Successfully configured ${newChain} → ${targetChain}`))
+      } catch (error: any) {
+        console.log(kleur.red(`  ❌ Error configuring route: ${error.message}`))
         throw new Error(
-          `Failed to configure ${newChain} → ${targetChain}: ${error}\n` +
-            `You need to ensure deployer has permissions to configure OApp on ${newChain}.`,
+          `Failed to configure ${newChain} → ${targetChain}: ${error.message}\n` +
+            `New chain configurations must be set up directly before transferring ownership. ` +
+            `Please address the error above before continuing.`,
         )
       }
-
-      // Record the successful attempt
-      configurationAttempts.push({
-        sourceChain: newChain,
-        targetChain,
-        oAppType: 'summerToken',
-        oAppAddress,
-        directExecution: true,
-        success,
-        error,
-        lzEndpointAddress,
-        sendLibraryAddress,
-        receiveLibraryAddress,
-        sendConfigParams,
-        receiveConfigParams,
-      })
-
-      console.log(kleur.green(`  ✓ Successfully configured ${newChain} → ${targetChain}`))
-    } catch (error: any) {
-      console.log(kleur.red(`  ❌ Error configuring route: ${error.message}`))
-      throw new Error(
-        `Failed to configure ${newChain} → ${targetChain}: ${error.message}\n` +
-          `New chain configurations must be set up directly before transferring ownership. ` +
-          `Please address the error above before continuing.`,
-      )
     }
   }
-
   // Phase 2: Configure SummerGovernor routes
-  console.log(kleur.cyan('\n--- Phase 2: Configuring SummerGovernor Routes ---'))
+  console.log(kleur.cyan(`\n--- Phase ${onlyGovV2 ? 2 : 1}: Configuring SummerGovernor Routes ---`))
   console.log(
     kleur.cyan(
       'SummerGovernor only requires a connection between the new chain and the hub chain.',
