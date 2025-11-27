@@ -1,7 +1,7 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
 import { VaultAprChart } from '../../components/VaultAprChart'
 import { CHAIN_NAMES } from '../../config/chains'

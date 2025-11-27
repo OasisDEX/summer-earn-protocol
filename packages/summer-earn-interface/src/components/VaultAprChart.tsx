@@ -29,12 +29,7 @@ interface VaultAprChartProps {
   vaultName: string
 }
 
-export const VaultAprChart = ({
-  weeklyRates,
-  dailyRates,
-  hourlyRates,
-  vaultName,
-}: VaultAprChartProps) => {
+export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultAprChartProps) => {
   const [showWeekly, setShowWeekly] = useState(true)
   const [showDaily, setShowDaily] = useState(true)
   const [showHourly, setShowHourly] = useState(true)
