@@ -248,19 +248,20 @@ export function getRoleTags(address: string, roleInfo?: RoleInfo): string[] {
 }
 
 // Helper function to decode an address to its contract name
-function decodeAddress(address: string): string {
+function decodeAddress(address: string, network: SupportedNetworks): string {
   // Try to find the contract name in each network
-  for (const network of Object.values(SupportedNetworks)) {
-    const contractName = addresToContractName(address, network)
-    if (contractName !== 'Unknown') {
-      return `${network}:${contractName}(${address})`
-    }
+  const name = addresToContractName(address, network)
+  if (name !== 'Unknown') {
+    return `${network}:${name}(${address})`
   }
   return address
 }
 
 // Function to decode any calldata using known ABIs
-export const decodeCalldata = (calldata: string): DecodedFunction | null => {
+export const decodeCalldata = (
+  calldata: string,
+  network: SupportedNetworks,
+): DecodedFunction | null => {
   for (const [name, iface] of Object.entries(interfaces)) {
     try {
       const decoded = iface.parseTransaction({ data: calldata })
@@ -323,7 +324,7 @@ export const decodeCalldata = (calldata: string): DecodedFunction | null => {
           }
           // Check if it's an address (42 chars: 0x + 40 hex)
           if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
-            return decodeAddress(arg)
+            return decodeAddress(arg, network)
           }
           return arg
         }
@@ -360,7 +361,9 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
     const network = dstEidToChainIdMap[dstIdAsString] as SupportedNetworks
 
     // Decode nested calldatas
-    const decodedCalldatas = dstCalldatas.map((calldata: string) => decodeCalldata(calldata))
+    const decodedCalldatas = dstCalldatas.map((calldata: string) =>
+      decodeCalldata(calldata, network),
+    )
 
     // Get contract names for the targets
     const targetContractNames = dstTargets.map((target: string) =>
