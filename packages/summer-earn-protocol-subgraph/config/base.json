@@ -1,13 +1,13 @@
 {
   "network": "base",
   "harbor-command-address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F",
-  "harbor-command-start-block": 37697200,
+  "harbor-command-start-block": 25773568,
   "governance-rewards-manager-address": "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92",
-  "governance-rewards-manager-start-block": 37697200,
+  "governance-rewards-manager-start-block": 25642492,
   "summer-staking-v2-address": "0x6B94fD1Cbf967c6441764a5AcB84eF2B3774c09f",
   "summer-staking-v2-start-block": 37697200,
   "interval-handler-block-interval": 30,
-  "enable-grafting": false,
+  "enable-grafting": true,
   "grafting-base": "QmYGtqAcfv6hDPMY4GaE6NHD491asuD5MTHM9Ute98KyQH",
   "grafting-block": "37697200"
 }

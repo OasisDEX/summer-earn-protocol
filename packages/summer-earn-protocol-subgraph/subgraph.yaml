@@ -1,6 +1,11 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
+features:
+  - grafting
+graft:
+  base: QmYGtqAcfv6hDPMY4GaE6NHD491asuD5MTHM9Ute98KyQH
+  block: 37697200
 dataSources:
   - kind: ethereum/contract
     name: SummerStakingV2
@@ -32,7 +37,7 @@ dataSources:
     source:
       abi: HarborCommand
       address: "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
-      startBlock: 37697200
+      startBlock: 25773568
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -90,7 +95,7 @@ dataSources:
     source:
       abi: GovernanceRewardsManager
       address: "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92"
-      startBlock: 37697200
+      startBlock: 25642492
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
