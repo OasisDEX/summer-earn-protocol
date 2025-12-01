@@ -158,7 +158,7 @@ export interface BaseConfig {
       dvns: {
         [key: string]: {
           lzLabs: string
-          stargate: string
+          secondDvn: string
         }
       }
     }

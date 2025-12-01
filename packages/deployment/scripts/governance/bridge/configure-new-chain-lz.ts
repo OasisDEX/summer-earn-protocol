@@ -129,7 +129,7 @@ async function createRouteConfiguration(
   const dvns = lzConfig.dvns[targetChain as keyof typeof lzConfig.dvns]
 
   // Ensure all required addresses are available
-  if (!lzConfig.lzExecutor || !dvns.lzLabs || !dvns.stargate) {
+  if (!lzConfig.lzExecutor || !dvns.lzLabs || !dvns.secondDvn) {
     throw new Error(
       `Missing required contract addresses in config for ${sourceChain} -> ${targetChain}`,
     )
@@ -157,7 +157,7 @@ async function createRouteConfiguration(
   )
 
   // Encode ULN receive config for DVNs
-  const dvnAddresses = [dvns.lzLabs as Address, dvns.stargate as Address].sort()
+  const dvnAddresses = [dvns.lzLabs as Address, dvns.secondDvn as Address].sort()
 
   const ulnConfig = {
     confirmations: 15n, // Keep as bigint - this is a uint64
