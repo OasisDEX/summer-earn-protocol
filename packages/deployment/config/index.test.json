@@ -115,19 +115,23 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
-            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
           },
           "hyperliquid": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
-            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
           },
           "arbitrum": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
-            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
           },
           "mainnet": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
-            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          },
+          "monad": {
+            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
+            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
           }
         }
       }
@@ -366,19 +370,23 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
-            "stargate": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
           },
           "hyperliquid": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
-            "stargate": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
           },
           "base": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
-            "stargate": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
           },
           "mainnet": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
-            "stargate": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+          },
+          "monad": {
+            "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
+            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
           }
         }
       }
@@ -599,19 +607,23 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
-            "stargate": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
           },
           "hyperliquid": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
-            "stargate": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
           },
           "arbitrum": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
-            "stargate": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
           },
           "base": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
-            "stargate": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+          },
+          "monad": {
+            "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
+            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
           }
         }
       }
@@ -945,19 +957,23 @@
         "dvns": {
           "base": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
           },
           "arbitrum": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
           },
           "mainnet": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+          },
+          "monad": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
           },
           "hyperliquid": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
           }
         }
       }
@@ -1280,7 +1296,23 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "secondDvn": "0x2dcbd79f38d6871232422db88ec29e8d97135ac7"
+          },
+          "mainnet": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0x2dcbd79f38d6871232422db88ec29e8d97135ac7"
+          },
+          "arbitrum": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0x2dcbd79f38d6871232422db88ec29e8d97135ac7"
+          },
+          "base": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0x2dcbd79f38d6871232422db88ec29e8d97135ac7"
+          },
+          "hyperliquid": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0x2dcbd79f38d6871232422db88ec29e8d97135ac7"
           }
         }
       },
@@ -1387,19 +1419,23 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
-            "stargate": "0xcCE466a522984415bC91338c232d98869193D46e"
+            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
           },
           "mainnet": {
             "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
-            "stargate": "0xcCE466a522984415bC91338c232d98869193D46e"
+            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
           },
           "arbitrum": {
             "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
-            "stargate": "0xcCE466a522984415bC91338c232d98869193D46e"
+            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
           },
           "base": {
             "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
-            "stargate": "0xcCE466a522984415bC91338c232d98869193D46e"
+            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
+          },
+          "monad": {
+            "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
+            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
           }
         }
       }
