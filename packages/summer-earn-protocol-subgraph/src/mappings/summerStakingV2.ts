@@ -1,14 +1,8 @@
 import {
-  Staked,
   StakedWithLockup,
-  Unstaked,
   UnstakedWithPenalty,
 } from '../../generated/SummerStakingV2/SummerStakingV2'
-import {
-  BigDecimalConstants,
-  BigIntConstants,
-  SUMMER_STAKING_V2_ADDRESS,
-} from '../common/constants'
+import { BigIntConstants } from '../common/constants'
 
 import { BigInt } from '@graphprotocol/graph-ts'
 import {
@@ -21,11 +15,6 @@ import { formatAmount } from '../common/utils'
 export function handleStaked(event: StakedWithLockup): void {
   const account = getOrCreateAccount(event.params.receiver.toHexString())
   const governanceStaking = getOrCreateGovernanceStakingV2()
-  governanceStaking.summerStaked = governanceStaking.summerStaked.plus(event.params.amount)
-  governanceStaking.summerStakedNormalized = governanceStaking.summerStakedNormalized.plus(
-    formatAmount(event.params.amount, BigInt.fromI32(18)),
-  )
-
   const stakeLockup = getOrCreateStakeLockup(
     event.params.receiver.toHexString() + '-' + event.params.stakeIndex.toHexString(),
   )
@@ -53,30 +42,42 @@ export function handleStaked(event: StakedWithLockup): void {
   }
 
   stakeLockup.save()
-  if (governanceStaking.averageLockupPeriod) {
+  if (
+    governanceStaking.averageLockupPeriod &&
+    governanceStaking.weightedAverageLockupPeriod &&
+    !event.params.lockupPeriod.equals(BigIntConstants.ZERO)
+  ) {
+    governanceStaking.averageLockupPeriod = governanceStaking
+      .averageLockupPeriod!.times(governanceStaking.amountOfLockedStakes!)
+      .plus(event.params.lockupPeriod)
+      .div(governanceStaking.amountOfLockedStakes!.plus(BigIntConstants.ONE))
+
+    governanceStaking.weightedAverageLockupPeriod = governanceStaking
+      .summerStaked!.times(governanceStaking.weightedAverageLockupPeriod!)
+      .plus(event.params.amount.times(event.params.lockupPeriod))
+      .div(governanceStaking.summerStaked.plus(event.params.amount))
+
     governanceStaking.amountOfLockedStakes = governanceStaking.amountOfLockedStakes!.plus(
       BigIntConstants.ONE,
     )
-    governanceStaking.averageLockupPeriod = governanceStaking
-      .averageLockupPeriod!.plus(event.params.lockupPeriod)
-      .div(governanceStaking.amountOfLockedStakes!)
   }
+  governanceStaking.summerStaked = governanceStaking.summerStaked.plus(event.params.amount)
+  governanceStaking.summerStakedNormalized = governanceStaking.summerStakedNormalized.plus(
+    formatAmount(event.params.amount, BigInt.fromI32(18)),
+  )
+
   governanceStaking.save()
 }
 
 export function handleUnstaked(event: UnstakedWithPenalty): void {
   const account = getOrCreateAccount(event.params.receiver.toHexString())
   const governanceStaking = getOrCreateGovernanceStakingV2()
-  governanceStaking.summerStaked = governanceStaking.summerStaked.minus(event.params.unstakedAmount)
-  governanceStaking.summerStakedNormalized = governanceStaking.summerStakedNormalized.minus(
-    formatAmount(event.params.unstakedAmount, BigInt.fromI32(18)),
-  )
 
   const stakeLockup = getOrCreateStakeLockup(
     event.params.receiver.toHexString() + '-' + event.params.stakeIndex.toHexString(),
   )
   const weightedAmountToRemove = stakeLockup.weightedAmount
-    .times(stakeLockup.amount)
+    .times(event.params.unstakedAmount)
     .div(stakeLockup.amount)
   stakeLockup.account = account.id
   stakeLockup.amount = stakeLockup.amount.minus(event.params.unstakedAmount)
@@ -88,13 +89,29 @@ export function handleUnstaked(event: UnstakedWithPenalty): void {
     formatAmount(weightedAmountToRemove, BigInt.fromI32(18)),
   )
   stakeLockup.save()
-  if (governanceStaking.averageLockupPeriod && stakeLockup.amount.equals(BigIntConstants.ZERO)) {
+  if (
+    governanceStaking.averageLockupPeriod &&
+    governanceStaking.weightedAverageLockupPeriod &&
+    stakeLockup.amount.equals(BigIntConstants.ZERO) &&
+    !stakeLockup.lockupPeriod.equals(BigIntConstants.ZERO)
+  ) {
+    governanceStaking.averageLockupPeriod = governanceStaking
+      .amountOfLockedStakes!.times(governanceStaking.averageLockupPeriod!)
+      .minus(stakeLockup.lockupPeriod)
+      .div(governanceStaking.amountOfLockedStakes!.minus(BigIntConstants.ONE))
+
+    governanceStaking.weightedAverageLockupPeriod = governanceStaking
+      .weightedAverageLockupPeriod!.times(governanceStaking.summerStaked!)
+      .minus(event.params.unstakedAmount.times(stakeLockup.lockupPeriod))
+      .div(governanceStaking.summerStaked!.minus(event.params.unstakedAmount))
+
     governanceStaking.amountOfLockedStakes = governanceStaking.amountOfLockedStakes!.minus(
       BigIntConstants.ONE,
     )
-    governanceStaking.averageLockupPeriod = governanceStaking
-      .averageLockupPeriod!.minus(stakeLockup.lockupPeriod)
-      .div(governanceStaking.amountOfLockedStakes!)
   }
+  governanceStaking.summerStaked = governanceStaking.summerStaked.minus(event.params.unstakedAmount)
+  governanceStaking.summerStakedNormalized = governanceStaking.summerStakedNormalized.minus(
+    formatAmount(event.params.unstakedAmount, BigInt.fromI32(18)),
+  )
   governanceStaking.save()
 }

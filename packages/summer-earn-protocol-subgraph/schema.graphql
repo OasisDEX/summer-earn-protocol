@@ -1661,6 +1661,7 @@ type GovernanceStaking @entity {
   accounts: [Account!]!
 
   averageLockupPeriod: BigInt
+  weightedAverageLockupPeriod: BigInt
   amountOfLockedStakes: BigInt
 }
 

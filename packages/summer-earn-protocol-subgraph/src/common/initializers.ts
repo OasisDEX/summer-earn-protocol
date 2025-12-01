@@ -1018,6 +1018,7 @@ export function getOrCreateGovernanceStakingV2(): GovernanceStaking {
     governanceStakingV2.accounts = []
     governanceStakingV2.averageLockupPeriod = BigIntConstants.ZERO
     governanceStakingV2.amountOfLockedStakes = BigIntConstants.ZERO
+    governanceStakingV2.weightedAverageLockupPeriod = BigIntConstants.ZERO
     governanceStakingV2.save()
   }
   return governanceStakingV2
