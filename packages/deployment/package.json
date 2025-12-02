@@ -53,6 +53,7 @@
     "verify:optimism": "hardhat ignition verify chain-10",
     "verify:base": "hardhat ignition verify chain-8453",
     "verify:sonic": "hardhat ignition verify chain-146",
+    "verify:hyperliquid": "hardhat ignition verify chain-999",
     "visualize:core": "hardhat ignition visualize ./ignition/modules/fleet.ts",
     "create-distributions-tx": "hardhat run scripts/governance/create-distributions-transaction-safe.ts --network $NETWORK",
     "whitelist-vesting-wallets-tx": "hardhat run scripts/governance/whitelist-vesting-wallets-safe.ts --network $NETWORK",

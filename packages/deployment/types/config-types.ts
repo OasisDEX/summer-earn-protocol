@@ -96,6 +96,7 @@ export enum Token {
   SKY = 'sky',
   XSILO = 'xsilo',
   ASONW = 'asonw',
+  WRAPPED_NATIVE = 'wrappedNative',
 }
 
 export interface BaseConfig {

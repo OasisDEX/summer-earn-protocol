@@ -3,7 +3,7 @@ import { resolve } from 'path'
 
 import '@nomicfoundation/hardhat-verify'
 import 'hardhat-contract-sizer'
-// import './plugins/multiSourceCompile'
+import './plugins/multiSourceCompile'
 
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
@@ -42,6 +42,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: `https://api.unichainscan.org/api`,
           browserURL: `https://uniscan.xyz`,
+        },
+      },
+      {
+        network: 'hyperliquid',
+        chainId: 999,
+        urls: {
+          apiURL: `https://api.etherscan.io/api`,
+          browserURL: `https://hyperevmscan.io/`,
         },
       },
     ],
