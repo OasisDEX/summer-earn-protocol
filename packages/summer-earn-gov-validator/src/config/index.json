@@ -604,7 +604,7 @@
       "reul": "0xf3e621395fc714b90da337aa9108771597b4e696",
       "seam": "0x0000000000000000000000000000000000000000",
       "ws": "0x0000000000000000000000000000000000000000",
-      "wrappedNative":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+      "wrappedNative": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
     },
     "common": {
       "chainId": "1",
