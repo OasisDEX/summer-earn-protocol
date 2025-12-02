@@ -8,6 +8,7 @@ export enum SupportedNetworks {
   BASE = 'base',
   ARBITRUM = 'arbitrum',
   SONIC = 'sonic',
+  HYPERLIQUID = 'hyperliquid',
 }
 // Supported Arks
 export enum ArkType {
@@ -95,6 +96,7 @@ export enum Token {
   SKY = 'sky',
   XSILO = 'xsilo',
   ASONW = 'asonw',
+  WRAPPED_NATIVE = 'wrappedNative',
 }
 
 export interface BaseConfig {
@@ -105,6 +107,8 @@ export interface BaseConfig {
       timelock: { address: string }
       protocolAccessManager: { address: string }
       rewardsRedeemer: { address: string }
+      summerVestingFactory?: { address: string }
+      summerVestingFactoryV2?: { address: string }
     }
     govV2: {
       summerGovernor: { address: string }
@@ -155,7 +159,7 @@ export interface BaseConfig {
       dvns: {
         [key: string]: {
           lzLabs: string
-          stargate: string
+          secondDvn: string
         }
       }
     }

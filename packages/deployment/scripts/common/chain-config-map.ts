@@ -1,4 +1,21 @@
+import { defineChain } from 'viem'
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+
+export const hyperliquid = defineChain({
+  id: 999,
+  name: 'Hyperliquid',
+  nativeCurrency: { name: 'Hyperliquid', symbol: 'HYPE', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://rpc.hypurrscan.io'] },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Hyperliquid Explorer',
+      url: 'https://hyperevmscan.io/',
+    },
+  },
+  testnet: false,
+})
 
 // Centralized RPC URL mapping
 export const RPC_URL_MAP = {
@@ -6,6 +23,7 @@ export const RPC_URL_MAP = {
   base: process.env.BASE_RPC_URL,
   arbitrum: process.env.ARBITRUM_RPC_URL,
   sonic: process.env.SONIC_RPC_URL,
+  hyperliquid: process.env.HYPERLIQUID_RPC_URL,
 }
 
 // Standard chain mapping
@@ -14,6 +32,7 @@ export const CHAIN_CONFIG_MAP = {
   base,
   arbitrum,
   sonic: sonic,
+  hyperliquid,
 }
 
 export const CHAIN_MAP_BY_ID = Object.fromEntries(

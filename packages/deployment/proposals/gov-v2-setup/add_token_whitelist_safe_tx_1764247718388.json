@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "chainId": "8453",
+  "createdAt": 1764247718388,
+  "meta": {
+    "name": "Add Address to SummerToken Whitelist",
+    "description": "Add SummerStaking contract (0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4) to SummerToken whitelist",
+    "txBuilderVersion": "1.16.3",
+    "createdFromSafeAddress": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624",
+      "value": "0",
+      "data": "0xe43252d7000000000000000000000000ca2e14c7c03c9961c296c89e2d2279f5f7db15b4",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "account",
+            "type": "address"
+          }
+        ],
+        "name": "addToWhitelist",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "account": "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4"
+      }
+    }
+  ]
+}

@@ -110,9 +110,8 @@ async function deployOriginETHArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Origin-${userInput.token.symbol}-${chainId}`
-  const envLabel = userInput.isBummer ? 'staging' : 'prod'
-  const moduleName =
-    `${envLabel}_${userInput.fleetName}_${arkName.replace(/-/g, '_')}` + '_' + 'gov'
+  const envLabel = userInput.isBummer ? 'staging_' : ''
+  const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}` + '_' + 'gov'
 
   const originETHAddress = validateAddress(config.protocolSpecific.originETH.originETH, 'OriginETH')
 

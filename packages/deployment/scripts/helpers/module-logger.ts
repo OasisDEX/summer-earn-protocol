@@ -11,7 +11,7 @@ import { FleetContracts } from '../../ignition/modules/fleet'
 import { GovContracts } from '../../ignition/modules/gov'
 import { GovContractsV2 } from '../../ignition/modules/gov-v2'
 import { StakingContracts } from '../../ignition/modules/staking'
-import { TimelockAndProtocolAccessManagerContracts } from '../../ignition/modules/timelock-and-protocol-access-manager'
+import { GovV1CoreContracts } from '../../ignition/modules/gov-v1-core'
 
 export class ModuleLogger {
   private moduleName: string
@@ -53,12 +53,11 @@ export class ModuleLogger {
     })
     logger.logAddresses()
   }
-  static logTimelockAndProtocolAccessManager(
-    contracts: TimelockAndProtocolAccessManagerContracts,
-  ): void {
-    const logger = new ModuleLogger('TimelockAndProtocolAccessManagerModule', {
+  static logGovV1Core(contracts: GovV1CoreContracts): void {
+    const logger = new ModuleLogger('GovV1CoreModule', {
       Timelock: contracts.timelock,
       'Protocol Access Manager': contracts.protocolAccessManager,
+      'Summer Token': contracts.summerToken,
     })
     logger.logAddresses()
   }

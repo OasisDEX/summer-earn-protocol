@@ -1,0 +1,26 @@
+{
+  "fleetName": "LazyVault_LowerRisk_USDC_2",
+  "isBummer": false,
+  "fleetSymbol": "LVUSDC2",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0x71d77C39dB0eB5d086611a2e950198E3077cf58A",
+  "bufferArkAddress": "0xF850a730b66af00Fa8a5873Bd83535FB1A61A07a",
+  "network": "arbitrum",
+  "arks": [
+    "0x7cC488F2681cFC2A5E8A00184bfA94ea6d520D1c",
+    "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4",
+    "0xdF8b1E08679D6035b6c1504e04C5C9e72a0555Fe",
+    "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274",
+    "0xAf755eD8D76Fdceab2B1cdC0d4C8C94f4e8eEe54",
+    "0xf617F06a1f2992Ee789B2bA69D1fE8DD49491D0c",
+    "0xa2B387C36Bd67D69755a372F383087C82a96f1f1",
+    "0x393e981A6b76A18CC5A0FB619C6a218D4E53B4B4",
+    "0x32B632D16710fA9dd121FD22052057F5A5e39CB7",
+    "0xeaDBbFC3aD27a6CFE1e785598F4Ff6909DeC2D82",
+    "0x0C939b702524fDaBa4914E905Bcb850182308141"
+  ],
+  "initialMinimumBufferBalance": "100000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "1000000000000000000"
+}

@@ -25,7 +25,7 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 export const CoreModule = buildModule('CoreModule', (m) => {
   const treasury = m.getParameter('treasury')
   const swapProvider = m.getParameter('swapProvider')
-  const weth = m.getParameter('weth')
+  const wrappedNative = m.getParameter('wrappedNative')
   const protocolAccessManager = m.getParameter('protocolAccessManager')
   /**
    * @dev Step 1: Deploy Core Infrastructure
@@ -91,7 +91,7 @@ export const CoreModule = buildModule('CoreModule', (m) => {
   const admiralsQuarters = m.contract('AdmiralsQuarters', [
     swapProvider,
     configurationManager,
-    weth,
+    wrappedNative,
   ])
 
   return {

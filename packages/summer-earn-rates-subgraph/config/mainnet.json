@@ -1,6 +1,6 @@
 {
   "network": "mainnet",
-  "enable-grafting": true,
+  "enable-grafting": false,
   "grafting-base": "QmNa1dUvMJmo325aJ6NiiYjMZpyTaAppvEBZ3SZn1zwhjV",
   "grafting-block": "23388000",
   "entry_point_address": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",

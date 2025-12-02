@@ -44,6 +44,14 @@ const config: HardhatUserConfig = {
           browserURL: `https://uniscan.xyz`,
         },
       },
+      {
+        network: 'hyperliquid',
+        chainId: 999,
+        urls: {
+          apiURL: `https://api.etherscan.io/api`,
+          browserURL: `https://hyperevmscan.io/`,
+        },
+      },
     ],
   },
   ignition: {
@@ -104,6 +112,16 @@ const config: HardhatUserConfig = {
       url: `${process.env.SONIC_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
       chainId: 146,
+    },
+    monad: {
+      url: `${process.env.MONAD_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 143,
+    },
+    hyperliquid: {
+      url: `${process.env.HYPERLIQUID_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 999,
     },
 
     // testnets

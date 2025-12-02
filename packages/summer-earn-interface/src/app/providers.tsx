@@ -32,6 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       ssr: true,
       networks: appkitNetworks,
       chains: [mainnet, arbitrum, base, sonic],
+
       transports: {
         [mainnet.id]: http(CHAIN_RPC_URLS[mainnet.id]),
         [arbitrum.id]: http(CHAIN_RPC_URLS[arbitrum.id]),
@@ -50,6 +51,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       adapters: [wagmiAdapter],
       networks: appkitNetworks,
       projectId,
+      allowUnsupportedChain: true,
       metadata: {
         name: 'Summer Earn Protocol Interface',
         description: 'A simple interface for Summer Earn Protocol',

@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address, Hex } from 'viem'
-import { SupportedNetworks } from '../../types/config-types'
+import { BaseConfig, SupportedNetworks } from '../../types/config-types'
 import { ADDRESS_ZERO } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { configureNewChainLayerZero } from './bridge/configure-new-chain-lz'
@@ -55,7 +55,7 @@ export async function peerGov(useBummerConfig = false) {
     hre.network.name,
     { common: false, gov: true, core: false },
     useBummerConfig,
-  )
+  ) as BaseConfig
 
   if (config.common.layerZero.lzEndpoint === ADDRESS_ZERO) {
     throw new Error('LayerZero is not set up correctly')
@@ -185,7 +185,7 @@ function getPeersForContract(
           core: false,
         },
         useBummerConfig,
-      )
+      ) as BaseConfig
       const { address, skipSatelliteToSatellite, label } = getContractInfo(networkConfig)
       const layerZeroEID = networkConfig.common?.layerZero?.eID
 

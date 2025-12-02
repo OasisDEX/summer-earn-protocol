@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 
-import { GovContractsV2, GovModuleV2 } from '../../ignition/modules/gov-v2'
+import { GovContractsV2, createGovV2Module } from '../../ignition/modules/gov-v2'
 import { BaseConfig } from '../../types/config-types'
 import { ADDRESS_ZERO } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
@@ -10,23 +10,30 @@ import { ModuleLogger } from '../helpers/module-logger'
 import { updateIndexJson } from '../helpers/update-json'
 import { validateAddress } from '../helpers/validation'
 import { isHubChain } from '../helpers/get-hub-chain'
-import { TimelockAndProtocolAccessManagerModule } from '../../ignition/modules/timelock-and-protocol-access-manager'
+import { createGovV1CoreModule } from '../../ignition/modules/gov-v1-core'
+
+type DeployConfig = {
+  tokenName: string
+  tokenSymbol: string
+  transferEnableDate: bigint
+  votingDelay: bigint
+  votingPeriod: bigint
+  minDelay: bigint
+}
 
 export async function deployGovV2(config: BaseConfig, useBummerConfig?: boolean) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
   const deployConfig = await getDeploymentConfig(useBummerConfig)
   if (
     config.deployedContracts.gov.timelock.address === ADDRESS_ZERO ||
-    config.deployedContracts.gov.protocolAccessManager.address === ADDRESS_ZERO
+    config.deployedContracts.gov.protocolAccessManager.address === ADDRESS_ZERO ||
+    config.deployedContracts.gov.summerToken.address === ADDRESS_ZERO
   ) {
     console.log(
-      'Timelock or access manager is not deployed, deploying TimelockAndProtocolAccessManagerModule...',
+      'Timelock, access manager or summer token is not deployed, deploying GovV1CoreModule...',
     )
-    const timelockAndProtocolAccessManager = await deployTimelockAndProtocolAccessManager(
-      deployConfig,
-      useBummerConfig,
-    )
-    ModuleLogger.logTimelockAndProtocolAccessManager(timelockAndProtocolAccessManager)
+    const govV1Core = await deployGovV1Core(deployConfig, useBummerConfig)
+    ModuleLogger.logGovV1Core(govV1Core)
   }
 
   const deployedGov = await deployGovV2Contracts(deployConfig, useBummerConfig)
@@ -39,25 +46,30 @@ export async function deployGovV2(config: BaseConfig, useBummerConfig?: boolean)
  * Deploys the timelock and protocol access manager contracts using Hardhat Ignition.
  * @param {Object} deployConfig - The deployment configuration object.
  * @param {boolean} useBummerConfig - Whether to use the bummer configuration.
- * @returns {Promise<TimelockAndProtocolAccessManagerContracts>} The deployed timelock and protocol access manager contracts.
+ * @returns {Promise<GovV1CoreContracts>} The deployed timelock and protocol access manager contracts.
  */
-async function deployTimelockAndProtocolAccessManager(
-  deployConfig: { minDelay: bigint },
-  useBummerConfig?: boolean,
-) {
-  console.log(kleur.cyan().bold('Deploying Timelock and Protocol Access Manager...'))
-  const timelockAndProtocolAccessManager = await hre.ignition.deploy(
-    TimelockAndProtocolAccessManagerModule,
-    {
-      parameters: {
-        TimelockAndProtocolAccessManagerModule: {
-          minDelay: deployConfig.minDelay,
-        },
+async function deployGovV1Core(deployConfig: DeployConfig, useBummerConfig?: boolean) {
+  console.log(kleur.cyan().bold('Deploying GovV1Core...'))
+  const config = getConfigByNetwork(hre.network.name, { gov: false }, useBummerConfig) as BaseConfig
+  if (config.common.layerZero.lzEndpoint === ADDRESS_ZERO) {
+    throw new Error('LayerZero is not set up correctly')
+  }
+  // Only add 'staging' prefix if bummer, no prefix for prod (for compatibility)
+  const moduleName = useBummerConfig ? 'staging_GovV1CoreModule' : 'GovV1CoreModule'
+  const govV1CoreModule = createGovV1CoreModule(moduleName)
+  const govV1Core = await hre.ignition.deploy(govV1CoreModule, {
+    parameters: {
+      [moduleName]: {
+        minDelay: deployConfig.minDelay,
+        tokenName: deployConfig.tokenName,
+        tokenSymbol: deployConfig.tokenSymbol,
+        transferEnableDate: deployConfig.transferEnableDate,
+        lzEndpoint: config.common.layerZero.lzEndpoint,
       },
     },
-  )
-  updateIndexJson('gov', hre.network.name, timelockAndProtocolAccessManager, useBummerConfig)
-  return timelockAndProtocolAccessManager
+  })
+  updateIndexJson('gov', hre.network.name, govV1Core, useBummerConfig)
+  return govV1Core
 }
 /**
  * Deploys the gov contracts using Hardhat Ignition.
@@ -66,7 +78,7 @@ async function deployTimelockAndProtocolAccessManager(
  * @returns {Promise<GovContractsV2>} The deployed gov contracts.
  */
 async function deployGovV2Contracts(
-  deployConfig: { votingDelay: bigint; votingPeriod: bigint },
+  deployConfig: DeployConfig,
   useBummerConfig?: boolean,
 ): Promise<GovContractsV2> {
   const config = getConfigByNetwork(hre.network.name, { gov: false }, useBummerConfig) as BaseConfig
@@ -115,9 +127,12 @@ async function deployGovV2Contracts(
   }
 
   console.log('Deploying Gov Module...')
-  const gov = await hre.ignition.deploy(GovModuleV2, {
+  // Only add 'staging' prefix if bummer, no prefix for prod (for compatibility)
+  const moduleName = useBummerConfig ? 'staging_GovModuleV2' : 'GovModuleV2'
+  const govModule = createGovV2Module(moduleName)
+  const gov = await hre.ignition.deploy(govModule, {
     parameters: {
-      GovModuleV2: {
+      [moduleName]: {
         lzEndpoint: config.common.layerZero.lzEndpoint,
         hubChainId: config.common.chainId,
         votingDelay: deployConfig.votingDelay,
@@ -155,11 +170,34 @@ async function getDeploymentConfig(useBummerConfig?: boolean) {
   // Use the passed useBummerConfig instead of asking again
   const isTest = useBummerConfig === true
 
+  const defaultName = isTest ? 'BummerToken' : 'SummerToken'
+  const defaultSymbol = isTest ? 'BUMMER' : 'SUMR'
   const defaultVotingDelay = isTest ? 60n : 86400n // 1 min or 1 day
   const defaultVotingPeriod = isTest ? 600n : 259200n // 10 mins or 3 days
   const defaultMinDelay = isTest ? 60n : 86400n // 1 min or 1 day
 
+  const july1st2025UTC = 1751328000 // July 1st, 2025 00:00 UTC
+  const defaultTransferEnableDate = isTest ? 0 : july1st2025UTC
+
   const responses = await prompts([
+    {
+      type: 'text',
+      name: 'tokenName',
+      message: 'Enter token name:',
+      initial: defaultName,
+    },
+    {
+      type: 'text',
+      name: 'tokenSymbol',
+      message: 'Enter token symbol:',
+      initial: defaultSymbol,
+    },
+    {
+      type: 'number',
+      name: 'transferEnableDate',
+      message: 'Enter transfer enable date (unix timestamp):',
+      initial: defaultTransferEnableDate,
+    },
     {
       type: 'number',
       name: 'votingDelay',
@@ -181,6 +219,9 @@ async function getDeploymentConfig(useBummerConfig?: boolean) {
   ])
 
   return {
+    tokenName: responses.tokenName as string,
+    tokenSymbol: responses.tokenSymbol as string,
+    transferEnableDate: BigInt(responses.transferEnableDate),
     votingDelay: BigInt(responses.votingDelay),
     votingPeriod: BigInt(responses.votingPeriod),
     minDelay: BigInt(responses.minDelay),

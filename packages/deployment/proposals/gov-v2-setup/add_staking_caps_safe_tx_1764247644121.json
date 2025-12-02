@@ -1,0 +1,153 @@
+{
+  "version": "1.0",
+  "chainId": "8453",
+  "createdAt": 1764247644121,
+  "meta": {
+    "name": "Set Staking Bucket Caps",
+    "description": "Update 6 bucket cap(s) on SummerStaking",
+    "txBuilderVersion": "1.16.3",
+    "createdFromSafeAddress": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4",
+      "value": "0",
+      "data": "0x380295ec00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c685fa11e01ec6f000000",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "bucket",
+            "type": "uint8"
+          },
+          {
+            "name": "newCap",
+            "type": "uint256"
+          }
+        ],
+        "name": "updateLockupBucketCap",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "bucket": "0",
+        "newCap": "15000000000000000000000000"
+      }
+    },
+    {
+      "to": "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4",
+      "value": "0",
+      "data": "0x380295ec00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000c685fa11e01ec6f000000",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "bucket",
+            "type": "uint8"
+          },
+          {
+            "name": "newCap",
+            "type": "uint256"
+          }
+        ],
+        "name": "updateLockupBucketCap",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "bucket": "2",
+        "newCap": "15000000000000000000000000"
+      }
+    },
+    {
+      "to": "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4",
+      "value": "0",
+      "data": "0x380295ec0000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000129c8f71ad02e2a6800000",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "bucket",
+            "type": "uint8"
+          },
+          {
+            "name": "newCap",
+            "type": "uint256"
+          }
+        ],
+        "name": "updateLockupBucketCap",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "bucket": "3",
+        "newCap": "22500000000000000000000000"
+      }
+    },
+    {
+      "to": "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4",
+      "value": "0",
+      "data": "0x380295ec0000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000129c8f71ad02e2a6800000",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "bucket",
+            "type": "uint8"
+          },
+          {
+            "name": "newCap",
+            "type": "uint256"
+          }
+        ],
+        "name": "updateLockupBucketCap",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "bucket": "4",
+        "newCap": "22500000000000000000000000"
+      }
+    },
+    {
+      "to": "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4",
+      "value": "0",
+      "data": "0x380295ec0000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000000000000000000295be96e64066972000000",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "bucket",
+            "type": "uint8"
+          },
+          {
+            "name": "newCap",
+            "type": "uint256"
+          }
+        ],
+        "name": "updateLockupBucketCap",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "bucket": "5",
+        "newCap": "50000000000000000000000000"
+      }
+    },
+    {
+      "to": "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4",
+      "value": "0",
+      "data": "0x380295ec0000000000000000000000000000000000000000000000000000000000000006ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "bucket",
+            "type": "uint8"
+          },
+          {
+            "name": "newCap",
+            "type": "uint256"
+          }
+        ],
+        "name": "updateLockupBucketCap",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "bucket": "6",
+        "newCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+      }
+    }
+  ]
+}

@@ -20,6 +20,9 @@
         "oazoSummerRewardsRedeemer": {
           "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
         },
+        "summerVestingFactory": {
+          "address": "0x5f3cd3a45E6B8c2B29DDC80411C58291740E8886"
+        },
         "summerVestingFactoryV2": {
           "address": "0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB"
         }
@@ -80,7 +83,8 @@
       "reul": "0xE08e1f00D388E201e48842E53fA96195568e6813",
       "eurc": "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42",
       "seam": "0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85",
-      "ws": "0x0000000000000000000000000000000000000000"
+      "ws": "0x0000000000000000000000000000000000000000",
+      "wrappedNative": "0x4200000000000000000000000000000000000006"
     },
     "common": {
       "chainId": "8453",
@@ -99,7 +103,23 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
-            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          },
+          "hyperliquid": {
+            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
+            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          },
+          "arbitrum": {
+            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
+            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          },
+          "mainnet": {
+            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
+            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          },
+          "monad": {
+            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
+            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
           }
         }
       }
@@ -330,7 +350,8 @@
       "morpho": "0x0000000000000000000000000000000000000000",
       "reul": "0x0000000000000000000000000000000000000000",
       "seam": "0x0000000000000000000000000000000000000000",
-      "ws": "0x0000000000000000000000000000000000000000"
+      "ws": "0x0000000000000000000000000000000000000000",
+      "wrappedNative": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
     },
     "common": {
       "chainId": "42161",
@@ -349,7 +370,23 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
-            "stargate": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+          },
+          "hyperliquid": {
+            "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
+            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+          },
+          "base": {
+            "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
+            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+          },
+          "mainnet": {
+            "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
+            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+          },
+          "monad": {
+            "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
+            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
           }
         }
       }
@@ -566,7 +603,8 @@
       "morpho": "0x58D97B57BB95320F9a05dC918Aef65434969c2B2",
       "reul": "0xf3e621395fc714b90da337aa9108771597b4e696",
       "seam": "0x0000000000000000000000000000000000000000",
-      "ws": "0x0000000000000000000000000000000000000000"
+      "ws": "0x0000000000000000000000000000000000000000",
+      "wrappedNative": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
     },
     "common": {
       "chainId": "1",
@@ -585,7 +623,23 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
-            "stargate": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+          },
+          "hyperliquid": {
+            "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
+            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+          },
+          "arbitrum": {
+            "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
+            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+          },
+          "base": {
+            "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
+            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+          },
+          "monad": {
+            "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
+            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
           }
         }
       }
@@ -921,6 +975,7 @@
       "usdt": "0x6047828dc181963ba44974801FF68e538dA5eaF9",
       "seam": "0x0000000000000000000000000000000000000000",
       "ws": "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
+      "wrappedNative": "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
       "reul": "0x0000000000000000000000000000000000000000",
       "syrup": "0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66"
     },
@@ -941,15 +996,23 @@
         "dvns": {
           "base": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
           },
           "arbitrum": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
           },
           "mainnet": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+          },
+          "monad": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+          },
+          "hyperliquid": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
           }
         }
       }
@@ -1004,5 +1067,254 @@
         "address": "0x0000000000000000000000000000000000000000"
       }
     }
+  },
+  "monad": {
+    "deployedContracts": {
+      "gov": {
+        "summerGovernor": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerToken": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelock": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "protocolAccessManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "rewardsRedeemer": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "oazoSummerRewardsRedeemer": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "govV2": {
+        "summerGovernor": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerGovernanceToken": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelock": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "protocolAccessManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerStaking": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerVestingWalletsEscrow": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "buyAndBurn": {
+        "buyAndBurn": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "raft": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "configurationManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "harborCommand": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "admiralsQuarters": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "fleetCommanderRewardsManagerFactory": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "institutionalVaultRegistry": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      }
+    },
+    "tokens": {
+      "usdc": "0x0000000000000000000000000000000000000000",
+      "dai": "0x0000000000000000000000000000000000000000",
+      "weth": "0x0000000000000000000000000000000000000000",
+      "usds": "0x0000000000000000000000000000000000000000",
+      "stakedUsds": "0x0000000000000000000000000000000000000000",
+      "morpho": "0x0000000000000000000000000000000000000000",
+      "reul": "0x0000000000000000000000000000000000000000",
+      "eurc": "0x0000000000000000000000000000000000000000",
+      "seam": "0x0000000000000000000000000000000000000000",
+      "ws": "0x0000000000000000000000000000000000000000"
+    },
+    "common": {
+      "chainId": "143",
+      "initialSupply": "0",
+      "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "tipRate": "100",
+      "layerZero": {
+        "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
+        "eID": "30390",
+        "lzExecutor": "0x4208D6E27538189bB48E603D6123A94b8Abe0A0b",
+        "sendUln302": "0xC39161c743D0307EB9BCc9FEF03eeb9Dc4802de7",
+        "receiveUln302": "0xe1844c5D63a9543023008D332Bd3d2e6f1FE1043",
+        "blockedMessageLib": "0xc1ce56b2099ca68720592583c7984cab4b6d7e7a",
+        "lzDeadDVN": "0x6788f52439ACA6BFF597d3eeC2DC9a44B8FEE842",
+        "dvns": {
+          "sonic": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0x2dcbd79f38d6871232422db88ec29e8d97135ac7"
+          },
+          "mainnet": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0x2dcbd79f38d6871232422db88ec29e8d97135ac7"
+          },
+          "arbitrum": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0x2dcbd79f38d6871232422db88ec29e8d97135ac7"
+          },
+          "base": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0x2dcbd79f38d6871232422db88ec29e8d97135ac7"
+          },
+          "hyperliquid": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "secondDvn": "0x2dcbd79f38d6871232422db88ec29e8d97135ac7"
+          }
+        }
+      },
+      "protocolSpecific": {}
+    }
+  },
+  "hyperliquid": {
+    "deployedContracts": {
+      "gov": {
+        "summerGovernor": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerToken": {
+          "address": "0x72c527d3efDe2169AA950EFc9573C838cf125D21"
+        },
+        "timelock": {
+          "address": "0x244c6EFC140b9cC4D69d3bf4d9137Dc4195Be86c"
+        },
+        "protocolAccessManager": {
+          "address": "0x38fB5a7fa70103dCd9e8A969f3975A77E0fE755f"
+        },
+        "rewardsRedeemer": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "oazoSummerRewardsRedeemer": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "govV2": {
+        "summerGovernor": {
+          "address": "0x0398DA19EBb8F5DEcdc2E78465c2ef4F2412233b"
+        },
+        "summerGovernanceToken": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelock": {
+          "address": "0x244c6EFC140b9cC4D69d3bf4d9137Dc4195Be86c"
+        },
+        "protocolAccessManager": {
+          "address": "0x38fB5a7fa70103dCd9e8A969f3975A77E0fE755f"
+        },
+        "summerStaking": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerVestingWalletsEscrow": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "buyAndBurn": {
+        "buyAndBurn": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0xD6f6548cF8643303F8C6bc9f4fcEC6Ed57f9A573"
+        },
+        "raft": {
+          "address": "0xFF199c0B988f80987e6612a99a024Ec9A6F59f53"
+        },
+        "configurationManager": {
+          "address": "0x5A4ac204864a36e9820A3663836299ed963F0857"
+        },
+        "harborCommand": {
+          "address": "0x5CD5D7e3A1b604E0EdeDc4A2343b312729e09E3F"
+        },
+        "admiralsQuarters": {
+          "address": "0x3D4AE5aefbE0F5471Eb33BCFcBBcf6d9234D32a5"
+        },
+        "fleetCommanderRewardsManagerFactory": {
+          "address": "0xBcA69b2918bad37E8A4e1F77B6864F27eee05AEe"
+        },
+        "institutionalVaultRegistry": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      }
+    },
+    "tokens": {
+      "usdc": "0xb88339cb7199b77e23db6e890353e22632ba630f",
+      "dai": "0x0000000000000000000000000000000000000000",
+      "weth": "0x0000000000000000000000000000000000000000",
+      "usds": "0x0000000000000000000000000000000000000000",
+      "stakedUsds": "0x0000000000000000000000000000000000000000",
+      "morpho": "0x0000000000000000000000000000000000000000",
+      "reul": "0x0000000000000000000000000000000000000000",
+      "eurc": "0x0000000000000000000000000000000000000000",
+      "seam": "0x0000000000000000000000000000000000000000",
+      "ws": "0x0000000000000000000000000000000000000000",
+      "whype": "0x5555555555555555555555555555555555555555",
+      "usdt": "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
+      "wrappedNative": "0x5555555555555555555555555555555555555555"
+    },
+    "common": {
+      "chainId": "999",
+      "initialSupply": "0",
+      "swapProvider": "0x6131b5fae19ea4f9d964eac0408e4408b66337b5",
+      "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "tipRate": "100",
+      "layerZero": {
+        "lzEndpoint": "0x3A73033C0b1407574C76BdBAc67f126f6b4a9AA9",
+        "eID": "30367",
+        "lzExecutor": "0x41Bdb4aa4A63a5b2Efc531858d3118392B1A1C3d",
+        "sendUln302": "0xfd76d9CB0Bac839725aB79127E7411fe71b1e3CA",
+        "receiveUln302": "0x7cacBe439EaD55fa1c22790330b12835c6884a91",
+        "blockedMessageLib": "0xf540d892bc671f08e0b1c5b61185c53c2211e8f7",
+        "lzDeadDVN": "0xcCE466a522984415bC91338c232d98869193D46e",
+        "dvns": {
+          "sonic": {
+            "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
+            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
+          },
+          "mainnet": {
+            "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
+            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
+          },
+          "arbitrum": {
+            "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
+            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
+          },
+          "base": {
+            "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
+            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
+          },
+          "monad": {
+            "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
+            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
+          }
+        }
+      }
+    },
+    "protocolSpecific": {}
   }
 }

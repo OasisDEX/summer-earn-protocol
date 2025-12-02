@@ -1,6 +1,6 @@
 {
   "network": "base",
-  "enable-grafting": true,
+  "enable-grafting": false,
   "grafting-base": "Qmb9Xi6FfW8R4hjYyL5KruCGtv3XBzLonemMWdXS2ZrrGz",
   "grafting-block": "37783000",
   "entry_point_address": "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
