@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: SummerGovernor
-    network: base
+    network: arbitrum-one
     source:
       abi: SummerGovernor
       address: "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
-      startBlock: 25642501
+      startBlock: 300183921
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -43,11 +43,11 @@ dataSources:
       file: ./src/mappings/governance.ts
   - kind: ethereum/contract
     name: SummerGovernorV2
-    network: base
+    network: arbitrum-one
     source:
       abi: SummerGovernor
-      address: "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274"
-      startBlock: 25642501
+      address: "0x94F29e66fE35Ee2BC03EC9D8C3fb6d9E183f3572"
+      startBlock: 300183921
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -83,7 +83,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: TimelockControllerTemplate
-    network: base
+    network: arbitrum-one
     source:
       abi: SummerTimelockController
     mapping:
