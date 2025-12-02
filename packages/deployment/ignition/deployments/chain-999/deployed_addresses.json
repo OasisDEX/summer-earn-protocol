@@ -3,5 +3,17 @@
   "staging_GovV1CoreModule#SummerTimelockController": "0x0C939b702524fDaBa4914E905Bcb850182308141",
   "staging_GovV1CoreModule#SummerToken": "0x77e5f42d5cf2d1B9849AE6A5d2D7dC5b774f8290",
   "staging_GovV1CoreModule#SummerVestingWalletFactory": "0x47F73542a9b59C2316832775C51cC99E6B468A67",
-  "staging_GovModuleV2#SummerGovernorV2": "0xEE828F95f95F0a0bbec792C4c9D2aF86918F1e4e"
+  "staging_GovModuleV2#SummerGovernorV2": "0xEE828F95f95F0a0bbec792C4c9D2aF86918F1e4e",
+  "GovV1CoreModule#ProtocolAccessManager": "0x38fB5a7fa70103dCd9e8A969f3975A77E0fE755f",
+  "GovV1CoreModule#SummerTimelockController": "0x244c6EFC140b9cC4D69d3bf4d9137Dc4195Be86c",
+  "GovV1CoreModule#SummerToken": "0x72c527d3efDe2169AA950EFc9573C838cf125D21",
+  "GovV1CoreModule#SummerVestingWalletFactory": "0x47de098267EcA3a5deD9ab0B986F244Cb5446f21",
+  "GovModuleV2#SummerGovernorV2": "0x0398DA19EBb8F5DEcdc2E78465c2ef4F2412233b",
+  "CoreModule#ConfigurationManager": "0x5A4ac204864a36e9820A3663836299ed963F0857",
+  "CoreModule#DutchAuctionLibrary": "0x774B8790a391FFB9F64f60AdE77FBCC3A8942781",
+  "CoreModule#FleetCommanderRewardsManagerFactory": "0xBcA69b2918bad37E8A4e1F77B6864F27eee05AEe",
+  "CoreModule#HarborCommand": "0x5CD5D7e3A1b604E0EdeDc4A2343b312729e09E3F",
+  "CoreModule#AdmiralsQuarters": "0x3D4AE5aefbE0F5471Eb33BCFcBBcf6d9234D32a5",
+  "CoreModule#Raft": "0xFF199c0B988f80987e6612a99a024Ec9A6F59f53",
+  "CoreModule#TipJar": "0xD6f6548cF8643303F8C6bc9f4fcEC6Ed57f9A573"
 }
