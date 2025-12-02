@@ -292,12 +292,12 @@
     "rewardTokenDecimals": 18,
     "prices": {
       "weth": 0.00025,
-      "usdt": 0.5,
-      "usdc": 0.5,
-      "dai": 0.5,
-      "usde": 0.5,
-      "usdce": 0.5,
-      "eurc": 0.45
+      "usdt": 0.2,
+      "usdc": 0.2,
+      "dai": 0.2,
+      "usde": 0.2,
+      "usdce": 0.2,
+      "eurc": 0.2
     },
     "duration": "1d",
     "kickerRewardPercentage": 0,
