@@ -1,6 +1,11 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
+features:
+  - grafting
+graft:
+  base: QmYhBqSQZbzz15s1PFtQxaifxGTaq78NgkVxt3yCHn8zBe
+  block: 37697200
 dataSources:
   - kind: ethereum/contract
     name: SummerStakingV2
