@@ -71,6 +71,7 @@
     "gov-v2:add-vesting-factories": "hardhat run scripts/governance/gov-v2-setup/add-vesting-factories-safe.ts --network $NETWORK",
     "gov-v2:add-token-whitelist": "hardhat run scripts/governance/gov-v2-setup/add-token-whitelist-safe.ts --network $NETWORK",
     "gov-v2:add-staking-caps": "hardhat run scripts/governance/gov-v2-setup/add-staking-caps-safe.ts --network $NETWORK",
+    "gov-v2:schedule-token-approval": "hardhat run scripts/governance/gov-v2-setup/schedule-token-approval-safe.ts --network $NETWORK",
     "update-vesting-goals": "hardhat run scripts/governance/update-vesting-goals-safe.ts --network $NETWORK",
     "check-morpho-rewards": "tsx scripts/check-morpho-rewards.ts",
     "check-angl-rewards": "tsx scripts/check-angl-rewards.ts",
