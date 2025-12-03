@@ -2,6 +2,7 @@ import { TransactionBase } from '@safe-global/types-kit'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
+import prompts from 'prompts'
 import { Address, createPublicClient, encodeFunctionData, getAddress, http } from 'viem'
 
 import chalk from 'chalk'
@@ -410,13 +411,64 @@ const spkArkAddresses = [
   '0x570957bC84b5607e2412dE72461FbbD02844b042',
 ].map((address) => address.toLowerCase())
 async function loadConfigurations() {
-  const arksConfigPath = path.join(__dirname, '../../config/curation/arks.json')
+  const response = await prompts({
+    type: 'select',
+    name: 'source',
+    message: 'Select configuration source',
+    choices: [
+      { title: 'Public (Main Location)', value: 'public' },
+      { title: 'Institution', value: 'institution' },
+    ],
+  })
+
+  let arksConfigPath
+  let auctionsConfigPath
+
+  if (response.source === 'institution') {
+    const institutionsDir = path.join(__dirname, '../../config/institutions')
+    const institutions = fs.readdirSync(institutionsDir).filter((file) => {
+      return fs.statSync(path.join(institutionsDir, file)).isDirectory()
+    })
+
+    const institutionResponse = await prompts({
+      type: 'select',
+      name: 'institution',
+      message: 'Select institution',
+      choices: institutions.map((inst) => ({ title: inst, value: inst })),
+    })
+
+    const institution = institutionResponse.institution
+    if (!institution) {
+      console.error('No institution selected')
+      process.exit(1)
+    }
+
+    arksConfigPath = path.join(institutionsDir, institution, 'curation/arks.json')
+    auctionsConfigPath = path.join(institutionsDir, institution, 'curation/auctions.json')
+  } else {
+    arksConfigPath = path.join(__dirname, '../../config/curation/arks.json')
+    auctionsConfigPath = path.join(__dirname, '../../config/curation/auctions.json')
+  }
+
+  console.log(`Loading configuration from:`)
+  console.log(`- Arks: ${arksConfigPath}`)
+  console.log(`- Auctions: ${auctionsConfigPath}`)
+
   const arksConfig: ArkConfig[] = JSON.parse(fs.readFileSync(arksConfigPath, 'utf-8'))
 
-  const auctionsConfigPath = path.join(__dirname, '../../config/curation/auctions.json')
   const auctionsConfig: AuctionConfig[] = JSON.parse(fs.readFileSync(auctionsConfigPath, 'utf-8'))
 
-  return { arksConfig, auctionsConfig }
+  const modeResponse = await prompts({
+    type: 'select',
+    name: 'mode',
+    message: 'Select update mode',
+    choices: [
+      { title: 'Auctions Only', value: 'auctions_only' },
+      { title: 'Full Update (Auctions + Ark/Fleet Params)', value: 'all' },
+    ],
+  })
+
+  return { arksConfig, auctionsConfig, source: response.source, mode: modeResponse.mode }
 }
 
 function parseTimeString(timeStr: string): number {
@@ -554,7 +606,11 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
 }
 
 // Custom function to read fleet config without hre
-async function readFleetConfig(fleetAddress: Address, chain: SupportedChain) {
+async function readFleetConfig(
+  fleetAddress: Address,
+  chain: SupportedChain,
+  isInstitution: boolean,
+) {
   const publicClient = createPublicClient({
     chain: VIEM_CHAIN_MAP[chain],
     transport: http(RPC_URL_MAP[chain]),
@@ -566,11 +622,14 @@ async function readFleetConfig(fleetAddress: Address, chain: SupportedChain) {
     functionName: 'getConfig',
   })) as bigint[]
 
-  const rebalanceCooldown = (await publicClient.readContract({
-    address: fleetAddress,
-    abi: FLEET_COMMANDER_ABI,
-    functionName: 'getCooldown',
-  })) as bigint
+  let rebalanceCooldown = 0n
+  if (!isInstitution) {
+    rebalanceCooldown = (await publicClient.readContract({
+      address: fleetAddress,
+      abi: FLEET_COMMANDER_ABI,
+      functionName: 'getCooldown',
+    })) as bigint
+  }
 
   return {
     depositCap: BigInt(config[2]),
@@ -816,13 +875,19 @@ async function createConfigurationTransactions(
   auctionsConfig: AuctionConfig[],
   chain: SupportedChain,
   isFirstArkForFleet: boolean,
+  isInstitution: boolean,
+  updateMode: 'auctions_only' | 'all',
 ): Promise<TransactionBase[]> {
   const transactions: TransactionBase[] = []
 
   // Only set fleet-wide parameters once per fleet
-  if (isFirstArkForFleet) {
+  if (isFirstArkForFleet && updateMode === 'all') {
     console.log(`\n📊 Reading current fleet configuration...`)
-    const currentFleetConfig = await readFleetConfig(arkConfig.fleetAddress as Address, chain)
+    const currentFleetConfig = await readFleetConfig(
+      arkConfig.fleetAddress as Address,
+      chain,
+      isInstitution,
+    )
 
     console.log(`\n🔄 Fleet-wide parameters for ${arkConfig.fleetAddress}:`)
 
@@ -871,25 +936,27 @@ async function createConfigurationTransactions(
     }
 
     // Update rebalance cooldown
-    const cooldown = parseTimeString(arkConfig.reallocInterval)
-    logValueComparison(
-      'Rebalance cooldown',
-      currentFleetConfig.rebalanceCooldown,
-      cooldown,
-      arkConfig.arkSymbol,
-      ' seconds',
-    )
-    if (currentFleetConfig.rebalanceCooldown !== cooldown) {
-      const setCooldownCalldata = encodeFunctionData({
-        abi: FLEET_COMMANDER_ABI,
-        functionName: 'updateRebalanceCooldown',
-        args: [cooldown],
-      })
-      transactions.push({
-        to: arkConfig.fleetAddress,
-        data: setCooldownCalldata,
-        value: '0',
-      })
+    if (!isInstitution) {
+      const cooldown = parseTimeString(arkConfig.reallocInterval)
+      logValueComparison(
+        'Rebalance cooldown',
+        currentFleetConfig.rebalanceCooldown,
+        cooldown,
+        arkConfig.arkSymbol,
+        ' seconds',
+      )
+      if (currentFleetConfig.rebalanceCooldown !== cooldown) {
+        const setCooldownCalldata = encodeFunctionData({
+          abi: FLEET_COMMANDER_ABI,
+          functionName: 'updateRebalanceCooldown',
+          args: [cooldown],
+        })
+        transactions.push({
+          to: arkConfig.fleetAddress,
+          data: setCooldownCalldata,
+          value: '0',
+        })
+      }
     }
   }
 
@@ -904,97 +971,101 @@ async function createConfigurationTransactions(
     transactions.push(...auctionTransactions)
   }
 
-  // Configure ark parameters
-  const arkAddress = arkConfig.arkAddress
-  console.log(`\n📊 Reading current ark configuration for ${arkConfig.arkSymbol} ${arkAddress}...`)
-  const currentArkConfig = await readArkConfig(arkAddress as Address, chain)
+  if (updateMode === 'all') {
+    // Configure ark parameters
+    const arkAddress = arkConfig.arkAddress
+    console.log(
+      `\n📊 Reading current ark configuration for ${arkConfig.arkSymbol} ${arkAddress}...`,
+    )
+    const currentArkConfig = await readArkConfig(arkAddress as Address, chain)
 
-  // Set ark deposit cap
-  const arkCap = parseAmount(arkConfig.arkMaxCap, arkConfig.fleetAsset)
+    // Set ark deposit cap
+    const arkCap = parseAmount(arkConfig.arkMaxCap, arkConfig.fleetAsset)
 
-  logValueComparison(
-    'Ark deposit cap',
-    currentArkConfig.depositCap,
-    arkCap,
-    arkConfig.arkSymbol,
-    ` ${arkConfig.fleetAsset}`,
-  )
-  if (currentArkConfig.depositCap !== arkCap) {
-    const setArkCapCalldata = encodeFunctionData({
-      abi: FLEET_COMMANDER_ABI,
-      functionName: 'setArkDepositCap',
-      args: [arkAddress, arkCap],
-    })
-    transactions.push({
-      to: arkConfig.fleetAddress,
-      data: setArkCapCalldata,
-      value: '0',
-    })
-  }
+    logValueComparison(
+      'Ark deposit cap',
+      currentArkConfig.depositCap,
+      arkCap,
+      arkConfig.arkSymbol,
+      ` ${arkConfig.fleetAsset}`,
+    )
+    if (currentArkConfig.depositCap !== arkCap) {
+      const setArkCapCalldata = encodeFunctionData({
+        abi: FLEET_COMMANDER_ABI,
+        functionName: 'setArkDepositCap',
+        args: [arkAddress, arkCap],
+      })
+      transactions.push({
+        to: arkConfig.fleetAddress,
+        data: setArkCapCalldata,
+        value: '0',
+      })
+    }
 
-  // Set ark max deposit percentage of TVL
-  const maxPercTVL = parsePercentage(arkConfig.arkMaxPercTVL)
-  logPercentageComparison(
-    'Ark max TVL percentage',
-    currentArkConfig.maxDepositPercentageOfTVL,
-    maxPercTVL,
-    WAD,
-  )
-  if (currentArkConfig.maxDepositPercentageOfTVL !== maxPercTVL) {
-    const setMaxPercTVLCalldata = encodeFunctionData({
-      abi: FLEET_COMMANDER_ABI,
-      functionName: 'setArkMaxDepositPercentageOfTVL',
-      args: [arkAddress, maxPercTVL],
-    })
-    transactions.push({
-      to: arkConfig.fleetAddress,
-      data: setMaxPercTVLCalldata,
-      value: '0',
-    })
-  }
+    // Set ark max deposit percentage of TVL
+    const maxPercTVL = parsePercentage(arkConfig.arkMaxPercTVL)
+    logPercentageComparison(
+      'Ark max TVL percentage',
+      currentArkConfig.maxDepositPercentageOfTVL,
+      maxPercTVL,
+      WAD,
+    )
+    if (currentArkConfig.maxDepositPercentageOfTVL !== maxPercTVL) {
+      const setMaxPercTVLCalldata = encodeFunctionData({
+        abi: FLEET_COMMANDER_ABI,
+        functionName: 'setArkMaxDepositPercentageOfTVL',
+        args: [arkAddress, maxPercTVL],
+      })
+      transactions.push({
+        to: arkConfig.fleetAddress,
+        data: setMaxPercTVLCalldata,
+        value: '0',
+      })
+    }
 
-  // Set ark max rebalance inflow/outflow
-  const maxInflow = parseAmount(arkConfig.arkMaxInflow, arkConfig.fleetAsset)
-  const maxOutflow = parseAmount(arkConfig.arkMaxOutflow, arkConfig.fleetAsset)
+    // Set ark max rebalance inflow/outflow
+    const maxInflow = parseAmount(arkConfig.arkMaxInflow, arkConfig.fleetAsset)
+    const maxOutflow = parseAmount(arkConfig.arkMaxOutflow, arkConfig.fleetAsset)
 
-  logValueComparison(
-    'Ark max inflow',
-    currentArkConfig.maxRebalanceInflow,
-    maxInflow,
-    arkConfig.arkSymbol,
-    ` ${arkConfig.fleetAsset}`,
-  )
-  if (currentArkConfig.maxRebalanceInflow !== maxInflow) {
-    const setMaxInflowCalldata = encodeFunctionData({
-      abi: FLEET_COMMANDER_ABI,
-      functionName: 'setArkMaxRebalanceInflow',
-      args: [arkAddress, maxInflow],
-    })
-    transactions.push({
-      to: arkConfig.fleetAddress,
-      data: setMaxInflowCalldata,
-      value: '0',
-    })
-  }
+    logValueComparison(
+      'Ark max inflow',
+      currentArkConfig.maxRebalanceInflow,
+      maxInflow,
+      arkConfig.arkSymbol,
+      ` ${arkConfig.fleetAsset}`,
+    )
+    if (currentArkConfig.maxRebalanceInflow !== maxInflow) {
+      const setMaxInflowCalldata = encodeFunctionData({
+        abi: FLEET_COMMANDER_ABI,
+        functionName: 'setArkMaxRebalanceInflow',
+        args: [arkAddress, maxInflow],
+      })
+      transactions.push({
+        to: arkConfig.fleetAddress,
+        data: setMaxInflowCalldata,
+        value: '0',
+      })
+    }
 
-  logValueComparison(
-    'Ark max outflow',
-    currentArkConfig.maxRebalanceOutflow,
-    maxOutflow,
-    arkConfig.arkSymbol,
-    ` ${arkConfig.fleetAsset}`,
-  )
-  if (currentArkConfig.maxRebalanceOutflow !== maxOutflow) {
-    const setMaxOutflowCalldata = encodeFunctionData({
-      abi: FLEET_COMMANDER_ABI,
-      functionName: 'setArkMaxRebalanceOutflow',
-      args: [arkAddress, maxOutflow],
-    })
-    transactions.push({
-      to: arkConfig.fleetAddress,
-      data: setMaxOutflowCalldata,
-      value: '0',
-    })
+    logValueComparison(
+      'Ark max outflow',
+      currentArkConfig.maxRebalanceOutflow,
+      maxOutflow,
+      arkConfig.arkSymbol,
+      ` ${arkConfig.fleetAsset}`,
+    )
+    if (currentArkConfig.maxRebalanceOutflow !== maxOutflow) {
+      const setMaxOutflowCalldata = encodeFunctionData({
+        abi: FLEET_COMMANDER_ABI,
+        functionName: 'setArkMaxRebalanceOutflow',
+        args: [arkAddress, maxOutflow],
+      })
+      transactions.push({
+        to: arkConfig.fleetAddress,
+        data: setMaxOutflowCalldata,
+        value: '0',
+      })
+    }
   }
 
   return transactions
@@ -1004,7 +1075,9 @@ async function main() {
   console.log('🚀 Starting fleet configuration update process...\n')
 
   // Load configurations
-  const { arksConfig: allArksConfig, auctionsConfig } = await loadConfigurations()
+  const { arksConfig: allArksConfig, auctionsConfig, source, mode } = await loadConfigurations()
+  const isInstitution = source === 'institution'
+  const updateMode = mode as 'auctions_only' | 'all'
 
   // Process each chain
   for (const chain of SUPPORTED_CHAINS) {
@@ -1058,6 +1131,8 @@ async function main() {
         auctionsConfig,
         chain,
         isFirstArkForFleet,
+        isInstitution,
+        updateMode,
       )
       transactions.push(...fleetTransactions)
     }
