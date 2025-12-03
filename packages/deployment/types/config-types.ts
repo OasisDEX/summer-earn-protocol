@@ -96,6 +96,7 @@ export enum Token {
   SKY = 'sky',
   XSILO = 'xsilo',
   ASONW = 'asonw',
+  WRAPPED_NATIVE = 'wrappedNative',
 }
 
 export interface BaseConfig {
@@ -158,7 +159,7 @@ export interface BaseConfig {
       dvns: {
         [key: string]: {
           lzLabs: string
-          stargate: string
+          secondDvn: string
         }
       }
     }

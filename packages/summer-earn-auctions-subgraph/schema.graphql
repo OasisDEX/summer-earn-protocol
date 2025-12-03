@@ -17,7 +17,7 @@ type Auction @entity {
   duration: BigInt!
   isFinalized: Boolean!
   purchases: [TokensPurchased!]! @derivedFrom(field: "auction")
-  raft: String!
+  raft: Raft!
 }
 
 type TokensPurchased @entity {
@@ -85,4 +85,10 @@ type TokenPrice @entity {
   blockNumber: BigInt!
   price: BigDecimal!
   oracle: String!
+}
+
+type Raft @entity {
+  id: ID!
+  address: String!
+  auctions: [Auction!]! @derivedFrom(field: "raft")
 }

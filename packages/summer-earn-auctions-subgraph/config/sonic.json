@@ -1,9 +1,11 @@
 {
   "network": "sonic-mainnet",
-  "raft-address": "0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204",
-  "raft-start-block": 14240205,
-  "raft-2-address": "0xd03414b3E3463DDC471555850F6BdD5322b97d60",
-  "raft-2-start-block": 14240205,
-  "raft-3-address": "0x2a828B0E5cB549eE568923E815D9A781b6f4F018",
-  "raft-3-start-block": 14240205
+  "config-manager": {
+    "address": "0xDff0fc7bFa32Fb536807820FB3Be6C9828463e32",
+    "start-block": 14240174
+  },
+  "institutional-vault-registry": {
+    "address": "0x0000000000000000000000000000000000000000",
+    "start-block": 14240174
+  }
 }

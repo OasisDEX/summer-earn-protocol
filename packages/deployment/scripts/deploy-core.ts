@@ -46,14 +46,14 @@ async function deployCoreContracts(
   )
   const timelock = validateAddress(config.deployedContracts.gov.timelock.address, 'gov.timelock')
   const swapProvider = validateAddress(config.common.swapProvider, 'common.swapProvider')
-
+  const wrappedNative = validateAddress(config.tokens.wrappedNative, 'tokens.wrappedNative')
   const core = await hre.ignition.deploy(CoreModule, {
     parameters: {
       CoreModule: {
         swapProvider: swapProvider,
         protocolAccessManager: protocolAccessManager,
         treasury: timelock,
-        weth: config.tokens.weth,
+        wrappedNative: wrappedNative,
       },
     },
   })
