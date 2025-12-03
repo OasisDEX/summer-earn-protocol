@@ -1,9 +1,11 @@
 {
   "network": "arbitrum-one",
-  "raft-address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E",
-  "raft-start-block": 301218512,
-  "raft-2-address": "0x2E6FBcefA0480cF9f7920d98804A9BD72e1eFEc9",
-  "raft-2-start-block": 301218512,
-  "raft-3-address": "0x60A81C58F37527FdEcc968FC8B834Ed00b65926d",
-  "raft-3-start-block": 301218512
+  "config-manager": {
+    "address": "0x8ae7fbAeCfBDb21c28b1854272BB7A3a813e2A66",
+    "start-block": 301218433
+  },
+  "institutional-vault-registry": {
+    "address": "0x209dCC11C4A3424d7AA6c0690cbEa07de9d6D9B6",
+    "start-block": 394646348
+  }
 }
