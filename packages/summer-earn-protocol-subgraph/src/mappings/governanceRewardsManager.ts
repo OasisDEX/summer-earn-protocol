@@ -89,6 +89,9 @@ export function getOrCreateGovernanceStaking(): GovernanceStaking {
     governanceStaking.summerStaked = BigIntConstants.ZERO
     governanceStaking.summerStakedNormalized = BigDecimalConstants.ZERO
     governanceStaking.accounts = []
+    governanceStaking.averageLockupPeriod = BigIntConstants.ZERO
+    governanceStaking.amountOfLockedStakes = BigIntConstants.ZERO
+    governanceStaking.weightedAverageLockupPeriod = BigIntConstants.ZERO
     governanceStaking.save()
   }
   return governanceStaking

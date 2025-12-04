@@ -7,6 +7,7 @@ import {
   ArkHourlySnapshot,
   DailyInterestRate,
   FinancialsDailySnapshot,
+  GovernanceStaking,
   HourlyInterestRate,
   Position,
   PositionDailySnapshot,
@@ -17,6 +18,7 @@ import {
   PostActionVaultSnapshot,
   RewardToken,
   RewardsManager,
+  StakeLockup,
   Token,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
@@ -49,7 +51,13 @@ import {
 } from '../utils/vaultRateHandlers'
 import { addresses } from './addressProvider'
 import * as constants from './constants'
-import { ADDRESS_ZERO, BigIntConstants, RewardTokenType } from './constants'
+import {
+  ADDRESS_ZERO,
+  BigDecimalConstants,
+  BigIntConstants,
+  RewardTokenType,
+  SUMMER_STAKING_V2_ADDRESS,
+} from './constants'
 import * as utils from './utils'
 
 export function getOrCreateAccount(id: string): Account {
@@ -977,4 +985,41 @@ export function getOrCreatePositionRewards(
     positionRewards.claimedNormalized = constants.BigDecimalConstants.ZERO
   }
   return positionRewards
+}
+
+export function getOrCreateStakeLockup(id: string): StakeLockup {
+  let stakeLockup = StakeLockup.load(id)
+  if (!stakeLockup) {
+    stakeLockup = new StakeLockup(id)
+    stakeLockup.index = BigIntConstants.ZERO
+    stakeLockup.account = ''
+    stakeLockup.amount = BigIntConstants.ZERO
+    stakeLockup.amountNormalized = BigDecimalConstants.ZERO
+    stakeLockup.weightedAmount = BigIntConstants.ZERO
+    stakeLockup.weightedAmountNormalized = BigDecimalConstants.ZERO
+    stakeLockup.lockupPeriod = BigIntConstants.ZERO
+    stakeLockup.startTimestamp = BigIntConstants.ZERO
+    stakeLockup.endTimestamp = BigIntConstants.ZERO
+  }
+  return stakeLockup
+}
+
+export function getOrCreateGovernanceStakingV2(stakingAddress: Address): GovernanceStaking {
+  let governanceStakingV2 = GovernanceStaking.load(stakingAddress.toHexString())
+  if (!governanceStakingV2) {
+    governanceStakingV2 = new GovernanceStaking(stakingAddress.toHexString())
+    governanceStakingV2.rewardTokens = []
+    governanceStakingV2.rewardTokenEmissionsAmount = []
+    governanceStakingV2.rewardTokenEmissionsAmountsPerOutputToken = []
+    governanceStakingV2.rewardTokenEmissionsFinish = []
+    governanceStakingV2.rewardTokenEmissionsUSD = []
+    governanceStakingV2.summerStaked = BigIntConstants.ZERO
+    governanceStakingV2.summerStakedNormalized = BigDecimalConstants.ZERO
+    governanceStakingV2.accounts = []
+    governanceStakingV2.averageLockupPeriod = BigIntConstants.ZERO
+    governanceStakingV2.amountOfLockedStakes = BigIntConstants.ZERO
+    governanceStakingV2.weightedAverageLockupPeriod = BigIntConstants.ZERO
+    governanceStakingV2.save()
+  }
+  return governanceStakingV2
 }

@@ -4,16 +4,64 @@ schema:
 features:
   - grafting
 graft:
-  base: QmZtW2U3bNDxWEsMZmPKPMi5FLdMANGp9E3GVq3f2pSXw8
-  block: 23533120
+  base: QmYGtqAcfv6hDPMY4GaE6NHD491asuD5MTHM9Ute98KyQH
+  block: 37697200
 dataSources:
   - kind: ethereum/contract
+    name: SummerStakingV2
+    network: base
+    source:
+      abi: SummerStakingV2
+      address: "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4"
+      startBlock: 37697200
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: SummerStakingV2
+          file: ./abis/SummerStakingV2.json
+      eventHandlers:
+        - event: StakedWithLockup(indexed address,indexed uint256,uint256,uint256,uint256)
+          handler: handleStaked
+          receipt: true
+        - event: UnstakedWithPenalty(indexed address,indexed uint256,uint256,uint256,uint256)
+          handler: handleUnstaked
+          receipt: true
+      file: ./src/mappings/summerStakingV2.ts
+  - kind: ethereum/contract
+    name: SummerStakingV2Staging
+    network: base
+    source:
+      abi: SummerStakingV2
+      address: "0x6B94fD1Cbf967c6441764a5AcB84eF2B3774c09f"
+      startBlock: 37697200
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: SummerStakingV2
+          file: ./abis/SummerStakingV2.json
+      eventHandlers:
+        - event: StakedWithLockup(indexed address,indexed uint256,uint256,uint256,uint256)
+          handler: handleStaked
+          receipt: true
+        - event: UnstakedWithPenalty(indexed address,indexed uint256,uint256,uint256,uint256)
+          handler: handleUnstaked
+          receipt: true
+      file: ./src/mappings/summerStakingV2.ts      
+  - kind: ethereum/contract
     name: HarborCommand
-    network: mainnet
+    network: base
     source:
       abi: HarborCommand
       address: "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
-      startBlock: 21745351
+      startBlock: 25773568
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -67,11 +115,11 @@ dataSources:
       file: ./src/mappings/harborCommand.ts
   - kind: ethereum/contract
     name: GovernanceRewardsManager
-    network: mainnet
+    network: base
     source:
       abi: GovernanceRewardsManager
       address: "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92"
-      startBlock: 21745351
+      startBlock: 25642492
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -134,7 +182,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: mainnet
+    network: base
     source:
       abi: FleetCommander
     mapping:
@@ -222,7 +270,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: mainnet
+    network: base
     source:
       abi: Ark
     mapping:
@@ -285,7 +333,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: FleetCommanderRewardsManagerTemplate
-    network: mainnet
+    network: base
     source:
       abi: FleetCommanderRewardsManager
     mapping:
