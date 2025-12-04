@@ -205,8 +205,8 @@ function _processGovernanceStakingOnStake(
 ): void {
   const governanceStaking = getOrCreateGovernanceStakingV2(event.address)
   if (!isNoLockupStake) {
-    governanceStaking.averageLockupPeriod = governanceStaking.averageLockupPeriod!
-      .times(governanceStaking.amountOfLockedStakes!)
+    governanceStaking.averageLockupPeriod = governanceStaking
+      .averageLockupPeriod!.times(governanceStaking.amountOfLockedStakes!)
       .plus(lockupPeriod)
       .div(governanceStaking.amountOfLockedStakes!.plus(BigIntConstants.ONE))
 
@@ -249,13 +249,13 @@ function _processGovernanceStakingOnUnstake(
 ): void {
   const governanceStaking = getOrCreateGovernanceStakingV2(event.address)
   if (!isNoLockupStake) {
-    governanceStaking.weightedAverageLockupPeriod = governanceStaking.weightedAverageLockupPeriod!
-      .times(governanceStaking.summerStaked)
+    governanceStaking.weightedAverageLockupPeriod = governanceStaking
+      .weightedAverageLockupPeriod!.times(governanceStaking.summerStaked)
       .minus(event.params.unstakedAmount.times(lockupPeriod))
       .div(governanceStaking.summerStaked.minus(event.params.unstakedAmount))
     if (wasStakeEmptied) {
-      governanceStaking.averageLockupPeriod = governanceStaking.amountOfLockedStakes!
-        .times(governanceStaking.averageLockupPeriod!)
+      governanceStaking.averageLockupPeriod = governanceStaking
+        .amountOfLockedStakes!.times(governanceStaking.averageLockupPeriod!)
         .minus(lockupPeriod)
         .div(governanceStaking.amountOfLockedStakes!.minus(BigIntConstants.ONE))
       governanceStaking.amountOfLockedStakes = governanceStaking.amountOfLockedStakes!.minus(
