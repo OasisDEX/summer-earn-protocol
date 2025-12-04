@@ -7,6 +7,7 @@ import { Address, createPublicClient, encodeFunctionData, getAddress, http } fro
 
 import chalk from 'chalk'
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+import { readInstitutionConfigFile } from '../helpers/institution-config'
 dotenv.config({ path: '../../.env' })
 
 enum Token {
@@ -423,6 +424,7 @@ async function loadConfigurations() {
 
   let arksConfigPath
   let auctionsConfigPath
+  let institutionId: string | undefined
 
   if (response.source === 'institution') {
     const institutionsDir = path.join(__dirname, '../../config/institutions')
@@ -443,6 +445,7 @@ async function loadConfigurations() {
       process.exit(1)
     }
 
+    institutionId = institution
     arksConfigPath = path.join(institutionsDir, institution, 'curation/arks.json')
     auctionsConfigPath = path.join(institutionsDir, institution, 'curation/auctions.json')
   } else {
@@ -468,7 +471,13 @@ async function loadConfigurations() {
     ],
   })
 
-  return { arksConfig, auctionsConfig, source: response.source, mode: modeResponse.mode }
+  return {
+    arksConfig,
+    auctionsConfig,
+    source: response.source,
+    mode: modeResponse.mode,
+    institutionId,
+  }
 }
 
 function parseTimeString(timeStr: string): number {
@@ -681,6 +690,7 @@ async function createAuctionConfigurationTransaction(
   arkConfig: ArkConfig,
   auctionsConfig: AuctionConfig[],
   chain: SupportedChain,
+  raftAddress: `0x${string}`,
 ): Promise<TransactionBase[] | null> {
   // Only configure auction parameters for Morpho and Euler arks
   if (!rewardsConfig[chain] || !rewardsConfig[chain][arkConfig.ark]) {
@@ -690,18 +700,47 @@ async function createAuctionConfigurationTransaction(
   // Determine reward token based on ark type
   const rewardTokenSymbols = rewardsConfig[chain][arkConfig.ark]
   for (const rewardTokenSymbol of rewardTokenSymbols) {
-    const txes = await handleSingleRewardToken(rewardTokenSymbol, auctionsConfig, chain, arkConfig)
+    const txes = await handleSingleRewardToken(
+      rewardTokenSymbol,
+      auctionsConfig,
+      chain,
+      arkConfig,
+      raftAddress,
+    )
     if (txes && txes.length > 0) {
       transactions.push(...txes)
     }
   }
   return transactions
 }
+/**
+ * Gets the raft address for a given chain, using institution config if applicable
+ */
+function getRaftAddress(
+  chain: SupportedChain,
+  isInstitution: boolean,
+  institutionId?: string,
+): `0x${string}` {
+  if (isInstitution && institutionId) {
+    const institutionConfig = readInstitutionConfigFile(institutionId, false)
+    const chainConfig = institutionConfig[chain]
+    const raftAddress = chainConfig?.deployedContracts?.core?.raft?.address
+    if (!raftAddress) {
+      throw new Error(
+        `No raft address found in institution config for ${institutionId} on chain ${chain}`,
+      )
+    }
+    return raftAddress as `0x${string}`
+  }
+  return addresses[chain].raft as `0x${string}`
+}
+
 async function handleSingleRewardToken(
   rewardTokenSymbol: string,
   auctionsConfig: AuctionConfig[],
   chain: SupportedChain,
   arkConfig: ArkConfig,
+  raftAddress: `0x${string}`,
 ) {
   if (
     rewardTokenSymbol === 'spk' &&
@@ -775,8 +814,6 @@ async function handleSingleRewardToken(
     chain: VIEM_CHAIN_MAP[chain],
     transport: http(RPC_URL_MAP[chain]),
   })
-
-  const raftAddress = addresses[chain].raft as `0x${string}`
 
   const isWhitelistedInRaft = (await publicClient.readContract({
     address: raftAddress,
@@ -877,6 +914,7 @@ async function createConfigurationTransactions(
   isFirstArkForFleet: boolean,
   isInstitution: boolean,
   updateMode: 'auctions_only' | 'all',
+  raftAddress: `0x${string}`,
 ): Promise<TransactionBase[]> {
   const transactions: TransactionBase[] = []
 
@@ -965,6 +1003,7 @@ async function createConfigurationTransactions(
     arkConfig,
     auctionsConfig,
     chain,
+    raftAddress,
   )
 
   if (auctionTransactions && auctionTransactions.length > 0) {
@@ -1075,7 +1114,13 @@ async function main() {
   console.log('🚀 Starting fleet configuration update process...\n')
 
   // Load configurations
-  const { arksConfig: allArksConfig, auctionsConfig, source, mode } = await loadConfigurations()
+  const {
+    arksConfig: allArksConfig,
+    auctionsConfig,
+    source,
+    mode,
+    institutionId,
+  } = await loadConfigurations()
   const isInstitution = source === 'institution'
   const updateMode = mode as 'auctions_only' | 'all'
 
@@ -1101,6 +1146,10 @@ async function main() {
     }
 
     console.log(`\n📝 Found ${arksConfig.length} ark configurations for ${chain}`)
+
+    // Get raft address for this chain
+    const raftAddress = getRaftAddress(chain, isInstitution, institutionId)
+    console.log(`📍 Using raft address: ${raftAddress}`)
 
     const transactions: TransactionBase[] = []
     const configuredFleets = new Set<string>()
@@ -1133,6 +1182,7 @@ async function main() {
         isFirstArkForFleet,
         isInstitution,
         updateMode,
+        raftAddress,
       )
       transactions.push(...fleetTransactions)
     }
