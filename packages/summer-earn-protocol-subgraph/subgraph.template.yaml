@@ -34,6 +34,30 @@ dataSources:
           receipt: true
       file: ./src/mappings/summerStakingV2.ts
   - kind: ethereum/contract
+    name: SummerStakingV2Staging
+    network: {{network}}
+    source:
+      abi: SummerStakingV2
+      address: "{{summer-staking-v2-staging-address}}"
+      startBlock: {{summer-staking-v2-staging-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: SummerStakingV2
+          file: ./abis/SummerStakingV2.json
+      eventHandlers:
+        - event: StakedWithLockup(indexed address,indexed uint256,uint256,uint256,uint256)
+          handler: handleStaked
+          receipt: true
+        - event: UnstakedWithPenalty(indexed address,indexed uint256,uint256,uint256,uint256)
+          handler: handleUnstaked
+          receipt: true
+      file: ./src/mappings/summerStakingV2.ts      
+  - kind: ethereum/contract
     name: HarborCommand
     network: {{network}}
     source:

@@ -1004,10 +1004,10 @@ export function getOrCreateStakeLockup(id: string): StakeLockup {
   return stakeLockup
 }
 
-export function getOrCreateGovernanceStakingV2(): GovernanceStaking {
-  let governanceStakingV2 = GovernanceStaking.load(SUMMER_STAKING_V2_ADDRESS.toHexString())
+export function getOrCreateGovernanceStakingV2(stakingAddress: Address): GovernanceStaking {
+  let governanceStakingV2 = GovernanceStaking.load(stakingAddress.toHexString())
   if (!governanceStakingV2) {
-    governanceStakingV2 = new GovernanceStaking(SUMMER_STAKING_V2_ADDRESS.toHexString())
+    governanceStakingV2 = new GovernanceStaking(stakingAddress.toHexString())
     governanceStakingV2.rewardTokens = []
     governanceStakingV2.rewardTokenEmissionsAmount = []
     governanceStakingV2.rewardTokenEmissionsAmountsPerOutputToken = []
