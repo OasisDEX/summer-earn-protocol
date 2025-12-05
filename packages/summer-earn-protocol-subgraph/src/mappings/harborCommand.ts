@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum, log, store } from '@graphprotocol/graph-ts'
 import { FleetCommanderEnlisted } from '../../generated/HarborCommand/HarborCommand'
 import { Vault, YieldAggregator } from '../../generated/schema'
 import { addresses } from '../common/addressProvider'
@@ -126,6 +126,7 @@ function processHourlyVaultUpdate(
     if (positions && positions.length > 0) {
       for (let k = 0; k < positions.length; k++) {
         const positionId = positions[k]
+        cleanUpOldHourlySnapshots(positionId, block)
         if (!positionId) {
           log.warning('Empty position ID at index ' + k.toString(), [])
           continue
@@ -196,6 +197,20 @@ function processHourlyVaultUpdate(
   }
 }
 
+function cleanUpOldHourlySnapshots(positionId: string, block: ethereum.Block): void {
+  const retentionTimestamp = block.timestamp.minus(
+    BigIntConstants.HOURLY_SNAPSHOT_RETENTION_TIME_IN_SECONDS,
+  )
+  let position = getOrCreatePosition(positionId, block)
+  const hourlySnapshots = position.hourlySnapshots.load()
+  if (hourlySnapshots && hourlySnapshots.length > 0) {
+    for (let i = 0; i < hourlySnapshots.length; i++) {
+      if (hourlySnapshots[i].timestamp.lt(retentionTimestamp)) {
+        store.remove('PositionHourlySnapshot', hourlySnapshots[i].id)
+      }
+    }
+  }
+}
 export function handleInterval(block: ethereum.Block): void {
   // ENABLE ONLY for separate subgoldsky subgraph deployment
   // temporary solution to track self managed vault deployment on base for institutional demo app

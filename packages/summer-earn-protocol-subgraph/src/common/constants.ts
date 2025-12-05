@@ -166,6 +166,7 @@ export class BigIntConstants {
   static SECONDS_PER_MINUTE: BigInt = BigInt.fromI32(60)
   static SECONDS_PER_WEEK: BigInt = BigInt.fromI32(604800)
   static EPOCH_WEEK_OFFSET: BigInt = BigInt.fromI32(345600)
+  static HOURLY_SNAPSHOT_RETENTION_TIME_IN_SECONDS: BigInt = BigInt.fromI32(31 * 24 * 60 * 60) // 31 days
 }
 
 export class EventSignature {
