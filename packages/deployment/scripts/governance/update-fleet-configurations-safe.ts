@@ -2,10 +2,12 @@ import { TransactionBase } from '@safe-global/types-kit'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
+import prompts from 'prompts'
 import { Address, createPublicClient, encodeFunctionData, getAddress, http } from 'viem'
 
 import chalk from 'chalk'
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+import { readInstitutionConfigFile } from '../helpers/institution-config'
 dotenv.config({ path: '../../.env' })
 
 enum Token {
@@ -410,13 +412,72 @@ const spkArkAddresses = [
   '0x570957bC84b5607e2412dE72461FbbD02844b042',
 ].map((address) => address.toLowerCase())
 async function loadConfigurations() {
-  const arksConfigPath = path.join(__dirname, '../../config/curation/arks.json')
+  const response = await prompts({
+    type: 'select',
+    name: 'source',
+    message: 'Select configuration source',
+    choices: [
+      { title: 'Public (Main Location)', value: 'public' },
+      { title: 'Institution', value: 'institution' },
+    ],
+  })
+
+  let arksConfigPath
+  let auctionsConfigPath
+  let institutionId: string | undefined
+
+  if (response.source === 'institution') {
+    const institutionsDir = path.join(__dirname, '../../config/institutions')
+    const institutions = fs.readdirSync(institutionsDir).filter((file) => {
+      return fs.statSync(path.join(institutionsDir, file)).isDirectory()
+    })
+
+    const institutionResponse = await prompts({
+      type: 'select',
+      name: 'institution',
+      message: 'Select institution',
+      choices: institutions.map((inst) => ({ title: inst, value: inst })),
+    })
+
+    const institution = institutionResponse.institution
+    if (!institution) {
+      console.error('No institution selected')
+      process.exit(1)
+    }
+
+    institutionId = institution
+    arksConfigPath = path.join(institutionsDir, institution, 'curation/arks.json')
+    auctionsConfigPath = path.join(institutionsDir, institution, 'curation/auctions.json')
+  } else {
+    arksConfigPath = path.join(__dirname, '../../config/curation/arks.json')
+    auctionsConfigPath = path.join(__dirname, '../../config/curation/auctions.json')
+  }
+
+  console.log(`Loading configuration from:`)
+  console.log(`- Arks: ${arksConfigPath}`)
+  console.log(`- Auctions: ${auctionsConfigPath}`)
+
   const arksConfig: ArkConfig[] = JSON.parse(fs.readFileSync(arksConfigPath, 'utf-8'))
 
-  const auctionsConfigPath = path.join(__dirname, '../../config/curation/auctions.json')
   const auctionsConfig: AuctionConfig[] = JSON.parse(fs.readFileSync(auctionsConfigPath, 'utf-8'))
 
-  return { arksConfig, auctionsConfig }
+  const modeResponse = await prompts({
+    type: 'select',
+    name: 'mode',
+    message: 'Select update mode',
+    choices: [
+      { title: 'Auctions Only', value: 'auctions_only' },
+      { title: 'Full Update (Auctions + Ark/Fleet Params)', value: 'all' },
+    ],
+  })
+
+  return {
+    arksConfig,
+    auctionsConfig,
+    source: response.source,
+    mode: modeResponse.mode,
+    institutionId,
+  }
 }
 
 function parseTimeString(timeStr: string): number {
@@ -554,7 +615,11 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
 }
 
 // Custom function to read fleet config without hre
-async function readFleetConfig(fleetAddress: Address, chain: SupportedChain) {
+async function readFleetConfig(
+  fleetAddress: Address,
+  chain: SupportedChain,
+  isInstitution: boolean,
+) {
   const publicClient = createPublicClient({
     chain: VIEM_CHAIN_MAP[chain],
     transport: http(RPC_URL_MAP[chain]),
@@ -566,11 +631,14 @@ async function readFleetConfig(fleetAddress: Address, chain: SupportedChain) {
     functionName: 'getConfig',
   })) as bigint[]
 
-  const rebalanceCooldown = (await publicClient.readContract({
-    address: fleetAddress,
-    abi: FLEET_COMMANDER_ABI,
-    functionName: 'getCooldown',
-  })) as bigint
+  let rebalanceCooldown = 0n
+  if (!isInstitution) {
+    rebalanceCooldown = (await publicClient.readContract({
+      address: fleetAddress,
+      abi: FLEET_COMMANDER_ABI,
+      functionName: 'getCooldown',
+    })) as bigint
+  }
 
   return {
     depositCap: BigInt(config[2]),
@@ -622,6 +690,7 @@ async function createAuctionConfigurationTransaction(
   arkConfig: ArkConfig,
   auctionsConfig: AuctionConfig[],
   chain: SupportedChain,
+  raftAddress: `0x${string}`,
 ): Promise<TransactionBase[] | null> {
   // Only configure auction parameters for Morpho and Euler arks
   if (!rewardsConfig[chain] || !rewardsConfig[chain][arkConfig.ark]) {
@@ -631,18 +700,47 @@ async function createAuctionConfigurationTransaction(
   // Determine reward token based on ark type
   const rewardTokenSymbols = rewardsConfig[chain][arkConfig.ark]
   for (const rewardTokenSymbol of rewardTokenSymbols) {
-    const txes = await handleSingleRewardToken(rewardTokenSymbol, auctionsConfig, chain, arkConfig)
+    const txes = await handleSingleRewardToken(
+      rewardTokenSymbol,
+      auctionsConfig,
+      chain,
+      arkConfig,
+      raftAddress,
+    )
     if (txes && txes.length > 0) {
       transactions.push(...txes)
     }
   }
   return transactions
 }
+/**
+ * Gets the raft address for a given chain, using institution config if applicable
+ */
+function getRaftAddress(
+  chain: SupportedChain,
+  isInstitution: boolean,
+  institutionId?: string,
+): `0x${string}` {
+  if (isInstitution && institutionId) {
+    const institutionConfig = readInstitutionConfigFile(institutionId, false)
+    const chainConfig = institutionConfig[chain]
+    const raftAddress = chainConfig?.deployedContracts?.core?.raft?.address
+    if (!raftAddress) {
+      throw new Error(
+        `No raft address found in institution config for ${institutionId} on chain ${chain}`,
+      )
+    }
+    return raftAddress as `0x${string}`
+  }
+  return addresses[chain].raft as `0x${string}`
+}
+
 async function handleSingleRewardToken(
   rewardTokenSymbol: string,
   auctionsConfig: AuctionConfig[],
   chain: SupportedChain,
   arkConfig: ArkConfig,
+  raftAddress: `0x${string}`,
 ) {
   if (
     rewardTokenSymbol === 'spk' &&
@@ -716,8 +814,6 @@ async function handleSingleRewardToken(
     chain: VIEM_CHAIN_MAP[chain],
     transport: http(RPC_URL_MAP[chain]),
   })
-
-  const raftAddress = addresses[chain].raft as `0x${string}`
 
   const isWhitelistedInRaft = (await publicClient.readContract({
     address: raftAddress,
@@ -816,13 +912,20 @@ async function createConfigurationTransactions(
   auctionsConfig: AuctionConfig[],
   chain: SupportedChain,
   isFirstArkForFleet: boolean,
+  isInstitution: boolean,
+  updateMode: 'auctions_only' | 'all',
+  raftAddress: `0x${string}`,
 ): Promise<TransactionBase[]> {
   const transactions: TransactionBase[] = []
 
   // Only set fleet-wide parameters once per fleet
-  if (isFirstArkForFleet) {
+  if (isFirstArkForFleet && updateMode === 'all') {
     console.log(`\n📊 Reading current fleet configuration...`)
-    const currentFleetConfig = await readFleetConfig(arkConfig.fleetAddress as Address, chain)
+    const currentFleetConfig = await readFleetConfig(
+      arkConfig.fleetAddress as Address,
+      chain,
+      isInstitution,
+    )
 
     console.log(`\n🔄 Fleet-wide parameters for ${arkConfig.fleetAddress}:`)
 
@@ -871,25 +974,27 @@ async function createConfigurationTransactions(
     }
 
     // Update rebalance cooldown
-    const cooldown = parseTimeString(arkConfig.reallocInterval)
-    logValueComparison(
-      'Rebalance cooldown',
-      currentFleetConfig.rebalanceCooldown,
-      cooldown,
-      arkConfig.arkSymbol,
-      ' seconds',
-    )
-    if (currentFleetConfig.rebalanceCooldown !== cooldown) {
-      const setCooldownCalldata = encodeFunctionData({
-        abi: FLEET_COMMANDER_ABI,
-        functionName: 'updateRebalanceCooldown',
-        args: [cooldown],
-      })
-      transactions.push({
-        to: arkConfig.fleetAddress,
-        data: setCooldownCalldata,
-        value: '0',
-      })
+    if (!isInstitution) {
+      const cooldown = parseTimeString(arkConfig.reallocInterval)
+      logValueComparison(
+        'Rebalance cooldown',
+        currentFleetConfig.rebalanceCooldown,
+        cooldown,
+        arkConfig.arkSymbol,
+        ' seconds',
+      )
+      if (currentFleetConfig.rebalanceCooldown !== cooldown) {
+        const setCooldownCalldata = encodeFunctionData({
+          abi: FLEET_COMMANDER_ABI,
+          functionName: 'updateRebalanceCooldown',
+          args: [cooldown],
+        })
+        transactions.push({
+          to: arkConfig.fleetAddress,
+          data: setCooldownCalldata,
+          value: '0',
+        })
+      }
     }
   }
 
@@ -898,103 +1003,108 @@ async function createConfigurationTransactions(
     arkConfig,
     auctionsConfig,
     chain,
+    raftAddress,
   )
 
   if (auctionTransactions && auctionTransactions.length > 0) {
     transactions.push(...auctionTransactions)
   }
 
-  // Configure ark parameters
-  const arkAddress = arkConfig.arkAddress
-  console.log(`\n📊 Reading current ark configuration for ${arkConfig.arkSymbol} ${arkAddress}...`)
-  const currentArkConfig = await readArkConfig(arkAddress as Address, chain)
+  if (updateMode === 'all') {
+    // Configure ark parameters
+    const arkAddress = arkConfig.arkAddress
+    console.log(
+      `\n📊 Reading current ark configuration for ${arkConfig.arkSymbol} ${arkAddress}...`,
+    )
+    const currentArkConfig = await readArkConfig(arkAddress as Address, chain)
 
-  // Set ark deposit cap
-  const arkCap = parseAmount(arkConfig.arkMaxCap, arkConfig.fleetAsset)
+    // Set ark deposit cap
+    const arkCap = parseAmount(arkConfig.arkMaxCap, arkConfig.fleetAsset)
 
-  logValueComparison(
-    'Ark deposit cap',
-    currentArkConfig.depositCap,
-    arkCap,
-    arkConfig.arkSymbol,
-    ` ${arkConfig.fleetAsset}`,
-  )
-  if (currentArkConfig.depositCap !== arkCap) {
-    const setArkCapCalldata = encodeFunctionData({
-      abi: FLEET_COMMANDER_ABI,
-      functionName: 'setArkDepositCap',
-      args: [arkAddress, arkCap],
-    })
-    transactions.push({
-      to: arkConfig.fleetAddress,
-      data: setArkCapCalldata,
-      value: '0',
-    })
-  }
+    logValueComparison(
+      'Ark deposit cap',
+      currentArkConfig.depositCap,
+      arkCap,
+      arkConfig.arkSymbol,
+      ` ${arkConfig.fleetAsset}`,
+    )
+    if (currentArkConfig.depositCap !== arkCap) {
+      const setArkCapCalldata = encodeFunctionData({
+        abi: FLEET_COMMANDER_ABI,
+        functionName: 'setArkDepositCap',
+        args: [arkAddress, arkCap],
+      })
+      transactions.push({
+        to: arkConfig.fleetAddress,
+        data: setArkCapCalldata,
+        value: '0',
+      })
+    }
 
-  // Set ark max deposit percentage of TVL
-  const maxPercTVL = parsePercentage(arkConfig.arkMaxPercTVL)
-  logPercentageComparison(
-    'Ark max TVL percentage',
-    currentArkConfig.maxDepositPercentageOfTVL,
-    maxPercTVL,
-    WAD,
-  )
-  if (currentArkConfig.maxDepositPercentageOfTVL !== maxPercTVL) {
-    const setMaxPercTVLCalldata = encodeFunctionData({
-      abi: FLEET_COMMANDER_ABI,
-      functionName: 'setArkMaxDepositPercentageOfTVL',
-      args: [arkAddress, maxPercTVL],
-    })
-    transactions.push({
-      to: arkConfig.fleetAddress,
-      data: setMaxPercTVLCalldata,
-      value: '0',
-    })
-  }
+    // Set ark max deposit percentage of TVL
+    const maxPercTVL = parsePercentage(arkConfig.arkMaxPercTVL)
+    logPercentageComparison(
+      'Ark max TVL percentage',
+      currentArkConfig.maxDepositPercentageOfTVL,
+      maxPercTVL,
+      WAD,
+    )
+    if (currentArkConfig.maxDepositPercentageOfTVL !== maxPercTVL) {
+      const setMaxPercTVLCalldata = encodeFunctionData({
+        abi: FLEET_COMMANDER_ABI,
+        functionName: 'setArkMaxDepositPercentageOfTVL',
+        args: [arkAddress, maxPercTVL],
+      })
+      transactions.push({
+        to: arkConfig.fleetAddress,
+        data: setMaxPercTVLCalldata,
+        value: '0',
+      })
+    }
 
-  // Set ark max rebalance inflow/outflow
-  const maxInflow = parseAmount(arkConfig.arkMaxInflow, arkConfig.fleetAsset)
-  const maxOutflow = parseAmount(arkConfig.arkMaxOutflow, arkConfig.fleetAsset)
+    // Set ark max rebalance inflow/outflow
+    const maxInflow = parseAmount(arkConfig.arkMaxInflow, arkConfig.fleetAsset)
+    const maxOutflow = parseAmount(arkConfig.arkMaxOutflow, arkConfig.fleetAsset)
 
-  logValueComparison(
-    'Ark max inflow',
-    currentArkConfig.maxRebalanceInflow,
-    maxInflow,
-    arkConfig.arkSymbol,
-    ` ${arkConfig.fleetAsset}`,
-  )
-  if (currentArkConfig.maxRebalanceInflow !== maxInflow) {
-    const setMaxInflowCalldata = encodeFunctionData({
-      abi: FLEET_COMMANDER_ABI,
-      functionName: 'setArkMaxRebalanceInflow',
-      args: [arkAddress, maxInflow],
-    })
-    transactions.push({
-      to: arkConfig.fleetAddress,
-      data: setMaxInflowCalldata,
-      value: '0',
-    })
-  }
+    logValueComparison(
+      'Ark max inflow',
+      currentArkConfig.maxRebalanceInflow,
+      maxInflow,
+      arkConfig.arkSymbol,
+      ` ${arkConfig.fleetAsset}`,
+    )
+    if (currentArkConfig.maxRebalanceInflow !== maxInflow) {
+      const setMaxInflowCalldata = encodeFunctionData({
+        abi: FLEET_COMMANDER_ABI,
+        functionName: 'setArkMaxRebalanceInflow',
+        args: [arkAddress, maxInflow],
+      })
+      transactions.push({
+        to: arkConfig.fleetAddress,
+        data: setMaxInflowCalldata,
+        value: '0',
+      })
+    }
 
-  logValueComparison(
-    'Ark max outflow',
-    currentArkConfig.maxRebalanceOutflow,
-    maxOutflow,
-    arkConfig.arkSymbol,
-    ` ${arkConfig.fleetAsset}`,
-  )
-  if (currentArkConfig.maxRebalanceOutflow !== maxOutflow) {
-    const setMaxOutflowCalldata = encodeFunctionData({
-      abi: FLEET_COMMANDER_ABI,
-      functionName: 'setArkMaxRebalanceOutflow',
-      args: [arkAddress, maxOutflow],
-    })
-    transactions.push({
-      to: arkConfig.fleetAddress,
-      data: setMaxOutflowCalldata,
-      value: '0',
-    })
+    logValueComparison(
+      'Ark max outflow',
+      currentArkConfig.maxRebalanceOutflow,
+      maxOutflow,
+      arkConfig.arkSymbol,
+      ` ${arkConfig.fleetAsset}`,
+    )
+    if (currentArkConfig.maxRebalanceOutflow !== maxOutflow) {
+      const setMaxOutflowCalldata = encodeFunctionData({
+        abi: FLEET_COMMANDER_ABI,
+        functionName: 'setArkMaxRebalanceOutflow',
+        args: [arkAddress, maxOutflow],
+      })
+      transactions.push({
+        to: arkConfig.fleetAddress,
+        data: setMaxOutflowCalldata,
+        value: '0',
+      })
+    }
   }
 
   return transactions
@@ -1004,7 +1114,15 @@ async function main() {
   console.log('🚀 Starting fleet configuration update process...\n')
 
   // Load configurations
-  const { arksConfig: allArksConfig, auctionsConfig } = await loadConfigurations()
+  const {
+    arksConfig: allArksConfig,
+    auctionsConfig,
+    source,
+    mode,
+    institutionId,
+  } = await loadConfigurations()
+  const isInstitution = source === 'institution'
+  const updateMode = mode as 'auctions_only' | 'all'
 
   // Process each chain
   for (const chain of SUPPORTED_CHAINS) {
@@ -1028,6 +1146,10 @@ async function main() {
     }
 
     console.log(`\n📝 Found ${arksConfig.length} ark configurations for ${chain}`)
+
+    // Get raft address for this chain
+    const raftAddress = getRaftAddress(chain, isInstitution, institutionId)
+    console.log(`📍 Using raft address: ${raftAddress}`)
 
     const transactions: TransactionBase[] = []
     const configuredFleets = new Set<string>()
@@ -1058,6 +1180,9 @@ async function main() {
         auctionsConfig,
         chain,
         isFirstArkForFleet,
+        isInstitution,
+        updateMode,
+        raftAddress,
       )
       transactions.push(...fleetTransactions)
     }
