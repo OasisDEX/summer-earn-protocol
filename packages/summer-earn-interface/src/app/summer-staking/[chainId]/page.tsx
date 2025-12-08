@@ -6,7 +6,6 @@ import { useAccount } from 'wagmi'
 
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 
-import { useEnvironment } from '../../../hooks/useEnvironment'
 import { useStakingAPR } from '../../../hooks/useStakingAPR'
 import { useSummerStaking } from '../../../hooks/useSummerStaking'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
@@ -69,8 +68,6 @@ export default function SummerStakingPage() {
   )
 
   const { isConnected, address: account } = useAccount()
-
-  // useSyncWalletChain(chainId)
 
   const {
     summerAddress,
