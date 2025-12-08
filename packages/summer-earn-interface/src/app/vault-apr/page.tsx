@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { VaultAprChart } from '../../components/VaultAprChart'
 import { CHAIN_NAMES } from '../../config/chains'
+import { useEnvironment } from '../../hooks/useEnvironment'
 import { ChainId } from '../../types'
 
 interface InterestRate {
@@ -56,6 +57,7 @@ async function fetchVaultAprData(): Promise<ApiResponse> {
 export default function VaultAprPage() {
   const [selectedChain, setSelectedChain] = useState<ChainId | 'all'>('all')
   const [selectedVault, setSelectedVault] = useState<string | null>(null)
+  const { environment } = useEnvironment()
 
   const { data, isLoading, error, refetch } = useQuery<ApiResponse>({
     queryKey: ['vault-apr'],
@@ -91,10 +93,12 @@ export default function VaultAprPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black p-8">
+      <div className="min-h-screen bg-gradient-to-b from-black via-charcoal-900 to-black p-6 md:p-10">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-96">
-            <div className="text-white text-lg">Loading vault APR data...</div>
+            <div className="text-white text-lg font-semibold animate-pulse">
+              Loading vault APR data...
+            </div>
           </div>
         </div>
       </div>
@@ -103,13 +107,13 @@ export default function VaultAprPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black p-8">
+      <div className="min-h-screen bg-gradient-to-b from-black via-charcoal-900 to-black p-6 md:p-10">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 text-red-400">
+          <div className="bg-red-900/20 border border-red-500/50 rounded-3xl p-6 text-red-400 backdrop-blur-md">
             Error loading vault APR data: {error instanceof Error ? error.message : 'Unknown error'}
             <button
               onClick={() => refetch()}
-              className="ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white"
+              className="ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-xl text-white font-semibold transition-colors shadow-lg"
             >
               Retry
             </button>
@@ -120,12 +124,19 @@ export default function VaultAprPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-b from-black via-charcoal-900 to-black p-6 md:p-10 text-gray-100 font-sans">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Vault APR Analytics</h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
+                Vault APR Analytics
+              </h1>
+              <span className="px-3 py-1 rounded-full border border-blue-500/30 bg-blue-900/20 text-xs uppercase tracking-wide text-blue-300 font-semibold h-fit">
+                {environment}
+              </span>
+            </div>
             <p className="text-gray-400">
               View interest rates across all vaults with weekly, daily, and hourly granularity
             </p>
@@ -138,7 +149,7 @@ export default function VaultAprPage() {
           </div>
           <button
             onClick={() => refetch()}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white text-sm"
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-xl text-white font-medium transition-colors shadow-lg"
           >
             Refresh
           </button>
@@ -149,7 +160,7 @@ export default function VaultAprPage() {
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-400">Filter by Chain</label>
             <select
-              className="w-full p-2 border rounded bg-gray-900 text-white border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-xl bg-charcoal-800/50 text-white border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 transition-all focus:outline-none"
               value={selectedChain}
               onChange={(e) => {
                 setSelectedChain(e.target.value as ChainId | 'all')
@@ -168,7 +179,7 @@ export default function VaultAprPage() {
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-400">Select Vault</label>
             <select
-              className="w-full p-2 border rounded bg-gray-900 text-white border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-xl bg-charcoal-800/50 text-white border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 transition-all focus:outline-none"
               value={selectedVault || ''}
               onChange={(e) => setSelectedVault(e.target.value || null)}
             >
@@ -189,7 +200,7 @@ export default function VaultAprPage() {
             {data.data.map((chainData) => (
               <div
                 key={chainData.chainId}
-                className="bg-gray-900 rounded-lg border border-gray-800 p-4"
+                className="bg-charcoal-900/70 rounded-3xl border border-white/10 p-6 shadow-xl backdrop-blur-md"
               >
                 <div className="text-sm text-gray-400 mb-1">{CHAIN_NAMES[chainData.chainId]}</div>
                 <div className="text-2xl font-bold text-white">{chainData.vaults.length}</div>
@@ -206,9 +217,9 @@ export default function VaultAprPage() {
 
         {/* Chart */}
         {selectedVaultData && (
-          <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-white mb-1">
+          <div className="bg-charcoal-900/70 rounded-3xl border border-white/10 p-7 shadow-2xl backdrop-blur-md">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white mb-2">
                 {selectedVaultData.name || selectedVaultData.symbol || selectedVaultData.id}
               </h2>
               <div className="text-sm text-gray-400">
@@ -232,10 +243,8 @@ export default function VaultAprPage() {
 
         {/* Vaults List */}
         {!selectedVaultData && (
-          <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">
-              Vaults ({filteredVaults.length})
-            </h2>
+          <div className="bg-charcoal-900/70 rounded-3xl border border-white/10 p-7 shadow-2xl backdrop-blur-md">
+            <h2 className="text-2xl font-bold text-white mb-6">Vaults ({filteredVaults.length})</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredVaults.map((vault) => {
                 // Calculate 1 day average (last 24 hourly rates)
@@ -265,7 +274,7 @@ export default function VaultAprPage() {
                 return (
                   <div
                     key={`${vault.chainId}-${vault.id}`}
-                    className="bg-gray-800 rounded-lg border border-gray-700 p-4 hover:border-blue-500 cursor-pointer transition-colors"
+                    className="bg-charcoal-800/50 rounded-xl border border-white/10 p-4 hover:border-blue-500 cursor-pointer transition-colors shadow-md"
                     onClick={() => setSelectedVault(`${vault.chainId}-${vault.id}`)}
                   >
                     <div className="text-white font-medium mb-2">

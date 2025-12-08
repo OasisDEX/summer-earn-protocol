@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
 
+import { useEnvironment } from '@/hooks/useEnvironment'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 import { useStakingAPR } from '../../../hooks/useStakingAPR'
@@ -60,6 +61,7 @@ export default function SummerStakingPage() {
   const chainId = params.chainId as ChainId
   const [selectedChain, _setSelectedChain] = useLocalStorage<ChainId>('selectedChain', chainId)
 
+  const { environment } = useEnvironment()
   useSyncWalletChain(selectedChain)
 
   // APR calculation hook
@@ -317,30 +319,37 @@ export default function SummerStakingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-charcoal-900 p-6 md:p-10">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center gap-4 mb-2">
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 bg-charcoal-800 hover:bg-gray-700 text-white rounded-lg border border-white/10"
-          >
-            ← Back
-          </button>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white">Summer Staking</h1>
+    <main className="min-h-screen bg-gradient-to-b from-black via-charcoal-900 to-black p-6 md:p-10 text-gray-100 font-sans">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <div className="flex items-center justify-between gap-4 mb-2">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="px-5 py-2 bg-charcoal-800 hover:bg-gray-700 text-white rounded-xl border border-white/20 shadow-md transition-all duration-200 ease-in-out"
+            >
+              ← Back
+            </button>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
+              Summer Staking
+            </h1>
+          </div>
+          <span className="px-3 py-1 rounded-full border border-blue-500/30 bg-blue-900/20 text-xs uppercase tracking-wide text-blue-300 font-semibold">
+            {environment}
+          </span>
         </div>
 
         {/* Staking APR */}
-        <div className="rounded-2xl p-6 bg-charcoal-900 border border-white/10">
-          <h2 className="text-xl font-semibold text-white mb-4">Staking Rewards</h2>
+        <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 backdrop-blur-md shadow-2xl">
+          <h2 className="text-xl font-bold text-white mb-4">Staking Rewards</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 bg-charcoal-800 rounded border border-white/10">
+            <div className="p-4 bg-charcoal-800/50 rounded-xl border border-white/5">
               <div className="text-xs text-gray-400 mb-1">Current APR</div>
               <div className="text-2xl font-bold text-magenta-400">
                 {apr > 0 ? `${apr.toFixed(2)}%` : '—'}
               </div>
               <div className="text-xs text-gray-400 mt-1">{isActive ? 'Active' : 'Inactive'}</div>
             </div>
-            <div className="p-4 bg-charcoal-800 rounded border border-white/10">
+            <div className="p-4 bg-charcoal-800/50 rounded-xl border border-white/5">
               <div className="text-xs text-gray-400 mb-1">Annual Rewards</div>
 
               <div className="text-lg font-semibold text-white">
@@ -348,14 +357,14 @@ export default function SummerStakingPage() {
               </div>
               <div className="text-xs text-gray-400 mt-1">{summerSymbol}</div>
             </div>
-            <div className="p-4 bg-charcoal-800 rounded border border-white/10">
+            <div className="p-4 bg-charcoal-800/50 rounded-xl border border-white/5">
               <div className="text-xs text-gray-400 mb-1">Annual Value</div>
-              <div className="text-lg font-semibold text-green-400">
+              <div className="text-lg font-semibold text-emerald-400">
                 {annualRewardValue > 0 ? `$${annualRewardValue.toFixed(2)}` : '—'}
               </div>
               <div className="text-xs text-gray-400 mt-1">USD</div>
             </div>
-            <div className="p-4 bg-charcoal-800 rounded border border-white/10">
+            <div className="p-4 bg-charcoal-800/50 rounded-xl border border-white/5">
               <div className="text-xs text-gray-400 mb-1">Total Staked Value</div>
               <div className="text-lg font-semibold text-blue-400">
                 {totalStakedValue > 0 ? `$${totalStakedValue.toFixed(2)}` : '—'}
@@ -367,16 +376,16 @@ export default function SummerStakingPage() {
 
         {/* Wallet Balances */}
         {isConnected && (
-          <div className="rounded-2xl p-4 bg-charcoal-800 border border-white/10">
-            <h2 className="text-lg font-semibold text-white mb-3">Your Balances</h2>
+          <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 backdrop-blur-md shadow-2xl">
+            <h2 className="text-lg font-bold text-white mb-3">Your Balances</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-3 bg-charcoal-900 rounded border border-white/10">
+              <div className="p-4 bg-charcoal-800/50 rounded-xl border border-white/5">
                 <div className="text-xs text-gray-400 mb-1">{summerSymbol} Balance</div>
                 <div className="text-xl font-semibold text-white">
                   {formatAmount(summerBalance, summerDecimals)}
                 </div>
               </div>
-              <div className="p-3 bg-charcoal-900 rounded border border-white/10">
+              <div className="p-4 bg-charcoal-800/50 rounded-xl border border-white/5">
                 <div className="text-xs text-gray-400 mb-1">xSUMR Balance</div>
                 <div className="text-xl font-semibold text-white">
                   {formatAmount(xSummerBalance, summerDecimals)}
@@ -387,11 +396,11 @@ export default function SummerStakingPage() {
         )}
 
         {/* Buckets */}
-        <div className="rounded-2xl p-6 bg-charcoal-900 border border-white/10">
-          <h2 className="text-xl font-semibold text-white mb-4">Lockup Buckets</h2>
+        <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 backdrop-blur-md shadow-2xl">
+          <h2 className="text-xl font-bold text-white mb-4">Lockup Buckets</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {buckets.map((b, i) => (
-              <div key={i} className="p-4 rounded-lg bg-charcoal-800 border border-white/10">
+              <div key={i} className="p-4 rounded-xl bg-charcoal-800/50 border border-white/5">
                 <div className="flex justify-between items-center mb-2">
                   <div className="text-gray-300">Bucket #{b.key}</div>
                   <div className={`px-2 py-0.5 text-xs rounded ${b.color} text-white`}>
@@ -401,10 +410,10 @@ export default function SummerStakingPage() {
                 <div className="text-sm text-gray-400">
                   Range: {formatDays(b.min)} - {formatDays(b.max)}
                 </div>
-                <div className="mt-2 h-2 bg-gray-700 rounded">
+                <div className="mt-2 h-2 bg-gray-700 rounded-full">
                   {b.cap > 0n && (
                     <div
-                      className={`${b.color} h-2 rounded`}
+                      className={`${b.color} h-2 rounded-full`}
                       style={{ width: `${Math.max(0, 100 - b.remainingPct)}%` }}
                     />
                   )}
@@ -434,15 +443,15 @@ export default function SummerStakingPage() {
 
         {/* Stake */}
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl p-6 bg-charcoal-900 border border-white/10 space-y-4">
-            <h2 className="text-xl font-semibold text-white">Stake</h2>
+          <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 space-y-4 backdrop-blur-md shadow-2xl">
+            <h2 className="text-xl font-bold text-white">Stake</h2>
             <div>
               <label className="block text-sm text-gray-300 mb-1">Amount ({summerSymbol})</label>
               <input
                 value={amountStr}
                 onChange={(e) => onAmountChange(e.target.value)}
                 placeholder={`0.0`}
-                className="w-full px-3 py-2 bg-charcoal-800 border border-white/10 rounded text-white"
+                className="w-full px-3 py-2 bg-charcoal-800 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-magenta-500/50 transition-all"
               />
             </div>
             <div>
@@ -456,41 +465,51 @@ export default function SummerStakingPage() {
                 step={24 * 60 * 60}
                 value={lockup}
                 onChange={(e) => setLockup(Number(e.target.value))}
-                className="w-full"
+                className="w-full accent-magenta-500"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3 bg-charcoal-800 rounded border border-white/10">
+              <div className="p-3 bg-charcoal-800/50 rounded-xl border border-white/5">
                 <div className="text-xs text-gray-400">Current multiplier</div>
                 <div className="text-lg text-white font-semibold">
                   {formatMultiplier(currentOverallMultiplierWad)}
                 </div>
               </div>
-              <div className="p-3 bg-charcoal-800 rounded border border-white/10">
+              <div className="p-3 bg-charcoal-800/50 rounded-xl border border-white/5">
                 <div className="text-xs text-gray-400">New stake multiplier</div>
                 <div className="text-lg text-white font-semibold">
                   {amount > 0n ? formatMultiplier(previewMultiplierWad) : '—'}
                 </div>
               </div>
-              <div className="p-3 bg-charcoal-800 rounded border border-white/10">
+              <div className="p-3 bg-charcoal-800/50 rounded-xl border border-white/5">
                 <div className="text-xs text-gray-400">Projected overall</div>
                 <div className="text-lg text-white font-semibold">
                   {formatMultiplier(projectedOverallMultiplierWad)}
                 </div>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={() => approveSummer()}
                 disabled={!canApproveEnabled || isPending || isConfirming}
-                className={`px-4 py-2 rounded ${canApproveEnabled && !isPending && !isConfirming ? 'bg-magenta-600 hover:bg-magenta-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
+                className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all duration-300 ease-in-out shadow-lg
+                ${
+                  canApproveEnabled && !isPending && !isConfirming
+                    ? 'bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 text-white transform hover:-translate-y-0.5'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-70'
+                }`}
               >
                 Approve {summerSymbol}
               </button>
               <button
                 onClick={() => stakeLockup(amount, BigInt(lockup))}
                 disabled={!canStake || needsSummerApproval(amount) || isPending || isConfirming}
-                className={`px-4 py-2 rounded ${canStake && !needsSummerApproval(amount) && !isPending && !isConfirming ? 'bg-magenta-600 hover:bg-magenta-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
+                className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all duration-300 ease-in-out shadow-lg
+                ${
+                  canStake && !needsSummerApproval(amount) && !isPending && !isConfirming
+                    ? 'bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 text-white transform hover:-translate-y-0.5'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-70'
+                }`}
               >
                 {isPending || isConfirming ? 'Submitting…' : 'Stake'}
               </button>
@@ -505,7 +524,7 @@ export default function SummerStakingPage() {
                 return (
                   <svg
                     viewBox={`-${margin} 0 ${chartWidth + margin * 2} 26`}
-                    className="w-full h-48 bg-gray-800 rounded"
+                    className="w-full h-48 bg-gray-800/50 rounded-xl border border-white/5"
                   >
                     <polyline
                       fill="none"
@@ -565,14 +584,14 @@ export default function SummerStakingPage() {
           </div>
 
           {/* Unstake */}
-          <div className="rounded-2xl p-6 bg-charcoal-900 border border-white/10 space-y-4">
-            <h2 className="text-xl font-semibold text-white">Unstake</h2>
+          <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 space-y-4 backdrop-blur-md shadow-2xl">
+            <h2 className="text-xl font-bold text-white">Unstake</h2>
             <div>
               <label className="block text-sm text-gray-300 mb-1">Select Stake</label>
               <select
                 value={unstakeIndex}
                 onChange={(e) => setUnstakeIndex(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-charcoal-800 border border-white/10 rounded text-white"
+                className="w-full px-3 py-2 bg-charcoal-800 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-magenta-500/50 transition-all"
               >
                 {stakes.map((s) => (
                   <option key={s.index} value={s.index}>
@@ -590,7 +609,7 @@ export default function SummerStakingPage() {
                   value={unstakeAmountStr}
                   onChange={(e) => onUnstakeAmountChange(e.target.value)}
                   placeholder={`0.0`}
-                  className="flex-1 px-3 py-2 bg-charcoal-800 border border-white/10 rounded text-white"
+                  className="flex-1 px-3 py-2 bg-charcoal-800 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-magenta-500/50 transition-all"
                 />
                 <button
                   type="button"
@@ -599,14 +618,14 @@ export default function SummerStakingPage() {
                     setUnstakeAmount(selectedStake.amount)
                     setUnstakeAmountStr(formatAmount(selectedStake.amount, summerDecimals))
                   }}
-                  className="px-3 py-2 bg-magenta-600 hover:bg-magenta-700 text-white rounded"
+                  className="px-3 py-2 bg-magenta-600 hover:bg-magenta-700 text-white rounded-xl font-semibold shadow-md transition-colors"
                 >
                   Max
                 </button>
               </div>
             </div>
             {selectedStake && (
-              <div className="text-sm text-gray-300 space-y-1">
+              <div className="text-sm text-gray-300 space-y-1 bg-charcoal-800/50 p-4 rounded-xl border border-white/5">
                 <div>
                   Stake amount:{' '}
                   <span className="text-white">
@@ -634,11 +653,16 @@ export default function SummerStakingPage() {
                 })()}
               </div>
             )}
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={() => approveXSummer()}
                 disabled={!canUnstake || !needsXSummerApproval(unstakeAmount)}
-                className={`px-4 py-2 rounded ${canUnstake && needsXSummerApproval(unstakeAmount) ? 'bg-magenta-600 hover:bg-magenta-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
+                className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all duration-300 ease-in-out shadow-lg
+                ${
+                  canUnstake && needsXSummerApproval(unstakeAmount)
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white transform hover:-translate-y-0.5'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-70'
+                }`}
               >
                 Approve xSUMR
               </button>
@@ -647,7 +671,12 @@ export default function SummerStakingPage() {
                 disabled={
                   !canUnstake || needsXSummerApproval(unstakeAmount) || isPending || isConfirming
                 }
-                className={`px-4 py-2 rounded ${canUnstake && !needsXSummerApproval(unstakeAmount) && !isPending && !isConfirming ? 'bg-magenta-600 hover:bg-magenta-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
+                className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all duration-300 ease-in-out shadow-lg
+                ${
+                  canUnstake && !needsXSummerApproval(unstakeAmount) && !isPending && !isConfirming
+                    ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white transform hover:-translate-y-0.5'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-70'
+                }`}
               >
                 {isPending || isConfirming ? 'Submitting…' : 'Unstake'}
               </button>
@@ -657,8 +686,8 @@ export default function SummerStakingPage() {
         </div>
 
         {/* Stakes list */}
-        <div className="rounded-2xl p-6 bg-charcoal-900 border border-white/10">
-          <h2 className="text-xl font-semibold text-white mb-4">Your Stakes</h2>
+        <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 backdrop-blur-md shadow-2xl">
+          <h2 className="text-xl font-bold text-white mb-4">Your Stakes</h2>
           {stakes.length === 0 ? (
             <div className="text-gray-400">No stakes yet.</div>
           ) : (
@@ -676,7 +705,7 @@ export default function SummerStakingPage() {
                 </thead>
                 <tbody className="text-gray-200">
                   {stakes.map((s) => (
-                    <tr key={s.index} className="border-t border-gray-800">
+                    <tr key={s.index} className="border-t border-gray-800/50">
                       <td className="p-2">{s.index}</td>
                       <td className="p-2">
                         {formatAmount(s.amount, summerDecimals)} {summerSymbol}
@@ -707,13 +736,13 @@ export default function SummerStakingPage() {
         </div>
 
         {/* Vesting Wallet Section */}
-        <div className="rounded-2xl p-6 bg-charcoal-900 border border-white/10 space-y-6">
-          <h2 className="text-2xl font-semibold text-white">Vesting Wallet Staking</h2>
+        <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 space-y-6 backdrop-blur-md shadow-2xl">
+          <h2 className="text-2xl font-bold text-white">Vesting Wallet Staking</h2>
 
           {/* Your Vesting Wallet (if exists) */}
           {userVestingWallet && (
-            <div className="rounded-xl p-4 bg-charcoal-800 border border-white/10 space-y-4">
-              <h3 className="text-lg font-semibold text-white">Your Vesting Wallet</h3>
+            <div className="rounded-xl p-6 bg-charcoal-800/50 border border-white/5 space-y-4">
+              <h3 className="text-lg font-bold text-white">Your Vesting Wallet</h3>
               <div className="text-sm text-gray-300 space-y-2">
                 <div>
                   Vesting Wallet:{' '}
@@ -733,7 +762,13 @@ export default function SummerStakingPage() {
                 </div>
                 <div>
                   Owner:{' '}
-                  <span className={isOwnedByEscrow ? 'text-green-400' : 'text-yellow-400'}>
+                  <span
+                    className={
+                      isOwnedByEscrow
+                        ? 'text-emerald-400 font-semibold'
+                        : 'text-yellow-400 font-semibold'
+                    }
+                  >
                     {isOwnedByEscrow ? 'Escrow' : 'You'}
                   </span>
                 </div>
@@ -741,7 +776,7 @@ export default function SummerStakingPage() {
                   <button
                     onClick={() => transferOwnershipToEscrow()}
                     disabled={isVestingPending || isVestingConfirming}
-                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded"
+                    className="mt-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl shadow-md transition-colors"
                   >
                     Transfer Ownership to Escrow
                   </button>
@@ -751,8 +786,8 @@ export default function SummerStakingPage() {
           )}
 
           {/* Create Vesting Wallet */}
-          <div className="rounded-xl p-4 bg-charcoal-800 border border-white/10 space-y-4">
-            <h3 className="text-lg font-semibold text-white">Create Vesting Wallet</h3>
+          <div className="rounded-xl p-6 bg-charcoal-800/50 border border-white/5 space-y-4">
+            <h3 className="text-lg font-bold text-white">Create Vesting Wallet</h3>
             <>
               <div>
                 <label className="block text-sm text-gray-300 mb-1">
@@ -762,57 +797,61 @@ export default function SummerStakingPage() {
                   value={vestingBeneficiary}
                   onChange={(e) => setVestingBeneficiary(e.target.value)}
                   placeholder={account || '0x...'}
-                  className="w-full px-3 py-2 bg-charcoal-700 border border-white/10 rounded text-white font-mono text-sm"
+                  className="w-full px-3 py-2 bg-charcoal-700/50 border border-white/10 rounded-xl text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-magenta-500/50 transition-all"
                 />
                 {vestingBeneficiary && !isValidBeneficiary && (
                   <div className="text-xs text-red-400 mt-1">Invalid address format</div>
                 )}
                 {vestingBeneficiary && isValidBeneficiary && (
-                  <div className="text-xs text-green-400 mt-1">✓ Valid address</div>
+                  <div className="text-xs text-emerald-400 mt-1">✓ Valid address</div>
                 )}
               </div>
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">Cliff End Date</label>
-                <input
-                  type="datetime-local"
-                  value={new Date(vestingCliffEnd * 1000).toISOString().slice(0, 16)}
-                  onChange={(e) =>
-                    setVestingCliffEnd(Math.floor(new Date(e.target.value).getTime() / 1000))
-                  }
-                  className="w-full px-3 py-2 bg-charcoal-700 border border-white/10 rounded text-white"
-                />
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">Cliff End Date</label>
+                  <input
+                    type="datetime-local"
+                    value={new Date(vestingCliffEnd * 1000).toISOString().slice(0, 16)}
+                    onChange={(e) =>
+                      setVestingCliffEnd(Math.floor(new Date(e.target.value).getTime() / 1000))
+                    }
+                    className="w-full px-3 py-2 bg-charcoal-700/50 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-magenta-500/50 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">
+                    Cliff Amount ({summerSymbol})
+                  </label>
+                  <input
+                    value={vestingCliffAmountStr}
+                    onChange={(e) => onVestingCliffAmountChange(e.target.value)}
+                    placeholder="0.0"
+                    className="w-full px-3 py-2 bg-charcoal-700/50 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-magenta-500/50 transition-all"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">
-                  Cliff Amount ({summerSymbol})
-                </label>
-                <input
-                  value={vestingCliffAmountStr}
-                  onChange={(e) => onVestingCliffAmountChange(e.target.value)}
-                  placeholder="0.0"
-                  className="w-full px-3 py-2 bg-charcoal-700 border border-white/10 rounded text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">Vesting Periods</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={vestingPeriods}
-                  onChange={(e) => setVestingPeriods(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-charcoal-700 border border-white/10 rounded text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">
-                  Total Vesting Amount ({summerSymbol})
-                </label>
-                <input
-                  value={vestingTotalAmountStr}
-                  onChange={(e) => onVestingTotalAmountChange(e.target.value)}
-                  placeholder="0.0"
-                  className="w-full px-3 py-2 bg-charcoal-700 border border-white/10 rounded text-white"
-                />
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">Vesting Periods</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={vestingPeriods}
+                    onChange={(e) => setVestingPeriods(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-charcoal-700/50 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-magenta-500/50 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">
+                    Total Vesting Amount ({summerSymbol})
+                  </label>
+                  <input
+                    value={vestingTotalAmountStr}
+                    onChange={(e) => onVestingTotalAmountChange(e.target.value)}
+                    placeholder="0.0"
+                    className="w-full px-3 py-2 bg-charcoal-700/50 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-magenta-500/50 transition-all"
+                  />
+                </div>
               </div>
               <div className="text-sm text-gray-400">
                 Total needed:{' '}
@@ -825,7 +864,7 @@ export default function SummerStakingPage() {
                   </span>
                 )}
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => approveFactory()}
                   disabled={
@@ -835,15 +874,15 @@ export default function SummerStakingPage() {
                     isVestingPending ||
                     isVestingConfirming
                   }
-                  className={`px-4 py-2 rounded ${
+                  className={`px-4 py-2 rounded-xl font-bold shadow-md transition-colors ${
                     isConnected &&
                     totalVestingNeeded > 0n &&
                     needsFactoryApproval(totalVestingNeeded) &&
                     !isVestingPending &&
                     !isVestingConfirming
-                      ? 'bg-magenta-600 hover:bg-magenta-700'
+                      ? 'bg-magenta-600 hover:bg-magenta-700 text-white'
                       : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                  } text-white`}
+                  }`}
                 >
                   {isVestingPending || isVestingConfirming
                     ? 'Approving...'
@@ -852,11 +891,11 @@ export default function SummerStakingPage() {
                 <button
                   onClick={handleCreateVesting}
                   disabled={!canCreateVesting || isVestingPending || isVestingConfirming}
-                  className={`px-4 py-2 rounded ${
+                  className={`px-4 py-2 rounded-xl font-bold shadow-md transition-colors ${
                     canCreateVesting && !isVestingPending && !isVestingConfirming
-                      ? 'bg-magenta-600 hover:bg-magenta-700'
+                      ? 'bg-magenta-600 hover:bg-magenta-700 text-white'
                       : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                  } text-white`}
+                  }`}
                 >
                   {isVestingPending || isVestingConfirming
                     ? 'Creating...'
@@ -868,17 +907,19 @@ export default function SummerStakingPage() {
 
           {/* Stake/Unstake Vesting Wallet */}
           {userVestingWallet && (
-            <div className="rounded-xl p-4 bg-charcoal-800 border border-white/10 space-y-4">
-              <h3 className="text-lg font-semibold text-white">Stake/Unstake Vesting Wallet</h3>
+            <div className="rounded-xl p-6 bg-charcoal-800/50 border border-white/5 space-y-4">
+              <h3 className="text-lg font-bold text-white">Stake/Unstake Vesting Wallet</h3>
               {isFactoryStaked ? (
                 <div className="space-y-3">
-                  <div className="text-sm text-green-400">✓ Vesting wallet is staked in escrow</div>
+                  <div className="text-sm text-emerald-400 font-semibold">
+                    ✓ Vesting wallet is staked in escrow
+                  </div>
                   {needsEscrowApproval(vestingWalletBalance || 0n) && (
-                    <div className="text-sm text-yellow-400">
+                    <div className="text-sm text-yellow-300 bg-yellow-900/20 p-2 rounded-lg border border-yellow-600/30">
                       ⚠ Approve xSUMR to unstake (escrow needs to burn your xSUMR tokens)
                     </div>
                   )}
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 pt-2">
                     <button
                       onClick={() => approveEscrow()}
                       disabled={
@@ -888,15 +929,15 @@ export default function SummerStakingPage() {
                         isVestingPending ||
                         isVestingConfirming
                       }
-                      className={`px-4 py-2 rounded ${
+                      className={`px-4 py-2 rounded-xl font-bold shadow-md transition-colors ${
                         isConnected &&
                         vestingWalletBalance > 0n &&
                         needsEscrowApproval(vestingWalletBalance || 0n) &&
                         !isVestingPending &&
                         !isVestingConfirming
-                          ? 'bg-magenta-600 hover:bg-magenta-700'
+                          ? 'bg-magenta-600 hover:bg-magenta-700 text-white'
                           : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                      } text-white`}
+                      }`}
                     >
                       {isVestingPending || isVestingConfirming ? 'Approving...' : 'Approve xSUMR'}
                     </button>
@@ -907,13 +948,13 @@ export default function SummerStakingPage() {
                         isVestingConfirming ||
                         needsEscrowApproval(vestingWalletBalance || 0n)
                       }
-                      className={`px-4 py-2 rounded ${
+                      className={`px-4 py-2 rounded-xl font-bold shadow-md transition-colors ${
                         !isVestingPending &&
                         !isVestingConfirming &&
                         !needsEscrowApproval(vestingWalletBalance || 0n)
-                          ? 'bg-red-600 hover:bg-red-700'
+                          ? 'bg-red-600 hover:bg-red-700 text-white'
                           : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                      } text-white`}
+                      }`}
                     >
                       {isVestingPending || isVestingConfirming
                         ? 'Unstaking...'
@@ -924,7 +965,7 @@ export default function SummerStakingPage() {
               ) : (
                 <div className="space-y-3">
                   {!isOwnedByEscrow && (
-                    <div className="text-sm text-yellow-400">
+                    <div className="text-sm text-yellow-300 bg-yellow-900/20 p-2 rounded-lg border border-yellow-600/30">
                       ⚠ Transfer ownership to escrow first before staking
                     </div>
                   )}
@@ -935,18 +976,20 @@ export default function SummerStakingPage() {
                     <button
                       onClick={handleStakeVesting}
                       disabled={!isOwnedByEscrow || isVestingPending || isVestingConfirming}
-                      className={`px-4 py-2 rounded ${
+                      className={`px-4 py-2 rounded-xl font-bold shadow-md transition-colors ${
                         isOwnedByEscrow && !isVestingPending && !isVestingConfirming
-                          ? 'bg-magenta-600 hover:bg-magenta-700'
+                          ? 'bg-magenta-600 hover:bg-magenta-700 text-white'
                           : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                      } text-white`}
+                      }`}
                     >
                       {isVestingPending || isVestingConfirming
                         ? 'Staking...'
                         : 'Stake Vesting Wallet'}
                     </button>
                   ) : (
-                    <div className="text-sm text-red-400">Factory not enabled in escrow</div>
+                    <div className="text-sm text-red-400 bg-red-900/20 p-2 rounded-lg border border-red-600/30">
+                      Factory not enabled in escrow
+                    </div>
                   )}
                 </div>
               )}
@@ -955,8 +998,8 @@ export default function SummerStakingPage() {
 
           {/* Admin: Add Factory */}
           {escrowAddress && (
-            <div className="rounded-xl p-4 bg-charcoal-800 border border-white/10 space-y-4">
-              <h3 className="text-lg font-semibold text-white">Admin: Manage Factories</h3>
+            <div className="rounded-xl p-6 bg-charcoal-800/50 border border-white/5 space-y-4">
+              <h3 className="text-lg font-bold text-white">Admin: Manage Factories</h3>
               <div>
                 <label className="block text-sm text-gray-300 mb-1">Enabled Factories</label>
                 <div className="space-y-1 text-xs text-gray-400">
@@ -964,7 +1007,10 @@ export default function SummerStakingPage() {
                     <div>No factories enabled</div>
                   ) : (
                     enabledFactories.map((factory, i) => (
-                      <div key={i} className="font-mono text-blue-300">
+                      <div
+                        key={i}
+                        className="font-mono text-blue-300 bg-charcoal-700/30 px-2 py-1 rounded w-fit"
+                      >
                         {factory}
                       </div>
                     ))
@@ -978,7 +1024,7 @@ export default function SummerStakingPage() {
                     value={newFactoryAddress}
                     onChange={(e) => setNewFactoryAddress(e.target.value)}
                     placeholder="0x..."
-                    className="flex-1 px-3 py-2 bg-charcoal-700 border border-white/10 rounded text-white"
+                    className="flex-1 px-3 py-2 bg-charcoal-700/50 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                   />
                   <button
                     onClick={() => {
@@ -993,14 +1039,14 @@ export default function SummerStakingPage() {
                       isVestingPending ||
                       isVestingConfirming
                     }
-                    className={`px-4 py-2 rounded ${
+                    className={`px-4 py-2 rounded-xl font-bold shadow-md transition-colors ${
                       newFactoryAddress &&
                       /^0x[a-fA-F0-9]{40}$/.test(newFactoryAddress) &&
                       !isVestingPending &&
                       !isVestingConfirming
-                        ? 'bg-blue-600 hover:bg-blue-700'
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
                         : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                    } text-white`}
+                    }`}
                   >
                     Add Factory
                   </button>
@@ -1011,7 +1057,7 @@ export default function SummerStakingPage() {
         </div>
 
         {/* Contract addresses */}
-        <div className="rounded-2xl p-4 bg-gray-900 border border-gray-800 text-xs text-gray-400">
+        <div className="rounded-xl p-4 bg-gray-900/50 border border-gray-800 text-xs text-gray-400 space-y-1 backdrop-blur-sm">
           <div>
             SUMMER: <span className="font-mono text-blue-300">{summerAddress}</span>
           </div>

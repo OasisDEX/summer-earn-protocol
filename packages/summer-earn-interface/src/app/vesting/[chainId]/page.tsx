@@ -441,20 +441,27 @@ export default function VestingPage() {
   }, [publicClient, vestingWalletAddress, isV2Wallet])
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black p-6 md:p-10">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg"
-          >
-            ← Back
-          </button>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white">Your Vesting Wallet ✨</h1>
+    <main className="min-h-screen bg-gradient-to-b from-black via-charcoal-900 to-black p-6 md:p-10 text-gray-100 font-sans">
+      <div className="max-w-5xl mx-auto space-y-8">
+        <div className="flex items-center justify-between gap-4 mb-2">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="px-5 py-2 bg-charcoal-800 hover:bg-gray-700 text-white rounded-xl border border-white/20 shadow-md transition-all duration-200 ease-in-out"
+            >
+              ← Back
+            </button>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
+              Your Vesting Wallet
+            </h1>
+          </div>
+          <span className="px-3 py-1 rounded-full border border-blue-500/30 bg-blue-900/20 text-xs uppercase tracking-wide text-blue-300 font-semibold">
+            {environment}
+          </span>
         </div>
 
         {/* Address override input */}
-        <div className="mb-6 rounded-2xl p-4 bg-gray-900 border border-gray-800">
+        <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 backdrop-blur-md shadow-2xl">
           <div className="flex flex-col md:flex-row md:items-end gap-3">
             <div className="flex-1">
               <label className="block text-sm text-gray-400 mb-1">Address to view</label>
@@ -462,20 +469,20 @@ export default function VestingPage() {
                 value={inputAddress}
                 onChange={(e) => setInputAddress(e.target.value)}
                 placeholder="0x..."
-                className="w-full px-3 py-2 rounded-md bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full px-3 py-2 rounded-xl bg-charcoal-800/50 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
               />
             </div>
             <div className="flex gap-2">
               <button
                 onClick={onFetchAddress}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-colors"
               >
                 Fetch
               </button>
               {lookupAddress && (
                 <button
                   onClick={onClearOverride}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md"
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-xl font-bold shadow-md transition-colors"
                 >
                   Clear
                 </button>
@@ -491,34 +498,34 @@ export default function VestingPage() {
             )}
           </div>
           {!isLookupSameAsConnected && isConnected && (
-            <div className="mt-2 text-yellow-300 text-sm">
+            <div className="mt-3 text-yellow-300 text-sm bg-yellow-900/20 p-2 rounded-lg border border-yellow-600/30">
               To claim, connect the same address as the one being viewed or clear the override.
             </div>
           )}
         </div>
 
         {!isBase && (
-          <div className="mb-6 p-4 rounded-lg border border-yellow-600 bg-yellow-900/40 text-yellow-200">
+          <div className="p-4 rounded-xl border border-yellow-600 bg-yellow-900/40 text-yellow-200 backdrop-blur-sm shadow-md">
             Please switch to Base network to manage vesting.
           </div>
         )}
 
         {!isConnected && (
-          <div className="mb-6 p-4 rounded-lg border border-blue-600 bg-blue-900/40 text-blue-200">
+          <div className="p-4 rounded-xl border border-blue-600 bg-blue-900/40 text-blue-200 backdrop-blur-sm shadow-md">
             Optional: connect your wallet to claim. You can still fetch any address above to view
             details.
           </div>
         )}
 
         {isV2Wallet && isRecalled && (
-          <div className="mb-6 p-4 rounded-lg border border-red-600 bg-red-900/40 text-red-200">
+          <div className="p-4 rounded-xl border border-red-600 bg-red-900/40 text-red-200 backdrop-blur-sm shadow-md">
             ⚠️ This vesting wallet has been recalled. No more tokens can be claimed.
           </div>
         )}
 
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800">
-            <h2 className="text-xl font-semibold text-white mb-4">Overview 🌈</h2>
+          <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 backdrop-blur-md shadow-2xl">
+            <h2 className="text-xl font-bold text-white mb-4">Overview 🌈</h2>
             <div className="space-y-3 text-gray-300">
               <div className="flex items-center justify-between gap-3">
                 <span>Factory</span>
@@ -545,16 +552,16 @@ export default function VestingPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800">
-            <h2 className="text-xl font-semibold text-white mb-4">Your Tokens 💰</h2>
+          <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 backdrop-blur-md shadow-2xl">
+            <h2 className="text-xl font-bold text-white mb-4">Your Tokens 💰</h2>
             <div className="space-y-4">
-              <div className="bg-gray-800/60 rounded-lg p-4">
+              <div className="bg-charcoal-800/50 rounded-xl p-4 border border-white/5">
                 <div className="text-gray-400 text-sm">Releasable now</div>
-                <div className="text-3xl font-bold text-green-400">
+                <div className="text-3xl font-bold text-emerald-400">
                   {formattedReleasable} {(tokenSymbol as string) || ''}
                 </div>
               </div>
-              <div className="bg-gray-800/60 rounded-lg p-4">
+              <div className="bg-charcoal-800/50 rounded-xl p-4 border border-white/5">
                 <div className="text-gray-400 text-sm">Already claimed</div>
                 <div className="text-2xl font-semibold text-blue-300">
                   {formattedReleased} {(tokenSymbol as string) || ''}
@@ -564,17 +571,17 @@ export default function VestingPage() {
               <button
                 onClick={onClaim}
                 disabled={!canClaim || isPending || isConfirming}
-                className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+                className={`w-full py-3 rounded-xl font-bold transition-all duration-300 ease-in-out shadow-lg ${
                   canClaim && !isPending && !isConfirming
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white transform hover:-translate-y-0.5'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-70'
                 }`}
               >
                 {isPending ? 'Submitting…' : isConfirming ? 'Confirming…' : 'Claim now 🎉'}
               </button>
 
               {isSuccess && (
-                <div className="p-3 rounded-lg bg-green-900/40 border border-green-700 text-green-200">
+                <div className="p-3 rounded-xl bg-green-900/40 border border-green-700 text-green-200">
                   Success! Your tokens are on the way 🚀
                 </div>
               )}
@@ -584,8 +591,8 @@ export default function VestingPage() {
 
         {/* Vesting details */}
         <div className="grid gap-6 md:grid-cols-2 mt-6">
-          <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800">
-            <h2 className="text-xl font-semibold text-white mb-4">Vesting Details 🧭</h2>
+          <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 backdrop-blur-md shadow-2xl">
+            <h2 className="text-xl font-bold text-white mb-4">Vesting Details 🧭</h2>
             <div className="space-y-3 text-gray-300">
               <div className="flex items-center justify-between gap-3">
                 <span>Contract Version</span>
@@ -624,8 +631,8 @@ export default function VestingPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800">
-            <h2 className="text-xl font-semibold text-white mb-4">
+          <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 backdrop-blur-md shadow-2xl">
+            <h2 className="text-xl font-bold text-white mb-4">
               Goals {(!isV2Wallet && vestingType === 0) || isV2Wallet ? '🙂/☹️' : ''}
             </h2>
             {!isV2Wallet && vestingType !== 0 && (
@@ -637,7 +644,7 @@ export default function VestingPage() {
                 {goals.map((g, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between gap-3 bg-gray-800/60 p-3 rounded-lg"
+                    className="flex items-center justify-between gap-3 bg-charcoal-800/50 p-4 rounded-xl border border-white/5"
                   >
                     <div className="text-gray-300">
                       Goal #{idx + 1}
@@ -646,7 +653,7 @@ export default function VestingPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-purple-300">
+                      <span className="text-purple-300 font-mono">
                         {formatDecimalOutput(g.amount ?? BigInt(0), decimals)}{' '}
                         {(tokenSymbol as string) || ''}
                       </span>

@@ -12,7 +12,7 @@ interface ChainSelectorProps {
 export function ChainSelector({ selectedChain, onChange, readOnly = false }: ChainSelectorProps) {
   return (
     <div className="flex flex-col space-y-2">
-      <label htmlFor="chain-select" className="text-sm font-medium text-white">
+      <label htmlFor="chain-select" className="text-sm font-bold text-white">
         Select Chain
       </label>
       <select
@@ -20,12 +20,14 @@ export function ChainSelector({ selectedChain, onChange, readOnly = false }: Cha
         value={selectedChain}
         onChange={(e) => onChange(e.target.value as ChainId)}
         disabled={readOnly}
-        className={`px-3 py-2 rounded-lg border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white ${
-          readOnly ? 'bg-gray-700 cursor-not-allowed' : 'bg-gray-800'
+        className={`w-full px-4 py-3 rounded-xl border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all ${
+          readOnly
+            ? 'bg-charcoal-800/50 cursor-not-allowed opacity-70'
+            : 'bg-charcoal-800/50 hover:bg-charcoal-800/80'
         }`}
       >
         {Object.entries(CHAIN_NAMES).map(([id, name]) => (
-          <option key={id} value={id}>
+          <option key={id} value={id} className="bg-charcoal-900 text-white">
             {name}
           </option>
         ))}

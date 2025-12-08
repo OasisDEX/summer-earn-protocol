@@ -33,9 +33,9 @@ export default function AccessManagerPage() {
 
   if (!protocolAccessManagerAddress) {
     return (
-      <div className="min-h-screen bg-gray-100 p-8">
+      <div className="min-h-screen bg-gradient-to-b from-black via-charcoal-900 to-black p-6 md:p-10">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center text-red-600">
+          <div className="text-center text-red-400 bg-red-900/20 p-6 rounded-3xl border border-red-500/50 backdrop-blur-md">
             Protocol Access Manager not configured for chain {chainId} in {environment} environment
           </div>
         </div>
@@ -54,40 +54,51 @@ export default function AccessManagerPage() {
   const requiresTargetContract = isFleetRole(selectedRole) || isArkRole(selectedRole)
 
   return (
-    <main className="min-h-screen bg-black p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <button
-              onClick={() => router.back()}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
-            >
-              ← Back
-            </button>
-            <h1 className="text-3xl font-bold text-white">Protocol Access Manager</h1>
+    <main className="min-h-screen bg-gradient-to-b from-black via-charcoal-900 to-black p-6 md:p-10 text-gray-100 font-sans">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.back()}
+                className="px-5 py-2 bg-charcoal-800 hover:bg-gray-700 text-white rounded-xl border border-white/20 shadow-md transition-all duration-200 ease-in-out"
+              >
+                ← Back
+              </button>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
+                  Protocol Access Manager
+                </h1>
+                <span className="px-3 py-1 rounded-full border border-blue-500/30 bg-blue-900/20 text-xs uppercase tracking-wide text-blue-300 font-semibold h-fit">
+                  {environment}
+                </span>
+              </div>
+            </div>
           </div>
-          <p className="text-gray-300 mb-6">
+          <p className="text-gray-400 text-lg">
             Manage roles and permissions for the Summer Earn Protocol
           </p>
 
-          <div className="flex flex-col gap-4 mb-6">
-            <ChainSelector selectedChain={chainId} onChange={() => {}} readOnly />
-          </div>
+          <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 shadow-2xl backdrop-blur-md">
+            <div className="flex flex-col gap-4 mb-6">
+              <ChainSelector selectedChain={chainId} onChange={() => {}} readOnly />
+            </div>
 
-          <div className="bg-gray-800 p-4 rounded-lg mb-6">
-            <p className="text-sm text-gray-300">
-              <strong>Contract Address:</strong>{' '}
-              <span className="font-mono text-blue-300">{protocolAccessManagerAddress}</span>
-            </p>
+            <div className="bg-charcoal-800/50 p-4 rounded-xl border border-white/5">
+              <p className="text-sm text-gray-300">
+                <strong>Contract Address:</strong>{' '}
+                <span className="font-mono text-blue-300">{protocolAccessManagerAddress}</span>
+              </p>
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Role Selection */}
-          <div className="bg-gray-900 p-6 rounded-lg">
-            <h2 className="text-xl font-semibold text-white mb-4">Select Role</h2>
+          <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 shadow-2xl backdrop-blur-md">
+            <h2 className="text-xl font-bold text-white mb-6">Select Role</h2>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Role Type</label>
                 <select
@@ -95,9 +106,9 @@ export default function AccessManagerPage() {
                   onChange={(e) =>
                     setSelectedRole(e.target.value as GlobalRole | FleetRole | ArkRole)
                   }
-                  className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-charcoal-800/50 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                 >
-                  <optgroup label="Global Roles">
+                  <optgroup label="Global Roles" className="bg-charcoal-900 text-white">
                     <option value="GOVERNOR_ROLE">Governor</option>
                     <option value="SUPER_KEEPER_ROLE">Super Keeper</option>
                     <option value="GUARDIAN_ROLE">Guardian</option>
@@ -105,11 +116,11 @@ export default function AccessManagerPage() {
                     <option value="ADMIRALS_QUARTERS_ROLE">Admirals Quarters</option>
                     <option value="FOUNDATION_ROLE">Foundation</option>
                   </optgroup>
-                  <optgroup label="Fleet Roles">
+                  <optgroup label="Fleet Roles" className="bg-charcoal-900 text-white">
                     <option value="CURATOR_ROLE">Curator (Fleet-specific)</option>
                     <option value="KEEPER_ROLE">Keeper (Fleet-specific)</option>
                   </optgroup>
-                  <optgroup label="Ark Roles">
+                  <optgroup label="Ark Roles" className="bg-charcoal-900 text-white">
                     <option value="COMMANDER_ROLE">Commander (Ark-specific)</option>
                   </optgroup>
                 </select>
@@ -133,7 +144,7 @@ export default function AccessManagerPage() {
                       placeholder="Enter Ark address"
                       value={selectedFleet}
                       onChange={(e) => setSelectedFleet(e.target.value)}
-                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-charcoal-800/50 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                     />
                   )}
                 </div>
@@ -142,7 +153,7 @@ export default function AccessManagerPage() {
           </div>
 
           {/* Role Management */}
-          <div className="bg-gray-900 p-6 rounded-lg">
+          <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 shadow-2xl backdrop-blur-md">
             <RoleManager
               contractAddress={protocolAccessManagerAddress}
               selectedRole={selectedRole}
@@ -152,9 +163,9 @@ export default function AccessManagerPage() {
         </div>
 
         {/* Role Information */}
-        <div className="mt-8 bg-gray-900 p-6 rounded-lg">
-          <h2 className="text-xl font-semibold text-white mb-4">Role Information</h2>
-          <div className="text-gray-300 space-y-2">
+        <div className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 shadow-2xl backdrop-blur-md">
+          <h2 className="text-xl font-bold text-white mb-4">Role Information</h2>
+          <div className="text-gray-300 space-y-2 leading-relaxed">
             {selectedRole === 'GOVERNOR_ROLE' && (
               <p>
                 Governors have the highest privilege level with admin capabilities across the entire
