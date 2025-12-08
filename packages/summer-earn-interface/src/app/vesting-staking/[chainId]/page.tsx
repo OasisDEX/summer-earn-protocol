@@ -500,14 +500,37 @@ export default function VestingStakingPage() {
             </span>
           </div>
 
-          {/* Conditional Warning/Info Banners */}
-          {/* These will use the existing classes but can be enhanced with a subtle glass effect if desired */}
           {!isConnected && (
             <div className="rounded-2xl border border-blue-600 bg-blue-900/40 text-blue-100 p-4 text-sm backdrop-blur-sm">
               Connect your wallet to discover your vesting wallet and manage staking.
             </div>
           )}
-          {/* ... other warning banners ... */}
+
+          {!hasEscrow && (
+            <div className="rounded-2xl border border-yellow-600 bg-yellow-900/40 text-yellow-100 p-4 text-sm backdrop-blur-sm">
+              Vesting staking is not available on this chain and environment.
+            </div>
+          )}
+
+          {hasEscrow && noFactoriesConfigured && (
+            <div className="rounded-2xl border border-yellow-600 bg-yellow-900/40 text-yellow-100 p-4 text-sm backdrop-blur-sm">
+              no factories configured
+            </div>
+          )}
+
+          {hasMultipleVestingWallets && (
+            <div className="rounded-2xl border border-red-600 bg-red-900/40 text-red-100 p-4 text-sm backdrop-blur-sm">
+              We detected multiple vesting wallets associated with this address. Please contact us
+              on Discord so we can investigate why you have multiple vesting wallets.
+            </div>
+          )}
+
+          {hasEscrow && !noFactoriesConfigured && isConnected && noVestingWalletFound && (
+            <div className="rounded-2xl border border-gray-700 bg-charcoal-900 text-gray-200 p-4 text-sm backdrop-blur-sm">
+              No vesting wallet associated with this address. Once a vesting wallet is created for
+              you, it will appear here automatically.
+            </div>
+          )}
 
           {hasEscrow && factories.length > 0 && vestingWallet && (
             <div className="space-y-6">
@@ -603,8 +626,8 @@ export default function VestingStakingPage() {
                       Complete Step 1 to Continue
                     </div>
                     <div className="mt-2 text-sm text-gray-400 max-w-sm">
-                      Once the escrow owns your vesting wallet, you'll be able to stake and unstake
-                      it here.
+                      Once the escrow owns your vesting wallet, you&apos;ll be able to stake and
+                      unstake it here.
                     </div>
                   </div>
                 )}
