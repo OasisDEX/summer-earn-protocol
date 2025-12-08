@@ -2,7 +2,7 @@ import {
   StakedWithLockup,
   UnstakedWithPenalty,
 } from '../../generated/SummerStakingV2/SummerStakingV2'
-import { BigIntConstants } from '../common/constants'
+import { BigDecimalConstants, BigIntConstants } from '../common/constants'
 
 import { Address, BigInt, log, store } from '@graphprotocol/graph-ts'
 import {
@@ -11,7 +11,7 @@ import {
   getOrCreateStakeLockup,
 } from '../common/initializers'
 import { formatAmount } from '../common/utils'
-import { StakeLockup } from '../../generated/schema'
+import { Account, StakeLockup } from '../../generated/schema'
 
 /**
  * Mapping overview
@@ -59,8 +59,15 @@ export function handleStaked(event: StakedWithLockup): void {
   const processedStake = getOrCreateStakeLockup(processedStakeId)
   const isNoLockupStake = _isNoLockupStake(event.params.stakeIndex)
   const lockupPeriod = event.params.lockupPeriod
+  const account = getOrCreateAccount(event.params.receiver.toHexString())
 
-  _processStakeLockupOnStake(processedStake, event)
+  if (!isNoLockupStake) {
+    account.lastLockupIndex = account.lastLockupIndex!.plus(BigIntConstants.ONE)
+    account.save()
+    _ensureNoLockupStake(account, event)
+  }
+
+  _processStakeLockupOnStake(account, processedStake, event)
   _processGovernanceStakingOnStake(event, isNoLockupStake, lockupPeriod)
 }
 
@@ -130,8 +137,11 @@ function _isStakeEmpty(stake: StakeLockup): boolean {
  *    and overwrite the amounts with the latest event (same as contract appending/
  *    overwriting the array entry).
  */
-function _processStakeLockupOnStake(processedStake: StakeLockup, event: StakedWithLockup): void {
-  const account = getOrCreateAccount(event.params.receiver.toHexString())
+function _processStakeLockupOnStake(
+  account: Account,
+  processedStake: StakeLockup,
+  event: StakedWithLockup,
+): void {
   processedStake.index = event.params.stakeIndex
   processedStake.account = account.id
   processedStake.lockupPeriod = event.params.lockupPeriod
@@ -303,8 +313,10 @@ function _removeStake(event: UnstakedWithPenalty, processedStakeId: string): voi
   const account = getOrCreateAccount(event.params.receiver.toHexString())
   // Load the current number of `StakeLockup` entities for this account; this
   // includes both index 0 and all lockup indices > 0.
-  const accountAmountOfLockedStakes = account.stakeLockups.load().length
-  const lastStakeIndex = BigInt.fromI32(accountAmountOfLockedStakes - 1)
+
+  const lastStakeIndex = account.lastLockupIndex
+  account.lastLockupIndex = account.lastLockupIndex.minus(BigIntConstants.ONE)
+  account.save()
 
   // Case 1: emptied stake was already the last index → just pop/remove it.
   if (event.params.stakeIndex.equals(lastStakeIndex)) {
@@ -328,5 +340,24 @@ function _removeStake(event: UnstakedWithPenalty, processedStakeId: string): voi
     // Delete the old "last index" entity; after this, the moved stake only
     // exists under the new ID/index, exactly like `_stakes.pop()` in Solidity.
     store.remove('StakeLockup', lastStakeLockupId)
+  }
+}
+
+function _ensureNoLockupStake(account: Account, event: StakedWithLockup): void {
+  const amountOfStakes = account.stakeLockups.load().length
+  if (amountOfStakes == 0) {
+    const noLockupStake = getOrCreateStakeLockup(
+      _getStakeLockupId(event.address, event.params.receiver, BigIntConstants.ZERO),
+    )
+    noLockupStake.index = BigIntConstants.ZERO
+    noLockupStake.account = account.id
+    noLockupStake.lockupPeriod = BigIntConstants.ZERO
+    noLockupStake.startTimestamp = event.block.timestamp
+    noLockupStake.endTimestamp = event.block.timestamp
+    noLockupStake.amount = BigIntConstants.ZERO
+    noLockupStake.amountNormalized = BigDecimalConstants.ZERO
+    noLockupStake.weightedAmount = BigIntConstants.ZERO
+    noLockupStake.weightedAmountNormalized = BigDecimalConstants.ZERO
+    noLockupStake.save()
   }
 }

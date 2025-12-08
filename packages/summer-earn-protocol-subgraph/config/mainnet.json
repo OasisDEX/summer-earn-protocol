@@ -6,8 +6,10 @@
   "governance-rewards-manager-start-block": 21745351,
   "summer-staking-v2-address": "0x0000000000000000000000000000000000000000",
   "summer-staking-v2-start-block": 301218468,
+  "summer-staking-v2-staging-address": "0x0000000000000000000000000000000000000000",
+  "summer-staking-v2-staging-start-block": 301218468,
   "interval-handler-block-interval": 30,
-  "enable-grafting": true,
+  "enable-grafting": false,
   "grafting-base": "QmZtW2U3bNDxWEsMZmPKPMi5FLdMANGp9E3GVq3f2pSXw8",
   "grafting-block": "23533120"
 }
