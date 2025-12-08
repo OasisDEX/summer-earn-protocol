@@ -6,7 +6,6 @@ import { useAccount } from 'wagmi'
 
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 
-import { EnvironmentSelector } from '../../../components/EnvironmentSelector'
 import { useEnvironment } from '../../../hooks/useEnvironment'
 import { useStakingAPR } from '../../../hooks/useStakingAPR'
 import { useSummerStaking } from '../../../hooks/useSummerStaking'
@@ -61,7 +60,6 @@ export default function SummerStakingPage() {
   const router = useRouter()
   const chainId = params.chainId as ChainId
   const [selectedChain, _setSelectedChain] = useLocalStorage<ChainId>('selectedChain', chainId)
-  const { environment, setEnvironment } = useEnvironment()
 
   useSyncWalletChain(selectedChain)
 
@@ -323,7 +321,6 @@ export default function SummerStakingPage() {
 
   return (
     <main className="min-h-screen bg-charcoal-900 p-6 md:p-10">
-      {environment}
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center gap-4 mb-2">
           <button
@@ -333,11 +330,6 @@ export default function SummerStakingPage() {
             ← Back
           </button>
           <h1 className="text-3xl md:text-4xl font-extrabold text-white">Summer Staking</h1>
-        </div>
-
-        {/* Environment Selector */}
-        <div className="rounded-2xl p-4 bg-charcoal-800 border border-white/10">
-          <EnvironmentSelector selectedEnvironment={environment} onChange={setEnvironment} />
         </div>
 
         {/* Staking APR */}
