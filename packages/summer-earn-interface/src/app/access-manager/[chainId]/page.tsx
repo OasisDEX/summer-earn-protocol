@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
 import { ChainSelector } from '../../../components/ChainSelector'
-import { EnvironmentSelector } from '../../../components/EnvironmentSelector'
 import { FleetSelector } from '../../../components/FleetSelector'
 import { RoleManager } from '../../../components/RoleManager'
 import { PROTOCOL_ACCESS_MANAGER_ADDRESSES } from '../../../config/environments'
@@ -17,7 +16,7 @@ export default function AccessManagerPage() {
   const params = useParams()
   const router = useRouter()
   const chainId = params.chainId as ChainId
-  const { environment, setEnvironment } = useEnvironment()
+  const { environment } = useEnvironment()
   useSyncWalletChain(chainId)
   const [selectedRole, setSelectedRole] = useState<GlobalRole | FleetRole | ArkRole>(
     'GOVERNOR_ROLE',
@@ -72,7 +71,6 @@ export default function AccessManagerPage() {
           </p>
 
           <div className="flex flex-col gap-4 mb-6">
-            <EnvironmentSelector selectedEnvironment={environment} onChange={setEnvironment} />
             <ChainSelector selectedChain={chainId} onChange={() => {}} readOnly />
           </div>
 
