@@ -1,8 +1,9 @@
+import { Address } from 'viem'
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
 
 export type Environment = 'production' | 'staging'
 
-export const HARBOR_COMMAND_ADDRESSES: Record<Environment, Record<number, string>> = {
+export const HARBOR_COMMAND_ADDRESSES: Record<Environment, Record<number, Address>> = {
   production: {
     [mainnet.id]: '0x09eb323dBFECB43fd746c607A9321dACdfB0140F',
     [arbitrum.id]: '0x09eb323dBFECB43fd746c607A9321dACdfB0140F',
@@ -17,7 +18,7 @@ export const HARBOR_COMMAND_ADDRESSES: Record<Environment, Record<number, string
   },
 }
 
-export const RAFT_CONTRACT_ADDRESSES: Record<Environment, Record<number, string>> = {
+export const RAFT_CONTRACT_ADDRESSES: Record<Environment, Record<number, Address>> = {
   production: {
     [mainnet.id]: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E', // TODO: Add actual address
     [arbitrum.id]: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E', // TODO: Add actual address
@@ -33,7 +34,7 @@ export const RAFT_CONTRACT_ADDRESSES: Record<Environment, Record<number, string>
 }
 
 // Token addresses per chain
-export const PROTOCOL_ACCESS_MANAGER_ADDRESSES: Record<Environment, Record<number, string>> = {
+export const PROTOCOL_ACCESS_MANAGER_ADDRESSES: Record<Environment, Record<number, Address>> = {
   production: {
     [mainnet.id]: '0xf389BCEa078acD9516414F5dabE3dDd5f7e39694',
     [arbitrum.id]: '0xf389BCEa078acD9516414F5dabE3dDd5f7e39694', // TODO: Add actual address for arbitrum
@@ -51,7 +52,7 @@ export const PROTOCOL_ACCESS_MANAGER_ADDRESSES: Record<Environment, Record<numbe
 // Summer Vesting Wallet Factory addresses per environment/chain
 export const SUMMER_VESTING_WALLET_FACTORY_ADDRESSES: Record<
   Environment,
-  Record<number, string>
+  Record<number, Address>
 > = {
   production: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
@@ -62,7 +63,7 @@ export const SUMMER_VESTING_WALLET_FACTORY_ADDRESSES: Record<
   staging: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0x5f3cd3a45E6B8c2B29DDC80411C58291740E8886',
+    [base.id]: '0x0000000000000000000000000000000000000000',
     [sonic.id]: '0x0000000000000000000000000000000000000000',
   },
 }
@@ -70,7 +71,7 @@ export const SUMMER_VESTING_WALLET_FACTORY_ADDRESSES: Record<
 // Summer Vesting Wallet Factory V2 addresses per environment/chain
 export const SUMMER_VESTING_WALLET_FACTORY_V2_ADDRESSES: Record<
   Environment,
-  Record<number, string>
+  Record<number, Address>
 > = {
   production: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
@@ -86,7 +87,7 @@ export const SUMMER_VESTING_WALLET_FACTORY_V2_ADDRESSES: Record<
   },
 }
 
-export const REWARD_TOKENS: Record<number, string[]> = {
+export const REWARD_TOKENS: Record<number, Address[]> = {
   [sonic.id]: [
     '0xb098AFC30FCE67f1926e735Db6fDadFE433E61db',
     '0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38',
@@ -98,7 +99,7 @@ export const REWARD_TOKENS: Record<number, string[]> = {
 }
 
 // Intent System Contract Addresses (Base only for now)
-export const INTENT_SYSTEM_ADDRESSES: Record<Environment, Record<number, string>> = {
+export const INTENT_SYSTEM_ADDRESSES: Record<Environment, Record<number, Address>> = {
   production: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000', // Not deployed yet
     [arbitrum.id]: '0x0000000000000000000000000000000000000000', // Not deployed yet
@@ -114,7 +115,7 @@ export const INTENT_SYSTEM_ADDRESSES: Record<Environment, Record<number, string>
 }
 
 // Individual Intent System Contracts (Base staging)
-export const INTENT_BOND_FACTORY_ADDRESSES: Record<Environment, Record<number, string>> = {
+export const INTENT_BOND_FACTORY_ADDRESSES: Record<Environment, Record<number, Address>> = {
   production: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
@@ -129,7 +130,7 @@ export const INTENT_BOND_FACTORY_ADDRESSES: Record<Environment, Record<number, s
   },
 }
 
-export const INTENT_HANDLER_ADDRESSES: Record<Environment, Record<number, string>> = {
+export const INTENT_HANDLER_ADDRESSES: Record<Environment, Record<number, Address>> = {
   production: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
@@ -145,7 +146,7 @@ export const INTENT_HANDLER_ADDRESSES: Record<Environment, Record<number, string
 }
 
 // Mock Intent Oracle Addresses (for testing)
-export const MOCK_INTENT_ORACLE_ADDRESSES: Record<Environment, Record<number, string>> = {
+export const MOCK_INTENT_ORACLE_ADDRESSES: Record<Environment, Record<number, Address>> = {
   production: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
@@ -180,11 +181,11 @@ export const INTENT_SYSTEM_TOKENS: Record<Environment, Record<number, Record<str
 }
 
 // Summer Staking contracts (Base only for now)
-export const SUMMER_TOKEN_ADDRESSES: Record<Environment, Record<number, string>> = {
+export const SUMMER_TOKEN_ADDRESSES: Record<Environment, Record<number, Address>> = {
   production: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32',
+    [base.id]: '0x194f360D130F2393a5E9F3117A6a1B78aBEa1624',
     [sonic.id]: '0x0000000000000000000000000000000000000000',
   },
   staging: {
@@ -195,11 +196,11 @@ export const SUMMER_TOKEN_ADDRESSES: Record<Environment, Record<number, string>>
   },
 }
 
-export const STAKED_SUMMER_TOKEN_ADDRESSES: Record<Environment, Record<number, string>> = {
+export const STAKED_SUMMER_TOKEN_ADDRESSES: Record<Environment, Record<number, Address>> = {
   production: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x7cC488F2681cFC2A5E8A00184bfA94ea6d520D1c',
     [sonic.id]: '0x0000000000000000000000000000000000000000',
   },
   staging: {
@@ -210,11 +211,11 @@ export const STAKED_SUMMER_TOKEN_ADDRESSES: Record<Environment, Record<number, s
   },
 }
 
-export const SUMMER_STAKING_ADDRESSES: Record<Environment, Record<number, string>> = {
+export const SUMMER_STAKING_ADDRESSES: Record<Environment, Record<number, Address>> = {
   production: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4',
     [sonic.id]: '0x0000000000000000000000000000000000000000',
   },
   staging: {
@@ -227,12 +228,12 @@ export const SUMMER_STAKING_ADDRESSES: Record<Environment, Record<number, string
 
 export const SUMMER_VESTING_WALLETS_ESCROW_ADDRESSES: Record<
   Environment,
-  Record<number, string>
+  Record<number, Address>
 > = {
   production: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0xdF8b1E08679D6035b6c1504e04C5C9e72a0555Fe',
     [sonic.id]: '0x0000000000000000000000000000000000000000',
   },
   staging: {
