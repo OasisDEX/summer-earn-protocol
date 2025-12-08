@@ -1,37 +1,34 @@
-import { Environment } from '../config/environments'
+'use client'
 
-interface EnvironmentSelectorProps {
-  selectedEnvironment: Environment
-  onChange: (environment: Environment) => void
-}
+import { useEnvironment } from '@/hooks/useEnvironment'
 
-export function EnvironmentSelector({ selectedEnvironment, onChange }: EnvironmentSelectorProps) {
+export function EnvironmentSelector() {
+  const { environment, setEnvironment } = useEnvironment()
+
   return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-white mb-2">Environment</label>
-      <div className="flex space-x-4">
-        <label className="inline-flex items-center">
-          <input
-            type="radio"
-            className="form-radio text-blue-500 border-gray-600 bg-gray-800 focus:ring-blue-500"
-            name="environment"
-            value="production"
-            checked={selectedEnvironment === 'production'}
-            onChange={(e) => onChange(e.target.value as Environment)}
-          />
-          <span className="ml-2 text-gray-300">Production</span>
-        </label>
-        <label className="inline-flex items-center">
-          <input
-            type="radio"
-            className="form-radio text-blue-500 border-gray-600 bg-gray-800 focus:ring-blue-500"
-            name="environment"
-            value="staging"
-            checked={selectedEnvironment === 'staging'}
-            onChange={(e) => onChange(e.target.value as Environment)}
-          />
-          <span className="ml-2 text-gray-300">Staging</span>
-        </label>
+    <div className="flex items-center space-x-3 bg-charcoal-700/50 rounded-lg px-3 py-1.5 border border-white/5">
+      <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Env</span>
+      <div className="flex space-x-1 bg-charcoal-900 rounded p-0.5">
+        <button
+          onClick={() => setEnvironment('production')}
+          className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+            environment === 'production'
+              ? 'bg-violet-500 text-white shadow-sm'
+              : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+          }`}
+        >
+          Prod
+        </button>
+        <button
+          onClick={() => setEnvironment('staging')}
+          className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+            environment === 'staging'
+              ? 'bg-amber-500 text-white shadow-sm'
+              : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+          }`}
+        >
+          Dev
+        </button>
       </div>
     </div>
   )

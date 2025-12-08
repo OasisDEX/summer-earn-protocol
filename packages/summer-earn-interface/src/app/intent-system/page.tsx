@@ -5,7 +5,6 @@ import { formatEther, formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 
 import { ChainSelector } from '../../components/ChainSelector'
-import { EnvironmentSelector } from '../../components/EnvironmentSelector'
 import { CreateBondModal } from '../../components/modals/CreateBondModal'
 import { CreateIntentModal } from '../../components/modals/CreateIntentModal'
 import { SetPriceModal } from '../../components/modals/SetPriceModal'
@@ -45,7 +44,7 @@ const DEFAULT_ORACLE_ADDRESS = '0x0000000000000000000000000000000000000000'
 export default function IntentSystemPage() {
   const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', '8453')
   const [selectedChain, setSelectedChain] = useState<ChainId>(storedChain)
-  const { environment, setEnvironment } = useEnvironment()
+  const { environment } = useEnvironment()
   const { address: userAddress, isConnected } = useAccount()
 
   // Modal states
@@ -242,7 +241,6 @@ export default function IntentSystemPage() {
 
           <div className="bg-gray-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <EnvironmentSelector selectedEnvironment={environment} onChange={setEnvironment} />
               <ChainSelector selectedChain={selectedChain} onChange={setSelectedChain} />
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { Inter } from 'next/font/google'
 
 import { ConnectButton } from '../components/ConnectButton'
+import { EnvironmentSelector } from '../components/EnvironmentSelector'
 import { Providers } from './providers'
 
 import './globals.css'
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                   {/* Navigation/Actions */}
                   <div className="flex items-center space-x-4">
+                    <EnvironmentSelector />
                     <ConnectButton />
                   </div>
                 </div>

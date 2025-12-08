@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 
 import { ChainSelector } from '../components/ChainSelector'
-import { EnvironmentSelector } from '../components/EnvironmentSelector'
 import { FleetCard } from '../components/FleetCard'
 import { Skeleton } from '../components/Skeleton'
 import { useActiveFleets } from '../hooks/useActiveFleets'
@@ -15,7 +14,7 @@ import type { ChainId } from '../types'
 export default function Home() {
   const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', '1')
   const [selectedChain, setSelectedChain] = useState<ChainId>(storedChain)
-  const { environment, setEnvironment } = useEnvironment()
+  const { environment } = useEnvironment()
   useSyncWalletChain(selectedChain)
   useEffect(() => {
     setStoredChain(selectedChain)
@@ -50,7 +49,6 @@ export default function Home() {
 
           <div className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <EnvironmentSelector selectedEnvironment={environment} onChange={setEnvironment} />
               <ChainSelector selectedChain={selectedChain} onChange={setSelectedChain} />
             </div>
           </div>
