@@ -800,8 +800,8 @@
             "TAC_USDC": "0x1E2aAaDcF528b9cC08F43d4fd7db488cE89F5741",
             "Clearstar_USDC_Reactor": "0x62fE596d59fB077c2Df736dF212E0AFfb522dC78",
             "Edge_UltraYield_USDC": "0x0562AE950276B24F3eAE0d0a518dADB7Ad2F8D66",
-            "Vault_Bridge_USDC": "0xBEefb9f61CC44895d8AEc381373555a64191A9c4"   ,
-            "kpk_USDC_Prime":"0xe108fbc04852B5df72f9E44d7C29F47e7A993aDd"         
+            "Vault_Bridge_USDC": "0xBEefb9f61CC44895d8AEc381373555a64191A9c4",
+            "kpk_USDC_Prime": "0xe108fbc04852B5df72f9E44d7C29F47e7A993aDd"
           },
           "dai": {},
           "usde": {},
@@ -826,7 +826,7 @@
             "Alpha_WETH_Core": "0x47fe8Ab9eE47DD65c24df52324181790b9F47EfC",
             "Yearn_OG_WETH": "0xE89371eAaAC6D46d4C3ED23453241987916224FC",
             "Avantgarde_WETH_Core": "0xf79F51f8F473eD34f6b2b13ee74c3208286D53EB",
-            "kpk_WETH_Prime":"0xd564F765F9aD3E7d2d6cA782100795a885e8e7C8"
+            "kpk_WETH_Prime": "0xd564F765F9aD3E7d2d6cA782100795a885e8e7C8"
           }
         },
         "markets": {
