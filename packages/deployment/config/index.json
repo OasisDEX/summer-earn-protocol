@@ -735,7 +735,8 @@
           "Term_Summer_WETH": "0x6e7d87a64c78593781452a014dc989100B24a4aF",
           "Euler_Frontier_Upshift": "0x87c414825aB3d1E9bdC773e9B1fD968822c9CF51",
           "Euler_Alterscope_LRT_WETH": "0x45c3B59d53e2e148Aaa6a857521059676D5c0489",
-          "Euler_Frontier_Puffer": "0xc2c4aBae84fbb5b7bAAB52301A924b1F986C66bd"
+          "Euler_Frontier_Puffer": "0xc2c4aBae84fbb5b7bAAB52301A924b1F986C66bd",
+          "Gearbox_KPK_WETH_Pool": "0x9396dcbf78fc526bb003665337c5e73b699571ef"
         },
         "usds": {
           "Sky_Staked_USDS": "0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9"
@@ -799,7 +800,8 @@
             "TAC_USDC": "0x1E2aAaDcF528b9cC08F43d4fd7db488cE89F5741",
             "Clearstar_USDC_Reactor": "0x62fE596d59fB077c2Df736dF212E0AFfb522dC78",
             "Edge_UltraYield_USDC": "0x0562AE950276B24F3eAE0d0a518dADB7Ad2F8D66",
-            "Vault_Bridge_USDC": "0xBEefb9f61CC44895d8AEc381373555a64191A9c4"
+            "Vault_Bridge_USDC": "0xBEefb9f61CC44895d8AEc381373555a64191A9c4"   ,
+            "kpk_USDC_Prime":"0xe108fbc04852B5df72f9E44d7C29F47e7A993aDd"         
           },
           "dai": {},
           "usde": {},
@@ -823,7 +825,8 @@
             "TAC_WETH": "0x0bB2751a90fFF62e844b1521637DeD28F3f5046A",
             "Alpha_WETH_Core": "0x47fe8Ab9eE47DD65c24df52324181790b9F47EfC",
             "Yearn_OG_WETH": "0xE89371eAaAC6D46d4C3ED23453241987916224FC",
-            "Avantgarde_WETH_Core": "0xf79F51f8F473eD34f6b2b13ee74c3208286D53EB"
+            "Avantgarde_WETH_Core": "0xf79F51f8F473eD34f6b2b13ee74c3208286D53EB",
+            "kpk_WETH_Prime":"0xd564F765F9aD3E7d2d6cA782100795a885e8e7C8"
           }
         },
         "markets": {

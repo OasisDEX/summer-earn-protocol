@@ -192,6 +192,14 @@
         "asset": "WETH",
         "protocol": "spark"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "kpk_WETH_Prime",
+        "protocol": "erc4626"
+      }
     }
   ]
 }

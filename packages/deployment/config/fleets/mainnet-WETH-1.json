@@ -99,6 +99,14 @@
         "asset": "WETH",
         "protocol": "fluid"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Gearbox_KPK_WETH_Pool",
+        "protocol": "erc4626"
+      }
     }
   ]
 }

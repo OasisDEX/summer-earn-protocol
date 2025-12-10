@@ -162,6 +162,14 @@
         "asset": "USDC",
         "protocol": "fluid"
       }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "kpk_USDC_Prime",
+        "protocol": "morpho"
+      }
     }
   ]
 }
