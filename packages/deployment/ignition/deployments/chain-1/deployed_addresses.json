@@ -148,5 +148,8 @@
   "LazyVault_HigherRisk_WETH_AaveV3_weth_1#AaveV3Ark": "0xD33E132C34c978C18ACd8CD90D14467C1BF10f30",
   "LazyVault_HigherRisk_WETH_CompoundV3_weth_1#CompoundV3Ark": "0xc41AF022a0cBBbD95b4A4Eb5B9EbB51bB888bB0D",
   "LazyVault_HigherRisk_WETH_Spark_weth_1#SparkArk": "0xa3B8e720cFff63fd47Ea80e18b773965E25c2b6c",
-  "GovModuleV2#SummerGovernorV2": "0x94F29e66fE35Ee2BC03EC9D8C3fb6d9E183f3572"
+  "GovModuleV2#SummerGovernorV2": "0x94F29e66fE35Ee2BC03EC9D8C3fb6d9E183f3572",
+  "LazyVault_LowerRisk_USDC_MorphoVault_usdc_kpk_USDC_Prime_1#MorphoVaultArk": "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4",
+  "LazyVault_LowerRisk_WETH_ERC4626_Gearbox_KPK_WETH_Pool_weth_1#ERC4626Ark": "0xdF8b1E08679D6035b6c1504e04C5C9e72a0555Fe",
+  "LazyVault_HigherRisk_WETH_MorphoVault_weth_kpk_WETH_Prime_1#MorphoVaultArk": "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274"
 }
