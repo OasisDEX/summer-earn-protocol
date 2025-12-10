@@ -194,11 +194,11 @@
       }
     },
     {
-      "type": "ERC4626Ark",
+      "type": "MorphoVaultArk",
       "params": {
         "asset": "WETH",
         "vaultName": "kpk_WETH_Prime",
-        "protocol": "erc4626"
+        "protocol": "morpho"
       }
     }
   ]
