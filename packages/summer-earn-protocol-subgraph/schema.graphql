@@ -985,7 +985,8 @@ type Account @entity @regularPolling {
   referralTimestamp: BigInt
 
   stakeLockups: [StakeLockup!]! @derivedFrom(field: "account")
-  lastLockupIndex: BigInt!
+  lastLockupIndex: BigInt
+  lastLockupIndexProd: BigInt
 }
 
 # Helper entity for calculating daily/hourly active users

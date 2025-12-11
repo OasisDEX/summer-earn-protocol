@@ -126,7 +126,7 @@ function processHourlyVaultUpdate(
     if (positions && positions.length > 0) {
       for (let k = 0; k < positions.length; k++) {
         const positionId = positions[k]
-        cleanUpOldHourlySnapshots(positionId, block)
+        // cleanUpOldHourlySnapshots(positionId, block)
         if (!positionId) {
           log.warning('Empty position ID at index ' + k.toString(), [])
           continue

@@ -41,6 +41,7 @@ export class ServiceAddresses {
   SPARK_ORACLE: Address
   ENS_REVERSE_REGISTRY: Address
   ENS_REGISTRY: Address
+  STAKING_V2_PROD: Address
 }
 
 export class Services {
@@ -94,6 +95,7 @@ export function getAddressesProvider(): ServiceAddresses {
       USDT: Address.fromString('0xdac17f958d2ee523a2206206994597c13d831ec7'),
       ENS_REVERSE_REGISTRY: Address.fromString('0xa58E81fe9b61B5c3fE2AFD33CF304c454AbFc7Cb'),
       ENS_REGISTRY: Address.fromString('0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'),
+      STAKING_V2_PROD: Address.fromString('0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4'),
     }
     return addresses
   } else if (network == 'optimism') {
@@ -129,6 +131,7 @@ export function getAddressesProvider(): ServiceAddresses {
       USDT: Address.fromString('0x94b008aa00579c1307b0ef2c499ad98a8ce58e58'),
       ENS_REVERSE_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       ENS_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
+      STAKING_V2_PROD: Address.fromString('0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4'),
     }
     return addresses
   } else if (network == 'base') {
@@ -164,6 +167,7 @@ export function getAddressesProvider(): ServiceAddresses {
       USDT: Address.fromString('0x0000000000000000000000000000000000000000'),
       ENS_REVERSE_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       ENS_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
+      STAKING_V2_PROD: Address.fromString('0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4'),
     }
     return addresses
   } else if (network == 'arbitrum-one') {
@@ -199,6 +203,7 @@ export function getAddressesProvider(): ServiceAddresses {
       USDT: Address.fromString('0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9'),
       ENS_REVERSE_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       ENS_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
+      STAKING_V2_PROD: Address.fromString('0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4'),
     }
     return addresses
   } else if (network == 'sonic-mainnet') {
@@ -234,6 +239,7 @@ export function getAddressesProvider(): ServiceAddresses {
       BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
       CDP_MANAGER: Address.fromString('0x0000000000000000000000000000000000000000'),
       AAVE_V2_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
+      STAKING_V2_PROD: Address.fromString('0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4'),
     }
 
     return addresses

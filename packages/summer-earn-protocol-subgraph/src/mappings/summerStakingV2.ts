@@ -12,6 +12,7 @@ import {
 } from '../common/initializers'
 import { formatAmount } from '../common/utils'
 import { Account, StakeLockup } from '../../generated/schema'
+import { addresses } from '../common/addressProvider'
 
 /**
  * Mapping overview
@@ -62,7 +63,19 @@ export function handleStaked(event: StakedWithLockup): void {
   const account = getOrCreateAccount(event.params.receiver.toHexString())
 
   if (!isNoLockupStake) {
-    account.lastLockupIndex = account.lastLockupIndex!.plus(BigIntConstants.ONE)
+    if (event.address != addresses.STAKING_V2_PROD) {
+      if (account.lastLockupIndex) {
+        account.lastLockupIndex = account.lastLockupIndex!.plus(BigIntConstants.ONE)
+      } else {
+        account.lastLockupIndex = BigIntConstants.ONE
+      }
+    } else {
+      if (account.lastLockupIndexProd) {
+        account.lastLockupIndexProd = account.lastLockupIndexProd!.plus(BigIntConstants.ONE)
+      } else {
+        account.lastLockupIndexProd = BigIntConstants.ONE
+      }
+    }
     account.save()
     _ensureNoLockupStake(account, event)
   }
@@ -314,17 +327,24 @@ function _removeStake(event: UnstakedWithPenalty, processedStakeId: string): voi
   // Load the current number of `StakeLockup` entities for this account; this
   // includes both index 0 and all lockup indices > 0.
 
-  const lastStakeIndex = account.lastLockupIndex
-  account.lastLockupIndex = account.lastLockupIndex.minus(BigIntConstants.ONE)
-  account.save()
+  let lastStakeIndex: BigInt | null = null
 
+  if (event.address != addresses.STAKING_V2_PROD) {
+    lastStakeIndex = account.lastLockupIndex
+    account.lastLockupIndex = lastStakeIndex!.minus(BigIntConstants.ONE)
+    account.save()
+  } else {
+    lastStakeIndex = account.lastLockupIndexProd
+    account.lastLockupIndexProd = lastStakeIndex!.minus(BigIntConstants.ONE)
+    account.save()
+  }
   // Case 1: emptied stake was already the last index → just pop/remove it.
-  if (event.params.stakeIndex.equals(lastStakeIndex)) {
+  if (event.params.stakeIndex.equals(lastStakeIndex!)) {
     store.remove('StakeLockup', processedStakeId)
     return
   }
 
-  const lastStakeLockupId = _getStakeLockupId(event.address, event.params.receiver, lastStakeIndex)
+  const lastStakeLockupId = _getStakeLockupId(event.address, event.params.receiver, lastStakeIndex!)
   const maybeLastStakeLockup = StakeLockup.load(lastStakeLockupId)
   if (!maybeLastStakeLockup) {
     log.error('Last stake lockup not found: {}', [lastStakeLockupId])

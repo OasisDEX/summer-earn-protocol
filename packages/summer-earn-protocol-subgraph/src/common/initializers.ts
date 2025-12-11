@@ -71,6 +71,7 @@ export function getOrCreateAccount(id: string): Account {
     account.stakedSummerTokenNormalized = constants.BigDecimalConstants.ZERO
     account.lastUpdateBlock = constants.BigIntConstants.ZERO
     account.lastLockupIndex = constants.BigIntConstants.ZERO
+    account.lastLockupIndexProd = constants.BigIntConstants.ZERO
     account.save()
 
     const protocol = getOrCreateYieldAggregator(BigInt.fromI32(0))
