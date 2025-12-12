@@ -441,7 +441,7 @@ export default function VestingPage() {
   }, [publicClient, vestingWalletAddress, isV2Wallet])
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black p-6 md:p-10">
+    <main>
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <button

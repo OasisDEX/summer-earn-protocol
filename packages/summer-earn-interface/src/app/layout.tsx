@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="min-h-screen bg-charcoal-900">
             {/* Header */}
             <header className="bg-charcoal-800 border-b border-white/10 shadow-card backdrop-blur">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="max-w-9xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                   {/* Logo/Title */}
                   <div className="flex items-center">
@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </header>
 
             {/* Main content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</main>
+            <main className="max-w-9xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</main>
           </div>
         </Providers>
       </body>
