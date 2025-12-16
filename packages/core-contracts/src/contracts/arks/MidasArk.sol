@@ -10,7 +10,7 @@ import {IMToken} from "../../interfaces/midas/IMToken.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {TokenConfig} from "../../interfaces/midas/IManageableVault.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
-
+import {RequestStatus} from "../../interfaces/midas/IRedemptionVault.sol";
 error InvalidIssuanceVault();
 error InvalidRedemptionVault();
 error InvalidOracle();
@@ -46,16 +46,18 @@ contract MidasArk is ArkWithWithdrawalRequest {
      * @dev for example, 10% will be (10 * 100)%
      */
     uint256 public constant ONE_HUNDRED_PERCENT = 100 * 100;
-        /**
-         * @notice Default slippage for the swap
-         * @dev 50 is 50% (50/10000)
-         */
-    uint256 DEFAULT_SLIPPAGE = 50;
+    /**
+     * @notice Default slippage for the swap
+     * @dev 50 is 50% (50/10000)
+     */
+    uint256 public constant DEFAULT_SLIPPAGE = 50;
     /**
      * @notice The conversion factor from the underlying asset to the mToken
      * @dev e.g. 1e12 is the conversion factor for USDC (mTokens have 18 decimals)
      */
     uint256 public immutable TO_M_TOKEN_DECIMALS;
+
+    uint256 public constant MIDAS_ROUNDING_OFFSET = 1;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -128,17 +130,21 @@ contract MidasArk is ArkWithWithdrawalRequest {
      * @inheritdoc IArkWithWithdrawalRequest
      */
     function assetsInWithdrawalQueue() public view returns (uint256) {
-        if (withdrawalRequestId == 0) {
+        if (withdrawalRequestId > 0) {
+            Request memory request = redemptionVault.redeemRequests(
+                withdrawalRequestId
+            );
+            if (request.status != RequestStatus.Pending) {
+                return 0;
+            }
+            // Use oracle to convert shares to assets
+            // todo: do we need to take into account the `tokenOutRate`?
+            return
+                (request.amountMToken * request.mTokenRate) /
+                (Constants.WAD * TO_M_TOKEN_DECIMALS);
+        } else {
             return 0;
         }
-        Request memory request = redemptionVault.redeemRequests(
-            withdrawalRequestId
-        );
-        // Use oracle to convert shares to assets
-        // todo: do we need to take into account the `tokenOutRate`?
-        return
-            (request.amountMToken * request.mTokenRate) /
-            (Constants.WAD * TO_M_TOKEN_DECIMALS);
     }
 
     /**
@@ -146,6 +152,14 @@ contract MidasArk is ArkWithWithdrawalRequest {
      * @param amount Amount of token to withdraw
      */
     function requestWithdrawal(uint256 amount) external onlyKeeper {
+        if (withdrawalRequestId > 0) {
+            Request memory request = redemptionVault.redeemRequests(
+                withdrawalRequestId
+            );
+            if (request.status == RequestStatus.Pending) {
+                revert WithdrawalAlreadyRequested();
+            }
+        }
         uint256 amountIn18Decimals = 0;
         uint256 shares = 0;
         if (amount == type(uint256).max) {
@@ -195,35 +209,27 @@ contract MidasArk is ArkWithWithdrawalRequest {
         uint256 price = oracle.getDataInBase18();
         uint256 shares = (amount * TO_M_TOKEN_DECIMALS * Constants.WAD) / price;
         SwapData memory swapData = abi.decode(data, (SwapData));
-
         uint256 assetBought = _swap(
             address(address(mToken)),
             address(config.asset),
             swapData.router,
             shares,
-            _roundDownAndPadToAssetDecimals(
-                _applySlippage(amount),
-                IERC20Metadata(address(config.asset)).decimals()
-            ),
+            _applySlippage(amount) - MIDAS_ROUNDING_OFFSET,
             swapData.swapCalldata
         );
         emit Disembarked(msg.sender, address(config.asset), amount);
         _boardToBufferArk(assetBought);
     }
 
-    function _roundDownAndPadToAssetDecimals(
-        uint256 amount,
-        uint8 assetDecimals
-    ) internal pure returns (uint256 amountInAssetDecimals) {
-        amountInAssetDecimals =
-            (amount / 10 ** (18 - assetDecimals)) *
-            10 ** (assetDecimals);
-        amountInAssetDecimals = amountInAssetDecimals * 10 ** (assetDecimals);
-    }
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev Returns the balance of the underlying asset in the Ark
+     * @return withdrawableAssets Assets that can be immediately withdrawn
+     */
     function _withdrawableTotalAssets()
         internal
         view
@@ -253,6 +259,13 @@ contract MidasArk is ArkWithWithdrawalRequest {
         // Withdrawals must be requested through withdrawal manager
     }
 
+    /**
+     * @notice Internal function for harvesting rewards
+     * @dev This function is a no-op as Origin ETH auto-compounds the rewards
+     * @param /// data Additional data (unused in this implementation)
+     * @return rewardTokens The addresses of the reward tokens (empty array in this case)
+     * @return rewardAmounts The amounts of the reward tokens (empty array in this case)
+     */
     function _harvest(
         bytes calldata
     )
@@ -266,9 +279,17 @@ contract MidasArk is ArkWithWithdrawalRequest {
         rewardAmounts = new uint256[](0);
     }
 
-    function _validateBoardData(bytes calldata) internal override {
-        // No additional validation needed
-    }
+    /**
+     * @notice Validates the board data
+     * @dev The data can be empty as we don't use additional parameters
+     * @param /// data Additional data to validate
+     */
+    function _validateBoardData(bytes calldata) internal pure override {}
 
-    function _validateDisembarkData(bytes calldata) internal override {}
+    /**
+     * @notice Validates the disembark data
+     * @dev The data can be empty as we don't use additional parameters
+     * @param /// data Additional data to validate
+     */
+    function _validateDisembarkData(bytes calldata) internal pure override {}
 }
