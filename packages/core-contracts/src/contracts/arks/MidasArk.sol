@@ -193,7 +193,6 @@ contract MidasArk is ArkWithWithdrawalRequest {
 
         uint256 shares;
         if (amount == type(uint256).max) {
-            // Get total shares from both vaults (they may use the same share token)
             shares = mToken.balanceOf(address(this));
         } else {
             shares = _assetsToShares(amount);
