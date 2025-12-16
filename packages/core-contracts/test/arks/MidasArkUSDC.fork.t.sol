@@ -187,7 +187,7 @@ contract MidasArkTestFork is Test, IArkEvents, ArkTestBase {
         uint256 price = oracle.getDataInBase18();
         uint256 shares = (amount * ark.TO_M_TOKEN_DECIMALS() * Constants.WAD) /
             price;
-        console.log("shares should be", shares);
+
         // Calculate minimum receive amount in 18 decimals (with slippage applied)
         // withdrawUsingSwap uses _applySlippage(amount) where amount is in asset decimals
         // But redeemInstant expects minReceiveAmount in 18 decimals
