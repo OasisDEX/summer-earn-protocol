@@ -82,5 +82,18 @@
   "LazyVault_LowerRisk_USDC_2_MorphoVault_usdc_Yearn_OG_USDC_42161#MorphoVaultArk": "0x393e981A6b76A18CC5A0FB619C6a218D4E53B4B4",
   "LazyVault_LowerRisk_USDC_2_MorphoVault_usdc_Steakhouse_Prime_USDC_42161#MorphoVaultArk": "0x32B632D16710fA9dd121FD22052057F5A5e39CB7",
   "LazyVault_LowerRisk_USDC_2_MorphoVault_usdc_MEV_Capital_USDC_42161#MorphoVaultArk": "0xeaDBbFC3aD27a6CFE1e785598F4Ff6909DeC2D82",
-  "LazyVault_LowerRisk_USDC_2_FluidFToken_usdc_42161#FluidFTokenArk": "0x0C939b702524fDaBa4914E905Bcb850182308141"
+  "LazyVault_LowerRisk_USDC_2_FluidFToken_usdc_42161#FluidFTokenArk": "0x0C939b702524fDaBa4914E905Bcb850182308141",
+  "InstitutionWhitelist_ExtDemoCorp#DutchAuctionLibrary": "0x98B34F3F794120Be801F8bd331e18bF6b537B45f",
+  "InstitutionWhitelist_ExtDemoCorp#ProtocolAccessManager": "0x477285d524628faa3Ed62D8086bE56810A34795e",
+  "InstitutionWhitelist_ExtDemoCorp#ConfigurationManagerWhitelist": "0xD57cCd5220bFfb018b1504c39d9a4606c59325b0",
+  "InstitutionWhitelist_ExtDemoCorp#HarborCommand": "0xC78F28a971D466e58E39b2de5Da15eC2c4449367",
+  "InstitutionWhitelist_ExtDemoCorp#Raft": "0xd55505542BEb563827100e20d0bC3FbF3e61f210",
+  "InstitutionWhitelist_ExtDemoCorp#AdmiralsQuartersWhitelist": "0xE0fd6d8a7c8a3171b4E4c2d3B53ae6aa3F8970aE",
+  "InstitutionWhitelist_ExtDemoCorp#TipJar": "0x351126C1a72B0a50b2e7C4B23f816E563577eEF5",
+  "FleetWhitelist_extDemo_USDC_Arb#FleetCommanderWhitelist": "0x2D55c68e6b9b6B3f70be2e51f289751E627f50aD",
+  "extDemo_USDC_Arb_AaveV3_usdc_42161#AaveV3Ark": "0x915BFbc61BAf096b0B77058c6750A92371A795aC",
+  "extDemo_USDC_Arb_CompoundV3_usdc_42161#CompoundV3Ark": "0xD5466e3c01f48C2Ff5Ba8f2DC422e47c8189b1Eb",
+  "extDemo_USDC_Arb_FluidFToken_usdc_42161#FluidFTokenArk": "0x447DC75c83D69e8e221b77a68C9195f78a11De2E",
+  "extDemo_USDC_Arb_MorphoVault_usdc_Gauntlet_USDC_Core_42161#MorphoVaultArk": "0x9E47D51F605655946f2D083676DEBF7981F4FB03",
+  "extDemo_USDC_Arb_MorphoVault_usdc_Gauntlet_USDC_Prime_42161#MorphoVaultArk": "0x600028D79Fc66e7fBa2ca7D4Da6388DB210D215e"
 }
