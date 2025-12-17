@@ -1,0 +1,20 @@
+{
+  "fleetName": "extDemo_USDC_Arb",
+  "isBummer": false,
+  "fleetSymbol": "extDemoUSDC",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0x2D55c68e6b9b6B3f70be2e51f289751E627f50aD",
+  "bufferArkAddress": "0x2F7CE63d628dC041e8c9E81C6ABEb4738eCF98B7",
+  "network": "arbitrum",
+  "arks": [
+    "0x915BFbc61BAf096b0B77058c6750A92371A795aC",
+    "0xD5466e3c01f48C2Ff5Ba8f2DC422e47c8189b1Eb",
+    "0x447DC75c83D69e8e221b77a68C9195f78a11De2E",
+    "0x9E47D51F605655946f2D083676DEBF7981F4FB03",
+    "0x600028D79Fc66e7fBa2ca7D4Da6388DB210D215e"
+  ],
+  "initialMinimumBufferBalance": "10000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "1000000000000000000"
+}
