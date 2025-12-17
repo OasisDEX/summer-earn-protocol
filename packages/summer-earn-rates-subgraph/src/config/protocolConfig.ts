@@ -132,6 +132,12 @@ class ProtocolConfig {
           BigInt.fromI32(18798139),
           'Gearbox',
         ),
+        new GearboxProduct(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x9396dcbf78fc526bb003665337c5e73b699571ef'),
+          BigInt.fromI32(24031082),
+          'Gearbox',
+        ),
       ]),
       new Protocol('AaveV3', [
         new AaveV3Product(
@@ -295,6 +301,12 @@ class ProtocolConfig {
           BigInt.fromI32(23350000),
           'Morpho',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xe108fbc04852B5df72f9E44d7C29F47e7A993aDd'),
+          BigInt.fromI32(24031082),
+          'Morpho',
+        ),
         // USDT vaults
         new ERC4626Product(
           getOrCreateToken(addresses.USDT),
@@ -397,6 +409,12 @@ class ProtocolConfig {
           getOrCreateToken(addresses.WETH),
           Address.fromString('0xf79F51f8F473eD34f6b2b13ee74c3208286D53EB'),
           BigInt.fromI32(23350000),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0xd564F765F9aD3E7d2d6cA782100795a885e8e7C8'),
+          BigInt.fromI32(24031082),
           'Morpho',
         ),
       ]),
