@@ -38,6 +38,42 @@ export namespace ProtocolType {
   export const GENERIC = 'GENERIC'
 }
 
+export namespace RoleAction {
+  export const GRANT_ROLE = 'GRANT_ROLE'
+  export const REVOKE_ROLE = 'REVOKE_ROLE'
+}
+
+export namespace AdminAction {
+  export const VAULT_CAP_CHANGED = 'VAULT_CAP_CHANGED'
+  export const VAULT_MIN_BUFFER_CHANGED = 'VAULT_MIN_BUFFER_CHANGED'
+  export const VAULT_TIP_RATE_CHANGED = 'VAULT_TIP_RATE_CHANGED'
+  export const ARK_CAP_CHANGED = 'ARK_CAP_CHANGED'
+  export const ARK_MAX_PCT_TVL_CHANGED = 'ARK_MAX_PCT_TVL_CHANGED'
+  export const ARK_MAX_REBALANCE_OUTFLOW_CHANGED = 'ARK_MAX_REBALANCE_OUTFLOW_CHANGED'
+  export const ARK_MAX_REBALANCE_INFLOW_CHANGED = 'ARK_MAX_REBALANCE_INFLOW_CHANGED'
+}
+
+export namespace RoleName {
+  export const WHITELIST_ROLE = 'WHITELIST_ROLE'
+  export const COMMANDER_ROLE = 'COMMANDER_ROLE'
+  export const CURATOR_ROLE = 'CURATOR_ROLE'
+  export const KEEPER_ROLE = 'KEEPER_ROLE'
+  export const GOVERNOR_ROLE = 'GOVERNOR_ROLE'
+  export const SUPER_KEEPER_ROLE = 'SUPER_KEEPER_ROLE'
+  export const GUARDIAN_ROLE = 'GUARDIAN_ROLE'
+  export const DECAY_CONTROLLER_ROLE = 'DECAY_CONTROLLER_ROLE'
+  export const ADMIRALS_QUARTERS_ROLE = 'ADMIRALS_QUARTERS_ROLE'
+  export const FOUNDATION_ROLE = 'FOUNDATION_ROLE'
+}
+
+// enum used to compute the contract specific role name
+// Solidity: keccak256(abi.encodePacked(uint8(role), address(contractAddress)))
+export enum ContractSpecificRole {
+  CURATOR_ROLE,
+  KEEPER_ROLE,
+  COMMANDER_ROLE,
+}
+
 export namespace VaultFeeType {
   export const MANAGEMENT_FEE = 'MANAGEMENT_FEE'
   export const PERFORMANCE_FEE = 'PERFORMANCE_FEE'
