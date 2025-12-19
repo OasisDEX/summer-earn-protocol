@@ -1012,8 +1012,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
       axios:
-        specifier: 1.12.1
-        version: 1.12.1
+        specifier: 1.12.2
+        version: 1.12.2
       eslint:
         specifier: ^9.0.0
         version: 9.39.1
@@ -1462,8 +1462,8 @@ packages:
       '@solana/kit': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.4.5)(ws@8.18.3)
       '@solana/web3.js': 1.98.4(typescript@5.4.5)
       abitype: 1.0.6(typescript@5.4.5)(zod@3.25.76)
-      axios: 1.13.2
-      axios-retry: 4.5.0(axios@1.13.2)
+      axios: 1.12.2
+      axios-retry: 4.5.0(axios@1.12.2)
       jose: 6.1.1
       md5: 2.3.0
       uncrypto: 0.1.3
@@ -2673,7 +2673,7 @@ packages:
       '@ledgerhq/hw-transport-webhid': 6.30.9
       '@ledgerhq/hw-transport-webusb': 6.29.13
       '@mysten/bcs': 1.9.2
-      axios: 1.12.1
+      axios: 1.12.2
       bech32: 2.0.0
       bignumber.js: 9.1.2
       bip32: 5.0.0(typescript@5.4.5)
@@ -7283,7 +7283,7 @@ packages:
     dependencies:
       '@ton/core': 0.59.1(@ton/crypto@3.3.0)
       '@ton/crypto': 3.3.0
-      axios: 1.12.1
+      axios: 1.12.2
       dataloader: 2.2.3
       symbol.inspect: 1.0.1
       teslabot: 1.5.0
@@ -9665,13 +9665,13 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
-  /axios-retry@4.5.0(axios@1.13.2):
+  /axios-retry@4.5.0(axios@1.12.2):
     resolution: {integrity: sha512-aR99oXhpEDGo0UuAlYcn2iGRds30k366Zfa05XWScR9QaQD4JYiP3/1Qt1u7YlefUOK+cn0CcwoL1oefavQUlQ==}
     requiresBuild: true
     peerDependencies:
       axios: 0.x || 1.x
     dependencies:
-      axios: 1.13.2
+      axios: 1.12.2
       is-retry-allowed: 2.2.0
     dev: false
 
@@ -9698,25 +9698,14 @@ packages:
     transitivePeerDependencies:
       - debug
 
-  /axios@1.12.1:
-    resolution: {integrity: sha512-Kn4kbSXpkFHCGE6rBFNwIv0GQs4AvDT80jlveJDKFxjbTYMUeB4QtsdPCv6H8Cm19Je7IU6VFtRl2zWZI0rudQ==}
+  /axios@1.12.2:
+    resolution: {integrity: sha512-vMJzPewAlRyOgxV2dU0Cuz2O8zzzx9VYtbJOaBgXFeLc4IV/Eg50n4LowmehOOR61S8ZMpc2K5Sa7g6A4jfkUw==}
     dependencies:
       follow-redirects: 1.15.11(debug@4.4.0)
       form-data: 4.0.4
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
       - debug
-
-  /axios@1.13.2:
-    resolution: {integrity: sha512-VPk9ebNqPcy5lRGuSlKx752IlDatOjT9paPlm8A7yOuW2Fbvp4X3JznJtT4f0GzGLLiWE9W8onz51SqLYwzGaA==}
-    requiresBuild: true
-    dependencies:
-      follow-redirects: 1.15.11(debug@4.4.0)
-      form-data: 4.0.4
-      proxy-from-env: 1.1.0
-    transitivePeerDependencies:
-      - debug
-    dev: false
 
   /axobject-query@4.1.0:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
@@ -16494,7 +16483,7 @@ packages:
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/curves': 1.9.7
-      '@noble/hashes': 1.8.0
+      '@noble/hashes': 1.6.1
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
       abitype: 1.1.1(typescript@5.4.5)(zod@3.22.4)
@@ -18382,7 +18371,7 @@ packages:
   /solidity-bytes-utils@0.8.2:
     resolution: {integrity: sha512-cqXPYAV2auhpdKSTPuqji0CwpSceZDu95CzqSM/9tDJ2MoMaMsdHTpOIWtVw31BIqqGPNmIChCswzbw0tHaMTw==}
     dependencies:
-      ds-test: github.com/dapphub/ds-test/e282159d5170298eb2455a6c05280ab5a73a4ef0
+      ds-test: git@github.com+dapphub/ds-test/e282159d5170298eb2455a6c05280ab5a73a4ef0
       forge-std: 1.1.2
 
   /solidity-comments-extractor@0.0.8:
@@ -20214,7 +20203,7 @@ packages:
     resolution: {integrity: sha512-EeYD+gmIT80YkSIDb2iWq0lq2zbHo1CxHlQTeJ+KkCILWpVy3zASH3ByD4bopzfk0uCwXxLqKGLqp2W4O28VFA==}
     dependencies:
       '@noble/curves': 1.9.7
-      '@noble/hashes': 1.8.0
+      '@noble/hashes': 1.6.1
     dev: false
 
   /webcrypto-core@1.8.1:
@@ -20681,8 +20670,8 @@ packages:
       '@types/node': 20.12.7
     dev: true
 
-  github.com/dapphub/ds-test/e282159d5170298eb2455a6c05280ab5a73a4ef0:
-    resolution: {tarball: https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0}
+  git@github.com+dapphub/ds-test/e282159d5170298eb2455a6c05280ab5a73a4ef0:
+    resolution: {commit: e282159d5170298eb2455a6c05280ab5a73a4ef0, repo: git@github.com:dapphub/ds-test.git, type: git}
     name: ds-test
     version: 1.0.0
 
