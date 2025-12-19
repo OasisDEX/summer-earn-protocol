@@ -65,7 +65,7 @@ Learn more about the power of Turborepo:
 - [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
 - [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
 
-[![codecov](https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/rc/add-hyperevm-chain/graph/badge.svg?token=ZDPGVH2NVG)](https://codecov.io/gh/OasisDEX/summer-earn-protocol)
+[![codecov](https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/feature/hyperlend-integration/graph/badge.svg?token=ZDPGVH2NVG)](https://codecov.io/gh/OasisDEX/summer-earn-protocol)
 
 ## Testing and Coverage (Auditor Guide) - Sherlock Contest 29.09.2025
 
