@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-institutions-subgraph",
-  "version": "1.0.5-demo-fleets",
+  "version": "1.1.0-add-events",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",

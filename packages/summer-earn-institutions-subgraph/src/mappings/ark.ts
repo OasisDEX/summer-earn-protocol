@@ -10,6 +10,7 @@ import {
   Moved,
 } from '../../generated/templates/FleetCommanderTemplate/Ark'
 import {
+  createCurationEvent,
   getOrCreateArk,
   getOrCreateArksPostActionSnapshots,
   getOrCreateToken,
@@ -18,6 +19,7 @@ import {
 import { getTokenPriceInUSD } from '../common/priceHelpers'
 import { formatAmount } from '../common/utils'
 import { handleBoard, handleDisembark, handleMove } from './entities/ark'
+import { AdminAction } from '../common/constants'
 
 export function handleBoarded(event: Boarded): void {
   const ark = getOrCreateArk(event.address, event.block)
@@ -86,6 +88,13 @@ export function handleDepositCapUpdated(event: DepositCapUpdated): void {
   const ark = getOrCreateArk(event.address, event.block)
 
   if (ark) {
+    createCurationEvent(
+      event,
+      AdminAction.ARK_CAP_CHANGED,
+      ark.depositCap,
+      event.params.newCap,
+      getOrCreateVault(Address.fromString(ark.vault), event.block),
+    )
     ark.depositCap = event.params.newCap
     ark.depositLimit = event.params.newCap
     ark.save()
@@ -98,6 +107,13 @@ export function handleMaxDepositPercentageOfTVLUpdated(
   const ark = getOrCreateArk(event.address, event.block)
 
   if (ark) {
+    createCurationEvent(
+      event,
+      AdminAction.ARK_MAX_PCT_TVL_CHANGED,
+      ark.maxDepositPercentageOfTVL,
+      event.params.newMaxDepositPercentageOfTVL,
+      getOrCreateVault(Address.fromString(ark.vault), event.block),
+    )
     ark.maxDepositPercentageOfTVL = event.params.newMaxDepositPercentageOfTVL
     ark.save()
   }
@@ -107,6 +123,13 @@ export function handleMaxRebalanceOutflowUpdated(event: MaxRebalanceOutflowUpdat
   const ark = getOrCreateArk(event.address, event.block)
 
   if (ark) {
+    createCurationEvent(
+      event,
+      AdminAction.ARK_MAX_REBALANCE_OUTFLOW_CHANGED,
+      ark.maxRebalanceOutflow,
+      event.params.newMaxOutflow,
+      getOrCreateVault(Address.fromString(ark.vault), event.block),
+    )
     ark.maxRebalanceOutflow = event.params.newMaxOutflow
     ark.save()
   }
@@ -116,6 +139,13 @@ export function handleMaxRebalanceInflowUpdated(event: MaxRebalanceInflowUpdated
   const ark = getOrCreateArk(event.address, event.block)
 
   if (ark) {
+    createCurationEvent(
+      event,
+      AdminAction.ARK_MAX_REBALANCE_INFLOW_CHANGED,
+      ark.maxRebalanceInflow,
+      event.params.newMaxInflow,
+      getOrCreateVault(Address.fromString(ark.vault), event.block),
+    )
     ark.maxRebalanceInflow = event.params.newMaxInflow
     ark.save()
   }

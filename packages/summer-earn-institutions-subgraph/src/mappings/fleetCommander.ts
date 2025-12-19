@@ -1,5 +1,5 @@
 import { Address, BigDecimal, BigInt, Bytes, store } from '@graphprotocol/graph-ts'
-import { Institution, VaultFee } from '../../generated/schema'
+import { Institution, Role, VaultFee } from '../../generated/schema'
 import {
   RewardAdded,
   RewardPaid,
@@ -27,9 +27,16 @@ import {
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { addresses } from '../common/addressProvider'
 import * as constants from '../common/constants'
-import { ADDRESS_ZERO, BigIntConstants, VaultFeeType } from '../common/constants'
-import { ContractSpecificRole, generateContractSpecificRole, hasRole } from '../common/hashHelpers'
 import {
+  ADDRESS_ZERO,
+  BigIntConstants,
+  ContractSpecificRole,
+  VaultFeeType,
+} from '../common/constants'
+import { generateContractSpecificRole, hasRole } from '../common/hashHelpers'
+import {
+  createCurationEvent,
+  createRoleEvent,
   getOrCreateAccessController,
   getOrCreateAccount,
   getOrCreateArk,
@@ -82,6 +89,7 @@ export function handleArkAdded(event: ArkAdded): void {
     const id = `${institution.protocolAccessManager}-${role}-${event.address.toHexString()}`
     const roleEntity = getOrCreateRole(id)
     if (roleApplied) {
+      roleEntity.active = true
       roleEntity.name = `COMMANDER_ROLE`
       roleEntity.targetContract = event.address.toHexString()
       roleEntity.save()
@@ -175,6 +183,13 @@ export function handleFleetCommanderMinimumBufferBalanceUpdated(
 ): void {
   const vault = getOrCreateVault(event.address, event.block)
   if (vault) {
+    createCurationEvent(
+      event,
+      constants.AdminAction.VAULT_MIN_BUFFER_CHANGED,
+      vault.minimumBufferBalance,
+      event.params.newBalance,
+      vault,
+    )
     vault.minimumBufferBalance = event.params.newBalance
     vault.save()
   }
@@ -185,6 +200,13 @@ export function handleFleetCommanderDepositCapUpdated(
 ): void {
   const vault = getOrCreateVault(event.address, event.block)
   if (vault) {
+    createCurationEvent(
+      event,
+      constants.AdminAction.VAULT_CAP_CHANGED,
+      vault.depositCap,
+      event.params.newCap,
+      vault,
+    )
     vault.depositCap = event.params.newCap
     vault.save()
   }
@@ -311,6 +333,13 @@ export function handleTipAccrued(event: TipAccrued): void {
 
 export function handleTipRateUpdated(event: TipRateUpdated): void {
   const vault = getOrCreateVault(event.address, event.block)
+  createCurationEvent(
+    event,
+    constants.AdminAction.VAULT_TIP_RATE_CHANGED,
+    vault.tipRate,
+    event.params.newTipRate,
+    vault,
+  )
   vault.tipRate = event.params.newTipRate
   vault.save()
 }
@@ -362,10 +391,6 @@ export function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): voi
   // role id is: fleetAddress-accountAddress
   const id = `${event.address.toHexString()}-${event.params.account.toHexString()}`
 
-  if (!event.params.allowed) {
-    store.remove('Role', id)
-    return
-  }
   const role = getOrCreateRole(id)
   role.owner = event.params.account.toHexString()
   role.name = 'WHITELIST_ROLE'
@@ -374,5 +399,13 @@ export function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): voi
   role.createdTimestamp = event.block.timestamp
   role.createdBlockNumber = event.block.number
   role.institution = accessController.institution
+  role.active = event.params.allowed
   role.save()
+
+  createRoleEvent(
+    event,
+    event.params.allowed ? constants.RoleAction.GRANT_ROLE : constants.RoleAction.REVOKE_ROLE,
+    role,
+    accessController.institution,
+  )
 }
