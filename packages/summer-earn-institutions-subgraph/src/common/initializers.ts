@@ -1008,7 +1008,7 @@ export function getOrCreateAccessController(
 export function createRoleEvent(
   event: ethereum.Event,
   action: string,
-  role: Role,
+  roleId: string,
   institution: string,
 ): RoleEvent {
   const roleEvent = new RoleEvent(
@@ -1021,7 +1021,7 @@ export function createRoleEvent(
   roleEvent.institution = institution
   roleEvent.caller = event.transaction.from.toHexString()
   roleEvent.action = action
-  roleEvent.role = role.id
+  roleEvent.role = roleId
   roleEvent.save()
   return roleEvent
 }
@@ -1032,6 +1032,7 @@ export function createCurationEvent(
   valueBefore: BigInt,
   valueAfter: BigInt,
   vault: Vault,
+  target: string,
 ): CurationEvent {
   const curationEvent = new CurationEvent(
     event.receipt!.transactionHash.toHexString() + '--' + event.logIndex.toString(),
@@ -1045,6 +1046,7 @@ export function createCurationEvent(
   curationEvent.caller = event.transaction.from.toHexString()
   curationEvent.valueBefore = valueBefore
   curationEvent.valueAfter = valueAfter
+  curationEvent.targetContract = target
   curationEvent.save()
   return curationEvent
 }

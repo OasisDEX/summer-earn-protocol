@@ -55,12 +55,7 @@ export function handleRoleGranted(event: RoleGranted): void {
   }
   role.save()
 
-  const roleEvent = createRoleEvent(
-    event,
-    RoleAction.GRANT_ROLE,
-    role,
-    accessController.institution,
-  )
+  createRoleEvent(event, RoleAction.GRANT_ROLE, role.id, accessController.institution)
 }
 
 export function handleRoleRevoked(event: RoleRevoked): void {
@@ -72,7 +67,7 @@ export function handleRoleRevoked(event: RoleRevoked): void {
     role.active = false
     role.save()
 
-    createRoleEvent(event, RoleAction.REVOKE_ROLE, role, accessController.institution)
+    createRoleEvent(event, RoleAction.REVOKE_ROLE, role.id, accessController.institution)
   }
 }
 
@@ -95,7 +90,7 @@ export function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): voi
   createRoleEvent(
     event,
     event.params.allowed ? RoleAction.GRANT_ROLE : RoleAction.REVOKE_ROLE,
-    role,
+    role.id,
     accessController.institution,
   )
 }

@@ -1697,6 +1697,7 @@ type Role @entity {
   createdBlockNumber: BigInt!
   institution: Institution!
   active: Boolean!
+  events: [RoleEvent!]! @derivedFrom(field: "role")
 }
 
 type RoleEvent @entity @transaction {
@@ -1724,13 +1725,14 @@ type CurationEvent @entity @transaction {
 
   valueBefore: BigInt!
   valueAfter: BigInt!
-
+  targetContract: String!
 }
 
 enum RoleAction {
   GRANT_ROLE
   REVOKE_ROLE
 }
+
 enum AdminAction {
   VAULT_CAP_CHANGED
   VAULT_MIN_BUFFER_CHANGED

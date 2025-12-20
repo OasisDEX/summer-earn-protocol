@@ -94,6 +94,7 @@ export function handleDepositCapUpdated(event: DepositCapUpdated): void {
       ark.depositCap,
       event.params.newCap,
       getOrCreateVault(Address.fromString(ark.vault), event.block),
+      ark.id,
     )
     ark.depositCap = event.params.newCap
     ark.depositLimit = event.params.newCap
@@ -113,6 +114,7 @@ export function handleMaxDepositPercentageOfTVLUpdated(
       ark.maxDepositPercentageOfTVL,
       event.params.newMaxDepositPercentageOfTVL,
       getOrCreateVault(Address.fromString(ark.vault), event.block),
+      ark.id,
     )
     ark.maxDepositPercentageOfTVL = event.params.newMaxDepositPercentageOfTVL
     ark.save()
@@ -129,6 +131,7 @@ export function handleMaxRebalanceOutflowUpdated(event: MaxRebalanceOutflowUpdat
       ark.maxRebalanceOutflow,
       event.params.newMaxOutflow,
       getOrCreateVault(Address.fromString(ark.vault), event.block),
+      ark.id,
     )
     ark.maxRebalanceOutflow = event.params.newMaxOutflow
     ark.save()
@@ -145,6 +148,7 @@ export function handleMaxRebalanceInflowUpdated(event: MaxRebalanceInflowUpdated
       ark.maxRebalanceInflow,
       event.params.newMaxInflow,
       getOrCreateVault(Address.fromString(ark.vault), event.block),
+      ark.id,
     )
     ark.maxRebalanceInflow = event.params.newMaxInflow
     ark.save()

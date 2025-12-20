@@ -189,6 +189,7 @@ export function handleFleetCommanderMinimumBufferBalanceUpdated(
       vault.minimumBufferBalance,
       event.params.newBalance,
       vault,
+      vault.id,
     )
     vault.minimumBufferBalance = event.params.newBalance
     vault.save()
@@ -206,6 +207,7 @@ export function handleFleetCommanderDepositCapUpdated(
       vault.depositCap,
       event.params.newCap,
       vault,
+      vault.id,
     )
     vault.depositCap = event.params.newCap
     vault.save()
@@ -339,6 +341,7 @@ export function handleTipRateUpdated(event: TipRateUpdated): void {
     vault.tipRate,
     event.params.newTipRate,
     vault,
+    vault.id,
   )
   vault.tipRate = event.params.newTipRate
   vault.save()
@@ -405,7 +408,7 @@ export function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): voi
   createRoleEvent(
     event,
     event.params.allowed ? constants.RoleAction.GRANT_ROLE : constants.RoleAction.REVOKE_ROLE,
-    role,
+    role.id,
     accessController.institution,
   )
 }
