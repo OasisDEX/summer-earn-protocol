@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { getAddress, isAddress } from 'viem'
 import {
@@ -16,12 +17,14 @@ import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 
 import { erc20Abi } from '../../../abis/ERC20'
 import { summerVestingWalletAbi } from '../../../abis/SummerVestingWallet'
+import { summerVestingWalletEscrowAbi } from '../../../abis/SummerVestingWalletEscrow'
 import { summerVestingWalletFactoryAbi } from '../../../abis/SummerVestingWalletFactory'
 import { summerVestingWalletFactoryV2Abi } from '../../../abis/SummerVestingWalletFactoryV2'
 import { summerVestingWalletV2Abi } from '../../../abis/SummerVestingWalletV2'
 import {
   SUMMER_VESTING_WALLET_FACTORY_ADDRESSES,
   SUMMER_VESTING_WALLET_FACTORY_V2_ADDRESSES,
+  SUMMER_VESTING_WALLETS_ESCROW_ADDRESSES,
 } from '../../../config/environments'
 import { useEnvironment } from '../../../hooks/useEnvironment'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
@@ -179,6 +182,26 @@ export default function VestingPage() {
 
   const isV2Wallet = isV2Valid && !isV1Valid
 
+  // Check if wallet is staked in escrow
+  const activeFactoryAddress = isV1Valid ? factoryAddress : isV2Valid ? factoryV2Address : undefined
+
+  const escrowAddress = SUMMER_VESTING_WALLETS_ESCROW_ADDRESSES[environment][Number(chainId)]
+  const hasEscrow = !!escrowAddress && escrowAddress !== ADDRESS_ZERO
+
+  const { data: userStakedFactories } = useReadContract({
+    abi: summerVestingWalletEscrowAbi,
+    address: hasEscrow ? (escrowAddress as `0x${string}`) : undefined,
+    functionName: 'userStakedVestingFactories',
+    args: queryAddress ? [queryAddress] : undefined,
+    query: { enabled: !!hasEscrow && !!queryAddress },
+  })
+
+  const isStaked = useMemo(() => {
+    if (!activeFactoryAddress || !userStakedFactories || userStakedFactories.length === 0)
+      return false
+    return userStakedFactories.some((f) => f.toLowerCase() === activeFactoryAddress.toLowerCase())
+  }, [activeFactoryAddress, userStakedFactories])
+
   // Underlying token for this vesting wallet
   const { data: tokenAddress } = useReadContract({
     abi: isV2Wallet ? summerVestingWalletV2Abi : summerVestingWalletAbi,
@@ -286,7 +309,8 @@ export default function VestingPage() {
       vestingWalletAddress &&
       tokenAddress &&
       (releasableNow as bigint) > BigInt(0) &&
-      !(isV2Wallet && isRecalled),
+      !(isV2Wallet && isRecalled) &&
+      !isStaked,
   )
 
   const onClaim = () => {
@@ -513,6 +537,18 @@ export default function VestingPage() {
         {isV2Wallet && isRecalled && (
           <div className="mb-6 p-4 rounded-lg border border-red-600 bg-red-900/40 text-red-200">
             ⚠️ This vesting wallet has been recalled. No more tokens can be claimed.
+          </div>
+        )}
+
+        {isStaked && (
+          <div className="mb-6 p-4 rounded-lg border border-yellow-600 bg-yellow-900/40 text-yellow-200">
+            ⚠️ Your vesting wallet is staked. You cannot claim while staked.{' '}
+            <Link
+              href={`/vesting-staking/${chainId}`}
+              className="underline font-bold hover:text-white"
+            >
+              Go to Staking to unstake first.
+            </Link>
           </div>
         )}
 
