@@ -11,6 +11,8 @@ export function getChainIdByNetworkName(network: string): number {
     return 8453
   } else if (network == 'sonic-mainnet') {
     return 146
+  } else if (network == 'hyperliquid' || network == 'hyperevm') {
+    return 999
   } else {
     throw new Error(`Unsupported network: ${network}`)
   }
@@ -30,6 +32,8 @@ export function getNetworkNameByChainId(chainId: number): string {
       return 'polygon'
     case 146:
       return 'sonic-mainnet'
+    case 999:
+      return 'hyperliquid'
     default:
       throw new Error(`Unsupported chain ID: ${chainId}`)
   }

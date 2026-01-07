@@ -1,0 +1,9 @@
+{
+  "network": "hyperevm",
+  "enable-grafting": false,
+  "grafting-base": "",
+  "grafting-block": "",
+  "entry_point_address": "0x0000000000000000000000000000000000000000",
+  "entry_point_start_block": 23831958,
+  "interval-handler-block-interval": 600
+}
