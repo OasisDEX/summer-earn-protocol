@@ -11,6 +11,7 @@ import { deployCrossChainArk } from '../arks/deploy-cross-chain-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployFluidFTokenArk } from '../arks/deploy-fluid-ftoken-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
+import { deployHyperlendArk } from '../arks/deploy-hyperlend-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { deployMorphoArk } from '../arks/deploy-morpho-ark'
 import { deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
@@ -102,6 +103,11 @@ export async function deployArk(
     }
     case ArkType.AaveV3Ark: {
       const ark = await deployAaveV3Ark(config, baseArkParams)
+      deployedArk = ark
+      break
+    }
+    case ArkType.HyperlendArk: {
+      const ark = await deployHyperlendArk(config, baseArkParams)
       deployedArk = ark
       break
     }

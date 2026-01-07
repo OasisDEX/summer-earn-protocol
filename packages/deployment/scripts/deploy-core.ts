@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, keccak256, toBytes } from 'viem'
-import { CoreContracts, CoreModule } from '../ignition/modules/core'
+import { CoreContracts, createCoreModule } from '../ignition/modules/core'
 import { BaseConfig } from '../types/config-types'
 import { checkExistingContracts } from './helpers/check-existing-contracts'
 import { getConfigByNetwork } from './helpers/config-handler'
@@ -47,9 +47,13 @@ async function deployCoreContracts(
   const timelock = validateAddress(config.deployedContracts.gov.timelock.address, 'gov.timelock')
   const swapProvider = validateAddress(config.common.swapProvider, 'common.swapProvider')
   const wrappedNative = validateAddress(config.tokens.wrappedNative, 'tokens.wrappedNative')
-  const core = await hre.ignition.deploy(CoreModule, {
+
+  // Only add 'staging' prefix if bummer, no prefix for prod (for compatibility)
+  const moduleName = useBummerConfig ? 'staging_CoreModule' : 'CoreModule'
+  const coreModule = createCoreModule(moduleName)
+  const core = await hre.ignition.deploy(coreModule, {
     parameters: {
-      CoreModule: {
+      [moduleName]: {
         swapProvider: swapProvider,
         protocolAccessManager: protocolAccessManager,
         treasury: timelock,
