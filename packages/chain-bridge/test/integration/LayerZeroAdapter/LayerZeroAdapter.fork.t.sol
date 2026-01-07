@@ -137,8 +137,12 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             options
         );
         // Execute the operation (can be anyone, e.g., keeper or user) (PAYS FEE)
+        // Provide sufficient value for both fee and forwarding (msgValue = 0 in this case)
+        console.log("Native fee:", nativeFee);
+        console.log("Msg value:", options.msgValue);
+        console.log("Total required:", nativeFee + options.msgValue);
         vm.startPrank(keeper); // Or user
-        router.executeSendMessage{value: nativeFee}(
+        router.executeSendMessage{value: nativeFee + options.msgValue}(
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: DEST_CHAIN_ID,
                 target: user,

@@ -18,6 +18,9 @@ interface IBaseBridgeAdapterErrors {
     /// @notice Error thrown when the amount is invalid
     error InvalidAmount();
 
+    /// @notice Thrown when an asset is not supported by the adapter
+    error UnsupportedAsset();
+
     /// @notice Error thrown when the source chain ID is invalid
     error InvalidSourceChainId();
 
@@ -37,7 +40,7 @@ interface IBaseBridgeAdapterErrors {
     error TransferFailed();
 
     /// @notice Thrown when insufficient msg.value is provided for the specified msgValue
-    error InsufficientMsgValue(uint128 required, uint256 provided);
+    error InsufficientMsgValue(uint256 required, uint256 provided);
 
     /// @notice Thrown when a chain is not supported
     error UnsupportedChain();
@@ -47,9 +50,6 @@ interface IBaseBridgeAdapterErrors {
 
     /// @notice Thrown when insufficient fee is provided for an operation
     error InsufficientFee(uint256 required, uint256 provided);
-
-    /// @notice Thrown when an asset is not supported by the adapter
-    error UnsupportedAsset();
 
     /// @notice Thrown when an unsupported message type is received
     error UnsupportedMessageType();

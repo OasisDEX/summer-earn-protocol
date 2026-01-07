@@ -23,9 +23,15 @@ interface ILayerZeroAdapter {
     /// @notice Error thrown when an endpoint ID is invalid
     error InvalidEndpointId();
 
+    /// @notice Error thrown when OApp address doesn't match expected OFT contract
+    error UntrustedOApp(address received, address expected);
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when OFT contract is set for a token
+    event OftSet(address indexed token, address indexed oft);
 
     /// @notice Emitted when read libraries are configured
     event ReadLibrariesConfigured(

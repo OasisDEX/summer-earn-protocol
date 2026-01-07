@@ -128,17 +128,17 @@ library BridgeMessagingHelper {
      * @return RelayedTransferParams struct ready for encoding
      */
     function createRelayedTransferParams(
-        BridgeTypes.ExecuteTransferParams memory params,
+        BridgeTypes.ExecuteTransferParams calldata params,
         bytes32 operationId
     ) internal view returns (BridgeTypes.RelayedTransferParams memory) {
         return
             BridgeTypes.RelayedTransferParams({
+                operationId: operationId,
+                originator: params.originator,
+                sourceChainId: uint16(block.chainid),
                 recipient: params.target,
                 asset: params.asset,
                 amount: params.amount,
-                sourceChainId: uint16(block.chainid),
-                operationId: operationId,
-                originator: params.originator,
                 message: params.message
             });
     }

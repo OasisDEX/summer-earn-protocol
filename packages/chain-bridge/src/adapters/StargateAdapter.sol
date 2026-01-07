@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {IStargateAdapter} from "../interfaces/IStargateAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
@@ -36,7 +35,6 @@ contract StargateAdapter is
     using AddressCast for address;
     using AddressCast for bytes32;
     using OptionsBuilder for bytes;
-    using Address for address payable;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -156,7 +154,6 @@ contract StargateAdapter is
         external
         payable
         onlyTrustedDestination(params.destinationChainId)
-        withSupportedOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         onlyRouter
         nonReentrant
     {
@@ -196,9 +193,9 @@ contract StargateAdapter is
      */
     function _executeSendToken(
         bytes32 operationId,
-        BridgeTypes.ExecuteTransferParams memory params,
+        BridgeTypes.ExecuteTransferParams calldata params,
         uint256 providedFee,
-        BridgeTypes.BridgeOptions memory options
+        BridgeTypes.BridgeOptions calldata options
     ) internal {
         // Get the source chain Stargate contract
         address stargateContract = assetToStargateContract[params.asset];
@@ -324,21 +321,6 @@ contract StargateAdapter is
         _refundExcessNative(params.refundAddress, refundAmount);
     }
 
-    /**
-     * @dev Refund excess native tokens to the specified address
-     * @param refundAddress Address to receive the refund
-     * @param refundAmount Amount to refund
-     */
-    function _refundExcessNative(
-        address refundAddress,
-        uint256 refundAmount
-    ) internal {
-        // Refund any excess native tokens if applicable
-        if (refundAmount > 0) {
-            Address.sendValue(payable(refundAddress), refundAmount);
-        }
-    }
-
     /// @inheritdoc IAssetAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
@@ -347,7 +329,6 @@ contract StargateAdapter is
         external
         view
         onlyTrustedDestination(params.destinationChainId)
-        withSupportedOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
         // Check if asset is supported on current chain
@@ -529,9 +510,9 @@ contract StargateAdapter is
      * @return oftReceipt Quote receipt with slippage-validated amounts
      */
     function _prepareSendParamForTransfer(
-        BridgeTypes.ExecuteTransferParams memory params,
+        BridgeTypes.ExecuteTransferParams calldata params,
         bytes32 operationId,
-        BridgeTypes.BridgeOptions memory options,
+        BridgeTypes.BridgeOptions calldata options,
         address stargateContract
     )
         internal
@@ -539,7 +520,9 @@ contract StargateAdapter is
         returns (SendParam memory sendParam, OFTReceipt memory oftReceipt)
     {
         // Resolve destination adapter via registry
-        address destinationAdapter = _getAdapterPeer(params.destinationChainId);
+        address destinationAdapter = _resolveAdapterPeer(
+            params.destinationChainId
+        );
 
         // Build SendParam - Stargate will wrap this with OFTComposeMsgCodec internally
         sendParam = _buildSendParam(

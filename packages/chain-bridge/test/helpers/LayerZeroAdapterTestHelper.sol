@@ -63,6 +63,15 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
     }
 
     /**
+     * @notice Helper to set OFT mapping for testing
+     * @param token Token address
+     * @param oft OFT contract address
+     */
+    function setOftForTokenTest(address token, address oft) external {
+        oftForToken[token] = oft;
+    }
+
+    /**
      * @notice Exposes the internal getLayerZeroChainId function for testing
      * @param chainId Chain ID
      * @return LayerZero EID

@@ -7,6 +7,9 @@ import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
+import {IBaseBridgeAdapterErrors} from "../../../src/interfaces/IBaseBridgeAdapterErrors.sol";
+import {ILayerZeroAdapter} from "../../../src/interfaces/ILayerZeroAdapter.sol";
+import {MockOFT} from "../../mocks/MockOFT.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
@@ -114,7 +117,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         assertTrue(
             adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE)
         );
-        assertFalse(
+        assertTrue(
             adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         );
     }
@@ -122,6 +125,31 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
                         ESTIMATION & VALIDATION TESTS
     //////////////////////////////////////////////////////////////*/
+
+    function test_estimateTransferAssets_reverts_UnsupportedAsset() public {
+        useNetworkA();
+        vm.expectRevert(IBaseBridgeAdapterErrors.UnsupportedAsset.selector);
+        adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: address(this),
+                asset: address(0), // Unsupported asset
+                amount: 0,
+                message: bytes(""),
+                refundAddress: address(this)
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                gasLimit: 100000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: bytes(""),
+                payInProtocolToken: false,
+                feeTokenAmount: 0
+            })
+        );
+    }
 
     function test_estimateSendMessage_reverts_when_gasLimit_zero() public {
         useNetworkA();
@@ -223,5 +251,131 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             address(0x1234),
             bytes("")
         );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        OFT CONFIGURATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testSetOftForTokenRevertsZeroToken() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
+        );
+        adapterA.setOftForToken(address(0), address(0x1234));
+
+        vm.stopPrank();
+    }
+
+    function testSetOftForTokenRevertsZeroOft() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
+        );
+        adapterA.setOftForToken(address(tokenA), address(0));
+
+        vm.stopPrank();
+    }
+
+    function testSetOftForTokenRevertsAdapterPatternMismatch() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Create a mock OFT that returns a different token
+        MockOFT mockOFT = new MockOFT(
+            "Mock OFT",
+            "MOFT",
+            address(0xDEAD),
+            lzEndpointA
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
+        );
+        adapterA.setOftForToken(address(tokenA), address(mockOFT));
+
+        vm.stopPrank();
+    }
+
+    function testSetOftForTokenRevertsDirectPatternMismatch() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Create a mock OFT that doesn't have token() function and token != oft
+        MockOFT mockOFT = new MockOFT(
+            "Mock OFT",
+            "MOFT",
+            address(0xDEAD),
+            lzEndpointA
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InvalidParams.selector
+            )
+        );
+        adapterA.setOftForToken(address(tokenA), address(mockOFT));
+
+        vm.stopPrank();
+    }
+
+    function testSetOftForTokenSuccessAdapterPattern() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Create a mock OFT that returns the correct token (adapter pattern)
+        MockOFT mockOFT = new MockOFT(
+            "Mock OFT",
+            "MOFT",
+            address(tokenA),
+            lzEndpointA
+        );
+
+        // Should succeed
+        adapterA.setOftForToken(address(tokenA), address(mockOFT));
+
+        // Verify the mapping was set
+        assertEq(adapterA.oftForToken(address(tokenA)), address(mockOFT));
+
+        vm.stopPrank();
+    }
+
+    function testSetOftForTokenSuccessDirectPattern() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // For direct pattern, token == oft
+        // Create a mock OFT that returns itself as the token
+        MockOFT mockOFT = new MockOFT(
+            "Mock OFT",
+            "MOFT",
+            address(0),
+            lzEndpointA
+        );
+
+        // Override the token() function to return the OFT address itself
+        vm.mockCall(
+            address(mockOFT),
+            abi.encodeWithSelector(MockOFT.token.selector),
+            abi.encode(address(mockOFT))
+        );
+
+        // Should succeed
+        adapterA.setOftForToken(address(mockOFT), address(mockOFT));
+
+        // Verify the mapping was set
+        assertEq(adapterA.oftForToken(address(mockOFT)), address(mockOFT));
+
+        vm.stopPrank();
     }
 }

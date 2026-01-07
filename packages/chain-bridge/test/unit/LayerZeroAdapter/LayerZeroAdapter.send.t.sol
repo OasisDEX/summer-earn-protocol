@@ -8,6 +8,8 @@ import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {ICrossChainConfigManaged} from "../../../src/interfaces/ICrossChainConfigManaged.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {console} from "forge-std/Test.sol";
 
 contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
     using OptionsBuilder for bytes;
@@ -15,10 +17,29 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
     // Add a MockCrossChainReceiver instance to test direct message delivery
     MockCrossChainReceiver public mockReceiver;
 
-    // Override setup to deploy the mock receiver
+    // Protocol token for testing
+    ERC20Mock public protocolFeeToken;
+    uint256 public constant PROTOCOL_FEE_AMOUNT = 1000e18;
+
+    // Override setup to deploy the mock receiver and protocol token
     function setUp() public override {
         super.setUp();
         mockReceiver = new MockCrossChainReceiver();
+
+        // Deploy protocol fee token
+        protocolFeeToken = new ERC20Mock();
+
+        // Configure protocol fee token on adapter
+        vm.prank(governor);
+        adapterA.setProtocolFeeToken(address(protocolFeeToken));
+
+        // Mint protocol tokens to router and user
+        protocolFeeToken.mint(address(routerA), 10000e18);
+        protocolFeeToken.mint(user, 10000e18);
+
+        // Router approves adapter to spend protocol tokens
+        vm.prank(address(routerA));
+        protocolFeeToken.approve(address(adapterA), type(uint256).max);
     }
 
     function testDirectSendMessage() public {
@@ -54,7 +75,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             )
         );
 
-        vm.deal(address(routerA), 1 ether);
+        vm.deal(address(routerA), 3 ether);
 
         // Expect the MessageInitiated event to be emitted
         vm.expectEmit(true, true, true, true);
@@ -69,7 +90,8 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
                 originator: address(user),
                 refundAddress: address(user)
             });
-        adapterA.sendMessage{value: 0.1 ether}(
+        // Provide sufficient value for LayerZero fee (msgValue = 0 in this case)
+        adapterA.sendMessage{value: 3 ether}(
             operationId, // Use proper operation ID
             params,
             options
@@ -206,7 +228,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             specifiedAdapter: address(adapterA),
             gasLimit: 500000,
             calldataSize: 0,
-            msgValue: 0.5 ether,
+            msgValue: 1 wei,
             options: bytes(""),
             payInProtocolToken: false,
             feeTokenAmount: 0
@@ -214,15 +236,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
 
         // Generate a fake operation ID
         bytes32 operationId = keccak256(abi.encode("fake-operation"));
-
-        // Should revert with InsufficientMsgValue since we only provide 0.1 ether
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBaseBridgeAdapterErrors.InsufficientMsgValue.selector,
-                uint128(0.5 ether),
-                0.1 ether
-            )
-        );
 
         BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
             .ExecuteSendMessageParams({
@@ -234,13 +247,56 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
                 originator: address(user),
                 refundAddress: address(user)
             });
-        adapterA.sendMessage{value: 0.1 ether}(
+
+        // We need to calculate the actual required amount (fee + msgValue)
+        (uint256 nativeFee, ) = adapterA.estimateSendMessage(params, options);
+
+        console.log("Estimated native fee:", nativeFee);
+
+        uint256 totalRequired = nativeFee + options.msgValue;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBaseBridgeAdapterErrors.InsufficientMsgValue.selector,
+                totalRequired, // Actual required amount (fee + msgValue)
+                1 wei // msg.value provided
+            )
+        );
+        adapterA.sendMessage{value: 1 wei}(
             operationId, // Use proper operation ID
             params,
             options
         );
 
         vm.stopPrank();
+    }
+
+    function testEstimateSendMessageWithProtocolToken() public {
+        useNetworkA();
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0.5 ether,
+            options: bytes(""),
+            payInProtocolToken: true,
+            feeTokenAmount: PROTOCOL_FEE_AMOUNT
+        });
+
+        // Call estimateSendMessage with protocol token payment
+        vm.expectRevert(abi.encodeWithSignature("LZ_LzTokenUnavailable()"));
+
+        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                message: abi.encode("Test message"),
+                originator: address(user),
+                refundAddress: address(user)
+            }),
+            options
+        );
     }
 
     // Add event declarations for the events we expect

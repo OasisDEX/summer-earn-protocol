@@ -59,7 +59,23 @@ router.executeTransferAssets{ value: nativeFee }(params, opts);
 - Implement a fee estimation method that the router (or callers) can use.
 - Implement operation-specific methods to execute the transfer/message/read-state on the source chain.
 - Implement destination-side delivery that authenticates and calls back into the local BridgeRouter.
-- Only registered adapters are allowed to invoke the router’s delivery entry points.
+- Only registered adapters are allowed to invoke the router's delivery entry points.
+
+#### Adapter Execution Models
+
+All current adapters use automated delivery models:
+
+**Automated Adapters** (StargateAdapter, LayerZeroAdapter, SuperchainAdapter):
+- Delivery completes automatically via protocol callbacks (e.g., `lzCompose`, `relayMessage`)
+- No keeper intervention required on destination chain
+- Tokens are delivered directly to the end recipient through the router
+
+**OP Stack Concatenated Actions** (SuperchainAdapter):
+- Uses OP Stack's recommended dual-message pattern: token transfer + message delivery
+- `SuperchainTokenBridge.sendERC20()` mints tokens to destination adapter
+- `L2ToL2CrossDomainMessenger.sendMessage()` sends delivery instruction
+- `relayMessage()` callback automatically completes delivery when message is relayed
+- Eliminates need for manual keeper intervention while maintaining security
 
 #### Delivery to Recipients
 

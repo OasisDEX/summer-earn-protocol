@@ -3,10 +3,12 @@ pragma solidity 0.8.28;
 
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 import {IBaseBridgeAdapter} from "../interfaces/IBaseBridgeAdapter.sol";
+import {IBaseBridgeAdapterErrors} from "../interfaces/IBaseBridgeAdapterErrors.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {TokenRecovery} from "./TokenRecovery.sol";
 import {ProtocolFeeTokenHandler} from "./ProtocolFeeTokenHandler.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 /**
@@ -248,8 +250,8 @@ abstract contract BaseBridgeAdapter is
      * @notice Returns true if governance has registered a peer adapter for `dstChain`
      */
     function isAllowedDestination(uint16 dstChain) public view returns (bool) {
-        // Revert if the relationship does not exist; used by modifiers and explicit checks
-        return _getAdapterPeer(dstChain) != address(0);
+        // Use safe check to avoid reverting on missing relationships
+        return _hasTrustedDestination(dstChain);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -267,6 +269,24 @@ abstract contract BaseBridgeAdapter is
         return CROSS_CHAIN_REGISTRY.getAdapterPeer(address(this), dstChain);
     }
 
+    /**
+     * @notice Resolve the peer adapter address for a destination chain with validation
+     * @dev Validates that a peer adapter exists for the destination chain and reverts if not.
+     *      This provides a convenient helper for cases where immediate validation is needed.
+     * @param dstChain Destination chain ID
+     * @return Peer adapter address for the destination chain
+     * @custom:throws UnsupportedChain if no peer adapter is registered for the destination chain
+     */
+    function _resolveAdapterPeer(
+        uint16 dstChain
+    ) internal view returns (address) {
+        address peer = _getAdapterPeer(dstChain);
+        if (peer == address(0)) {
+            revert IBaseBridgeAdapterErrors.UnsupportedChain();
+        }
+        return peer;
+    }
+
     /// @dev Returns true if `srcAdapter` is the registry-declared peer for `srcChain`.
     function _validateTrustedSource(
         address srcAdapter,
@@ -279,6 +299,22 @@ abstract contract BaseBridgeAdapter is
                 srcChain,
                 THIS_CHAIN
             );
+    }
+
+    /**
+     * @notice Internal helper to check if a destination chain has a trusted peer adapter
+     * @dev Queries the CrossChainRegistry to see if a peer relationship exists
+     * @param dstChain Destination chain ID to check
+     * @return true if a peer adapter is registered for the destination chain
+     */
+    function _hasTrustedDestination(
+        uint16 dstChain
+    ) internal view returns (bool) {
+        address peer = CROSS_CHAIN_REGISTRY.getAdapterPeer(
+            address(this),
+            dstChain
+        );
+        return peer != address(0);
     }
 
     /**
@@ -300,6 +336,12 @@ abstract contract BaseBridgeAdapter is
      * @param externalId Bridge-specific external ID for the chain (e.g., LayerZero EID)
      */
     function _mapChainExternalId(uint16 chainId, uint32 externalId) internal {
+        // Clear old reverse mapping if it exists
+        uint32 oldExternalId = chainToExternalId[chainId];
+        if (oldExternalId != 0) {
+            delete externalIdToChainId[oldExternalId];
+        }
+
         chainToExternalId[chainId] = externalId;
         externalIdToChainId[externalId] = chainId;
         emit ExternalIdMapped(chainId, externalId);
@@ -374,6 +416,21 @@ abstract contract BaseBridgeAdapter is
     ) internal pure {
         if (options.msgValue > 0 && msgValue < options.msgValue) {
             revert InsufficientMsgValue(options.msgValue, msgValue);
+        }
+    }
+
+    /**
+     * @dev Refund excess native tokens to the specified address
+     * @param refundAddress Address to receive the refund
+     * @param refundAmount Amount to refund
+     */
+    function _refundExcessNative(
+        address refundAddress,
+        uint256 refundAmount
+    ) internal {
+        // Refund any excess native tokens if applicable
+        if (refundAmount > 0) {
+            Address.sendValue(payable(refundAddress), refundAmount);
         }
     }
 }
