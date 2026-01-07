@@ -2,19 +2,14 @@ specVersion: 0.0.8
 description: Rates
 schema:
   file: ./schema.graphql
-features:
-  - grafting
-graft:
-  base: Qmedfuef98ZzYRXfLBL1pe3tUooDxpUJVHzJP9nrGJRGe8
-  block: 24031082
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
-    network: mainnet
+    network: hyperevm
     source:
       abi: Comet
-      startBlock: 23383121
-      address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
+      startBlock: 23831958
+      address: "0x0000000000000000000000000000000000000000"
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.8
@@ -93,5 +88,5 @@ dataSources:
         - handler: handleBlock
           filter:
             kind: polling
-            every: 50    
+            every: 600    
       file: ./src/mapping.ts
