@@ -1,5 +1,5 @@
 import { Address } from 'viem'
-import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+import { arbitrum, base, hyperliquid, mainnet, sonic } from 'viem/chains'
 
 export type Environment = 'production' | 'staging'
 
@@ -9,12 +9,14 @@ export const HARBOR_COMMAND_ADDRESSES: Record<Environment, Record<number, Addres
     [arbitrum.id]: '0x09eb323dBFECB43fd746c607A9321dACdfB0140F',
     [base.id]: '0x09eb323dBFECB43fd746c607A9321dACdfB0140F',
     [sonic.id]: '0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191',
+    [hyperliquid.id]: '0x5CD5D7e3A1b604E0EdeDc4A2343b312729e09E3F',
   },
   staging: {
     [mainnet.id]: '0x07060E282bd0FB99607c8915f1E538F8CebF5FC4',
     [arbitrum.id]: '0x6De9F53c553e1511E1dBBd43E86148868400CbFb',
     [base.id]: '0xE355F38F0144a9f07A1Dc8f95ED23658d96613AF',
     [sonic.id]: '0x5de028b0ED0F1B5A81636eB97445236C6b4b2523',
+    [hyperliquid.id]: '0xf5A69789Bf5e62A43C47E4c8d857b8DAE14d4ab0',
   },
 }
 
@@ -24,12 +26,14 @@ export const RAFT_CONTRACT_ADDRESSES: Record<Environment, Record<number, Address
     [arbitrum.id]: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E', // TODO: Add actual address
     [base.id]: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E', // TODO: Add actual address
     [sonic.id]: '0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204', // TODO: Add actual address
+    [hyperliquid.id]: '0xFF199c0B988f80987e6612a99a024Ec9A6F59f53', // TODO: Add actual address
   },
   staging: {
     [mainnet.id]: '0xceDBFEF8A10c20a96E2309E4Fd31F7D3834eFaF7', // TODO: Add actual address
     [arbitrum.id]: '0xa57EFa57592E00a307477D840B931406921fEF36', // TODO: Add actual address
     [base.id]: '0xB5113dA0CaE7DDf19b8e25103B2F411148b8BAeb', // TODO: Add actual address
     [sonic.id]: '0x702C4114eB8bB23Dd1432bb12Ac51B9cD5C7826f', // TODO: Add actual address
+    [hyperliquid.id]: '0xabF2654d149E0fDcCb7e319796D065299376AFcC', // TODO: Add actual address
   },
 }
 
@@ -40,12 +44,14 @@ export const PROTOCOL_ACCESS_MANAGER_ADDRESSES: Record<Environment, Record<numbe
     [arbitrum.id]: '0xf389BCEa078acD9516414F5dabE3dDd5f7e39694', // TODO: Add actual address for arbitrum
     [base.id]: '0xf389BCEa078acD9516414F5dabE3dDd5f7e39694', // TODO: Add actual address for base
     [sonic.id]: '0xAFb8a8beA8F7CdB4b65437b0c5963dc7Cd270bC6', // TODO: Add actual address for sonic
+    [hyperliquid.id]: '0x38fB5a7fa70103dCd9e8A969f3975A77E0fE755f', // TODO: Add actual address for hyperliquid
   },
   staging: {
     [mainnet.id]: '0x092C41C6e9A8A54577CeDe5d077971116DdD6F57', // TODO: Add actual staging address
     [arbitrum.id]: '0x2e208e55075b1cF15A767C15Ee9bA14205CB8371', // TODO: Add actual staging address
     [base.id]: '0x603821f86DeDC794A3225d62Afe1F175fe4AE861', // TODO: Add actual staging address
     [sonic.id]: '0xA55cd6a6D882180E84DDb25F7c7Ae4e4Af0f3f27', // TODO: Add actual staging address
+    [hyperliquid.id]: '0xabF2654d149E0fDcCb7e319796D065299376AFcC', // TODO: Add actual staging address
   },
 }
 
