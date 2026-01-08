@@ -1,4 +1,4 @@
-export type ChainId = '1' | '42161' | '8453' | '146'
+export type ChainId = '1' | '42161' | '8453' | '146' | '999'
 
 export interface TokenInfo {
   address: string
