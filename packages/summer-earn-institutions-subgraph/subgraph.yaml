@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: InstitutionalVaultRegistry
-    network: mainnet
+    network: hyperevm
     source:
       abi: InstitutionalVaultRegistry
-      address: "0xa84B4C9680EFf0334a55661fa371100AEb2F6e02"
-      startBlock: 37209151
+      address: "0xCDa1586aDa05330e46075Ed8c58B9f6E8DCf7A7f"
+      startBlock: 24094872
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -70,7 +70,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: mainnet
+    network: hyperevm
     source:
       abi: FleetCommander
     mapping:
@@ -165,7 +165,7 @@ templates:
 
   - kind: ethereum/contract
     name: ArkTemplate
-    network: mainnet
+    network: hyperevm
     source:
       abi: Ark
     mapping:
@@ -234,7 +234,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: HarborCommand
-    network: mainnet
+    network: hyperevm
     source:
       abi: HarborCommand
     mapping:
@@ -286,11 +286,11 @@ templates:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 30 
+            every: 600 
       file: ./src/mappings/harborCommand.ts
   - kind: ethereum/contract
     name: ProtocolAccessManager
-    network: mainnet
+    network: hyperevm
     source:
       abi: ProtocolAccessManager
     mapping:
@@ -344,7 +344,7 @@ templates:
       file: ./src/mappings/accessManagement.ts      
   - kind: ethereum/contract
     name: AdmiralsQuarters
-    network: mainnet
+    network: hyperevm
     source:
       abi: AdmiralsQuarters
     mapping:

@@ -27,5 +27,6 @@
   "FleetModule_BummerLazyVault_LowerRisk_USDC#FleetCommander": "0x015e60a0B239214fdEAB9Ad21318B12c0d97c15D",
   "BummerLazyVault_LowerRisk_USDC_Hyperlend_usdc_999#HyperlendArk": "0xBB49233c43DE5f87F5c06cb86488A47972F7f12e",
   "BummerLazyVault_LowerRisk_USDC_MorphoVault_usdc_Felix_USDC_999#MorphoVaultArk": "0x6D913Eb566D093b288Ea005Bf648Ec47De983568",
-  "BummerLazyVault_LowerRisk_USDC_MorphoVault_usdc_Gauntlet_USDC_999#MorphoVaultArk": "0xabf9a375187CE304589A1baCb516366D5C499c9e"
+  "BummerLazyVault_LowerRisk_USDC_MorphoVault_usdc_Gauntlet_USDC_999#MorphoVaultArk": "0xabf9a375187CE304589A1baCb516366D5C499c9e",
+  "InstitutionRegistry#InstitutionalVaultRegistry": "0xCDa1586aDa05330e46075Ed8c58B9f6E8DCf7A7f"
 }
