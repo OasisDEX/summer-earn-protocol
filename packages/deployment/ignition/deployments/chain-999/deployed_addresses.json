@@ -15,5 +15,17 @@
   "CoreModule#HarborCommand": "0x5CD5D7e3A1b604E0EdeDc4A2343b312729e09E3F",
   "CoreModule#AdmiralsQuarters": "0x3D4AE5aefbE0F5471Eb33BCFcBBcf6d9234D32a5",
   "CoreModule#Raft": "0xFF199c0B988f80987e6612a99a024Ec9A6F59f53",
-  "CoreModule#TipJar": "0xD6f6548cF8643303F8C6bc9f4fcEC6Ed57f9A573"
+  "CoreModule#TipJar": "0xD6f6548cF8643303F8C6bc9f4fcEC6Ed57f9A573",
+  "staging_CoreModule#ConfigurationManager": "0x7704A3A4b733CFf3D5cA908CEa8D3A61784fa16C",
+  "staging_CoreModule#DutchAuctionLibrary": "0x538BD684176Ac87616910AFaE08d681E8cd50c15",
+  "staging_CoreModule#FleetCommanderRewardsManagerFactory": "0x99186C1B9b61CF32F2F5618d2e4C8452834af303",
+  "staging_CoreModule#HarborCommand": "0xf5A69789Bf5e62A43C47E4c8d857b8DAE14d4ab0",
+  "staging_CoreModule#AdmiralsQuarters": "0x09124a25756223Eb7A523A0377cc83Dc8D22e1bE",
+  "staging_CoreModule#Raft": "0xabF2654d149E0fDcCb7e319796D065299376AFcC",
+  "staging_CoreModule#TipJar": "0x01A77b820C43e73015b2703A1cBB1eD928227727",
+  "staging_InstitutionRegistry#InstitutionalVaultRegistry": "0x1C354B455bEf33744397A561dC518A2a9F4f5bab",
+  "FleetModule_BummerLazyVault_LowerRisk_USDC#FleetCommander": "0x015e60a0B239214fdEAB9Ad21318B12c0d97c15D",
+  "BummerLazyVault_LowerRisk_USDC_Hyperlend_usdc_999#HyperlendArk": "0xBB49233c43DE5f87F5c06cb86488A47972F7f12e",
+  "BummerLazyVault_LowerRisk_USDC_MorphoVault_usdc_Felix_USDC_999#MorphoVaultArk": "0x6D913Eb566D093b288Ea005Bf648Ec47De983568",
+  "BummerLazyVault_LowerRisk_USDC_MorphoVault_usdc_Gauntlet_USDC_999#MorphoVaultArk": "0xabf9a375187CE304589A1baCb516366D5C499c9e"
 }

@@ -1696,6 +1696,51 @@ type Role @entity {
   createdTimestamp: BigInt!
   createdBlockNumber: BigInt!
   institution: Institution!
+  active: Boolean!
+  events: [RoleEvent!]! @derivedFrom(field: "role")
+}
+
+type RoleEvent @entity @transaction {
+  id: ID!
+  hash: String!
+  logIndex: Int!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  institution: Institution!
+  caller: String!
+
+  action: RoleAction!
+  role: Role!
+}
+
+type CurationEvent @entity @transaction {
+  id: ID!
+  hash: String!
+  logIndex: Int!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  institution: Institution!
+  action: AdminAction!
+  caller: String!
+
+  valueBefore: BigInt!
+  valueAfter: BigInt!
+  targetContract: String!
+}
+
+enum RoleAction {
+  GRANT_ROLE
+  REVOKE_ROLE
+}
+
+enum AdminAction {
+  VAULT_CAP_CHANGED
+  VAULT_MIN_BUFFER_CHANGED
+  VAULT_TIP_RATE_CHANGED
+  ARK_CAP_CHANGED
+  ARK_MAX_PCT_TVL_CHANGED
+  ARK_MAX_REBALANCE_OUTFLOW_CHANGED
+  ARK_MAX_REBALANCE_INFLOW_CHANGED
 }
 
 type AccessController @entity {

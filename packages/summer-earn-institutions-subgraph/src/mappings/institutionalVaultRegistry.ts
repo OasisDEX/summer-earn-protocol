@@ -70,6 +70,11 @@ export function handleInstitutionRemoved(event: InstitutionRemoved): void {
   const roles = institution.roles.load()
   for (let i = 0; i < roles.length; i++) {
     const role = roles[i]
+    const events = role.events.load()
+    for (let j = 0; j < events.length; j++) {
+      const event = events[j]
+      store.remove('RoleEvent', event.id)
+    }
     store.remove('Role', role.id)
   }
   const vaults = institution.vaults.load()
