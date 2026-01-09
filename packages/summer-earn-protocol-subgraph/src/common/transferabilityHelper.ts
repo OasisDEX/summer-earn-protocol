@@ -5,6 +5,7 @@ export class TransferabilityEnabledBlockByChain {
   static MAINNET: BigInt = BigInt.fromI32(23281546)
   static SONIC_MAINNET: BigInt = BigInt.fromI32(45585548)
   static BASE: BigInt = BigInt.fromI32(35006901)
+  static HYPERLIQUID: BigInt = BigInt.fromI32(0)
 }
 
 export function getTransferabilityEnabledBlockByChain(chain: string): BigInt {
@@ -16,6 +17,8 @@ export function getTransferabilityEnabledBlockByChain(chain: string): BigInt {
     return TransferabilityEnabledBlockByChain.SONIC_MAINNET
   } else if (chain == 'base') {
     return TransferabilityEnabledBlockByChain.BASE
+  } else if (chain == 'hyperliquid' || chain == 'hyperevm') {
+    return TransferabilityEnabledBlockByChain.HYPERLIQUID
   } else {
     throw new Error(`Unsupported chain: ${chain}`)
   }
