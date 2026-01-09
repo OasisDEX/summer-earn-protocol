@@ -1,4 +1,4 @@
-import { arbitrum, base, Chain, mainnet, sonic, hyperliquid } from 'viem/chains'
+import { arbitrum, base, Chain, hyperliquid, mainnet, sonic } from 'viem/chains'
 
 import { ChainId } from '../types'
 
