@@ -1,0 +1,9 @@
+{
+  "network": "hyperevm",
+  "registry-address": "0xCDa1586aDa05330e46075Ed8c58B9f6E8DCf7A7f",
+  "registry-start-block": 24094872,
+  "interval-handler-block-interval": 600,
+  "enable-grafting": false,
+  "grafting-base": "",
+  "grafting-block": ""
+}

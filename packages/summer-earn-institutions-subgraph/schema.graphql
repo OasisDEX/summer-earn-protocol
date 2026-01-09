@@ -26,6 +26,7 @@ enum Network {
   MATIC # aka Polygon
   GNOSIS
   SONIC_MAINNET
+  HYPEREVM
 }
 
 enum ProtocolType {
