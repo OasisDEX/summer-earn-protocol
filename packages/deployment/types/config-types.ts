@@ -111,6 +111,7 @@ export interface BaseConfig {
       rewardsRedeemer: { address: string }
       summerVestingFactory?: { address: string }
       summerVestingFactoryV2?: { address: string }
+      timelockGuardFactory?: { address: string }
     }
     govV2: {
       summerGovernor: { address: string }

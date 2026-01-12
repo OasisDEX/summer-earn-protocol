@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {TimelockGuard} from "../../src/contracts/misc/TimelockGuard.sol";
 import {console} from "forge-std/console.sol";
 
 contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
@@ -220,5 +221,104 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
             uint256(governorA.state(proposalId)),
             uint256(IGovernor.ProposalState.Executed)
         );
+    }
+
+    function test_QueueAndExecuteWithTimelockGuard() public {
+        // Setup voter
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+
+        vm.prank(alice);
+        axSumr.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Deploy TimelockGuard with a minimum timestamp in the future
+        uint256 currentTime = block.timestamp;
+        uint256 minDelay = timelockA.getMinDelay();
+        uint256 guardMinimumTimestamp = currentTime + minDelay + 10 days; // Additional 10 days buffer
+
+        TimelockGuard guard = new TimelockGuard(guardMinimumTimestamp);
+
+        // Mint tokens to timelock so they can be transferred
+        deal(address(testToken), address(timelockA), 1000);
+
+        // Create proposal with two calls:
+        // 1. Validate timestamp using TimelockGuard
+        // 2. Execute the actual action (transfer tokens)
+        address[] memory targets = new address[](2);
+        uint256[] memory values = new uint256[](2);
+        bytes[] memory calldatas = new bytes[](2);
+
+        // First call: validate timestamp
+        targets[0] = address(guard);
+        values[0] = 0;
+        calldatas[0] = abi.encodeWithSelector(
+            TimelockGuard.validateTimestamp.selector
+        );
+
+        // Second call: transfer tokens
+        targets[1] = address(testToken);
+        values[1] = 0;
+        calldatas[1] = abi.encodeWithSignature(
+            "transfer(address,uint256)",
+            bob,
+            100
+        );
+
+        string
+            memory description = "Transfer tokens with TimelockGuard validation";
+
+        // Create proposal
+        vm.prank(alice);
+        uint256 proposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+        bytes32 descriptionHash = keccak256(bytes(description));
+
+        advanceTimeForVotingDelay();
+
+        // Vote
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        advanceTimeForVotingPeriod();
+
+        // Queue the proposal
+        uint256 queueTime = block.timestamp;
+        governorA.queue(targets, values, calldatas, descriptionHash);
+
+        // Advance time to meet timelock delay but NOT the guard's minimum timestamp
+        vm.warp(queueTime + minDelay);
+
+        // Try to execute - should fail because guard's minimum timestamp hasn't been reached
+        bytes32 operationId = timelockA.hashOperationBatch(
+            targets,
+            values,
+            calldatas,
+            0, // predecessor
+            bytes20(address(governorA)) ^ descriptionHash // salt
+        );
+
+        // First, check that timelock allows execution (state is Ready)
+        // But execution should revert due to TimelockGuard validation
+        vm.expectRevert(TimelockGuard.TimelockGuard__TooEarly.selector);
+        governorA.execute(targets, values, calldatas, descriptionHash);
+
+        // Advance time to meet both timelock delay AND guard's minimum timestamp
+        vm.warp(guardMinimumTimestamp);
+
+        // Now execution should succeed
+        governorA.execute(targets, values, calldatas, descriptionHash);
+
+        // Verify proposal state
+        assertEq(
+            uint256(governorA.state(proposalId)),
+            uint256(IGovernor.ProposalState.Executed)
+        );
+
+        // Verify the actual action was executed (tokens were transferred)
+        assertEq(testToken.balanceOf(bob), 100);
     }
 }
