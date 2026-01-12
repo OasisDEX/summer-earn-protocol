@@ -105,9 +105,6 @@ dataSources:
         - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
           handler: handleRoleRevoked
           receipt: true
-      callHandlers:
-        - function: grantContractSpecificRole(uint8,address,address)
-          handler: handleGrantContractSpecificRole          
       file: ./src/mappings/accessManagement.ts  
 templates:
   - kind: ethereum/contract

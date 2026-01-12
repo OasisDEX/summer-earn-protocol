@@ -94,7 +94,8 @@ export default function AccessManagementPage() {
         {error && (
           <div className="bg-red-900 border border-red-600 rounded-lg p-4 mb-6">
             <p className="text-red-200">
-              <strong>Error:</strong> Failed to load roles. {error instanceof Error ? error.message : 'Unknown error'}
+              <strong>Error:</strong> Failed to load roles.{' '}
+              {error instanceof Error ? error.message : 'Unknown error'}
             </p>
           </div>
         )}
@@ -169,7 +170,8 @@ export default function AccessManagementPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {role.targetContract !== '0x0000000000000000000000000000000000000000' ? (
+                            {role.targetContract !==
+                            '0x0000000000000000000000000000000000000000' ? (
                               <div className="flex items-center gap-2">
                                 <a
                                   href={`${blockExplorer}/address/${role.targetContract}`}
