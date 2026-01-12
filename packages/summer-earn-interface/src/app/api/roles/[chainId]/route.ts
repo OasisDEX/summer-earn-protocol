@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { CHAIN_GOVERNANCE_SUBGRAPH_URLS } from '@/config/chains'
+import { resolveRole } from '@/utils/roleResolver'
 
 const TTL_MS = 5 * 60 * 1000
 const cache = new Map<string, { data: unknown; expiry: number }>()
@@ -76,8 +77,20 @@ export async function GET(request: Request, { params }: { params: { chainId: str
     cache: 'no-store',
   })
   const json = await response.json()
-  const data = json.data?.roles ?? []
-  const payload = { chainId, roles: data }
+  const allRoles = json.data?.roles ?? []
+  
+  // Resolve role names and filter out unresolved roles
+  const roles = allRoles
+    .map((role: { name: string; [key: string]: unknown }) => {
+      const resolved = resolveRole(role)
+      if (resolved.resolved) {
+        return { ...role, name: resolved.name }
+      }
+      return null
+    })
+    .filter((role: { name: string } | null) => role !== null)
+  
+  const payload = { chainId, roles }
   cache.set(key, { data: payload, expiry: now + TTL_MS })
   return NextResponse.json(payload)
 }

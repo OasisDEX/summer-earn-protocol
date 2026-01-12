@@ -49,6 +49,7 @@ function loadConfigForChain(chainId: ChainId): ConfigAddresses {
 
   try {
     const chainName = getChainName(chainId)
+    const foundation = configData[chainName]?.common?.foundation
     const chainConfig = configData[chainName]?.deployedContracts
 
     if (!chainConfig) {
@@ -83,6 +84,9 @@ function loadConfigForChain(chainId: ChainId): ConfigAddresses {
       addresses.summerGovernor = chainConfig.gov.summerGovernor.address
     }
 
+    if (foundation) {
+      addresses.foundation = foundation
+    }
     if (!configCache) {
       configCache = {} as Record<ChainId, ConfigAddresses>
     }
