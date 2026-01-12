@@ -25,6 +25,9 @@
         },
         "summerVestingFactoryV2": {
           "address": "0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB"
+        },
+        "timelockGuardFactory": {
+          "address": "0x387a440B723b06554A58D41364EF5cB0C5b3b5B4"
         }
       },
       "govV2": {
@@ -292,6 +295,9 @@
         },
         "oazoSummerRewardsRedeemer": {
           "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
+        },
+        "timelockGuardFactory": {
+          "address": "0x387a440B723b06554A58D41364EF5cB0C5b3b5B4"
         }
       },
       "govV2": {
@@ -548,6 +554,9 @@
         },
         "oazoSummerRewardsRedeemer": {
           "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
+        },
+        "timelockGuardFactory": {
+          "address": "0x387a440B723b06554A58D41364EF5cB0C5b3b5B4"
         }
       },
       "govV2": {
@@ -924,6 +933,9 @@
         },
         "oazoSummerRewardsRedeemer": {
           "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
+        },
+        "timelockGuardFactory": {
+          "address": "0x387a440B723b06554A58D41364EF5cB0C5b3b5B4"
         }
       },
       "govV2": {
@@ -1217,6 +1229,9 @@
         },
         "oazoSummerRewardsRedeemer": {
           "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelockGuardFactory": {
+          "address": "0x387a440B723b06554A58D41364EF5cB0C5b3b5B4"
         }
       },
       "govV2": {
