@@ -51,6 +51,15 @@ export const CHAIN_PROTOCOL_SUBGRAPH_URLS: Record<ChainId, string> = {
   [hyperliquid.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-hyperliquid',
 }
 
+// Governance subgraphs per chain (staging endpoints by default)
+export const CHAIN_GOVERNANCE_SUBGRAPH_URLS: Record<ChainId, string> = {
+  [mainnet.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov',
+  [arbitrum.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-arbitrum',
+  [base.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-base',
+  [sonic.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-sonic',
+  [hyperliquid.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-hyperliquid',
+}
+
 export const VIEM_CHAIN_ENTITIES: Record<ChainId, Chain> = {
   [mainnet.id]: mainnet,
   [arbitrum.id]: arbitrum,

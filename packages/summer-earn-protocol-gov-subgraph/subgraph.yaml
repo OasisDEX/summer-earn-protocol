@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: SummerGovernor
-    network: arbitrum-one
+    network: hyperevm
     source:
       abi: SummerGovernor
-      address: "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
-      startBlock: 300183921
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 20752308
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -43,11 +43,11 @@ dataSources:
       file: ./src/mappings/governance.ts
   - kind: ethereum/contract
     name: SummerGovernorV2
-    network: arbitrum-one
+    network: hyperevm
     source:
       abi: SummerGovernor
-      address: "0x94F29e66fE35Ee2BC03EC9D8C3fb6d9E183f3572"
-      startBlock: 300183921
+      address: "0x0398DA19EBb8F5DEcdc2E78465c2ef4F2412233b"
+      startBlock: 20752308
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -79,11 +79,40 @@ dataSources:
         - event: ProposalReceivedCrossChain(indexed uint256,indexed uint32)
           handler: handleProposalReceivedCrossChain
           receipt: true
-      file: ./src/mappings/governance.ts      
+      file: ./src/mappings/governance.ts
+  - kind: ethereum/contract
+    name: ProtocolAccessManager
+    network: hyperevm
+    source:
+      abi: ProtocolAccessManager
+      address: "0x38fB5a7fa70103dCd9e8A969f3975A77E0fE755f"
+      startBlock: 20752308
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Role
+      abis:
+        - name: ProtocolAccessManager
+          file: ./abis/ProtocolAccessManager.abi.json
+        - name: HarborCommand
+          file: ./abis/HarborCommand.abi.json
+      eventHandlers:
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+          receipt: true
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleRevoked
+          receipt: true
+      callHandlers:
+        - function: grantContractSpecificRole(uint8,address,address)
+          handler: handleGrantContractSpecificRole          
+      file: ./src/mappings/accessManagement.ts  
 templates:
   - kind: ethereum/contract
     name: TimelockControllerTemplate
-    network: arbitrum-one
+    network: hyperevm
     source:
       abi: SummerTimelockController
     mapping:
@@ -104,5 +133,11 @@ templates:
           receipt: true
         - event: CallScheduled(indexed bytes32,indexed uint256,address,uint256,bytes,bytes32,uint256)
           handler: handleCallScheduled
+          receipt: true
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleTimelockRoleGranted
+          receipt: true
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleTimelockRoleRevoked
           receipt: true
       file: ./src/mappings/timelock.ts

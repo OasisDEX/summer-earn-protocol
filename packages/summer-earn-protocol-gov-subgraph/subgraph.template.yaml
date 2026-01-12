@@ -79,7 +79,36 @@ dataSources:
         - event: ProposalReceivedCrossChain(indexed uint256,indexed uint32)
           handler: handleProposalReceivedCrossChain
           receipt: true
-      file: ./src/mappings/governance.ts      
+      file: ./src/mappings/governance.ts
+  - kind: ethereum/contract
+    name: ProtocolAccessManager
+    network: {{network}}
+    source:
+      abi: ProtocolAccessManager
+      address: "{{protocol-access-manager-address}}"
+      startBlock: {{protocol-access-manager-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Role
+      abis:
+        - name: ProtocolAccessManager
+          file: ./abis/ProtocolAccessManager.abi.json
+        - name: HarborCommand
+          file: ./abis/HarborCommand.abi.json
+      eventHandlers:
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+          receipt: true
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleRevoked
+          receipt: true
+      callHandlers:
+        - function: grantContractSpecificRole(uint8,address,address)
+          handler: handleGrantContractSpecificRole          
+      file: ./src/mappings/accessManagement.ts  
 templates:
   - kind: ethereum/contract
     name: TimelockControllerTemplate
@@ -104,5 +133,11 @@ templates:
           receipt: true
         - event: CallScheduled(indexed bytes32,indexed uint256,address,uint256,bytes,bytes32,uint256)
           handler: handleCallScheduled
+          receipt: true
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleTimelockRoleGranted
+          receipt: true
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleTimelockRoleRevoked
           receipt: true
       file: ./src/mappings/timelock.ts
