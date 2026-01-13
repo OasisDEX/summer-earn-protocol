@@ -60,18 +60,16 @@ contract HypurrfiArkTest is Test, IArkEvents, ArkTestBase {
                 currentLiquidityRate: 1e27, // Example value in ray
                 variableBorrowIndex: 1e27, // Example value in ray
                 currentVariableBorrowRate: 1e27, // Example value in ray
-                __deprecatedStableBorrowRate: 0, // Deprecated field
+                currentStableBorrowRate: 1e27, // Example value in ray
                 lastUpdateTimestamp: uint40(block.timestamp), // Current timestamp as example
                 id: 1, // Example value
-                liquidationGracePeriodUntil: 0, // Liquidations are enabled
                 aTokenAddress: mockAToken,
-                __deprecatedStableDebtTokenAddress: address(0), // Deprecated field
+                stableDebtTokenAddress: address(0), // Placeholder address
                 variableDebtTokenAddress: address(0), // Placeholder address
                 interestRateStrategyAddress: address(0), // Placeholder address
                 accruedToTreasury: 0, // Example value
                 unbacked: 0, // Example value
-                isolationModeTotalDebt: 0, // Example value
-                virtualUnderlyingBalance: 0 // Example value
+                isolationModeTotalDebt: 0 // Example value
             });
         vm.mockCall(
             address(hypurrfiPool),
@@ -126,18 +124,16 @@ contract HypurrfiArkTest is Test, IArkEvents, ArkTestBase {
                 currentLiquidityRate: 1e27, // Example value in ray
                 variableBorrowIndex: 1e27, // Example value in ray
                 currentVariableBorrowRate: 1e27, // Example value in ray
-                __deprecatedStableBorrowRate: 0, // Deprecated field
+                currentStableBorrowRate: 1e27, // Example value in ray
                 lastUpdateTimestamp: uint40(block.timestamp), // Current timestamp as example
                 id: 1, // Example value
-                liquidationGracePeriodUntil: 0, // Liquidations are enabled
                 aTokenAddress: mockAToken,
-                __deprecatedStableDebtTokenAddress: address(0), // Deprecated field
+                stableDebtTokenAddress: address(0), // Placeholder address
                 variableDebtTokenAddress: address(0), // Placeholder address
                 interestRateStrategyAddress: address(0), // Placeholder address
                 accruedToTreasury: 0, // Example value
                 unbacked: 0, // Example value
-                isolationModeTotalDebt: 0, // Example value
-                virtualUnderlyingBalance: 0 // Example value
+                isolationModeTotalDebt: 0 // Example value
             });
         vm.mockCall(
             address(hypurrfiPool),
