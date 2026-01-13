@@ -229,7 +229,7 @@ export default function FleetDetail() {
                       <p className="text-sm text-gray-400">Deposit Cap</p>
                       <p className="text-lg font-semibold text-white">
                         {fleetInfo.depositCap === BigInt(0)
-                          ? 'Unlimited'
+                          ? 'Zero'
                           : `${formatDecimalOutput(fleetInfo.depositCap, assetInfo.decimals)} ${assetInfo.symbol}`}
                       </p>
                       {fleetInfo.depositCap > BigInt(0) && (
@@ -378,7 +378,7 @@ export default function FleetDetail() {
                             <p className="text-gray-400">Deposit Cap</p>
                             <p className="text-white font-medium">
                               {ark.depositCap === BigInt(0)
-                                ? 'Unlimited'
+                                ? 'Zero'
                                 : `${formatDecimalOutput(ark.depositCap, assetInfo.decimals)} ${assetInfo.symbol}`}
                             </p>
                             {ark.depositCap > BigInt(0) && (
@@ -395,7 +395,7 @@ export default function FleetDetail() {
                             <p className="text-gray-400">Max Deposit % of TVL</p>
                             <p className="text-white font-medium">
                               {ark.maxDepositPercentageOfTVL === BigInt(0)
-                                ? 'Unlimited'
+                                ? 'Zero'
                                 : formatPercentage(ark.maxDepositPercentageOfTVL)}
                             </p>
                             {fleetInfo &&
@@ -414,11 +414,10 @@ export default function FleetDetail() {
                           <div>
                             <p className="text-gray-400">Max Rebalance Inflow</p>
                             <p className="text-white font-medium">
-                              {ark.maxRebalanceInflow === BigInt(0) ||
-                              ark.maxRebalanceInflow ===
-                                BigInt(
-                                  '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-                                )
+                              {ark.maxRebalanceInflow ===
+                              BigInt(
+                                '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+                              )
                                 ? 'Unlimited'
                                 : `${formatDecimalOutput(ark.maxRebalanceInflow, assetInfo.decimals)} ${assetInfo.symbol}`}
                             </p>
@@ -426,11 +425,10 @@ export default function FleetDetail() {
                           <div>
                             <p className="text-gray-400">Max Rebalance Outflow</p>
                             <p className="text-white font-medium">
-                              {ark.maxRebalanceOutflow === BigInt(0) ||
-                              ark.maxRebalanceOutflow ===
-                                BigInt(
-                                  '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-                                )
+                              {ark.maxRebalanceOutflow ===
+                              BigInt(
+                                '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+                              )
                                 ? 'Unlimited'
                                 : `${formatDecimalOutput(ark.maxRebalanceOutflow, assetInfo.decimals)} ${assetInfo.symbol}`}
                             </p>

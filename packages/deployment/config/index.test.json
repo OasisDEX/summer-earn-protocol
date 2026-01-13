@@ -1464,6 +1464,10 @@
       "hyperlend": {
         "pool": "0x00A89d7a5A02160f20150EbEA7a2b5E4879A1A8b",
         "rewards": "0x2aF0d6754A58723c50b5e73E45D964bFDD99fE2F"
+      },
+      "hypurr": {
+        "pool": "0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b",
+        "rewards": "0x5280b0Bac1c8342F9dCeA2bC5B6121A1473A368C"
       }
     }
   }
