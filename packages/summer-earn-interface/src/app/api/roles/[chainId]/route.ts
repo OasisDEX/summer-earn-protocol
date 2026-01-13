@@ -18,8 +18,6 @@ export async function GET(request: Request, { params }: { params: { chainId: str
   const endpoint = CHAIN_GOVERNANCE_SUBGRAPH_URLS[chainId]
   if (!endpoint) return NextResponse.json({ error: 'Unsupported chainId' }, { status: 400 })
 
-  const whereClause = activeOnly ? 'where: { active: true }' : ''
-
   const query = activeOnly
     ? `
         query {
