@@ -2,10 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import {
-  HypurrArkContracts,
-  createHypurrArkModule,
-} from '../../ignition/modules/arks/hypurr-ark'
+import { HypurrArkContracts, createHypurrArkModule } from '../../ignition/modules/arks/hypurr-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
@@ -125,10 +122,7 @@ async function deployHypurrArkContract(
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const hypurrPool = validateAddress(config.protocolSpecific.hypurr.pool, 'hypurr pool')
-  const hypurrRewards = validateAddress(
-    config.protocolSpecific.hypurr.rewards,
-    'hypurr rewards',
-  )
+  const hypurrRewards = validateAddress(config.protocolSpecific.hypurr.rewards, 'hypurr rewards')
 
   // Create and validate ark details
   const arkDetails = {
