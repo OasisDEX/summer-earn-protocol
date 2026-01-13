@@ -12,6 +12,7 @@ import { GovContracts } from '../../ignition/modules/gov'
 import { GovContractsV2 } from '../../ignition/modules/gov-v2'
 import { StakingContracts } from '../../ignition/modules/staking'
 import { GovV1CoreContracts } from '../../ignition/modules/gov-v1-core'
+import { TimelockGuardFactoryContracts } from '../../ignition/modules/timelock-guard-factory'
 
 export class ModuleLogger {
   private moduleName: string
@@ -134,6 +135,13 @@ export class ModuleLogger {
       'Summer Governance Token     ': contracts.summerGovernanceToken,
       'Summer Staking Contract     ': contracts.summerStaking,
       'Vesting Wallets Escrow      ': contracts.summerVestingWalletsEscrow,
+    })
+    logger.logAddresses()
+  }
+
+  static logTimelockGuardFactory(contracts: TimelockGuardFactoryContracts): void {
+    const logger = new ModuleLogger('TimelockGuardFactoryModule', {
+      TimelockGuardFactory: contracts.timelockGuardFactory,
     })
     logger.logAddresses()
   }
