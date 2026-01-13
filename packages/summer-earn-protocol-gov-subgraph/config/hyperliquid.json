@@ -1,0 +1,10 @@
+{
+  "network": "hyperevm",
+  "summer-governor-address": "0x0000000000000000000000000000000000000000",
+  "summer-governor-start-block": 20752308,
+  "summer-governor-v2-address": "0x0398DA19EBb8F5DEcdc2E78465c2ef4F2412233b",
+  "summer-governor-v2-start-block": 20752308,
+  "protocol-access-manager-address": "0x38fB5a7fa70103dCd9e8A969f3975A77E0fE755f",
+  "protocol-access-manager-start-block": 20752308,
+  "harbor-command-address": "0x5CD5D7e3A1b604E0EdeDc4A2343b312729e09E3F"
+}

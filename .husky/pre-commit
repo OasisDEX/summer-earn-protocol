@@ -4,4 +4,8 @@ if git diff --cached --name-only | grep -q "packages/deployment/config/index.jso
   cd packages/summer-earn-gov-validator
   npm run sync-config
   git add src/config/
+  cd ..
+  cd summer-earn-interface
+  npm run sync-config
+  git add src/config/
 fi
