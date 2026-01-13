@@ -12,6 +12,7 @@ import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployFluidFTokenArk } from '../arks/deploy-fluid-ftoken-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployHyperlendArk } from '../arks/deploy-hyperlend-ark'
+import { deployHypurrArk } from '../arks/deploy-hypurr-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { deployMorphoArk } from '../arks/deploy-morpho-ark'
 import { deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
@@ -108,6 +109,11 @@ export async function deployArk(
     }
     case ArkType.HyperlendArk: {
       const ark = await deployHyperlendArk(config, baseArkParams)
+      deployedArk = ark
+      break
+    }
+    case ArkType.HypurrArk: {
+      const ark = await deployHypurrArk(config, baseArkParams)
       deployedArk = ark
       break
     }
@@ -459,6 +465,9 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
       break
     case ArkType.SparkArk:
       deployedArk = await deploySparkArk(config)
+      break
+    case ArkType.HypurrArk:
+      deployedArk = await deployHypurrArk(config)
       break
     case ArkType.MoonwellArk:
       deployedArk = await deployMoonwellArk(config)

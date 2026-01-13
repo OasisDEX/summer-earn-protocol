@@ -40,6 +40,7 @@ export enum ArkType {
   PsmLiteERC4626Ark = 'PsmLiteERC4626Ark',
   Psm3ERC4626Ark = 'Psm3ERC4626Ark',
   HyperlendArk = 'HyperlendArk',
+  HypurrArk = 'HypurrArk',
 }
 
 export const arkTypes = [
@@ -70,6 +71,7 @@ export const arkTypes = [
   { title: 'PsmLiteERC4626Ark', value: ArkType.PsmLiteERC4626Ark },
   { title: 'Psm3ERC4626Ark', value: ArkType.Psm3ERC4626Ark },
   { title: 'HyperlendArk', value: ArkType.HyperlendArk },
+  { title: 'HypurrArk', value: ArkType.HypurrArk },
 ]
 
 export interface Config {
@@ -284,6 +286,10 @@ export interface BaseConfig {
       >
     }
     hyperlend: {
+      pool: Address
+      rewards: Address
+    }
+    hypurr: {
       pool: Address
       rewards: Address
     }

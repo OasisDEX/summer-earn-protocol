@@ -102,5 +102,6 @@
   "extDemo_USDC_Base_FluidFToken_usdc_8453#FluidFTokenArk": "0x2D55c68e6b9b6B3f70be2e51f289751E627f50aD",
   "extDemo_USDC_Base_MorphoVault_usdc_Gauntlet_USDC_Prime_8453#MorphoVaultArk": "0x915BFbc61BAf096b0B77058c6750A92371A795aC",
   "extDemo_USDC_Base_MorphoVault_usdc_Steakhouse_USDC_8453#MorphoVaultArk": "0xD5466e3c01f48C2Ff5Ba8f2DC422e47c8189b1Eb",
-  "extDemo_USDC_Base_MorphoVault_usdc_Moonwell_Flagship_USDC_8453#MorphoVaultArk": "0x447DC75c83D69e8e221b77a68C9195f78a11De2E"
+  "extDemo_USDC_Base_MorphoVault_usdc_Moonwell_Flagship_USDC_8453#MorphoVaultArk": "0x447DC75c83D69e8e221b77a68C9195f78a11De2E",
+  "TimelockGuardFactoryModule#TimelockGuardFactory": "0x387a440B723b06554A58D41364EF5cB0C5b3b5B4"
 }

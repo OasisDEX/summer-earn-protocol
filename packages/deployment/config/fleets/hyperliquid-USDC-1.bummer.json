@@ -36,6 +36,13 @@
         "protocol": "morpho",
         "vaultName": "Gauntlet_USDC"
       }
+    },
+    {
+      "type": "HypurrArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "hypurr"
+      }
     }
   ]
 }
