@@ -18,6 +18,8 @@ type FleetApiEntry = {
   totalAssets: string
   withdrawableTotalAssets: string
   depositCap?: string | null
+  minimumBufferBalance?: string | null
+  maxRebalanceOperations?: string | null
   assetDecimals: number | string
   assetSymbol: string
   fleetDecimals?: number | string | null
@@ -48,6 +50,8 @@ export function useActiveFleets({ chainId, environment }: UseActiveFleetsProps) 
         assetDecimals: Number(fleet.assetDecimals),
         assetSymbol: String(fleet.assetSymbol),
         fleetDecimals: Number(fleet.fleetDecimals ?? fleet.assetDecimals),
+        minimumBufferBalance: BigInt(fleet.minimumBufferBalance ?? '0'),
+        maxRebalanceOperations: BigInt(fleet.maxRebalanceOperations ?? '50'),
       }))
       return fleets
     },
