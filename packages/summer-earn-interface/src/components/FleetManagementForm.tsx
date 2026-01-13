@@ -5,13 +5,16 @@ import { Address } from 'viem'
 
 import { useArkManagement } from '../hooks/useArkManagement'
 import { useFleetManagement } from '../hooks/useFleetManagement'
-import type { ChainId } from '../types'
+import type { ArkInfo, ChainId, FleetCommanderInfo } from '../types'
+import { formatDecimalOutput, formatPercentage } from '../utils/decimals'
 
 interface FleetManagementFormProps {
   fleetAddress: Address
   chainId: ChainId
   assetDecimals: number
   assetSymbol: string
+  fleetInfo: FleetCommanderInfo | null
+  arks: ArkInfo[]
 }
 
 export function FleetManagementForm({
@@ -19,6 +22,8 @@ export function FleetManagementForm({
   chainId,
   assetDecimals,
   assetSymbol,
+  fleetInfo,
+  arks,
 }: FleetManagementFormProps) {
   const [formData, setFormData] = useState({
     minimumBufferBalance: '',
@@ -95,6 +100,12 @@ export function FleetManagementForm({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Minimum Buffer Balance ({assetSymbol})
         </label>
+        {fleetInfo && (
+          <p className="text-sm text-gray-600 mb-2">
+            Current: {formatDecimalOutput(fleetInfo.minimumBufferBalance, assetDecimals)}{' '}
+            {assetSymbol}
+          </p>
+        )}
         <div className="flex space-x-2">
           <input
             type="number"
@@ -122,6 +133,23 @@ export function FleetManagementForm({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Fleet Deposit Cap ({assetSymbol})
         </label>
+        {fleetInfo && (
+          <p className="text-sm text-gray-600 mb-2">
+            Current:{' '}
+            {fleetInfo.depositCap === BigInt(0)
+              ? 'Unlimited'
+              : `${formatDecimalOutput(fleetInfo.depositCap, assetDecimals)} ${assetSymbol}`}
+            {fleetInfo.depositCap > BigInt(0) && fleetInfo.totalAssets > BigInt(0) && (
+              <span className="ml-2 text-gray-500">
+                (
+                {formatPercentage(
+                  (fleetInfo.totalAssets * BigInt(100) * BigInt(10 ** 18)) / fleetInfo.depositCap,
+                )}{' '}
+                used)
+              </span>
+            )}
+          </p>
+        )}
         <div className="flex space-x-2">
           <input
             type="number"
@@ -149,6 +177,11 @@ export function FleetManagementForm({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Max Rebalance Operations
         </label>
+        {fleetInfo && (
+          <p className="text-sm text-gray-600 mb-2">
+            Current: {fleetInfo.maxRebalanceOperations.toString()}
+          </p>
+        )}
         <div className="flex space-x-2">
           <input
             type="number"
@@ -173,6 +206,85 @@ export function FleetManagementForm({
         </div>
         <p className="text-xs text-gray-500 mt-1">Maximum: 50 operations</p>
       </div>
+
+      {/* Ark Configuration Display */}
+      {arks.length > 0 && (
+        <div className="bg-gray-100 p-4 rounded-md">
+          <h4 className="text-sm font-semibold text-gray-800 mb-4">Ark Configurations</h4>
+          <div className="space-y-4">
+            {arks.map((ark) => (
+              <div key={ark.address} className="border border-gray-300 rounded-md p-3 bg-white">
+                <div className="flex items-center justify-between mb-3">
+                  <h5 className="text-sm font-medium text-gray-800">{ark.name}</h5>
+                  {ark.isBufferArk && (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                      Buffer Ark
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-gray-600">Deposit Cap</p>
+                    <p className="font-medium text-gray-800">
+                      {ark.depositCap === BigInt(0)
+                        ? 'Unlimited'
+                        : `${formatDecimalOutput(ark.depositCap, assetDecimals)} ${assetSymbol}`}
+                    </p>
+                    {ark.depositCap > BigInt(0) && ark.totalAssets > BigInt(0) && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formatPercentage(
+                          (ark.totalAssets * BigInt(100) * BigInt(10 ** 18)) / ark.depositCap,
+                        )}{' '}
+                        used
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Max Deposit % of TVL</p>
+                    <p className="font-medium text-gray-800">
+                      {ark.maxDepositPercentageOfTVL === BigInt(0)
+                        ? 'Unlimited'
+                        : formatPercentage(ark.maxDepositPercentageOfTVL)}
+                    </p>
+                    {fleetInfo &&
+                      fleetInfo.totalAssets > BigInt(0) &&
+                      ark.totalAssets > BigInt(0) && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Current:{' '}
+                          {formatPercentage(
+                            (ark.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
+                              fleetInfo.totalAssets,
+                          )}{' '}
+                          of fleet TVL
+                        </p>
+                      )}
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Max Rebalance Inflow</p>
+                    <p className="font-medium text-gray-800">
+                      {ark.maxRebalanceInflow === BigInt(0) ||
+                      ark.maxRebalanceInflow ===
+                        BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
+                        ? 'Unlimited'
+                        : `${formatDecimalOutput(ark.maxRebalanceInflow, assetDecimals)} ${assetSymbol}`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Max Rebalance Outflow</p>
+                    <p className="font-medium text-gray-800">
+                      {ark.maxRebalanceOutflow === BigInt(0) ||
+                      ark.maxRebalanceOutflow ===
+                        BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
+                        ? 'Unlimited'
+                        : `${formatDecimalOutput(ark.maxRebalanceOutflow, assetDecimals)} ${assetSymbol}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Add New Ark */}
       <div className="bg-gray-100 p-4 rounded-md">

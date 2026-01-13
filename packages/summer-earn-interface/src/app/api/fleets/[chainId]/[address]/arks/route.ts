@@ -43,7 +43,15 @@ export async function GET(
 
   const results = await Promise.all(
     allArks.map(async (arkAddress) => {
-      const [totalAssets, withdrawableTotalAssets, name] = await Promise.all([
+      const [
+        totalAssets,
+        withdrawableTotalAssets,
+        name,
+        depositCap,
+        maxDepositPercentageOfTVL,
+        maxRebalanceInflow,
+        maxRebalanceOutflow,
+      ] = await Promise.all([
         // @ts-ignore
         client.readContract({
           address: arkAddress,
@@ -62,12 +70,40 @@ export async function GET(
           abi: arkAbi,
           functionName: 'name',
         }),
+        // @ts-ignore
+        client.readContract({
+          address: arkAddress,
+          abi: arkAbi,
+          functionName: 'depositCap',
+        }),
+        // @ts-ignore
+        client.readContract({
+          address: arkAddress,
+          abi: arkAbi,
+          functionName: 'maxDepositPercentageOfTVL',
+        }),
+        // @ts-ignore
+        client.readContract({
+          address: arkAddress,
+          abi: arkAbi,
+          functionName: 'maxRebalanceInflow',
+        }),
+        // @ts-ignore
+        client.readContract({
+          address: arkAddress,
+          abi: arkAbi,
+          functionName: 'maxRebalanceOutflow',
+        }),
       ])
       return {
         address: arkAddress,
         totalAssets: (totalAssets as bigint).toString(),
         withdrawableTotalAssets: (withdrawableTotalAssets as bigint).toString(),
         name: String(name),
+        depositCap: (depositCap as bigint).toString(),
+        maxDepositPercentageOfTVL: (maxDepositPercentageOfTVL as bigint).toString(),
+        maxRebalanceInflow: (maxRebalanceInflow as bigint).toString(),
+        maxRebalanceOutflow: (maxRebalanceOutflow as bigint).toString(),
       }
     }),
   )

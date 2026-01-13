@@ -23,6 +23,10 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
         withdrawableTotalAssets: string
         name: string
         isBufferArk?: boolean
+        depositCap: string
+        maxDepositPercentageOfTVL: string
+        maxRebalanceInflow: string
+        maxRebalanceOutflow: string
       }>
       const arks: ArkInfo[] = data.map((a) => ({
         address: a.address,
@@ -30,6 +34,10 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
         withdrawableTotalAssets: BigInt(a.withdrawableTotalAssets),
         name: a.name,
         isBufferArk: a.isBufferArk,
+        depositCap: BigInt(a.depositCap),
+        maxDepositPercentageOfTVL: BigInt(a.maxDepositPercentageOfTVL),
+        maxRebalanceInflow: BigInt(a.maxRebalanceInflow),
+        maxRebalanceOutflow: BigInt(a.maxRebalanceOutflow),
       }))
       // Ensure buffer ark first
       return arks.sort((a, b) => (a.isBufferArk === b.isBufferArk ? 0 : a.isBufferArk ? -1 : 1))

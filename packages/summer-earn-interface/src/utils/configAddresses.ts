@@ -1,8 +1,8 @@
-import type { ChainId } from '../types'
-
 // This will be populated by synced config files
 // The config files are synced from deployment/config/index.json
 // via the sync-config script
+import configJson from '../config/deployment/index.json'
+import type { ChainId } from '../types'
 
 interface ConfigAddresses {
   protocolAccessManager?: string
@@ -27,16 +27,8 @@ function getChainName(chainId: ChainId): string {
   return chainIdMap[chainId] || chainId
 }
 
-// Try to load config - this will work if the file exists (after running sync-config)
-// If not, we'll return empty addresses gracefully
-let configData: any = null
-try {
-  // @ts-ignore - dynamic import path, file may not exist
-  configData = require('../config/deployment/index.json')
-} catch {
-  // Config file doesn't exist yet - that's okay, we'll return empty labels
-  configData = null
-}
+// Config data loaded from synced deployment config
+const configData: any = configJson
 
 function loadConfigForChain(chainId: ChainId): ConfigAddresses {
   if (configCache && configCache[chainId]) {
