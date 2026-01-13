@@ -6,5 +6,8 @@
   "summer-governor-v2-start-block": 25642501,
   "protocol-access-manager-address": "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
   "protocol-access-manager-start-block": 25642482,
-  "harbor-command-address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
+  "harbor-command-address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F",
+  "enable-grafting": false,
+  "grafting-base": "QmVv7kwT2tn6EU6iuPfyvZnoPNYUFLoFej3gFZ9912JXJe",
+  "grafting-block": "38330000"
 }
