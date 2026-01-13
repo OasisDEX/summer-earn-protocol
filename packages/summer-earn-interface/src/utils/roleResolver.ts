@@ -32,6 +32,7 @@ export function resolveRoleName(roleHash: string): string | null {
 export function resolveRole(role: { name: string }): { name: string; resolved: boolean } {
   // If name doesn't start with "0x", it's already resolved
   if (!role.name.startsWith('0x')) {
+    console.log(role.name)
     return { name: role.name, resolved: true }
   }
 

@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: { params: { chainId: str
   const query = activeOnly
     ? `
         query {
-          roles(where: { active: true }, orderBy: createdTimestamp, orderDirection: desc) {
+          roles(where: { active: true }, orderBy: createdTimestamp, orderDirection: desc, first:1000) {
             id
             name
             owner
@@ -46,7 +46,7 @@ export async function GET(request: Request, { params }: { params: { chainId: str
       `
     : `
         query {
-          roles(orderBy: createdTimestamp, orderDirection: desc) {
+          roles(orderBy: createdTimestamp, orderDirection: desc, first:1000) {
             id
             name
             owner
@@ -89,7 +89,7 @@ export async function GET(request: Request, { params }: { params: { chainId: str
       return null
     })
     .filter((role: { name: string } | null) => role !== null)
-
+  roles.sort((a, b) => b.name.localeCompare(a.name))
   const payload = { chainId, roles }
   cache.set(key, { data: payload, expiry: now + TTL_MS })
   return NextResponse.json(payload)
