@@ -5,6 +5,7 @@ import { AaveV3Product } from '../products/AaveV3Product'
 import { AeraProduct } from '../products/AeraProduct'
 import { CompoundProduct } from '../products/CompoundProduct'
 import { HyperlendProduct } from '../products/HyperlendProduct'
+import { HypurrProduct } from '../products/HypurrProduct'
 import { ERC4626FluidLiteProduct } from '../products/ERC4626FluidLiteProduct'
 import { ERC4626ManualAssetsProduct } from '../products/ERC4626ManualAssetsProduct'
 import { ERC4626Product } from '../products/ERC4626Product'
@@ -1268,6 +1269,20 @@ class ProtocolConfig {
           Address.fromString('0x00A89d7a5A02160f20150EbEA7a2b5E4879A1A8b'),
           BigInt.fromI32(23831958),
           'Hyperlend',
+        ),
+      ]),
+      new Protocol('Hypurr', [
+        new HypurrProduct(
+          getOrCreateToken(Address.fromString('0xb88339cb7199b77e23db6e890353e22632ba630f')),
+          Address.fromString('0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b'),
+          BigInt.fromI32(23831958),
+          'Hypurr',
+        ),
+        new HypurrProduct(
+          getOrCreateToken(Address.fromString('0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb')),
+          Address.fromString('0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b'),
+          BigInt.fromI32(23831958),
+          'Hypurr',
         ),
       ]),
     ]
