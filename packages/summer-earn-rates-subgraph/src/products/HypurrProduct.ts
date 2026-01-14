@@ -13,7 +13,7 @@ export class HypurrProduct extends Product {
     if (currentBlock.lt(this.startBlock)) {
       return BigDecimalConstants.ZERO
     }
-    const pool = AaveV3PoolDataProvider.bind(addresses.HYPERURR_DATA_PROVIDER)
+    const pool = AaveV3PoolDataProvider.bind(addresses.HYPURR_DATA_PROVIDER)
     const tryReserveData = pool.try_getReserveData(Address.fromBytes(this.token.address))
     if (tryReserveData.reverted) {
       return BigDecimalConstants.ZERO
@@ -29,7 +29,7 @@ export class HypurrProduct extends Product {
   }
 
   getTvl(currentTimestamp: BigInt, currentBlock: BigInt): TvlData {
-    const pool = AaveV3PoolDataProvider.bind(addresses.HYPERURR_DATA_PROVIDER)
+    const pool = AaveV3PoolDataProvider.bind(addresses.HYPURR_DATA_PROVIDER)
     const tryATokenTotalSupply = pool.try_getATokenTotalSupply(
       Address.fromBytes(this.token.address),
     )
