@@ -9,7 +9,8 @@
   "arks": [
     "0xBB49233c43DE5f87F5c06cb86488A47972F7f12e",
     "0x6D913Eb566D093b288Ea005Bf648Ec47De983568",
-    "0xabf9a375187CE304589A1baCb516366D5C499c9e"
+    "0xabf9a375187CE304589A1baCb516366D5C499c9e",
+    "0xB27a92DAFB014FAABb8f24a8C85c9e1547bd7d41"
   ],
   "initialMinimumBufferBalance": "100000000",
   "initialRebalanceCooldown": "600",

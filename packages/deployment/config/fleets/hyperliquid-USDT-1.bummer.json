@@ -68,6 +68,13 @@
         "protocol": "morpho",
         "vaultName": "Morphobeat_USDT0_Re7"
       }
+    },
+    {
+      "type": "HypurrArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "hypurr"
+      }
     }
   ]
 }
