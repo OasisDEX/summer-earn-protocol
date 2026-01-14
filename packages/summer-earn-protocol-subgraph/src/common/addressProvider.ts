@@ -42,11 +42,13 @@ export class ServiceAddresses {
   ENS_REVERSE_REGISTRY: Address
   ENS_REGISTRY: Address
   STAKING_V2_PROD: Address
+  HYPERLEND_ORACLE: Address
 }
 
 export class Services {
   feedRegistry: FeedRegistry
   aaveV3Oracle: AaveV3Oracle
+  hyperLendOracle: AaveV3Oracle
   sparkOracle: SparkOracle
   oneInchOracle1: OneInchOracle
   oneInchOracle2: OneInchOracle
@@ -96,6 +98,7 @@ export function getAddressesProvider(): ServiceAddresses {
       ENS_REVERSE_REGISTRY: Address.fromString('0xa58E81fe9b61B5c3fE2AFD33CF304c454AbFc7Cb'),
       ENS_REGISTRY: Address.fromString('0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'),
       STAKING_V2_PROD: Address.fromString('0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4'),
+      HYPERLEND_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
     return addresses
   } else if (network == 'optimism') {
@@ -132,6 +135,7 @@ export function getAddressesProvider(): ServiceAddresses {
       ENS_REVERSE_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       ENS_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       STAKING_V2_PROD: Address.fromString('0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4'),
+      HYPERLEND_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
     return addresses
   } else if (network == 'base') {
@@ -168,6 +172,7 @@ export function getAddressesProvider(): ServiceAddresses {
       ENS_REVERSE_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       ENS_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       STAKING_V2_PROD: Address.fromString('0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4'),
+      HYPERLEND_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
     return addresses
   } else if (network == 'arbitrum-one') {
@@ -204,6 +209,7 @@ export function getAddressesProvider(): ServiceAddresses {
       ENS_REVERSE_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       ENS_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       STAKING_V2_PROD: Address.fromString('0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4'),
+      HYPERLEND_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
     return addresses
   } else if (network == 'sonic-mainnet') {
@@ -240,7 +246,9 @@ export function getAddressesProvider(): ServiceAddresses {
       CDP_MANAGER: Address.fromString('0x0000000000000000000000000000000000000000'),
       AAVE_V2_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
       STAKING_V2_PROD: Address.fromString('0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4'),
+      HYPERLEND_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
+    return addresses
   } else if (network == 'hyperevm') {
     const addresses: ServiceAddresses = {
       GOVERNANCE_STAKING: Address.fromString('0x0000000000000000000000000000000000000000'),
@@ -275,6 +283,7 @@ export function getAddressesProvider(): ServiceAddresses {
       CDP_MANAGER: Address.fromString('0x0000000000000000000000000000000000000000'),
       AAVE_V2_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
       STAKING_V2_PROD: Address.fromString('0x0000000000000000000000000000000000000000'),
+      HYPERLEND_ORACLE: Address.fromString('0xC9Fb4fbE842d57EAc1dF3e641a281827493A630e'),
     }
 
     return addresses
@@ -300,6 +309,7 @@ export function getServicesProvider(): Services {
     sparkOracle: SparkOracle.bind(addresses.SPARK_ORACLE),
     ensReverseRegistry: EnsReverseResolver.bind(addresses.ENS_REVERSE_REGISTRY),
     ensRegistry: EnsRegistry.bind(addresses.ENS_REGISTRY),
+    hyperLendOracle: AaveV3Oracle.bind(addresses.HYPERLEND_ORACLE),
   }
   return services
 }
