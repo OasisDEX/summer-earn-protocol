@@ -69,10 +69,8 @@ contract TimelockGuard {
      * // Proceed with protected action...
      * ```
      *
-     * @custom:gas-optimization This function is view-only and performs a single comparison, making it gas-efficient
-     *                          for inclusion in timelock transactions.
      */
-    function validateTimestamp() public view {
+    function validateTimestamp() public {
         if (block.timestamp < minimumTimestamp) {
             revert TimelockGuard__TooEarly();
         }

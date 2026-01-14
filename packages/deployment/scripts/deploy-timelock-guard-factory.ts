@@ -6,7 +6,6 @@ import {
   TimelockGuardFactoryContracts,
 } from '../ignition/modules/timelock-guard-factory'
 import { BaseConfig } from '../types/config-types'
-import { checkExistingContracts } from './helpers/check-existing-contracts'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 import { promptForConfigType } from './helpers/prompt-helpers'
