@@ -39,5 +39,10 @@
   "BummerLazyVault_LowerRisk_USDT_MorphoVault_usdt_Morphobeat_USDT0_MEV_Capital_999#MorphoVaultArk": "0x29665506c242E04447531d076Fd6EB20d3a989fB",
   "BummerLazyVault_LowerRisk_USDT_MorphoVault_usdt_Morphobeat_USDT0_Re7_999#MorphoVaultArk": "0x33bec51A99D8f4433a65511532EF7d6387d9C92B",
   "BummerLazyVault_LowerRisk_USDC_Hypurr_usdc_999#HypurrfiArk": "0xB27a92DAFB014FAABb8f24a8C85c9e1547bd7d41",
-  "BummerLazyVault_LowerRisk_USDT_Hypurr_usdt_999#HypurrfiArk": "0x85A4145164C3fA9A713a91099658428107eB55b6"
+  "BummerLazyVault_LowerRisk_USDT_Hypurr_usdt_999#HypurrfiArk": "0x85A4145164C3fA9A713a91099658428107eB55b6",
+  "FleetModule_LazyVault_LowerRisk_USDC#FleetCommander": "0x252E5Aa42c1804b85b2ce6712cd418A0561232Ba",
+  "LazyVault_LowerRisk_USDC_Hyperlend_usdc_999#HyperlendArk": "0xe950Cc4C6D35014725a639980CeC9C9A52dAfB7a",
+  "LazyVault_LowerRisk_USDC_MorphoVault_usdc_Felix_USDC_999#MorphoVaultArk": "0x01815EA3dC1a3AA378B943872beA4d5d24cad6ea",
+  "LazyVault_LowerRisk_USDC_MorphoVault_usdc_Gauntlet_USDC_999#MorphoVaultArk": "0x08e5bdf113d0213edD5DaC0F36FB106F72c7A45A",
+  "LazyVault_LowerRisk_USDC_Hypurr_usdc_999#HypurrfiArk": "0x1A58fAf5d652814A47081791ACf13fcA83d7790E"
 }
