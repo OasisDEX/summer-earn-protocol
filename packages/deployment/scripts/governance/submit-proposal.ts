@@ -36,7 +36,7 @@ async function main() {
   ) as BaseConfig
 
   // Get the governor address from config
-  const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
+  const governorAddress = config.deployedContracts.govV2.summerGovernor.address as Address
   console.log(kleur.yellow(`Governor address: ${governorAddress}`))
 
   // Load proposal from file

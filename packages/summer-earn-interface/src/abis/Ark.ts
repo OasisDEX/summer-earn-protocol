@@ -18,5 +18,33 @@ export const arkAbi = [
     name: 'name',
     inputs: [],
     outputs: [{ type: 'string', name: '' }],
+  },
+  {
+    type: 'function',
+    name: 'depositCap',
+    inputs: [],
+    outputs: [{ type: 'uint256', name: '' }],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'maxDepositPercentageOfTVL',
+    inputs: [],
+    outputs: [{ type: 'uint256', name: '' }],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'maxRebalanceInflow',
+    inputs: [],
+    outputs: [{ type: 'uint256', name: '' }],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'maxRebalanceOutflow',
+    inputs: [],
+    outputs: [{ type: 'uint256', name: '' }],
+    stateMutability: 'view'
   }
-] as const; 
+] as const;

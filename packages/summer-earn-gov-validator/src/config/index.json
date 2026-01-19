@@ -25,6 +25,9 @@
         },
         "summerVestingFactoryV2": {
           "address": "0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB"
+        },
+        "timelockGuardFactory": {
+          "address": "0x14f5f03BEc86744bE9A2fF55478C4B4c663b37Be"
         }
       },
       "govV2": {
@@ -70,6 +73,9 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
+        },
+        "institutionalVaultRegistry": {
+          "address": "0x47926511D8D215A182F3B93c36c94852fb10f5eD"
         }
       }
     },
@@ -289,6 +295,9 @@
         },
         "oazoSummerRewardsRedeemer": {
           "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
+        },
+        "timelockGuardFactory": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "govV2": {
@@ -545,6 +554,9 @@
         },
         "oazoSummerRewardsRedeemer": {
           "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
+        },
+        "timelockGuardFactory": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "govV2": {
@@ -921,6 +933,9 @@
         },
         "oazoSummerRewardsRedeemer": {
           "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
+        },
+        "timelockGuardFactory": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "govV2": {
@@ -1214,6 +1229,9 @@
         },
         "oazoSummerRewardsRedeemer": {
           "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelockGuardFactory": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "govV2": {
@@ -1261,7 +1279,7 @@
           "address": "0xBcA69b2918bad37E8A4e1F77B6864F27eee05AEe"
         },
         "institutionalVaultRegistry": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xCDa1586aDa05330e46075Ed8c58B9f6E8DCf7A7f"
         }
       }
     },
@@ -1318,6 +1336,32 @@
         }
       }
     },
-    "protocolSpecific": {}
+    "protocolSpecific": {
+      "morpho": {
+        "urdFactory": "0x0000000000000000000000000000000000000001",
+        "vaults": {
+          "usdc": {
+            "Felix_USDC": "0x8a862fd6c12f9ad34c9c2ff45ab2b6712e8cea27",
+            "Gauntlet_USDC": "0x08C00F8279dFF5B0CB5a04d349E7d79708Ceadf3"
+          },
+          "usdt": {
+            "Felix_USDT0_Frontier": "0x9896a8605763106e57A51aa0a97Fe8099E806bb3",
+            "Felix_USDT0": "0xfc5126377f0efc0041c0969ef9ba903ce67d151e",
+            "Morphobeat_USDT0": "0x53A333e51E96FE288bC9aDd7cdC4B1EAD2CD2FfA",
+            "Morphobeat_USDT0_Hyperrithim": "0xe5ADd96840F0B908ddeB3Bd144C0283Ac5ca7cA0",
+            "Morphobeat_USDT0_MEV_Capital": "0x3Bcc0a5a66bB5BdCEEf5dd8a659a4eC75F3834d8",
+            "Morphobeat_USDT0_Re7": "0x51F64488d03D8B210294dA2BF70D5db0Bc621B0c"
+          }
+        }
+      },
+      "hyperlend": {
+        "pool": "0x00A89d7a5A02160f20150EbEA7a2b5E4879A1A8b",
+        "rewards": "0x2aF0d6754A58723c50b5e73E45D964bFDD99fE2F"
+      },
+      "hypurr": {
+        "pool": "0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b",
+        "rewards": "0x5280b0Bac1c8342F9dCeA2bC5B6121A1473A368C"
+      }
+    }
   }
 }

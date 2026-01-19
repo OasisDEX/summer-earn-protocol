@@ -32,6 +32,8 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
         totalAssets: BigInt(data.totalAssets),
         withdrawableTotalAssets: BigInt(data.withdrawableTotalAssets),
         depositCap: BigInt(data.depositCap ?? '0'),
+        minimumBufferBalance: BigInt(data.minimumBufferBalance ?? '0'),
+        maxRebalanceOperations: BigInt(data.maxRebalanceOperations ?? '50'),
         assetDecimals: Number(data.assetDecimals),
         assetSymbol: String(data.assetSymbol),
         fleetDecimals: Number(data.fleetDecimals ?? data.assetDecimals),

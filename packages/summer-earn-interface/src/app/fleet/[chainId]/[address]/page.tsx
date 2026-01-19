@@ -20,7 +20,11 @@ import { useLocalStorage } from '../../../../hooks/useLocalStorage'
 import { useRebalance } from '../../../../hooks/useRebalance'
 import { useSyncWalletChain } from '../../../../hooks/useSyncWalletChain'
 import { ChainId, RebalanceData } from '../../../../types'
-import { formatDecimalOutput, parseDecimalInput } from '../../../../utils/decimals'
+import {
+  formatDecimalOutput,
+  formatPercentage,
+  parseDecimalInput,
+} from '../../../../utils/decimals'
 
 export default function FleetDetail() {
   const params = useParams()
@@ -220,6 +224,24 @@ export default function FleetDetail() {
                         {assetInfo.symbol}
                       </p>
                     </div>
+
+                    <div className="p-4 bg-gray-800 rounded-lg">
+                      <p className="text-sm text-gray-400">Deposit Cap</p>
+                      <p className="text-lg font-semibold text-white">
+                        {fleetInfo.depositCap === BigInt(0)
+                          ? 'Zero'
+                          : `${formatDecimalOutput(fleetInfo.depositCap, assetInfo.decimals)} ${assetInfo.symbol}`}
+                      </p>
+                      {fleetInfo.depositCap > BigInt(0) && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {formatPercentage(
+                            (fleetInfo.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
+                              fleetInfo.depositCap,
+                          )}{' '}
+                          of cap used
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -329,7 +351,7 @@ export default function FleetDetail() {
                           <p className="text-gray-400 text-sm font-mono">{ark.address}</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                         <div>
                           <p className="text-gray-400">Total Assets</p>
                           <p className="text-white font-medium">
@@ -343,6 +365,74 @@ export default function FleetDetail() {
                             {formatDecimalOutput(ark.withdrawableTotalAssets, assetInfo.decimals)}{' '}
                             {assetInfo.symbol}
                           </p>
+                        </div>
+                      </div>
+
+                      {/* Ark Configuration Limits */}
+                      <div className="border-t border-gray-700 pt-4 mt-4">
+                        <p className="text-xs text-gray-500 mb-3 font-semibold uppercase tracking-wide">
+                          Configuration Limits
+                        </p>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-400">Deposit Cap</p>
+                            <p className="text-white font-medium">
+                              {ark.depositCap === BigInt(0)
+                                ? 'Zero'
+                                : `${formatDecimalOutput(ark.depositCap, assetInfo.decimals)} ${assetInfo.symbol}`}
+                            </p>
+                            {ark.depositCap > BigInt(0) && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {formatPercentage(
+                                  (ark.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
+                                    ark.depositCap,
+                                )}{' '}
+                                of cap used
+                              </p>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-gray-400">Max Deposit % of TVL</p>
+                            <p className="text-white font-medium">
+                              {ark.maxDepositPercentageOfTVL === BigInt(0)
+                                ? 'Zero'
+                                : formatPercentage(ark.maxDepositPercentageOfTVL)}
+                            </p>
+                            {fleetInfo &&
+                              fleetInfo.totalAssets > BigInt(0) &&
+                              ark.totalAssets > BigInt(0) && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Current:{' '}
+                                  {formatPercentage(
+                                    (ark.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
+                                      fleetInfo.totalAssets,
+                                  )}{' '}
+                                  of fleet TVL
+                                </p>
+                              )}
+                          </div>
+                          <div>
+                            <p className="text-gray-400">Max Rebalance Inflow</p>
+                            <p className="text-white font-medium">
+                              {ark.maxRebalanceInflow ===
+                              BigInt(
+                                '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+                              )
+                                ? 'Unlimited'
+                                : `${formatDecimalOutput(ark.maxRebalanceInflow, assetInfo.decimals)} ${assetInfo.symbol}`}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400">Max Rebalance Outflow</p>
+                            <p className="text-white font-medium">
+                              {ark.maxRebalanceOutflow ===
+                              BigInt(
+                                '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+                              )
+                                ? 'Unlimited'
+                                : `${formatDecimalOutput(ark.maxRebalanceOutflow, assetInfo.decimals)} ${assetInfo.symbol}`}
+                            </p>
+                          </div>
                         </div>
                       </div>
                       <Ark
@@ -397,6 +487,8 @@ export default function FleetDetail() {
                   chainId={selectedChain}
                   assetDecimals={assetInfo.decimals}
                   assetSymbol={assetInfo.symbol}
+                  fleetInfo={fleetInfo}
+                  arks={arks}
                 />
               )}
             </div>

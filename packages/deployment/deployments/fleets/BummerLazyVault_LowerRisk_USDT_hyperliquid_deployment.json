@@ -1,0 +1,23 @@
+{
+  "fleetName": "BummerLazyVault_LowerRisk_USDT",
+  "isBummer": true,
+  "fleetSymbol": "LVUSDT",
+  "assetSymbol": "USDT",
+  "fleetAddress": "0x26cE19153DB119BDF2bCF299503f7D419d4a6d4f",
+  "bufferArkAddress": "0xefcadB404c81Aecec1c2a1805dB27A086285f570",
+  "network": "hyperliquid",
+  "arks": [
+    "0x420E610eeFF3a611997bd290572e1E1EF21683CD",
+    "0x81C4910248351360Db75B3650Fd7527b08DbBcb1",
+    "0x330Fb246Edb7d961ED232B5a68558A68Df513206",
+    "0x2F6220A53a6C08254146646C4b2807647a79127a",
+    "0x0799385e9d77Fe0A7F459976ccd97f96cBAC547B",
+    "0x29665506c242E04447531d076Fd6EB20d3a989fB",
+    "0x33bec51A99D8f4433a65511532EF7d6387d9C92B",
+    "0x85A4145164C3fA9A713a91099658428107eB55b6"
+  ],
+  "initialMinimumBufferBalance": "100000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "1000000000000000000"
+}

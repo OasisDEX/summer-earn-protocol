@@ -1,0 +1,80 @@
+{
+  "fleetName": "BummerLazyVault_LowerRisk_USDT",
+  "symbol": "LVUSDT",
+  "assetSymbol": "USDT",
+  "initialMinimumBufferBalance": "100000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "1000000000000000000",
+  "network": "hyperliquid",
+  "details": "",
+  "rewardTokens": [],
+  "rewardAmounts": [],
+  "rewardsDuration": 0,
+  "bridgeAmount": "0",
+  "curator": "0x0f0fA89471259433b6955827226f19999D93c568",
+  "arks": [
+    {
+      "type": "HyperlendArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "hyperlend"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "morpho",
+        "vaultName": "Felix_USDT0_Frontier"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "morpho",
+        "vaultName": "Felix_USDT0"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "morpho",
+        "vaultName": "Morphobeat_USDT0"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "morpho",
+        "vaultName": "Morphobeat_USDT0_Hyperrithim"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "morpho",
+        "vaultName": "Morphobeat_USDT0_MEV_Capital"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "morpho",
+        "vaultName": "Morphobeat_USDT0_Re7"
+      }
+    },
+    {
+      "type": "HypurrArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "hypurr"
+      }
+    }
+  ]
+}

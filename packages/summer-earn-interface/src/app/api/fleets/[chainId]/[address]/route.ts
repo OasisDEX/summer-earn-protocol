@@ -31,7 +31,7 @@ export async function GET(
 
   const client = createPublicClient({ transport: http(rpcUrl) })
 
-  const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets, fleetDecimals] =
+  const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets, fleetDecimals, config] =
     await Promise.all([
       // @ts-ignore
       client.readContract({
@@ -68,6 +68,12 @@ export async function GET(
         address: address as `0x${string}`,
         abi: fleetCommanderAbi,
         functionName: 'decimals',
+      }),
+      // @ts-ignore
+      client.readContract({
+        address: address as `0x${string}`,
+        abi: fleetCommanderAbi,
+        functionName: 'getConfig',
       }),
     ])
   const [assetDecimals, assetSymbol] = await Promise.all([
@@ -117,6 +123,15 @@ export async function GET(
     }
   }
 
+  // Extract depositCap from config (FleetConfig struct: [bufferArk, minimumBufferBalance, depositCap, maxRebalanceOperations, stakingRewardsManager])
+  const configData = config as unknown as {
+    bufferArk: `0x${string}`
+    minimumBufferBalance: bigint
+    depositCap: bigint
+    maxRebalanceOperations: bigint
+    stakingRewardsManager: `0x${string}`
+  }
+
   const payload = {
     address,
     name,
@@ -124,7 +139,9 @@ export async function GET(
     asset: assetAddress,
     totalAssets: (totalAssets as bigint).toString(),
     withdrawableTotalAssets: (withdrawableTotalAssets as bigint).toString(),
-    depositCap: '0',
+    depositCap: configData.depositCap.toString(),
+    minimumBufferBalance: configData.minimumBufferBalance.toString(),
+    maxRebalanceOperations: configData.maxRebalanceOperations.toString(),
     assetDecimals: Number(assetDecimals),
     assetSymbol: String(assetSymbol),
     fleetDecimals: Number(fleetDecimals),

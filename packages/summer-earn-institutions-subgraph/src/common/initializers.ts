@@ -6,9 +6,11 @@ import {
   Ark,
   ArkDailySnapshot,
   ArkHourlySnapshot,
+  CurationEvent,
   DailyInterestRate,
   FinancialsDailySnapshot,
   HourlyInterestRate,
+  Institution,
   Position,
   PositionDailySnapshot,
   PositionHourlySnapshot,
@@ -19,6 +21,7 @@ import {
   RewardToken,
   RewardsManager,
   Role,
+  RoleEvent,
   Token,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
@@ -1000,4 +1003,50 @@ export function getOrCreateAccessController(
     }
   }
   return accessController
+}
+
+export function createRoleEvent(
+  event: ethereum.Event,
+  action: string,
+  roleId: string,
+  institution: string,
+): RoleEvent {
+  const roleEvent = new RoleEvent(
+    event.receipt!.transactionHash.toHexString() + '--' + event.logIndex.toString(),
+  )
+  roleEvent.hash = event.receipt!.transactionHash.toHexString()
+  roleEvent.logIndex = event.logIndex.toI32()
+  roleEvent.timestamp = event.block.timestamp
+  roleEvent.blockNumber = event.block.number
+  roleEvent.institution = institution
+  roleEvent.caller = event.transaction.from.toHexString()
+  roleEvent.action = action
+  roleEvent.role = roleId
+  roleEvent.save()
+  return roleEvent
+}
+
+export function createCurationEvent(
+  event: ethereum.Event,
+  action: string,
+  valueBefore: BigInt,
+  valueAfter: BigInt,
+  vault: Vault,
+  target: string,
+): CurationEvent {
+  const curationEvent = new CurationEvent(
+    event.receipt!.transactionHash.toHexString() + '--' + event.logIndex.toString(),
+  )
+  curationEvent.hash = event.receipt!.transactionHash.toHexString()
+  curationEvent.logIndex = event.logIndex.toI32()
+  curationEvent.timestamp = event.block.timestamp
+  curationEvent.blockNumber = event.block.number
+  curationEvent.institution = vault.institution
+  curationEvent.action = action
+  curationEvent.caller = event.transaction.from.toHexString()
+  curationEvent.valueBefore = valueBefore
+  curationEvent.valueAfter = valueAfter
+  curationEvent.targetContract = target
+  curationEvent.save()
+  return curationEvent
 }

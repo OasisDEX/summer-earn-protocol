@@ -59,6 +59,7 @@ jobs:
           BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
           SONIC_RPC_URL: ${{ secrets.SONIC_RPC_URL }}
           OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
+          HYPERLIQUID_RPC_URL: ${{ secrets.HYPERLIQUID_RPC_URL }}
 
       - name: Generate coverage reports
         env:
@@ -67,6 +68,7 @@ jobs:
           BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
           SONIC_RPC_URL: ${{ secrets.SONIC_RPC_URL }}
           OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
+          HYPERLIQUID_RPC_URL: ${{ secrets.HYPERLIQUID_RPC_URL }}
         run: |
           cd packages/core-contracts && pnpm coverage:lcov
           cd ../access-contracts && pnpm coverage:lcov

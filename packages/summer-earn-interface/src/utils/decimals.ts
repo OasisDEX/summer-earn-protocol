@@ -108,3 +108,29 @@ export function formatLargeNumber(value: bigint, decimals: number): string {
 
   return formatDecimalOutput(value, decimals)
 }
+
+/**
+ * Formats a Percentage value from WAD format to readable percentage string
+ * @param value - Percentage value in WAD format (18 decimals, e.g., 10e18 = 10%)
+ * @param maxDecimals - Max decimal places to show (default: 2)
+ * @returns Formatted percentage string (e.g., "10.5%")
+ */
+export function formatPercentage(value: bigint, maxDecimals: number = 2): string {
+  try {
+    // Percentage is stored as: 10% = 10e18, so divide by 1e18 to get the percentage
+    const PERCENTAGE_DECIMALS = 18
+    const percentage = parseFloat(formatUnits(value, PERCENTAGE_DECIMALS))
+
+    if (percentage === 0) return '0%'
+
+    return (
+      parseFloat(percentage.toFixed(maxDecimals)).toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: maxDecimals,
+      }) + '%'
+    )
+  } catch (error) {
+    console.error('Error formatting percentage:', error)
+    return '0%'
+  }
+}

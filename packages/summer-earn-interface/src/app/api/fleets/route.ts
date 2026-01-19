@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
     const results = await Promise.all(
       allFleets.map(async (fleetAddress) => {
-        const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets] =
+        const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets, config] =
           await Promise.all([
             // @ts-ignore
             client.readContract({
@@ -82,6 +82,12 @@ export async function GET(request: Request) {
               abi: fleetCommanderAbi,
               functionName: 'withdrawableTotalAssets',
             }),
+            // @ts-ignore
+            client.readContract({
+              address: fleetAddress,
+              abi: fleetCommanderAbi,
+              functionName: 'getConfig',
+            }),
           ])
 
         const [assetDecimals, assetSymbol] = await Promise.all([
@@ -99,6 +105,15 @@ export async function GET(request: Request) {
           }),
         ])
 
+        // Extract config data (FleetConfig struct: [bufferArk, minimumBufferBalance, depositCap, maxRebalanceOperations, stakingRewardsManager])
+        const configData = config as unknown as {
+          bufferArk: `0x${string}`
+          minimumBufferBalance: bigint
+          depositCap: bigint
+          maxRebalanceOperations: bigint
+          stakingRewardsManager: `0x${string}`
+        }
+
         return {
           address: fleetAddress,
           name,
@@ -106,7 +121,9 @@ export async function GET(request: Request) {
           asset: assetAddress,
           totalAssets: (totalAssets as bigint).toString(),
           withdrawableTotalAssets: (withdrawableTotalAssets as bigint).toString(),
-          depositCap: '0',
+          depositCap: configData.depositCap.toString(),
+          minimumBufferBalance: configData.minimumBufferBalance.toString(),
+          maxRebalanceOperations: configData.maxRebalanceOperations.toString(),
           assetDecimals: Number(assetDecimals),
           assetSymbol: String(assetSymbol),
           fleetDecimals: Number(assetDecimals),

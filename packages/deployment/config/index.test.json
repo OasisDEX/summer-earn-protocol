@@ -1368,30 +1368,30 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x01A77b820C43e73015b2703A1cBB1eD928227727"
         },
         "raft": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xabF2654d149E0fDcCb7e319796D065299376AFcC"
         },
         "configurationManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x7704A3A4b733CFf3D5cA908CEa8D3A61784fa16C"
         },
         "harborCommand": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xf5A69789Bf5e62A43C47E4c8d857b8DAE14d4ab0"
         },
         "admiralsQuarters": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x09124a25756223Eb7A523A0377cc83Dc8D22e1bE"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x99186C1B9b61CF32F2F5618d2e4C8452834af303"
         },
         "institutionalVaultRegistry": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x1C354B455bEf33744397A561dC518A2a9F4f5bab"
         }
       }
     },
     "tokens": {
-      "usdc": "0x0000000000000000000000000000000000000000",
+      "usdc": "0xb88339cb7199b77e23db6e890353e22632ba630f",
       "dai": "0x0000000000000000000000000000000000000000",
       "weth": "0x0000000000000000000000000000000000000000",
       "usds": "0x0000000000000000000000000000000000000000",
@@ -1400,7 +1400,10 @@
       "reul": "0x0000000000000000000000000000000000000000",
       "eurc": "0x0000000000000000000000000000000000000000",
       "seam": "0x0000000000000000000000000000000000000000",
-      "ws": "0x0000000000000000000000000000000000000000"
+      "ws": "0x0000000000000000000000000000000000000000",
+      "whype": "0x5555555555555555555555555555555555555555",
+      "usdt": "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
+      "wrappedNative": "0x5555555555555555555555555555555555555555"
     },
     "common": {
       "chainId": "999",
@@ -1440,6 +1443,32 @@
         }
       }
     },
-    "protocolSpecific": {}
+    "protocolSpecific": {
+      "morpho": {
+        "urdFactory": "0x0000000000000000000000000000000000000001",
+        "vaults": {
+          "usdc": {
+            "Felix_USDC": "0x8a862fd6c12f9ad34c9c2ff45ab2b6712e8cea27",
+            "Gauntlet_USDC": "0x08C00F8279dFF5B0CB5a04d349E7d79708Ceadf3"
+          },
+          "usdt": {
+            "Felix_USDT0_Frontier": "0x9896a8605763106e57A51aa0a97Fe8099E806bb3",
+            "Felix_USDT0": "0xfc5126377f0efc0041c0969ef9ba903ce67d151e",
+            "Morphobeat_USDT0": "0x53A333e51E96FE288bC9aDd7cdC4B1EAD2CD2FfA",
+            "Morphobeat_USDT0_Hyperrithim": "0xe5ADd96840F0B908ddeB3Bd144C0283Ac5ca7cA0",
+            "Morphobeat_USDT0_MEV_Capital": "0x3Bcc0a5a66bB5BdCEEf5dd8a659a4eC75F3834d8",
+            "Morphobeat_USDT0_Re7": "0x51F64488d03D8B210294dA2BF70D5db0Bc621B0c"
+          }
+        }
+      },
+      "hyperlend": {
+        "pool": "0x00A89d7a5A02160f20150EbEA7a2b5E4879A1A8b",
+        "rewards": "0x2aF0d6754A58723c50b5e73E45D964bFDD99fE2F"
+      },
+      "hypurr": {
+        "pool": "0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b",
+        "rewards": "0x5280b0Bac1c8342F9dCeA2bC5B6121A1473A368C"
+      }
+    }
   }
 }

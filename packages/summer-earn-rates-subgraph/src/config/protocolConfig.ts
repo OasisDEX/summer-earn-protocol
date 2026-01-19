@@ -4,6 +4,8 @@ import { Protocol } from '../models/Protocol'
 import { AaveV3Product } from '../products/AaveV3Product'
 import { AeraProduct } from '../products/AeraProduct'
 import { CompoundProduct } from '../products/CompoundProduct'
+import { HyperlendProduct } from '../products/HyperlendProduct'
+import { HypurrProduct } from '../products/HypurrProduct'
 import { ERC4626FluidLiteProduct } from '../products/ERC4626FluidLiteProduct'
 import { ERC4626ManualAssetsProduct } from '../products/ERC4626ManualAssetsProduct'
 import { ERC4626Product } from '../products/ERC4626Product'
@@ -130,6 +132,12 @@ class ProtocolConfig {
           getOrCreateToken(addresses.WSTETH),
           Address.fromString('0xFF94993fA7EA27Efc943645F95Adb36C1b81244b'),
           BigInt.fromI32(18798139),
+          'Gearbox',
+        ),
+        new GearboxProduct(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x9396dcbf78fc526bb003665337c5e73b699571ef'),
+          BigInt.fromI32(24031082),
           'Gearbox',
         ),
       ]),
@@ -295,6 +303,12 @@ class ProtocolConfig {
           BigInt.fromI32(23350000),
           'Morpho',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xe108fbc04852B5df72f9E44d7C29F47e7A993aDd'),
+          BigInt.fromI32(24031082),
+          'Morpho',
+        ),
         // USDT vaults
         new ERC4626Product(
           getOrCreateToken(addresses.USDT),
@@ -397,6 +411,12 @@ class ProtocolConfig {
           getOrCreateToken(addresses.WETH),
           Address.fromString('0xf79F51f8F473eD34f6b2b13ee74c3208286D53EB'),
           BigInt.fromI32(23350000),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0xd564F765F9aD3E7d2d6cA782100795a885e8e7C8'),
+          BigInt.fromI32(24031082),
           'Morpho',
         ),
       ]),
@@ -1183,6 +1203,90 @@ class ProtocolConfig {
       ]),
     ]
   }
+  private initHyperLiquid(): Protocol[] {
+    return [
+      new Protocol('Morpho', [
+        // USDC vaults
+        new ERC4626Product(
+          getOrCreateToken(Address.fromString('0xb88339cb7199b77e23db6e890353e22632ba630f')),
+          Address.fromString('0x8a862fd6c12f9ad34c9c2ff45ab2b6712e8cea27'),
+          BigInt.fromI32(23831958),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(Address.fromString('0xb88339cb7199b77e23db6e890353e22632ba630f')),
+          Address.fromString('0x08C00F8279dFF5B0CB5a04d349E7d79708Ceadf3'),
+          BigInt.fromI32(23831958),
+          'Morpho',
+        ),
+        // USDT vaults
+        new ERC4626Product(
+          getOrCreateToken(Address.fromString('0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb')),
+          Address.fromString('0x9896a8605763106e57A51aa0a97Fe8099E806bb3'),
+          BigInt.fromI32(23831958),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(Address.fromString('0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb')),
+          Address.fromString('0xfc5126377f0efc0041c0969ef9ba903ce67d151e'),
+          BigInt.fromI32(23831958),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(Address.fromString('0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb')),
+          Address.fromString('0x53A333e51E96FE288bC9aDd7cdC4B1EAD2CD2FfA'),
+          BigInt.fromI32(23831958),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(Address.fromString('0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb')),
+          Address.fromString('0xe5ADd96840F0B908ddeB3Bd144C0283Ac5ca7cA0'),
+          BigInt.fromI32(23831958),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(Address.fromString('0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb')),
+          Address.fromString('0x3Bcc0a5a66bB5BdCEEf5dd8a659a4eC75F3834d8'),
+          BigInt.fromI32(23831958),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(Address.fromString('0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb')),
+          Address.fromString('0x51F64488d03D8B210294dA2BF70D5db0Bc621B0c'),
+          BigInt.fromI32(23831958),
+          'Morpho',
+        ),
+      ]),
+      new Protocol('Hyperlend', [
+        new HyperlendProduct(
+          getOrCreateToken(Address.fromString('0xb88339cb7199b77e23db6e890353e22632ba630f')),
+          Address.fromString('0x00A89d7a5A02160f20150EbEA7a2b5E4879A1A8b'),
+          BigInt.fromI32(23831958),
+          'Hyperlend',
+        ),
+        new HyperlendProduct(
+          getOrCreateToken(Address.fromString('0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb')),
+          Address.fromString('0x00A89d7a5A02160f20150EbEA7a2b5E4879A1A8b'),
+          BigInt.fromI32(23831958),
+          'Hyperlend',
+        ),
+      ]),
+      new Protocol('Hypurr', [
+        new HypurrProduct(
+          getOrCreateToken(Address.fromString('0xb88339cb7199b77e23db6e890353e22632ba630f')),
+          Address.fromString('0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b'),
+          BigInt.fromI32(23831958),
+          'Hypurr',
+        ),
+        new HypurrProduct(
+          getOrCreateToken(Address.fromString('0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb')),
+          Address.fromString('0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b'),
+          BigInt.fromI32(23831958),
+          'Hypurr',
+        ),
+      ]),
+    ]
+  }
   public getConfig(): Protocol[] {
     const network = dataSource.network()
     if (!this.configs.has(network)) {
@@ -1196,6 +1300,8 @@ class ProtocolConfig {
         this.configs.set(network, this.initBase())
       } else if (network == 'sonic-mainnet') {
         this.configs.set(network, this.initSonic())
+      } else if (network == 'hyperliquid' || network == 'hyperevm') {
+        this.configs.set(network, this.initHyperLiquid())
       } else {
         this.configs.set(network, [])
       }

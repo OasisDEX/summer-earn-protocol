@@ -3,5 +3,8 @@
   "summer-governor-address": "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa",
   "summer-governor-start-block": 21723650,
   "summer-governor-v2-address": "0x94F29e66fE35Ee2BC03EC9D8C3fb6d9E183f3572",
-  "summer-governor-v2-start-block": 21723650
+  "summer-governor-v2-start-block": 21723650,
+  "protocol-access-manager-address": "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
+  "protocol-access-manager-start-block": 21723638,
+  "harbor-command-address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
 }

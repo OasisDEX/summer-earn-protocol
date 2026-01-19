@@ -1,31 +1,18 @@
 import { Address, ByteArray, Bytes, crypto } from '@graphprotocol/graph-ts'
 import { ProtocolAccessManager } from '../../generated/InstitutionalVaultRegistry/ProtocolAccessManager'
-export class ROLES {
-  static GUARDIAN_ROLE: string = 'GUARDIAN_ROLE'
-  static SUPER_KEEPER_ROLE: string = 'SUPER_KEEPER_ROLE'
-  static DECAY_CONTROLLER_ROLE: string = 'DECAY_CONTROLLER_ROLE'
-  static ADMIRALS_QUARTERS_ROLE: string = 'ADMIRALS_QUARTERS_ROLE'
-  static FOUNDATION_ROLE: string = 'FOUNDATION_ROLE'
-  static GOVERNOR_ROLE: string = 'GOVERNOR_ROLE'
-}
+import { ContractSpecificRole, RoleName } from './constants'
 
 function getHash(name: string): string {
   return crypto.keccak256(ByteArray.fromUTF8(name)).toHexString()
 }
 
 export const ROLE_MAP = new Map<string, string>()
-  .set(getHash(ROLES.GUARDIAN_ROLE), 'GUARDIAN_ROLE')
-  .set(getHash(ROLES.SUPER_KEEPER_ROLE), 'SUPER_KEEPER_ROLE')
-  .set(getHash(ROLES.DECAY_CONTROLLER_ROLE), 'DECAY_CONTROLLER_ROLE')
-  .set(getHash(ROLES.ADMIRALS_QUARTERS_ROLE), 'ADMIRALS_QUARTERS_ROLE')
-  .set(getHash(ROLES.FOUNDATION_ROLE), 'FOUNDATION_ROLE')
-  .set(getHash(ROLES.GOVERNOR_ROLE), 'GOVERNOR_ROLE')
-
-export enum ContractSpecificRole {
-  CURATOR_ROLE,
-  KEEPER_ROLE,
-  COMMANDER_ROLE,
-}
+  .set(getHash(RoleName.GUARDIAN_ROLE), RoleName.GUARDIAN_ROLE)
+  .set(getHash(RoleName.SUPER_KEEPER_ROLE), RoleName.SUPER_KEEPER_ROLE)
+  .set(getHash(RoleName.DECAY_CONTROLLER_ROLE), RoleName.DECAY_CONTROLLER_ROLE)
+  .set(getHash(RoleName.ADMIRALS_QUARTERS_ROLE), RoleName.ADMIRALS_QUARTERS_ROLE)
+  .set(getHash(RoleName.FOUNDATION_ROLE), RoleName.FOUNDATION_ROLE)
+  .set(getHash(RoleName.GOVERNOR_ROLE), RoleName.GOVERNOR_ROLE)
 
 export function hasRole(role: Bytes, account: Address, accessManager: Address): boolean {
   const protocolAccessControllerEntity = ProtocolAccessManager.bind(accessManager)

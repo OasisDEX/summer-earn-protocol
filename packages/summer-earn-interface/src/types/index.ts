@@ -1,4 +1,4 @@
-export type ChainId = '1' | '42161' | '8453' | '146'
+export type ChainId = '1' | '42161' | '8453' | '146' | '999'
 
 export interface TokenInfo {
   address: string
@@ -14,6 +14,8 @@ export interface FleetCommanderInfo {
   totalAssets: bigint
   withdrawableTotalAssets: bigint
   depositCap: bigint
+  minimumBufferBalance: bigint
+  maxRebalanceOperations: bigint
   assetDecimals: number
   assetSymbol: string
   fleetDecimals: number
@@ -25,6 +27,10 @@ export interface ArkInfo {
   withdrawableTotalAssets: bigint
   name: string
   isBufferArk?: boolean
+  depositCap: bigint
+  maxDepositPercentageOfTVL: bigint // Percentage in WAD format (18 decimals, e.g., 10e18 = 10%)
+  maxRebalanceInflow: bigint
+  maxRebalanceOutflow: bigint
 }
 
 export interface RebalanceData {

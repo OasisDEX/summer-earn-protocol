@@ -86,5 +86,22 @@
   "StakingModule#StakedSummerToken": "0x7cC488F2681cFC2A5E8A00184bfA94ea6d520D1c",
   "StakingModule#SummerStaking": "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4",
   "StakingModule#SummerVestingWalletsEscrow": "0xdF8b1E08679D6035b6c1504e04C5C9e72a0555Fe",
-  "GovModuleV2#SummerGovernorV2": "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274"
+  "GovModuleV2#SummerGovernorV2": "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274",
+  "InstitutionRegistry#InstitutionalVaultRegistry": "0x47926511D8D215A182F3B93c36c94852fb10f5eD",
+  "InstitutionWhitelist_ExtDemoCorp#DutchAuctionLibrary": "0x9bcCD2043f3F1deaF22146378a0cfB4263d457DF",
+  "InstitutionWhitelist_ExtDemoCorp#ProtocolAccessManager": "0xc78Cf4d3647e2E458408129b81F52034C4C79E90",
+  "InstitutionWhitelist_ExtDemoCorp#ConfigurationManagerWhitelist": "0xb7Dd8791C3AB7a40A6A2E246A96d069991F4bE01",
+  "InstitutionWhitelist_ExtDemoCorp#HarborCommand": "0xA65ba2593D7be9C64c000C93E3cB99C79c1A6241",
+  "InstitutionWhitelist_ExtDemoCorp#Raft": "0x98B34F3F794120Be801F8bd331e18bF6b537B45f",
+  "InstitutionWhitelist_ExtDemoCorp#AdmiralsQuartersWhitelist": "0x477285d524628faa3Ed62D8086bE56810A34795e",
+  "InstitutionWhitelist_ExtDemoCorp#TipJar": "0xD57cCd5220bFfb018b1504c39d9a4606c59325b0",
+  "FleetWhitelist_extDemo_USDC_Base#FleetCommanderWhitelist": "0x1dB644c6077912cF5DaB0B5A7f2D8eFB5B61df5C",
+  "extDemo_USDC_Base_AaveV3_usdc_8453#AaveV3Ark": "0x65eB6D560486663917D6eD854cCF056B043Ca254",
+  "extDemo_USDC_Base_CompoundV3_usdc_8453#CompoundV3Ark": "0x47d1BEb79cbF9da6b50e4941479752D9D1Cb559C",
+  "extDemo_USDC_Base_SkyUsds_usdc_8453#SkyUsdsPsm3Ark": "0xFba3B83B69Df73062a14F4cC3893F4411df5fA23",
+  "extDemo_USDC_Base_FluidFToken_usdc_8453#FluidFTokenArk": "0x2D55c68e6b9b6B3f70be2e51f289751E627f50aD",
+  "extDemo_USDC_Base_MorphoVault_usdc_Gauntlet_USDC_Prime_8453#MorphoVaultArk": "0x915BFbc61BAf096b0B77058c6750A92371A795aC",
+  "extDemo_USDC_Base_MorphoVault_usdc_Steakhouse_USDC_8453#MorphoVaultArk": "0xD5466e3c01f48C2Ff5Ba8f2DC422e47c8189b1Eb",
+  "extDemo_USDC_Base_MorphoVault_usdc_Moonwell_Flagship_USDC_8453#MorphoVaultArk": "0x447DC75c83D69e8e221b77a68C9195f78a11De2E",
+  "TimelockGuardFactoryModule#TimelockGuardFactory": "0x14f5f03BEc86744bE9A2fF55478C4B4c663b37Be"
 }

@@ -30,3 +30,31 @@ type CrossChainProposalByCallId @entity {
   callId: String!
   proposal: CrossChainProposal!
 }
+
+type Role @entity {
+  id: ID!
+  name: String!
+  owner: String!
+  targetContract: String!
+  accessController: String!
+  createdTimestamp: BigInt!
+  createdBlockNumber: BigInt!
+  active: Boolean!
+  events: [RoleEvent!]! @derivedFrom(field: "role")
+}
+
+type RoleEvent @entity @transaction {
+  id: ID!
+  hash: String!
+  logIndex: Int!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  caller: String!
+  action: RoleAction!
+  role: Role!
+}
+
+enum RoleAction {
+  GRANT_ROLE
+  REVOKE_ROLE
+}

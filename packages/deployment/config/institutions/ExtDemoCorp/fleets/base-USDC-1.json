@@ -1,0 +1,73 @@
+{
+  "fleetName": "extDemo_USDC_Base",
+  "isBummer": false,
+  "symbol": "extDemoUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "10000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "1000000000000000000",
+  "network": "base",
+  "details": "",
+  "curator": "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "aaveV3",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "compoundV3",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "SkyUsdsPsm3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "sky"
+      }
+    },
+    {
+      "type": "FluidFTokenArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "fluid",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gauntlet_USDC_Prime",
+        "protocol": "morpho",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Steakhouse_USDC",
+        "protocol": "morpho",
+        "depositCap": "100000000"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Moonwell_Flagship_USDC",
+        "protocol": "morpho",
+        "depositCap": "100000000"
+      }
+    }
+  ]
+}

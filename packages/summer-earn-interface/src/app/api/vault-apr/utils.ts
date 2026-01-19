@@ -68,7 +68,7 @@ const VAULTS_QUERY = `
         sumRates
         updateCount
       }
-      hourlyInterestRates(orderBy: date, orderDirection: desc, first: 10000) {
+      hourlyInterestRates(orderBy: date, orderDirection: desc, first: 1000) {
         id
         date
         averageRate

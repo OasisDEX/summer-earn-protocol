@@ -1,20 +1,23 @@
 {
   "name": "@summerfi/summer-earn-institutions-subgraph",
-  "version": "1.0.4-targen-arbitrum",
+  "version": "1.1.2-add-hyperliquid",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:sonic": "mustache config/sonic.json subgraph.template.yaml > subgraph.yaml ",
+    "prepare:hyperliquid": "mustache config/hyperliquid.json subgraph.template.yaml > subgraph.yaml ",
     "build:base": "pnpm run prepare:base &&  graph codegen && graph build",
     "build:arbitrum": "pnpm run prepare:arbitrum &&  graph codegen && graph build",
+    "build:hyperliquid": "pnpm run prepare:hyperliquid &&  graph codegen && graph build",
     "deploy:mainnet": "bash -c 'source ../../.env && pnpm build:mainnet && goldsky subgraph deploy summer-institutions/$npm_package_version --path .'",
     "build:mainnet": "pnpm run prepare:mainnet &&  graph codegen && graph build",
     "build:sonic": "pnpm run prepare:sonic &&  graph codegen && graph build",
     "deploy:base": "bash -c 'source ../../.env && pnpm build:base && goldsky subgraph deploy summer-institutions-base/$npm_package_version --path .'",
     "deploy:arbitrum": "bash -c 'source ../../.env && pnpm build:arbitrum && goldsky subgraph deploy summer-institutions-arbitrum/$npm_package_version --path .'",
     "deploy:sonic": "bash -c 'source ../../.env && pnpm build:sonic && goldsky subgraph deploy summer-institutions-sonic/$npm_package_version --path .'",
-    "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum && pnpm run deploy:mainnet && pnpm run deploy:sonic"
+    "deploy:hyperliquid": "bash -c 'source ../../.env && pnpm build:hyperliquid && goldsky subgraph deploy summer-institutions-hyperliquid/$npm_package_version --path .'",
+    "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum && pnpm run deploy:mainnet && pnpm run deploy:sonic && pnpm run deploy:hyperliquid"
   },
   "devDependencies": {
     "@graphprotocol/graph-ts": "0.35.1",

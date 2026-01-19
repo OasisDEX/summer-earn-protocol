@@ -84,6 +84,17 @@ export function _getTokenPriceInUSD(tokenAddress: Address, blockNumber: BigInt):
     )
   }
 
+  const hyperLendResult = services.hyperLendOracle.try_getAssetPrice(tokenAddress)
+  if (
+    !hyperLendResult.reverted &&
+    hyperLendResult.value.toBigDecimal().gt(BigDecimalConstants.ZERO)
+  ) {
+    return new TokenPrice(
+      hyperLendResult.value.toBigDecimal().div(BigDecimalConstants.CHAIN_LINK_PRECISION),
+      'hyperLendOracle',
+    )
+  }
+
   const oneInchOracle = getOneInchOracle(blockNumber)
 
   if (oneInchOracle) {
