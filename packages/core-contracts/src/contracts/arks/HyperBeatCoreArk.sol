@@ -10,14 +10,9 @@ import {IHyperBeatDepositor} from "../../interfaces/hyperbeatcore/IHyperBeatDepo
 import {IHyperBeatWithdrawalQueue, WithdrawalRequest} from "../../interfaces/hyperbeatcore/IHyperBeatWithdrawalQueue.sol";
 import {IHyperBeatPricer} from "../../interfaces/hyperbeatcore/IHyperBeatPricer.sol";
 import {IHyperBeatVaultToken} from "../../interfaces/hyperbeatcore/IHyperBeatVaultToken.sol";
+import {IHyperBeatCoreArkErrors} from "../../interfaces/hyperbeatcore/IHyperBeatCoreArkErrors.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-error InvalidDepositor();
-error InvalidWithdrawalQueue();
-error InvalidPricer();
-error InvalidVaultTokenAddress();
-error InvalidVaultTokenDecimals();
 
 /**
  * @title HyperBeatCoreArk
@@ -25,7 +20,7 @@ error InvalidVaultTokenDecimals();
  * @dev Uses Depositor for deposits and WithdrawalQueue for withdrawals
  * @dev Uses pricer to get exchange rate in underlying ark asset
  */
-contract HyperBeatCoreArk is ArkWithWithdrawalRequest {
+contract HyperBeatCoreArk is ArkWithWithdrawalRequest, IHyperBeatCoreArkErrors {
     using SafeERC20 for IERC20;
     using SafeERC20 for IHyperBeatVaultToken;
 
@@ -92,39 +87,43 @@ contract HyperBeatCoreArk is ArkWithWithdrawalRequest {
         address _withdrawalQueue,
         ArkParams memory _params
     ) ArkWithWithdrawalRequest(_params, DEFAULT_SLIPPAGE) {
-        if (_depositor == address(0)) revert InvalidDepositor();
-        if (_withdrawalQueue == address(0)) revert InvalidWithdrawalQueue();
+        if (_depositor == address(0))
+            revert HyperBeatCoreArk__InvalidDepositor();
+        if (_withdrawalQueue == address(0))
+            revert HyperBeatCoreArk__InvalidWithdrawalQueue();
 
         depositor = IHyperBeatDepositor(_depositor);
         withdrawalQueue = IHyperBeatWithdrawalQueue(_withdrawalQueue);
 
         // Fetch vault token from depositor
         address vaultTokenAddress = depositor.vaultToken();
-        if (vaultTokenAddress == address(0)) revert InvalidVaultTokenAddress();
+        if (vaultTokenAddress == address(0))
+            revert HyperBeatCoreArk__InvalidVaultTokenAddress();
 
         vaultToken = IHyperBeatVaultToken(vaultTokenAddress);
 
         // Get pricer from depositor (both depositor and withdrawalQueue should have the same pricer)
         IHyperBeatPricer depositorPricer = depositor.pricer();
-        if (address(depositorPricer) == address(0)) revert InvalidPricer();
+        if (address(depositorPricer) == address(0))
+            revert HyperBeatCoreArk__InvalidPricer();
 
         // Verify pricer matches withdrawal queue pricer
         address withdrawalQueuePricer = withdrawalQueue.pricer();
         if (withdrawalQueuePricer != address(depositorPricer))
-            revert InvalidPricer();
+            revert HyperBeatCoreArk__InvalidPricer();
 
         pricer = depositorPricer;
 
         // Verify vault token matches withdrawal queue vault token
         address withdrawalQueueVaultToken = withdrawalQueue.vaultToken();
         if (withdrawalQueueVaultToken != address(vaultToken))
-            revert InvalidVaultTokenAddress();
+            revert HyperBeatCoreArk__InvalidVaultTokenAddress();
 
         // Calculate conversion factor
         uint8 vaultTokenDecimals = vaultToken.decimals();
         uint8 assetDecimals = IERC20Metadata(address(config.asset)).decimals();
         if (vaultTokenDecimals < assetDecimals)
-            revert InvalidVaultTokenDecimals();
+            revert HyperBeatCoreArk__InvalidVaultTokenDecimals();
 
         TO_VAULT_TOKEN_DECIMALS = 10 ** (vaultTokenDecimals - assetDecimals);
     }
@@ -204,7 +203,7 @@ contract HyperBeatCoreArk is ArkWithWithdrawalRequest {
 
     /**
      * @notice Request redemption of shares from the HyperBeat withdrawal queue
-     * @param amount Amount of token to withdraw
+     * @param amount Amount of token to withdraw. A special value of uint256.max can be passed to use the total balance of the vault token that this contract holds
      */
     function requestWithdrawal(uint256 amount) external onlyKeeper {
         if (withdrawalRequest.nonce != 0) {
