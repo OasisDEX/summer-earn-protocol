@@ -86,7 +86,6 @@ contract MidasArkTestFork is Test, IArkEvents, ArkTestBase {
         });
 
         ark = new MidasArk(
-            MIDAS_VAULT_ADDRESS,
             MIDAS_ISSUANCE_VAULT_ADDRESS,
             MIDAS_REDEMPTION_VAULT_ADDRESS,
             params

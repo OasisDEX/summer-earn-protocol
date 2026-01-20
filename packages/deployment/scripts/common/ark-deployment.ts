@@ -15,6 +15,8 @@ import { deployHyperlendArk } from '../arks/deploy-hyperlend-ark'
 import { deployHypurrArk } from '../arks/deploy-hypurr-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { deployMorphoArk } from '../arks/deploy-morpho-ark'
+import { deployHyperBeatCoreArk } from '../arks/deploy-hyperbeatcore-ark'
+import { deployMidasArk } from '../arks/deploy-midas-ark'
 import { deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
 import { deployOriginETHArk } from '../arks/deploy-origineth-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
@@ -439,6 +441,56 @@ export async function deployArk(
       })
       break
     }
+    case ArkType.MidasArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultConfig = config.protocolSpecific.midas[token][vaultName]
+      if (!vaultConfig) {
+        throw new Error(`Midas vault ${vaultName} not found for token ${token}`)
+      }
+      const mToken = validateAddress(vaultConfig.mToken, `Midas-${vaultName}-mToken`)
+      const issuanceVault = validateAddress(vaultConfig.issuance, `Midas-${vaultName}-issuance`)
+      const redemptionVault = validateAddress(
+        vaultConfig.redemption,
+        `Midas-${vaultName}-redemption`,
+      )
+      const midasParams = {
+        ...baseArkParams,
+        mToken: mToken,
+        issuanceVault: issuanceVault,
+        redemptionVault: redemptionVault,
+        vaultName: vaultName,
+      }
+      deployedArk = await deployMidasArk(config, midasParams)
+      break
+    }
+    case ArkType.HyperBeatCoreArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultConfig = config.protocolSpecific.hyperbeatcore[token][vaultName]
+      if (!vaultConfig) {
+        throw new Error(`HyperBeatCore vault ${vaultName} not found for token ${token}`)
+      }
+      const vaultToken = validateAddress(
+        vaultConfig.vaultToken,
+        `HyperBeatCore-${vaultName}-vaultToken`,
+      )
+      const depositor = validateAddress(
+        vaultConfig.depositor,
+        `HyperBeatCore-${vaultName}-depositor`,
+      )
+      const withdrawalQueue = validateAddress(
+        vaultConfig.withdrawalQueue,
+        `HyperBeatCore-${vaultName}-withdrawalQueue`,
+      )
+      const hyperBeatCoreParams = {
+        ...baseArkParams,
+        vaultToken: vaultToken,
+        depositor: depositor,
+        withdrawalQueue: withdrawalQueue,
+        vaultName: vaultName,
+      }
+      deployedArk = await deployHyperBeatCoreArk(config, hyperBeatCoreParams)
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${type}`)
   }
@@ -564,6 +616,14 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.Psm3ERC4626Ark: {
       deployedArk = await deployPsmERC4626Ark(config)
+      break
+    }
+    case ArkType.MidasArk: {
+      deployedArk = await deployMidasArk(config)
+      break
+    }
+    case ArkType.HyperBeatCoreArk: {
+      deployedArk = await deployHyperBeatCoreArk(config)
       break
     }
     default:

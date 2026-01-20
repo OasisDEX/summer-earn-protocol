@@ -902,6 +902,15 @@
       "infinifi": {
         "gateway": "0x3f04b65Ddbd87f9CE0A2e7Eb24d80e7fb87625b5",
         "siUSD": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB"
+      },
+      "midas": {
+        "usdc": {
+          "mApollo": {
+            "mToken": "0x7CF9DEC92ca9FD46f8d86e7798B72624Bc116C05",
+            "issuance": "0xc21511EDd1E6eCdc36e8aD4c82117033e50D5921",
+            "redemption": "0x5aeA6D35ED7B3B7aE78694B7da2Ee880756Af5C0"
+          }
+        }
       }
     },
     "bridge": {
@@ -1361,6 +1370,38 @@
       "hypurr": {
         "pool": "0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b",
         "rewards": "0x5280b0Bac1c8342F9dCeA2bC5B6121A1473A368C"
+      },
+      "midas": {
+        "usdc": {
+          "Hyperbeat_USDC": {
+            "mToken": "0x057ced81348D57Aad579A672d521d7b4396E8a61",
+            "issuance": "0x929df52b0C3315D03922E12e54B46157395bE4D0",
+            "redemption": "0x10024239474120CE410DD7ce203793c81d438Be3"
+          }
+        },
+        "usdt": {
+          "Hyperbeat_USDT": {
+            "mToken": "0x5e105266db42f78FA814322Bce7f388B4C2e61eb",
+            "issuance": "0x6261F30144B259C74243D5f5D9230941186AC936",
+            "redemption": "0x240e0b2cb615Ded2FE90fDe265B15988Dc45B1c6"
+          }
+        }
+      },
+      "hyperbeatcore": {
+        "usdc": {
+          "Hyperbeat_USDC": {
+            "vaultToken": "0x057ced81348D57Aad579A672d521d7b4396E8a61",
+            "depositor": "0x929df52b0C3315D03922E12e54B46157395bE4D0",
+            "withdrawalQueue": "0x10024239474120CE410DD7ce203793c81d438Be3"
+          }
+        },
+        "usdt": {
+          "Hyperbeat_USDT": {
+            "vaultToken": "0x5e105266db42f78FA814322Bce7f388B4C2e61eb",
+            "depositor": "0x6261F30144B259C74243D5f5D9230941186AC936",
+            "withdrawalQueue": "0x240e0b2cb615Ded2FE90fDe265B15988Dc45B1c6"
+          }
+        }
       }
     }
   }

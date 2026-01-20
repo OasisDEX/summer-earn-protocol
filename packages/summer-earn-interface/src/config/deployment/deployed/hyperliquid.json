@@ -51,5 +51,7 @@
   "LazyVault_LowerRisk_USDT_MorphoVault_usdt_Felix_USDT0_999#MorphoVaultArk": "0xe79Abf806a9D0a4A041ac4Ce977139B658e92731",
   "LazyVault_LowerRisk_USDT_MorphoVault_usdt_Morphobeat_USDT0_999#MorphoVaultArk": "0x900B60fC4D2C26965Ec638B43083124cE934dD5C",
   "LazyVault_LowerRisk_USDT_MorphoVault_usdt_Morphobeat_USDT0_Hyperrithim_999#MorphoVaultArk": "0xc40393d19C587C54a7bA77a80CAEd655623a8Dc5",
-  "LazyVault_LowerRisk_USDT_Hypurr_usdt_999#HypurrfiArk": "0x26d9D19f9AbB1e0bF28877AC78feDE6021FEef11"
+  "LazyVault_LowerRisk_USDT_Hypurr_usdt_999#HypurrfiArk": "0x26d9D19f9AbB1e0bF28877AC78feDE6021FEef11",
+  "BummerLazyVault_LowerRisk_USDC_HyperBeatCore_usdc_Hyperbeat_USDC_999#HyperBeatCoreArk": "0x5A319015d6e802d4e536886bdae9fe52901e678C",
+  "BummerLazyVault_LowerRisk_USDT_HyperBeatCore_usdt_Hyperbeat_USDT_999#HyperBeatCoreArk": "0xBb10274D0A101B8c33D74dFF299562A598Cb7E4C"
 }

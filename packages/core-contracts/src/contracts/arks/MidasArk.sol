@@ -82,33 +82,32 @@ contract MidasArk is ArkWithWithdrawalRequest {
 
     /**
      * @notice Constructor to set up the MidasArk
-     * @param _mToken Address of the Midas mToken (for deposits and withdrawals)
      * @param _issuanceVault Address of the Midas Issuance Vault (for deposits)
      * @param _redemptionVault Address of the Midas Redemption Vault (for withdrawals)
      * @param _params ArkParams struct containing necessary parameters for Ark initialization
      */
     constructor(
-        address _mToken,
         address _issuanceVault,
         address _redemptionVault,
         ArkParams memory _params
     ) ArkWithWithdrawalRequest(_params, DEFAULT_SLIPPAGE) {
-        if (_mToken == address(0)) revert InvalidVaultAddress();
         if (_issuanceVault == address(0)) revert InvalidIssuanceVault();
         if (_redemptionVault == address(0)) revert InvalidRedemptionVault();
 
         issuanceVault = IDepositVault(_issuanceVault);
         redemptionVault = IRedemptionVault(_redemptionVault);
-        mToken = IMToken(_mToken);
-        oracle = IMidasOracle(issuanceVault.mTokenDataFeed());
 
-        // Verify mToken matches vaults
+        // Fetch mToken from issuance vault
         IMToken issuanceVaultMToken = issuanceVault.mToken();
-        if (address(issuanceVaultMToken) != _mToken)
+        if (address(issuanceVaultMToken) == address(0))
             revert InvalidMTokenAddress();
 
+        mToken = issuanceVaultMToken;
+        oracle = IMidasOracle(issuanceVault.mTokenDataFeed());
+
+        // Verify mToken matches redemption vault
         IMToken redemptionVaultMToken = redemptionVault.mToken();
-        if (address(redemptionVaultMToken) != _mToken)
+        if (address(redemptionVaultMToken) != address(mToken))
             revert InvalidMTokenAddress();
 
         // Calculate conversion factor

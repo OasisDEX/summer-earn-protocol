@@ -41,6 +41,8 @@ export enum ArkType {
   Psm3ERC4626Ark = 'Psm3ERC4626Ark',
   HyperlendArk = 'HyperlendArk',
   HypurrArk = 'HypurrArk',
+  MidasArk = 'MidasArk',
+  HyperBeatCoreArk = 'HyperBeatCoreArk',
 }
 
 export const arkTypes = [
@@ -72,6 +74,8 @@ export const arkTypes = [
   { title: 'Psm3ERC4626Ark', value: ArkType.Psm3ERC4626Ark },
   { title: 'HyperlendArk', value: ArkType.HyperlendArk },
   { title: 'HypurrArk', value: ArkType.HypurrArk },
+  { title: 'MidasArk', value: ArkType.MidasArk },
+  { title: 'HyperBeatCoreArk', value: ArkType.HyperBeatCoreArk },
 ]
 
 export interface Config {
@@ -292,6 +296,24 @@ export interface BaseConfig {
     hypurr: {
       pool: Address
       rewards: Address
+    }
+    midas: {
+      [key in Token]: {
+        [vaultName: string]: {
+          mToken: Address
+          issuance: Address
+          redemption: Address
+        }
+      }
+    }
+    hyperbeatcore: {
+      [key in Token]: {
+        [vaultName: string]: {
+          vaultToken: Address
+          depositor: Address
+          withdrawalQueue: Address
+        }
+      }
     }
   }
   bridge?: DeployedBridge

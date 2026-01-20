@@ -43,6 +43,14 @@
         "asset": "USDC",
         "protocol": "hypurr"
       }
+    },
+    {
+      "type": "HyperBeatCoreArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "hyperbeatcore",
+        "vaultName": "Hyperbeat_USDC"
+      }
     }
   ]
 }

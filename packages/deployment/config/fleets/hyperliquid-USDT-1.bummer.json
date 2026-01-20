@@ -75,6 +75,14 @@
         "asset": "USDT",
         "protocol": "hypurr"
       }
+    },
+    {
+      "type": "HyperBeatCoreArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "hyperbeatcore",
+        "vaultName": "Hyperbeat_USDT"
+      }
     }
   ]
 }
