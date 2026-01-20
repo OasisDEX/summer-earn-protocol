@@ -106,6 +106,9 @@ contract MidasArk is ArkWithWithdrawalRequest, IMidasArkErrors {
             revert MidasArk__InvalidMTokenAddress();
 
         // Calculate conversion factor
+        // Note: mTokens have 18 decimals. This check ensures the asset has <= 18 decimals,
+        // which is required for the conversion factor calculation. Assets with >18 decimals
+        // are extremely rare and not supported by this Ark implementation.
         uint8 mTokenDecimals = mToken.decimals();
         uint8 assetDecimals = IERC20Metadata(address(config.asset)).decimals();
         if (mTokenDecimals < assetDecimals)
