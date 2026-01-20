@@ -152,5 +152,6 @@
   "LazyVault_LowerRisk_USDC_MorphoVault_usdc_kpk_USDC_Prime_1#MorphoVaultArk": "0xcA2e14c7C03C9961c296C89e2d2279F5F7DB15b4",
   "LazyVault_LowerRisk_WETH_ERC4626_Gearbox_KPK_WETH_Pool_weth_1#ERC4626Ark": "0xdF8b1E08679D6035b6c1504e04C5C9e72a0555Fe",
   "LazyVault_HigherRisk_WETH_MorphoVault_weth_kpk_WETH_Prime_1#MorphoVaultArk": "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274",
-  "TimelockGuardFactoryModule#TimelockGuardFactory": "0x387a440B723b06554A58D41364EF5cB0C5b3b5B4"
+  "TimelockGuardFactoryModule#TimelockGuardFactory": "0x387a440B723b06554A58D41364EF5cB0C5b3b5B4",
+  "BummerLazyVault_USDC_Midas_usdc_mApollo_1#MidasArk": "0x393e981A6b76A18CC5A0FB619C6a218D4E53B4B4"
 }
