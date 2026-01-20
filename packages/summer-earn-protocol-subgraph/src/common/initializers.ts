@@ -472,8 +472,6 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.createdTimestamp = block.timestamp
     vault.lastUpdateTimestamp = block.timestamp
 
-    vault.tipRate = constants.BigIntConstants.ZERO
-
     vault.arksArray = []
     vault.aprValues = []
     vault.apr7d = constants.BigDecimalConstants.ZERO
