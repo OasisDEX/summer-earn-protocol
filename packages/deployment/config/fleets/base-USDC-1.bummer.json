@@ -30,6 +30,20 @@
         "protocol": "Aera",
         "vaultName": "Gauntlet_Alpha"
       }
+    },
+    {
+      "type": "SkyUsdsPsm3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "sky"
+      }
+    },
+    {
+      "type": "SkyUsdsPsm3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "sky"
+      }
     }
   ]
 }

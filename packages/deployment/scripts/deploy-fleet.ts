@@ -150,10 +150,18 @@ async function deployFleet() {
         isHubChain,
         useBummerConfig,
         isTenderly,
+        network,
       )
       break
     case DeploymentMode.ADD_ARK:
-      await handleArkAddition(fleetDefinition, config, isHubChain, useBummerConfig, isTenderly)
+      await handleArkAddition(
+        fleetDefinition,
+        config,
+        isHubChain,
+        useBummerConfig,
+        isTenderly,
+        network,
+      )
       break
     default:
       console.log(kleur.red('Invalid deployment mode. Exiting.'))
@@ -170,6 +178,7 @@ async function handleNewFleetDeployment(
   isHubChain: boolean,
   useBummerConfig: boolean,
   isTenderly: boolean,
+  network: string,
 ) {
   // Get curator from fleet definition
   let curatorAddress = fleetDefinition.curator as Address | undefined
@@ -293,6 +302,7 @@ async function handleNewFleetDeployment(
           fleetDefinition,
           useBummerConfig,
           curatorAddress,
+          network,
         )
       } else {
         await createSatelliteGovernanceProposal(
@@ -304,6 +314,7 @@ async function handleNewFleetDeployment(
           useBummerConfig,
           isTenderly,
           curatorAddress,
+          network,
         )
       }
     }
@@ -323,6 +334,7 @@ async function handleArkAddition(
   isHubChain: boolean,
   useBummerConfig: boolean,
   isTenderly: boolean,
+  network: string,
 ) {
   console.log(kleur.green().bold('Loading fleet deployment data...'))
 
@@ -527,6 +539,7 @@ async function handleArkAddition(
           config,
           proposalFleetDefinition,
           useBummerConfig,
+          network,
         )
       } else {
         // Create cross-chain proposal for adding arks on a satellite chain
