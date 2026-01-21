@@ -103,5 +103,6 @@
   "extDemo_USDC_Base_MorphoVault_usdc_Gauntlet_USDC_Prime_8453#MorphoVaultArk": "0x915BFbc61BAf096b0B77058c6750A92371A795aC",
   "extDemo_USDC_Base_MorphoVault_usdc_Steakhouse_USDC_8453#MorphoVaultArk": "0xD5466e3c01f48C2Ff5Ba8f2DC422e47c8189b1Eb",
   "extDemo_USDC_Base_MorphoVault_usdc_Moonwell_Flagship_USDC_8453#MorphoVaultArk": "0x447DC75c83D69e8e221b77a68C9195f78a11De2E",
-  "TimelockGuardFactoryModule#TimelockGuardFactory": "0x14f5f03BEc86744bE9A2fF55478C4B4c663b37Be"
+  "TimelockGuardFactoryModule#TimelockGuardFactory": "0x14f5f03BEc86744bE9A2fF55478C4B4c663b37Be",
+  "BummerLazyVault_LowerRisk_USDC_1_SkyUsds_usdc_8453#SkyUsdsPsm3Ark": "0x7456830D8053fF6200d3C655688C2dC174F1d3b4"
 }

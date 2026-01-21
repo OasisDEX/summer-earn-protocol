@@ -15,6 +15,11 @@ import { constructLzOptions } from '../helpers/layerzero-options'
 import { createGovernanceProposal, ProposalContent } from '../helpers/proposal-helpers'
 import { createClients } from '../helpers/wallet-helper'
 import { getRewardsManagerAddress } from './fleet-deployment-helpers'
+import { getArkTokenMapping } from '../governance/set-non-sweepable-tokens-proposal'
+
+const RAFT_ABI = parseAbi([
+  'function setNonSweepableToken(address ark, address token, bool isNonSweepable) external',
+])
 
 export interface FleetSingleChainContent extends ProposalContent {
   sourceDescription: string
@@ -316,11 +321,13 @@ function formatTipRate(tipRate: string): string {
  * Prepares proposal actions for adding arks to a fleet
  * This is a common function used by multiple proposal types
  */
-export function prepareArkAdditionActions(
+export async function prepareArkAdditionActions(
   fleetCommanderAddress: Address,
   arks: Address[],
   protocolAccessManagerAddress: Address,
-): { targets: Address[]; values: bigint[]; calldatas: Hex[] } {
+  raftAddress: Address,
+  chainName: string,
+): Promise<{ targets: Address[]; values: bigint[]; calldatas: Hex[] }> {
   const targets: Address[] = []
   const values: bigint[] = []
   const calldatas: Hex[] = []
@@ -350,7 +357,20 @@ export function prepareArkAdditionActions(
       }) as Hex,
     )
   }
-
+  for (const arkAddress of arks) {
+    const arkMapping = await getArkTokenMapping(arkAddress, chainName)
+    if (arkMapping) {
+      targets.push(raftAddress)
+      values.push(0n)
+      calldatas.push(
+        encodeFunctionData({
+          abi: RAFT_ABI,
+          functionName: 'setNonSweepableToken',
+          args: [arkAddress, arkMapping.tokenAddress, true],
+        }) as Hex,
+      )
+    }
+  }
   return { targets, values, calldatas }
 }
 
@@ -503,6 +523,7 @@ export async function createArkAdditionProposal(
   config: BaseConfig,
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
+  network: string,
 ): Promise<void> {
   console.log(kleur.cyan('Creating governance proposal to add arks to existing fleet'))
 
@@ -510,12 +531,15 @@ export async function createArkAdditionProposal(
   const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
   const protocolAccessManagerAddress = config.deployedContracts.gov.protocolAccessManager
     .address as Address
+  const raftAddress = config.deployedContracts.core.raft.address as Address
 
   // Get the actions for adding arks
-  const { targets, values, calldatas } = prepareArkAdditionActions(
+  const { targets, values, calldatas } = await prepareArkAdditionActions(
     fleetCommanderAddress,
     arks,
     protocolAccessManagerAddress,
+    raftAddress,
+    network,
   )
 
   // Format ark addresses for display in proposal
@@ -592,14 +616,15 @@ export async function createHubGovernanceProposal(
   config: BaseConfig,
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
-  curatorAddress?: Address,
+  curatorAddress: Address | undefined,
+  network: string,
 ) {
   // Use the correct governor address from the config
   const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
   const harborCommandAddress = config.deployedContracts.core.harborCommand.address as Address
   const protocolAccessManagerAddress = config.deployedContracts.gov.protocolAccessManager
     .address as Address
-
+  const raftAddress = config.deployedContracts.core.raft.address as Address
   // Prepare the proposal targets, values, and calldatas
   let targets: Address[] = []
   let values: bigint[] = []
@@ -625,10 +650,12 @@ export async function createHubGovernanceProposal(
   calldatas = [...calldatas, ...bufferArkActions.calldatas]
 
   // 3. Add Arks and grant COMMANDER_ROLE
-  const arkActions = prepareArkAdditionActions(
+  const arkActions = await prepareArkAdditionActions(
     deployedFleet.fleetCommander.address,
     deployedArks,
     protocolAccessManagerAddress,
+    raftAddress,
+    network,
   )
   targets = [...targets, ...arkActions.targets]
   values = [...values, ...arkActions.values]
@@ -771,7 +798,8 @@ export async function createSatelliteGovernanceProposal(
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
   isTenderlyVirtualTestnet: boolean,
-  curatorAddress?: Address,
+  curatorAddress: Address | undefined,
+  network: string,
 ) {
   console.log(kleur.yellow('Creating cross-chain governance proposal...'))
 
@@ -787,8 +815,12 @@ export async function createSatelliteGovernanceProposal(
   )
   const targetChainPublicClient = await hre.viem.getPublicClient()
 
-  const hubConfig = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true, core: true }, useBummerConfig)
-
+  const hubConfig = getConfigByNetwork(
+    HUB_CHAIN_NAME,
+    { gov: true, core: true },
+    useBummerConfig,
+  ) as BaseConfig
+  const raftAddress = hubConfig.deployedContracts.core.raft.address as Address
   // 2. Set up clients for the hub chain
   console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan(HUB_CHAIN_NAME))
   console.log(
@@ -830,10 +862,12 @@ export async function createSatelliteGovernanceProposal(
   )
 
   // 3.3 & 3.4 Add Arks and grant COMMANDER_ROLE
-  const arkActions = prepareArkAdditionActions(
+  const arkActions = await prepareArkAdditionActions(
     deployedFleet.fleetCommander.address,
     deployedArks,
     protocolAccessManagerAddress,
+    raftAddress,
+    network,
   )
   dstTargets.push(...arkActions.targets)
   dstValues.push(...arkActions.values)
@@ -1078,10 +1112,16 @@ export async function createArkAdditionCrossChainProposal(
   config: BaseConfig,
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
+  network: string,
 ): Promise<void> {
   console.log(kleur.yellow('Creating cross-chain governance proposal to add arks...'))
 
-  const hubConfig = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true, core: true }, useBummerConfig)
+  const hubConfig = getConfigByNetwork(
+    HUB_CHAIN_NAME,
+    { gov: true, core: true },
+    useBummerConfig,
+  ) as BaseConfig
+  const raftAddress = hubConfig.deployedContracts.core.raft.address as Address
 
   // Set up clients for the hub chain
   console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan(HUB_CHAIN_NAME))
@@ -1102,7 +1142,13 @@ export async function createArkAdditionCrossChainProposal(
     targets: dstTargets,
     values: dstValues,
     calldatas: dstCalldatas,
-  } = prepareArkAdditionActions(fleetCommanderAddress, arks, protocolAccessManagerAddress)
+  } = await prepareArkAdditionActions(
+    fleetCommanderAddress,
+    arks,
+    protocolAccessManagerAddress,
+    raftAddress,
+    network,
+  )
 
   // Format ark addresses for display in proposal
   const arkAddressList = arks.map((addr, i) => `${i + 1}. \`${addr}\``).join('\n')
@@ -1266,7 +1312,7 @@ export async function createRewardSetupProposal(
   const isHubChain = hre.network.name === HUB_CHAIN_NAME
   const hubConfig = isHubChain
     ? config
-    : getConfigByNetwork(HUB_CHAIN_NAME, { gov: true, core: true }, useBummerConfig)
+    : (getConfigByNetwork(HUB_CHAIN_NAME, { gov: true, core: true }, useBummerConfig) as BaseConfig)
 
   // Get the rewards manager address for this fleet
   const rewardsManagerAddress = await getRewardsManagerAddress(fleetCommanderAddress)

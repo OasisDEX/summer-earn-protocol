@@ -69,7 +69,7 @@ interface ArkTokenMapping {
 /**
  * Extract pool/vault/siUSDVault address from ark details JSON
  */
-function extractTokenAddress(detailsJson: string): Address | null {
+export function extractTokenAddress(detailsJson: string): Address | null {
   try {
     const parsed = JSON.parse(detailsJson) as Record<string, unknown>
 
@@ -135,7 +135,7 @@ async function isTokenNonSweepable(
 /**
  * Fetch ark details from on-chain contract and extract token address
  */
-async function getArkTokenMapping(
+export async function getArkTokenMapping(
   arkAddress: Address,
   chainName: string,
 ): Promise<{ arkAddress: Address; tokenAddress: Address; arkSymbol: string } | null> {
