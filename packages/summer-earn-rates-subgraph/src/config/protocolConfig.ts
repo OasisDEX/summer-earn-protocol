@@ -1137,6 +1137,14 @@ class ProtocolConfig {
           'Extrafi',
         ),
       ]),
+      new Protocol('40acres', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xB99B6dF96d4d5448cC0a5B3e0ef7896df9507Cf5'),
+          BigInt.fromI32(41101798),
+          '40acres',
+        ),
+      ]),
     ]
   }
   private initSonic(): Protocol[] {
