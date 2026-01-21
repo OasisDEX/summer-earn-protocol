@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "chainId": "1",
+  "createdAt": 1768995992910,
+  "meta": {
+    "name": "Set Non-Sweepable Tokens - mainnet",
+    "description": "Set non-sweepable tokens for 6 arks on mainnet",
+    "txBuilderVersion": "1.18.0",
+    "createdFromSafeAddress": "0x97aE56497C7b2D3998d8d7Cb77a0959BeF8f0a55",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xa71b6250000000000000000000000000df8b1e08679d6035b6c1504e04c5c9e72a0555fe0000000000000000000000009396dcbf78fc526bb003665337c5e73b699571ef0000000000000000000000000000000000000000000000000000000000000001",
+      "contractMethod": null,
+      "contractInputsValues": null
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xa71b6250000000000000000000000000ca2e14c7c03c9961c296c89e2d2279f5f7db15b4000000000000000000000000e108fbc04852b5df72f9e44d7c29f47e7a993add0000000000000000000000000000000000000000000000000000000000000001",
+      "contractMethod": null,
+      "contractInputsValues": null
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xa71b62500000000000000000000000004ceee1b6289624d381383c1bb42b118d5f2c3274000000000000000000000000d564f765f9ad3e7d2d6ca782100795a885e8e7c80000000000000000000000000000000000000000000000000000000000000001",
+      "contractMethod": null,
+      "contractInputsValues": null
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xa71b6250000000000000000000000000d33e132c34c978c18acd8cd90d14467c1bf10f3000000000000000000000000087870bca3f3fd6335c3f4ce8392d69350b4fa4e20000000000000000000000000000000000000000000000000000000000000001",
+      "contractMethod": null,
+      "contractInputsValues": null
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xa71b6250000000000000000000000000c41af022a0cbbbd95b4a4eb5b9ebb51bb888bb0d000000000000000000000000a17581a9e3356d9a858b789d68b4d866e593ae940000000000000000000000000000000000000000000000000000000000000001",
+      "contractMethod": null,
+      "contractInputsValues": null
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xa71b6250000000000000000000000000a3b8e720cfff63fd47ea80e18b773965e25c2b6c000000000000000000000000c13e21b648a5ee794902342038ff3adab66be9870000000000000000000000000000000000000000000000000000000000000001",
+      "contractMethod": null,
+      "contractInputsValues": null
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "chainId": "8453",
+  "createdAt": 1768995992909,
+  "meta": {
+    "name": "Set Non-Sweepable Tokens - base",
+    "description": "Set non-sweepable tokens for 1 arks on base",
+    "txBuilderVersion": "1.18.0",
+    "createdFromSafeAddress": "0x97aE56497C7b2D3998d8d7Cb77a0959BeF8f0a55",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0x7839d904D05d3D6B5F1D87eb93e1dcD5746AbC6E",
+      "value": "0",
+      "data": "0xa71b62500000000000000000000000006b58aeeadd96dbfeacf90948e26d51c506213766000000000000000000000000000000000001cdb57e58fa75fe420a0f4d6640d50000000000000000000000000000000000000000000000000000000000000001",
+      "contractMethod": null,
+      "contractInputsValues": null
+    }
+  ]
+}
