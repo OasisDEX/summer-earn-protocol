@@ -57,6 +57,7 @@ const ARK_ABI = parseAbi(['function details() external view returns (string)'])
 
 const RAFT_ABI = parseAbi([
   'function setNonSweepableToken(address ark, address token, bool isNonSweepable) external',
+  'function nonSweepableTokens(address ark, address token) external view returns (bool)',
 ])
 
 interface ArkTokenMapping {
@@ -87,6 +88,47 @@ export function extractTokenAddress(detailsJson: string): Address | null {
   } catch (error) {
     console.error(kleur.red(`Failed to parse details JSON: ${error}`))
     return null
+  }
+}
+
+/**
+ * Check if a token is already marked as non-sweepable for an ark
+ */
+async function isTokenNonSweepable(
+  raftAddress: Address,
+  arkAddress: Address,
+  tokenAddress: Address,
+  chainName: string,
+): Promise<boolean> {
+  const chain = VIEM_CHAIN_MAP[chainName as keyof typeof VIEM_CHAIN_MAP]
+  const rpcUrl = RPC_URL_MAP[chainName as keyof typeof RPC_URL_MAP]
+
+  if (!chain || !rpcUrl) {
+    throw new Error(`Missing chain or RPC URL for ${chainName}`)
+  }
+
+  const publicClient = createPublicClient({
+    chain,
+    transport: http(rpcUrl),
+  })
+
+  try {
+    const isNonSweepable = (await publicClient.readContract({
+      address: raftAddress,
+      abi: RAFT_ABI,
+      functionName: 'nonSweepableTokens',
+      args: [arkAddress, tokenAddress],
+    })) as boolean
+
+    return isNonSweepable
+  } catch (error) {
+    console.error(
+      kleur.red(
+        `Failed to check non-sweepable status for ark ${arkAddress}, token ${tokenAddress} on ${chainName}: ${error}`,
+      ),
+    )
+    // Return false on error to be safe - we'll still try to set it
+    return false
   }
 }
 
@@ -248,10 +290,40 @@ async function main() {
       )
     }
 
+    // Store processed mappings (after filtering already non-sweepable tokens) for description generation
+    const processedMappings: Record<string, ArkTokenMapping[]> = {}
+
     // Process hub chain rewards first
     console.log(kleur.yellow('\nPreparing hub chain actions...'))
     const hubMappings = chainMappings[HUB_CHAIN_NAME] || []
+    const hubMappingsToProcess: ArkTokenMapping[] = []
+
+    // Check which tokens are already non-sweepable
+    console.log(kleur.cyan('Checking existing non-sweepable status...'))
     for (const mapping of hubMappings) {
+      const alreadyNonSweepable = await isTokenNonSweepable(
+        HUB_RAFT_ADDRESS,
+        mapping.arkAddress,
+        mapping.tokenAddress,
+        HUB_CHAIN_NAME,
+      )
+
+      if (alreadyNonSweepable) {
+        console.log(
+          kleur.yellow(
+            `  ⚠️  Skipping ${mapping.arkSymbol} (ark: ${mapping.arkAddress}, token: ${mapping.tokenAddress}) - already non-sweepable`,
+          ),
+        )
+      } else {
+        hubMappingsToProcess.push(mapping)
+      }
+    }
+
+    // Store processed mappings for hub chain
+    processedMappings[HUB_CHAIN_NAME] = hubMappingsToProcess
+
+    // Add actions for tokens that need to be set
+    for (const mapping of hubMappingsToProcess) {
       srcTargets.push(HUB_RAFT_ADDRESS)
       srcValues.push(0n)
       srcCalldatas.push(
@@ -286,12 +358,44 @@ async function main() {
       const raftAddress = chainConfig.raftAddress
       const chainId = chainConfig.chainId
 
+      // Check which tokens are already non-sweepable
+      console.log(kleur.cyan(`Checking existing non-sweepable status on ${chainName}...`))
+      const mappingsToProcess: ArkTokenMapping[] = []
+
+      for (const mapping of mappings) {
+        const alreadyNonSweepable = await isTokenNonSweepable(
+          raftAddress,
+          mapping.arkAddress,
+          mapping.tokenAddress,
+          chainName,
+        )
+
+        if (alreadyNonSweepable) {
+          console.log(
+            kleur.yellow(
+              `  ⚠️  Skipping ${mapping.arkSymbol} (ark: ${mapping.arkAddress}, token: ${mapping.tokenAddress}) - already non-sweepable`,
+            ),
+          )
+        } else {
+          mappingsToProcess.push(mapping)
+        }
+      }
+
+      if (mappingsToProcess.length === 0) {
+        console.log(kleur.yellow(`Skipping ${chainName} - all tokens already non-sweepable`))
+        processedMappings[chainName] = []
+        continue
+      }
+
+      // Store processed mappings for this chain
+      processedMappings[chainName] = mappingsToProcess
+
       // Prepare the destination chain actions
       const dstTargets: Address[] = []
       const dstValues: bigint[] = []
       const dstCalldatas: Hex[] = []
 
-      for (const mapping of mappings) {
+      for (const mapping of mappingsToProcess) {
         dstTargets.push(raftAddress)
         dstValues.push(0n)
         dstCalldatas.push(
@@ -320,7 +424,7 @@ async function main() {
 This cross-chain proposal sets non-sweepable tokens for arks on ${chainName} by calling setNonSweepableToken on the Raft contract.
 
 ## Actions
-${mappings
+${mappingsToProcess
   .map(
     (mapping) => `
 - Set ${mapping.tokenAddress} as non-sweepable for ark ${mapping.arkSymbol} (${mapping.arkAddress})`,
@@ -353,7 +457,7 @@ ${mappings
 
       console.log(
         kleur.green(
-          `- Added cross-chain proposal for ${chainName} with ${mappings.length} actions`,
+          `- Added cross-chain proposal for ${chainName} with ${mappingsToProcess.length} actions`,
         ),
       )
     }
@@ -375,14 +479,12 @@ Certain tokens (pools, vaults, or siUSDVault addresses) should be marked as non-
 ### Actions
 ${HUB_CHAIN_NAME}:
 ${
-  hubMappings.length > 0
-    ? hubMappings
-        .map(
-          (mapping) => `
+  processedMappings[HUB_CHAIN_NAME] && processedMappings[HUB_CHAIN_NAME].length > 0
+    ? processedMappings[HUB_CHAIN_NAME].map(
+        (mapping) => `
 - Set ${mapping.tokenAddress} as non-sweepable for ark ${mapping.arkSymbol} (${mapping.arkAddress})`,
-        )
-        .join('\n')
-    : 'No arks configured'
+      ).join('\n')
+    : 'No arks configured (or all tokens already non-sweepable)'
 }
 
 ${TARGET_CHAINS.filter((chain) => chain !== HUB_CHAIN_NAME)
@@ -390,14 +492,14 @@ ${TARGET_CHAINS.filter((chain) => chain !== HUB_CHAIN_NAME)
     (chain) => `
 ${chain}:
 ${
-  chainMappings[chain] && chainMappings[chain].length > 0
-    ? chainMappings[chain]
+  processedMappings[chain] && processedMappings[chain].length > 0
+    ? processedMappings[chain]
         .map(
           (mapping) => `
 - Set ${mapping.tokenAddress} as non-sweepable for ark ${mapping.arkSymbol} (${mapping.arkAddress})`,
         )
         .join('\n')
-    : 'No arks configured'
+    : 'No arks configured (or all tokens already non-sweepable)'
 }`,
   )
   .join('\n')}
@@ -408,11 +510,12 @@ The proposal calls setNonSweepableToken on the Raft contract for each ark's asso
 
     // Create action summary for better display
     const actionSummary = [
-      `Set non-sweepable tokens on ${HUB_CHAIN_NAME} (${hubMappings.length} arks)`,
+      `Set non-sweepable tokens on ${HUB_CHAIN_NAME} (${processedMappings[HUB_CHAIN_NAME]?.length || 0} arks)`,
       ...TARGET_CHAINS.filter((chain) => chain !== HUB_CHAIN_NAME)
-        .filter((chain) => chainMappings[chain] && chainMappings[chain].length > 0)
+        .filter((chain) => processedMappings[chain] && processedMappings[chain].length > 0)
         .map(
-          (chain) => `Send cross-chain proposal to ${chain} (${chainMappings[chain].length} arks)`,
+          (chain) =>
+            `Send cross-chain proposal to ${chain} (${processedMappings[chain].length} arks)`,
         ),
     ]
 
@@ -433,10 +536,12 @@ The proposal calls setNonSweepableToken on the Raft contract for each ark's asso
 
     console.log(kleur.cyan('\nCreating governance proposal with the following actions:'))
     console.log(
-      kleur.yellow(`- Set non-sweepable tokens on ${HUB_CHAIN_NAME} (${hubMappings.length} arks)`),
+      kleur.yellow(
+        `- Set non-sweepable tokens on ${HUB_CHAIN_NAME} (${processedMappings[HUB_CHAIN_NAME]?.length || 0} arks)`,
+      ),
     )
     for (const chain of TARGET_CHAINS.filter((chain) => chain !== HUB_CHAIN_NAME)) {
-      const count = chainMappings[chain]?.length || 0
+      const count = processedMappings[chain]?.length || 0
       if (count > 0) {
         console.log(kleur.yellow(`- Send cross-chain proposal to ${chain} (${count} arks)`))
       }
@@ -471,9 +576,13 @@ The proposal calls setNonSweepableToken on the Raft contract for each ark's asso
       console.log(kleur.cyan('\n📝 Generating Safe proposals for each chain...'))
 
       for (const chainName of TARGET_CHAINS) {
-        const mappings = chainMappings[chainName] || []
+        const mappings = processedMappings[chainName] || []
         if (mappings.length === 0) {
-          console.log(kleur.yellow(`Skipping Safe proposal for ${chainName} - no mappings found`))
+          console.log(
+            kleur.yellow(
+              `Skipping Safe proposal for ${chainName} - no mappings found (or all already non-sweepable)`,
+            ),
+          )
           continue
         }
 
