@@ -105,6 +105,20 @@ contract MidasArk is ArkWithWithdrawalRequest, IMidasArkErrors {
         if (address(redemptionVaultMToken) != address(mToken))
             revert MidasArk__InvalidMTokenAddress();
 
+        // payment tokens must be stable - tokenConfig and tokenConfig.stable can only exist if payment tokens are added to the vaults
+        TokenConfig memory tokenConfig = issuanceVault.tokensConfig(
+            address(config.asset)
+        );
+        TokenConfig memory redemptionTokenConfig = redemptionVault.tokensConfig(
+            address(config.asset)
+        );
+        if (!redemptionTokenConfig.stable || !tokenConfig.stable) {
+            revert MidasArk__InvalidTokenConfig();
+        }
+        if (redemptionTokenConfig.fee != 0 || tokenConfig.fee != 0) {
+            revert MidasArk__InvalidTokenConfig();
+        }
+
         // Calculate conversion factor
         // Note: mTokens have 18 decimals. This check ensures the asset has <= 18 decimals,
         // which is required for the conversion factor calculation. Assets with >18 decimals

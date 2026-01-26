@@ -27,4 +27,7 @@ interface IMidasArkErrors {
 
     /// @notice Thrown when the mToken decimals are invalid (less than asset decimals)
     error MidasArk__InvalidMTokenDecimals();
+
+    /// @notice Thrown when the token config is invalid
+    error MidasArk__InvalidTokenConfig();
 }

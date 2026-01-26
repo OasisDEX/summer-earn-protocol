@@ -276,6 +276,11 @@ interface IDepositVault is IManageableVault {
      */
     function setMaxSupplyCap(uint256 newValue) external;
 
+    /**
+     * @notice returns the tokens config for a given token
+     * @param token token address
+     * @return TokenConfig token config
+     */
     function tokensConfig(
         address token
     ) external view returns (TokenConfig memory);

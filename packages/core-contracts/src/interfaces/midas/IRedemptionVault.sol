@@ -273,8 +273,17 @@ interface IRedemptionVault is IManageableVault {
         uint256 requestId
     ) external view returns (Request memory);
 
+    /**
+     * @notice returns the instant fee
+     * @return instantFee instant fee
+     */
     function instantFee() external view returns (uint256);
 
+    /**
+     * @notice returns the tokens config for a given token
+     * @param token token address
+     * @return TokenConfig token config
+     */
     function tokensConfig(
         address token
     ) external view returns (TokenConfig memory);
