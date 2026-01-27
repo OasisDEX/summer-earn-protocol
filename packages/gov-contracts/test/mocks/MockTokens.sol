@@ -5,7 +5,7 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "./MockERC20.sol";
 
 contract TestMockERC721 is ERC721 {
     constructor(

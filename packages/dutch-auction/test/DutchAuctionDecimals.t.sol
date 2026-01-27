@@ -9,7 +9,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
 
 contract DutchAuctionDecimalTest is Test {
     using PercentageUtils for uint256;

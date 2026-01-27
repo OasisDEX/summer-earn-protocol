@@ -8,7 +8,7 @@ import {Constants} from "@summerfi/constants/Constants.sol";
 import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 
 /*

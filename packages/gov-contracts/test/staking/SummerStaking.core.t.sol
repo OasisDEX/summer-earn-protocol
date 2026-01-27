@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {ISummerStaking} from "../../src/interfaces/ISummerStaking.sol";
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 

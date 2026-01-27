@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IMinimalVestingFactory} from "../../src/interfaces/IMinimalVestingFactory.sol";
 import {IMinimalVestingWallet} from "../../src/interfaces/IMinimalVestingWallet.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 
 /*
  * @title SummerVestingWalletsEscrow Vesting Tests

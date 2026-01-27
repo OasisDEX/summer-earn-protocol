@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {SummerGovernorTestBase} from "../governor/SummerGovernorTestBase.sol";
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 
 contract GovernanceRewardsManagerTest is SummerGovernorTestBase {

@@ -7,7 +7,7 @@ import {AdmiralsQuartersWhitelist} from "../../src/contracts/AdmiralsQuartersWhi
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
 import {ProtectedMulticallWhitelist} from "../../src/contracts/ProtectedMulticallWhitelist.sol";
 import {IFleetCommanderErrors} from "../../src/errors/IFleetCommanderErrors.sol";

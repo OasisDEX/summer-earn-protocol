@@ -6,7 +6,7 @@ import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalle
 import {ISummerVestingWalletFactory} from "../../src/interfaces/ISummerVestingWalletFactory.sol";
 import {ISummerVestingWallet} from "../../src/interfaces/ISummerVestingWallet.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {TestMockIncorrectBalanceERC20} from "../mocks/MockTokens.sol";
 contract SummerVestingWalletFactoryTest is Test {
     SummerVestingWalletFactory public factory;

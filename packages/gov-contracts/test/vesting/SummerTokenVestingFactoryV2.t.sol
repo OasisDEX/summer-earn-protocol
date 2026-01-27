@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
 import {ISummerVestingWalletFactoryV2} from "../../src/interfaces/ISummerVestingWalletFactoryV2.sol";
 import {ISummerVestingWalletV2} from "../../src/interfaces/ISummerVestingWalletV2.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 
 contract SummerVestingWalletFactoryV2Test is Test {
     SummerVestingWalletFactoryV2 public factory;

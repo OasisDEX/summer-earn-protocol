@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 
 import "../../src/contracts/arks/SiloManagedVaultArk.sol";
 import "../../src/events/IArkEvents.sol";

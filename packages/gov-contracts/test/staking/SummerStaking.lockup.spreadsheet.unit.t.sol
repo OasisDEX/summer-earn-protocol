@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 import {ISummerStaking} from "../../src/interfaces/ISummerStaking.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {Test} from "forge-std/Test.sol";
 import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
 import {console} from "forge-std/console.sol";

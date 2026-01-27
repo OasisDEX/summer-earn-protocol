@@ -11,7 +11,7 @@ import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
 import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
 import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
 
