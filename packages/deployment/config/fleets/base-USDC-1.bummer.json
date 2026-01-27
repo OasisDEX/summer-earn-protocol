@@ -44,6 +44,14 @@
         "asset": "USDC",
         "protocol": "sky"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "morpho",
+        "vaultName": "Morpho_V2_Gauntlet_USDC_Prime"
+      }
     }
   ]
 }
