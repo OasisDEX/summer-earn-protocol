@@ -27,6 +27,7 @@ contract HighGainArk is ArkWithWithdrawalRequest {
 
     IGainVault public immutable vault;
     IGainAdapter public immutable adapter;
+    address public immutable vaultAsset;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -49,21 +50,7 @@ contract HighGainArk is ArkWithWithdrawalRequest {
         vault = IGainVault(_vault);
         adapter = IGainAdapter(_adapter);
 
-        // Validate vault asset matches Ark's asset
-        // HighGain vault might return address(0) for ETH/WETH
-        try vault.asset() returns (address vaultAsset) {
-            if (
-                vaultAsset != address(0) && vaultAsset != address(config.asset)
-            ) {
-                revert ERC4626AssetMismatch();
-            }
-        } catch {
-            // Ignore if asset() is not implemented or fails
-        }
-
-        // Approve adapter to spend Ark's tokens (if we were using depositETHAsset with WETH, but we use depositETH now)
-        // Keep it just in case, though unwrap/depositETH doesn't need approval.
-        config.asset.forceApprove(_adapter, Constants.MAX_UINT256);
+        vaultAsset = vault.asset();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -87,7 +74,8 @@ contract HighGainArk is ArkWithWithdrawalRequest {
         // Add value of shares held by Ark
         uint256 sharesInArk = vault.balanceOf(address(this));
         if (sharesInArk > 0) {
-            assets += vault.convertToAssets(sharesInArk);
+            uint256 rsETHBalance = vault.convertToAssets(sharesInArk);
+            assets += adapter.getAssetValueInETH(vaultAsset, rsETHBalance);
         }
     }
 
@@ -111,9 +99,11 @@ contract HighGainArk is ArkWithWithdrawalRequest {
             shares = vault.convertToShares(amount);
         }
 
+        IERC20(address(vault)).approve(address(adapter), shares);
+
         // withdraw in Adapter takes shares
         adapter.withdraw(address(vault), shares, "summer");
-        emit WithdrawalRequested(amount, 0);
+        // emit WithdrawalRequested(amount, 0);
     }
 
     /**
