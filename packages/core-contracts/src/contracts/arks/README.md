@@ -41,6 +41,7 @@ An extension of the base Ark that handles protocols requiring a withdrawal reque
 - OriginETHArk
 - OriginSuperOETHArk
 - SyrupArk
+- HighGainArk
 
 ## Critical: Asset Amount Handling
 ⚠️ **IMPORTANT**: All amounts in `_board()` and `_disembark()` must be in the underlying asset's decimals (e.g., USDC = 6 decimals, WETH = 18 decimals). This is crucial even if the protocol uses a different token (like aUSD, cUSDC, etc.).
