@@ -9,7 +9,7 @@ import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/Confi
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
-import "../../src/contracts/arks/ERC4626Ark.sol";
+import "../../src/contracts/arks/MorphoVaultV2Ark.sol";
 import "../../src/events/IArkEvents.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
@@ -18,10 +18,10 @@ import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MorphoVaultV2ArkTestFork is Test, IArkEvents, ArkTestBase {
-    ERC4626Ark public ark;
+    MorphoVaultV2Ark public ark;
 
     address public constant VAULT_ADDRESS =
-        0x9a1D6bd5b8642C41F25e0958129B85f8E1176F3e;
+        0x4Ef53d2cAa51C447fdFEEedee8F07FD1962C9ee6;
     address public constant USDC_ADDRESS =
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
@@ -50,7 +50,7 @@ contract MorphoVaultV2ArkTestFork is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new ERC4626Ark(VAULT_ADDRESS, params);
+        ark = new MorphoVaultV2Ark(VAULT_ADDRESS, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -187,21 +187,22 @@ contract MorphoVaultV2ArkTestFork is Test, IArkEvents, ArkTestBase {
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        // Assert - withdrawable assets should be above 0 after deposit
+        // Assert
         uint256 withdrawableAfter = ark.withdrawableTotalAssets();
-        assertTrue(
-            withdrawableAfter > 0,
-            "Withdrawable assets should be above 0 after deposit"
-        );
 
-        // For ERC4626Ark, withdrawable assets should be approximately equal to total assets
-        // (since ERC4626 vaults are typically fully withdrawable)
+        // For MorphoVaultV2Ark, withdrawable assets is min(totalAssets, vault.idleAssets)
         uint256 totalAssets = ark.totalAssets();
-        assertApproxEqRel(
+        uint256 idleAssets = asset.balanceOf(address(vault));
+        console.log("idle assets", idleAssets);
+
+        uint256 expectedWithdrawable = idleAssets < totalAssets
+            ? idleAssets
+            : totalAssets;
+
+        assertEq(
             withdrawableAfter,
-            totalAssets,
-            1e10, // 0.00000001% tolerance
-            "Withdrawable assets should be approximately equal to total assets for ERC4626 vaults"
+            expectedWithdrawable,
+            "Withdrawable assets should match idle assets logic"
         );
     }
 
@@ -222,7 +223,7 @@ contract MorphoVaultV2ArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Act
         vm.expectRevert(abi.encodeWithSignature("InvalidVaultAddress()"));
-        new ERC4626Ark(address(0), params);
+        new MorphoVaultV2Ark(address(0), params);
     }
 
     function test_Harvest_MorphoVaultV2Ark_fork() public {
@@ -234,6 +235,8 @@ contract MorphoVaultV2ArkTestFork is Test, IArkEvents, ArkTestBase {
         asset.approve(address(ark), amount);
         ark.board(amount, bytes(""));
         vm.stopPrank();
+
+        uint256 assetsBefore = ark.totalAssets();
 
         // Warp time to simulate interest accrual
         vm.warp(block.timestamp + 365 days);
@@ -268,8 +271,8 @@ contract MorphoVaultV2ArkTestFork is Test, IArkEvents, ArkTestBase {
         // Verify that assets have increased due to auto-compounding
         uint256 totalAssetsAfterYear = ark.totalAssets();
         assertTrue(
-            totalAssetsAfterYear >= amount,
-            "Total assets should have increased after a year due to auto-compounding"
+            totalAssetsAfterYear >= assetsBefore,
+            "Total assets should not decrease after a year"
         );
     }
 }

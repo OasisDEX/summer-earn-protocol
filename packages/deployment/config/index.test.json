@@ -234,7 +234,7 @@
       "erc4626": {
         "usdc": {
           "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
-          "Morpho_V2_Gauntlet_USDC_Prime":"0x050cE30b927Da55177A4914EC73480238BAD56f0"
+          "Morpho_V2_Gauntlet_USDC_Prime": "0x050cE30b927Da55177A4914EC73480238BAD56f0"
         },
         "eurc": {
           "Fluid": "0x1943FA26360f038230442525Cf1B9125b5DCB401"
