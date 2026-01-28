@@ -19,6 +19,7 @@ export enum ArkType {
   ERC4626Ark = 'ERC4626Ark',
   MorphoArk = 'MorphoArk',
   MorphoVaultArk = 'MorphoVaultArk',
+  MorphoVaultV2Ark = 'MorphoVaultV2Ark',
   PendleLPArk = 'PendleLPArk',
   PendlePTArk = 'PendlePTArk',
   PendlePtOracleArk = 'PendlePtOracleArk',
@@ -48,6 +49,7 @@ export const arkTypes = [
   { title: 'SparkArk', value: ArkType.SparkArk },
   { title: 'MorphoArk', value: ArkType.MorphoArk },
   { title: 'MorphoVaultArk', value: ArkType.MorphoVaultArk },
+  { title: 'MorphoVaultV2Ark', value: ArkType.MorphoVaultV2Ark },
   { title: 'CompoundV3Ark', value: ArkType.CompoundV3Ark },
   { title: 'CrossChainArk', value: ArkType.CrossChainArk },
   { title: 'ERC4626Ark', value: ArkType.ERC4626Ark },
@@ -182,6 +184,7 @@ export interface BaseConfig {
       blue: string
       urdFactory: string
       vaults: Record<string, Record<string, string>>
+      vaults_v2: Record<string, Record<string, string>>
       markets: Record<string, Record<string, string>>
     }
     compoundV3: {

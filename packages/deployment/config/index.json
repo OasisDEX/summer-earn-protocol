@@ -231,8 +231,7 @@
           "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
           "Euler_Base_USDC": "0x085178078796Da17B191f9081b5E2fCCc79A7eE7",
           "Extrafi_XLend_USDC": "0x589A7339C6d0c8777E7429F57f2f95c069c37288",
-          "40acres_USDC_Vault": "0xB99B6dF96d4d5448cC0a5B3e0ef7896df9507Cf5",
-          "Morpho_V2_Gauntlet_USDC_Prime": "0x050cE30b927Da55177A4914EC73480238BAD56f0"
+          "40acres_USDC_Vault": "0xB99B6dF96d4d5448cC0a5B3e0ef7896df9507Cf5"
         },
         "eurc": {
           "Fluid": "0x1943FA26360f038230442525Cf1B9125b5DCB401"
@@ -470,6 +469,11 @@
           "usdt": {
             "Gauntlet_USDT0_Core": "0x139250CdB310D657eAC506c7C7FC6AcDE34Af1ec",
             "MEV_Capital_USDT0": "0x6d57dAd0F1c4da0C1d5443AE8F7f8a50BDb9Cf75"
+          }
+        },
+        "vaults_v2": {
+          "usdc": {
+            "Morpho_V2_Gauntlet_USDC_Prime": "0x050cE30b927Da55177A4914EC73480238BAD56f0"
           }
         },
         "markets": {

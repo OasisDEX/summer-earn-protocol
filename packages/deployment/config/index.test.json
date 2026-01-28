@@ -189,6 +189,11 @@
             "Gauntlet_WETH_Core": "0x6b13c060F13Af1fdB319F52315BbbF3fb1D88844"
           }
         },
+        "vaults_v2": {
+          "usdc": {
+            "Morpho_V2_Gauntlet_USDC_Prime": "0x050cE30b927Da55177A4914EC73480238BAD56f0"
+          }
+        },
         "markets": {
           "usdc": {
             "wstETH_USDC": "0x13c42741a359ac4a8aa8287d2be109dcf28344484f91185f9a79bd5a805a55ae"
@@ -233,8 +238,7 @@
       },
       "erc4626": {
         "usdc": {
-          "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
-          "Morpho_V2_Gauntlet_USDC_Prime": "0x050cE30b927Da55177A4914EC73480238BAD56f0"
+          "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
         },
         "eurc": {
           "Fluid": "0x1943FA26360f038230442525Cf1B9125b5DCB401"

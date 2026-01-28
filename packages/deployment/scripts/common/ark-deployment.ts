@@ -16,6 +16,7 @@ import { deployHypurrArk } from '../arks/deploy-hypurr-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { deployMorphoArk } from '../arks/deploy-morpho-ark'
 import { deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
+import { deployMorphoVaultV2Ark } from '../arks/deploy-morpho-vault-v2-ark'
 import { deployOriginETHArk } from '../arks/deploy-origineth-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
@@ -169,6 +170,20 @@ export async function deployArk(
       const ark = await deployMorphoVaultArk(config, {
         ...baseArkParams,
         vaultId: marketId as `0x${string}`,
+        vaultName: vaultName,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.MorphoVaultV2Ark: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.morpho.vaults_v2[token][vaultName],
+        'Morpho V2 vault ID',
+      )
+      const ark = await deployMorphoVaultV2Ark(config, {
+        ...baseArkParams,
+        vaultId: vaultId,
         vaultName: vaultName,
       })
       deployedArk = ark
@@ -487,6 +502,11 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.MorphoVaultArk: {
       deployedArk = await deployMorphoVaultArk(config)
+      break
+    }
+
+    case ArkType.MorphoVaultV2Ark: {
+      deployedArk = await deployMorphoVaultV2Ark(config)
       break
     }
 
