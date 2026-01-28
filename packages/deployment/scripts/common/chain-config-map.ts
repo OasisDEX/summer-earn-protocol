@@ -1,5 +1,6 @@
 import { defineChain } from 'viem'
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+import { SupportedChain } from '../helpers/chain'
 
 export const hyperliquid = defineChain({
   id: 999,
@@ -19,20 +20,20 @@ export const hyperliquid = defineChain({
 
 // Centralized RPC URL mapping
 export const RPC_URL_MAP = {
-  mainnet: process.env.MAINNET_RPC_URL,
-  base: process.env.BASE_RPC_URL,
-  arbitrum: process.env.ARBITRUM_RPC_URL,
-  sonic: process.env.SONIC_RPC_URL,
-  hyperliquid: process.env.HYPERLIQUID_RPC_URL,
+  [SupportedChain.mainnet]: process.env.MAINNET_RPC_URL,
+  [SupportedChain.base]: process.env.BASE_RPC_URL,
+  [SupportedChain.arbitrum]: process.env.ARBITRUM_RPC_URL,
+  [SupportedChain.sonic]: process.env.SONIC_RPC_URL,
+  [SupportedChain.hyperliquid]: process.env.HYPERLIQUID_RPC_URL,
 }
 
 // Standard chain mapping
 export const CHAIN_CONFIG_MAP = {
-  mainnet,
-  base,
-  arbitrum,
-  sonic: sonic,
-  hyperliquid,
+  [SupportedChain.mainnet]: mainnet,
+  [SupportedChain.base]: base,
+  [SupportedChain.arbitrum]: arbitrum,
+  [SupportedChain.sonic]: sonic,
+  [SupportedChain.hyperliquid]: hyperliquid,
 }
 
 export const CHAIN_MAP_BY_ID = Object.fromEntries(

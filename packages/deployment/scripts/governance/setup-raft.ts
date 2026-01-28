@@ -3,7 +3,6 @@ import kleur from 'kleur'
 import path from 'node:path'
 import prompts from 'prompts'
 import { Address, createPublicClient, encodeFunctionData, Hex, http } from 'viem'
-import { arbitrum, base, mainnet, sonic } from 'viem/chains'
 import { BaseConfig } from '../../types/config-types'
 import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
@@ -13,34 +12,9 @@ import { hashDescription } from '../helpers/hash-description'
 import { constructLzOptions } from '../helpers/layerzero-options'
 import { promptForConfigType } from '../helpers/prompt-helpers'
 import { createGovernanceProposal } from '../helpers/proposal-helpers'
+import { SUPPORTED_CHAINS, SupportedChain } from '../helpers/chain'
+import { CHAIN_CONFIG_MAP, RPC_URL_MAP } from '../common/chain-config-map'
 
-enum SupportedChain {
-  base = 'base',
-  arbitrum = 'arbitrum',
-  mainnet = 'mainnet',
-  sonic = 'sonic',
-}
-
-const SUPPORTED_CHAINS = [
-  SupportedChain.base,
-  SupportedChain.arbitrum,
-  SupportedChain.mainnet,
-  SupportedChain.sonic,
-]
-
-const RPC_URL_MAP = {
-  [SupportedChain.mainnet]: process.env.MAINNET_RPC_URL,
-  [SupportedChain.base]: process.env.BASE_RPC_URL,
-  [SupportedChain.arbitrum]: process.env.ARBITRUM_RPC_URL,
-  [SupportedChain.sonic]: process.env.SONIC_RPC_URL,
-}
-
-const VIEM_CHAIN_MAP = {
-  [SupportedChain.mainnet]: mainnet,
-  [SupportedChain.base]: base,
-  [SupportedChain.arbitrum]: arbitrum,
-  [SupportedChain.sonic]: sonic,
-}
 /**
  * Creates a multi-chain governance proposal to set the raft address on
  * newly deployed raft contracts on Base, Arbitrum, Sonic and Mainnet.
@@ -148,7 +122,7 @@ async function setupRaft() {
   // For satellite chains
   for (const chain of SUPPORTED_CHAINS.filter(filterTargetChains)) {
     const satellitePublicClient = createPublicClient({
-      chain: VIEM_CHAIN_MAP[chain],
+      chain: CHAIN_CONFIG_MAP[chain],
       transport: http(RPC_URL_MAP[chain]),
     })
     const satelliteConfigurationManagerAddress = satelliteConfigs[chain].deployedContracts.core
