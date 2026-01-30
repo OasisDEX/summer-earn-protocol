@@ -549,6 +549,7 @@ async function handleArkAddition(
           config,
           proposalFleetDefinition,
           useBummerConfig,
+          network,
         )
       }
     }

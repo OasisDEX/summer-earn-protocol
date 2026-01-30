@@ -730,7 +730,13 @@
           "Euler_Frontier_Hyperwave": "0x3C75C170671acb394804DfAf63e4F9891C121625",
           "Euler_Frontier_Yala": "0x481D4909D7ca2eb27c4975f08dCE07DBeF0d3Fa7",
           "Euler_Frontier_Pareto": "0xa94F9CE821C7bD57cc12991CB46ca19f5789278F",
-          "SiUSD_InfiniFi_Senior": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB"
+          "SiUSD_InfiniFi_Senior": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB",
+          "Morpho_V2_Gauntlet_USDC_Prime": "0x8c106EEDAd96553e64287A5A6839c3Cc78afA3D0",
+          "Morpho_V2_KPK_USDC_Prime_v2": "0x4Ef53d2cAa51C447fdFEEedee8F07FD1962C9ee6",
+          "Morpho_V2_API3_Core_USDC": "0xe2221Aa07ec3266DA87763E2b1e28d07A8a4e53b",
+          "Morpho_V2_Avantgarde_USDC_Conservative": "0xeBBaE8CfAbB0092d5B32f00EBeE0c8139d24dDcd",
+          "Morpho_V2_Yearn_OG_USDC_v2": "0xB885F6d448dA7E2C642Ec31190B629E40E87B069",
+          "Morpho_V2_Hyperithm_USDC_Midcurve": "0x0229dB3921dE71CFa43Cfe9fb6A87b403647A9ae"
         },
         "dai": {},
         "usde": {},
@@ -738,7 +744,9 @@
           "Gearbox": "0x05a811275fe9b4de503b3311f51edf6a856d936e",
           "Fluid": "0x5C20B550819128074FD538Edf79791733ccEdd18",
           "Euler_Prime": "0x313603FA690301b0CaeEf8069c065862f9162162",
-          "Euler_Yield": "0x7c280DBDEf569e96c7919251bD2B0edF0734C5A8"
+          "Euler_Yield": "0x7c280DBDEf569e96c7919251bD2B0edF0734C5A8",
+          "Morpho_V2_Steakhouse_Prime_Instant": "0xbeef003C68896c7D2c3c60d363e8d71a49Ab2bf9",
+          "Morpho_V2_Steakhouse_High_Yield_Instant": "0xbeeff07d991C04CD640DE9F15C08ba59c4FEDEb7"
         },
         "usdce": {},
         "weth": {
@@ -750,7 +758,9 @@
           "Euler_Frontier_Upshift": "0x87c414825aB3d1E9bdC773e9B1fD968822c9CF51",
           "Euler_Alterscope_LRT_WETH": "0x45c3B59d53e2e148Aaa6a857521059676D5c0489",
           "Euler_Frontier_Puffer": "0xc2c4aBae84fbb5b7bAAB52301A924b1F986C66bd",
-          "Gearbox_KPK_WETH_Pool": "0x9396dcbf78fc526bb003665337c5e73b699571ef"
+          "Gearbox_KPK_WETH_Pool": "0x9396dcbf78fc526bb003665337c5e73b699571ef",
+          "Morpho_V2_Steakhouse_Prime_Instant": "0xbeef0046fcab1dE47E41fB75BB3dC4Dfc94108E3",
+          "Morpho_V2_KPK_ETH_Prime_v2": "0xBb50A5341368751024ddf33385BA8cf61fE65FF9"
         },
         "usds": {
           "Sky_Staked_USDS": "0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9"

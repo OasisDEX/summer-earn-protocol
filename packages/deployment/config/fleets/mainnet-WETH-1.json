@@ -107,6 +107,22 @@
         "vaultName": "Gearbox_KPK_WETH_Pool",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Morpho_V2_Steakhouse_Prime_Instant",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Morpho_V2_KPK_ETH_Prime_v2",
+        "protocol": "erc4626"
+      }
     }
   ]
 }
