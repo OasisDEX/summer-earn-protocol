@@ -255,6 +255,7 @@ type YieldAggregator implements Protocol @entity @regularPolling {
   lastHourlyUpdateTimestamp: BigInt
   lastWeeklyUpdateTimestamp: BigInt
   referralDatas: [ReferralData!]! @derivedFrom(field: "protocol")
+  _hourlySnapshotsDeepCleaned: Boolean
 }
 
 ###############################

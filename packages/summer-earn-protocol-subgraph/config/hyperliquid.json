@@ -9,7 +9,7 @@
   "summer-staking-v2-staging-address": "0x0000000000000000000000000000000000000000",
   "summer-staking-v2-staging-start-block": 24626300,
   "interval-handler-block-interval": 600,
-  "enable-grafting": false,
-  "grafting-base": "",
-  "grafting-block": ""
+  "enable-grafting": true,
+  "grafting-base": "QmXkJLETERvQyku5U1CtHnzXvjTYb32tWewifZuakR4dfy",
+  "grafting-block": "25861036"
 }
