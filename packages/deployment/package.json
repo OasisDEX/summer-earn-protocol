@@ -81,6 +81,7 @@
     "check-morpho-rewards": "tsx scripts/check-morpho-rewards.ts",
     "check-angl-rewards": "tsx scripts/check-angl-rewards.ts",
     "gov:create-multi-chain-transfer-proposal": "hardhat run scripts/governance/create-multi-chain-transfer-proposal.ts --network $NETWORK",
+    "gov:create-guardian-role-proposal": "hardhat run scripts/governance/create-guardian-role-proposal.ts --network $NETWORK",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
