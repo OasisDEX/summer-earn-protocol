@@ -252,7 +252,7 @@ async function main() {
         protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         fleetName: fleetDefinition.fleetName,
         fleetSymbol: fleetDefinition.symbol,
-        fleetDetails: fleetDefinition.details,
+        fleetDetails: typeof fleetDefinition.details === 'string' ? fleetDefinition.details : JSON.stringify(fleetDefinition.details),
         asset: assetAddress,
         initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,

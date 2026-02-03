@@ -101,7 +101,7 @@ export async function getFleetConfig(isBummer?: boolean): Promise<FleetConfig> {
   const fleetConfigPath = path.resolve(fleetsDir, response.fleetConfigFile)
   console.log(kleur.green(`Loading fleet config from: ${fleetConfigPath}`))
   const fleetConfig = loadFleetConfig(fleetConfigPath)
-  return { ...fleetConfig, details: JSON.stringify(fleetConfig.details) }
+  return fleetConfig
 }
 
 export function loadFleetConfig(filePath: string): FleetConfig {
@@ -171,6 +171,7 @@ export function saveFleetDeploymentJson(
     depositCap: fleetDefinition.depositCap,
     initialTipRate: fleetDefinition.initialTipRate,
     arks: deployedArks?.map((address) => address.toString()),
+    details: fleetDefinition.details,
   }
 
   // Validate before write
