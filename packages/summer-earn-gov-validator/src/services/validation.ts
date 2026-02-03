@@ -221,8 +221,9 @@ const KNOWN_ABIS = {
     'function cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) public returns (uint256)',
   createCampaign:
     'function createCampaign((bytes32 campaignId, address creator, address rewardToken, uint256 amount, uint32 campaignType, uint32 startTimestamp, uint32 duration, bytes campaignData)) external returns (uint256)',
-    setNonSweepableToken: 'function setNonSweepableToken(address ark, address token, bool isNonSweepable) external',
-  }
+  setNonSweepableToken:
+    'function setNonSweepableToken(address ark, address token, bool isNonSweepable) external',
+}
 
 // Create interfaces for each ABI
 const interfaces = Object.entries(KNOWN_ABIS).reduce(
