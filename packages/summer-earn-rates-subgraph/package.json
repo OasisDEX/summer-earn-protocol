@@ -1,7 +1,7 @@
 {
   "name": "@summerfi/summer-earn-rates-subgraph",
   "license": "UNLICENSED",
-  "version": "1.20.6-add-40acres-base",
+  "version": "1.20.7-add-morpho-v2-mainnet",
   "scripts": {
     "codegen": "graph codegen",
     "build:mainnet": "pnpm run prepare:mainnet &&  graph codegen && graph build",
