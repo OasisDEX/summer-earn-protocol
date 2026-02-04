@@ -34,8 +34,23 @@ interface GuardianRequest {
 const GUARDIAN_REQUESTS: GuardianRequest[] = [
   {
     chain: SupportedChain.mainnet,
-    address: '0x718B75A546A1b7EDf107199AAA62DC257CB7Ee80', // Replace with actual address
-    expiryDays: 90, // 90 days from now
+    address: '0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4', // Replace with actual address
+    expiryDays: 180, // 180 days from now
+  },
+  {
+    chain: SupportedChain.base,
+    address: '0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4', // Replace with actual address
+    expiryDays: 180, // 180 days from now
+  },
+  {
+    chain: SupportedChain.arbitrum,
+    address: '0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4', // Replace with actual address
+    expiryDays: 180, // 180 days from now
+  },
+  {
+    chain: SupportedChain.sonic,
+    address: '0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4', // Replace with actual address
+    expiryDays: 180, // 180 days from now
   },
   // Example with explicit timestamp:
   // {
