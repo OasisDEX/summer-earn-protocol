@@ -11,71 +11,13 @@ import {
   Staked,
   Unstaked,
 } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
-import { addresses } from '../common/addressProvider'
 import { BigDecimalConstants, BigIntConstants } from '../common/constants'
 import {
   getOrCreateAccount,
   getOrCreateRewardToken,
   getOrCreateToken,
 } from '../common/initializers'
-import {
-  decodeValues,
-  encodeFunctionCalldata,
-  makeMulticall,
-  prepareMulicallCall,
-} from '../common/multicall'
 import { formatAmount } from '../common/utils'
-
-export function updateAccountStakingRewards(block: BigInt): void {
-  const gov = getOrCreateGovernanceStaking()
-
-  const accountsToUpdate: string[] = []
-  for (let i = 0; i < gov.accounts.length; i++) {
-    const account = getOrCreateAccount(gov.accounts[i])
-    if (
-      account.stakedSummerTokenNormalized.gt(BigDecimalConstants.TEN) &&
-      account.lastUpdateBlock.notEqual(block)
-    ) {
-      accountsToUpdate.push(account.id)
-      account.lastUpdateBlock = block
-      account.save()
-    }
-  }
-  log.error('[staking] - block {} time taken for accountsToUpdate', [block.toString()])
-  if (gov.rewardTokens.length > 0 && accountsToUpdate.length > 0) {
-    const rewardTokenAddress = Address.fromString(gov.rewardTokens[0])
-    const rewardToken = getOrCreateToken(rewardTokenAddress)
-
-    let calls = new Array<ethereum.Tuple>(accountsToUpdate.length)
-    for (let i = 0; i < accountsToUpdate.length; i++) {
-      calls[i] = prepareMulicallCall(
-        addresses.GOVERNANCE_STAKING,
-        encodeFunctionCalldata(
-          'earned(address,address)',
-          ['address', 'address'],
-          [accountsToUpdate[i], rewardTokenAddress.toHexString()],
-        ),
-      )
-    }
-    const multicallResult = makeMulticall(calls)
-    log.error('[staking] - block {} time taken for multicall', [block.toString()])
-    const multiCallResponseData = multicallResult.value.value1
-    for (let i = 0; i < multiCallResponseData.length; i++) {
-      const results = decodeValues('uint256', multiCallResponseData[i])
-      const claimableNormalized = formatAmount(
-        BigInt.fromString(results[0]),
-        BigInt.fromI32(rewardToken.decimals),
-      )
-      const accountRewards = getOrCreateAccountRewards(accountsToUpdate[i], rewardToken)
-
-      accountRewards.claimable = BigInt.fromString(results[0])
-      accountRewards.claimableNormalized = claimableNormalized
-
-      accountRewards.save()
-    }
-  }
-  log.error('[staking] - block {} time taken', [block.toString()])
-}
 
 export function getOrCreateGovernanceStaking(): GovernanceStaking {
   let governanceStaking = GovernanceStaking.load('governanceStaking')
@@ -103,8 +45,6 @@ export function getOrCreateAccountRewards(accountId: string, rewardToken: Token)
     accountRewards = new AccountRewards(id)
     accountRewards.account = accountId
     accountRewards.rewardToken = rewardToken.id
-    accountRewards.claimable = BigIntConstants.ZERO
-    accountRewards.claimableNormalized = BigDecimalConstants.ZERO
     accountRewards.claimed = BigIntConstants.ZERO
     accountRewards.claimedNormalized = BigDecimalConstants.ZERO
     accountRewards.save()

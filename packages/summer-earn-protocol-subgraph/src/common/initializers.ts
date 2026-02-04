@@ -133,8 +133,6 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position.inputTokenWithdrawalsNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.claimedSummerToken = constants.BigIntConstants.ZERO
     position.claimedSummerTokenNormalized = constants.BigDecimalConstants.ZERO
-    position.claimableSummerToken = constants.BigIntConstants.ZERO
-    position.claimableSummerTokenNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenDepositsNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenWithdrawalsNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
@@ -734,6 +732,7 @@ export function getOrCreatePositionHourlySnapshot(
   positionId: string,
   vault: Vault,
   block: ethereum.Block,
+  cachedPosition: Position | null,
 ): void {
   const hourTimestamp = getHourlyTimestamp(block.timestamp)
   const snapshotId = positionId + '-' + hourTimestamp.toString()
@@ -748,8 +747,8 @@ export function getOrCreatePositionHourlySnapshot(
     snapshot.outputTokenBalance = constants.BIGINT_ZERO
   }
 
-  // Update balances
-  let position = Position.load(positionId)
+  // Update balances - use cached position if available, otherwise load
+  let position = cachedPosition != null ? cachedPosition : Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
@@ -811,6 +810,7 @@ export function getOrCreatePositionDailySnapshot(
   positionId: string,
   vault: Vault,
   block: ethereum.Block,
+  cachedPosition: Position | null,
 ): void {
   const dayTimestamp = getDailyTimestamp(block.timestamp)
 
@@ -826,8 +826,8 @@ export function getOrCreatePositionDailySnapshot(
     snapshot.outputTokenBalance = constants.BIGINT_ZERO
   }
 
-  // Update balances
-  let position = Position.load(positionId)
+  // Update balances - use cached position if available, otherwise load
+  let position = cachedPosition != null ? cachedPosition : Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
@@ -857,6 +857,7 @@ export function getOrCreatePositionWeeklySnapshot(
   positionId: string,
   vault: Vault,
   block: ethereum.Block,
+  cachedPosition: Position | null,
 ): void {
   const weekTimestamp = getWeeklyOffsetTimestamp(block.timestamp)
 
@@ -871,8 +872,8 @@ export function getOrCreatePositionWeeklySnapshot(
     snapshot.outputTokenBalance = constants.BIGINT_ZERO
   }
 
-  // Update balances
-  let position = Position.load(positionId)
+  // Update balances - use cached position if available, otherwise load
+  let position = cachedPosition != null ? cachedPosition : Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
@@ -987,8 +988,6 @@ export function getOrCreatePositionRewards(
     positionRewards = new PositionRewards(id)
     positionRewards.position = positionId
     positionRewards.rewardToken = rewardToken.id
-    positionRewards.claimable = constants.BigIntConstants.ZERO
-    positionRewards.claimableNormalized = constants.BigDecimalConstants.ZERO
     positionRewards.claimed = constants.BigIntConstants.ZERO
     positionRewards.claimedNormalized = constants.BigDecimalConstants.ZERO
   }

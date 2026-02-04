@@ -1216,8 +1216,6 @@ type Position @entity {
 
   claimedSummerToken: BigInt!
   claimedSummerTokenNormalized: BigDecimal!
-  claimableSummerToken: BigInt!
-  claimableSummerTokenNormalized: BigDecimal! 
 
   rewards: [PositionRewards!]! @derivedFrom(field: "position")
   referralData: ReferralData
@@ -1629,8 +1627,6 @@ type WeeklyInterestRate @entity {
 type PositionRewards @entity {
   id: ID!
   position: Position!
-  claimable: BigInt!
-  claimableNormalized: BigDecimal!
   claimed: BigInt!
   claimedNormalized: BigDecimal!
   rewardToken: Token!
@@ -1639,8 +1635,6 @@ type PositionRewards @entity {
 type AccountRewards @entity {
   id: ID!
   account: Account!
-  claimable: BigInt!
-  claimableNormalized: BigDecimal!
   claimed: BigInt!
   claimedNormalized: BigDecimal!
   rewardToken: Token!

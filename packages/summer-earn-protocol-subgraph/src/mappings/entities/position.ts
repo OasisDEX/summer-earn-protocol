@@ -26,11 +26,6 @@ export function updatePosition(
     position.unstakedInputTokenBalanceNormalizedInUSD =
       positionDetails.unstakedInputTokenBalanceNormalizedUSD
     position.referralData = referralData ? referralData : null
-    // ------------------------------------------------------------
-    // will be deprecated in the future
-    position.claimableSummerToken = positionDetails.claimableSummerToken
-    position.claimableSummerTokenNormalized = positionDetails.claimableSummerTokenNormalized
-    // ------------------------------------------------------------
     for (let i = 0; i < positionDetails.rewards.length; i++) {
       const reward = positionDetails.rewards[i]
       reward.save()
@@ -92,8 +87,6 @@ export function updatePositionBalancesOnly(
       const reward = positionDetails.rewards[i]
       reward.save()
     }
-    position.claimableSummerToken = positionDetails.claimableSummerToken
-    position.claimableSummerTokenNormalized = positionDetails.claimableSummerTokenNormalized
     position.save()
   }
 }
