@@ -104,7 +104,11 @@ export async function generateFleetProposalDescription(
   const bridgeAmount = fleetDefinition.bridgeAmount
 
   if (bridgeAmount && targetChain) {
-    const targetChainConfig = getConfigByNetwork(targetChain, { gov: true }, useBummerConfig)
+    const targetChainConfig = getConfigByNetwork(
+      targetChain,
+      { gov: true },
+      useBummerConfig,
+    ) as BaseConfig
     try {
       // Try to format the bridge amount in a human-readable way
       const amount = BigInt(bridgeAmount)
@@ -113,7 +117,7 @@ export async function generateFleetProposalDescription(
       bridgeSection = `
 ### Token Bridge
 - Amount: ${readableAmount.toLocaleString()} tokens (${bridgeAmount} raw)
-- Destination: ${_.capitalize(targetChain)} - Treasury (SummerTimelock) ${targetChainConfig.deployedContracts.gov.timelock.address}
+- Destination: ${_.capitalize(targetChain)} - Treasury (SummerTimelock) ${targetChainConfig.deployedContracts.govV2.timelock.address}
 `
     } catch (error) {
       // Fallback if parsing fails
@@ -528,8 +532,8 @@ export async function createArkAdditionProposal(
   console.log(kleur.cyan('Creating governance proposal to add arks to existing fleet'))
 
   // Use the correct governor address from the config
-  const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
-  const protocolAccessManagerAddress = config.deployedContracts.gov.protocolAccessManager
+  const governorAddress = config.deployedContracts.govV2.summerGovernor.address as Address
+  const protocolAccessManagerAddress = config.deployedContracts.govV2.protocolAccessManager
     .address as Address
   const raftAddress = config.deployedContracts.core.raft.address as Address
 
@@ -620,9 +624,9 @@ export async function createHubGovernanceProposal(
   network: string,
 ) {
   // Use the correct governor address from the config
-  const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
+  const governorAddress = config.deployedContracts.govV2.summerGovernor.address as Address
   const harborCommandAddress = config.deployedContracts.core.harborCommand.address as Address
-  const protocolAccessManagerAddress = config.deployedContracts.gov.protocolAccessManager
+  const protocolAccessManagerAddress = config.deployedContracts.govV2.protocolAccessManager
     .address as Address
   const raftAddress = config.deployedContracts.core.raft.address as Address
   // Prepare the proposal targets, values, and calldatas
@@ -689,7 +693,7 @@ export async function createHubGovernanceProposal(
         fleetDefinition.rewardTokens.map((token) => token as Address),
         fleetDefinition.rewardAmounts.map((amount) => BigInt(amount)),
         Array(fleetDefinition.rewardTokens.length).fill(fleetDefinition.rewardsDuration),
-        config.deployedContracts.gov.timelock.address as Address,
+        config.deployedContracts.govV2.timelock.address as Address,
         config.deployedContracts.gov.summerToken.address as Address,
         await hre.viem.getPublicClient(),
       )
@@ -849,8 +853,8 @@ export async function createSatelliteGovernanceProposal(
   )
 
   // 3.2 Grant COMMANDER_ROLE to Fleet Commander for BufferArk
-  const protocolAccessManagerAddress = targetChainConfig.deployedContracts.gov.protocolAccessManager
-    .address as Address
+  const protocolAccessManagerAddress = targetChainConfig.deployedContracts.govV2
+    .protocolAccessManager.address as Address
 
   dstTargets.push(protocolAccessManagerAddress)
   dstValues.push(0n)
@@ -903,7 +907,7 @@ export async function createSatelliteGovernanceProposal(
         fleetDefinition.rewardTokens.map((token) => token as Address),
         fleetDefinition.rewardAmounts.map((amount) => BigInt(amount)),
         Array(fleetDefinition.rewardTokens.length).fill(fleetDefinition.rewardsDuration),
-        targetChainConfig.deployedContracts.gov.timelock.address as Address,
+        targetChainConfig.deployedContracts.govV2.timelock.address as Address,
         targetChainConfig.deployedContracts.gov.summerToken.address as Address,
         targetChainPublicClient,
       )
@@ -947,8 +951,8 @@ export async function createSatelliteGovernanceProposal(
   const title = proposalDescriptions.sourceTitle
 
   // 4. Prepare the source (hub) proposal
-  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
-  const HUB_TIMELOCK_ADDRESS = hubConfig.deployedContracts.gov.timelock.address as Address
+  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
+  const HUB_TIMELOCK_ADDRESS = hubConfig.deployedContracts.govV2.timelock.address as Address
   console.log(kleur.blue('Using hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
 
   const srcTargets: Address[] = []
@@ -967,7 +971,7 @@ export async function createSatelliteGovernanceProposal(
       }
 
       // Get the timelock address for the target chain
-      const targetTimelockAddress = targetChainConfig.deployedContracts.gov.timelock
+      const targetTimelockAddress = targetChainConfig.deployedContracts.govV2.timelock
         .address as Address
 
       const {
@@ -1134,7 +1138,7 @@ export async function createArkAdditionCrossChainProposal(
   const currentChainEndpointId = config.common.layerZero.eID
 
   // Prepare the destination (satellite) proposal actions
-  const protocolAccessManagerAddress = config.deployedContracts.gov.protocolAccessManager
+  const protocolAccessManagerAddress = config.deployedContracts.govV2.protocolAccessManager
     .address as Address
 
   // Get the actions for adding arks
@@ -1208,7 +1212,7 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
   const srcDescription = `# ${title}\n\n${srcDescriptionBody}`
 
   // Prepare the source (hub) proposal
-  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
   console.log(kleur.blue('Using hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
 
   const srcTargets = [HUB_GOVERNOR_ADDRESS]
@@ -1325,7 +1329,7 @@ export async function createRewardSetupProposal(
   const rewardsDurations = Array(rewardTokens.length).fill(rewardsDuration)
 
   // Get the timelock address for the current chain
-  const timelockAddress = config.deployedContracts.gov.timelock.address as Address
+  const timelockAddress = config.deployedContracts.govV2.timelock.address as Address
   const summerTokenAddress = config.deployedContracts.gov.summerToken.address as Address
   const publicClient = await hre.viem.getPublicClient()
 
@@ -1362,7 +1366,7 @@ export async function createRewardSetupProposal(
     )
 
     // Use the correct governor address from the config
-    const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
+    const governorAddress = config.deployedContracts.govV2.summerGovernor.address as Address
 
     // Generate a save path for the proposal JSON
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
@@ -1408,14 +1412,14 @@ export async function createRewardSetupProposal(
     if (bridgeAmount) {
       console.log(kleur.yellow('Adding token bridge actions...'))
       const bridgeContractAddress = hubConfig.deployedContracts.gov.summerToken.address as Address
-      const targetTimelockAddress = config.deployedContracts.gov.timelock.address as Address
+      const targetTimelockAddress = config.deployedContracts.govV2.timelock.address as Address
 
       const bridgeActions = await prepareBridgeTransaction(
         bridgeContractAddress,
         BigInt(bridgeAmount),
         Number(currentChainEndpointId),
         targetTimelockAddress,
-        hubConfig.deployedContracts.gov.timelock.address as Address,
+        hubConfig.deployedContracts.govV2.timelock.address as Address,
         await hre.viem.getPublicClient(),
       )
 
@@ -1442,7 +1446,7 @@ export async function createRewardSetupProposal(
     }
 
     // Prepare the cross-chain proposal action
-    const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+    const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
     console.log(kleur.blue('Using hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
 
     const ESTIMATED_GAS = 400000n

@@ -233,7 +233,7 @@ async function createMultiChainGovernanceParamsProposal(
 
   try {
     // Get the hub chain governor and timelock addresses
-    const hubGovernorAddress = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+    const hubGovernorAddress = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
     const hubTimelockAddress = hubConfig.deployedContracts.gov.timelock.address as Address
 
     // Prepare actions for the hub chain (Base)
@@ -546,7 +546,7 @@ async function fetchCurrentGovernanceParams(hubConfig: BaseConfig): Promise<{
   currentTimelockDelay: number
 }> {
   const publicClient = await hre.viem.getPublicClient()
-  const governorAddress = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const governorAddress = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
   const timelockAddress = hubConfig.deployedContracts.gov.timelock.address as Address
 
   try {

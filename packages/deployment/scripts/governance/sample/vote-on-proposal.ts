@@ -27,7 +27,7 @@ async function main() {
   const { publicClient, walletClient } = createClients(chain, rpcUrl)
 
   // Extract governor address from config
-  const SUMMER_GOVERNOR_ADDRESS = config.deployedContracts.gov.summerGovernor.address as Address
+  const SUMMER_GOVERNOR_ADDRESS = config.deployedContracts.govV2.summerGovernor.address as Address
 
   // Prompt for proposal ID
   const { proposalId } = await prompts({

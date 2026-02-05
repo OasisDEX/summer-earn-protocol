@@ -50,7 +50,7 @@ async function sweepArkOnArbitrum() {
     useBummerConfig,
   ) as BaseConfig
 
-  const hubGovernorAddress = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const hubGovernorAddress = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
   const arbConfigurationManager = arbitrumConfig.deployedContracts.core.configurationManager
     .address as Address
   const arbTimelock = arbitrumConfig.deployedContracts.gov.timelock.address as Address

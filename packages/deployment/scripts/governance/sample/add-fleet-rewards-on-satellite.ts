@@ -64,7 +64,7 @@ async function main() {
   const REWARD_AMOUNT_IN_WEI = BigInt(rewardAmount) * BigInt(10 ** 18)
 
   // Extract addresses and IDs from configs
-  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
   const SATELLITE_ENDPOINT_ID = targetConfig.common.layerZero.eID
 
   // Prepare the satellite chain proposal parameters (target proposal)

@@ -15,7 +15,7 @@ export async function getHubChainInfo() {
   // Get the SummerGovernor contract
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernor' as string,
-    config.deployedContracts.gov.summerGovernor.address as Address,
+    config.deployedContracts.govV2.summerGovernor.address as Address,
   )
 
   // Read the hub chain ID from the contract

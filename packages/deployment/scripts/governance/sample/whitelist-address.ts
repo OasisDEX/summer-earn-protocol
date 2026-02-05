@@ -144,7 +144,7 @@ async function main() {
   )
 
   // Extract addresses for the governor and token contracts.
-  const GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const GOVERNOR_ADDRESS = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
   const TOKEN_ADDRESS = hubConfig.deployedContracts.gov.summerToken.address as Address
 
   console.log('Hub Governor address:', GOVERNOR_ADDRESS)

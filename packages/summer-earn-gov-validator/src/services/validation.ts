@@ -160,7 +160,8 @@ const KNOWN_ABIS = {
   revokeSuperKeeperRole: 'function revokeSuperKeeperRole(address account) external',
   grantGuardianRole: 'function grantGuardianRole(address account) external',
   revokeGuardianRole: 'function revokeGuardianRole(address account) external',
-  setGuardianExpiration: 'function setGuardianExpiration(address account, uint256 expiration) external',
+  setGuardianExpiration:
+    'function setGuardianExpiration(address account, uint256 expiration) external',
   grantDecayControllerRole: 'function grantDecayControllerRole(address account) external',
   revokeDecayControllerRole: 'function revokeDecayControllerRole(address account) external',
   // Rewards functions

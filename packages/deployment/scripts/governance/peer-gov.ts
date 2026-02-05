@@ -68,7 +68,7 @@ export async function peerGov(useBummerConfig = false) {
   )
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernor' as string,
-    config.deployedContracts.gov.summerGovernor.address as Address,
+    config.deployedContracts.govV2.summerGovernor.address as Address,
   )
   const publicClient = await hre.viem.getPublicClient()
 

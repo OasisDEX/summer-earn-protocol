@@ -54,7 +54,7 @@ async function main() {
   const { publicClient, walletClient } = createClients(chain, rpcUrl)
 
   // Get the governor address
-  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
 
   // Get SIP minor number
   const sipMinorNumber = await getSipMinorNumber()
