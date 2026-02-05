@@ -28,12 +28,13 @@ interface RawProposal {
   createdAt?: string
 }
 
-type StatusFilter = 'pending' | 'executed' | 'canceled'
+type StatusFilter = 'pending' | 'executed' | 'canceled' | 'queued'
 
 const STATUS_LABELS: Record<StatusFilter, string> = {
   pending: 'Pending',
   executed: 'Executed',
   canceled: 'Canceled',
+  queued: 'Queued',
 }
 
 export function ProposalList({

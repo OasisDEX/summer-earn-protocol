@@ -253,20 +253,11 @@ export function getRoleTags(address: string, roleInfo?: RoleInfo): string[] {
 
 // Helper function to decode an address to its contract name
 function decodeAddress(address: string, network?: SupportedNetworks): string {
-  // Try to find the contract name in each network
-  let name = ''
-  if (!network) {
-    for (const network of Object.values(SupportedNetworks)) {
-      name = addresToContractName(address, network)
-      if (name !== 'Unknown') {
-        break
-      }
-    }
-  } else {
-    name = addresToContractName(address, network)
-  }
+  // Default to BASE (hub chain) when network is not provided
+  const targetNetwork = network ?? SupportedNetworks.BASE
+  const name = addresToContractName(address, targetNetwork)
   if (name !== 'Unknown') {
-    return `${network}:${name}(${address})`
+    return `${targetNetwork}:${name}(${address})`
   }
   return address
 }
@@ -452,12 +443,16 @@ export function addresToContractName(address: string, network: SupportedNetworks
   return 'Unknown'
 }
 
-export const validateTargets = (targets: string[]): ValidationResult => {
+export const validateTargets = (
+  targets: string[],
+  network: SupportedNetworks = SupportedNetworks.BASE,
+): ValidationResult => {
   const errors: string[] = []
   const validAddresses = new Set<string>()
   const contractNames: string[] = []
 
-  // Collect all valid addresses from the config
+  // Collect valid addresses from the specified network only
+  const networkConfig = typedConfig[network]
   const collectAddresses = (obj: any) => {
     if (typeof obj !== 'object' || obj === null) return
     if (
@@ -469,8 +464,8 @@ export const validateTargets = (targets: string[]): ValidationResult => {
     Object.values(obj).forEach(collectAddresses)
   }
 
-  // Collect addresses from all networks
-  Object.values(typedConfig).forEach(collectAddresses)
+  // Collect addresses from the specified network
+  collectAddresses(networkConfig)
 
   // Validate each target
   targets.forEach((target, index) => {
@@ -487,22 +482,15 @@ export const validateTargets = (targets: string[]): ValidationResult => {
       return
     }
 
-    // Try to find the contract name in each network
-    let found = false
-    for (const network of Object.values(SupportedNetworks)) {
-      const contractName = addresToContractName(normalizedTarget, network)
-      if (contractName !== 'Unknown') {
-        contractNames[index] = `${network}:${contractName}(${normalizedTarget})`
-        found = true
-        break
-      }
-    }
-
-    if (!found) {
+    // Find the contract name in the specified network
+    const contractName = addresToContractName(normalizedTarget, network)
+    if (contractName !== 'Unknown') {
+      contractNames[index] = `${network}:${contractName}(${normalizedTarget})`
+    } else {
       contractNames[index] = `Unknown(${normalizedTarget})`
       if (!validAddresses.has(normalizedTarget)) {
         errors.push(
-          `Target at index ${index} (${normalizedTarget}) is not a known contract address`,
+          `Target at index ${index} (${normalizedTarget}) is not a known contract address on ${network}`,
         )
       }
     }
@@ -590,18 +578,34 @@ export const validateCalldatas = (calldatas: string[]): ValidationResult => {
 
 // Helper function to check if a calldata is a cross-chain execution
 export const isCrossChainExecution = (target: string, calldata: string): boolean => {
-  const governorAddress = '0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa'
-
   try {
     const selector = interfaces.sendProposalToTargetChain.getFunction(
       'sendProposalToTargetChain',
     )?.selector
     if (!selector) return false
 
-    return (
-      target.toLowerCase() === governorAddress.toLowerCase() &&
-      calldata.toLowerCase().startsWith(selector)
-    )
+    // Check if calldata starts with the sendProposalToTargetChain selector
+    if (!calldata.toLowerCase().startsWith(selector.toLowerCase())) {
+      return false
+    }
+
+    // Verify target is a known governor address from any network
+    const normalizedTarget = target.toLowerCase()
+    for (const network of Object.values(SupportedNetworks)) {
+      const networkConfig = typedConfig[network]
+      // Check gov.summerGovernor
+      const govGovernor = networkConfig.deployedContracts?.gov?.summerGovernor?.address
+      if (govGovernor && govGovernor.toLowerCase() === normalizedTarget) {
+        return true
+      }
+      // Check govV2.summerGovernor
+      const govV2Governor = networkConfig.deployedContracts?.govV2?.summerGovernor?.address
+      if (govV2Governor && govV2Governor.toLowerCase() === normalizedTarget) {
+        return true
+      }
+    }
+
+    return false
   } catch {
     return false
   }
