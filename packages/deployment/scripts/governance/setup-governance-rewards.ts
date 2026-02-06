@@ -28,7 +28,7 @@ async function setupGovernanceRewards() {
   // Get required addresses from config
   const timelockAddress = config.deployedContracts.gov.timelock.address as Address
   const summerTokenAddress = config.deployedContracts.gov.summerToken.address as Address
-  const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
+  const governorAddress = config.deployedContracts.govV2.summerGovernor.address as Address
 
   if (!timelockAddress || !summerTokenAddress || !governorAddress) {
     throw new Error('Required contract addresses not found in config')

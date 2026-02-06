@@ -23,7 +23,7 @@ export async function finalizeGov(
   )
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernor' as string,
-    config.deployedContracts.gov.summerGovernor.address as Address,
+    config.deployedContracts.govV2.summerGovernor.address as Address,
   )
   const timelock = await hre.viem.getContractAt(
     'TimelockController' as string,

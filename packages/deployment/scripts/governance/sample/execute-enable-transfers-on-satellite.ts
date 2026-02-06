@@ -35,7 +35,7 @@ async function main() {
   // Setup clients using wallet helper
   const { publicClient, walletClient } = createClients(sourceChain.chain, sourceChain.rpcUrl)
 
-  const HUB_GOVERNOR_ADDRESS = sourceChain.config.deployedContracts.gov.summerGovernor.address
+  const HUB_GOVERNOR_ADDRESS = sourceChain.config.deployedContracts.govV2.summerGovernor.address
   const SATELLITE_TOKEN_ADDRESS = targetChain.config.deployedContracts.gov.summerToken.address
 
   // Update parameters to exactly match the proposal that was created

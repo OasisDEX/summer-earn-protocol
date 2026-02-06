@@ -36,7 +36,7 @@ async function main() {
   const { config: targetConfig } = await promptForTargetChain(chainName, useTest)
 
   // Extract addresses and IDs from configs
-  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
   const SATELLITE_TOKEN_ADDRESS = targetConfig.deployedContracts.gov.summerToken.address as Address
   const SATELLITE_ENDPOINT_ID = targetConfig.common.layerZero.eID
 

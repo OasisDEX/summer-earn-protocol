@@ -55,7 +55,7 @@ async function main() {
   ])
 
   const REWARD_AMOUNT_IN_WEI = BigInt(rewardAmount) * BigInt(10 ** 18)
-  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
 
   // Prepare the proposal parameters
   const targets = [rewardToken as Address, HUB_REWARDS_MANAGER_ADDRESS]

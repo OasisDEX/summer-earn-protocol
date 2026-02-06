@@ -33,7 +33,7 @@ async function main() {
 
   // Extract addresses from config
   const TIMELOCK_ADDRESS = config.deployedContracts.gov.timelock.address as Address
-  const SUMMER_GOVERNOR_ADDRESS = config.deployedContracts.gov.summerGovernor.address as Address
+  const SUMMER_GOVERNOR_ADDRESS = config.deployedContracts.govV2.summerGovernor.address as Address
 
   // Get timelock balance
   const timelockBalance = await publicClient.getBalance({ address: TIMELOCK_ADDRESS })

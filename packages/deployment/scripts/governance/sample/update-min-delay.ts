@@ -15,7 +15,7 @@ async function main() {
 
   // Get contract addresses from chain config
   const TIMELOCK_ADDRESS = chainSetup.config.deployedContracts.gov.timelock.address
-  const SUMMER_GOVERNOR_ADDRESS = chainSetup.config.deployedContracts.gov.summerGovernor.address
+  const SUMMER_GOVERNOR_ADDRESS = chainSetup.config.deployedContracts.govV2.summerGovernor.address
 
   // Prepare the proposal data
   const newMinDelay = 3600n // 1 hour in seconds

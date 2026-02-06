@@ -70,7 +70,7 @@ export async function rolesGov(_additionalGovernors: string[] = [], useBummerCon
 
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernor' as string,
-    config.deployedContracts.gov.summerGovernor.address as Address,
+    config.deployedContracts.govV2.summerGovernor.address as Address,
   )
   const protocolAccessManager = await hre.viem.getContractAt(
     'ProtocolAccessManager' as string,

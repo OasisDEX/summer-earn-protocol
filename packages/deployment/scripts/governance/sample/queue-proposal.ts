@@ -81,7 +81,7 @@ async function main() {
   // Get the proposal details through prompts
   const { proposalId, targets, values, calldatas, description } = await promptForProposalDetails()
 
-  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
 
   try {
     // Check if the proposal needs queuing
