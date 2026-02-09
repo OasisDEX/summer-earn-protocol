@@ -5,8 +5,8 @@ schema:
 features:
   - grafting
 graft:
-  base: QmQ1qd5fqUzUgEGNw3ahSvp3q5m1ZagNcrjqD9T6T1pKHz
-  block: 24320170
+  base: Qme7xGwbppLi8DLrxTH7hTBHWEfLLBAUwNJbA5ZSKbWLE6
+  block: 24375455
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
