@@ -35,7 +35,8 @@
     "@summerfi/rewards-contracts": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
-    "@summerfi/voting-decay": "workspace:*"
+    "@summerfi/voting-decay": "workspace:*",
+    "@summerfi/price-solidity": "workspace:*"
   },
   "dependencies": {
     "@oasisdex/addresses": "0.1.21-automation",

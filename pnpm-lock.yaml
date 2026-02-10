@@ -174,6 +174,9 @@ importers:
       '@summerfi/percentage-solidity':
         specifier: workspace:*
         version: link:../percentage
+      '@summerfi/price-solidity':
+        specifier: workspace:*
+        version: link:../price-utils
       '@summerfi/rewards-contracts':
         specifier: workspace:*
         version: link:../rewards-contracts
@@ -645,6 +648,40 @@ importers:
 
   packages/percentage:
     dependencies:
+      solhint-plugin-prettier:
+        specifier: 0.1.0
+        version: 0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.0.0)
+    devDependencies:
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
+      '@summerfi/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@summerfi/jest-config':
+        specifier: workspace:*
+        version: link:../jest-config
+      '@summerfi/tenderly-utils':
+        specifier: workspace:*
+        version: link:../tenderly-utils
+      '@summerfi/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      forge-std:
+        specifier: github:foundry-rs/forge-std#v1.8.1
+        version: github.com/foundry-rs/forge-std/bb4ceea94d6f10eeb5b41dc2391c6c8bf8e734ef
+      prettier:
+        specifier: 3.0.0
+        version: 3.0.0
+      solhint:
+        specifier: 3.6.2
+        version: 3.6.2(typescript@5.4.5)
+
+  packages/price-utils:
+    dependencies:
+      '@prb/math':
+        specifier: ^4.1.0
+        version: 4.1.0
       solhint-plugin-prettier:
         specifier: 0.1.0
         version: 0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.0.0)
@@ -5290,6 +5327,10 @@ packages:
       '@pnpm/network.ca-file': 1.0.2
       config-chain: 1.1.13
     dev: true
+
+  /@prb/math@4.1.0:
+    resolution: {integrity: sha512-ef5Xrlh3BeX4xT5/Wi810dpEPq2bYPndRxgFIaKSU1F/Op/s8af03kyom+mfU7gEpvfIZ46xu8W0duiHplbBMg==}
+    dev: false
 
   /@prettier/sync@0.3.0(prettier@3.0.0):
     resolution: {integrity: sha512-3dcmCyAxIcxy036h1I7MQU/uEEBq8oLwf1CE3xeze+MPlgkdlb/+w6rGR/1dhp6Hqi17fRS6nvwnOzkESxEkOw==}

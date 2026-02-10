@@ -20,4 +20,5 @@ metamorpho/=node_modules/@summerfi/dependencies/lib/metamorpho-local/src/
 @summerfi/constants/=node_modules/@summerfi/constants/src/
 @summerfi/chain-bridge/=node_modules/@summerfi/chain-bridge-contracts/src/
 @summerfi/chain-bridge-test/=node_modules/@summerfi/chain-bridge-contracts/test/
+@summerfi/price-solidity/=node_modules/@summerfi/price-solidity/
 solmate/=node_modules/@summerfi/dependencies/lib/solmate/

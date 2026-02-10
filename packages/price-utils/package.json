@@ -2,6 +2,8 @@
   "name": "@summerfi/price-solidity",
   "description": "Price Utils Library",
   "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "@prb/math": "^4.1.0",
     "solhint-plugin-prettier": "0.1.0"
@@ -24,7 +26,6 @@
     "smart-contracts",
     "solidity"
   ],
-  "private": true,
   "scripts": {
     "clean": "rm -rf cache out",
     "build": "forge build",
