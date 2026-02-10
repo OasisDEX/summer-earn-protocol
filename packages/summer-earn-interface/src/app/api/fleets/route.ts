@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient } from 'viem'
 
 import { erc20Abi } from '@/abis/ERC20'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
 import { harborCommandAbi } from '@/abis/HarborCommand'
-import { CHAIN_RPC_URLS } from '@/config/chains'
+import { CHAIN_RPC_URLS, createRpcTransport } from '@/config/chains'
 import { type Environment, HARBOR_COMMAND_ADDRESSES } from '@/config/environments'
 
 const TTL_MS = 10 * 60 * 1000 // 10 minutes
@@ -29,12 +29,12 @@ export async function GET(request: Request) {
     if (cached && cached.expiry > now) {
       return NextResponse.json(cached.data)
     }
-    const rpcUrl = CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]
+    const rpcUrls = CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]
     const harbor = HARBOR_COMMAND_ADDRESSES[environment][Number(chainId)]
-    if (!rpcUrl || !harbor) {
+    if (!rpcUrls || !harbor) {
       return NextResponse.json({ error: 'Unsupported chain or environment' }, { status: 400 })
     }
-    const client = createPublicClient({ transport: http(rpcUrl) })
+    const client = createPublicClient({ transport: createRpcTransport(rpcUrls) })
     const activeFleets = (await // @ts-ignore
     client.readContract({
       address: harbor as `0x${string}`,

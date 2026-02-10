@@ -15,6 +15,14 @@ export class SkyRewardsProduct extends Product {
       return BigDecimalConstants.ZERO
     }
     const stakingRewards = IStakingRewards.bind(this.poolAddress)
+    const periodFinish = stakingRewards.try_periodFinish()
+    if (periodFinish.reverted) {
+      return BigDecimalConstants.ZERO
+    }
+    const periodFinishTimestamp = periodFinish.value
+    if (currentTimestamp.gt(periodFinishTimestamp)) {
+      return BigDecimalConstants.ZERO
+    }
     const rewardRatePerSecond = stakingRewards.try_rewardRate()
     if (rewardRatePerSecond.reverted) {
       return BigDecimalConstants.ZERO

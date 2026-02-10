@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient } from 'viem'
 
 import { arkAbi } from '@/abis/Ark'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
-import { CHAIN_RPC_URLS } from '@/config/chains'
+import { CHAIN_RPC_URLS, createRpcTransport } from '@/config/chains'
 
 const TTL_MS = 10 * 60 * 1000
 const cache = new Map<string, { data: unknown; expiry: number }>()
@@ -18,10 +18,10 @@ export async function GET(
   const cached = cache.get(key)
   if (cached && cached.expiry > now) return NextResponse.json(cached.data)
 
-  const rpcUrl = CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]
-  if (!rpcUrl) return NextResponse.json({ error: 'Unsupported chainId' }, { status: 400 })
+  const rpcUrls = CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]
+  if (!rpcUrls) return NextResponse.json({ error: 'Unsupported chainId' }, { status: 400 })
 
-  const client = createPublicClient({ transport: http(rpcUrl) })
+  const client = createPublicClient({ transport: createRpcTransport(rpcUrls) })
 
   const [activeArks, bufferArkAddress] = await Promise.all([
     // @ts-ignore
