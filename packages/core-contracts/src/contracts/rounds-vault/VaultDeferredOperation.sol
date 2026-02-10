@@ -5,9 +5,9 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./VaultWithReceipts.sol";
+import {VaultWithReceipts} from "./VaultWithReceipts.sol";
 
-import "../../interfaces/rounds-vault/IVaultDeferredOperation.sol";
+import {IVaultDeferredOperation} from "../../interfaces/rounds-vault/IVaultDeferredOperation.sol";
 
 /**
     @dev Deferred operations vault that takes care of handling deposits/withdrawals for a target vault.
@@ -47,8 +47,9 @@ abstract contract VaultDeferredOperation is
      * @param proxiedVault The target vault for which this vault will be accepting deposits and withdrawals
      */
     constructor(
-        address proxiedVault
-    ) VaultWithReceipts(IERC4626(proxiedVault).asset()) {
+        address proxiedVault,
+        string memory receiptsURI
+    ) VaultWithReceipts(IERC4626(proxiedVault).asset(), receiptsURI) {
         _proxiedVault = IERC4626(proxiedVault);
     }
 

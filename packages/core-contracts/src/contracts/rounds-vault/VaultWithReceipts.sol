@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {ERC1155FullSupply} from "../../extensions/ERC1155FullSupply.sol";
@@ -50,7 +51,7 @@ abstract contract VaultWithReceipts is
     /**
      * CONSTRUCTOR
      */
-    constructor(address asset_) {
+    constructor(address asset_, string memory uri_) ERC1155(uri_) {
         _asset = IERC20Metadata(asset_);
     }
 

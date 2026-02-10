@@ -1,12 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
-import "./VaultDeferredOperation.sol";
-import "../../interfaces/rounds-vault/IBaseRoundsVault.sol";
+import {VaultDeferredOperation} from "./VaultDeferredOperation.sol";
+import {IVaultWithReceipts, VaultWithReceipts} from "./VaultWithReceipts.sol";
+
+import {IBaseRoundsVault} from "../../interfaces/rounds-vault/IBaseRoundsVault.sol";
+import {IBaseRoundsVaultErrors} from "../../interfaces/rounds-vault/IBaseRoundsVaultErrors.sol";
+import {IBaseRoundsVaultEvents} from "../../interfaces/rounds-vault/IBaseRoundsVaultEvents.sol";
 
 /**
     @title BaseRoundsVault
@@ -48,12 +55,21 @@ abstract contract BaseRoundsVault is
     /**
         @param proxiedERC4626Vault The address of the ERC4626 vault that this vault will be accepting deposits for
                                    and will be moving funds in and out of it on each round
+        @param accessManager The address of the Protocol Access Manager contract that provides information
+                             about the different roles in the protocol, including the Keeper role that is the only
+                             one allowed to call the `nextRound` function
+        @param receiptsURI The URI of the ERC-1155 receipts that will be emitted when depositing the underlying
 
         @dev It is assumed that the shares token is the same as the vault token as per the 4626 OZ implementation
      */
     constructor(
-        address proxiedERC4626Vault
-    ) VaultDeferredOperation(proxiedERC4626Vault) {
+        address proxiedERC4626Vault,
+        address accessManager,
+        string memory receiptsURI
+    )
+        VaultDeferredOperation(proxiedERC4626Vault, receiptsURI)
+        ProtocolAccessManaged(accessManager)
+    {
         _sharesToken = proxiedERC4626Vault;
     }
 
@@ -102,7 +118,7 @@ abstract contract BaseRoundsVault is
     /**
         @inheritdoc IVaultWithReceipts
 
-        @dev Left for completion and compatibility with the IVaultWithReceipts contract, but it is not possible
+        @dev Left for completion and compatibility with the VaultDeferredOperation contract, but it is not possible
         to redeem receipts for different rounds here, only for the current round.
      */
     function redeemBatch(
