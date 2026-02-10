@@ -7,7 +7,7 @@ import { summerVestingWalletAbi } from '@/abis/SummerVestingWallet'
 import { summerVestingWalletFactoryAbi } from '@/abis/SummerVestingWalletFactory'
 import { summerVestingWalletFactoryV2Abi } from '@/abis/SummerVestingWalletFactoryV2'
 import { summerVestingWalletV2Abi } from '@/abis/SummerVestingWalletV2'
-import { CHAIN_RPC_URLS, VIEM_CHAIN_ENTITIES } from '@/config/chains'
+import { CHAIN_RPC_URLS, createRpcTransport, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import type { Environment } from '@/config/environments'
 import {
   STAKED_SUMMER_TOKEN_ADDRESSES,
@@ -18,6 +18,7 @@ import {
   SUMMER_VESTING_WALLETS_ESCROW_ADDRESSES,
 } from '@/config/environments'
 import type { ChainId } from '@/types'
+
 
 // Helper to serialize BigInt for JSON
 export const replacer = (key: string, value: any) =>
@@ -149,16 +150,17 @@ export async function fetchVestingData(
   environment: Environment = 'production',
 ) {
   // Setup Client (Server Side)
-  const rpcUrl = CHAIN_RPC_URLS[chainId.toString() as ChainId]
+  const rpcUrls = CHAIN_RPC_URLS[chainId.toString() as ChainId]
   const chain = VIEM_CHAIN_ENTITIES[chainId.toString() as ChainId] || base
 
-  if (!rpcUrl) {
+  if (!rpcUrls) {
     throw new Error(`Unsupported chain: ${chainId}`)
-  }
+  }    
+
 
   const publicClient = createPublicClient({
     chain,
-    transport: http(rpcUrl),
+    transport:  createRpcTransport(rpcUrls),
   })
 
   // Environment Config

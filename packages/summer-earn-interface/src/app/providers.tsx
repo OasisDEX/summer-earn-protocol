@@ -10,10 +10,10 @@ import {
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
-import { http, WagmiProvider } from 'wagmi'
+import { WagmiProvider } from 'wagmi'
 import { arbitrum, base, mainnet, sonic } from 'wagmi/chains'
 
-import { CHAIN_RPC_URLS } from '@/config/chains'
+import { CHAIN_RPC_URLS, createRpcTransport } from '@/config/chains'
 import { EnvironmentProvider } from '@/hooks/useEnvironment'
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -34,10 +34,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       chains: [mainnet, arbitrum, base, sonic],
 
       transports: {
-        [mainnet.id]: http(CHAIN_RPC_URLS[mainnet.id]),
-        [arbitrum.id]: http(CHAIN_RPC_URLS[arbitrum.id]),
-        [base.id]: http(CHAIN_RPC_URLS[base.id]),
-        [sonic.id]: http(CHAIN_RPC_URLS[sonic.id]),
+        [mainnet.id]: createRpcTransport(CHAIN_RPC_URLS[mainnet.id]),
+        [arbitrum.id]: createRpcTransport(CHAIN_RPC_URLS[arbitrum.id]),
+        [base.id]: createRpcTransport(CHAIN_RPC_URLS[base.id]),
+        [sonic.id]: createRpcTransport(CHAIN_RPC_URLS[sonic.id]),
       },
     })
   }, [projectId, appkitNetworks])
