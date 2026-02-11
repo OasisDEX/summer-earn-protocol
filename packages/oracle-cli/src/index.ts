@@ -14,6 +14,7 @@ import { getRpcUrl } from './config'
 import { z } from 'zod'
 import { fetchOracleData } from './fetcher'
 import { signPriceData } from './signer'
+import { deployYieldSystem } from './deploy-yield'
 import { RWA_ORACLE_ABI, ORACLE_REGISTRY_ABI } from './constants'
 import { DeploymentFileSchema } from './schemas'
 import deploymentsData from './deployments.json'
@@ -333,6 +334,18 @@ program
     // Run immediately then loop
     await runLoop()
     setInterval(runLoop, Number(options.interval) * 1000)
+  })
+
+program
+  .command('deploy-yield-system')
+  .description('Deploy Test Yield System based on deployed oracles')
+  .option('-f, --factory <address>', 'Force specific factory address')
+  .action(async (options) => {
+    try {
+      await deployYieldSystem(options.factory as Address)
+    } catch (e) {
+      console.error(e)
+    }
   })
 
 program.parse()

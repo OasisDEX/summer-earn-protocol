@@ -52,6 +52,47 @@ export const DeploymentFileSchema = z.record(z.string(), ChainDeploymentSchema)
 
 export type DeploymentFile = z.infer<typeof DeploymentFileSchema>
 
+// --- Yield System Schemas ---
+
+/** Single yield config for deploy input */
+export const YieldConfigSchema = z.object({
+  network: networkSchema,
+  ticker: z.string(),
+  usdcAddress: addressSchema,
+  oracleAddress: addressSchema,
+  factoryAddress: addressSchema.optional(),
+})
+
+export type YieldConfig = z.infer<typeof YieldConfigSchema>
+
+/** Deploy input: single config or array */
+export const YieldDeploymentInputSchema = z.union([YieldConfigSchema, z.array(YieldConfigSchema)])
+
+/** Single yield token entry in the deployment file */
+export const YieldEntrySchema = z.object({
+  ticker: z.string(),
+  yieldTokenAddress: addressSchema,
+  pocketAddress: addressSchema,
+  usdcAddress: addressSchema,
+  oracleAddress: addressSchema,
+})
+
+export type YieldEntry = z.infer<typeof YieldEntrySchema>
+
+/** Per-chain yield deployment data */
+export const ChainYieldDeploymentSchema = z.object({
+  chainId: z.number().int().positive(),
+  factoryAddress: addressSchema,
+  tokens: z.array(YieldEntrySchema).default([]),
+})
+
+export type ChainYieldDeployment = z.infer<typeof ChainYieldDeploymentSchema>
+
+/** Full yield deployment file */
+export const YieldDeploymentFileSchema = z.record(z.string(), ChainYieldDeploymentSchema)
+
+export type YieldDeploymentFile = z.infer<typeof YieldDeploymentFileSchema>
+
 /** Private key schema */
 export const PrivateKeySchema = z.string().regex(/^0x[a-fA-F0-9]{64}$/)
 export type PrivateKey = z.infer<typeof PrivateKeySchema>

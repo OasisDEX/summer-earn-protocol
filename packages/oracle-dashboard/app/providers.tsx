@@ -6,6 +6,8 @@ import {
   mainnet as appkitMainnet,
   base as appkitBase,
   arbitrum as appkitArbitrum,
+  sonic as appkitSonic,
+  hyperliquid as appkitHyperliquid,
 } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -23,7 +25,7 @@ export const wagmiAdapter = new WagmiAdapter({
 
 createAppKit({
   adapters: [wagmiAdapter],
-  networks,
+  networks: [appkitMainnet, appkitBase, appkitArbitrum, appkitSonic, appkitHyperliquid],
   projectId,
   metadata: {
     name: 'Summer Earn Oracle Dashboard',
