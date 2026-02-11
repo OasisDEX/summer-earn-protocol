@@ -1,0 +1,37 @@
+{
+  "name": "oracle-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@reown/appkit": "1.8.13",
+    "@reown/appkit-adapter-wagmi": "1.8.13",
+    "@tanstack/react-query": "^5.76.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.563.0",
+    "networks": "link:@reown/appkit/networks",
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.0.2",
+    "viem": "^2.45.2",
+    "wagmi": "^3.4.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

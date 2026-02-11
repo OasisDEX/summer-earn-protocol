@@ -1,0 +1,26 @@
+{
+  "name": "@summerfi/oracle-cli",
+  "version": "0.1.0",
+  "private": true,
+  "bin": {
+    "oracle-cli": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "cli": "ts-node src/index.ts",
+    "deploy:oracles": "ts-node src/deploy.ts"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "dotenv": "^16.4.5",
+    "viem": "^2.7.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.11.24",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
