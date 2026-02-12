@@ -6,11 +6,11 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {ERC1155FullSupply} from "../../extensions/ERC1155FullSupply.sol";
+import {ERC1155FullSupply} from "./ERC1155FullSupply.sol";
 
-import {IVaultWithReceipts} from "../../interfaces/rounds-vault/IVaultWithReceipts.sol";
-import {IVaultWithReceiptsEvents} from "../../interfaces/rounds-vault/IVaultWithReceiptsEvents.sol";
-import {IVaultWithReceiptsErrors} from "../../interfaces/rounds-vault/IVaultWithReceiptsErrors.sol";
+import {IERC4626MultiToken} from "../interfaces/extensions/ERC4626MultiToken/IERC4626MultiToken.sol";
+import {IERC4626MultiTokenEvents} from "../interfaces/extensions/ERC4626MultiToken/IERC4626MultiTokenEvents.sol";
+import {IERC4626MultiTokenErrors} from "../interfaces/extensions/ERC4626MultiToken/IERC4626MultiTokenErrors.sol";
 
 /**
     @notice Implementation of the ERC4626 "Tokenized Vault Standard", modified to emit ERC-1155 receipts.
@@ -22,9 +22,9 @@ import {IVaultWithReceiptsErrors} from "../../interfaces/rounds-vault/IVaultWith
     the correct id to be used for minting. The function is not marked as `view` to allow for any scheme of
     ids, including generating a new id on each minting operation
 
-    @dev See { IERC4626MultiTokenUpgradeable }
+    @dev See { IERC4626MultiToken }
     
-    @dev This contract is a copy-paste of OpenZeppelin's `ERC4626Upgradeable.sol` with some modifications to
+    @dev This contract is a copy-paste of OpenZeppelin's `ERC4626.sol` with some modifications to
     support the ERC-1155 receipts.
 
     @dev In the original ERC-4626 the caller is checked against the allowance given by the owner in the internal
@@ -35,11 +35,11 @@ import {IVaultWithReceiptsErrors} from "../../interfaces/rounds-vault/IVaultWith
     @author Roberto Cano <robercano>
  */
 
-abstract contract VaultWithReceipts is
+abstract contract ERC4626MultiToken is
     ERC1155FullSupply,
-    IVaultWithReceipts,
-    IVaultWithReceiptsEvents,
-    IVaultWithReceiptsErrors
+    IERC4626MultiToken,
+    IERC4626MultiTokenEvents,
+    IERC4626MultiTokenErrors
 {
     using Math for uint256;
 
@@ -59,31 +59,31 @@ abstract contract VaultWithReceipts is
      * EXTERNAL/PUBLIC FUNCTIONS
      */
 
-    /** @dev See {IVaultWithReceipts-asset} */
+    /** @dev See {IERC4626MultiToken-asset} */
     function asset() public view virtual override returns (address) {
         return address(_asset);
     }
 
-    /** @dev See {IVaultWithReceipts-totalAssets} */
+    /** @dev See {IERC4626MultiToken-totalAssets} */
     function totalAssets() public view virtual override returns (uint256) {
         return _asset.balanceOf(address(this));
     }
 
-    /** @dev See {IVaultWithReceipts-maxDeposit} */
+    /** @dev See {IERC4626MultiToken-maxDeposit} */
     function maxDeposit(
         address
     ) public view virtual override returns (uint256) {
         return type(uint256).max;
     }
 
-    /** @dev See {IVaultWithReceipts-maxRedeem} */
+    /** @dev See {IERC4626MultiToken-maxRedeem} */
     function maxRedeem(
         address owner
     ) public view virtual override returns (uint256) {
         return balanceOfAll(owner);
     }
 
-    /** @dev See {IVaultWithReceipts-deposit} */
+    /** @dev See {IERC4626MultiToken-deposit} */
     function deposit(
         uint256 assets,
         address receiver

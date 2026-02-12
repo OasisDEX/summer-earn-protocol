@@ -2,11 +2,11 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {VaultDeferredOperationMock} from "../mocks/VaultDeferredOperationMock.sol";
+import {ERC4626MultiTokenWrapperMock} from "../mocks/ERC4626MultiTokenWrapperMock.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
-import {IVaultWithReceiptsEvents} from "../../src/interfaces/rounds-vault/IVaultWithReceiptsEvents.sol";
+import {IERC4626MultiTokenEvents} from "../../src/interfaces/extensions/ERC4626MultiToken/IERC4626MultiTokenEvents.sol";
 
 // Functional MockERC4626 for testing interaction
 // Inherits from ERC4626VaultMock as requested
@@ -51,8 +51,8 @@ contract MockERC4626 is ERC4626VaultMock {
     // So we don't need to re-implement stubs unless we want to change behavior.
 }
 
-contract VaultDeferredOperationTest is Test, IVaultWithReceiptsEvents {
-    VaultDeferredOperationMock public vaultDeferredOperation;
+contract ERC4626MultiTokenWrapperTest is Test, IERC4626MultiTokenEvents {
+    ERC4626MultiTokenWrapperMock public wrapper;
     MockERC20 public assetToken;
     MockERC4626 public targetVault;
 
@@ -65,7 +65,7 @@ contract VaultDeferredOperationTest is Test, IVaultWithReceiptsEvents {
 
         targetVault = new MockERC4626(address(assetToken));
 
-        vaultDeferredOperation = new VaultDeferredOperationMock(
+        wrapper = new ERC4626MultiTokenWrapperMock(
             address(targetVault),
             address(assetToken),
             "SomeURI"
@@ -74,12 +74,12 @@ contract VaultDeferredOperationTest is Test, IVaultWithReceiptsEvents {
         // Set up accounts
         vm.startPrank(unprivilegedAccount);
         assetToken.mint(unprivilegedAccount, 1 ether);
-        assetToken.approve(address(vaultDeferredOperation), 1 ether);
+        assetToken.approve(address(wrapper), 1 ether);
         vm.stopPrank();
 
         vm.startPrank(unprivilegedAccount2);
         assetToken.mint(unprivilegedAccount2, 1 ether);
-        assetToken.approve(address(vaultDeferredOperation), 1 ether);
+        assetToken.approve(address(wrapper), 1 ether);
         vm.stopPrank();
 
         // Seed target vault with some assets so redeem works
@@ -87,8 +87,8 @@ contract VaultDeferredOperationTest is Test, IVaultWithReceiptsEvents {
     }
 
     function test_VDO0001_DefaultValue() public view {
-        assertEq(vaultDeferredOperation.vault(), address(targetVault));
-        assertEq(vaultDeferredOperation.asset(), address(assetToken));
+        assertEq(wrapper.vault(), address(targetVault));
+        assertEq(wrapper.asset(), address(assetToken));
     }
 
     function test_VDO0002_DepositOnTarget() public {
@@ -97,19 +97,19 @@ contract VaultDeferredOperationTest is Test, IVaultWithReceiptsEvents {
 
         vm.startPrank(unprivilegedAccount);
 
-        // Deposit into deferred vault first
-        vaultDeferredOperation.deposit(assets, unprivilegedAccount);
+        // Deposit into wrapper
+        wrapper.deposit(assets, unprivilegedAccount);
 
-        // Verify assets in deferred vault
-        assertEq(assetToken.balanceOf(address(vaultDeferredOperation)), assets);
+        // Verify assets in wrapper
+        assertEq(assetToken.balanceOf(address(wrapper)), assets);
 
         // Deposit on target
-        vaultDeferredOperation.depositOnTarget(assets);
+        wrapper.depositOnTarget(assets);
 
         vm.stopPrank();
 
-        // Verify deferred vault has 0 assets
-        assertEq(assetToken.balanceOf(address(vaultDeferredOperation)), 0);
+        // Verify wrapper has 0 assets
+        assertEq(assetToken.balanceOf(address(wrapper)), 0);
         // Verify target vault received assets
         // target vault started with 10, added 0.2 -> 10.2
         assertEq(assetToken.balanceOf(address(targetVault)), 10.2 ether);
@@ -120,27 +120,27 @@ contract VaultDeferredOperationTest is Test, IVaultWithReceiptsEvents {
         uint256 assets = shares; // 1:1 in mock
 
         vm.startPrank(unprivilegedAccount);
-        // 1. Deposit into deferred vault (User -> VDO)
-        vaultDeferredOperation.deposit(assets, unprivilegedAccount);
+        // 1. Deposit into wrapper (User -> Wrapper)
+        wrapper.deposit(assets, unprivilegedAccount);
 
-        // Verify assets in VDO
-        assertEq(assetToken.balanceOf(address(vaultDeferredOperation)), assets);
+        // Verify assets in Wrapper
+        assertEq(assetToken.balanceOf(address(wrapper)), assets);
 
-        // 2. Deposit on target (VDO -> Target)
-        vaultDeferredOperation.depositOnTarget(assets);
+        // 2. Deposit on target (Wrapper -> Target)
+        wrapper.depositOnTarget(assets);
 
         // Verify assets moved to target
-        assertEq(assetToken.balanceOf(address(vaultDeferredOperation)), 0);
+        assertEq(assetToken.balanceOf(address(wrapper)), 0);
         // Target initialized with 10, +0.2 = 10.2
         assertEq(assetToken.balanceOf(address(targetVault)), 10.2 ether);
 
-        // 3. Redeem from target (Target -> VDO)
-        vaultDeferredOperation.redeemFromTarget(shares);
+        // 3. Redeem from target (Target -> Wrapper)
+        wrapper.redeemFromTarget(shares);
 
         vm.stopPrank();
 
-        // Verify assets returned to VDO
-        assertEq(assetToken.balanceOf(address(vaultDeferredOperation)), assets);
+        // Verify assets returned to Wrapper
+        assertEq(assetToken.balanceOf(address(wrapper)), assets);
         // Verify assets removed from target (back to 10)
         assertEq(assetToken.balanceOf(address(targetVault)), 10 ether);
     }
@@ -151,7 +151,7 @@ contract VaultDeferredOperationTest is Test, IVaultWithReceiptsEvents {
 
         vm.startPrank(unprivilegedAccount);
 
-        // 1. Deposit into deferred vault (User -> VDO)
+        // 1. Deposit into wrapper (User -> Wrapper)
         vm.expectEmit(true, true, true, true);
         // emit DepositWithReceipt(caller, receiver, id, amount);
         emit DepositWithReceipt(
@@ -160,17 +160,17 @@ contract VaultDeferredOperationTest is Test, IVaultWithReceiptsEvents {
             0,
             assets
         );
-        vaultDeferredOperation.deposit(assets, unprivilegedAccount);
+        wrapper.deposit(assets, unprivilegedAccount);
 
-        // 2. Deposit on target (VDO -> Target)
-        vaultDeferredOperation.depositOnTarget(assets);
+        // 2. Deposit on target (Wrapper -> Target)
+        wrapper.depositOnTarget(assets);
 
-        // 3. Redeem from target (Target -> VDO)
-        vaultDeferredOperation.redeemFromTarget(shares);
+        // 3. Redeem from target (Target -> Wrapper)
+        wrapper.redeemFromTarget(shares);
 
-        // 4. Redeem from deferred vault (VDO -> User)
+        // 4. Redeem from wrapper (Wrapper -> User)
         // Need to check maxRedeem
-        assertEq(vaultDeferredOperation.maxRedeem(unprivilegedAccount), assets);
+        assertEq(wrapper.maxRedeem(unprivilegedAccount), assets);
 
         vm.expectEmit(true, true, true, true);
         // emit RedeemReceipt(caller, receiver, owner, id, amount);
@@ -181,21 +181,16 @@ contract VaultDeferredOperationTest is Test, IVaultWithReceiptsEvents {
             0,
             assets
         );
-        vaultDeferredOperation.redeem(
-            0,
-            assets,
-            unprivilegedAccount,
-            unprivilegedAccount
-        );
+        wrapper.redeem(0, assets, unprivilegedAccount, unprivilegedAccount);
 
         vm.stopPrank();
 
         // Verify final state
-        // VDO empty
-        assertEq(assetToken.balanceOf(address(vaultDeferredOperation)), 0);
+        // Wrapper empty
+        assertEq(assetToken.balanceOf(address(wrapper)), 0);
         // User has funds back (started with 1, deposited 0.2, got 0.2 back -> 1.0)
         assertEq(assetToken.balanceOf(unprivilegedAccount), 1 ether);
         // Receipt burned
-        assertFalse(vaultDeferredOperation.exists(0));
+        assertFalse(wrapper.exists(0));
     }
 }

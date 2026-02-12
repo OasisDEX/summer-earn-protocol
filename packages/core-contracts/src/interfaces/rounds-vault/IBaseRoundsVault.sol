@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
-import "./IVaultDeferredOperation.sol";
+import "./IERC4626MultiTokenWrapper.sol";
 
 import "./IBaseRoundsVaultErrors.sol";
 import "./IBaseRoundsVaultEvents.sol";
@@ -37,7 +37,7 @@ import "./IBaseRoundsVaultEvents.sol";
             
     @author Roberto Cano <robercano>
  */
-interface IBaseRoundsVault is IVaultDeferredOperation {
+interface IBaseRoundsVault is IERC4626MultiTokenWrapper {
     // PUBLIC FUNCTIONS
 
     /**

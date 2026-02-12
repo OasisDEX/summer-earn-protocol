@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../extensions/ERC1155FullSupply/IERC1155FullSupply.sol";
+import "../../extensions/ERC1155FullSupply/IERC1155FullSupply.sol";
 
 /**
     @notice Interface of the ERC4626 "Tokenized Vault Standard", modified to emit ERC-1155 receipts.
@@ -21,7 +21,7 @@ import "../extensions/ERC1155FullSupply/IERC1155FullSupply.sol";
 
     @author Roberto Cano <robercano>
  */
-interface IVaultWithReceipts is IERC1155FullSupply {
+interface IERC4626MultiToken is IERC1155FullSupply {
     /**
      * EXTERNAL FUNCTIONS
      */

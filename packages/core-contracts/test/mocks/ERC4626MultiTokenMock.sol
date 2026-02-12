@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {VaultWithReceipts} from "../../src/contracts/rounds-vault/VaultWithReceipts.sol";
+import {ERC4626MultiToken} from "../../src/extensions/ERC4626MultiToken.sol";
 
-contract VaultWithReceiptsMock is VaultWithReceipts {
+contract ERC4626MultiTokenMock is ERC4626MultiToken {
     uint256 public mintId;
 
     constructor(
         address asset_,
         string memory uri_
-    ) VaultWithReceipts(asset_, uri_) {}
+    ) ERC4626MultiToken(asset_, uri_) {}
 
     function mockSetMintId(uint256 mintId_) public {
         mintId = mintId_;

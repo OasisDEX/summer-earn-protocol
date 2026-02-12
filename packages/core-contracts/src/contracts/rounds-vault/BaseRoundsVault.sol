@@ -9,8 +9,8 @@ import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
-import {VaultDeferredOperation} from "./VaultDeferredOperation.sol";
-import {IVaultWithReceipts, VaultWithReceipts} from "./VaultWithReceipts.sol";
+import {ERC4626MultiTokenWrapper} from "./ERC4626MultiTokenWrapper.sol";
+import {IERC4626MultiToken, ERC4626MultiToken} from "../../extensions/ERC4626MultiToken.sol";
 
 import {IBaseRoundsVault} from "../../interfaces/rounds-vault/IBaseRoundsVault.sol";
 import {IBaseRoundsVaultErrors} from "../../interfaces/rounds-vault/IBaseRoundsVaultErrors.sol";
@@ -35,7 +35,7 @@ import {IBaseRoundsVaultEnums} from "../../interfaces/rounds-vault/IBaseRoundsVa
  */
 abstract contract BaseRoundsVault is
     ProtocolAccessManaged,
-    VaultDeferredOperation,
+    ERC4626MultiTokenWrapper,
     IBaseRoundsVault,
     IBaseRoundsVaultErrors,
     IBaseRoundsVaultEvents,
@@ -77,7 +77,7 @@ abstract contract BaseRoundsVault is
         address accessManager,
         string memory receiptsURI
     )
-        VaultDeferredOperation(
+        ERC4626MultiTokenWrapper(
             proxiedERC4626Vault,
             vaultType == BaseVaultType.Input
                 ? IERC4626(proxiedERC4626Vault).asset()
@@ -115,7 +115,7 @@ abstract contract BaseRoundsVault is
     }
 
     /**
-        @inheritdoc IVaultWithReceipts
+        @inheritdoc IERC4626MultiToken
      */
     function redeem(
         uint256 id,
@@ -125,7 +125,7 @@ abstract contract BaseRoundsVault is
     )
         public
         virtual
-        override(IVaultWithReceipts, VaultWithReceipts)
+        override(IERC4626MultiToken, ERC4626MultiToken)
         returns (uint256)
     {
         if (id != _roundNumber) {
@@ -136,7 +136,7 @@ abstract contract BaseRoundsVault is
     }
 
     /**
-        @inheritdoc IVaultWithReceipts
+        @inheritdoc IERC4626MultiToken
 
         @dev Left for completion and compatibility with the VaultDeferredOperation contract, but it is not possible
         to redeem receipts for different rounds here, only for the current round.
@@ -149,7 +149,7 @@ abstract contract BaseRoundsVault is
     )
         public
         virtual
-        override(IVaultWithReceipts, VaultWithReceipts)
+        override(IERC4626MultiToken, ERC4626MultiToken)
         returns (uint256 assets)
     {
         for (uint256 i = 0; i < ids.length; i++) {
@@ -241,7 +241,7 @@ abstract contract BaseRoundsVault is
     // INTERNALS
 
     /**
-        @inheritdoc VaultWithReceipts
+        @inheritdoc ERC4626MultiToken
      */
     function _getMintId() internal view virtual override returns (uint256) {
         return _roundNumber;

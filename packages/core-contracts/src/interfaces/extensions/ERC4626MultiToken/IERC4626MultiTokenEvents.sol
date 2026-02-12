@@ -6,7 +6,7 @@ pragma solidity 0.8.28;
 
     @author Roberto Cano <robercano>
  */
-interface IVaultWithReceiptsEvents {
+interface IERC4626MultiTokenEvents {
     /// Emitted when assets are deposited by `caller` and the shares are received by `receiver` on round 'id'
     event DepositWithReceipt(
         address indexed caller,

@@ -2,13 +2,13 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {VaultWithReceiptsMock} from "../mocks/VaultWithReceiptsMock.sol";
+import {ERC4626MultiTokenMock} from "../mocks/ERC4626MultiTokenMock.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IVaultWithReceiptsEvents} from "../../src/interfaces/rounds-vault/IVaultWithReceiptsEvents.sol";
+import {IERC4626MultiTokenEvents} from "../../src/interfaces/extensions/ERC4626MultiToken/IERC4626MultiTokenEvents.sol";
 
-contract VaultWithReceiptsTest is Test, IVaultWithReceiptsEvents {
-    VaultWithReceiptsMock public vault;
+contract ERC4626MultiTokenTest is Test, IERC4626MultiTokenEvents {
+    ERC4626MultiTokenMock public vault;
     MockERC20 public assetToken;
 
     address public unprivilegedAccount = address(0x1);
@@ -18,7 +18,7 @@ contract VaultWithReceiptsTest is Test, IVaultWithReceiptsEvents {
         assetToken = new MockERC20();
         assetToken.initialize("AssetToken", "AST", 18);
 
-        vault = new VaultWithReceiptsMock(address(assetToken), "SomeURI");
+        vault = new ERC4626MultiTokenMock(address(assetToken), "SomeURI");
 
         // Setup accounts with tokens
         vm.startPrank(unprivilegedAccount);

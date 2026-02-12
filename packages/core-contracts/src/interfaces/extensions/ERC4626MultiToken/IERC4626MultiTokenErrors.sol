@@ -6,7 +6,7 @@ pragma solidity 0.8.28;
 
     @author Roberto Cano <robercano>
  */
-interface IVaultWithReceiptsErrors {
+interface IERC4626MultiTokenErrors {
     /// Emitted when trying to deposit an amount of assets that exceeds the max allowed for
     /// the depositor
     error MaxDepositExceeded(address depositor, uint256 amount, uint256 max);

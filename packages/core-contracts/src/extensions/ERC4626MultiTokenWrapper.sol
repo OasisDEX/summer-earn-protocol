@@ -5,9 +5,9 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {VaultWithReceipts} from "./VaultWithReceipts.sol";
+import {ERC4626MultiToken} from "./ERC4626MultiToken.sol";
 
-import {IVaultDeferredOperation} from "../../interfaces/rounds-vault/IVaultDeferredOperation.sol";
+import {IERC4626MultiTokenWrapper} from "../interfaces/extensions/ERC4626MultiTokenWrapper/IERC4626MultiTokenWrapper.sol";
 
 /**
     @dev Deferred operations vault that takes care of handling deposits/withdrawals for a target vault.
@@ -32,9 +32,9 @@ import {IVaultDeferredOperation} from "../../interfaces/rounds-vault/IVaultDefer
  
     @author Roberto Cano <robercano>
  */
-abstract contract VaultDeferredOperation is
-    VaultWithReceipts,
-    IVaultDeferredOperation
+abstract contract ERC4626MultiTokenWrapper is
+    ERC4626MultiToken,
+    IERC4626MultiTokenWrapper
 {
     /**
      * STORAGE
@@ -50,13 +50,13 @@ abstract contract VaultDeferredOperation is
         address proxiedVault,
         address underlyingAsset,
         string memory receiptsURI
-    ) VaultWithReceipts(underlyingAsset, receiptsURI) {
+    ) ERC4626MultiToken(underlyingAsset, receiptsURI) {
         _proxiedVault = IERC4626(proxiedVault);
     }
 
     // PUBLIC FUNCTIONS
 
-    /** @dev See {IVaultDeferredOperation-vault} */
+    /** @dev See {IERC4626MultiTokenWrapper-vault} */
     function vault() public view returns (address vaultAddress) {
         return address(_proxiedVault);
     }
