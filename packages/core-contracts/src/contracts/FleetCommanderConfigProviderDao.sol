@@ -2,12 +2,12 @@
 pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
-import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
+import {FleetCommanderDaoParams} from "../types/FleetCommanderTypes.sol";
 import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
 
 import {IFleetCommanderConfigProviderDao} from "../interfaces/IFleetCommanderConfigProviderDao.sol";
 
-import {FleetConfig} from "../types/FleetCommanderTypes.sol";
+import {FleetConfigDao} from "../types/FleetCommanderTypes.sol";
 import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 
@@ -32,7 +32,7 @@ contract FleetCommanderConfigProviderDao is
 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    FleetConfig public config;
+    FleetConfigDao public config;
     string public details;
     EnumerableSet.AddressSet private _activeArks;
 
@@ -42,7 +42,7 @@ contract FleetCommanderConfigProviderDao is
     bool public transfersEnabled = true;
 
     constructor(
-        FleetCommanderParams memory params
+        FleetCommanderDaoParams memory params
     )
         ProtocolAccessManaged(params.accessManager)
         FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
@@ -64,12 +64,12 @@ contract FleetCommanderConfigProviderDao is
             address(this)
         );
         emit ArkAdded(address(_bufferArk));
-        config = FleetConfig({
+        config = FleetConfigDao({
             bufferArk: IArk(address(_bufferArk)),
             minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-            stakingRewardsManager: address(0) // staking rewards manager is not used in the dao version
+            tipJar: params.tipJar
         });
         details = params.details;
     }
@@ -115,7 +115,12 @@ contract FleetCommanderConfigProviderDao is
     }
 
     ///@inheritdoc IFleetCommanderConfigProviderDao
-    function getConfig() external view override returns (FleetConfig memory) {
+    function getConfig()
+        external
+        view
+        override
+        returns (FleetConfigDao memory)
+    {
         return config;
     }
 
@@ -189,6 +194,14 @@ contract FleetCommanderConfigProviderDao is
     ) external onlyCurator(address(this)) whenNotPaused {
         config.depositCap = newCap;
         emit FleetCommanderDepositCapUpdated(newCap);
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProviderDao
+    function setTipJar(
+        address newTipJar
+    ) external onlyCurator(address(this)) whenNotPaused {
+        config.tipJar = newTipJar;
+        emit FleetCommanderTipJarUpdated(newTipJar);
     }
 
     ///@inheritdoc IFleetCommanderConfigProviderDao

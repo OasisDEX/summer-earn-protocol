@@ -135,6 +135,7 @@ export interface BaseConfig {
       admiralsQuarters: { address: string }
       fleetCommanderRewardsManagerFactory: { address: string }
       institutionalVaultRegistry?: { address: string }
+      daoTipJar?: { address: string }
     }
     bridge?: {
       bridgeRouter: { address: string }
@@ -331,7 +332,7 @@ export interface FleetConfig {
   curator: Address
   discourseURL?: string
   sipNumber?: string
-    keeper?: Address
+  keeper?: Address
 }
 
 export interface FleetDeployment {

@@ -15,6 +15,7 @@ export const InstitutionNetworkDeployedContractsSchema = z
     core: z
       .object({
         tipJar: AddressObj.optional(),
+        daoTipJar: AddressObj.optional(),
         configurationManager: AddressObj.optional(),
         harborCommand: AddressObj.optional(),
         admiralsQuarters: AddressObj.optional(),
@@ -135,8 +136,6 @@ export const FleetDeploymentSchema = z.object({
   initialTipRate: z.string().optional(),
   details: FleetDetailsSchema,
 })
-
-
 
 export type FleetDetails = z.infer<typeof FleetDetailsSchema>
 export type ArkDetails = z.infer<typeof ArkDetailsSchema>

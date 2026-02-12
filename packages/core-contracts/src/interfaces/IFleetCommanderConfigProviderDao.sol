@@ -5,7 +5,7 @@ import {IFleetCommanderConfigProviderErrors} from "../errors/IFleetCommanderConf
 
 import {IFleetCommanderConfigProviderEvents} from "../events/IFleetCommanderConfigProviderEvents.sol";
 
-import {FleetConfig} from "../types/FleetCommanderTypes.sol";
+import {FleetConfigDao} from "../types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
@@ -31,7 +31,7 @@ interface IFleetCommanderConfigProviderDao is
     /**
      * @notice Retrieves the current fleet config
      */
-    function getConfig() external view returns (FleetConfig memory);
+    function getConfig() external view returns (FleetConfigDao memory);
 
     /**
      * @notice Retrieves the buffer ark address
@@ -110,7 +110,7 @@ interface IFleetCommanderConfigProviderDao is
 
     /**
      * @notice Sets the maxRebalanceOutflow for an Ark
-     * @dev Only callable by the governor
+     * @dev Only callable by the curator
      * @param ark The address of the Ark
      * @param newMaxRebalanceOutflow The new maxRebalanceOutflow value
      */
@@ -121,7 +121,7 @@ interface IFleetCommanderConfigProviderDao is
 
     /**
      * @notice Sets the maxRebalanceInflow for an Ark
-     * @dev Only callable by the governor
+     * @dev Only callable by the curator
      * @param ark The address of the Ark
      * @param newMaxRebalanceInflow The new maxRebalanceInflow value
      */
@@ -130,4 +130,10 @@ interface IFleetCommanderConfigProviderDao is
         uint256 newMaxRebalanceInflow
     ) external;
 
+    /**
+     *   @notice Sets the tip jar address for the FleetCommanderDao
+     *   @param newTipJar The address of the new tip jar
+     *   @dev Only callable by the curator
+     */
+    function setTipJar(address newTipJar) external;
 }
