@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommanderDao} from "../interfaces/IFleetCommanderDao.sol";
-import {ArkData, FleetCommanderDaoParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {ArkData, FleetCommanderDaoParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 
@@ -62,7 +62,7 @@ contract FleetCommanderDao is
      */
     modifier collectTip() {
         _setIsCollectingTip(true);
-        _accrueTip(config.tipJar, totalSupply());
+        _accrueTip(tipJar(), totalSupply());
 
         _;
         _setIsCollectingTip(false);
@@ -306,7 +306,7 @@ contract FleetCommanderDao is
 
     /// @inheritdoc IFleetCommanderDao
     function tip() public whenNotPaused returns (uint256) {
-        return _accrueTip(config.tipJar, totalSupply());
+        return _accrueTip(tipJar(), totalSupply());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -334,7 +334,7 @@ contract FleetCommanderDao is
             return super.totalSupply();
         }
         uint256 _totalSupply = super.totalSupply();
-        return _totalSupply + previewTip(config.tipJar, _totalSupply);
+        return _totalSupply + previewTip(tipJar(), _totalSupply);
     }
 
     /// @inheritdoc IFleetCommanderDao
@@ -441,7 +441,7 @@ contract FleetCommanderDao is
         // The newTipRate uses the Percentage type from @summerfi/percentage-solidity
         // Percentages have 18 decimals of precision
         // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
-        _setTipRate(newTipRate, config.tipJar, totalSupply());
+        _setTipRate(newTipRate, tipJar(), totalSupply());
     }
 
     /// @inheritdoc IFleetCommanderDao

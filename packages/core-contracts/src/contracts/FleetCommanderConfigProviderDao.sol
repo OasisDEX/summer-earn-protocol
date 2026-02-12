@@ -48,6 +48,9 @@ contract FleetCommanderConfigProviderDao is
         FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
         ConfigurationManaged(params.configurationManager)
     {
+        if (params.tipJar == address(0)) {
+            revert FleetCommanderInvalidTipJar();
+        }
         BufferArk _bufferArk = new BufferArk(
             ArkParams({
                 name: "BufferArk",
@@ -72,6 +75,14 @@ contract FleetCommanderConfigProviderDao is
             tipJar: params.tipJar
         });
         details = params.details;
+    }
+
+    /**
+     * @notice Returns the DAO fleet's tip jar
+     * @dev Overrides ConfigurationManaged.tipJar() so DAO fleets don't accidentally use the global tip jar.
+     */
+    function tipJar() public view override returns (address) {
+        return config.tipJar;
     }
 
     /**
@@ -200,6 +211,9 @@ contract FleetCommanderConfigProviderDao is
     function setTipJar(
         address newTipJar
     ) external onlyCurator(address(this)) whenNotPaused {
+        if (newTipJar == address(0)) {
+            revert FleetCommanderInvalidTipJar();
+        }
         config.tipJar = newTipJar;
         emit FleetCommanderTipJarUpdated(newTipJar);
     }
