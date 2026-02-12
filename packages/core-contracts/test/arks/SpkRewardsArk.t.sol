@@ -9,25 +9,26 @@ import {ILitePSM} from "../../src/interfaces/sky/ILitePSM.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
+contract SpkRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
     SkyRewardsArk public ark;
-    SkyRewardsArk public nextArk;
 
-    // Known contract addresses
+    // Known contract addresses - SPK rewards (mainnet)
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant USDS = 0xdC035D45d973E3EC169d2276DDab16f1e407384F;
-    address public constant SKY_REWARDS_SKY =
-        0x0650CAF159C5A49f711e8169D4336ECB9b950275;
+    address public constant SPK_STAKING =
+        0x173e314C7635B45322cd8Cb14f44b312e079F3af;
+    address public constant SPK_TOKEN =
+        0xc20059e0317DE91738d13af027DfC4a50781b066;
     address public constant LITE_PSM =
         0xA188EEC8F81263234dA3622A406892F3D630f98c;
 
     IERC20 public usdc;
     IERC20 public usds;
-    IStakingRewards public stakingRewardsSky;
+    IStakingRewards public stakingRewards;
     ILitePSM public litePsm;
 
-    uint256 forkBlock = 20842109;
-    uint256 futureBlock = 21243306;
+    uint256 forkBlock = 24416332;
+    uint256 futureBlock = 24426332;
     uint256 forkId;
 
     function setUp() public {
@@ -36,12 +37,12 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
 
         usdc = IERC20(USDC);
         usds = IERC20(USDS);
-        stakingRewardsSky = IStakingRewards(SKY_REWARDS_SKY);
+        stakingRewards = IStakingRewards(SPK_STAKING);
         litePsm = ILitePSM(LITE_PSM);
 
         ArkParams memory params = ArkParams({
-            name: "SkyRewardsArk",
-            details: "USDC to stakedUSDS with rewards Ark",
+            name: "SpkRewardsArk",
+            details: "USDC to stakedUSDS with SPK rewards Ark",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: USDC,
@@ -52,7 +53,7 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new SkyRewardsArk(LITE_PSM, USDS, SKY_REWARDS_SKY, params);
+        ark = new SkyRewardsArk(LITE_PSM, USDS, SPK_STAKING, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -63,16 +64,25 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
         ark.registerFleetCommander();
         vm.stopPrank();
 
+        vm.label(address(ark), "SpkRewardsArk");
+        vm.label(address(usdc), "USDC");
+        vm.label(address(usds), "USDS");
+        vm.label(address(stakingRewards), "SPK_STAKING");
+        vm.label(address(litePsm), "LITE_PSM");
+        vm.label(address(accessManager), "accessManager");
+        vm.label(address(configurationManager), "configurationManager");
+        vm.label(SPK_TOKEN, "SPK_TOKEN");
+
         vm.makePersistent(address(ark));
         vm.makePersistent(USDC);
         vm.makePersistent(USDS);
-        vm.makePersistent(SKY_REWARDS_SKY);
+        vm.makePersistent(SPK_STAKING);
         vm.makePersistent(LITE_PSM);
         vm.makePersistent(address(accessManager));
         vm.makePersistent(address(configurationManager));
     }
 
-    function test_Board_SkyRewardsArk_fork() public {
+    function test_Board_SpkRewardsArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 6; // USDC has 6 decimals
         deal(address(usdc), commander, amount);
@@ -91,18 +101,18 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
         // Assert
         assertGt(ark.totalAssets(), 0, "Should have assets after boarding");
 
-        // Check yield accrual
+        // Check yield accrual (principal only, rewards accrue separately)
         uint256 assetsAfterDeposit = ark.totalAssets();
         vm.warp(block.timestamp + 10000);
         uint256 assetsAfterAccrual = ark.totalAssets();
         assertEq(
             assetsAfterAccrual,
             assetsAfterDeposit,
-            "Should not accrue yield over time"
+            "Should not accrue yield over time (principal stable)"
         );
     }
 
-    function test_Disembark_SkyRewardsArk_fork() public {
+    function test_Disembark_SpkRewardsArk_fork() public {
         // First board some assets so we have something to disembark
         uint256 boardAmount = 1000 * 10 ** 6; // 1000 USDC
         deal(address(usdc), commander, boardAmount);
@@ -111,7 +121,7 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
         usdc.approve(address(ark), boardAmount);
         ark.board(boardAmount, bytes(""));
 
-        // Wait some time to accrue yield
+        // Wait some time to accrue rewards
         vm.warp(block.timestamp + 1000);
 
         // Get current balance before disembark
@@ -144,7 +154,7 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
         );
     }
 
-    function test_Harvest_SkyRewardsArk_fork() public {
+    function test_Harvest_SpkRewardsArk_fork() public {
         // First board some assets to generate rewards
         uint256 boardAmount = 1000 * 10 ** 6; // 1000 USDC
         deal(address(usdc), commander, boardAmount);
@@ -154,11 +164,16 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
         ark.board(boardAmount, bytes(""));
         vm.stopPrank();
 
-        // Wait some time to accrue rewards
+        // Wait some time to accrue SPK rewards
         vm.warp(block.timestamp + 10000);
 
         // Get rewards token balance before harvest
         IERC20 rewardsToken = ark.rewardsToken();
+        assertEq(
+            address(rewardsToken),
+            SPK_TOKEN,
+            "Rewards token should be SPK"
+        );
         uint256 rewardsBeforeRaft = rewardsToken.balanceOf(address(raft));
 
         // Harvest rewards
@@ -172,13 +187,14 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
         assertEq(
             rewardTokens[0],
             address(rewardsToken),
-            "Should have harvested rewards"
+            "Should have harvested SPK rewards"
         );
         assertEq(
             rewardsAfterRaft - rewardsBeforeRaft,
             rewardAmounts[0],
-            "Should have transferred rewards to raft"
+            "Should have transferred SPK rewards to raft"
         );
+        assertGt(rewardAmounts[0], 0, "Should have accrued rewards");
     }
 
     function test_Disembark_AfterYieldAccrual_CheckLeftovers() public {
@@ -208,11 +224,11 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
         uint256 arkTotalAssets = ark.totalAssets();
         uint256 commanderUsdcAfter = usdc.balanceOf(commander);
 
-        // Check that commander received more than deposited due to yield
+        // Check that commander received deposited amount (principal only, no yield on principal)
         assertEq(
             commanderUsdcAfter - commanderUsdcBefore,
             boardAmount,
-            "Should receive same amount as deposited due to no yield"
+            "Should receive same amount as deposited (principal)"
         );
 
         // Check for any leftover balances

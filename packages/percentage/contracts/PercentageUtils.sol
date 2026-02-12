@@ -80,7 +80,10 @@ library PercentageUtils {
         uint256 numerator,
         uint256 denominator
     ) internal pure returns (Percentage) {
-        return Percentage.wrap((numerator * PERCENTAGE_100) / denominator);
+        return
+            Percentage.wrap(
+                (numerator * 100 * PERCENTAGE_FACTOR) / denominator
+            );
     }
 
     /**

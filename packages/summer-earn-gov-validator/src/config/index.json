@@ -736,7 +736,18 @@
           "Morpho_V2_API3_Core_USDC": "0xe2221Aa07ec3266DA87763E2b1e28d07A8a4e53b",
           "Morpho_V2_Avantgarde_USDC_Conservative": "0xeBBaE8CfAbB0092d5B32f00EBeE0c8139d24dDcd",
           "Morpho_V2_Yearn_OG_USDC_v2": "0xB885F6d448dA7E2C642Ec31190B629E40E87B069",
-          "Morpho_V2_Hyperithm_USDC_Midcurve": "0x0229dB3921dE71CFa43Cfe9fb6A87b403647A9ae"
+          "Morpho_V2_Hyperithm_USDC_Midcurve": "0x0229dB3921dE71CFa43Cfe9fb6A87b403647A9ae",
+          "Morpho_V2_Clearstar_USDC_Core": "0x69A238Ae7ebeb3c53ff3B544E48B96a2142fc284",
+          "Morpho_V2_Re_Ecosystem_Vault_USDC": "0xD1E9242e075Db4bdd3f3c721D7d5fd4180A94A7e",
+          "Morpho_V2_Alpha_USDC_Enhanced": "0x951a9f4A2cE19B9DeA6B37e691d076A345b6c0F8",
+          "Morpho_V2_Steakhouse_Reservoir_USDC": "0xBEeFF047C03714965a54b671A37C18beF6b96210",
+          "Morpho_V2_Hyperithm_USDC_Degen": "0x093272C07700d3cA5301C3Bf9B3A392624179E2F",
+          "Morpho_V2_Gauntlet_USDC_Frontier": "0x9a1D6bd5b8642C41F25e0958129B85f8E1176F3e",
+          "Morpho_V2_KPK_USDC_Yield_V2": "0xD5cCe260E7a755DDf0Fb9cdF06443d593AaeaA13",
+          "Morpho_V2_Steakhouse_3Fx_USDC": "0xBEEf3f3A04e28895f3D5163d910474901981183D",
+          "Morpho_V2_Steakhouse_High_Yield_Instant": "0xbeeff2C5bF38f90e3482a8b19F12E5a6D2FCa757",
+          "Morpho_V2_Steakhouse_Prime_Instant": "0xbeef088055857739C12CD3765F20b7679Def0f51",
+          "Morpho_V2_August_USDC_V2": "0x7ceB0f01Cb7187a2EBED5661eCC4d5701d8F2350"
         },
         "dai": {},
         "usde": {},
@@ -893,7 +904,8 @@
           "usdce": "0x0000000000000000000000000000000000000000"
         },
         "staking": {
-          "sky": "0x0650CAF159C5A49f711e8169D4336ECB9b950275"
+          "sky": "0x0650CAF159C5A49f711e8169D4336ECB9b950275",
+          "spk": "0x173e314C7635B45322cd8Cb14f44b312e079F3af"
         }
       },
       "silo": {

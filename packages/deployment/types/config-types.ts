@@ -308,8 +308,10 @@ export interface ArkConfig {
     depositCap?: string // For FluidLiteArk
     maxRebalanceOutflow?: string // For FluidLiteArk
     maxRebalanceInflow?: string // For FluidLiteArk
+    maxDepositPercentageOfTVL?: string // For ArkConfigProvider
     targetChainId?: string // For CrossChainArk
     fleetName?: string // For CrossChainArk
+    vaultToken?: string // for arks with underlying token different than fleet asset
   }
 }
 
