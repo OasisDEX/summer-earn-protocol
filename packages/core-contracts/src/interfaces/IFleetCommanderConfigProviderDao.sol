@@ -101,7 +101,7 @@ interface IFleetCommanderConfigProviderDao is
     function setMinimumBufferBalance(uint256 newMinimumBalance) external;
 
     /**
-     * @dev Sets the minimum number of allowe rebalance operations.
+     * @dev Sets the maximum number of allowed rebalance operations per rebalance call.
      * @param newMaxRebalanceOperations The new maximum allowed rebalance operations.
      */
     function setMaxRebalanceOperations(
