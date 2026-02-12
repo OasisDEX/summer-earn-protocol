@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "LazyVault_LowerRisk_USDT",
+  "isBummer": false,
   "symbol": "LVUSDT",
   "assetSymbol": "USDT",
   "initialMinimumBufferBalance": "0",
@@ -7,7 +9,13 @@
   "depositCap": "100000000",
   "initialTipRate": "1000000000000000000",
   "network": "arbitrum",
-  "details": "",
+  "details": {
+    "name": "LazyVault_LowerRisk_USDT",
+    "chainId": 42161,
+    "asset": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+    "assetSymbol": "USDT",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "AaveV3Ark",
@@ -27,32 +35,32 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDT",
-        "vaultName": "Fluid",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Fluid"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDT",
-        "vaultName": "Gauntlet_USDT0_Core",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Gauntlet_USDT0_Core"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDT",
-        "vaultName": "MEV_Capital_USDT0",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "MEV_Capital_USDT0"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDT",
-        "vaultName": "Euler_Arbitrum_USDT0",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Arbitrum_USDT0"
       }
     },
     {

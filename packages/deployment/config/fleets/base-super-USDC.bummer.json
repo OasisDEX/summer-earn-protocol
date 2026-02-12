@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "Bummer_SuperLazyVault_LowerRisk_USDC",
+  "isBummer": true,
   "symbol": "BSLVUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "0",
@@ -7,8 +9,13 @@
   "depositCap": "100000000",
   "initialTipRate": "1000000000000000000",
   "network": "base",
-  "details": "Cross-chain USDC fleet on Bummer",
-  "curator": "0xb0f758323D3798a6A567C1601d84f30d1BCAAA0b",
+  "details": {
+    "name": "Bummer_SuperLazyVault_LowerRisk_USDC",
+    "chainId": 8453,
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "CrossChainArk",
@@ -18,5 +25,6 @@
         "targetChainId": "42161"
       }
     }
-  ]
+  ],
+  "curator": "0xb0f758323D3798a6A567C1601d84f30d1BCAAA0b"
 }

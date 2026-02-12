@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "LazyVault_HigherRisk_USDC",
+  "isBummer": false,
   "symbol": "LVUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "0",
@@ -7,81 +9,84 @@
   "depositCap": "100000000",
   "initialTipRate": "1000000000000000000",
   "network": "mainnet",
-  "details": "",
-  "discourseURL": "https://forum.summer.fi/t/sip1-5-onboard-usdc-fleet-mainnet-higher-risk/201/3",
-  "sipNumber": "5",
+  "details": {
+    "name": "LazyVault_HigherRisk_USDC",
+    "chainId": 1,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Fluid",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Fluid"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Sky_sUSDC",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Sky_sUSDC"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler_Yield",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Yield"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler_Swaap_Lend",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Swaap_Lend"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler_Resolv",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Resolv"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler_Stablecoin_Maxi",
-        "protocol": "erc4626"
-      }
-    },
-
-    {
-      "type": "MorphoVaultArk",
-      "params": {
-        "asset": "USDC",
-        "vaultName": "Gauntlet_Frontier_USDC",
-        "protocol": "morpho"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Stablecoin_Maxi"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "Relend_USDC",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Gauntlet_Frontier_USDC"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "MEV_Capital_USDC",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Relend_USDC"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "morpho",
+        "vaultName": "MEV_Capital_USDC"
       }
     },
     {
@@ -102,144 +107,144 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Term_Summer_USDC",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Term_Summer_USDC"
       }
     },
     {
       "type": "SiloManagedVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "apostro",
-        "protocol": "silo"
+        "protocol": "silo",
+        "vaultName": "apostro"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Gearbox_Invariant",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Gearbox_Invariant"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "Avantgarde_USDC_Core",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Avantgarde_USDC_Core"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "Gauntlet_USDC_RWA",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Gauntlet_USDC_RWA"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "MEV_Capital_PTs_USDC",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "MEV_Capital_PTs_USDC"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "RE7_USDC_FX_Protocol",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "RE7_USDC_FX_Protocol"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "Steakhouse_InfiniFi_USDC",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Steakhouse_InfiniFi_USDC"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "TAC_USDC",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "TAC_USDC"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "Clearstar_USDC_Reactor",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Clearstar_USDC_Reactor"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "Edge_UltraYield_USDC",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Edge_UltraYield_USDC"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler_Frontier_Falcon",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Frontier_Falcon"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler_Frontier_MMEV",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Frontier_MMEV"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler_Frontier_YieldFi",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Frontier_YieldFi"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler_Frontier_Hyperwave",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Frontier_Hyperwave"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler_Frontier_Yala",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Frontier_Yala"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler_Frontier_Pareto",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Frontier_Pareto"
       }
     },
     {
       "type": "SiUSDArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "SiUSD_InfiniFi_Senior",
-        "protocol": "infinifi"
+        "protocol": "infinifi",
+        "vaultName": "SiUSD_InfiniFi_Senior"
       }
     },
     {
@@ -253,17 +258,19 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Morpho_V2_Yearn_OG_USDC_v2",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Morpho_V2_Yearn_OG_USDC_v2"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Morpho_V2_Hyperithm_USDC_Midcurve",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Morpho_V2_Hyperithm_USDC_Midcurve"
       }
     }
-  ]
+  ],
+  "sipNumber": "5",
+  "discourseURL": "https://forum.summer.fi/t/sip1-5-onboard-usdc-fleet-mainnet-higher-risk/201/3"
 }

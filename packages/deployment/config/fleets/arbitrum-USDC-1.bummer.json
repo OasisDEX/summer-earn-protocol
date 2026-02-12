@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "BummerLazyVault_LowerRisk_USDC",
+  "isBummer": true,
   "symbol": "LVUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "100000000",
@@ -7,14 +9,13 @@
   "depositCap": "0",
   "initialTipRate": "1000000000000000000",
   "network": "arbitrum",
-  "details": "",
-  "discourseURL": "https://forum.summer.fi/t/sip1-x-onboard-usdc-vault-onto-arbitrum/89",
-  "sipNumber": "1",
-  "rewardTokens": ["0x8c977a41aDCd7537498a3bC3a0cB30Fb210A247A"],
-  "rewardAmounts": ["1537243000000000000000000"],
-  "rewardsDuration": 4924800,
-  "bridgeAmount": "2000000000000000000000000",
-  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "details": {
+    "name": "BummerLazyVault_LowerRisk_USDC",
+    "chainId": 42161,
+    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "AaveV3Ark",
@@ -34,25 +35,32 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Fluid",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Fluid"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Gearbox",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Gearbox"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Sky_sUSDC",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Sky_sUSDC"
       }
     }
-  ]
+  ],
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "rewardTokens": ["0x8c977a41aDCd7537498a3bC3a0cB30Fb210A247A"],
+  "rewardAmounts": ["1537243000000000000000000"],
+  "rewardsDuration": 4924800,
+  "bridgeAmount": "2000000000000000000000000",
+  "sipNumber": "1",
+  "discourseURL": "https://forum.summer.fi/t/sip1-x-onboard-usdc-vault-onto-arbitrum/89"
 }

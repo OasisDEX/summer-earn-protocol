@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "LazyVault_LowerRisk_USDC_2",
+  "isBummer": false,
   "symbol": "LVUSDC2",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "100000000",
@@ -7,14 +9,13 @@
   "depositCap": "0",
   "initialTipRate": "1000000000000000000",
   "network": "arbitrum",
-  "details": "",
-  "discourseURL": "https://forum.summer.fi/t/sip1-1-onboard-usdc-vault-onto-arbitrum/89",
-  "sipNumber": "1.1",
-  "rewardTokens": [],
-  "rewardAmounts": [],
-  "rewardsDuration": 0,
-  "bridgeAmount": "0",
-  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "details": {
+    "name": "LazyVault_LowerRisk_USDC_2",
+    "chainId": 42161,
+    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "AaveV3Ark",
@@ -34,64 +35,64 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Fluid",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Fluid"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Gearbox",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Gearbox"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Sky_sUSDC",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Sky_sUSDC"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "Gauntlet_USDC_Prime",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Gauntlet_USDC_Prime"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "Gauntlet_USDC_Core",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Gauntlet_USDC_Core"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "Yearn_OG_USDC",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Yearn_OG_USDC"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "Steakhouse_Prime_USDC",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Steakhouse_Prime_USDC"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDC",
-        "vaultName": "MEV_Capital_USDC",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "MEV_Capital_USDC"
       }
     },
     {
@@ -101,5 +102,9 @@
         "protocol": "fluid"
       }
     }
-  ]
+  ],
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "bridgeAmount": "0",
+  "sipNumber": "1.1",
+  "discourseURL": "https://forum.summer.fi/t/sip1-1-onboard-usdc-vault-onto-arbitrum/89"
 }

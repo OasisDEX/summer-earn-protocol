@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "BummerLazyVault_LowerRisk_USDC_1",
+  "isBummer": true,
   "symbol": "LVUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "0",
@@ -7,7 +9,13 @@
   "depositCap": "100000000",
   "initialTipRate": "1000000000000000000",
   "network": "base",
-  "details": "",
+  "details": {
+    "name": "BummerLazyVault_LowerRisk_USDC_1",
+    "chainId": 8453,
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "AaveV3Ark",

@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 2,
   "fleetName": "LazyVault_Institutional_ACME_USDC",
   "isBummer": true,
   "fleetSymbol": "LVIUSDC",
@@ -17,5 +18,12 @@
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "600",
   "depositCap": "1000000000",
-  "initialTipRate": "0"
+  "initialTipRate": "0",
+  "details": {
+    "name": "LazyVault_Institutional_ACME_USDC",
+    "chainId": 8453,
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  }
 }

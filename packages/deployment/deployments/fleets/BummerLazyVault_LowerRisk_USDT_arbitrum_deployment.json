@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 2,
   "fleetName": "BummerLazyVault_LowerRisk_USDT",
   "isBummer": true,
   "fleetSymbol": "LVUSDT",
@@ -6,10 +7,6 @@
   "fleetAddress": "0x45342A8ac1e9Ef6877D7566ed7be5FC98F7e7cae",
   "bufferArkAddress": "0xb542a29fba29dBD1CA58F0eD37559D95bF9dFE36",
   "network": "arbitrum",
-  "initialMinimumBufferBalance": "0",
-  "initialRebalanceCooldown": "600",
-  "depositCap": "100000000",
-  "initialTipRate": "1000000000000000000",
   "arks": [
     "0x457436fdb96fb234A91c5516e1eb9303E3374a29",
     "0xeBA9b3d4336802CcfbDB80AfBDA820e9Eef97f8e",
@@ -19,5 +16,16 @@
     "0xeBA9b3d4336802CcfbDB80AfBDA820e9Eef97f8e",
     "0xd0aAdDe147b6D683cBb80bFE0Fb9e8dB9De1958F",
     "0x81f025C87367033d87B6d3A95289B36106770B25"
-  ]
+  ],
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "100000000",
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "BummerLazyVault_LowerRisk_USDT",
+    "chainId": 42161,
+    "asset": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+    "assetSymbol": "USDT",
+    "type": "protocol"
+  }
 }

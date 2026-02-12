@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "LazyVault_LowerRisk_USDT",
+  "isBummer": false,
   "fleetSymbol": "LVUSDT",
   "assetSymbol": "USDT",
   "fleetAddress": "0x17Ee2D03e88b55E762c66C76ec99C3A28A54AD8d",
@@ -25,5 +27,12 @@
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "3600",
   "depositCap": "100000000",
-  "initialTipRate": "1000000000000000000"
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "LazyVault_LowerRisk_USDT",
+    "chainId": 1,
+    "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+    "assetSymbol": "USDT",
+    "type": "protocol"
+  }
 }

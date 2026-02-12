@@ -1,6 +1,15 @@
 import { z } from 'zod'
 
+/** Schema version for fleet config/deployment JSON files. Bump when breaking schema changes are made. */
+export const FLEET_SCHEMA_VERSION = 2
+
 export const AddressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/)
+
+/** Address schema that rejects the zero address */
+export const NonZeroAddressSchema = AddressSchema.refine(
+  (addr) => addr.toLowerCase() !== '0x0000000000000000000000000000000000000000',
+  { message: 'Address cannot be zero' },
+)
 
 const AddressObj = z.object({ address: AddressSchema })
 
@@ -35,21 +44,18 @@ export const InstitutionNetworkSchema = z
   .object({
     deployedContracts: InstitutionNetworkDeployedContractsSchema.optional(),
     fleets: z.record(z.string(), InstitutionFleetEntrySchema).optional(),
-    // Per-network governance fields
     treasury: AddressSchema.optional(),
     governor: z.array(AddressSchema).optional(),
     guardian: z.array(AddressSchema).optional(),
   })
   .partial()
 
-// Governance fields structure (used for validating per-network governance)
 export const InstitutionGovernanceSchema = z.object({
   treasury: AddressSchema,
   governor: z.array(AddressSchema),
   guardian: z.array(AddressSchema),
 })
 
-// Top-level: record of network name -> schema
 export const InstitutionIndexSchema = z.record(z.string(), InstitutionNetworkSchema)
 
 export type InstitutionNetwork = z.infer<typeof InstitutionNetworkSchema>
@@ -57,16 +63,76 @@ export type InstitutionIndex = z.infer<typeof InstitutionIndexSchema>
 export type InstitutionGovernance = z.infer<typeof InstitutionGovernanceSchema>
 export type InstitutionFleetEntry = z.infer<typeof InstitutionFleetEntrySchema>
 
-// Schema for ark details validation - ensures minimal required fields for offchain processing
-export const ArkDetailsSchema = z.object({
+/** Ark type string literal union - must match ArkType enum in config-types */
+const ArkTypeLiteral = z.enum([
+  'AaveV3Ark',
+  'SparkArk',
+  'CompoundV3Ark',
+  'CrossChainArk',
+  'ERC4626Ark',
+  'MorphoArk',
+  'MorphoVaultArk',
+  'PendleLPArk',
+  'PendlePTArk',
+  'PendlePtOracleArk',
+  'SkyUsdsArk',
+  'SkyUsdsPsm3Ark',
+  'MoonwellArk',
+  'SyrupArk',
+  'SkyRewardsArk',
+  'SiloArk',
+  'SiloArkV2',
+  'SiloManagedVaultArk',
+  'OriginETHArk',
+  'ArmArk',
+  'FluidLiteArk',
+  'AeraArk',
+  'StargateV2PoolArk',
+  'SiUSDArk',
+  'FluidFTokenArk',
+  'PsmLiteERC4626Ark',
+  'Psm3ERC4626Ark',
+  'HyperlendArk',
+  'HypurrArk',
+])
+
+/**
+ * User input params for arks in fleet config (arks[].params).
+ * Uses symbols/names (e.g. asset: "USDC", protocol: "aaveV3").
+ * .passthrough() allows ark-type-specific fields (maxDepositPercentageOfTVL, vaultToken, etc.).
+ */
+const ArkParamsSchema = z
+  .object({
+    asset: z.string().min(1),
+    protocol: z.string().min(1),
+    vaultName: z.string().optional(),
+    depositCap: z.string().optional(),
+    maxRebalanceOutflow: z.string().optional(),
+    maxRebalanceInflow: z.string().optional(),
+    maxDepositPercentageOfTVL: z.string().optional(),
+    vaultToken: z.string().optional(),
+    targetChainId: z.string().optional(),
+    fleetName: z.string().optional(),
+  })
+  .passthrough()
+
+export const ArkConfigSchema = z.object({
+  type: ArkTypeLiteral,
+  params: ArkParamsSchema,
+})
+
+/**
+ * Resolved ark details after deployment - contract-facing structure.
+ * Uses addresses (asset, pool, etc.) and chainId. Built by each ark deploy script,
+ * validated here, then JSON.stringified into the contract.
+ */
+export const ArkDeploymentDetailsSchema = z.object({
   protocol: z.string().min(1),
   pool: AddressSchema,
   chainId: z.number().int().positive(),
-  // Optional fields that may be present in different ark types
   type: z.string().optional(),
   asset: AddressSchema.optional(),
   marketAsset: AddressSchema.optional(),
-  // Additional protocol-specific fields
   gateway: AddressSchema.optional(),
   vaultId: z.string().optional(),
   marketId: z.string().optional(),
@@ -88,7 +154,7 @@ export const ArkDetailsSchema = z.object({
   aaveV3Pool: AddressSchema.optional(),
 })
 
-// Schema for fleet details validation - ensures required fields for fleet metadata
+/** Schema for fleet details - always an object in canonical format */
 export const FleetDetailsSchema = z.object({
   name: z.string().min(1),
   chainId: z.number().int().positive(),
@@ -97,7 +163,18 @@ export const FleetDetailsSchema = z.object({
   type: z.enum(['protocol', 'dao']),
 })
 
-export const FleetConfigSchema = z.object({
+export type FleetDetails = z.infer<typeof FleetDetailsSchema>
+/** Resolved ark details for contract storage. Use ArkDeploymentDetailsSchema for validation. */
+export type ArkDetails = z.infer<typeof ArkDeploymentDetailsSchema>
+export type ArkConfig = z.infer<typeof ArkConfigSchema>
+
+/**
+ * Canonical fleet config file schema (v2).
+ * Config files live in config/fleets/ with names like {network}-{asset}-{id}.json or *.bummer.json.
+ * fleetName + network must be unique; deployment output uses {sanitizedFleetName}_{network}_deployment.json.
+ */
+export const FleetConfigFileSchema = z.object({
+  schemaVersion: z.literal(FLEET_SCHEMA_VERSION),
   fleetName: z.string().min(1),
   isBummer: z.boolean(),
   symbol: z.string().min(1),
@@ -108,8 +185,8 @@ export const FleetConfigSchema = z.object({
   initialTipRate: z.string().min(1),
   network: z.string().min(1),
   details: FleetDetailsSchema,
-  arks: z.array(z.any()),
-  curator: AddressSchema,
+  arks: z.array(ArkConfigSchema),
+  curator: AddressSchema.optional(),
   keeper: AddressSchema.optional(),
   rewardTokens: z.array(AddressSchema).optional(),
   rewardAmounts: z.array(z.string()).optional(),
@@ -119,7 +196,13 @@ export const FleetConfigSchema = z.object({
   discourseURL: z.string().optional(),
 })
 
-export const FleetDeploymentSchema = z.object({
+/**
+ * Canonical fleet deployment file schema (v2).
+ * Deployment files live in deployments/fleets/ as {sanitizedFleetName}_{network}_deployment.json.
+ * fleetSymbol = config.symbol; named explicitly for deployment context.
+ */
+export const FleetDeploymentFileSchema = z.object({
+  schemaVersion: z.literal(FLEET_SCHEMA_VERSION),
   fleetName: z.string().min(1),
   isBummer: z.boolean(),
   fleetSymbol: z.string().min(1),
@@ -127,8 +210,7 @@ export const FleetDeploymentSchema = z.object({
   fleetAddress: AddressSchema,
   bufferArkAddress: AddressSchema,
   network: z.string().min(1),
-  // Allow optional during initial save (filled later by addArkToFleet)
-  arks: z.array(AddressSchema).optional(),
+  arks: z.array(AddressSchema).default([]),
   initialMinimumBufferBalance: z.string().optional(),
   initialRebalanceCooldown: z.string().optional(),
   depositCap: z.string().optional(),
@@ -136,12 +218,7 @@ export const FleetDeploymentSchema = z.object({
   details: FleetDetailsSchema,
 })
 
-
-
-export type FleetDetails = z.infer<typeof FleetDetailsSchema>
-export type ArkDetails = z.infer<typeof ArkDetailsSchema>
-
-// Schema for vault name validation - ensures protocol_name format
+/** Schema for vault name validation - ensures protocol_name format */
 export const VaultNameSchema = z.string().refine(
   (name) => {
     const parts = name.split('_')

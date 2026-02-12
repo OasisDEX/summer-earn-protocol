@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "LazyVault_LowerRisk_EURC",
+  "isBummer": false,
   "symbol": "LVEURC",
   "assetSymbol": "EURC",
   "initialMinimumBufferBalance": "0",
@@ -7,21 +9,20 @@
   "depositCap": "0",
   "initialTipRate": "1000000000000000000",
   "network": "base",
-  "details": "",
-  "discourseURL": "https://forum.summer.fi/t/sip1-2-onboard-eurc-vault-on-base/144",
-  "sipNumber": "2",
-  "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
-  "rewardAmounts": ["1429366000000000000000000"],
-  "rewardsDuration": 4579200,
-  "bridgeAmount": "0",
-  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "details": {
+    "name": "LazyVault_LowerRisk_EURC",
+    "chainId": 8453,
+    "asset": "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42",
+    "assetSymbol": "EURC",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "EURC",
-        "vaultName": "Fluid",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Fluid"
       }
     },
     {
@@ -36,16 +37,16 @@
       "type": "MorphoVaultArk",
       "params": {
         "asset": "EURC",
-        "vaultName": "Steakhouse_EURC",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Steakhouse_EURC"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "EURC",
-        "vaultName": "Gauntlet_EURC_Core",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Gauntlet_EURC_Core"
       }
     },
     {
@@ -69,5 +70,12 @@
         "protocol": "fluid"
       }
     }
-  ]
+  ],
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
+  "rewardAmounts": ["1429366000000000000000000"],
+  "rewardsDuration": 4579200,
+  "bridgeAmount": "0",
+  "sipNumber": "2",
+  "discourseURL": "https://forum.summer.fi/t/sip1-2-onboard-eurc-vault-on-base/144"
 }

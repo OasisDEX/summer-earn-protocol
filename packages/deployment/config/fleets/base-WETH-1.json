@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "LazyVault_LowerRisk_WETH",
+  "isBummer": false,
   "symbol": "LVWETH",
   "assetSymbol": "WETH",
   "initialMinimumBufferBalance": "0",
@@ -7,13 +9,13 @@
   "depositCap": "0",
   "initialTipRate": "300000000000000000",
   "network": "base",
-  "details": "",
-  "discourseURL": "https://forum.summer.fi/t/sip1-4-onbaord-lower-risk-eth-vault-on-base/171",
-  "sipNumber": "10",
-  "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
-  "rewardAmounts": ["458476000000000000000000"],
-  "rewardsDuration": [1468800],
-  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "details": {
+    "name": "LazyVault_LowerRisk_WETH",
+    "chainId": 8453,
+    "asset": "0x4200000000000000000000000000000000000006",
+    "assetSymbol": "WETH",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "AaveV3Ark",
@@ -33,40 +35,40 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Fluid",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Fluid"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Euler_Base_WETH",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Base_WETH"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "WETH",
-        "vaultName": "Moonwell_Flagship_WETH",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Moonwell_Flagship_WETH"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "WETH",
-        "vaultName": "Steakhouse_WETH",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Steakhouse_WETH"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "WETH",
-        "vaultName": "Gauntlet_WETH_Core",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Gauntlet_WETH_Core"
       }
     },
     {
@@ -80,32 +82,32 @@
       "type": "MorphoVaultArk",
       "params": {
         "asset": "WETH",
-        "vaultName": "Seamless_WETH",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Seamless_WETH"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "WETH",
-        "vaultName": "Extrafi_XLend_WETH",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Extrafi_XLend_WETH"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "WETH",
-        "vaultName": "Yearn_OG_WETH",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Yearn_OG_WETH"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Euler_Alterscope_LRT_WETH",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Alterscope_LRT_WETH"
       }
     },
     {
@@ -115,5 +117,10 @@
         "protocol": "fluid"
       }
     }
-  ]
+  ],
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
+  "rewardAmounts": ["458476000000000000000000"],
+  "sipNumber": "10",
+  "discourseURL": "https://forum.summer.fi/t/sip1-4-onbaord-lower-risk-eth-vault-on-base/171"
 }

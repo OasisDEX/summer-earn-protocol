@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 2,
   "fleetName": "BummerDAO_LazyVault_LowerRisk_USDC",
   "isBummer": true,
   "fleetSymbol": "LVUSDC",

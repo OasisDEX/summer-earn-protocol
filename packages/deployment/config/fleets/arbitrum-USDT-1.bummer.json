@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "BummerLazyVault_LowerRisk_USDT",
+  "isBummer": true,
   "symbol": "LVUSDT",
   "assetSymbol": "USDT",
   "initialMinimumBufferBalance": "0",
@@ -7,7 +9,13 @@
   "depositCap": "100000000",
   "initialTipRate": "1000000000000000000",
   "network": "arbitrum",
-  "details": "",
+  "details": {
+    "name": "BummerLazyVault_LowerRisk_USDT",
+    "chainId": 42161,
+    "asset": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+    "assetSymbol": "USDT",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "AaveV3Ark",
@@ -27,8 +35,8 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDT",
-        "vaultName": "Fluid",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Fluid"
       }
     },
     {

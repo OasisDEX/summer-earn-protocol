@@ -2,7 +2,7 @@ import fs from 'fs'
 import kleur from 'kleur'
 import path from 'path'
 import { Address } from 'viem'
-import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
+import { ArkConfig, ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployAeraArk } from '../arks/deploy-aera-ark'
 import { deployArmArk } from '../arks/deploy-arm-ark'
@@ -39,21 +39,6 @@ import {
   validateToken,
 } from '../helpers/validation'
 import { ZERO_STRING } from './constants'
-
-export type ArkConfig = {
-  type: ArkType
-  params: {
-    asset: string
-    protocol?: string
-    vaultName?: string
-    targetChainId?: string
-    depositCap?: string
-    maxRebalanceOutflow?: string
-    maxRebalanceInflow?: string
-    maxDepositPercentageOfTVL?: string
-    vaultToken?: string // for arks with underlying token different than fleet asset
-  }
-}
 
 export type BaseArkParams = {
   token: {

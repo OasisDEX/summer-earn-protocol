@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 2,
   "fleetName": "BummerLazyVault_WETH",
   "isBummer": true,
   "fleetSymbol": "LVWETH",
@@ -6,10 +7,6 @@
   "fleetAddress": "0x40e9C802f9566B16A66A48d9a1d7a8D73FE55651",
   "bufferArkAddress": "0x88b7c2Ca2bD2474b597A2CDe54bC60D8Eb687A63",
   "network": "mainnet",
-  "initialMinimumBufferBalance": "0",
-  "initialRebalanceCooldown": "600",
-  "depositCap": "0",
-  "initialTipRate": "300000000000000000",
   "arks": [
     "0x113Ebd01DAb514136ca2867f4e47B6B9A42Dfb8B",
     "0xFb7F78772078A48b72F066D46cd9e3BbDA4d48A7",
@@ -20,5 +17,16 @@
     "0x8545Fd72553bE7f16Ba0a41E502593B067D24C94",
     "0x74812Cf07e232aC69FEbdf62082775e3D5BbdfB5",
     "0x42f4BeA2F645D24016c53d57C60fd3813030BCeB"
-  ]
+  ],
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "300000000000000000",
+  "details": {
+    "name": "BummerLazyVault_WETH",
+    "chainId": 1,
+    "asset": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "assetSymbol": "WETH",
+    "type": "protocol"
+  }
 }

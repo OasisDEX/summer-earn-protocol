@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "LazyVault_LowerRisk_WETH",
+  "isBummer": false,
   "symbol": "LVWETH",
   "assetSymbol": "WETH",
   "initialMinimumBufferBalance": "0",
@@ -7,7 +9,13 @@
   "depositCap": "100000000000000000",
   "initialTipRate": "300000000000000000",
   "network": "mainnet",
-  "details": "",
+  "details": {
+    "name": "LazyVault_LowerRisk_WETH",
+    "chainId": 1,
+    "asset": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "assetSymbol": "WETH",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "AaveV3Ark",
@@ -27,40 +35,40 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Fluid",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Fluid"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Gearbox",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Gearbox"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Euler_Prime",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Prime"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "WETH",
-        "vaultName": "Gauntlet_WETH_Prime",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Gauntlet_WETH_Prime"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "WETH",
-        "vaultName": "Re7_WETH",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Re7_WETH"
       }
     },
     {
@@ -74,8 +82,8 @@
       "type": "MorphoVaultArk",
       "params": {
         "asset": "WETH",
-        "vaultName": "Steakhouse_WETH",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Steakhouse_WETH"
       }
     },
     {
@@ -89,8 +97,8 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Euler_Frontier_Puffer",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Frontier_Puffer"
       }
     },
     {
@@ -104,24 +112,24 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Gearbox_KPK_WETH_Pool",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Gearbox_KPK_WETH_Pool"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Morpho_V2_Steakhouse_Prime_Instant",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Morpho_V2_Steakhouse_Prime_Instant"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Morpho_V2_KPK_ETH_Prime_v2",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Morpho_V2_KPK_ETH_Prime_v2"
       }
     }
   ]

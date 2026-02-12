@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 2,
   "fleetName": "BummerLazyVault_LowerRisk_USDT",
   "isBummer": true,
   "fleetSymbol": "LVUSDT",
@@ -19,5 +20,12 @@
   "initialMinimumBufferBalance": "100000000",
   "initialRebalanceCooldown": "600",
   "depositCap": "0",
-  "initialTipRate": "1000000000000000000"
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "BummerLazyVault_LowerRisk_USDT",
+    "chainId": 999,
+    "asset": "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
+    "assetSymbol": "USDT",
+    "type": "protocol"
+  }
 }

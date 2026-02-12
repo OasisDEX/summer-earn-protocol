@@ -1,14 +1,12 @@
 {
+  "schemaVersion": 2,
   "fleetName": "LazyVault_LowerRisk_USDCe",
+  "isBummer": false,
   "fleetSymbol": "LVUSDCe",
   "assetSymbol": "usdce",
   "fleetAddress": "0x507A2D9E87DBD3076e65992049C41270b47964f8",
   "bufferArkAddress": "0x809a0C98fac68a0c4319f3a3E864540C772562af",
   "network": "sonic",
-  "initialMinimumBufferBalance": "100000000",
-  "initialRebalanceCooldown": "600",
-  "depositCap": "0",
-  "initialTipRate": "1000000000000000000",
   "arks": [
     "0x4D00D0dc44c4D6352C2bCb2228f2863e48cd53f4",
     "0xDa50CE93aaE2c764532E5B11Dc6378Af3330a817",
@@ -19,5 +17,16 @@
     "0x4c62Fc0393393F3A5e455576BdA95Ccb3E284b19",
     "0x39C5d327FF8b12649A0A8056cA4499Cb27f82fa0",
     "0x8fAF711962E89047CB26Fb4B4F8Dbd578069db53"
-  ]
+  ],
+  "initialMinimumBufferBalance": "100000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "LazyVault_LowerRisk_USDCe",
+    "chainId": 146,
+    "asset": "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
+    "assetSymbol": "usdce",
+    "type": "protocol"
+  }
 }

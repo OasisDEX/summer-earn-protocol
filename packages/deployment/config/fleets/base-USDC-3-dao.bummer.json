@@ -1,21 +1,20 @@
 {
+  "schemaVersion": 2,
   "fleetName": "BummerDAO_LazyVault_LowerRisk_USDC",
+  "isBummer": true,
   "symbol": "LVUSDC",
   "assetSymbol": "USDC",
-  "isBummer": true,
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "600",
   "depositCap": "100000000",
   "initialTipRate": "1000000000000000000",
   "network": "base",
-  "keeper": "0x0f0fA89471259433b6955827226f19999D93c568",
-  "curator": "0x0f0fA89471259433b6955827226f19999D93c568",
   "details": {
-    "type": "dao",
     "name": "DAO_LazyVault_LowerRisk_USDC",
     "chainId": 8453,
     "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-    "assetSymbol": "USDC"
+    "assetSymbol": "USDC",
+    "type": "dao"
   },
   "arks": [
     {
@@ -36,8 +35,8 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Fluid",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Fluid"
       }
     },
     {
@@ -110,5 +109,7 @@
         "protocol": "moonwell"
       }
     }
-  ]
+  ],
+  "curator": "0x0f0fA89471259433b6955827226f19999D93c568",
+  "keeper": "0x0f0fA89471259433b6955827226f19999D93c568"
 }

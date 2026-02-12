@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "BummerLazyVault_LowerRisk_USDC",
+  "isBummer": true,
   "symbol": "LVUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "100000000",
@@ -7,12 +9,13 @@
   "depositCap": "0",
   "initialTipRate": "1000000000000000000",
   "network": "hyperliquid",
-  "details": "",
-  "rewardTokens": [],
-  "rewardAmounts": [],
-  "rewardsDuration": 0,
-  "bridgeAmount": "0",
-  "curator": "0x0f0fA89471259433b6955827226f19999D93c568",
+  "details": {
+    "name": "BummerLazyVault_LowerRisk_USDC",
+    "chainId": 999,
+    "asset": "0xb88339cb7199b77e23db6e890353e22632ba630f",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "HyperlendArk",
@@ -44,5 +47,7 @@
         "protocol": "hypurr"
       }
     }
-  ]
+  ],
+  "curator": "0x0f0fA89471259433b6955827226f19999D93c568",
+  "bridgeAmount": "0"
 }

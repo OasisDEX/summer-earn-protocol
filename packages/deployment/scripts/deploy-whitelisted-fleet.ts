@@ -30,7 +30,7 @@ import {
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { getAssetAddress } from './helpers/token-helpers'
 import { validateToken } from './helpers/validation'
-import { FleetConfigSchema } from './helpers/zod-schemas'
+import { FleetConfigFileSchema } from './helpers/zod-schemas'
 
 async function selectInstitutionFleetConfig(
   institutionId: string,
@@ -52,12 +52,8 @@ async function selectInstitutionFleetConfig(
   })
   const full = path.join(dir, file)
   const data = JSON.parse(fs.readFileSync(full, 'utf8'))
-  const parsed = FleetConfigSchema.parse(data)
-  // Preserve optional curator if present in raw data (schema may not include it)
-  return {
-    ...parsed,
-    details: JSON.stringify(parsed.details),
-  } as unknown as FleetConfig
+  const parsed = FleetConfigFileSchema.parse(data)
+  return parsed as unknown as FleetConfig
 }
 
 enum WhitelistDeploymentMode {
@@ -252,7 +248,7 @@ async function main() {
         protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         fleetName: fleetDefinition.fleetName,
         fleetSymbol: fleetDefinition.symbol,
-        fleetDetails: typeof fleetDefinition.details === 'string' ? fleetDefinition.details : JSON.stringify(fleetDefinition.details),
+        fleetDetails: JSON.stringify(fleetDefinition.details),
         asset: assetAddress,
         initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,

@@ -1,8 +1,14 @@
 import { Address } from 'viem'
+import type { z } from 'zod'
+import type {
+  ArkConfig,
+  FleetConfigFileSchema,
+  FleetDeploymentFileSchema,
+  FleetDetails,
+} from '../scripts/helpers/zod-schemas'
 
 import { CoreContracts as CoreContractsBase } from '../ignition/modules/core'
 import { DeployedBridge } from './bridge-types'
-import { FleetDetails } from '../scripts/helpers/zod-schemas'
 
 export enum SupportedNetworks {
   MAINNET = 'mainnet',
@@ -298,57 +304,13 @@ export interface BaseConfig {
   bridge?: DeployedBridge
 }
 
-export interface ArkConfig {
-  type: ArkType
-  params: {
-    asset: string
-    protocol: string
-    vaultName?: string // For ERC4626Ark
-    depositCap?: string // For FluidLiteArk
-    maxRebalanceOutflow?: string // For FluidLiteArk
-    maxRebalanceInflow?: string // For FluidLiteArk
-    targetChainId?: string // For CrossChainArk
-    fleetName?: string // For CrossChainArk
-  }
-}
+export type { ArkConfig, FleetDetails }
 
-export interface FleetConfig {
-  fleetName: string
-  isBummer?: boolean
-  symbol: string
-  assetSymbol: string
-  initialMinimumBufferBalance: string
-  initialRebalanceCooldown: string
-  depositCap: string
-  initialTipRate: string
-  network: string
-  rewardTokens: string[]
-  rewardAmounts: string[]
-  rewardsDuration: number[]
-  bridgeAmount: string
-  arks: ArkConfig[]
-  details: FleetDetails
-  curator: Address
-  discourseURL?: string
-  sipNumber?: string
-    keeper?: Address
-}
+/** Fleet configuration from config/fleets/*.json. Derived from FleetConfigFileSchema. */
+export type FleetConfig = z.infer<typeof FleetConfigFileSchema>
 
-export interface FleetDeployment {
-  fleetName: string
-  isBummer?: boolean
-  fleetSymbol: string
-  assetSymbol: string
-  fleetAddress: Address
-  bufferArkAddress: Address
-  network: string
-  arks: Address[]
-  initialMinimumBufferBalance?: string
-  initialRebalanceCooldown?: string
-  depositCap?: string
-  initialTipRate?: string
-  details: FleetDetails
-}
+/** Fleet deployment output from deployments/fleets/*_deployment.json. Derived from FleetDeploymentFileSchema. */
+export type FleetDeployment = z.infer<typeof FleetDeploymentFileSchema>
 
 // Extend CoreContracts to include InstitutionalVaultRegistry for networks
 export interface CoreContracts extends CoreContractsBase {

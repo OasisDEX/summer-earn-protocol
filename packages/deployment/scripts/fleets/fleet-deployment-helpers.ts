@@ -4,7 +4,7 @@ import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { BaseConfig, FleetConfig } from '../../types/config-types'
+import { ArkType, BaseConfig, FleetConfig } from '../../types/config-types'
 import { deployArk } from '../common/ark-deployment'
 import { GOVERNOR_ROLE } from '../common/constants'
 
@@ -32,7 +32,11 @@ export async function deployArks(
     while (retries <= MAX_RETRIES) {
       try {
         console.log('Deploying Ark - fleet deployment helper [Debug]')
-        const arkAddress = await deployArk(arkConfig, config, fleetDefinition)
+        const arkAddress = await deployArk(
+          { ...arkConfig, type: arkConfig.type as ArkType },
+          config,
+          fleetDefinition,
+        )
         deployedArks.push(arkAddress)
         console.log(kleur.green().bold(`Successfully deployed ${arkConfig.type} at ${arkAddress}`))
         break

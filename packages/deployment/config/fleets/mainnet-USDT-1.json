@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "LazyVault_LowerRisk_USDT",
+  "isBummer": false,
   "symbol": "LVUSDT",
   "assetSymbol": "USDT",
   "initialMinimumBufferBalance": "0",
@@ -7,7 +9,13 @@
   "depositCap": "100000000",
   "initialTipRate": "1000000000000000000",
   "network": "mainnet",
-  "details": "",
+  "details": {
+    "name": "LazyVault_LowerRisk_USDT",
+    "chainId": 1,
+    "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+    "assetSymbol": "USDT",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "AaveV3Ark",
@@ -27,64 +35,64 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDT",
-        "vaultName": "Fluid",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Fluid"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDT",
-        "vaultName": "Gearbox",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Gearbox"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDT",
-        "vaultName": "Euler_Prime",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Prime"
       }
     },
     {
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDT",
-        "vaultName": "Euler_Yield",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Euler_Yield"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDT",
-        "vaultName": "Flagship_USDT",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Flagship_USDT"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDT",
-        "vaultName": "Steakhouse_USDT",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Steakhouse_USDT"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDT",
-        "vaultName": "Gauntlet_USDT_Prime",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Gauntlet_USDT_Prime"
       }
     },
     {
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDT",
-        "vaultName": "RE7_USDT",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "RE7_USDT"
       }
     },
     {
@@ -98,8 +106,8 @@
       "type": "MorphoVaultArk",
       "params": {
         "asset": "USDT",
-        "vaultName": "Smokehouse_USDT",
-        "protocol": "morpho"
+        "protocol": "morpho",
+        "vaultName": "Smokehouse_USDT"
       }
     },
     {
@@ -120,8 +128,8 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDT",
-        "vaultName": "Morpho_V2_Steakhouse_Prime_Instant",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Morpho_V2_Steakhouse_Prime_Instant"
       }
     }
   ]

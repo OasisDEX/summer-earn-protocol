@@ -6,7 +6,16 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { FleetConfig, FleetDeployment } from '../../types/config-types'
-import { FleetConfigSchema, FleetDeploymentSchema } from '../helpers/zod-schemas'
+import {
+  FLEET_SCHEMA_VERSION,
+  FleetConfigFileSchema,
+  FleetDeploymentFileSchema,
+} from '../helpers/zod-schemas'
+
+/** Sanitizes fleet name for use in filenames (removes all non-word chars) */
+function sanitizeFleetName(fleetName: string): string {
+  return fleetName.replace(/\W/g, '')
+}
 
 /**
  * Retrieves available fleets for the current network from the deployments folder.
@@ -32,7 +41,7 @@ export function getAvailableFleets(networkName: string): FleetDeployment[] {
 export function loadFleetDeployment(filePath: string): FleetDeployment {
   const fullPath = path.resolve(filePath)
   const fileContent = fs.readFileSync(fullPath, 'utf8')
-  const parsed = FleetDeploymentSchema.safeParse(JSON.parse(fileContent))
+  const parsed = FleetDeploymentFileSchema.safeParse(JSON.parse(fileContent))
   if (!parsed.success) {
     throw new Error(`Invalid Fleet deployment JSON: ${fullPath} -> ${parsed.error.message}`)
   }
@@ -44,8 +53,8 @@ export function loadFleetDeployment(filePath: string): FleetDeployment {
  * @param fleetDeployment - The fleet deployment or fleet configuration object.
  * @returns The generated filename for the fleet deployment.
  */
-export function getFleetDeploymentFileName(fleetDeployment: FleetDeployment | FleetConfig) {
-  return `${fleetDeployment.fleetName.replace(/\W/g, '')}_${fleetDeployment.network}_deployment.json`
+export function getFleetDeploymentFileName(fleetDeployment: FleetDeployment | FleetConfig): string {
+  return `${sanitizeFleetName(fleetDeployment.fleetName)}_${fleetDeployment.network}_deployment.json`
 }
 
 /**
@@ -111,7 +120,7 @@ export function loadFleetConfig(filePath: string): FleetConfig {
   }
 
   const fileContent = fs.readFileSync(fullPath, 'utf8')
-  const parsed = FleetConfigSchema.safeParse(JSON.parse(fileContent))
+  const parsed = FleetConfigFileSchema.safeParse(JSON.parse(fileContent))
   if (!parsed.success) {
     throw new Error(`Invalid Fleet config schema: ${fullPath} -> ${parsed.error.message}`)
   }
@@ -119,23 +128,24 @@ export function loadFleetConfig(filePath: string): FleetConfig {
 }
 
 /**
- * Loads the fleet deployment JSON file for a given fleet definition
+ * Loads the fleet deployment JSON file for a given fleet definition.
+ * Uses getFleetDeploymentDir() for consistent path resolution (not process.cwd()).
  */
 export async function loadFleetDeploymentJson(
   fleetDefinition: FleetConfig,
 ): Promise<FleetDeployment | null> {
-  const fleetName = fleetDefinition.fleetName.replace(/\s+/g, '').replace(/\\/g, '')
   const network = hre.network.name
-  const fileName = `${fleetName}_${network}_deployment.json`
-  const filePath = path.join(process.cwd(), 'deployments', 'fleets', fileName)
-  console.log(kleur.green().bold(`Loading fleet deployment output file: ${filePath}`))
+  const deploymentPath = getFleetDeploymentPath({ ...fleetDefinition, network })
+  console.log(kleur.green().bold(`Loading fleet deployment output file: ${deploymentPath}`))
 
   try {
-    if (fs.existsSync(filePath)) {
-      const fileContent = fs.readFileSync(filePath, 'utf8')
-      const parsed = FleetDeploymentSchema.safeParse(JSON.parse(fileContent))
+    if (fs.existsSync(deploymentPath)) {
+      const fileContent = fs.readFileSync(deploymentPath, 'utf8')
+      const parsed = FleetDeploymentFileSchema.safeParse(JSON.parse(fileContent))
       if (!parsed.success) {
-        throw new Error(`Invalid Fleet deployment JSON: ${filePath} -> ${parsed.error.message}`)
+        throw new Error(
+          `Invalid Fleet deployment JSON: ${deploymentPath} -> ${parsed.error.message}`,
+        )
       }
       return parsed.data as unknown as FleetDeployment
     }
@@ -159,8 +169,9 @@ export function saveFleetDeploymentJson(
   isBummer?: boolean,
 ) {
   const deploymentInfo = {
+    schemaVersion: FLEET_SCHEMA_VERSION,
     fleetName: fleetDefinition.fleetName,
-    isBummer: isBummer,
+    isBummer: isBummer ?? fleetDefinition.isBummer ?? false,
     fleetSymbol: fleetDefinition.symbol,
     assetSymbol: fleetDefinition.assetSymbol,
     fleetAddress: deployedFleet.fleetCommander.address,
@@ -175,7 +186,7 @@ export function saveFleetDeploymentJson(
   }
 
   // Validate before write
-  const validated = FleetDeploymentSchema.parse(deploymentInfo)
+  const validated = FleetDeploymentFileSchema.parse(deploymentInfo)
 
   const deploymentDir = getFleetDeploymentDir()
   if (!fs.existsSync(deploymentDir)) {

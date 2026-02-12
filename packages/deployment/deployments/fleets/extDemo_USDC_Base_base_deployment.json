@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 2,
   "fleetName": "extDemo_USDC_Base",
   "isBummer": false,
   "fleetSymbol": "extDemoUSDC",
@@ -18,5 +19,12 @@
   "initialMinimumBufferBalance": "10000000",
   "initialRebalanceCooldown": "600",
   "depositCap": "1000000000",
-  "initialTipRate": "1000000000000000000"
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "extDemo_USDC_Base",
+    "chainId": 8453,
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  }
 }

@@ -135,8 +135,8 @@ async function deployFleet() {
         }
 
         console.log(kleur.green('CrossChainArk parameters collected:'))
-        console.log(kleur.blue('Target Chain ID:'), kleur.cyan(ark.params.targetChainId))
-        console.log(kleur.blue('Protocol:'), kleur.cyan(ark.params.protocol))
+        console.log(kleur.blue('Target Chain ID:'), kleur.cyan(ark.params.targetChainId ?? ''))
+        console.log(kleur.blue('Protocol:'), kleur.cyan(ark.params.protocol ?? ''))
       }
     }
   }
@@ -174,7 +174,7 @@ async function deployFleet() {
  */
 async function handleNewFleetDeployment(
   fleetDefinition: FleetConfig,
-  config: any,
+  config: BaseConfig,
   isHubChain: boolean,
   useBummerConfig: boolean,
   isTenderly: boolean,
@@ -330,7 +330,7 @@ async function handleNewFleetDeployment(
  */
 async function handleArkAddition(
   fleetDefinition: FleetConfig,
-  config: any,
+  config: BaseConfig,
   isHubChain: boolean,
   useBummerConfig: boolean,
   isTenderly: boolean,

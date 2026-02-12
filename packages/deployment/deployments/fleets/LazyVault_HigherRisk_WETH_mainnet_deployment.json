@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 2,
   "fleetName": "LazyVault_HigherRisk_WETH",
   "isBummer": false,
   "fleetSymbol": "LVWETH",
@@ -35,5 +36,12 @@
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "3600",
   "depositCap": "0",
-  "initialTipRate": "300000000000000000"
+  "initialTipRate": "300000000000000000",
+  "details": {
+    "name": "LazyVault_HigherRisk_WETH",
+    "chainId": 1,
+    "asset": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "assetSymbol": "WETH",
+    "type": "protocol"
+  }
 }

@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 2,
   "fleetName": "BummerLazyVault_WETH",
+  "isBummer": true,
   "symbol": "LVWETH",
   "assetSymbol": "WETH",
   "initialMinimumBufferBalance": "0",
@@ -7,7 +9,13 @@
   "depositCap": "0",
   "initialTipRate": "300000000000000000",
   "network": "mainnet",
-  "details": "",
+  "details": {
+    "name": "BummerLazyVault_WETH",
+    "chainId": 1,
+    "asset": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "assetSymbol": "WETH",
+    "type": "protocol"
+  },
   "arks": [
     {
       "type": "OriginETHArk",
@@ -62,16 +70,16 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Term_re7_weth",
-        "protocol": "erc4626"
+        "protocol": "erc4626",
+        "vaultName": "Term_re7_weth"
       }
     },
     {
       "type": "ArmArk",
       "params": {
         "asset": "WETH",
-        "vaultName": "steth",
-        "protocol": "origin-arm"
+        "protocol": "origin-arm",
+        "vaultName": "steth"
       }
     }
   ]
