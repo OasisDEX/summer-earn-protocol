@@ -21,7 +21,7 @@ import {IRoundsVaultBaseEnums} from "../../interfaces/rounds-vault/IRoundsVaultB
     @title RoundsVaultBase
 
     @notice Provides a way of investing in a target tokenized vault that has investment periods in 
-    which the vault is locked. During these locked periods, the vault does not accept deposits, so
+    which the vault is locked.  During these locked periods, the vault does not accept deposits, so
     investors need to be on the lookout for the unlocked period to deposit their funds.
 
     @dev See { IRoundsVaultBase } for more details.
