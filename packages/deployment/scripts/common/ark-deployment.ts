@@ -39,6 +39,7 @@ import {
   validateToken,
 } from '../helpers/validation'
 import { ZERO_STRING } from './constants'
+import { deployMorphoV2VaultArk } from '../arks/deploy-morpho-v2-vault-ark'
 
 export type BaseArkParams = {
   token: {
@@ -154,6 +155,20 @@ export async function deployArk(
       const ark = await deployMorphoVaultArk(config, {
         ...baseArkParams,
         vaultId: marketId as `0x${string}`,
+        vaultName: vaultName,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.MorphoV2VaultArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateAddress(
+        config.protocolSpecific.morpho.vaultsV2[token][vaultName],
+        'Morpho V2 vault',
+      )
+      const ark = await deployMorphoV2VaultArk(config, {
+        ...baseArkParams,
+        vaultId: vaultId,
         vaultName: vaultName,
       })
       deployedArk = ark

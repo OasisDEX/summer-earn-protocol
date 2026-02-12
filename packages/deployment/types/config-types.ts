@@ -42,6 +42,7 @@ export enum ArkType {
   Psm3ERC4626Ark = 'Psm3ERC4626Ark',
   HyperlendArk = 'HyperlendArk',
   HypurrArk = 'HypurrArk',
+  MorphoV2VaultArk = 'MorphoV2VaultArk',
 }
 
 export const arkTypes = [
@@ -184,6 +185,7 @@ export interface BaseConfig {
       blue: string
       urdFactory: string
       vaults: Record<string, Record<string, string>>
+      vaultsV2: Record<string, Record<string, string>>
       markets: Record<string, Record<string, string>>
     }
     compoundV3: {

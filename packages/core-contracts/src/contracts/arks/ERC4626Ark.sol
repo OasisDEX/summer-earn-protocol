@@ -66,6 +66,7 @@ contract ERC4626Ark is Ark {
     function _withdrawableTotalAssets()
         internal
         view
+        virtual
         override
         returns (uint256 withdrawableAssets)
     {
