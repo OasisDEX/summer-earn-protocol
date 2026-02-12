@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
@@ -14,6 +15,7 @@ import {IVaultWithReceipts, VaultWithReceipts} from "./VaultWithReceipts.sol";
 import {IBaseRoundsVault} from "../../interfaces/rounds-vault/IBaseRoundsVault.sol";
 import {IBaseRoundsVaultErrors} from "../../interfaces/rounds-vault/IBaseRoundsVaultErrors.sol";
 import {IBaseRoundsVaultEvents} from "../../interfaces/rounds-vault/IBaseRoundsVaultEvents.sol";
+import {IBaseRoundsVaultEnums} from "../../interfaces/rounds-vault/IBaseRoundsVaultEnums.sol";
 
 /**
     @title BaseRoundsVault
@@ -36,7 +38,8 @@ abstract contract BaseRoundsVault is
     VaultDeferredOperation,
     IBaseRoundsVault,
     IBaseRoundsVaultErrors,
-    IBaseRoundsVaultEvents
+    IBaseRoundsVaultEvents,
+    IBaseRoundsVaultEnums
 {
     using PriceUtils for Price;
 
@@ -46,7 +49,10 @@ abstract contract BaseRoundsVault is
 
     uint256 private _roundNumber; /// The current round number, starting from 0 for the first round
     mapping(uint256 => Price) private _exchangeRateByRound; /// The shares exchange rate at the end of each round
-    address private _sharesToken; /// Address of the shares token (typically the same as the 4626 vault address)
+    /// @notice The address of the asset that users will receive when redeeming their receipts.
+    /// For an Input Vault, this is the shares of the target vault.
+    /// For an Output Vault, this is the underlying asset of the target vault.
+    address private _exchangeAsset;
 
     /**
      * CONSTRUCTOR
@@ -55,6 +61,9 @@ abstract contract BaseRoundsVault is
     /**
         @param proxiedERC4626Vault The address of the ERC4626 vault that this vault will be accepting deposits for
                                    and will be moving funds in and out of it on each round
+        @param vaultType The type of the vault (Input or Output) which determines the underlying asset and the exchange asset
+                         Input: Underlying = proxiedVault.asset(), ExchangeAsset = proxiedVault (the shares)
+                         Output: Underlying = proxiedVault (the shares), ExchangeAsset = proxiedVault.asset()
         @param accessManager The address of the Protocol Access Manager contract that provides information
                              about the different roles in the protocol, including the Keeper role that is the only
                              one allowed to call the `nextRound` function
@@ -64,13 +73,24 @@ abstract contract BaseRoundsVault is
      */
     constructor(
         address proxiedERC4626Vault,
+        BaseVaultType vaultType,
         address accessManager,
         string memory receiptsURI
     )
-        VaultDeferredOperation(proxiedERC4626Vault, receiptsURI)
+        VaultDeferredOperation(
+            proxiedERC4626Vault,
+            vaultType == BaseVaultType.Input
+                ? IERC4626(proxiedERC4626Vault).asset()
+                : proxiedERC4626Vault,
+            receiptsURI
+        )
         ProtocolAccessManaged(accessManager)
     {
-        _sharesToken = proxiedERC4626Vault;
+        if (vaultType == BaseVaultType.Input) {
+            _exchangeAsset = proxiedERC4626Vault;
+        } else {
+            _exchangeAsset = IERC4626(proxiedERC4626Vault).asset();
+        }
     }
 
     /**
@@ -208,7 +228,7 @@ abstract contract BaseRoundsVault is
         @inheritdoc IBaseRoundsVault
      */
     function exchangeAsset() public view override returns (address) {
-        return _sharesToken;
+        return _exchangeAsset;
     }
 
     /**
@@ -287,7 +307,11 @@ abstract contract BaseRoundsVault is
 
         exchangeAmount = _exchangeRateByRound[id].quote(amount);
 
-        SafeERC20.safeTransfer(IERC20(_sharesToken), receiver, exchangeAmount);
+        SafeERC20.safeTransfer(
+            IERC20(_exchangeAsset),
+            receiver,
+            exchangeAmount
+        );
 
         emit WithdrawExchangeAsset(
             _msgSender(),
@@ -338,7 +362,11 @@ abstract contract BaseRoundsVault is
             exchangeAmount += _exchangeRateByRound[ids[i]].quote(amounts[i]);
         }
 
-        SafeERC20.safeTransfer(IERC20(_sharesToken), receiver, exchangeAmount);
+        SafeERC20.safeTransfer(
+            IERC20(_exchangeAsset),
+            receiver,
+            exchangeAmount
+        );
 
         emit WithdrawExchangeAssetBatch(
             caller,

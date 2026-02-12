@@ -38,12 +38,21 @@ contract RoundsInputVault is
                              about the different roles in the protocol, including the Keeper role that is the only
                              one allowed to call the `nextRound` function
         @param receiptsURI The URI of the ERC-1155 receipts that will be emitted when depositing the underlying
+
+        @dev For an input vault the underlying of the Rounds Vault is the underlying asset of the target vault
      */
     constructor(
         address targetVault,
         address accessManager,
         string memory receiptsURI
-    ) BaseRoundsVault(targetVault, accessManager, receiptsURI) {
+    )
+        BaseRoundsVault(
+            targetVault,
+            BaseVaultType.Input,
+            accessManager,
+            receiptsURI
+        )
+    {
         // Empty on purpose
     }
 

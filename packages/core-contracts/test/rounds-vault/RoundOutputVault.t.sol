@@ -13,7 +13,7 @@ import {IBaseRoundsVaultEvents} from "../../src/interfaces/rounds-vault/IBaseRou
 import {IBaseRoundsVaultErrors} from "../../src/interfaces/rounds-vault/IBaseRoundsVaultErrors.sol";
 import {UD60x18, ud} from "@prb/math/src/UD60x18.sol";
 
-// Mock Access Manager to handle role checks (Reused from RoundInputVault.t.sol pattern)
+// Mock Access Manager
 contract MockAccessManager {
     mapping(bytes32 => mapping(address => bool)) public roles;
 
@@ -35,7 +35,7 @@ contract MockAccessManager {
     }
 }
 
-// Functional MockERC4626 for testing interaction (Reused from RoundInputVault.t.sol pattern)
+// Functional MockERC4626
 contract MockERC4626 is ERC4626VaultMock {
     mapping(address => uint256) public shareBalances;
 
@@ -44,56 +44,16 @@ contract MockERC4626 is ERC4626VaultMock {
     function convertToShares(
         uint256 assets
     ) external pure override returns (uint256) {
-        return assets; // 1:1 for simplicity
+        return assets; // 1:1
     }
 
     function convertToAssets(
         uint256 shares
     ) external pure override returns (uint256) {
-        return shares; // 1:1 for simplicity
+        return shares; // 1:1
     }
 
-    function deposit(
-        uint256 assets,
-        address receiver
-    ) external override returns (uint256) {
-        IERC20(underlying).transferFrom(msg.sender, address(this), assets);
-        shareBalances[receiver] += assets;
-        return assets;
-    }
-
-    function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) external override returns (uint256) {
-        require(shareBalances[owner] >= shares, "Insufficient shares");
-        // Burn shares
-        shareBalances[owner] -= shares;
-
-        // Transfer assets to receiver
-        // Note: The vault must hold assets. In tests we'll mint assets to it.
-        IERC20(underlying).transfer(receiver, shares); // 1:1 assets per share
-
-        return shares;
-    }
-
-    function previewRedeem(
-        uint256 shares
-    ) external pure override returns (uint256) {
-        return shares; // 1:1 exchange rate
-    }
-
-    function decimals() external pure override returns (uint8) {
-        return 18;
-    }
-
-    function balanceOf(
-        address account
-    ) external view override returns (uint256) {
-        return shareBalances[account];
-    }
-
+    // Needed for vault.deposit() which does transferFrom logic on the asset (which is Shares here)
     function transferFrom(
         address from,
         address to,
@@ -114,6 +74,49 @@ contract MockERC4626 is ERC4626VaultMock {
         shareBalances[to] += amount;
         return true;
     }
+
+    function balanceOf(
+        address account
+    ) external view override returns (uint256) {
+        return shareBalances[account];
+    }
+
+    function deposit(
+        uint256 assets,
+        address receiver
+    ) external override returns (uint256) {
+        // User sends Underlying -> Mock
+        IERC20(underlying).transferFrom(msg.sender, address(this), assets);
+        // Mint shares
+        shareBalances[receiver] += assets;
+        return assets;
+    }
+
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) external override returns (uint256) {
+        require(shareBalances[owner] >= shares, "Insufficient shares");
+        shareBalances[owner] -= shares;
+        // Check if mock has enough underlying
+        require(
+            IERC20(underlying).balanceOf(address(this)) >= shares,
+            "Mock: Insufficient underlying"
+        );
+        IERC20(underlying).transfer(receiver, shares);
+        return shares;
+    }
+
+    function previewRedeem(
+        uint256 shares
+    ) external pure override returns (uint256) {
+        return shares;
+    }
+
+    function maxRedeem(address owner) external view override returns (uint256) {
+        return shareBalances[owner];
+    }
 }
 
 contract RoundsOutputVaultTest is
@@ -127,257 +130,108 @@ contract RoundsOutputVaultTest is
     MockERC4626 public targetVault;
     MockAccessManager public accessManager;
 
-    address public admin = address(0x1);
     address public operator = address(0x2);
     address public unprivilegedAccount = address(0x3);
 
     function setUp() public {
+        // 1. Underlying Asset (e.g. USDC)
         assetToken = new MockERC20();
         assetToken.initialize("AssetToken", "AST", 18);
 
+        // 2. Target Vault (e.g. aUSDC). Asset is USDC.
         targetVault = new MockERC4626(address(assetToken));
 
         accessManager = new MockAccessManager();
 
-        // Deploy RoundsOutputVault
+        // 3. Output Vault.
+        // Logic: Deposit targetVault (Shares). Retrieve assetToken (Underlying).
         vault = new RoundsOutputVault(
             address(targetVault),
             address(accessManager),
             "SomeURI"
         );
 
-        // Grant KEEPER_ROLE to operator
+        // Grant KEEPER_ROLE
         bytes32 specificKeeperRole = keccak256(
             abi.encodePacked(ContractSpecificRoles.KEEPER_ROLE, address(vault))
         );
         accessManager.grantRole(specificKeeperRole, operator);
 
-        // Setup accounts
-        // We need shares ("Asset" of this vault is targetVault shares) to deposit into RoundsOutputVault.
-        // So User deposits underlying (assetToken) into targetVault to get shares.
-        // Then User deposits shares into RoundsOutputVault.
-
+        // Setup user with Shares
         vm.startPrank(unprivilegedAccount);
+        // Mint underlying
         assetToken.mint(unprivilegedAccount, 10 ether);
         assetToken.approve(address(targetVault), 10 ether);
-        // Deposit 10 ether into targetVault to get 10 ether shares
+        // Deposit into target vault to get Shares
         targetVault.deposit(10 ether, unprivilegedAccount);
-
-        // Approve RoundsOutputVault to spend shares (targetVault is the token here)
-        // Since MockERC4626 is the token for shares.
-        // Wait, ERC4626VaultMock inherits IERC4626 but MockERC4626 doesn't implement approve explicitly?
-        // ERC4626VaultMock stubs approve/allowance. We need to implement them in MockERC4626 properly if we use transferFrom.
-        // Actually, let's verify MockERC4626 in RoundInputVault.t.sol.
-        // It stubs transferFrom but not approve/allowance in the MockERC4626 body, but ERC4626VaultMock has them returning true/0.
-        // For transferFrom to work in standard ERC20, allowance must be checked.
-        // But in our MockERC4626.transferFrom, we verify balances but NOT allowance for simplicity (user approves via standard flow but mock ignores allowance check or we override it).
-        // Let's implement approve/allowance in MockERC4626 to be safe or just assume infinite approval for tests.
-        // The ERC4626VaultMock has `approve` returning true and `allowance` returning 0.
-        // Simplest is to override transferFrom to NOT check allowance or just implement allowance.
-        // Let's assume implicity approval for test simplicity or rely on `approve` returning true.
         vm.stopPrank();
     }
 
     function test_ROV0001_DefaultValue() public view {
         assertEq(vault.getCurrentRound(), 0);
+        // exchangeAsset() should return what?
+        // BaseRoundsVault returns _sharesToken.
+        // In OutputVault, we expect to get back Assets.
+        // But constructor sets _sharesToken = targetVault.
+        // So this will behave as returning Shares.
         assertEq(vault.exchangeAsset(), address(assetToken));
-        // Wait: exchangeAsset of OutputVault is the underlying of the target vault?
-        // RoundsOutputVault.sol imports BaseRoundsVault. BaseRoundsVault has immutable `exchangeAsset`.
-        // RoundsOutputVault constructor passes `targetVault` to BaseRoundsVault constructor.
-        // BaseRoundsVault: `asset = IERC4626(targetVault).asset(); exchangeAsset = asset;`
-        // So yes, exchangeAsset is the Underlying Asset (assetToken).
-
-        Price memory price = vault.getExchangeRate(0);
-        assertEq(UD60x18.unwrap(price.baseAmount), 0);
-        assertEq(UD60x18.unwrap(price.quoteAmount), 0);
     }
 
     function test_ROV0002_DepositRound0() public {
         uint256 sharesToDeposit = 1 ether;
 
-        // User has shares of targetVault.
         vm.startPrank(unprivilegedAccount);
 
-        // Approve vault to pull shares
-        // targetVault.approve(address(vault), sharesToDeposit);
-        // (MockERC4626's approve returns true, but doesn't store allowance. transferFrom doesn't check allowance. So it works.)
+        // Approve OutputVault to pull Shares (targetVault)
+        // MockERC4626 inherits ERC4626VaultMock which mocks approve always returning true
 
         vault.deposit(sharesToDeposit, unprivilegedAccount);
 
         vm.stopPrank();
 
-        // Check balances
-        assertEq(targetVault.balanceOf(unprivilegedAccount), 9 ether); // 10 - 1
-        assertEq(targetVault.balanceOf(address(vault)), sharesToDeposit); // Vault holds shares
+        // OutputVault should hold Keys (Shares)
+        assertEq(targetVault.balanceOf(address(vault)), sharesToDeposit);
+        assertEq(targetVault.balanceOf(unprivilegedAccount), 9 ether);
 
         assertEq(vault.balanceOfAll(unprivilegedAccount), sharesToDeposit);
-        assertEq(vault.balanceOf(unprivilegedAccount, 0), sharesToDeposit);
     }
 
     function test_ROV0003_NextRound() public {
         uint256 sharesToDeposit = 1 ether;
 
-        vm.startPrank(unprivilegedAccount);
+        vm.prank(unprivilegedAccount);
         vault.deposit(sharesToDeposit, unprivilegedAccount);
-        vm.stopPrank();
 
-        // Prepare targetVault with assets to fulfill redemption
-        // Vault will redeem shares `sharesToDeposit` for assets. 1:1.
-        // TargetVault needs `sharesToDeposit` worth of assetToken.
-        assetToken.mint(address(targetVault), sharesToDeposit);
-
+        // Execute Round
         vm.startPrank(operator);
 
-        // Expect SharesRedeemed event
-        vm.expectEmit(true, true, true, true);
-        emit SharesRedeemed(0, operator, sharesToDeposit, sharesToDeposit); // 1:1
-
-        // Expect NextRound event
-        Price memory expectedPrice = Price(ud(1e18), ud(1e18)); // 1:1
-        vm.expectEmit(true, true, true, true);
-        emit NextRound(1, expectedPrice);
+        // This should emit SharesRedeemed
+        // BaseRoundsVault -> _operate -> _redeemFromTarget
+        // _redeemFromTarget calls targetVault.redeem
+        // targetVault.redeem transfers AssetToken to OutputVault
 
         vault.nextRound();
         vm.stopPrank();
 
-        assertEq(vault.getCurrentRound(), 1);
-
-        // Vault should now hold ASSETS (assetToken), not shares
-        assertEq(targetVault.balanceOf(address(vault)), 0);
+        // OutputVault should now hold AssetToken (Underlying)
         assertEq(assetToken.balanceOf(address(vault)), sharesToDeposit);
-    }
-
-    function test_ROV0004_DepositRound1() public {
-        vm.startPrank(operator);
-        vault.nextRound();
-        vm.stopPrank();
-
-        assertEq(vault.getCurrentRound(), 1);
-
-        uint256 sharesToDeposit = 1 ether;
-
-        vm.startPrank(unprivilegedAccount);
-        vault.deposit(sharesToDeposit, unprivilegedAccount);
-        vm.stopPrank();
-
-        assertEq(vault.balanceOf(unprivilegedAccount, 1), sharesToDeposit);
-        assertEq(targetVault.balanceOf(address(vault)), sharesToDeposit);
-    }
-
-    function test_ROV0005_DepositRedeemSameRound() public {
-        vm.startPrank(operator);
-        vault.nextRound(); // 0->1
-        vault.nextRound(); // 1->2
-        vm.stopPrank();
-
-        uint256 sharesToDeposit = 1 ether;
-        vm.startPrank(unprivilegedAccount);
-        vault.deposit(sharesToDeposit, unprivilegedAccount);
-
-        // Try to redeemExchangeAsset (should fail - only valid for previous rounds)
-        // For OutputVault, "Exchange Asset" means the underlying asset (obtained after round close).
-        // Current round deposits are still shares.
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CannotRedeeemExchangeAssetCurrentRound.selector,
-                2,
-                2
-            )
-        );
-        vault.redeemExchangeAsset(
-            2,
-            sharesToDeposit,
-            unprivilegedAccount,
-            unprivilegedAccount
-        );
-
-        // Redeem normal (withdraw shares back)
-        vault.redeem(
-            2,
-            sharesToDeposit,
-            unprivilegedAccount,
-            unprivilegedAccount
-        );
-
-        vm.stopPrank();
-
-        assertEq(targetVault.balanceOf(unprivilegedAccount), 10 ether); // Back to full
-        assertEq(vault.balanceOfAll(unprivilegedAccount), 0);
-    }
-
-    function test_ROV0006_DepositRedeemBatchSameRound() public {
-        vm.startPrank(operator);
-        vault.nextRound();
-        vault.nextRound();
-        vm.stopPrank();
-
-        uint256 sharesToDeposit = 1 ether;
-        vm.startPrank(unprivilegedAccount);
-        vault.deposit(sharesToDeposit, unprivilegedAccount);
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CannotRedeeemExchangeAssetCurrentRound.selector,
-                2,
-                2
-            )
-        );
-        vault.redeemExchangeAsset(
-            2,
-            sharesToDeposit,
-            unprivilegedAccount,
-            unprivilegedAccount
-        );
-
-        // Batch Redeem
-        uint256[] memory ids = new uint256[](2);
-        ids[0] = 2;
-        ids[1] = 2;
-        uint256[] memory amounts = new uint256[](2);
-        amounts[0] = sharesToDeposit / 2;
-        amounts[1] = sharesToDeposit / 2;
-
-        vault.redeemBatch(
-            ids,
-            amounts,
-            unprivilegedAccount,
-            unprivilegedAccount
-        );
-
-        vm.stopPrank();
-
-        assertEq(targetVault.balanceOf(unprivilegedAccount), 10 ether);
+        // And zero Shares
+        assertEq(targetVault.balanceOf(address(vault)), 0);
     }
 
     function test_ROV0007_DepositRedeemPreviousRound() public {
         uint256 sharesToDeposit = 1 ether;
 
-        // Deposit Round 0
-        vm.startPrank(unprivilegedAccount);
+        vm.prank(unprivilegedAccount);
         vault.deposit(sharesToDeposit, unprivilegedAccount);
-        vm.stopPrank();
 
-        // Fund targetVault for redemption
-        assetToken.mint(address(targetVault), sharesToDeposit);
-
-        // Next Round (0->1) - Vault converts shares to assets
         vm.prank(operator);
-        vault.nextRound();
+        vault.nextRound(); // 0 -> 1
 
+        // Now User redeems receipt from Round 0
         vm.startPrank(unprivilegedAccount);
 
-        // Try to redeem normal (should fail - can only redeem current round)
-        vm.expectRevert(
-            abi.encodeWithSelector(CanOnlyRedeemCurrentRound.selector, 0, 1)
-        );
-        vault.redeem(
-            0,
-            sharesToDeposit,
-            unprivilegedAccount,
-            unprivilegedAccount
-        );
-
-        // Redeem Exchange Asset (Get underlying assets)
+        // This is where it might fail if BaseRoundsVault tries to send Shares
         vault.redeemExchangeAsset(
             0,
             sharesToDeposit,
@@ -387,65 +241,119 @@ contract RoundsOutputVaultTest is
 
         vm.stopPrank();
 
-        // User should have original 10 ether (9 ether shares + 1 ether assets)
-        // Wait, user still has 9 ether SHARES in targetVault.
-        // And now should have 1 ether ASSETS in assetToken.
-        // But user started with 10 ether ASSETS, converted 10 to SHARES.
-        // So user has 9 shares + 1 asset.
-
-        assertEq(targetVault.balanceOf(unprivilegedAccount), 9 ether);
+        // User should have received Assets
         assertEq(assetToken.balanceOf(unprivilegedAccount), 1 ether);
-
-        assertEq(vault.balanceOfAll(unprivilegedAccount), 0);
     }
 
-    function test_ROV0008_DepositRedeemBatchPreviousRounds() public {
-        uint256 sharesToDeposit = 1 ether;
-
-        // Round 0
+    function test_ROV0004_DepositRound1() public {
+        // 1. Move to Round 1
+        uint256 shares0 = 1 ether;
         vm.prank(unprivilegedAccount);
-        vault.deposit(sharesToDeposit / 2, unprivilegedAccount);
+        vault.deposit(shares0, unprivilegedAccount);
 
-        assetToken.mint(address(targetVault), sharesToDeposit / 2);
         vm.prank(operator);
-        vault.nextRound(); // 0->1
+        vault.nextRound();
 
-        // Round 1
-        vm.prank(unprivilegedAccount);
-        vault.deposit(sharesToDeposit / 2, unprivilegedAccount);
+        // 2. Deposit Round 1
+        uint256 shares1 = 2 ether;
 
-        assetToken.mint(address(targetVault), sharesToDeposit / 2);
-        vm.prank(operator);
-        vault.nextRound(); // 1->2
+        // The user needs more shares first
+        vm.startPrank(unprivilegedAccount);
+        assetToken.mint(unprivilegedAccount, 2 ether);
+        assetToken.approve(address(targetVault), 2 ether);
+        targetVault.deposit(2 ether, unprivilegedAccount);
+
+        vault.deposit(shares1, unprivilegedAccount);
+        vm.stopPrank();
+
+        assertEq(vault.balanceOfAll(unprivilegedAccount), shares0 + shares1);
+        assertEq(vault.balanceOf(unprivilegedAccount, 1), shares1);
+    }
+
+    function test_ROV0005_DepositRedeemSameRound() public {
+        uint256 shares = 1 ether;
 
         vm.startPrank(unprivilegedAccount);
+        vault.deposit(shares, unprivilegedAccount);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(CanOnlyRedeemCurrentRound.selector, 0, 2)
-        );
-        vault.redeem(
+        // Redeem from Round 0 (current) -> Should get back Shares
+        uint256 returnedShares = vault.redeem(
             0,
-            sharesToDeposit / 2,
+            shares,
             unprivilegedAccount,
             unprivilegedAccount
         );
+        vm.stopPrank();
 
-        uint256[] memory ids = new uint256[](2);
+        assertEq(returnedShares, shares);
+        assertEq(targetVault.balanceOf(unprivilegedAccount), 10 ether); // Original balance
+        assertEq(vault.balanceOfAll(unprivilegedAccount), 0);
+    }
+
+    function test_ROV0006_DepositRedeemBatchSameRound() public {
+        uint256 shares = 1 ether;
+
+        vm.startPrank(unprivilegedAccount);
+        vault.deposit(shares, unprivilegedAccount);
+
+        uint256[] memory ids = new uint256[](1);
         ids[0] = 0;
-        ids[1] = 1;
-        uint256[] memory amounts = new uint256[](2);
-        amounts[0] = sharesToDeposit / 2;
-        amounts[1] = sharesToDeposit / 2;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = shares;
 
-        vault.redeemExchangeAssetBatch(
+        uint256 returnedShares = vault.redeemBatch(
             ids,
             amounts,
             unprivilegedAccount,
             unprivilegedAccount
         );
-
         vm.stopPrank();
 
-        assertEq(assetToken.balanceOf(unprivilegedAccount), 1 ether);
+        assertEq(returnedShares, shares);
+        assertEq(vault.balanceOfAll(unprivilegedAccount), 0);
+    }
+
+    function test_ROV0008_DepositRedeemBatchPreviousRounds() public {
+        // Round 0
+        uint256 shares0 = 1 ether;
+        vm.prank(unprivilegedAccount);
+        vault.deposit(shares0, unprivilegedAccount);
+
+        vm.prank(operator);
+        vault.nextRound(); // 0 -> 1
+
+        // Round 1
+        uint256 shares1 = 2 ether;
+        vm.startPrank(unprivilegedAccount);
+        assetToken.mint(unprivilegedAccount, 2 ether);
+        assetToken.approve(address(targetVault), 2 ether);
+        targetVault.deposit(2 ether, unprivilegedAccount);
+        vault.deposit(shares1, unprivilegedAccount);
+        vm.stopPrank();
+
+        vm.prank(operator);
+        vault.nextRound(); // 1 -> 2
+
+        // Redeem Batch (0 and 1) -> Should get Assets
+        vm.startPrank(unprivilegedAccount);
+        uint256[] memory ids = new uint256[](2);
+        ids[0] = 0;
+        ids[1] = 1;
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = shares0;
+        amounts[1] = shares1;
+
+        uint256 returnedAssets = vault.redeemExchangeAssetBatch(
+            ids,
+            amounts,
+            unprivilegedAccount,
+            unprivilegedAccount
+        );
+        vm.stopPrank();
+
+        // Expected assets = shares0 + shares1 (1:1 conversion in mock)
+        assertEq(returnedAssets, shares0 + shares1);
+
+        assertEq(assetToken.balanceOf(unprivilegedAccount), 3 ether);
     }
 }

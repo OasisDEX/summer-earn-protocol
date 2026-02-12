@@ -8,8 +8,9 @@ contract VaultDeferredOperationMock is VaultDeferredOperation {
 
     constructor(
         address proxiedVault,
+        address underlyingAsset,
         string memory receiptsURI
-    ) VaultDeferredOperation(proxiedVault, receiptsURI) {}
+    ) VaultDeferredOperation(proxiedVault, underlyingAsset, receiptsURI) {}
 
     function mockSetMintId(uint256 mintId_) public {
         mintId = mintId_;

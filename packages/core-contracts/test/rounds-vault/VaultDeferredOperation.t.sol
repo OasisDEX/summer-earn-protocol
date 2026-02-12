@@ -67,6 +67,7 @@ contract VaultDeferredOperationTest is Test, IVaultWithReceiptsEvents {
 
         vaultDeferredOperation = new VaultDeferredOperationMock(
             address(targetVault),
+            address(assetToken),
             "SomeURI"
         );
 

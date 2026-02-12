@@ -48,8 +48,9 @@ abstract contract VaultDeferredOperation is
      */
     constructor(
         address proxiedVault,
+        address underlyingAsset,
         string memory receiptsURI
-    ) VaultWithReceipts(IERC4626(proxiedVault).asset(), receiptsURI) {
+    ) VaultWithReceipts(underlyingAsset, receiptsURI) {
         _proxiedVault = IERC4626(proxiedVault);
     }
 
