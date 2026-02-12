@@ -66,7 +66,7 @@ interface IFleetCommanderConfigProviderDao is
     function setFleetDepositCap(uint256 newDepositCap) external;
 
     /**
-     * @notice Sets the deposit cap for Fleet to zero
+     * @notice Sets the deposit cap for Fleet to zero. Failsafe mechanism to prevent deposits if needed.
      * @dev Only callable by the guardian
      */
     function setFleetDepositCapToZero() external;
@@ -78,7 +78,7 @@ interface IFleetCommanderConfigProviderDao is
      */
     function setArkDepositCap(address ark, uint256 newDepositCap) external;
     /**
-     * @notice Sets the deposit cap for an Ark to zero
+     * @notice Sets the deposit cap for an Ark to zero. Failsafe mechanism to prevent deposits if needed.
      * @param ark The address of the Ark
      * @dev Only callable by the guardian
      */
