@@ -2,16 +2,16 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {RoundsInputVault} from "../../src/contracts/rounds-vault/RoundsInputVault.sol";
+import {RoundsVaultInput} from "../../src/contracts/rounds-vault/RoundsVaultInput.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
-import {IRoundsInputVaultEvents} from "../../src/interfaces/rounds-vault/IRoundsInputVaultEvents.sol";
+import {IRoundsVaultInputEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultInputEvents.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 // Corrected relative path to access-contracts
 import {IProtocolAccessManager, ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
-import {IBaseRoundsVaultEvents} from "../../src/interfaces/rounds-vault/IBaseRoundsVaultEvents.sol";
-import {IBaseRoundsVaultErrors} from "../../src/interfaces/rounds-vault/IBaseRoundsVaultErrors.sol";
+import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
+import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
 import {UD60x18, ud} from "@prb/math/src/UD60x18.sol";
 
 // Mock Access Manager to handle role checks
@@ -95,13 +95,13 @@ contract MockERC4626 is ERC4626VaultMock {
     }
 }
 
-contract RoundsInputVaultTest is
+contract RoundsVaultInputTest is
     Test,
-    IRoundsInputVaultEvents,
-    IBaseRoundsVaultEvents,
-    IBaseRoundsVaultErrors
+    IRoundsVaultInputEvents,
+    IRoundsVaultBaseEvents,
+    IRoundsVaultBaseErrors
 {
-    RoundsInputVault public vault;
+    RoundsVaultInput public vault;
     MockERC20 public assetToken;
     MockERC4626 public targetVault;
     MockAccessManager public accessManager;
@@ -118,9 +118,9 @@ contract RoundsInputVaultTest is
 
         accessManager = new MockAccessManager();
 
-        // Deploy RoundsInputVault
+        // Deploy RoundsVaultInput
         // Constructor args: targetVault, accessManager, receiptsURI
-        vault = new RoundsInputVault(
+        vault = new RoundsVaultInput(
             address(targetVault),
             address(accessManager),
             "SomeURI"

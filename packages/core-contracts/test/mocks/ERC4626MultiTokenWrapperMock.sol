@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ERC4626MultiTokenWrapper} from "../../src/contracts/rounds-vault/ERC4626MultiTokenWrapper.sol";
+import {ERC4626MultiTokenWrapper} from "../../src/extensions/ERC4626MultiTokenWrapper.sol";
 
 contract ERC4626MultiTokenWrapperMock is ERC4626MultiTokenWrapper {
     uint256 public mintId;

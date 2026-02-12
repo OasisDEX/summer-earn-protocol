@@ -6,15 +6,14 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
-import {BaseRoundsVault} from "./BaseRoundsVault.sol";
+import {RoundsVaultBase} from "./RoundsVaultBase.sol";
 
-import {IRoundsOutputVault} from "../../interfaces/rounds-vault/IRoundsOutputVault.sol";
-import {IRoundsOutputVaultEvents} from "../../interfaces/rounds-vault/IRoundsOutputVaultEvents.sol";
+import {IRoundsVaultOutput} from "../../interfaces/rounds-vault/IRoundsVaultOutput.sol";
+import {IRoundsVaultOutputEvents} from "../../interfaces/rounds-vault/IRoundsVaultOutputEvents.sol";
 
 /**
-    @title RoundsOutputVault
-
-    @notice The RoundsOutputVault contract allows users to deposit shares from the target vault into
+    @title RoundsVaultOutput
+    @notice The RoundsVaultOutput contract allows users to deposit shares from the target vault into
     this contract while the  target vault is locked, and receipts are minted to the users for this deposits. Upon
     round completion, the shares are redeemed in the target vault and the corresponding funds are collected.
 
@@ -22,10 +21,10 @@ import {IRoundsOutputVaultEvents} from "../../interfaces/rounds-vault/IRoundsOut
 
     @author Roberto Cano <robercano>
  */
-contract RoundsOutputVault is
-    BaseRoundsVault,
-    IRoundsOutputVault,
-    IRoundsOutputVaultEvents
+contract RoundsVaultOutput is
+    RoundsVaultBase,
+    IRoundsVaultOutput,
+    IRoundsVaultOutputEvents
 {
     /**
      * CONSTRUCTOR
@@ -46,7 +45,7 @@ contract RoundsOutputVault is
         address accessManager,
         string memory receiptsURI
     )
-        BaseRoundsVault(
+        RoundsVaultBase(
             targetVault,
             BaseVaultType.Output,
             accessManager,
@@ -61,7 +60,7 @@ contract RoundsOutputVault is
      */
 
     /**
-        @inheritdoc BaseRoundsVault
+        @inheritdoc RoundsVaultBase
 
         @dev Deposits the available funds into the main vault, receiving back an amount of target vault shares
     */
@@ -86,7 +85,7 @@ contract RoundsOutputVault is
     }
 
     /**
-        @inheritdoc BaseRoundsVault
+        @inheritdoc RoundsVaultBase
 
         @dev The exchange rate is given by the `previewRedeem` function on the target vault. The exchange rate is
         calculated for 1 full share

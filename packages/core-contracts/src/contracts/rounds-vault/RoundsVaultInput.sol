@@ -6,13 +6,13 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
-import {BaseRoundsVault} from "./BaseRoundsVault.sol";
+import {RoundsVaultBase} from "./RoundsVaultBase.sol";
 
-import {IRoundsInputVault} from "../../interfaces/rounds-vault/IRoundsInputVault.sol";
-import {IRoundsInputVaultEvents} from "../../interfaces/rounds-vault/IRoundsInputVaultEvents.sol";
+import {IRoundsVaultInput} from "../../interfaces/rounds-vault/IRoundsVaultInput.sol";
+import {IRoundsVaultInputEvents} from "../../interfaces/rounds-vault/IRoundsVaultInputEvents.sol";
 
 /**
-    @title RoundsInputVault
+    @title RoundsVaultInput
 
     @notice The RoundsInputVault contract allows users to deposit funds into this contract while the
     target vault is locked, and receipts are minted to the users for this deposits. Upon round completion, the
@@ -22,10 +22,10 @@ import {IRoundsInputVaultEvents} from "../../interfaces/rounds-vault/IRoundsInpu
 
     @author Roberto Cano <robercano>
  */
-contract RoundsInputVault is
-    BaseRoundsVault,
-    IRoundsInputVault,
-    IRoundsInputVaultEvents
+contract RoundsVaultInput is
+    RoundsVaultBase,
+    IRoundsVaultInput,
+    IRoundsVaultInputEvents
 {
     /**
      * CONSTRUCTOR
@@ -46,7 +46,7 @@ contract RoundsInputVault is
         address accessManager,
         string memory receiptsURI
     )
-        BaseRoundsVault(
+        RoundsVaultBase(
             targetVault,
             BaseVaultType.Input,
             accessManager,
@@ -61,7 +61,7 @@ contract RoundsInputVault is
      */
 
     /**
-        @inheritdoc BaseRoundsVault
+        @inheritdoc RoundsVaultBase
 
         @dev Deposits the available funds into the main vault, receiving back an amount of target vault shares
     */
@@ -86,7 +86,7 @@ contract RoundsInputVault is
     }
 
     /**
-        @inheritdoc BaseRoundsVault
+        @inheritdoc RoundsVaultBase
 
         @dev The exchange rate is given by the `previewDeposit` function on the target vault. The exchange rate is
         calculated for 1 full token

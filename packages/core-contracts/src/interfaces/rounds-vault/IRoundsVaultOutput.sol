@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "./IBaseRoundsVault.sol";
+import "./IRoundsVaultBase.sol";
 
 /**
-    @title IRoundsOutputVault
+    @title IRoundsVaultOutput
 
     @notice The IRoundsOutputVault contract allows users to deposit shares from the target vault into
     this contract while the  target vault is locked, and receipts are minted to the users for this deposits. Upon
@@ -14,7 +14,7 @@ import "./IBaseRoundsVault.sol";
 
     @author Roberto Cano <robercano>
  */
-interface IRoundsOutputVault is IBaseRoundsVault {
-    // Empty on purpose, as the interface is the same as the IBaseRoundsVault
+interface IRoundsVaultOutput is IRoundsVaultBase {
+    // Empty on purpose, as the interface is the same as the IRoundsVaultBase
     // The main changes are in the implementation itself
 }

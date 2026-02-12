@@ -4,13 +4,13 @@ pragma solidity 0.8.28;
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 /**
-    @title IBaseRoundsVaultEvents
+    @title IRoundsVaultBaseEvents
 
-    @notice Events for the BaseRoundsVault contract
+    @notice Events for the RoundsVaultBase contract
             
     @author Roberto Cano <robercano>
  */
-interface IBaseRoundsVaultEvents {
+interface IRoundsVaultBaseEvents {
     /// Emitted when the next round starts and the exchange rate for the previous round is stored
     event NextRound(
         uint256 indexed newRoundNumber,

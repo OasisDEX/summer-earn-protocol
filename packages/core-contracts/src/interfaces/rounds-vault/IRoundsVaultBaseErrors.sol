@@ -2,13 +2,13 @@
 pragma solidity 0.8.28;
 
 /**
-    @title IBaseRoundsVaultErrors
+    @title IRoundsVaultBaseErrors
 
-    @notice Errors for the BaseRoundsVault contract
+    @notice Errors for the RoundsVaultBase contract
             
     @author Roberto Cano <robercano>
  */
-interface IBaseRoundsVaultErrors {
+interface IRoundsVaultBaseErrors {
     /// Error thrown when trying to redeem a receipt for a round that is not the current round
     error CanOnlyRedeemCurrentRound(uint256 receiptId, uint256 currentRound);
 

@@ -3,13 +3,13 @@ pragma solidity 0.8.28;
 
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
-import "./IERC4626MultiTokenWrapper.sol";
+import "../../interfaces/extensions/ERC4626MultiTokenWrapper/IERC4626MultiTokenWrapper.sol";
 
-import "./IBaseRoundsVaultErrors.sol";
-import "./IBaseRoundsVaultEvents.sol";
+import "./IRoundsVaultBaseErrors.sol";
+import "./IRoundsVaultBaseEvents.sol";
 
 /**
-    @title BaseRoundsVault
+    @title RoundsVaultBase
 
     @notice Provides a way of investing in a target tokenized vault that has investment periods in 
     which the vault is locked. During these locked periods, the vault does not accept deposits, so
@@ -37,7 +37,7 @@ import "./IBaseRoundsVaultEvents.sol";
             
     @author Roberto Cano <robercano>
  */
-interface IBaseRoundsVault is IERC4626MultiTokenWrapper {
+interface IRoundsVaultBase is IERC4626MultiTokenWrapper {
     // PUBLIC FUNCTIONS
 
     /**

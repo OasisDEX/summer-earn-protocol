@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../extensions/ERC4626MultiToken/IERC4626MultiToken.sol";
+import "../ERC4626MultiToken/IERC4626MultiToken.sol";
 
 /**
  * @notice Interface of the ERC4626 "Tokenized Vault Standard", modified to emit ERC-1155 share tokens

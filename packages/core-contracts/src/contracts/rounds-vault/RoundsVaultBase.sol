@@ -9,22 +9,22 @@ import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
-import {ERC4626MultiTokenWrapper} from "./ERC4626MultiTokenWrapper.sol";
+import {ERC4626MultiTokenWrapper} from "../../extensions/ERC4626MultiTokenWrapper.sol";
 import {IERC4626MultiToken, ERC4626MultiToken} from "../../extensions/ERC4626MultiToken.sol";
 
-import {IBaseRoundsVault} from "../../interfaces/rounds-vault/IBaseRoundsVault.sol";
-import {IBaseRoundsVaultErrors} from "../../interfaces/rounds-vault/IBaseRoundsVaultErrors.sol";
-import {IBaseRoundsVaultEvents} from "../../interfaces/rounds-vault/IBaseRoundsVaultEvents.sol";
-import {IBaseRoundsVaultEnums} from "../../interfaces/rounds-vault/IBaseRoundsVaultEnums.sol";
+import {IRoundsVaultBase} from "../../interfaces/rounds-vault/IRoundsVaultBase.sol";
+import {IRoundsVaultBaseErrors} from "../../interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
+import {IRoundsVaultBaseEvents} from "../../interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
+import {IRoundsVaultBaseEnums} from "../../interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
 
 /**
-    @title BaseRoundsVault
+    @title RoundsVaultBase
 
     @notice Provides a way of investing in a target tokenized vault that has investment periods in 
     which the vault is locked. During these locked periods, the vault does not accept deposits, so
     investors need to be on the lookout for the unlocked period to deposit their funds.
 
-    @dev See { IBaseRoundsVault } for more details.
+    @dev See { IRoundsVaultBase } for more details.
 
     @dev Here the `_operate` function is defined as a pure virtual function. This is because the
     specific logic when moving to the next round is left to the derived contracts. Typically they
@@ -33,13 +33,13 @@ import {IBaseRoundsVaultEnums} from "../../interfaces/rounds-vault/IBaseRoundsVa
             
     @author Roberto Cano <robercano>
  */
-abstract contract BaseRoundsVault is
+abstract contract RoundsVaultBase is
     ProtocolAccessManaged,
     ERC4626MultiTokenWrapper,
-    IBaseRoundsVault,
-    IBaseRoundsVaultErrors,
-    IBaseRoundsVaultEvents,
-    IBaseRoundsVaultEnums
+    IRoundsVaultBase,
+    IRoundsVaultBaseErrors,
+    IRoundsVaultBaseEvents,
+    IRoundsVaultBaseEnums
 {
     using PriceUtils for Price;
 
@@ -98,7 +98,7 @@ abstract contract BaseRoundsVault is
      */
 
     /**
-        @inheritdoc IBaseRoundsVault
+        @inheritdoc IRoundsVaultBase
 
         @dev Only callable by the Keeper to move to the next round
      */
@@ -162,7 +162,7 @@ abstract contract BaseRoundsVault is
     }
 
     /**
-        @inheritdoc IBaseRoundsVault
+        @inheritdoc IRoundsVaultBase
      */
     function redeemExchangeAsset(
         uint256 id,
@@ -178,7 +178,7 @@ abstract contract BaseRoundsVault is
     }
 
     /**
-        @inheritdoc IBaseRoundsVault
+        @inheritdoc IRoundsVaultBase
 
         @dev TODO: The user must be prevented from redeeming receipts partially as this could cause a cumulative rounding error
         in the amount of shares redeemed by the user. If for example the share price is 0.8 shares/asset and the user
@@ -218,21 +218,21 @@ abstract contract BaseRoundsVault is
     // VIEW FUNCTIONS
 
     /**
-        @inheritdoc IBaseRoundsVault
+        @inheritdoc IRoundsVaultBase
      */
     function getCurrentRound() public view override returns (uint256) {
         return _roundNumber;
     }
 
     /**
-        @inheritdoc IBaseRoundsVault
+        @inheritdoc IRoundsVaultBase
      */
     function exchangeAsset() public view override returns (address) {
         return _exchangeAsset;
     }
 
     /**
-        @inheritdoc IBaseRoundsVault
+        @inheritdoc IRoundsVaultBase
      */
     function getExchangeRate(uint256 round) public view returns (Price memory) {
         return _exchangeRateByRound[round];

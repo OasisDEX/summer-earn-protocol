@@ -2,15 +2,15 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {RoundsOutputVault} from "../../src/contracts/rounds-vault/RoundsOutputVault.sol";
+import {RoundsVaultOutput} from "../../src/contracts/rounds-vault/RoundsVaultOutput.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
-import {IRoundsOutputVaultEvents} from "../../src/interfaces/rounds-vault/IRoundsOutputVaultEvents.sol";
+import {IRoundsVaultOutputEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultOutputEvents.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IProtocolAccessManager, ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
-import {IBaseRoundsVaultEvents} from "../../src/interfaces/rounds-vault/IBaseRoundsVaultEvents.sol";
-import {IBaseRoundsVaultErrors} from "../../src/interfaces/rounds-vault/IBaseRoundsVaultErrors.sol";
+import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
+import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
 import {UD60x18, ud} from "@prb/math/src/UD60x18.sol";
 
 // Mock Access Manager
@@ -119,13 +119,13 @@ contract MockERC4626 is ERC4626VaultMock {
     }
 }
 
-contract RoundsOutputVaultTest is
+contract RoundsVaultOutputTest is
     Test,
-    IRoundsOutputVaultEvents,
-    IBaseRoundsVaultEvents,
-    IBaseRoundsVaultErrors
+    IRoundsVaultOutputEvents,
+    IRoundsVaultBaseEvents,
+    IRoundsVaultBaseErrors
 {
-    RoundsOutputVault public vault;
+    RoundsVaultOutput public vault;
     MockERC20 public assetToken;
     MockERC4626 public targetVault;
     MockAccessManager public accessManager;
@@ -145,7 +145,7 @@ contract RoundsOutputVaultTest is
 
         // 3. Output Vault.
         // Logic: Deposit targetVault (Shares). Retrieve assetToken (Underlying).
-        vault = new RoundsOutputVault(
+        vault = new RoundsVaultOutput(
             address(targetVault),
             address(accessManager),
             "SomeURI"
@@ -170,7 +170,7 @@ contract RoundsOutputVaultTest is
     function test_ROV0001_DefaultValue() public view {
         assertEq(vault.getCurrentRound(), 0);
         // exchangeAsset() should return what?
-        // BaseRoundsVault returns _sharesToken.
+        // RoundsVaultBase returns _sharesToken.
         // In OutputVault, we expect to get back Assets.
         // But constructor sets _sharesToken = targetVault.
         // So this will behave as returning Shares.
@@ -206,7 +206,7 @@ contract RoundsOutputVaultTest is
         vm.startPrank(operator);
 
         // This should emit SharesRedeemed
-        // BaseRoundsVault -> _operate -> _redeemFromTarget
+        // RoundsVaultBase -> _operate -> _redeemFromTarget
         // _redeemFromTarget calls targetVault.redeem
         // targetVault.redeem transfers AssetToken to OutputVault
 
@@ -231,7 +231,7 @@ contract RoundsOutputVaultTest is
         // Now User redeems receipt from Round 0
         vm.startPrank(unprivilegedAccount);
 
-        // This is where it might fail if BaseRoundsVault tries to send Shares
+        // This is where it might fail if RoundsVaultBase tries to send Shares
         vault.redeemExchangeAsset(
             0,
             sharesToDeposit,

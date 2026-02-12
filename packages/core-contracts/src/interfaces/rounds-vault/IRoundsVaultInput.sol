@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "./IBaseRoundsVault.sol";
+import "./IRoundsVaultBase.sol";
 
 /**
-    @title IRoundsInputVault
+    @title IRoundsVaultInput
 
     @notice The IRoundsInputVault contract allows users to deposit funds into this contract while the
     target vault is locked, and receipts are minted to the users for this deposits. Upon round completion, the
@@ -14,7 +14,7 @@ import "./IBaseRoundsVault.sol";
 
     @author Roberto Cano <robercano>
  */
-interface IRoundsInputVault is IBaseRoundsVault {
-    // Empty on purpose, as the interface is the same as the IBaseRoundsVault
+interface IRoundsVaultInput is IRoundsVaultBase {
+    // Empty on purpose, as the interface is the same as the IRoundsVaultBase
     // The main changes are in the implementation itself
 }
