@@ -2,6 +2,7 @@ import { Address } from 'viem'
 
 import { CoreContracts as CoreContractsBase } from '../ignition/modules/core'
 import { DeployedBridge } from './bridge-types'
+import { FleetDetails } from '../scripts/helpers/zod-schemas'
 
 export enum SupportedNetworks {
   MAINNET = 'mainnet',
@@ -326,11 +327,11 @@ export interface FleetConfig {
   rewardsDuration: number[]
   bridgeAmount: string
   arks: ArkConfig[]
+  details: FleetDetails
+  curator: Address
   discourseURL?: string
   sipNumber?: string
-  details: string
-  curator?: Address
-  keeper?: Address
+    keeper?: Address
 }
 
 export interface FleetDeployment {
@@ -346,6 +347,7 @@ export interface FleetDeployment {
   initialRebalanceCooldown?: string
   depositCap?: string
   initialTipRate?: string
+  details: FleetDetails
 }
 
 // Extend CoreContracts to include InstitutionalVaultRegistry for networks
