@@ -153,13 +153,11 @@ contract MorphoV2ArkForkTest is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         uint256 withdrawableAssets = ark.withdrawableTotalAssets();
-        console.log("withdrawableAssets", withdrawableAssets);
-        console.log("amount", amount);
         assertApproxEqRel(
             withdrawableAssets,
             amount,
             1e10,
-            "Total assets should be at least the deposited amount"
+            "Total assets should be at least the deposited amount (round down)"
         );
     }
     function test_Harvest_MorphoV2_fork() public {
