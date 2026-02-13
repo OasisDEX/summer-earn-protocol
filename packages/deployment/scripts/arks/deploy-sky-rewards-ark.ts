@@ -13,7 +13,21 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import {
+  validateAddress,
+  validateArkDetails,
+  validateConfigAddressEntry,
+} from '../helpers/validation'
+
+type SkyRewardsArkUserInput = BaseArkParams & {
+  rewardToken?: string
+}
+
+function getAvailableRewardsPrograms(config: BaseConfig): string[] {
+  return Object.entries(config.protocolSpecific.sky.staking)
+    .filter(([, address]) => address && address !== ADDRESS_ZERO)
+    .map(([key]) => key)
+}
 
 /**
  * Main function to deploy a SkyUsdsArk.
@@ -24,7 +38,7 @@ import { validateAddress, validateArkDetails } from '../helpers/validation'
  * - Deploying the SkyUsdsArk contract
  * - Logging deployment results
  */
-export async function deploySkyRewardsArk(config: BaseConfig, arkParams?: BaseArkParams) {
+export async function deploySkyRewardsArk(config: BaseConfig, arkParams?: SkyRewardsArkUserInput) {
   console.log(kleur.green().bold('Starting SkyRewardsArk deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))
@@ -42,7 +56,7 @@ export async function deploySkyRewardsArk(config: BaseConfig, arkParams?: BaseAr
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<SkyUsdsArkUserInput>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
+async function getUserInput(config: BaseConfig): Promise<SkyRewardsArkUserInput> {
   const tokens = []
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as Token]
@@ -51,10 +65,16 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
     if (psmLiteAddress && psmLiteAddress != ADDRESS_ZERO) {
       tokens.push({
         title: tokenSymbol.toUpperCase(),
-        value: { address: tokenAddress, symbol: tokenSymbol.toUpperCase() },
+        value: { address: tokenAddress, symbol: tokenSymbol as Token },
       })
     }
   }
+
+  const stakingRewardsChoices = getAvailableRewardsPrograms(config).map((key) => ({
+    title: key.toUpperCase(),
+    value: key,
+  }))
+
   const fleetDefinition = await getFleetConfig()
   const reponses = await prompts([
     {
@@ -62,6 +82,13 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
       name: 'token',
       message: 'Select token:',
       choices: tokens,
+    },
+    {
+      type: 'select',
+      name: 'rewardToken',
+      message: 'Select rewards program:',
+      choices: stakingRewardsChoices,
+      initial: 0,
     },
     {
       type: 'text',
@@ -100,13 +127,27 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: BaseArkParams, config: BaseConfig, skip: boolean) {
+async function confirmDeployment(
+  userInput: SkyRewardsArkUserInput,
+  config: BaseConfig,
+  skip: boolean,
+) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
-  console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
+  console.log(
+    kleur.yellow(
+      `Token: ${userInput.token.address} (${String(userInput.token.symbol).toUpperCase()})`,
+    ),
+  )
   console.log(
     kleur.yellow(`PSM Lite: ${config.protocolSpecific.sky.psmLite[userInput.token.symbol]}`),
   )
-  console.log(kleur.yellow(`Staking Rewards: ${config.protocolSpecific.sky.staking.sky}`))
+  const stakingRewardsAddress = validateConfigAddressEntry(
+    config.protocolSpecific.sky.staking,
+    userInput.rewardToken,
+    'Staking Rewards',
+  )
+  console.log(kleur.yellow(`Rewards program: ${String(userInput.rewardToken).toUpperCase()}`))
+  console.log(kleur.yellow(`Staking Rewards: ${stakingRewardsAddress}`))
   console.log(kleur.yellow(`USDS: ${config.tokens.usds}`))
   console.log(kleur.yellow(`Staked USDS: ${config.tokens.stakedUsds}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
@@ -124,11 +165,13 @@ async function confirmDeployment(userInput: BaseArkParams, config: BaseConfig, s
  */
 async function deploySkyRewardsArkContract(
   config: BaseConfig,
-  userInput: BaseArkParams,
+  userInput: SkyRewardsArkUserInput,
 ): Promise<SkyRewardsArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const arkName = `SkyRewards-${userInput.token.symbol}-${chainId}`
+  const rewardsKey = userInput.rewardToken
+  const tokenSymbol = String(userInput.token.symbol).toUpperCase()
+  const arkName = `SkyRewards-${String(rewardsKey).toUpperCase()}-${tokenSymbol}-${chainId}`
   const envLabel = userInput.isBummer ? 'staging_' : ''
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
@@ -137,8 +180,9 @@ async function deploySkyRewardsArkContract(
     'PSM Lite',
   )
   const usdsAddress = validateAddress(config.tokens.usds, 'USDS')
-  const stakingRewardsAddress = validateAddress(
-    config.protocolSpecific.sky.staking.sky,
+  const stakingRewardsAddress = validateConfigAddressEntry(
+    config.protocolSpecific.sky.staking,
+    rewardsKey,
     'Staking Rewards',
   )
 
@@ -147,6 +191,7 @@ async function deploySkyRewardsArkContract(
   const arkDetails = {
     protocol: 'Sky',
     type: 'Rewards',
+    rewardsProgram: String(rewardsKey).toUpperCase(),
     asset: userInput.token.address,
     marketAsset: config.tokens.usds,
     pool: stakingRewardsAddress,

@@ -56,7 +56,7 @@ async function main() {
     useBummerConfig,
   ) as BaseConfig
 
-  const accessManager = config.deployedContracts.gov.protocolAccessManager.address
+  const accessManager = config.deployedContracts.govV2.protocolAccessManager.address
   const configurationManager = config.deployedContracts.core.configurationManager.address
   const CREATE2_SALT = keccak256(toBytes('daoTipJar'))
   console.log(kleur.cyan().bold('Deploying DaoTipJar...'))

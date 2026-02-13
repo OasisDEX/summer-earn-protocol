@@ -200,9 +200,7 @@ export interface BaseConfig {
       psm3: {
         [key in Token]: Address
       }
-      staking: {
-        sky: Address
-      }
+      staking: Record<string, Address>
     }
     moonwell: {
       pools: {
@@ -307,6 +305,7 @@ export interface ArkConfig {
     asset: string
     protocol: string
     vaultName?: string // For ERC4626Ark
+    rewardToken?: string // For SkyRewardsArk (e.g. 'sky' | 'spk')
     depositCap?: string // For FluidLiteArk
     maxRebalanceOutflow?: string // For FluidLiteArk
     maxRebalanceInflow?: string // For FluidLiteArk

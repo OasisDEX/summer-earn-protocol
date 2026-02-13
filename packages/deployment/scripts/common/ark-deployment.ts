@@ -33,6 +33,7 @@ import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import {
   validateAddress,
+  validateConfigAddressEntry,
   validateErc4626Address,
   validateMarketId,
   validateString,
@@ -115,8 +116,9 @@ export async function deployArk(
     }
     case ArkType.ERC4626Ark: {
       const validatedVaultName = validateString(vaultName, 'vault name')
-      const vaultAddress = validateErc4626Address(
-        config.protocolSpecific.erc4626[token][validatedVaultName],
+      const vaultAddress = validateConfigAddressEntry(
+        config.protocolSpecific.erc4626[token],
+        validatedVaultName,
         'ERC4626 vault',
       )
       const ark = await deployERC4626Ark(config, {
@@ -148,13 +150,14 @@ export async function deployArk(
     }
     case ArkType.MorphoVaultArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
-      const marketId = validateMarketId(
-        config.protocolSpecific.morpho.vaults[token][vaultName],
-        'Morpho vault market ID',
+      const vaultId = validateConfigAddressEntry(
+        config.protocolSpecific.morpho.vaults[token],
+        vaultName,
+        'Morpho vault ID',
       )
       const ark = await deployMorphoVaultArk(config, {
         ...baseArkParams,
-        vaultId: marketId as `0x${string}`,
+        vaultId: vaultId,
         vaultName: vaultName,
       })
       deployedArk = ark
@@ -162,9 +165,10 @@ export async function deployArk(
     }
     case ArkType.MorphoV2VaultArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
-      const vaultId = validateAddress(
-        config.protocolSpecific.morpho.vaultsV2[token][vaultName],
-        'Morpho V2 vault',
+      const vaultId = validateConfigAddressEntry(
+        config.protocolSpecific.morpho.vaultsV2[token],
+        vaultName,
+        'Morpho V2 vault ID',
       )
       const ark = await deployMorphoV2VaultArk(config, {
         ...baseArkParams,
@@ -248,7 +252,10 @@ export async function deployArk(
       break
     }
     case ArkType.SkyRewardsArk: {
-      const ark = await deploySkyRewardsArk(config, baseArkParams)
+      const ark = await deploySkyRewardsArk(config, {
+        ...baseArkParams,
+        rewardToken: arkConfig.params.rewardToken,
+      })
       deployedArk = ark
       break
     }

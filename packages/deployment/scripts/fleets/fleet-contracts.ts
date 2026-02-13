@@ -50,7 +50,7 @@ export async function deployFleetContracts(
       initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
       depositCap: fleetDefinition.depositCap,
       initialTipRate: fleetDefinition.initialTipRate,
-      tipJar: tipJar,
+      daoTipJar: tipJar,
     }
     const fleetModule = createFleetDaoModule(`FleetDaoModule_${name}`)
     const deployedModule = await hre.ignition.deploy(fleetModule, {
