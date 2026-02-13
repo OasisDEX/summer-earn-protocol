@@ -10,7 +10,7 @@ import {MockIntentOracle} from "../src/mocks/MockIntentOracle.sol";
 import {MockSummerToken} from "../src/mocks/MockSummerToken.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
-import {MockERC20} from "../../../core-contracts/test/mocks/MockERC20.sol";
+import {MockERC20} from "@summerfi/earn-protocol-contracts-test/mocks/MockERC20.sol";
 import {ArkParams} from "@summerfi/earn-protocol-contracts/types/ArkTypes.sol";
 import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";

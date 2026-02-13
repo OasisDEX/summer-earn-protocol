@@ -18,5 +18,6 @@ metamorpho/=node_modules/@summerfi/dependencies/lib/metamorpho-local/src/
 @summerfi/dependencies/=node_modules/@summerfi/dependencies/lib/
 @summerfi/constants/=node_modules/@summerfi/constants/src/
 @summerfi/earn-protocol-contracts/=node_modules/@summerfi/earn-protocol-contracts/src/
+@summerfi/earn-protocol-contracts-test/=node_modules/@summerfi/earn-protocol-contracts/test/
 @summerfi/earn-protocol-test/=node_modules/@summerfi/earn-protocol-contracts/test/
 @summerfi/config-contracts/=node_modules/@summerfi/config-contracts/src/
