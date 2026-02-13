@@ -7,9 +7,10 @@ import { useAccount } from 'wagmi'
 
 import { Ark } from '../../../../components/Ark'
 import { AuctionConfigModal } from '../../../../components/AuctionConfigModal'
-import { ConnectButton } from '../../../../components/ConnectButton'
 import { DepositWithdrawTabs } from '../../../../components/DepositWithdrawTabs'
 import { FleetManagementForm } from '../../../../components/FleetManagementForm'
+import { GlassCard } from '../../../../components/GlassCard'
+import { ProgressBar } from '../../../../components/ProgressBar'
 import { RebalanceForm } from '../../../../components/RebalanceForm'
 import { StakingSection } from '../../../../components/StakingSection'
 import { useFleetActions } from '../../../../hooks/useFleetActions'
@@ -127,12 +128,12 @@ export default function FleetDetail() {
 
   if (fleetError || (!fleetLoading && !fleetInfo)) {
     return (
-      <main className="min-h-screen bg-black p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-white">Fleet Details</h1>
-            <ConnectButton />
-          </div>
+      <div>
+        <div className="mb-8">
+          <Link href="/" className="text-slate-400 hover:text-white text-sm mb-4 inline-block">
+            ← Back to Fleets
+          </Link>
+          <h1 className="text-2xl font-bold text-white">Fleet Details</h1>
           <div className="text-center text-red-400 mb-4">
             {fleetError
               ? 'Error loading fleet:'
@@ -143,366 +144,373 @@ export default function FleetDetail() {
               <strong>Error details:</strong> {fleetError.message}
             </div>
           )}
-          <Link href="/" className="text-blue-400 hover:text-blue-300 mt-4 inline-block">
-            ← Back to Home
-          </Link>
         </div>
-      </main>
+      </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-black p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <div className="flex items-center gap-4 mb-4">
-              <button
-                onClick={() => router.back()}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
-              >
-                ← Back
-              </button>
-              {fleetInfo ? (
-                <h1 className="text-3xl font-bold text-white">
-                  {fleetInfo.name} ({fleetInfo.symbol})
-                </h1>
-              ) : (
-                <div className="h-8 w-64 bg-gray-800 rounded-md animate-pulse" />
-              )}
-            </div>
-          </div>
-        </div>
+    <div>
+      {/* Page title row: Back + Fleet name */}
+      <div className="flex items-center gap-3 mb-8">
+        <Link href="/" className="text-slate-400 hover:text-white transition-colors text-sm">
+          ← Back to Fleets
+        </Link>
+        <span className="text-slate-600">|</span>
+        {fleetInfo ? (
+          <>
+            <h1 className="text-2xl font-bold text-white">
+              {fleetInfo.name} ({fleetInfo.symbol})
+            </h1>
+            {isConnected && userInfo && userInfo.balance > BigInt(0) && (
+              <span className="px-2.5 py-1 bg-primary/20 text-primary text-xs font-medium rounded-lg">
+                Active
+              </span>
+            )}
+          </>
+        ) : (
+          <div className="h-8 w-64 bg-white/5 rounded-md animate-pulse" />
+        )}
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Fleet Information & User Actions */}
-          <div className="space-y-6">
-            <div className="bg-gray-900 p-6 rounded-lg">
-              <h2 className="text-xl font-semibold text-white mb-6">Fleet Information</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Fleet Information & User Actions */}
+        <div className="space-y-6">
+          <GlassCard>
+            <h2 className="text-lg font-semibold text-white mb-6">Fleet Information</h2>
 
-              {fleetInfo ? (
-                <div className="space-y-4">
-                  <div className="p-4 bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-400">Fleet Address</p>
-                    <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.address}</p>
-                  </div>
-
-                  <div className="p-4 bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-400">Asset Address</p>
-                    <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.asset}</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-gray-800 rounded-lg">
-                      <p className="text-sm text-gray-400">Total Assets</p>
-                      <p className="text-lg font-semibold text-white">
-                        {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)}{' '}
-                        {assetInfo.symbol}
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-gray-800 rounded-lg">
-                      <p className="text-sm text-gray-400">Withdrawable Assets</p>
-                      <p className="text-lg font-semibold text-white">
-                        {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)}{' '}
-                        {assetInfo.symbol}
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-gray-800 rounded-lg">
-                      <p className="text-sm text-gray-400">Deposit Cap</p>
-                      <p className="text-lg font-semibold text-white">
-                        {fleetInfo.depositCap === BigInt(0)
-                          ? 'Zero'
-                          : `${formatDecimalOutput(fleetInfo.depositCap, assetInfo.decimals)} ${assetInfo.symbol}`}
-                      </p>
-                      {fleetInfo.depositCap > BigInt(0) && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {formatPercentage(
-                            (fleetInfo.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
-                              fleetInfo.depositCap,
-                          )}{' '}
-                          of cap used
-                        </p>
-                      )}
-                    </div>
-                  </div>
+            {fleetInfo ? (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Fleet Address</p>
+                  <p className="font-mono text-slate-300 break-all text-sm">{fleetInfo.address}</p>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="p-4 bg-gray-800 rounded-lg">
-                    <div className="h-4 w-24 bg-gray-700 rounded mb-2 animate-pulse" />
-                    <div className="h-4 w-full bg-gray-700 rounded animate-pulse" />
-                  </div>
-                  <div className="p-4 bg-gray-800 rounded-lg">
-                    <div className="h-4 w-24 bg-gray-700 rounded mb-2 animate-pulse" />
-                    <div className="h-4 w-full bg-gray-700 rounded animate-pulse" />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-gray-800 rounded-lg">
-                      <div className="h-4 w-28 bg-gray-700 rounded mb-2 animate-pulse" />
-                      <div className="h-6 w-40 bg-gray-700 rounded animate-pulse" />
-                    </div>
-                    <div className="p-4 bg-gray-800 rounded-lg">
-                      <div className="h-4 w-32 bg-gray-700 rounded mb-2 animate-pulse" />
-                      <div className="h-6 w-40 bg-gray-700 rounded animate-pulse" />
-                    </div>
-                  </div>
+
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Asset</p>
+                  <p className="font-mono text-slate-300 break-all text-sm">{fleetInfo.asset}</p>
                 </div>
-              )}
-            </div>
 
-            {isConnected && userInfo && fleetInfo && (
-              <div className="bg-gray-900 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold text-white mb-6">Your Position</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="p-4 bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-400">Your Fleet Tokens</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-slate-500 mb-1">Total Assets</p>
                     <p className="text-lg font-semibold text-white">
-                      {formatDecimalOutput(userInfo.balance, fleetInfo.fleetDecimals)}{' '}
-                      {fleetInfo.symbol}
+                      {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)}{' '}
+                      {assetInfo.symbol}
                     </p>
                   </div>
-                  <div className="p-4 bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-400">Your {assetInfo.symbol} Balance</p>
+
+                  <div>
+                    <p className="text-sm text-slate-500 mb-1">Withdrawable</p>
                     <p className="text-lg font-semibold text-white">
-                      {formatDecimalOutput(userInfo.underlyingBalance, assetInfo.decimals)}{' '}
+                      {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)}{' '}
                       {assetInfo.symbol}
                     </p>
                   </div>
                 </div>
+
+                {fleetInfo.depositCap > BigInt(0) && (
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-slate-500">Deposit Cap</span>
+                      <span className="text-white">
+                        {formatPercentage(
+                          (fleetInfo.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
+                            fleetInfo.depositCap,
+                        )}{' '}
+                        used
+                      </span>
+                    </div>
+                    <ProgressBar
+                      value={
+                        Number(
+                          (fleetInfo.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
+                            fleetInfo.depositCap,
+                        ) / 1e18
+                      }
+                      max={100}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <div className="h-4 w-24 bg-white/10 rounded mb-2 animate-pulse" />
+                  <div className="h-4 w-full bg-white/10 rounded animate-pulse" />
+                </div>
+                <div>
+                  <div className="h-4 w-24 bg-white/10 rounded mb-2 animate-pulse" />
+                  <div className="h-4 w-full bg-white/10 rounded animate-pulse" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="h-4 w-28 bg-white/10 rounded mb-2 animate-pulse" />
+                    <div className="h-6 w-40 bg-white/10 rounded animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="h-4 w-32 bg-white/10 rounded mb-2 animate-pulse" />
+                    <div className="h-6 w-40 bg-white/10 rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </GlassCard>
+
+          {isConnected && userInfo && fleetInfo && (
+            <GlassCard>
+              <h3 className="text-lg font-semibold text-white mb-6">Your Position</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Your Fleet Tokens</p>
+                  <p className="text-lg font-semibold text-white">
+                    {formatDecimalOutput(userInfo.balance, fleetInfo.fleetDecimals)}{' '}
+                    {fleetInfo.symbol}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Your {assetInfo.symbol} Balance</p>
+                  <p className="text-lg font-semibold text-white">
+                    {formatDecimalOutput(userInfo.underlyingBalance, assetInfo.decimals)}{' '}
+                    {assetInfo.symbol}
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
+          )}
+
+          {/* Debug Info (Development Only) */}
+          {/* <DebugStakingInfo fleetAddress={address} chainId={chainId} userInfo={userInfo} /> */}
+
+          {/* Deposit/Withdraw Tabs */}
+          {isConnected && userInfo && fleetInfo && (
+            <DepositWithdrawTabs
+              userInfo={userInfo}
+              assetSymbol={assetInfo.symbol}
+              assetDecimals={assetInfo.decimals}
+              fleetSymbol={fleetInfo.symbol}
+              fleetDecimals={fleetInfo.fleetDecimals}
+              onDeposit={handleDeposit}
+              onWithdraw={handleWithdraw}
+              onApprove={handleApprove}
+              isApproveLoading={isApproveLoading}
+              isDepositLoading={isDepositLoading}
+              isWithdrawLoading={isWithdrawLoading}
+              needsApproval={needsApproval}
+            />
+          )}
+
+          {/* Staking Section */}
+          {isConnected && userInfo && fleetInfo && (
+            <StakingSection
+              fleetAddress={address}
+              fleetSymbol={fleetInfo.symbol}
+              fleetDecimals={fleetInfo.fleetDecimals}
+              chainId={chainId}
+              userInfo={userInfo}
+            />
+          )}
+        </div>
+
+        {/* Right Column - Arks and Rebalance */}
+        <div className="space-y-6">
+          {/* Arks Section */}
+          <GlassCard>
+            <h2 className="text-lg font-semibold text-white mb-6">Active Fleet Arks</h2>
+
+            {arksLoading ? (
+              <div className="text-center text-slate-400">Loading arks...</div>
+            ) : arks.length === 0 ? (
+              <div className="text-center text-slate-500">No arks found for this fleet.</div>
+            ) : (
+              <div className="space-y-4">
+                {arks.map((ark) => (
+                  <div key={ark.address} className="glass rounded-xl p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-white font-semibold">{ark.name}</h4>
+                          {ark.isBufferArk && (
+                            <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-medium rounded-lg">
+                              Buffer Ark
+                            </span>
+                          )}
+                          {ark.hasWithdrawalQueue && (
+                            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-lg">
+                              Withdrawal Queue
+                            </span>
+                          )}
+                          {ark.needsSweep && !ark.isBufferArk && (
+                            <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs font-medium rounded-lg">
+                              Needs Sweep
+                            </span>
+                          )}
+                        </div>
+                        {ark.withdrawalRequestId != null && (
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Withdrawal ID: {ark.withdrawalRequestId}
+                          </p>
+                        )}
+                        <p className="text-slate-500 text-sm font-mono">{ark.address}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                      <div>
+                        <p className="text-slate-500">Balance</p>
+                        <p className="text-white font-medium">
+                          {formatDecimalOutput(ark.totalAssets, assetInfo.decimals)}{' '}
+                          {assetInfo.symbol}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500">Allocation</p>
+                        <p className="text-white font-medium">
+                          {fleetInfo &&
+                          fleetInfo.totalAssets > BigInt(0) &&
+                          ark.totalAssets > BigInt(0)
+                            ? formatPercentage(
+                                (ark.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
+                                  fleetInfo.totalAssets,
+                              )
+                            : '0%'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Ark Configuration Limits */}
+                    <div className="border-t border-white/10 pt-4 mt-4">
+                      <p className="text-xs text-slate-500 mb-3 font-semibold uppercase tracking-wide">
+                        Config Limits
+                      </p>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-slate-500">Deposit Cap</p>
+                          <p className="text-white font-medium">
+                            {ark.depositCap === BigInt(0)
+                              ? 'Zero'
+                              : `${formatDecimalOutput(ark.depositCap, assetInfo.decimals)} ${assetInfo.symbol}`}
+                          </p>
+                          {ark.depositCap > BigInt(0) && (
+                            <p className="text-xs text-slate-500 mt-1">
+                              {formatPercentage(
+                                (ark.totalAssets * BigInt(100) * BigInt(10 ** 18)) / ark.depositCap,
+                              )}{' '}
+                              of cap used
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-slate-500">Max Deposit % of TVL</p>
+                          <p className="text-white font-medium">
+                            {ark.maxDepositPercentageOfTVL === BigInt(0)
+                              ? 'Zero'
+                              : formatPercentage(ark.maxDepositPercentageOfTVL)}
+                          </p>
+                          {fleetInfo &&
+                            fleetInfo.totalAssets > BigInt(0) &&
+                            ark.totalAssets > BigInt(0) && (
+                              <p className="text-xs text-slate-500 mt-1">
+                                Current:{' '}
+                                {formatPercentage(
+                                  (ark.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
+                                    fleetInfo.totalAssets,
+                                )}{' '}
+                                of fleet TVL
+                              </p>
+                            )}
+                        </div>
+                        <div>
+                          <p className="text-slate-500">Max Rebalance Inflow</p>
+                          <p className="text-white font-medium">
+                            {ark.maxRebalanceInflow ===
+                            BigInt(
+                              '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+                            )
+                              ? 'Unlimited'
+                              : `${formatDecimalOutput(ark.maxRebalanceInflow, assetInfo.decimals)} ${assetInfo.symbol}`}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500">Max Rebalance Outflow</p>
+                          <p className="text-white font-medium">
+                            {ark.maxRebalanceOutflow ===
+                            BigInt(
+                              '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+                            )
+                              ? 'Unlimited'
+                              : `${formatDecimalOutput(ark.maxRebalanceOutflow, assetInfo.decimals)} ${assetInfo.symbol}`}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <Ark
+                      arkAddress={ark.address as `0x${string}`}
+                      rewardToken={(fleetInfo?.asset as `0x${string}`) || '0x'}
+                      name={ark.name}
+                      fleetAddress={address}
+                      assetDecimals={assetInfo.decimals}
+                      assetSymbol={assetInfo.symbol}
+                      isBufferArk={ark.isBufferArk}
+                      hasWithdrawalQueue={ark.hasWithdrawalQueue}
+                      withdrawalRequestId={ark.withdrawalRequestId}
+                      assetsInWithdrawalQueue={ark.assetsInWithdrawalQueue}
+                      isWithdrawalClaimRequired={ark.isWithdrawalClaimRequired}
+                      assetBalance={ark.assetBalance}
+                      needsSweep={ark.needsSweep}
+                      onWithdrawalSuccess={() => refetchArks()}
+                    />
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* Debug Info (Development Only) */}
-            {/* <DebugStakingInfo fleetAddress={address} chainId={chainId} userInfo={userInfo} /> */}
-
-            {/* Deposit/Withdraw Tabs */}
-            {isConnected && userInfo && fleetInfo && (
-              <DepositWithdrawTabs
-                userInfo={userInfo}
-                assetSymbol={assetInfo.symbol}
-                assetDecimals={assetInfo.decimals}
-                fleetSymbol={fleetInfo.symbol}
-                fleetDecimals={fleetInfo.fleetDecimals}
-                onDeposit={handleDeposit}
-                onWithdraw={handleWithdraw}
-                onApprove={handleApprove}
-                isApproveLoading={isApproveLoading}
-                isDepositLoading={isDepositLoading}
-                isWithdrawLoading={isWithdrawLoading}
-                needsApproval={needsApproval}
+            {auctionModalArk && (
+              <AuctionConfigModal
+                isOpen={!!auctionModalArk}
+                onClose={() => setAuctionModalArk(null)}
+                arkAddress={auctionModalArk.address as `0x${string}`}
+                rewardToken={auctionModalArk.rewardToken as `0x${string}`}
               />
             )}
+          </GlassCard>
 
-            {/* Staking Section */}
-            {isConnected && userInfo && fleetInfo && (
-              <StakingSection
-                fleetAddress={address}
-                fleetSymbol={fleetInfo.symbol}
-                fleetDecimals={fleetInfo.fleetDecimals}
-                chainId={chainId}
-                userInfo={userInfo}
-              />
-            )}
-          </div>
+          {/* Fleet Optimization - Rebalance */}
+          <RebalanceForm
+            arks={arks}
+            assetSymbol={assetInfo.symbol}
+            assetDecimals={assetInfo.decimals}
+            onRebalance={handleRebalance}
+            isLoading={isRebalanceLoading}
+          />
 
-          {/* Right Column - Arks and Rebalance */}
-          <div className="space-y-6">
-            {/* Arks Section */}
-            <div className="bg-gray-900 p-6 rounded-lg">
-              <h2 className="text-xl font-semibold text-white mb-6">Fleet Arks</h2>
-
-              {arksLoading ? (
-                <div className="text-center text-gray-300">Loading arks...</div>
-              ) : arks.length === 0 ? (
-                <div className="text-center text-gray-400">No arks found for this fleet.</div>
-              ) : (
-                <div className="space-y-4">
-                  {arks.map((ark) => (
-                    <div key={ark.address} className="p-4 bg-gray-800 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-white font-semibold">{ark.name}</h4>
-                            {ark.isBufferArk && (
-                              <span className="px-2 py-1 bg-blue-600 text-blue-100 text-xs rounded-full">
-                                Buffer Ark
-                              </span>
-                            )}
-                            {ark.hasWithdrawalQueue && (
-                              <span className="px-2 py-1 bg-amber-600 text-amber-100 text-xs rounded-full">
-                                Withdrawal Queue
-                              </span>
-                            )}
-                            {ark.needsSweep && !ark.isBufferArk && (
-                              <span className="px-2 py-1 bg-orange-600 text-orange-100 text-xs rounded-full">
-                                Needs Sweep
-                              </span>
-                            )}
-                          </div>
-                          {ark.withdrawalRequestId != null && (
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              Withdrawal ID: {ark.withdrawalRequestId}
-                            </p>
-                          )}
-                          <p className="text-gray-400 text-sm font-mono">{ark.address}</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                        <div>
-                          <p className="text-gray-400">Total Assets</p>
-                          <p className="text-white font-medium">
-                            {formatDecimalOutput(ark.totalAssets, assetInfo.decimals)}{' '}
-                            {assetInfo.symbol}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400">Withdrawable</p>
-                          <p className="text-white font-medium">
-                            {formatDecimalOutput(ark.withdrawableTotalAssets, assetInfo.decimals)}{' '}
-                            {assetInfo.symbol}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Ark Configuration Limits */}
-                      <div className="border-t border-gray-700 pt-4 mt-4">
-                        <p className="text-xs text-gray-500 mb-3 font-semibold uppercase tracking-wide">
-                          Configuration Limits
-                        </p>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="text-gray-400">Deposit Cap</p>
-                            <p className="text-white font-medium">
-                              {ark.depositCap === BigInt(0)
-                                ? 'Zero'
-                                : `${formatDecimalOutput(ark.depositCap, assetInfo.decimals)} ${assetInfo.symbol}`}
-                            </p>
-                            {ark.depositCap > BigInt(0) && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                {formatPercentage(
-                                  (ark.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
-                                    ark.depositCap,
-                                )}{' '}
-                                of cap used
-                              </p>
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-gray-400">Max Deposit % of TVL</p>
-                            <p className="text-white font-medium">
-                              {ark.maxDepositPercentageOfTVL === BigInt(0)
-                                ? 'Zero'
-                                : formatPercentage(ark.maxDepositPercentageOfTVL)}
-                            </p>
-                            {fleetInfo &&
-                              fleetInfo.totalAssets > BigInt(0) &&
-                              ark.totalAssets > BigInt(0) && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Current:{' '}
-                                  {formatPercentage(
-                                    (ark.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
-                                      fleetInfo.totalAssets,
-                                  )}{' '}
-                                  of fleet TVL
-                                </p>
-                              )}
-                          </div>
-                          <div>
-                            <p className="text-gray-400">Max Rebalance Inflow</p>
-                            <p className="text-white font-medium">
-                              {ark.maxRebalanceInflow ===
-                              BigInt(
-                                '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-                              )
-                                ? 'Unlimited'
-                                : `${formatDecimalOutput(ark.maxRebalanceInflow, assetInfo.decimals)} ${assetInfo.symbol}`}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-gray-400">Max Rebalance Outflow</p>
-                            <p className="text-white font-medium">
-                              {ark.maxRebalanceOutflow ===
-                              BigInt(
-                                '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-                              )
-                                ? 'Unlimited'
-                                : `${formatDecimalOutput(ark.maxRebalanceOutflow, assetInfo.decimals)} ${assetInfo.symbol}`}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <Ark
-                        arkAddress={ark.address as `0x${string}`}
-                        rewardToken={(fleetInfo?.asset as `0x${string}`) || '0x'}
-                        name={ark.name}
-                        fleetAddress={address}
-                        assetDecimals={assetInfo.decimals}
-                        assetSymbol={assetInfo.symbol}
-                        isBufferArk={ark.isBufferArk}
-                        hasWithdrawalQueue={ark.hasWithdrawalQueue}
-                        withdrawalRequestId={ark.withdrawalRequestId}
-                        assetsInWithdrawalQueue={ark.assetsInWithdrawalQueue}
-                        isWithdrawalClaimRequired={ark.isWithdrawalClaimRequired}
-                        assetBalance={ark.assetBalance}
-                        needsSweep={ark.needsSweep}
-                        onWithdrawalSuccess={() => refetchArks()}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {auctionModalArk && (
-                <AuctionConfigModal
-                  isOpen={!!auctionModalArk}
-                  onClose={() => setAuctionModalArk(null)}
-                  arkAddress={auctionModalArk.address as `0x${string}`}
-                  rewardToken={auctionModalArk.rewardToken as `0x${string}`}
-                />
-              )}
-            </div>
-
-            {/* Rebalance Section */}
-            <RebalanceForm
-              arks={arks}
-              assetSymbol={assetInfo.symbol}
-              assetDecimals={assetInfo.decimals}
-              onRebalance={handleRebalance}
-              isLoading={isRebalanceLoading}
-            />
-
-            {/* Fleet Management Section */}
-            <div className="bg-gray-900 rounded-lg p-6 mt-6 border border-gray-800">
-              <button
-                onClick={() => setIsFleetManagementOpen(!isFleetManagementOpen)}
-                className="w-full flex items-center justify-between bg-gray-700 text-white py-3 px-4 rounded-md hover:bg-gray-600 mb-4"
+          {/* Advanced Fleet Management */}
+          <GlassCard>
+            <button
+              onClick={() => setIsFleetManagementOpen(!isFleetManagementOpen)}
+              className="w-full flex items-center justify-between text-white py-3 px-1 rounded-md hover:bg-white/5 transition-colors"
+            >
+              <span className="text-lg font-semibold">Advanced Fleet Management</span>
+              <span
+                className={`transform transition-transform ${isFleetManagementOpen ? 'rotate-180' : ''}`}
               >
-                <span className="text-lg font-semibold">Fleet Management</span>
-                <span
-                  className={`transform transition-transform ${isFleetManagementOpen ? 'rotate-180' : ''}`}
-                >
-                  ▼
-                </span>
-              </button>
+                ▼
+              </span>
+            </button>
 
-              {isFleetManagementOpen && (
-                <FleetManagementForm
-                  fleetAddress={address}
-                  chainId={chainId}
-                  assetDecimals={assetInfo.decimals}
-                  assetSymbol={assetInfo.symbol}
-                  fleetInfo={fleetInfo}
-                  arks={arks}
-                />
-              )}
-            </div>
-          </div>
+            {isFleetManagementOpen && (
+              <FleetManagementForm
+                fleetAddress={address}
+                chainId={chainId}
+                assetDecimals={assetInfo.decimals}
+                assetSymbol={assetInfo.symbol}
+                fleetInfo={fleetInfo}
+                arks={arks}
+              />
+            )}
+          </GlassCard>
         </div>
       </div>
-    </main>
+    </div>
   )
 }

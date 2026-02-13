@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { headers } from 'next/headers'
 
 import { RefreshButton } from '@/components/RefreshButton'
@@ -32,27 +33,28 @@ export default async function VestingBatchPage({ params }: { params: { chainId: 
   const { snapshots, timestamp } = await getData(chainId, environment)
 
   return (
-    <main>
-      <div className="max-w-9xl mx-auto space-y-6">
-        <header className="space-y-4 pt-6">
+    <main className="min-h-screen bg-charcoal-900 p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <header className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Link href="/" className="hover:text-white transition-colors">
+              Admin
+            </Link>
+            <span>›</span>
+            <span className="text-slate-400">Batch Vesting</span>
+          </div>
           <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-white">
-                Batch Vesting Snapshot{' '}
-                <span className="text-blue-500 text-2xl align-top">Ultra</span>
-              </h1>
-              <p className="text-gray-300 text-sm mt-1">
-                Data cached for 24h. Last Updated: {new Date(timestamp).toLocaleTimeString()}
+              <h1 className="text-2xl font-bold text-white">Batch Vesting</h1>
+              <p className="text-slate-500 text-sm mt-1">
+                Last updated: {new Date(timestamp).toLocaleTimeString()}
               </p>
             </div>
-            <div className="flex flex-col items-end gap-2">
-              <RefreshButton lastUpdated={timestamp} />
-            </div>
+            <RefreshButton lastUpdated={timestamp} />
           </div>
         </header>
 
-        {/* Pass data to Client Component for interactivity (Sorting) */}
-        <VestingBatchTable initialSnapshots={snapshots} />
+        <VestingBatchTable initialSnapshots={snapshots} chainId={chainId} />
       </div>
     </main>
   )

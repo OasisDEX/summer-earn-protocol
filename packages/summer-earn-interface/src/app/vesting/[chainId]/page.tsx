@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { getAddress, isAddress } from 'viem'
 import {
   useAccount,
@@ -15,6 +15,11 @@ import { base as baseChain } from 'wagmi/chains'
 
 import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 
+import { ChainPills } from '../../../components/ChainPills'
+import { ConnectButton } from '../../../components/ConnectButton'
+import { GlassCard } from '../../../components/GlassCard'
+import { ProgressBar } from '../../../components/ProgressBar'
+import { StatCard } from '../../../components/StatCard'
 import { erc20Abi } from '../../../abis/ERC20'
 import { summerVestingWalletAbi } from '../../../abis/SummerVestingWallet'
 import { summerVestingWalletEscrowAbi } from '../../../abis/SummerVestingWalletEscrow'
@@ -116,9 +121,12 @@ type MulticallResult<T> =
       result?: undefined
     }
 
-export default function VestingPage() {
+const VALID_CHAINS: ChainId[] = ['1', '42161', '8453', '146']
+
+function VestingContent() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const chainId = params.chainId as ChainId
   const { address, isConnected } = useAccount()
   const { environment } = useEnvironment()
@@ -156,6 +164,20 @@ export default function VestingPage() {
     setLookupAddress(null)
     setInputAddress('')
     setAddressError(null)
+  }
+
+  // Deep link from batch table: ?address=0x...
+  useEffect(() => {
+    const addr = searchParams.get('address')
+    if (addr && isAddress(addr)) {
+      setInputAddress(addr)
+      setLookupAddress(getAddress(addr) as `0x${string}`)
+      setAddressError(null)
+    }
+  }, [searchParams])
+
+  const handleChainChange = (newChainId: ChainId) => {
+    router.push(`/vesting/${newChainId}${lookupAddress ? `?address=${lookupAddress}` : ''}`)
   }
 
   // Lookup vesting wallet for target user in V1 factory first
@@ -464,84 +486,112 @@ export default function VestingPage() {
     }
   }, [publicClient, vestingWalletAddress, isV2Wallet])
 
-  return (
-    <main>
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg"
-          >
-            ← Back
-          </button>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white">Your Vesting Wallet ✨</h1>
-        </div>
+  const totalAllocation = useMemo(() => {
+    if (isV2Wallet && v2TotalVestingAmount !== null) return v2TotalVestingAmount
+    const timeBased = (timeBasedAmount as bigint) ?? BigInt(0)
+    const goalsSum = goals.reduce((acc, g) => acc + (g.amount ?? BigInt(0)), BigInt(0))
+    return timeBased + goalsSum
+  }, [isV2Wallet, v2TotalVestingAmount, timeBasedAmount, goals])
 
-        {/* Address override input */}
-        <div className="mb-6 rounded-2xl p-4 bg-gray-900 border border-gray-800">
-          <div className="flex flex-col md:flex-row md:items-end gap-3">
-            <div className="flex-1">
-              <label className="block text-sm text-gray-400 mb-1">Address to view</label>
-              <input
-                value={inputAddress}
-                onChange={(e) => setInputAddress(e.target.value)}
-                placeholder="0x..."
-                className="w-full px-3 py-2 rounded-md bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-              />
-            </div>
-            <div className="flex gap-2">
+  const progressPercent = useMemo(() => {
+    if (totalAllocation === BigInt(0)) return 0
+    const released = (releasedTotal as bigint) ?? BigInt(0)
+    return Number((released * BigInt(10000)) / totalAllocation) / 100
+  }, [totalAllocation, releasedTotal])
+
+  const remainingAmount = useMemo(() => {
+    const released = (releasedTotal as bigint) ?? BigInt(0)
+    return totalAllocation - released
+  }, [totalAllocation, releasedTotal])
+
+  return (
+    <main className="min-h-screen bg-charcoal-900 p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Design nav: glass bar, search, chain selector, connect */}
+        <div className="glass rounded-xl p-4 mb-8 flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="text-slate-400 hover:text-white transition-colors text-sm"
+            >
+              ← Back
+            </button>
+            <Link
+              href={`/vesting/${chainId}/batch`}
+              className="text-slate-400 hover:text-white text-sm"
+            >
+              Batch
+            </Link>
+          </div>
+          <div className="flex-1 relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
+              🔍
+            </span>
+            <input
+              value={inputAddress}
+              onChange={(e) => setInputAddress(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onFetchAddress()}
+              placeholder="Enter address to view..."
+              className="w-full py-2.5 pl-10 pr-4 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onFetchAddress}
+              className="px-4 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium text-sm"
+            >
+              Fetch
+            </button>
+            {lookupAddress && (
               <button
-                onClick={onFetchAddress}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                onClick={onClearOverride}
+                className="px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm"
               >
-                Fetch
+                Clear
               </button>
-              {lookupAddress && (
-                <button
-                  onClick={onClearOverride}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="mt-2 text-sm">
-            {addressError && <span className="text-red-400">{addressError}</span>}
-            {!addressError && (
-              <span className="text-gray-400">
-                Viewing for: <span className="text-gray-200 font-mono">{queryAddress ?? '—'}</span>
-              </span>
             )}
+            <ChainPills
+              selectedChain={chainId}
+              onChange={handleChainChange}
+              chains={VALID_CHAINS}
+            />
+            <ConnectButton />
           </div>
-          {!isLookupSameAsConnected && isConnected && (
-            <div className="mt-2 text-yellow-300 text-sm">
-              To claim, connect the same address as the one being viewed or clear the override.
-            </div>
+        </div>
+        <div className="mb-4 text-sm">
+          {addressError && <span className="text-red-400">{addressError}</span>}
+          {!addressError && (
+            <span className="text-slate-500">
+              Viewing: <span className="text-slate-300 font-mono">{queryAddress ?? '—'}</span>
+            </span>
           )}
         </div>
+        {!isLookupSameAsConnected && isConnected && (
+          <div className="mb-4 text-amber-400 text-sm">
+            To claim, connect the same address or clear the override.
+          </div>
+        )}
 
         {!isBase && (
-          <div className="mb-6 p-4 rounded-lg border border-yellow-600 bg-yellow-900/40 text-yellow-200">
+          <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-sm">
             Please switch to Base network to manage vesting.
           </div>
         )}
 
         {!isConnected && (
-          <div className="mb-6 p-4 rounded-lg border border-blue-600 bg-blue-900/40 text-blue-200">
-            Optional: connect your wallet to claim. You can still fetch any address above to view
-            details.
+          <div className="mb-6 p-4 rounded-xl border border-primary/30 bg-primary/10 text-primary text-sm">
+            Connect your wallet to claim. You can still fetch any address to view details.
           </div>
         )}
 
         {isV2Wallet && isRecalled && (
-          <div className="mb-6 p-4 rounded-lg border border-red-600 bg-red-900/40 text-red-200">
+          <div className="mb-6 p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-200 text-sm">
             ⚠️ This vesting wallet has been recalled. No more tokens can be claimed.
           </div>
         )}
 
         {isStaked && (
-          <div className="mb-6 p-4 rounded-lg border border-yellow-600 bg-yellow-900/40 text-yellow-200">
+          <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-sm">
             ⚠️ Your vesting wallet is staked. You cannot claim while staked.{' '}
             <Link
               href={`/vesting-staking/${chainId}`}
@@ -552,151 +602,142 @@ export default function VestingPage() {
           </div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800">
-            <h2 className="text-xl font-semibold text-white mb-4">Overview 🌈</h2>
-            <div className="space-y-3 text-gray-300">
-              <div className="flex items-center justify-between gap-3">
-                <span>Factory</span>
-                <span className="font-mono text-blue-300 break-all text-right max-w-[60%]">
-                  {isV2Wallet ? factoryV2Address : factoryAddress || '—'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Your Vesting Wallet</span>
-                <span className="font-mono text-green-300 break-all text-right max-w-[60%]">
-                  {vestingWalletAddress ? (vestingWalletAddress as string) : '—'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Token</span>
-                <span className="font-mono text-purple-300 break-all text-right max-w-[60%]">
-                  {tokenAddress ? (tokenAddress as string) : '—'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Symbol</span>
-                <span className="text-white">{(tokenSymbol as string) || '—'}</span>
-              </div>
-            </div>
-          </div>
+        {/* Metrics row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <StatCard
+            label="Total Vested"
+            value={
+              vestingWalletAddress
+                ? `${formatDecimalOutput(totalAllocation, decimals)} ${(tokenSymbol as string) || ''}`
+                : '—'
+            }
+          />
+          <StatCard
+            label="Claimable Now"
+            value={
+              vestingWalletAddress ? `${formattedReleasable} ${(tokenSymbol as string) || ''}` : '—'
+            }
+            highlight
+          />
+          <StatCard label="Next Release" value="—" suffix="(N/A)" />
+        </div>
 
-          <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800">
-            <h2 className="text-xl font-semibold text-white mb-4">Your Tokens 💰</h2>
-            <div className="space-y-4">
-              <div className="bg-gray-800/60 rounded-lg p-4">
-                <div className="text-gray-400 text-sm">Releasable now</div>
-                <div className="text-3xl font-bold text-green-400">
-                  {formattedReleasable} {(tokenSymbol as string) || ''}
-                </div>
+        {/* Vesting Details + Claim */}
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          <GlassCard>
+            <h2 className="text-lg font-semibold text-white mb-6">Vesting Details</h2>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-slate-500 mb-1">Contract</p>
+                <p className="font-mono text-slate-300 break-all text-sm">
+                  {vestingWalletAddress ? (vestingWalletAddress as string) : '—'}
+                </p>
               </div>
-              <div className="bg-gray-800/60 rounded-lg p-4">
-                <div className="text-gray-400 text-sm">Already claimed</div>
-                <div className="text-2xl font-semibold text-blue-300">
-                  {formattedReleased} {(tokenSymbol as string) || ''}
+              {totalAllocation > BigInt(0) && (
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-slate-500">Progress</span>
+                    <span className="text-white">{progressPercent.toFixed(1)}%</span>
+                  </div>
+                  <ProgressBar value={progressPercent} max={100} />
+                  <p className="text-xs text-slate-500 mt-2">
+                    Remaining: {formatDecimalOutput(remainingAmount, decimals)}{' '}
+                    {(tokenSymbol as string) || ''}
+                  </p>
                 </div>
+              )}
+            </div>
+          </GlassCard>
+
+          <GlassCard>
+            <h2 className="text-lg font-semibold text-white mb-4">Claim</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-slate-500 mb-1">Released</p>
+                <p className="text-2xl font-bold text-white">
+                  {formattedReleased} {(tokenSymbol as string) || ''}
+                </p>
               </div>
 
               <button
                 onClick={onClaim}
                 disabled={!canClaim || isPending || isConfirming}
-                className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+                className={`w-full py-3 rounded-xl font-semibold transition-all ${
                   canClaim && !isPending && !isConfirming
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                    ? 'bg-primary hover:bg-primary/90 text-white neon-glow'
+                    : 'bg-white/10 text-slate-500 cursor-not-allowed'
                 }`}
               >
-                {isPending ? 'Submitting…' : isConfirming ? 'Confirming…' : 'Claim now 🎉'}
+                {isPending ? 'Submitting…' : isConfirming ? 'Confirming…' : 'Claim now'}
               </button>
 
               {isSuccess && (
-                <div className="p-3 rounded-lg bg-green-900/40 border border-green-700 text-green-200">
-                  Success! Your tokens are on the way 🚀
+                <div className="p-3 rounded-xl bg-green-500/20 border border-green-500/30 text-green-200 text-sm">
+                  Success! Your tokens are on the way.
                 </div>
               )}
             </div>
-          </div>
+          </GlassCard>
         </div>
 
-        {/* Vesting details */}
-        <div className="grid gap-6 md:grid-cols-2 mt-6">
-          <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800">
-            <h2 className="text-xl font-semibold text-white mb-4">Vesting Details 🧭</h2>
-            <div className="space-y-3 text-gray-300">
-              <div className="flex items-center justify-between gap-3">
-                <span>Contract Version</span>
-                <span className="text-white">{isV2Wallet ? 'V2' : 'V1'}</span>
-              </div>
-              {!isV2Wallet && (
-                <div className="flex items-center justify-between gap-3">
-                  <span>Vesting Type</span>
-                  <span className="text-white">
-                    {vestingType === 0
-                      ? 'Team (Goals)'
-                      : vestingType === 1
-                        ? 'Investor (Time-based only)'
-                        : '—'}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center justify-between gap-3">
-                <span>Time-based Allocation</span>
-                <span className="text-blue-300">
-                  {isV2Wallet && v2TotalVestingAmount !== null
-                    ? formatDecimalOutput(v2TotalVestingAmount ?? BigInt(0), decimals)
-                    : formatDecimalOutput((timeBasedAmount as bigint) ?? BigInt(0), decimals)}{' '}
-                  {(tokenSymbol as string) || ''}
-                </span>
-              </div>
-              {isV2Wallet && v2CliffAmount !== null && (
-                <div className="flex items-center justify-between gap-3">
-                  <span>Cliff Amount</span>
-                  <span className="text-purple-300">
-                    {formatDecimalOutput(v2CliffAmount ?? BigInt(0), decimals)}{' '}
-                    {(tokenSymbol as string) || ''}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800">
-            <h2 className="text-xl font-semibold text-white mb-4">
-              Goals {(!isV2Wallet && vestingType === 0) || isV2Wallet ? '🙂/☹️' : ''}
-            </h2>
-            {!isV2Wallet && vestingType !== 0 && (
-              <div className="text-gray-400">No goals for this vesting type.</div>
-            )}
-            {(isV2Wallet || (!isV2Wallet && vestingType === 0)) && (
-              <div className="space-y-3">
-                {goals.length === 0 && <div className="text-gray-400">No goals found.</div>}
-                {goals.map((g, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between gap-3 bg-gray-800/60 p-3 rounded-lg"
-                  >
-                    <div className="text-gray-300">
-                      Goal #{idx + 1}
-                      {g.description && (
-                        <div className="text-sm text-gray-400 mt-1">{g.description}</div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-purple-300">
-                        {formatDecimalOutput(g.amount ?? BigInt(0), decimals)}{' '}
-                        {(tokenSymbol as string) || ''}
-                      </span>
-                      <span className={g.reached ? 'text-green-400' : 'text-red-400'}>
-                        {g.reached ? '🙂' : '☹️'}
-                      </span>
-                    </div>
+        {/* Release Milestones */}
+        <GlassCard>
+          <h2 className="text-lg font-semibold text-white mb-6">Release Milestones</h2>
+          {!isV2Wallet && vestingType !== 0 && (
+            <div className="text-slate-500">No goals for this vesting type.</div>
+          )}
+          {(isV2Wallet || (!isV2Wallet && vestingType === 0)) && (
+            <div className="space-y-3">
+              {goals.length === 0 && <div className="text-slate-500">No goals found.</div>}
+              {goals.map((g, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between gap-3 p-4 rounded-xl bg-white/5 border border-white/5"
+                >
+                  <div>
+                    <span className="text-white font-medium">Goal #{idx + 1}</span>
+                    {g.description && (
+                      <div className="text-sm text-slate-500 mt-1">{g.description}</div>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-slate-300">
+                      {formatDecimalOutput(g.amount ?? BigInt(0), decimals)}{' '}
+                      {(tokenSymbol as string) || ''}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
+                        g.reached
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-slate-500/20 text-slate-400'
+                      }`}
+                    >
+                      {g.reached ? 'Reached' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </GlassCard>
       </div>
     </main>
+  )
+}
+
+export default function VestingPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-charcoal-900 p-8 flex items-center justify-center">
+          <div className="glass rounded-xl p-8 animate-pulse">
+            <div className="h-6 w-48 bg-white/10 rounded mb-4" />
+            <div className="h-4 w-32 bg-white/10 rounded" />
+          </div>
+        </main>
+      }
+    >
+      <VestingContent />
+    </Suspense>
   )
 }

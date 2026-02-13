@@ -88,13 +88,13 @@ export function RebalanceForm({
   const canSubmit = hasValidRows && !isLoading
 
   return (
-    <div className="bg-gray-900 p-6 rounded-lg">
+    <div className="glass rounded-2xl p-6">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-semibold text-white">Rebalance Assets</h3>
+        <h3 className="font-bold text-lg text-white">Fleet Optimization</h3>
         <button
           type="button"
           onClick={addRow}
-          className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors font-medium"
+          className="px-4 py-2 text-sm bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary rounded-xl transition-all font-bold"
         >
           + Add Row
         </button>
@@ -117,10 +117,10 @@ export function RebalanceForm({
         <button
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className={`w-full p-3 rounded-lg font-semibold transition-colors ${
+          className={`w-full py-3 rounded-xl font-bold transition-all ${
             canSubmit
-              ? 'bg-green-600 hover:bg-green-700 text-white'
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              ? 'bg-primary hover:shadow-neon-glow border border-primary/50 text-white'
+              : 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
           }`}
         >
           {isLoading ? 'Rebalancing...' : 'Execute Rebalance'}
@@ -152,9 +152,9 @@ function RebalanceRowForm({
   const selectedFromArk = arks.find((ark) => ark.address === row.fromArk)
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg border border-gray-700 space-y-4">
+    <div className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-4">
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-gray-400">Rebalance #{index + 1}</span>
+        <span className="text-xs font-bold text-slate-500 uppercase">Rebalance #{index + 1}</span>
         {onRemove && (
           <button
             type="button"

@@ -88,7 +88,18 @@ export const CHAIN_RPC_URLS: Record<ChainId, string[]> = {
     'https://public.stackup.sh/api/v1/node/base-mainnet', // Stackup
     'https://base-mainnet.gateway.tatum.io', // Tatum
   ],
-  [sonic.id]: ['https://sonic.api.onfinality.io/public'],
+  [sonic.id]: [
+    'https://rpc.soniclabs.com', // Fastest (0.068s)
+    'https://sonic.drpc.org', // 0.094s
+    'https://sonic-json-rpc.stakely.io', // 0.110s
+    'https://sonic-rpc.publicnode.com', // 0.119s
+    'https://rpc.sentio.xyz/sonic-mainnet', // 0.222s
+    'https://sonic.api.pocket.network', // 0.392s
+    'https://api-sonic-mainnet-archive.n.dwellir.com/2ccf18bf-2916-4198-8856-42172854353c', // Dwellir
+    'https://sonic.therpc.io', // TheRPC
+    'https://sonic.api.onfinality.io/public', // OnFinality
+    'https://rpc.ankr.com/sonic_mainnet', // Ankr
+  ],
   [hyperliquid.id]: [hyperliquid.rpcUrls.default.http[0] as string],
 }
 
