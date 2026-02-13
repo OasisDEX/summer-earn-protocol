@@ -559,6 +559,9 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xA2e47Bb397f908aba018276a3CC683608404123f"
+        },
+        "daoTipJar": {
+          "address": "0xE04fD3d965C2f1811ee2C526e91861141402FBc8"
         }
       },
       "bridge": {

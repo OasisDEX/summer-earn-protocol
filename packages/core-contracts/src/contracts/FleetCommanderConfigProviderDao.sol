@@ -39,8 +39,6 @@ contract FleetCommanderConfigProviderDao is
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
     uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
 
-    bool public transfersEnabled = true;
-
     constructor(
         FleetCommanderDaoParams memory params
     )

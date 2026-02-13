@@ -486,11 +486,7 @@ contract FleetCommanderDao is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled) {
-            return super.transfer(to, amount);
-        }
-
-        revert FleetCommanderTransfersDisabled();
+        return super.transfer(to, amount);
     }
 
     /// @inheritdoc IERC20
@@ -499,10 +495,7 @@ contract FleetCommanderDao is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled) {
-            return super.transferFrom(from, to, amount);
-        }
-        revert FleetCommanderTransfersDisabled();
+        return super.transferFrom(from, to, amount);
     }
 
     /*//////////////////////////////////////////////////////////////

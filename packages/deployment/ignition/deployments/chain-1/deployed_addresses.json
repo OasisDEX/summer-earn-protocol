@@ -161,5 +161,12 @@
   "LazyVault_LowerRisk_USDC_ERC4626_Morpho_V2_Avantgarde_USDC_Conservative_usdc_1#ERC4626Ark": "0x565a4c04E32fBf001AE36C4fB60584A687Ffa27C",
   "LazyVault_HigherRisk_USDC_ERC4626_Morpho_V2_Yearn_OG_USDC_v2_usdc_1#ERC4626Ark": "0xEE828F95f95F0a0bbec792C4c9D2aF86918F1e4e",
   "LazyVault_HigherRisk_USDC_ERC4626_Morpho_V2_Hyperithm_USDC_Midcurve_usdc_1#ERC4626Ark": "0x1B31793E0f8afD346CEAA60A3D1859F3A9d9cF69",
-  "LazyVault_LowerRisk_USDT_ERC4626_Morpho_V2_Steakhouse_Prime_Instant_usdt_1#ERC4626Ark": "0x268ef3412e70A7c1ACD594Fc72013385fA3Cec2c"
+  "LazyVault_LowerRisk_USDT_ERC4626_Morpho_V2_Steakhouse_Prime_Instant_usdt_1#ERC4626Ark": "0x268ef3412e70A7c1ACD594Fc72013385fA3Cec2c",
+  "staging_DaoTipJar#TipJar": "0xE04fD3d965C2f1811ee2C526e91861141402FBc8",
+  "FleetDaoModule_BummerDAO_LazyVault_USDC#FleetCommanderDao": "0x218F3255fa97A60bf99f175C9c5C56fDF06b15Fc",
+  "staging_BummerDAO_LazyVault_USDC_MorphoV2Vault_usdc_August_USDC_V2_1#MorphoV2VaultArk": "0x082b51C3A17b53F6f3cbC12A1a33dbCaF80614F2",
+  "staging_BummerDAO_LazyVault_USDC_MorphoV2Vault_usdc_Yearn_OG_USDC_v2_1#MorphoV2VaultArk": "0x45b24226017294cDc6B7C5F5FAdD2D4C79059786",
+  "staging_BummerDAO_LazyVault_USDC_SkyRewards_SPK_USDC_1#SkyRewardsArk": "0x8eC9e773ec31d93f842B9490028c9870dE320fEF",
+  "staging_BummerDAO_LazyVault_USDC_ERC4626_Fluid_usdc_1#ERC4626Ark": "0xC320fFAf7e252DF4b05fe1E8F9165C5b3D0c5470",
+  "staging_BummerDAO_LazyVault_USDC_Syrup_usdc_1_gov#SyrupArk": "0x6d54c2c5C82f6B74cBc6A36D71546995D99C1462"
 }

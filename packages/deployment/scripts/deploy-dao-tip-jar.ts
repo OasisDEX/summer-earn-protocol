@@ -58,9 +58,11 @@ async function main() {
 
   const accessManager = config.deployedContracts.govV2.protocolAccessManager.address
   const configurationManager = config.deployedContracts.core.configurationManager.address
-  const CREATE2_SALT = keccak256(toBytes('daoTipJar'))
-  console.log(kleur.cyan().bold('Deploying DaoTipJar...'))
   const envLabel = useBummerConfig ? 'staging_' : ''
+
+  const CREATE2_SALT = keccak256(toBytes(`${envLabel}_daoTipJar`))
+  console.log(kleur.cyan().bold(`Deploying ${envLabel}DaoTipJar...`))
+
   const moduleName = `${envLabel}DaoTipJar`
   const DaoTipJarModule = createDaoTipJarModule(moduleName)
   const deployed = (await hre.ignition.deploy(DaoTipJarModule, {
