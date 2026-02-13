@@ -836,7 +836,9 @@
             "Clearstar_USDC_Reactor": "0x62fE596d59fB077c2Df736dF212E0AFfb522dC78",
             "Edge_UltraYield_USDC": "0x0562AE950276B24F3eAE0d0a518dADB7Ad2F8D66",
             "Vault_Bridge_USDC": "0xBEefb9f61CC44895d8AEc381373555a64191A9c4",
-            "kpk_USDC_Prime": "0xe108fbc04852B5df72f9E44d7C29F47e7A993aDd"
+            "kpk_USDC_Prime": "0xe108fbc04852B5df72f9E44d7C29F47e7A993aDd",
+            "Alpha_USDC_Core": "0xb0f05E4De970A1aaf77f8C2F823953a367504BA9",
+            "Clearstar_High_Yield_USDC": "0x9B5E92fd227876b4C07a8c02367E2CB23c639DfA"
           },
           "dai": {},
           "usde": {},

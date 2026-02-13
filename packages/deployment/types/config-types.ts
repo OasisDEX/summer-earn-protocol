@@ -1,8 +1,8 @@
 import { Address } from 'viem'
 
 import { CoreContracts as CoreContractsBase } from '../ignition/modules/core'
-import { DeployedBridge } from './bridge-types'
 import { FleetDetails } from '../scripts/helpers/zod-schemas'
+import { DeployedBridge } from './bridge-types'
 
 export enum SupportedNetworks {
   MAINNET = 'mainnet',
