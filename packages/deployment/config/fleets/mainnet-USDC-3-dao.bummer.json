@@ -8,8 +8,8 @@
   "depositCap": "25000000000000",
   "initialTipRate": "1000000000000000000",
   "network": "mainnet",
-  "keeper": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
-  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "keeper": "0xc2a8467a52Fec8383c424149000cf384de9Ba1B5",
+  "curator": "0x0f0fA89471259433b6955827226f19999D93c568",
   "details": {
     "type": "dao",
     "name": "DAO_LazyVault_USDC",
@@ -18,162 +18,6 @@
     "assetSymbol": "USDC"
   },
   "arks": [
-    {
-      "type": "MorphoVaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "morpho",
-        "vaultName": "Gauntlet_USDC_RWA",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoVaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "morpho",
-        "vaultName": "Smokehouse_USDC",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoV2VaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "Morpho_V2",
-        "vaultName": "Clearstar_USDC_Core",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoV2VaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "Morpho_V2",
-        "vaultName": "Re_Ecosystem_Vault_USDC",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoV2VaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "Morpho_V2",
-        "vaultName": "Alpha_USDC_Enhanced",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoV2VaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "Morpho_V2",
-        "vaultName": "Steakhouse_Reservoir_USDC",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoV2VaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "Morpho_V2",
-        "vaultName": "Hyperithm_USDC_Degen",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoV2VaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "Morpho_V2",
-        "vaultName": "Gauntlet_USDC_Frontier",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoV2VaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "Morpho_V2",
-        "vaultName": "KPK_USDC_Yield_V2",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoV2VaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "Morpho_V2",
-        "vaultName": "Steakhouse_3Fx_USDC",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "100000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoV2VaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "Morpho_V2",
-        "vaultName": "Gauntlet_USDC_Prime",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "100000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoV2VaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "Morpho_V2",
-        "vaultName": "Steakhouse_High_Yield_Instant",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoV2VaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "Morpho_V2",
-        "vaultName": "Steakhouse_Prime_Instant",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "100000000000000000000"
-      }
-    },
     {
       "type": "MorphoV2VaultArk",
       "params": {
@@ -203,6 +47,7 @@
       "params": {
         "asset": "USDC",
         "protocol": "sky",
+        "rewardToken": "spk",
         "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
         "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
         "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
@@ -226,42 +71,6 @@
       "params": {
         "asset": "USDC",
         "protocol": "Maple",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoVaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "morpho",
-        "vaultName": "Hyperithm_USDC",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoVaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "morpho",
-        "vaultName": "Clearstar_High_Yield_USDC",
-        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "maxDepositPercentageOfTVL": "30000000000000000000"
-      }
-    },
-    {
-      "type": "MorphoVaultArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "morpho",
-        "vaultName": "Alpha_USDC_Core",
         "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
         "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
         "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
