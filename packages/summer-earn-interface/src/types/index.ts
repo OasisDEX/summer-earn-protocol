@@ -31,6 +31,18 @@ export interface ArkInfo {
   maxDepositPercentageOfTVL: bigint // Percentage in WAD format (18 decimals, e.g., 10e18 = 10%)
   maxRebalanceInflow: bigint
   maxRebalanceOutflow: bigint
+  /** IArkWithWithdrawalRequest: withdrawal request id when available */
+  withdrawalRequestId?: string
+  /** IArkWithWithdrawalRequest: assets queued for withdrawal */
+  assetsInWithdrawalQueue?: string
+  /** IArkWithWithdrawalRequest: whether claimWithdrawal must be called after request */
+  isWithdrawalClaimRequired?: boolean
+  /** Fleet asset balance held in this ark (sweepable amount) */
+  assetBalance?: string
+  /** True when ark implements IArkWithWithdrawalRequest */
+  hasWithdrawalQueue?: boolean
+  /** True when assetBalance > 0 and ark supports sweep */
+  needsSweep?: boolean
 }
 
 export interface RebalanceData {

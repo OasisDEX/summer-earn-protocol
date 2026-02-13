@@ -7,7 +7,6 @@ import { useAccount } from 'wagmi'
 
 import { Ark } from '../../../../components/Ark'
 import { AuctionConfigModal } from '../../../../components/AuctionConfigModal'
-import { ChainSelector } from '../../../../components/ChainSelector'
 import { ConnectButton } from '../../../../components/ConnectButton'
 import { DepositWithdrawTabs } from '../../../../components/DepositWithdrawTabs'
 import { FleetManagementForm } from '../../../../components/FleetManagementForm'
@@ -16,7 +15,6 @@ import { StakingSection } from '../../../../components/StakingSection'
 import { useFleetActions } from '../../../../hooks/useFleetActions'
 import { useFleetArks } from '../../../../hooks/useFleetArks'
 import { useFleetInfo } from '../../../../hooks/useFleetInfo'
-import { useLocalStorage } from '../../../../hooks/useLocalStorage'
 import { useRebalance } from '../../../../hooks/useRebalance'
 import { useSyncWalletChain } from '../../../../hooks/useSyncWalletChain'
 import { ChainId, RebalanceData } from '../../../../types'
@@ -31,13 +29,8 @@ export default function FleetDetail() {
   const router = useRouter()
   const address = params.address as `0x${string}`
   const chainId = params.chainId as ChainId
-  const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', chainId)
-  const [selectedChain, setSelectedChain] = useState<ChainId>(storedChain)
-  useEffect(() => {
-    setStoredChain(selectedChain)
-  }, [selectedChain, setStoredChain])
   const [assetInfo, setAssetInfo] = useState({ symbol: '', decimals: 18 })
-  useSyncWalletChain(selectedChain)
+  useSyncWalletChain(chainId)
   const [isFleetManagementOpen, setIsFleetManagementOpen] = useState(false)
   // Amount state removed - now handled in individual tab components
 
@@ -48,10 +41,14 @@ export default function FleetDetail() {
     loading: fleetLoading,
     error: fleetError,
     updateAllowance,
-  } = useFleetInfo({ address, chainId: selectedChain })
-  const { arks, loading: arksLoading } = useFleetArks({
+  } = useFleetInfo({ address, chainId })
+  const {
+    arks,
+    loading: arksLoading,
+    refetch: refetchArks,
+  } = useFleetArks({
     fleetAddress: address,
-    chainId: selectedChain,
+    chainId,
   })
 
   const {
@@ -66,7 +63,7 @@ export default function FleetDetail() {
     fleetAddress: address,
     assetAddress: (fleetInfo?.asset as `0x${string}`) || '0x',
     assetDecimals: assetInfo.decimals,
-    chainId: selectedChain,
+    chainId,
   })
 
   // Calculate if approval is needed
@@ -82,7 +79,7 @@ export default function FleetDetail() {
 
   const { rebalance, isRebalanceLoading } = useRebalance({
     fleetAddress: address,
-    chainId: selectedChain,
+    chainId,
   })
   const [auctionModalArk, setAuctionModalArk] = useState<null | {
     address: string
@@ -106,14 +103,7 @@ export default function FleetDetail() {
     }
   }
 
-  const handleRebalance = (data: {
-    fromArk: `0x${string}`
-    toArk: `0x${string}`
-    amount: bigint
-    boardData: `0x${string}`
-    disembarkData: `0x${string}`
-  }) => {
-    const rebalanceData: RebalanceData[] = [data]
+  const handleRebalance = (rebalanceData: RebalanceData[]) => {
     rebalance(rebalanceData)
   }
 
@@ -183,11 +173,6 @@ export default function FleetDetail() {
               )}
             </div>
           </div>
-        </div>
-
-        {/* Chain Selector */}
-        <div className="mb-8">
-          <ChainSelector selectedChain={selectedChain} onChange={setSelectedChain} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -292,7 +277,7 @@ export default function FleetDetail() {
             )}
 
             {/* Debug Info (Development Only) */}
-            {/* <DebugStakingInfo fleetAddress={address} chainId={selectedChain} userInfo={userInfo} /> */}
+            {/* <DebugStakingInfo fleetAddress={address} chainId={chainId} userInfo={userInfo} /> */}
 
             {/* Deposit/Withdraw Tabs */}
             {isConnected && userInfo && fleetInfo && (
@@ -318,7 +303,7 @@ export default function FleetDetail() {
                 fleetAddress={address}
                 fleetSymbol={fleetInfo.symbol}
                 fleetDecimals={fleetInfo.fleetDecimals}
-                chainId={selectedChain}
+                chainId={chainId}
                 userInfo={userInfo}
               />
             )}
@@ -347,7 +332,22 @@ export default function FleetDetail() {
                                 Buffer Ark
                               </span>
                             )}
+                            {ark.hasWithdrawalQueue && (
+                              <span className="px-2 py-1 bg-amber-600 text-amber-100 text-xs rounded-full">
+                                Withdrawal Queue
+                              </span>
+                            )}
+                            {ark.needsSweep && !ark.isBufferArk && (
+                              <span className="px-2 py-1 bg-orange-600 text-orange-100 text-xs rounded-full">
+                                Needs Sweep
+                              </span>
+                            )}
                           </div>
+                          {ark.withdrawalRequestId != null && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              Withdrawal ID: {ark.withdrawalRequestId}
+                            </p>
+                          )}
                           <p className="text-gray-400 text-sm font-mono">{ark.address}</p>
                         </div>
                       </div>
@@ -442,6 +442,14 @@ export default function FleetDetail() {
                         fleetAddress={address}
                         assetDecimals={assetInfo.decimals}
                         assetSymbol={assetInfo.symbol}
+                        isBufferArk={ark.isBufferArk}
+                        hasWithdrawalQueue={ark.hasWithdrawalQueue}
+                        withdrawalRequestId={ark.withdrawalRequestId}
+                        assetsInWithdrawalQueue={ark.assetsInWithdrawalQueue}
+                        isWithdrawalClaimRequired={ark.isWithdrawalClaimRequired}
+                        assetBalance={ark.assetBalance}
+                        needsSweep={ark.needsSweep}
+                        onWithdrawalSuccess={() => refetchArks()}
                       />
                     </div>
                   ))}
@@ -484,7 +492,7 @@ export default function FleetDetail() {
               {isFleetManagementOpen && (
                 <FleetManagementForm
                   fleetAddress={address}
-                  chainId={selectedChain}
+                  chainId={chainId}
                   assetDecimals={assetInfo.decimals}
                   assetSymbol={assetInfo.symbol}
                   fleetInfo={fleetInfo}

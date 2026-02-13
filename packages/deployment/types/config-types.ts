@@ -331,7 +331,7 @@ export interface FleetConfig {
   curator: Address
   discourseURL?: string
   sipNumber?: string
-    keeper?: Address
+  keeper?: Address
 }
 
 export interface FleetDeployment {
