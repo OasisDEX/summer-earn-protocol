@@ -1,0 +1,27 @@
+{
+  "fleetName": "BummerDAO_LazyVault_USDC",
+  "isBummer": true,
+  "fleetSymbol": "LVUSDC",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0x218F3255fa97A60bf99f175C9c5C56fDF06b15Fc",
+  "bufferArkAddress": "0xc05502577eB5fBFEDA1Ea77Cb30fc6450CB6D119",
+  "network": "mainnet",
+  "arks": [
+    "0x082b51C3A17b53F6f3cbC12A1a33dbCaF80614F2",
+    "0x45b24226017294cDc6B7C5F5FAdD2D4C79059786",
+    "0x8eC9e773ec31d93f842B9490028c9870dE320fEF",
+    "0xC320fFAf7e252DF4b05fe1E8F9165C5b3D0c5470",
+    "0x6d54c2c5C82f6B74cBc6A36D71546995D99C1462"
+  ],
+  "initialMinimumBufferBalance": "500000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "25000000000000",
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "DAO_LazyVault_USDC",
+    "chainId": 1,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC",
+    "type": "dao"
+  }
+}
