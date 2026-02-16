@@ -1,7 +1,10 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { createFleetModule, FleetContracts } from '../../ignition/modules/fleet'
-import { createFleetDaoModule, FleetContracts as FleetDaoContracts } from '../../ignition/modules/fleet-dao'
+import {
+  createFleetDaoModule,
+  FleetContracts as FleetDaoContracts,
+} from '../../ignition/modules/fleet-dao'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -22,16 +25,19 @@ export async function deployFleetContracts(
   const deploymentId = await handleDeploymentId(chainId)
 
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
-  
+
   // Determine fleet type from details
   const fleetType = fleetDefinition.details.type
-  
+
   const deploymentParams = {
     configurationManager: config.deployedContracts.core.configurationManager.address,
     protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
     fleetName: fleetDefinition.fleetName,
     fleetSymbol: fleetDefinition.symbol,
-    fleetDetails: typeof fleetDefinition.details === 'string' ? fleetDefinition.details : JSON.stringify(fleetDefinition.details),
+    fleetDetails:
+      typeof fleetDefinition.details === 'string'
+        ? fleetDefinition.details
+        : JSON.stringify(fleetDefinition.details),
     asset,
     initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
     initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,

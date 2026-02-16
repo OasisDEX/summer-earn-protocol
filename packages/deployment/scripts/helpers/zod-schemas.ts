@@ -136,8 +136,6 @@ export const FleetDeploymentSchema = z.object({
   details: FleetDetailsSchema,
 })
 
-
-
 export type FleetDetails = z.infer<typeof FleetDetailsSchema>
 export type ArkDetails = z.infer<typeof ArkDetailsSchema>
 

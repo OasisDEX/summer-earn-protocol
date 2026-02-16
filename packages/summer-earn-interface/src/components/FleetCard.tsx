@@ -1,17 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { formatUnits } from 'viem'
+import { useAccount } from 'wagmi'
 
+import { ProgressBar } from './ProgressBar'
 import { useFleetActions } from '../hooks/useFleetActions'
+import { useFleetInfo } from '../hooks/useFleetInfo'
 import { useStakingRewards } from '../hooks/useStakingRewards'
 import { ChainId, FleetCommanderInfo, UserFleetInfo } from '../types'
-import { formatDecimalOutput } from '../utils/decimals'
+import { formatDecimalOutput, parseDecimalInput } from '../utils/decimals'
+
+const MAX_UINT256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
 
 interface FleetCardProps {
   fleetInfo: FleetCommanderInfo
-  userInfo: UserFleetInfo | null
+  /** Optional: when provided (e.g. fleet detail page), use instead of fetching */
+  userInfo?: UserFleetInfo | null
   assetDecimals: number
   assetSymbol: string
   chainId: string
@@ -19,28 +25,56 @@ interface FleetCardProps {
 
 export function FleetCard({
   fleetInfo,
-  userInfo,
+  userInfo: userInfoProp,
   assetDecimals,
   assetSymbol,
   chainId,
 }: FleetCardProps) {
   const [amount, setAmount] = useState<string>('')
+  const { isConnected } = useAccount()
 
-  const { approve, deposit, withdraw, isApproveLoading, isDepositLoading, isWithdrawLoading } =
-    useFleetActions({
-      fleetAddress: fleetInfo.address as `0x${string}`,
-      assetAddress: fleetInfo.asset as `0x${string}`,
-      assetDecimals,
-      chainId: chainId as ChainId,
-    })
+  const { userInfo: fetchedUserInfo, updateAllowance } = useFleetInfo({
+    address: fleetInfo.address as `0x${string}`,
+    chainId,
+  })
 
-  const { stakedBalance, stakingRewardsManagerAddress } = useStakingRewards({
+  const userInfo = userInfoProp ?? (isConnected ? fetchedUserInfo : null)
+
+  const {
+    approve,
+    deposit,
+    withdraw,
+    isApproveLoading,
+    isDepositLoading,
+    isWithdrawLoading,
+    isApproveSuccess,
+  } = useFleetActions({
+    fleetAddress: fleetInfo.address as `0x${string}`,
+    assetAddress: fleetInfo.asset as `0x${string}`,
+    assetDecimals,
+    chainId: chainId as ChainId,
+  })
+
+  useStakingRewards({
     fleetAddress: fleetInfo.address,
     chainId: chainId as ChainId,
   })
 
-  const needsApproval =
-    userInfo && userInfo.allowance < BigInt(amount || '0') && BigInt(amount || '0') > BigInt(0)
+  useEffect(() => {
+    if (isApproveSuccess) {
+      updateAllowance(MAX_UINT256)
+    }
+  }, [isApproveSuccess, updateAllowance])
+
+  const needsApproval = (() => {
+    if (!userInfo || !amount || amount === '0') return false
+    try {
+      const parsedAmount = parseDecimalInput(amount, assetDecimals)
+      return parsedAmount > BigInt(0) && userInfo.allowance < parsedAmount
+    } catch {
+      return false
+    }
+  })()
 
   const handleDeposit = () => {
     if (needsApproval) {
@@ -54,132 +88,123 @@ export function FleetCard({
     withdraw(amount)
   }
 
-  return (
-    <div className="bg-charcoal-800/70 rounded-xl p-6 mb-4 border border-white/10 shadow-card backdrop-blur">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-white">{fleetInfo.name}</h2>
-        <span className="text-xs bg-violet-500/20 text-violet-400 py-0.5 px-1.5 rounded-full border border-violet-500/30">
-          {fleetInfo.symbol}
-        </span>
-      </div>
+  const withdrawablePct =
+    fleetInfo.totalAssets > BigInt(0)
+      ? (Number(fleetInfo.withdrawableTotalAssets) / Number(fleetInfo.totalAssets)) * 100
+      : 0
 
-      <div className="space-y-4 mb-4">
-        <div className="p-4 bg-charcoal-800/70 rounded-xl border border-white/10">
-          <p className="text-sm text-gray-400 mb-2">Total Assets</p>
-          <p className="text-xl font-semibold text-white">
-            {parseFloat(formatUnits(fleetInfo.totalAssets, assetDecimals)).toLocaleString('en-US', {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 6,
-            })}{' '}
-            {assetSymbol}
-          </p>
-        </div>
-        <div className="p-4 bg-charcoal-800/70 rounded-xl border border-white/10">
-          <div className="flex justify-between items-start mb-2">
-            <p className="text-sm text-gray-400">Withdrawable Assets</p>
-            <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full border border-green-500/30">
-              {fleetInfo.totalAssets > BigInt(0)
-                ? (
-                    (Number(fleetInfo.withdrawableTotalAssets) / Number(fleetInfo.totalAssets)) *
-                    100
-                  ).toFixed(1)
-                : '0.0'}
-              % available
+  const hasUserPosition = userInfo && userInfo.balance > BigInt(0)
+
+  return (
+    <div
+      className={`glass rounded-xl p-6 transition-all hover:-translate-y-1 neon-glow group border-t-2 ${
+        hasUserPosition ? 'border-t-primary/40 bg-primary/5' : 'border-t-transparent'
+      }`}
+    >
+      <div className="flex justify-between items-start mb-6">
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-black/20 flex items-center justify-center">
+            <span className="text-lg font-bold text-primary">
+              {fleetInfo.name.charAt(0)}
+              {fleetInfo.symbol.charAt(0)}
             </span>
           </div>
-          <p className="text-xl font-semibold text-white">
-            {parseFloat(
-              formatUnits(fleetInfo.withdrawableTotalAssets, assetDecimals),
-            ).toLocaleString('en-US', {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 6,
-            })}{' '}
-            {assetSymbol}
-          </p>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h4 className="font-bold text-white text-lg">{fleetInfo.name}</h4>
+              {hasUserPosition && (
+                <span className="bg-primary text-[9px] px-1.5 py-0.5 rounded text-white uppercase font-bold tracking-tighter">
+                  Active
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-primary font-medium">{fleetInfo.symbol}</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-slate-500 mb-1">APY</p>
+          <p className="text-xl font-bold text-green-400">—</p>
         </div>
       </div>
 
-      {userInfo && (
-        <div className="border-t border-gray-700 pt-4 mb-4">
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="p-3 bg-gray-800 rounded-lg">
-              <p className="text-sm text-gray-400">Your Balance</p>
-              <p className="font-semibold text-white">
-                {formatDecimalOutput(userInfo.balance, 18)} {fleetInfo.symbol}
-              </p>
-            </div>
-            <div className="p-3 bg-gray-800 rounded-lg">
-              <p className="text-sm text-gray-400">Your {assetSymbol} Balance</p>
-              <p className="font-semibold text-white">
-                {formatDecimalOutput(userInfo.underlyingBalance, assetDecimals)} {assetSymbol}
-              </p>
-            </div>
+      <div className="space-y-4 mb-8">
+        <div className="flex justify-between text-sm">
+          <span className="text-slate-400">{hasUserPosition ? 'Your Deposit' : 'TVL'}</span>
+          <span className="text-white font-medium">
+            {hasUserPosition && userInfo
+              ? `${formatDecimalOutput(userInfo.balance, fleetInfo.fleetDecimals ?? 18)} ${fleetInfo.symbol}`
+              : `${parseFloat(formatUnits(fleetInfo.totalAssets, assetDecimals)).toLocaleString(
+                  'en-US',
+                  {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  },
+                )} ${assetSymbol}`}
+          </span>
+        </div>
+        <div>
+          <div className="flex justify-between text-sm mb-2">
+            <span className="text-slate-400">Withdrawable</span>
+            <span className="text-white font-medium">{withdrawablePct.toFixed(0)}%</span>
           </div>
+          <ProgressBar value={withdrawablePct} showGlow={withdrawablePct > 80} />
+        </div>
+      </div>
 
-          {/* Show staked balance if staking is available */}
-          {stakingRewardsManagerAddress && stakedBalance > BigInt(0) && (
-            <div className="mb-4">
-              <div className="p-3 bg-blue-900 border border-blue-700 rounded-lg">
-                <p className="text-sm text-blue-300">Staked Balance</p>
-                <p className="font-semibold text-blue-100">
-                  {formatDecimalOutput(stakedBalance, 18)} {fleetInfo.symbol}
-                </p>
-                <p className="text-xs text-blue-400 mt-1">Earning additional rewards</p>
-              </div>
-            </div>
-          )}
-
-          <div className="mb-4">
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-300 mb-2">
-              Amount
-            </label>
+      <div className="space-y-3">
+        <div className="flex space-x-2">
+          <div className="relative flex-1">
             <input
               type="text"
-              id="amount"
+              inputMode="decimal"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder={`Amount in ${assetSymbol}`}
-              className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="0.00"
+              className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 px-3 text-sm focus:border-primary/50 focus:ring-0 text-white"
             />
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={handleDeposit}
-              disabled={isApproveLoading || isDepositLoading || !amount}
-              className={`flex-1 p-3 rounded-lg font-semibold transition-colors shadow-glow ${
-                isApproveLoading || isDepositLoading || !amount
-                  ? 'bg-magenta-700/40 text-gray-400 cursor-not-allowed'
-                  : 'bg-magenta-600 hover:bg-magenta-700 text-white'
-              }`}
-            >
-              {isApproveLoading
-                ? 'Approving…'
-                : isDepositLoading
-                  ? 'Depositing…'
-                  : needsApproval
-                    ? 'Approve'
-                    : 'Deposit'}
-            </button>
-            <button
-              onClick={handleWithdraw}
-              disabled={isWithdrawLoading || !amount}
-              className={`flex-1 p-3 rounded-lg font-semibold transition-colors ${
-                isWithdrawLoading || !amount
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : 'bg-red-600 hover:bg-red-700 text-white'
-              }`}
-            >
-              {isWithdrawLoading ? 'Withdrawing…' : 'Withdraw'}
-            </button>
+            {userInfo && (
+              <button
+                type="button"
+                onClick={() =>
+                  setAmount(formatDecimalOutput(userInfo.balance, fleetInfo.fleetDecimals ?? 18))
+                }
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded hover:bg-primary/20"
+              >
+                MAX
+              </button>
+            )}
           </div>
         </div>
-      )}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={handleDeposit}
+            disabled={isApproveLoading || isDepositLoading || !amount}
+            className="bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-lg text-sm transition-all shadow-lg shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isApproveLoading
+              ? 'Approving…'
+              : isDepositLoading
+                ? 'Depositing…'
+                : needsApproval
+                  ? 'Approve'
+                  : 'Deposit'}
+          </button>
+          <button
+            type="button"
+            onClick={handleWithdraw}
+            disabled={isWithdrawLoading || !amount}
+            className="bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-slate-300 hover:text-red-400 font-bold py-3 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isWithdrawLoading ? 'Withdrawing…' : 'Withdraw'}
+          </button>
+        </div>
+      </div>
 
-      <div className="text-right mt-4">
+      <div className="text-right mt-4 pt-4 border-t border-white/5">
         <Link
           href={`/fleet/${chainId}/${fleetInfo.address}`}
-          className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+          className="text-primary hover:text-primary/80 text-sm font-medium transition-colors"
         >
           View Details →
         </Link>

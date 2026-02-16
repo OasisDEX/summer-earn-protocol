@@ -129,5 +129,4 @@ interface IFleetCommanderConfigProviderDao is
         address ark,
         uint256 newMaxRebalanceInflow
     ) external;
-
 }
