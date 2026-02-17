@@ -15,6 +15,7 @@ export const InstitutionNetworkDeployedContractsSchema = z
     core: z
       .object({
         tipJar: AddressObj.optional(),
+        daoTipJar: AddressObj.optional(),
         configurationManager: AddressObj.optional(),
         harborCommand: AddressObj.optional(),
         admiralsQuarters: AddressObj.optional(),

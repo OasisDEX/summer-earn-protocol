@@ -8,6 +8,9 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
  * @title ERC4626Ark
  * @notice Ark contract for managing token supply and yield generation through any ERC4626-compliant vault.
  * @dev Implements strategy for depositing tokens, withdrawing tokens, and tracking yield from ERC4626 vaults.
+ * @dev Some vault implementations may be formally ERC4626-compatible but return overly conservative values from
+ * `maxWithdraw`/`maxRedeem` (including always returning `0`). In those cases, a specialized Ark should override
+ * `_withdrawableTotalAssets()` to provide a safe, conservative bound suitable for Fleet withdrawal planning.
  */
 contract ERC4626Ark is Ark {
     using SafeERC20 for IERC20;
@@ -66,6 +69,7 @@ contract ERC4626Ark is Ark {
     function _withdrawableTotalAssets()
         internal
         view
+        virtual
         override
         returns (uint256 withdrawableAssets)
     {
@@ -88,9 +92,21 @@ contract ERC4626Ark is Ark {
      * @notice Withdraws assets from the ERC4626 vault
      * @param amount The amount of assets to withdraw
      * @param /// data Additional data (unused in this implementation)
+     * @dev When exiting the entire position, prefer `redeem(allShares)` over `withdraw(totalAssets())`.
+     * Some vaults have rounding semantics where `previewRedeem(allShares)` (rounding down) and
+     * `previewWithdraw(totalAssets())` (rounding up) can diverge by 1 unit and cause full-withdraw to revert.
+     * Redeeming exact shares avoids that failure mode.
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
-        vault.withdraw(amount, address(this), address(this));
+        if (amount == totalAssets()) {
+            vault.redeem(
+                vault.balanceOf(address(this)),
+                address(this),
+                address(this)
+            );
+        } else {
+            vault.withdraw(amount, address(this), address(this));
+        }
     }
 
     /**

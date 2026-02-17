@@ -28,9 +28,7 @@ export function createFleetDaoModule(moduleName: string) {
     const initialRebalanceCooldown = m.getParameter<string>('initialRebalanceCooldown')
     const depositCap = m.getParameter<string>('depositCap')
     const initialTipRate = m.getParameter<string>('initialTipRate')
-    const fleetCommanderRewardsManagerFactory = m.getParameter<string>(
-      'fleetCommanderRewardsManagerFactory',
-    )
+    const daoTipJar = m.getParameter<string>('daoTipJar')
 
     const fleetCommander = m.contract('FleetCommanderDao', [
       {
@@ -44,7 +42,7 @@ export function createFleetDaoModule(moduleName: string) {
         initialRebalanceCooldown: initialRebalanceCooldown,
         depositCap: depositCap,
         initialTipRate: initialTipRate,
-        fleetCommanderRewardsManagerFactory: fleetCommanderRewardsManagerFactory,
+        tipJar: daoTipJar,
       },
     ])
     return { fleetCommander }

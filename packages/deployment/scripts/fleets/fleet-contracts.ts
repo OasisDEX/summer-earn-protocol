@@ -9,6 +9,7 @@ import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { ModuleLogger } from '../helpers/module-logger'
+import { validateAddress } from '../helpers/validation'
 
 /**
  * Deploys the Fleet and BufferArk contracts using Hardhat Ignition.
@@ -29,26 +30,28 @@ export async function deployFleetContracts(
   // Determine fleet type from details
   const fleetType = fleetDefinition.details.type
 
-  const deploymentParams = {
-    configurationManager: config.deployedContracts.core.configurationManager.address,
-    protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
-    fleetName: fleetDefinition.fleetName,
-    fleetSymbol: fleetDefinition.symbol,
-    fleetDetails:
-      typeof fleetDefinition.details === 'string'
-        ? fleetDefinition.details
-        : JSON.stringify(fleetDefinition.details),
-    asset,
-    initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
-    initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
-    depositCap: fleetDefinition.depositCap,
-    initialTipRate: fleetDefinition.initialTipRate,
-    fleetCommanderRewardsManagerFactory:
-      config.deployedContracts.core.fleetCommanderRewardsManagerFactory.address,
-  }
-
   // Deploy the appropriate module based on fleet type
   if (fleetType === 'dao') {
+    const tipJar = validateAddress(
+      config.deployedContracts.core.daoTipJar?.address,
+      'daoTipJar address',
+    )
+    const deploymentParams = {
+      configurationManager: config.deployedContracts.core.configurationManager.address,
+      protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
+      fleetName: fleetDefinition.fleetName,
+      fleetSymbol: fleetDefinition.symbol,
+      fleetDetails:
+        typeof fleetDefinition.details === 'string'
+          ? fleetDefinition.details
+          : JSON.stringify(fleetDefinition.details),
+      asset,
+      initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
+      initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
+      depositCap: fleetDefinition.depositCap,
+      initialTipRate: fleetDefinition.initialTipRate,
+      daoTipJar: tipJar,
+    }
     const fleetModule = createFleetDaoModule(`FleetDaoModule_${name}`)
     const deployedModule = await hre.ignition.deploy(fleetModule, {
       parameters: {
@@ -58,6 +61,23 @@ export async function deployFleetContracts(
     })
     return deployedModule as FleetDaoContracts as FleetContracts
   } else {
+    const deploymentParams = {
+      configurationManager: config.deployedContracts.core.configurationManager.address,
+      protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
+      fleetName: fleetDefinition.fleetName,
+      fleetSymbol: fleetDefinition.symbol,
+      fleetDetails:
+        typeof fleetDefinition.details === 'string'
+          ? fleetDefinition.details
+          : JSON.stringify(fleetDefinition.details),
+      asset,
+      initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
+      initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
+      depositCap: fleetDefinition.depositCap,
+      initialTipRate: fleetDefinition.initialTipRate,
+      fleetCommanderRewardsManagerFactory:
+        config.deployedContracts.core.fleetCommanderRewardsManagerFactory.address,
+    }
     const fleetModule = createFleetModule(`FleetModule_${name}`)
     const deployedModule = await hre.ignition.deploy(fleetModule, {
       parameters: {

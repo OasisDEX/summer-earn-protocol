@@ -2,12 +2,12 @@
 pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
-import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
+import {FleetCommanderDaoParams} from "../types/FleetCommanderTypes.sol";
 import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
 
 import {IFleetCommanderConfigProviderDao} from "../interfaces/IFleetCommanderConfigProviderDao.sol";
 
-import {FleetConfig} from "../types/FleetCommanderTypes.sol";
+import {FleetConfigDao} from "../types/FleetCommanderTypes.sol";
 import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 
@@ -32,22 +32,23 @@ contract FleetCommanderConfigProviderDao is
 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    FleetConfig public config;
+    FleetConfigDao public config;
     string public details;
     EnumerableSet.AddressSet private _activeArks;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
     uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
 
-    bool public transfersEnabled = true;
-
     constructor(
-        FleetCommanderParams memory params
+        FleetCommanderDaoParams memory params
     )
         ProtocolAccessManaged(params.accessManager)
         FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
         ConfigurationManaged(params.configurationManager)
     {
+        if (params.tipJar == address(0)) {
+            revert FleetCommanderInvalidTipJar();
+        }
         BufferArk _bufferArk = new BufferArk(
             ArkParams({
                 name: "BufferArk",
@@ -64,14 +65,22 @@ contract FleetCommanderConfigProviderDao is
             address(this)
         );
         emit ArkAdded(address(_bufferArk));
-        config = FleetConfig({
+        config = FleetConfigDao({
             bufferArk: IArk(address(_bufferArk)),
             minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-            stakingRewardsManager: address(0) // staking rewards manager is not used in the dao version
+            tipJar: params.tipJar
         });
         details = params.details;
+    }
+
+    /**
+     * @notice Returns the DAO fleet's tip jar
+     * @dev Overrides ConfigurationManaged.tipJar() so DAO fleets don't accidentally use the global tip jar.
+     */
+    function tipJar() public view override returns (address) {
+        return config.tipJar;
     }
 
     /**
@@ -115,7 +124,12 @@ contract FleetCommanderConfigProviderDao is
     }
 
     ///@inheritdoc IFleetCommanderConfigProviderDao
-    function getConfig() external view override returns (FleetConfig memory) {
+    function getConfig()
+        external
+        view
+        override
+        returns (FleetConfigDao memory)
+    {
         return config;
     }
 
@@ -189,6 +203,17 @@ contract FleetCommanderConfigProviderDao is
     ) external onlyCurator(address(this)) whenNotPaused {
         config.depositCap = newCap;
         emit FleetCommanderDepositCapUpdated(newCap);
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProviderDao
+    function setTipJar(
+        address newTipJar
+    ) external onlyCurator(address(this)) whenNotPaused {
+        if (newTipJar == address(0)) {
+            revert FleetCommanderInvalidTipJar();
+        }
+        config.tipJar = newTipJar;
+        emit FleetCommanderTipJarUpdated(newTipJar);
     }
 
     ///@inheritdoc IFleetCommanderConfigProviderDao

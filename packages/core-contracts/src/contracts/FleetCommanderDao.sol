@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommanderDao} from "../interfaces/IFleetCommanderDao.sol";
-import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {ArkData, FleetCommanderDaoParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 
@@ -41,10 +41,10 @@ contract FleetCommanderDao is
 
     /**
      * @notice Initializes the FleetCommander contract
-     * @param params FleetCommanderParams struct containing initialization parameters
+     * @param params FleetCommanderDaoParams struct containing initialization parameters
      */
     constructor(
-        FleetCommanderParams memory params
+        FleetCommanderDaoParams memory params
     )
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
@@ -486,11 +486,7 @@ contract FleetCommanderDao is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
-            return super.transfer(to, amount);
-        }
-
-        revert FleetCommanderTransfersDisabled();
+        return super.transfer(to, amount);
     }
 
     /// @inheritdoc IERC20
@@ -499,10 +495,7 @@ contract FleetCommanderDao is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
-            return super.transferFrom(from, to, amount);
-        }
-        revert FleetCommanderTransfersDisabled();
+        return super.transferFrom(from, to, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
