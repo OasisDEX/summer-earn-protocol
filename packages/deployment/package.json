@@ -130,7 +130,7 @@
     "@safe-global/types-kit": "^1.0.1",
     "@summerfi/earn-protocol-contracts": "workspace:*",
     "dotenv": "16.4.5",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "solhint-plugin-prettier": "0.1.0",
     "solidity-bytes-utils": "0.8.2",
     "tsx": "4.19.2"
