@@ -732,7 +732,6 @@ export function getOrCreatePositionHourlySnapshot(
   positionId: string,
   vault: Vault,
   block: ethereum.Block,
-  cachedPosition: Position | null,
 ): void {
   const hourTimestamp = getHourlyTimestamp(block.timestamp)
   const snapshotId = positionId + '-' + hourTimestamp.toString()
@@ -747,8 +746,7 @@ export function getOrCreatePositionHourlySnapshot(
     snapshot.outputTokenBalance = constants.BIGINT_ZERO
   }
 
-  // Update balances - use cached position if available, otherwise load
-  let position = cachedPosition != null ? cachedPosition : Position.load(positionId)
+  let position = Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
@@ -810,7 +808,6 @@ export function getOrCreatePositionDailySnapshot(
   positionId: string,
   vault: Vault,
   block: ethereum.Block,
-  cachedPosition: Position | null,
 ): void {
   const dayTimestamp = getDailyTimestamp(block.timestamp)
 
@@ -826,8 +823,7 @@ export function getOrCreatePositionDailySnapshot(
     snapshot.outputTokenBalance = constants.BIGINT_ZERO
   }
 
-  // Update balances - use cached position if available, otherwise load
-  let position = cachedPosition != null ? cachedPosition : Position.load(positionId)
+  let position = Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
@@ -857,7 +853,6 @@ export function getOrCreatePositionWeeklySnapshot(
   positionId: string,
   vault: Vault,
   block: ethereum.Block,
-  cachedPosition: Position | null,
 ): void {
   const weekTimestamp = getWeeklyOffsetTimestamp(block.timestamp)
 
@@ -872,8 +867,7 @@ export function getOrCreatePositionWeeklySnapshot(
     snapshot.outputTokenBalance = constants.BIGINT_ZERO
   }
 
-  // Update balances - use cached position if available, otherwise load
-  let position = cachedPosition != null ? cachedPosition : Position.load(positionId)
+  let position = Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 

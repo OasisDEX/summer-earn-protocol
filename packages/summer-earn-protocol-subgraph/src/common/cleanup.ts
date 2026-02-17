@@ -1,5 +1,4 @@
 import { BigInt, store } from '@graphprotocol/graph-ts'
-import { PositionHourlySnapshot } from '../../generated/schema'
 import { getHourlyTimestamp } from '../utils/vaultRateHandlers'
 import { BigIntConstants } from './constants'
 
@@ -17,11 +16,7 @@ export function removeOldPositionHourlySnapshot(
   const oldHourTimestamp = currentHourTimestamp.minus(SNAPSHOT_RETENTION_PERIOD)
 
   const id = positionId + '-' + oldHourTimestamp.toString()
-  // Only remove if entity exists - store.remove on non-existent entities is expensive
-  const snapshot = PositionHourlySnapshot.load(id)
-  if (snapshot) {
-    store.remove('PositionHourlySnapshot', id)
-  }
+  store.remove('PositionHourlySnapshot', id)
 }
 
 export function deepCleanPositionHourlySnapshots(
@@ -36,11 +31,7 @@ export function deepCleanPositionHourlySnapshots(
   let timestamp = startHourTimestamp
   while (timestamp.ge(endHourTimestamp)) {
     const id = positionId + '-' + timestamp.toString()
-    // Only remove if entity exists - store.remove on non-existent entities is expensive
-    const snapshot = PositionHourlySnapshot.load(id)
-    if (snapshot) {
-      store.remove('PositionHourlySnapshot', id)
-    }
+    store.remove('PositionHourlySnapshot', id)
     timestamp = timestamp.minus(BigIntConstants.SECONDS_PER_HOUR)
   }
 }

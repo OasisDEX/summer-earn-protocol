@@ -130,42 +130,24 @@ function processHourlyVaultUpdate(
 
     const positions = vault.positions
     if (positions && positions.length > 0) {
-      // Pre-load all positions into cache to avoid repeated loads
-      if (positionCache != null) {
-        for (let k = 0; k < positions.length; k++) {
-          const positionId = positions[k]
-          if (positionId && !positionCache.isSet(positionId)) {
-            const position = Position.load(positionId)
-            if (position) {
-              positionCache.set(positionId, position)
-            }
-          }
-        }
-      }
-
       for (let k = 0; k < positions.length; k++) {
         const positionId = positions[k]
         if (!positionId) {
           log.warning('Empty position ID at index ' + k.toString(), [])
           continue
         }
-        // Get cached position if available
-        const cachedPosition =
-          positionCache != null && positionCache.isSet(positionId)
-            ? positionCache.get(positionId)
-            : null
 
-        getOrCreatePositionHourlySnapshot(positionId, vault, block, cachedPosition)
+        getOrCreatePositionHourlySnapshot(positionId, vault, block)
         if (shouldDeepClean) {
           deepCleanPositionHourlySnapshots(positionId, block.timestamp)
         } else {
           removeOldPositionHourlySnapshot(positionId, block.timestamp)
         }
         if (dayPassed) {
-          getOrCreatePositionDailySnapshot(positionId, vault, block, cachedPosition)
+          getOrCreatePositionDailySnapshot(positionId, vault, block)
         }
         if (weekPassed) {
-          getOrCreatePositionWeeklySnapshot(positionId, vault, block, cachedPosition)
+          getOrCreatePositionWeeklySnapshot(positionId, vault, block)
         }
       }
     }
