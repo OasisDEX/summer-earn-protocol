@@ -52,6 +52,7 @@ contract MorphoV2VaultArk is ERC4626Ark {
      *   - `adapterLiquidity` (best-effort): if the vault's `liquidityAdapter` is a Morpho `MorphoVaultV1Adapter`, and
      *     the vault is configured to deallocate through it (`liquidityData().length == 0`) and the adapter is active
      *     (`isAdapter(adapter) == true`), then we add `maxWithdraw(adapter)` from the underlying Morpho V1 vault.
+     *     all the additional validations logic is implemented to be as close as possible to Morpho V2 vault implementation.
      *
      * Finally, we return `min(positionAssets, liquidAssets)`.
      *
