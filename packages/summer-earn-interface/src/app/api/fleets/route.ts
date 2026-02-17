@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient } from 'viem'
 
 import { erc20Abi } from '@/abis/ERC20'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
 import { harborCommandAbi } from '@/abis/HarborCommand'
-import { CHAIN_RPC_URLS } from '@/config/chains'
+import { CHAIN_RPC_URLS, createRpcTransport, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { type Environment, HARBOR_COMMAND_ADDRESSES } from '@/config/environments'
 
 const TTL_MS = 10 * 60 * 1000 // 10 minutes
@@ -15,6 +15,8 @@ function getCacheKey(params: URLSearchParams): string {
   const chainId = params.get('chainId') || '1'
   return `${env}:${chainId}`
 }
+
+const FLEET_READS_PER_CONTRACT = 6
 
 export async function GET(request: Request) {
   try {
@@ -29,107 +31,135 @@ export async function GET(request: Request) {
     if (cached && cached.expiry > now) {
       return NextResponse.json(cached.data)
     }
-    const rpcUrl = CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]
+    const rpcUrls = CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]
     const harbor = HARBOR_COMMAND_ADDRESSES[environment][Number(chainId)]
-    if (!rpcUrl || !harbor) {
+    if (!rpcUrls || !harbor) {
       return NextResponse.json({ error: 'Unsupported chain or environment' }, { status: 400 })
     }
-    const client = createPublicClient({ transport: http(rpcUrl) })
-    const activeFleets = (await // @ts-ignore
-    client.readContract({
+
+    const client = createPublicClient({
+      transport: createRpcTransport(rpcUrls),
+      chain: VIEM_CHAIN_ENTITIES[chainId as keyof typeof VIEM_CHAIN_ENTITIES],
+    })
+
+    // @ts-ignore - harborCommandAbi / viem type mismatch (authorizationList)
+    const activeFleets = (await client.readContract({
       address: harbor as `0x${string}`,
       abi: harborCommandAbi,
       functionName: 'getActiveFleetCommanders',
     })) as `0x${string}`[]
 
     const allFleets = [...activeFleets]
-    // Preserve existing Base chain special-case if needed
     if (chainId === '8453') {
       allFleets.push('0x29f13a877F3d1A14AC0B15B07536D4423b35E198' as `0x${string}`)
     }
 
-    const results = await Promise.all(
-      allFleets.map(async (fleetAddress) => {
-        const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets, config] =
-          await Promise.all([
-            // @ts-ignore
-            client.readContract({
-              address: fleetAddress,
-              abi: fleetCommanderAbi,
-              functionName: 'name',
-            }),
-            // @ts-ignore
-            client.readContract({
-              address: fleetAddress,
-              abi: fleetCommanderAbi,
-              functionName: 'symbol',
-            }),
-            // @ts-ignore
-            client.readContract({
-              address: fleetAddress,
-              abi: fleetCommanderAbi,
-              functionName: 'asset',
-            }),
-            // @ts-ignore
-            client.readContract({
-              address: fleetAddress,
-              abi: fleetCommanderAbi,
-              functionName: 'totalAssets',
-            }),
-            // @ts-ignore
-            client.readContract({
-              address: fleetAddress,
-              abi: fleetCommanderAbi,
-              functionName: 'withdrawableTotalAssets',
-            }),
-            // @ts-ignore
-            client.readContract({
-              address: fleetAddress,
-              abi: fleetCommanderAbi,
-              functionName: 'getConfig',
-            }),
-          ])
+    // Multicall 1: fleet contract reads (6 per fleet)
+    const fleetContracts = allFleets.flatMap((fleetAddress) => [
+      { address: fleetAddress, abi: fleetCommanderAbi, functionName: 'name' as const },
+      { address: fleetAddress, abi: fleetCommanderAbi, functionName: 'symbol' as const },
+      { address: fleetAddress, abi: fleetCommanderAbi, functionName: 'asset' as const },
+      { address: fleetAddress, abi: fleetCommanderAbi, functionName: 'totalAssets' as const },
+      {
+        address: fleetAddress,
+        abi: fleetCommanderAbi,
+        functionName: 'withdrawableTotalAssets' as const,
+      },
+      { address: fleetAddress, abi: fleetCommanderAbi, functionName: 'getConfig' as const },
+    ])
 
-        const [assetDecimals, assetSymbol] = await Promise.all([
-          // @ts-ignore
-          client.readContract({
-            address: assetAddress as `0x${string}`,
-            abi: erc20Abi,
-            functionName: 'decimals',
-          }),
-          // @ts-ignore
-          client.readContract({
-            address: assetAddress as `0x${string}`,
-            abi: erc20Abi,
-            functionName: 'symbol',
-          }),
-        ])
+    // @ts-expect-error - viem multicall types are overly strict
+    const fleetResults = await client.multicall({
+      contracts: fleetContracts,
+      allowFailure: true,
+    })
 
-        // Extract config data (FleetConfig struct: [bufferArk, minimumBufferBalance, depositCap, maxRebalanceOperations, stakingRewardsManager])
-        const configData = config as unknown as {
-          bufferArk: `0x${string}`
-          minimumBufferBalance: bigint
-          depositCap: bigint
-          maxRebalanceOperations: bigint
-          stakingRewardsManager: `0x${string}`
-        }
+    const assetAddresses: `0x${string}`[] = []
+    const fleetData: Array<{
+      address: `0x${string}`
+      name: string
+      symbol: string
+      asset: `0x${string}`
+      totalAssets: bigint
+      withdrawableTotalAssets: bigint
+      config: unknown
+    }> = []
 
-        return {
-          address: fleetAddress,
-          name,
-          symbol,
-          asset: assetAddress,
-          totalAssets: (totalAssets as bigint).toString(),
-          withdrawableTotalAssets: (withdrawableTotalAssets as bigint).toString(),
-          depositCap: configData.depositCap.toString(),
-          minimumBufferBalance: configData.minimumBufferBalance.toString(),
-          maxRebalanceOperations: configData.maxRebalanceOperations.toString(),
-          assetDecimals: Number(assetDecimals),
-          assetSymbol: String(assetSymbol),
-          fleetDecimals: Number(assetDecimals),
-        }
-      }),
-    )
+    for (let i = 0; i < allFleets.length; i++) {
+      const base = i * FLEET_READS_PER_CONTRACT
+      const [nameRes, symbolRes, assetRes, totalRes, withdrawableRes, configRes] =
+        fleetResults.slice(base, base + FLEET_READS_PER_CONTRACT)
+
+      if (
+        nameRes.status === 'failure' ||
+        symbolRes.status === 'failure' ||
+        assetRes.status === 'failure' ||
+        totalRes.status === 'failure' ||
+        withdrawableRes.status === 'failure' ||
+        configRes.status === 'failure'
+      ) {
+        return NextResponse.json({ error: 'Failed to read fleet contract' }, { status: 502 })
+      }
+
+      const assetAddress = assetRes.result as `0x${string}`
+      assetAddresses.push(assetAddress)
+      fleetData.push({
+        address: allFleets[i],
+        name: nameRes.result as string,
+        symbol: symbolRes.result as string,
+        asset: assetAddress,
+        totalAssets: totalRes.result as bigint,
+        withdrawableTotalAssets: withdrawableRes.result as bigint,
+        config: configRes.result,
+      })
+    }
+
+    // Multicall 2: asset contract reads (2 per fleet)
+    const assetContracts = assetAddresses.flatMap((assetAddress) => [
+      { address: assetAddress, abi: erc20Abi, functionName: 'decimals' as const },
+      { address: assetAddress, abi: erc20Abi, functionName: 'symbol' as const },
+    ])
+
+    // @ts-expect-error - viem multicall types are overly strict
+    const assetResults = await client.multicall({
+      contracts: assetContracts,
+      allowFailure: true,
+    })
+
+    const hasAssetFailure = assetResults.some((r) => r.status === 'failure')
+    if (hasAssetFailure) {
+      return NextResponse.json({ error: 'Failed to read asset contract' }, { status: 502 })
+    }
+
+    const results = fleetData.map((fd, i) => {
+      const decimalsRes = assetResults[i * 2]
+      const symbolRes = assetResults[i * 2 + 1]
+      const assetDecimals = Number(decimalsRes.result)
+      const assetSymbol = String(symbolRes.result)
+
+      const configData = fd.config as {
+        bufferArk: `0x${string}`
+        minimumBufferBalance: bigint
+        depositCap: bigint
+        maxRebalanceOperations: bigint
+        stakingRewardsManager: `0x${string}`
+      }
+
+      return {
+        address: fd.address,
+        name: fd.name,
+        symbol: fd.symbol,
+        asset: fd.asset,
+        totalAssets: fd.totalAssets.toString(),
+        withdrawableTotalAssets: fd.withdrawableTotalAssets.toString(),
+        depositCap: configData.depositCap.toString(),
+        minimumBufferBalance: configData.minimumBufferBalance.toString(),
+        maxRebalanceOperations: configData.maxRebalanceOperations.toString(),
+        assetDecimals,
+        assetSymbol,
+        fleetDecimals: assetDecimals,
+      }
+    })
 
     const payload = { chainId, environment, fleets: results }
     cache.set(key, { data: payload, expiry: now + TTL_MS })

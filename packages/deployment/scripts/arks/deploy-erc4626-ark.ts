@@ -129,7 +129,14 @@ async function deployERC4626ArkContract(
 
   // Validate vault name format and extract protocol
   validateVaultName(userInput.vaultName, 'ERC4626 vault name')
-  const protocol = userInput.vaultName.split('_')[0]
+  let protocol = userInput.vaultName.split('_')[0]
+  if (
+    protocol === 'Morpho' &&
+    userInput.vaultName.split('_').length > 1 &&
+    userInput.vaultName.split('_')[1] === 'V2'
+  ) {
+    protocol = 'Morpho_V2'
+  }
 
   // Create and validate ark details
   const arkDetails = {
@@ -144,7 +151,6 @@ async function deployERC4626ArkContract(
 
   // Validate the details object to ensure it has the minimal required fields
   validateArkDetails(arkDetails, 'ERC4626 ark details')
-
   return (await hre.ignition.deploy(createERC4626ArkModule(moduleName), {
     parameters: {
       [moduleName]: {

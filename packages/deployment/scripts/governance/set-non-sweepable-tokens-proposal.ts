@@ -195,7 +195,7 @@ async function main() {
   } = await promptForChain('Select the hub chain:')
 
   // Get the governor and raft addresses
-  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
   const HUB_RAFT_ADDRESS = hubConfig.deployedContracts.core.raft.address as Address
 
   // Get SIP minor number

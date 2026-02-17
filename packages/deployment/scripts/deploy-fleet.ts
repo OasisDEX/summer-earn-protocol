@@ -34,7 +34,7 @@ import { getConfigByNetwork } from './helpers/config-handler'
 import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
 import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'
 import { getAssetAddress } from './helpers/token-helpers'
-import { validateToken } from './helpers/validation'
+import { validateAddress, validateToken } from './helpers/validation'
 
 /**
  * Deployment modes for the script
@@ -181,13 +181,9 @@ async function handleNewFleetDeployment(
   network: string,
 ) {
   // Get curator from fleet definition
-  let curatorAddress = fleetDefinition.curator as Address | undefined
+  let curatorAddress = validateAddress(fleetDefinition.curator, 'Curator')
 
-  if (curatorAddress) {
-    console.log(kleur.blue('Curator Address:'), kleur.cyan(curatorAddress))
-  } else {
-    console.log(kleur.yellow('No curator address specified in fleet definition'))
-  }
+  console.log(kleur.blue('Curator Address:'), kleur.cyan(curatorAddress))
 
   console.log(kleur.blue('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
@@ -549,6 +545,7 @@ async function handleArkAddition(
           config,
           proposalFleetDefinition,
           useBummerConfig,
+          network,
         )
       }
     }

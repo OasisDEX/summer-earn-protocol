@@ -52,5 +52,23 @@
     "reallocInterval": "1m",
     "deployedBySummerFi": "Yes",
     "WhiteListedByBA": "Yes"
+  },
+  {
+    "risk": "low",
+    "chain": "arbitrum",
+    "arkAddress": "0xc19002584f8f796Db4613da0d4C0F7Bc275E56D8",
+    "fleetAddress": "0x6e23CfE8D830488Bc824C0aDD201A1A2E1dFDBEb",
+    "fleetCap": 0,
+    "FleetMinimumBuffer": 100,
+    "ark": "morpho",
+    "fleetAsset": "USDC",
+    "arkSymbol": "gauntlet_USDC_core ",
+    "arkMaxCap": 54000000,
+    "arkMaxPercTVL": 1.0,
+    "arkMaxInflow": 54000000,
+    "arkMaxOutflow": 20000000,
+    "reallocInterval": "1m",
+    "deployedBySummerFi": "Yes",
+    "WhiteListedByBA": "Yes"
   }
 ]

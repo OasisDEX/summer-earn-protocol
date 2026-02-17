@@ -2,7 +2,6 @@
 src = "src"
 out = "out"
 libs = [
-  'node_modules', 
   'lib'
 ]
 test = 'test'
@@ -10,10 +9,7 @@ cache_path  = 'cache_forge'
 solc = "0.8.28"
 evm_version = "cancun"
 cbor_metadata = true
-allow_paths = [
-  "../chain-bridge"
-]
-via_ir = true
+via_ir = false
 optimizer = true
 optimizer_runs = 50
 

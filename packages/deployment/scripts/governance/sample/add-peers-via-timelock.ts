@@ -193,7 +193,7 @@ async function main() {
         title: 'Governor',
         value: {
           name: 'Governor',
-          address: chainConfig.deployedContracts.gov.summerGovernor.address as Address,
+          address: chainConfig.deployedContracts.govV2.summerGovernor.address as Address,
         },
       },
     ]
@@ -235,7 +235,7 @@ async function main() {
   const PEER_CONTRACT_ADDRESS =
     selectedContract.name === 'Summer Token'
       ? (targetChain.config.deployedContracts.gov.summerToken.address as Address)
-      : (targetChain.config.deployedContracts.gov.summerGovernor.address as Address)
+      : (targetChain.config.deployedContracts.govV2.summerGovernor.address as Address)
   const PEER_ENDPOINT_ID = targetChain.endpointId
 
   const TIMELOCK_ADDRESS = chainConfig.deployedContracts.gov.timelock.address as Address

@@ -130,7 +130,7 @@ const addresses: Record<
       usdt: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
       usdce: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
       weth: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
-      morpho: '0x0000000000000000000000000000000000000000',
+      morpho: '0x40BD670A58238e6E230c430BBb5cE6ec0d40df48',
       reul: '0x0000000000000000000000000000000000000000',
       seam: '0x0000000000000000000000000000000000000000',
       ws: '0x0000000000000000000000000000000000000000',
@@ -610,7 +610,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
     compound_v3: [Token.COMP],
     fluid: [Token.ARB, Token.FLUID],
     siloV2: [Token.ARB],
-    morpho: [Token.ARB],
+    morpho: [Token.ARB, Token.MORPHO],
   },
 }
 

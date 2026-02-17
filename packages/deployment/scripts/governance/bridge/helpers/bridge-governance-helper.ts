@@ -77,7 +77,7 @@ export async function createUnifiedLzConfigProposal(
     { common: true, gov: true },
     useBummerConfig,
   ) as BaseConfig
-  const governorAddress = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const governorAddress = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
 
   // 1. Process hub chain configs - direct actions on hub chain
   const hubTargets: Address[] = []
@@ -223,7 +223,8 @@ export async function createUnifiedLzConfigProposal(
           { gov: true },
           useBummerConfig,
         ) as BaseConfig
-        const governorAddress = sourceConfig.deployedContracts.gov.summerGovernor.address as Address
+        const governorAddress = sourceConfig.deployedContracts.govV2.summerGovernor
+          .address as Address
 
         // Add to chain-specific collection
         if (!peersByChain[peer.sourceChain]) {

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, getAddress } from 'viem'
 
 import { erc20Abi } from '@/abis/ERC20'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
-import { CHAIN_RPC_URLS } from '@/config/chains'
+import { CHAIN_RPC_URLS, createRpcTransport, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 
 const TTL_MS = 10 * 60 * 1000
 const cache = new Map<string, { data: unknown; expiry: number }>()
@@ -26,100 +26,112 @@ export async function GET(
   const cached = cache.get(key)
   if (cached && cached.expiry > now) return NextResponse.json(cached.data)
 
-  const rpcUrl = CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]
-  if (!rpcUrl) return NextResponse.json({ error: 'Unsupported chainId' }, { status: 400 })
+  const rpcUrls = CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]
+  if (!rpcUrls) return NextResponse.json({ error: 'Unsupported chainId' }, { status: 400 })
 
-  const client = createPublicClient({ transport: http(rpcUrl) })
+  const client = createPublicClient({
+    transport: createRpcTransport(rpcUrls),
+    chain: VIEM_CHAIN_ENTITIES[chainId],
+  })
+  const fleetAddr = getAddress(address)
 
-  const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets, fleetDecimals, config] =
-    await Promise.all([
-      // @ts-ignore
-      client.readContract({
-        address: address as `0x${string}`,
-        abi: fleetCommanderAbi,
-        functionName: 'name',
-      }),
-      // @ts-ignore
-      client.readContract({
-        address: address as `0x${string}`,
-        abi: fleetCommanderAbi,
-        functionName: 'symbol',
-      }),
-      // @ts-ignore
-      client.readContract({
-        address: address as `0x${string}`,
-        abi: fleetCommanderAbi,
-        functionName: 'asset',
-      }),
-      // @ts-ignore
-      client.readContract({
-        address: address as `0x${string}`,
-        abi: fleetCommanderAbi,
-        functionName: 'totalAssets',
-      }),
-      // @ts-ignore
-      client.readContract({
-        address: address as `0x${string}`,
-        abi: fleetCommanderAbi,
-        functionName: 'withdrawableTotalAssets',
-      }),
-      // @ts-ignore
-      client.readContract({
-        address: address as `0x${string}`,
-        abi: fleetCommanderAbi,
-        functionName: 'decimals',
-      }),
-      // @ts-ignore
-      client.readContract({
-        address: address as `0x${string}`,
-        abi: fleetCommanderAbi,
-        functionName: 'getConfig',
-      }),
-    ])
-  const [assetDecimals, assetSymbol] = await Promise.all([
-    // @ts-ignore
-    client.readContract({
-      address: assetAddress as `0x${string}`,
-      abi: erc20Abi,
-      functionName: 'decimals',
-    }),
-    // @ts-ignore
-    client.readContract({
-      address: assetAddress as `0x${string}`,
-      abi: erc20Abi,
-      functionName: 'symbol',
-    }),
-  ])
+  // Multicall 1: fleet contract reads
+  const fleetContracts = [
+    { address: fleetAddr, abi: fleetCommanderAbi, functionName: 'name' as const },
+    { address: fleetAddr, abi: fleetCommanderAbi, functionName: 'symbol' as const },
+    { address: fleetAddr, abi: fleetCommanderAbi, functionName: 'asset' as const },
+    { address: fleetAddr, abi: fleetCommanderAbi, functionName: 'totalAssets' as const },
+    {
+      address: fleetAddr,
+      abi: fleetCommanderAbi,
+      functionName: 'withdrawableTotalAssets' as const,
+    },
+    { address: fleetAddr, abi: fleetCommanderAbi, functionName: 'decimals' as const },
+    { address: fleetAddr, abi: fleetCommanderAbi, functionName: 'getConfig' as const },
+  ]
+  // @ts-ignore - viem multicall types are overly strict
+  const fleetResults = await client.multicall({
+    contracts: fleetContracts,
+    allowFailure: true,
+  })
+
+  const [nameRes, symbolRes, assetRes, totalRes, withdrawableRes, decimalsRes, configRes] =
+    fleetResults
+  if (
+    nameRes.status === 'failure' ||
+    symbolRes.status === 'failure' ||
+    assetRes.status === 'failure' ||
+    totalRes.status === 'failure' ||
+    withdrawableRes.status === 'failure' ||
+    decimalsRes.status === 'failure' ||
+    configRes.status === 'failure'
+  ) {
+    return NextResponse.json({ error: 'Failed to read fleet contract' }, { status: 502 })
+  }
+
+  const assetAddress = assetRes.result as `0x${string}`
+  const totalAssets = totalRes.result as bigint
+  const withdrawableTotalAssets = withdrawableRes.result as bigint
+  const fleetDecimals = decimalsRes.result as number
+  const config = configRes.result
+
+  // Multicall 2: asset contract + optional user reads
+  const assetAndUserCalls = [
+    { address: assetAddress, abi: erc20Abi, functionName: 'decimals' as const },
+    { address: assetAddress, abi: erc20Abi, functionName: 'symbol' as const },
+    ...(user
+      ? [
+          {
+            address: fleetAddr,
+            abi: fleetCommanderAbi,
+            functionName: 'balanceOf' as const,
+            args: [user as `0x${string}`],
+          },
+          {
+            address: assetAddress,
+            abi: erc20Abi,
+            functionName: 'balanceOf' as const,
+            args: [user as `0x${string}`],
+          },
+          {
+            address: assetAddress,
+            abi: erc20Abi,
+            functionName: 'allowance' as const,
+            args: [user as `0x${string}`, fleetAddr],
+          },
+        ]
+      : []),
+  ]
+
+  // @ts-ignore - viem multicall types are overly strict with mixed contracts
+  const assetUserResults = await client.multicall({
+    contracts: assetAndUserCalls,
+    allowFailure: true,
+  })
+
+  const assetDecimalsRes = assetUserResults[0]
+  const assetSymbolRes = assetUserResults[1]
+  if (assetDecimalsRes.status === 'failure' || assetSymbolRes.status === 'failure') {
+    return NextResponse.json({ error: 'Failed to read asset contract' }, { status: 502 })
+  }
+
+  const assetDecimals = Number(assetDecimalsRes.result)
+  const assetSymbol = String(assetSymbolRes.result)
 
   let userInfo: FleetUserInfo | null = null
-  if (user) {
-    const [balance, underlyingBalance, allowance] = await Promise.all([
-      // @ts-ignore
-      client.readContract({
-        address: address as `0x${string}`,
-        abi: fleetCommanderAbi,
-        functionName: 'balanceOf',
-        args: [user as `0x${string}`],
-      }),
-      // @ts-ignore
-      client.readContract({
-        address: assetAddress as `0x${string}`,
-        abi: erc20Abi,
-        functionName: 'balanceOf',
-        args: [user as `0x${string}`],
-      }),
-      // @ts-ignore
-      client.readContract({
-        address: assetAddress as `0x${string}`,
-        abi: erc20Abi,
-        functionName: 'allowance',
-        args: [user as `0x${string}`, address as `0x${string}`],
-      }),
-    ])
+  if (user && assetUserResults.length >= 5) {
+    const [balanceRes, underlyingRes, allowanceRes] = assetUserResults.slice(2)
+    if (
+      balanceRes.status === 'failure' ||
+      underlyingRes.status === 'failure' ||
+      allowanceRes.status === 'failure'
+    ) {
+      return NextResponse.json({ error: 'Failed to read user info' }, { status: 502 })
+    }
     userInfo = {
-      balance: (balance as bigint).toString(),
-      underlyingBalance: (underlyingBalance as bigint).toString(),
-      allowance: (allowance as bigint).toString(),
+      balance: (balanceRes.result as bigint).toString(),
+      underlyingBalance: (underlyingRes.result as bigint).toString(),
+      allowance: (allowanceRes.result as bigint).toString(),
     }
   }
 
@@ -134,11 +146,11 @@ export async function GET(
 
   const payload = {
     address,
-    name,
-    symbol,
+    name: nameRes.result,
+    symbol: symbolRes.result,
     asset: assetAddress,
-    totalAssets: (totalAssets as bigint).toString(),
-    withdrawableTotalAssets: (withdrawableTotalAssets as bigint).toString(),
+    totalAssets: totalAssets.toString(),
+    withdrawableTotalAssets: withdrawableTotalAssets.toString(),
     depositCap: configData.depositCap.toString(),
     minimumBufferBalance: configData.minimumBufferBalance.toString(),
     maxRebalanceOperations: configData.maxRebalanceOperations.toString(),

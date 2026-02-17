@@ -115,6 +115,14 @@
         "asset": "USDT",
         "protocol": "fluid"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Morpho_V2_Steakhouse_Prime_Instant",
+        "protocol": "erc4626"
+      }
     }
   ]
 }

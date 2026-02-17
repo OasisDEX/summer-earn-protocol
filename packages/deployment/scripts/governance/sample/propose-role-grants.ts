@@ -21,7 +21,7 @@ async function main() {
   const { publicClient, walletClient } = createClients(chainSetup.chain, chainSetup.rpcUrl)
 
   const TIMELOCK_ADDRESS = chainSetup.config.deployedContracts.gov.timelock.address
-  const SUMMER_GOVERNOR_ADDRESS = chainSetup.config.deployedContracts.gov.summerGovernor.address
+  const SUMMER_GOVERNOR_ADDRESS = chainSetup.config.deployedContracts.govV2.summerGovernor.address
 
   // Prepare the proposal data
   const calldatas = [

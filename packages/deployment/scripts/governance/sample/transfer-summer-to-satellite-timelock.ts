@@ -136,7 +136,7 @@ async function main() {
   const { amount: HUMAN_READABLE_AMOUNT, amountWei: TRANSFER_AMOUNT } = await promptForAmount()
 
   // Extract addresses and IDs
-  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
   const HUB_TOKEN_ADDRESS = hubConfig.deployedContracts.gov.summerToken.address as Address
   const HUB_TIMELOCK_ADDRESS = hubConfig.deployedContracts.gov.timelock.address as Address
   const SATELLITE_TIMELOCK_ADDRESS = satelliteConfig.deployedContracts.gov.timelock

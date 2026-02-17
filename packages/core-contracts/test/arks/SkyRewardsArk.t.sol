@@ -4,6 +4,8 @@ pragma solidity 0.8.28;
 import "../../src/contracts/arks/SkyRewardsArk.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
+import {IStakingRewards} from "../../src/interfaces/sky/IStakingRewards.sol";
+import {ILitePSM} from "../../src/interfaces/sky/ILitePSM.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 
@@ -14,14 +16,14 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
     // Known contract addresses
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant USDS = 0xdC035D45d973E3EC169d2276DDab16f1e407384F;
-    address public constant SKY_REWARDS =
+    address public constant SKY_REWARDS_SKY =
         0x0650CAF159C5A49f711e8169D4336ECB9b950275;
     address public constant LITE_PSM =
         0xA188EEC8F81263234dA3622A406892F3D630f98c;
 
     IERC20 public usdc;
     IERC20 public usds;
-    IStakingRewards public stakingRewards;
+    IStakingRewards public stakingRewardsSky;
     ILitePSM public litePsm;
 
     uint256 forkBlock = 20842109;
@@ -34,7 +36,7 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
 
         usdc = IERC20(USDC);
         usds = IERC20(USDS);
-        stakingRewards = IStakingRewards(SKY_REWARDS);
+        stakingRewardsSky = IStakingRewards(SKY_REWARDS_SKY);
         litePsm = ILitePSM(LITE_PSM);
 
         ArkParams memory params = ArkParams({
@@ -50,7 +52,7 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new SkyRewardsArk(LITE_PSM, USDS, SKY_REWARDS, params);
+        ark = new SkyRewardsArk(LITE_PSM, USDS, SKY_REWARDS_SKY, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -64,7 +66,7 @@ contract SkyRewardsArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.makePersistent(address(ark));
         vm.makePersistent(USDC);
         vm.makePersistent(USDS);
-        vm.makePersistent(SKY_REWARDS);
+        vm.makePersistent(SKY_REWARDS_SKY);
         vm.makePersistent(LITE_PSM);
         vm.makePersistent(address(accessManager));
         vm.makePersistent(address(configurationManager));

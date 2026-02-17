@@ -43,6 +43,12 @@ interface IFleetCommanderConfigProviderErrors {
     error FleetCommanderInvalidStakingRewardsManager();
 
     /**
+     * @notice Thrown when trying to set a TipJar to the zero address
+     * @dev Relevant for DAO fleets which store tip jar in fleet config
+     */
+    error FleetCommanderInvalidTipJar();
+
+    /**
      * @notice Thrown when trying to set a max rebalance operations to a value greater than the max allowed
      * @param newMaxRebalanceOperations The new max rebalance operations value
      */

@@ -184,7 +184,7 @@ async function createMultiChainTipJarProposal(
 
   try {
     // Get the hub chain governor address
-    const hubGovernorAddress = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+    const hubGovernorAddress = hubConfig.deployedContracts.govV2.summerGovernor.address as Address
 
     // Prepare actions for the hub chain (Base)
     const srcTargets: Address[] = []
