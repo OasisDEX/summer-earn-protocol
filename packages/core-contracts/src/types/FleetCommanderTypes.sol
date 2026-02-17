@@ -108,6 +108,10 @@ struct FleetConfigDao {
      */
     uint256 maxRebalanceOperations;
     /**
+     * @notice Kept for backward compatibility with the old staking rewards manager
+     */
+    address _stakingRewardsManager;
+    /**
      * @notice The address of the tip jar (DAO vaults do not use the global tip jar)
      */
     address tipJar;

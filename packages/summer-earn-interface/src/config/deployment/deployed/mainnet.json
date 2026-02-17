@@ -168,5 +168,7 @@
   "staging_BummerDAO_LazyVault_USDC_MorphoV2Vault_usdc_Yearn_OG_USDC_v2_1#MorphoV2VaultArk": "0x45b24226017294cDc6B7C5F5FAdD2D4C79059786",
   "staging_BummerDAO_LazyVault_USDC_SkyRewards_SPK_USDC_1#SkyRewardsArk": "0x8eC9e773ec31d93f842B9490028c9870dE320fEF",
   "staging_BummerDAO_LazyVault_USDC_ERC4626_Fluid_usdc_1#ERC4626Ark": "0xC320fFAf7e252DF4b05fe1E8F9165C5b3D0c5470",
-  "staging_BummerDAO_LazyVault_USDC_Syrup_usdc_1_gov#SyrupArk": "0x6d54c2c5C82f6B74cBc6A36D71546995D99C1462"
+  "staging_BummerDAO_LazyVault_USDC_Syrup_usdc_1_gov#SyrupArk": "0x6d54c2c5C82f6B74cBc6A36D71546995D99C1462",
+  "FleetDaoModule_BummerDAO_LazyVault_USDC_2#FleetCommanderDao": "0x48d047532191479852C1F1903CB83700c42a3b8f",
+  "staging_BummerDAO_LazyVault_USDC_2_MorphoV2Vault_usdc_August_USDC_V2_1#MorphoV2VaultArk": "0xF82825bB0E5dA60c07f2B5a7980Dd9f87C353206"
 }

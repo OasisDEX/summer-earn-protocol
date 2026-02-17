@@ -70,6 +70,7 @@ contract FleetCommanderConfigProviderDao is
             minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
+            _stakingRewardsManager: address(0),
             tipJar: params.tipJar
         });
         details = params.details;
