@@ -373,10 +373,6 @@ export function handleRewardPaid(event: RewardPaid): void {
         formatAmount(event.params.reward, BigInt.fromI32(18)),
       )
       account.save()
-
-      position.claimableSummerToken = constants.BigIntConstants.ZERO
-      position.claimableSummerTokenNormalized = constants.BigDecimalConstants.ZERO
-      position.save()
     }
   }
 }

@@ -1,6 +1,6 @@
-import { Address, BigInt, ethereum, log, store } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum, log, TypedMap } from '@graphprotocol/graph-ts'
 import { FleetCommanderEnlisted } from '../../generated/HarborCommand/HarborCommand'
-import { Vault, YieldAggregator } from '../../generated/schema'
+import { Position, Vault, YieldAggregator } from '../../generated/schema'
 import { addresses } from '../common/addressProvider'
 import { BigDecimalConstants, BigIntConstants } from '../common/constants'
 import {
@@ -19,11 +19,16 @@ import {
   getOrCreateYieldAggregator,
 } from '../common/initializers'
 import {
+  deepCleanPositionHourlySnapshots,
+  removeOldPositionHourlySnapshot,
+} from '../common/cleanup'
+import {
   decodeValues,
   encodeFunctionCalldata,
   makeMulticall,
   prepareMulicallCall,
 } from '../common/multicall'
+import { clearPriceCache, initPriceCache } from '../common/priceHelpers'
 import { formatAmount } from '../common/utils'
 import { getArkDetails } from '../utils/ark'
 import { getVaultDetails } from '../utils/vault'
@@ -35,7 +40,6 @@ import {
 } from '../utils/vaultRateHandlers'
 import { updateArk } from './entities/ark'
 import { updateVault } from './entities/vault'
-import { updateAccountStakingRewards } from './governanceRewardsManager'
 
 export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): void {
   getOrCreateVault(event.params.fleetCommander, event.block)
@@ -87,6 +91,8 @@ function processHourlyVaultUpdate(
   protocolLastDailyUpdateTimestamp: BigInt | null,
   protocolLastHourlyUpdateTimestamp: BigInt | null,
   protocolLastWeeklyUpdateTimestamp: BigInt | null,
+  shouldDeepClean: boolean,
+  positionCache: TypedMap<string, Position> | null,
 ): void {
   const dayPassed = hasDayPassed(protocolLastDailyUpdateTimestamp, block.timestamp)
   const hourPassed = hasHourPassed(protocolLastHourlyUpdateTimestamp, block.timestamp)
@@ -126,12 +132,17 @@ function processHourlyVaultUpdate(
     if (positions && positions.length > 0) {
       for (let k = 0; k < positions.length; k++) {
         const positionId = positions[k]
-        // cleanUpOldHourlySnapshots(positionId, block)
         if (!positionId) {
           log.warning('Empty position ID at index ' + k.toString(), [])
           continue
         }
+
         getOrCreatePositionHourlySnapshot(positionId, vault, block)
+        if (shouldDeepClean) {
+          deepCleanPositionHourlySnapshots(positionId, block.timestamp)
+        } else {
+          removeOldPositionHourlySnapshot(positionId, block.timestamp)
+        }
         if (dayPassed) {
           getOrCreatePositionDailySnapshot(positionId, vault, block)
         }
@@ -140,102 +151,28 @@ function processHourlyVaultUpdate(
         }
       }
     }
-    const positionsToUpdate: string[] = []
-    const ownersOfPositions: string[] = []
-    for (let i = 0; i < positions.length; i++) {
-      const position = getOrCreatePosition(positions[i], block)
-      if (position.stakedInputTokenBalanceNormalizedInUSD.gt(BigDecimalConstants.ONE)) {
-        positionsToUpdate.push(positions[i])
-        ownersOfPositions.push(position.account)
-      }
-    }
-    log.error('[harborCommand] - block {} time taken for positionsToUpdate:', [
-      block.number.toString(),
-    ])
-    if (positionsToUpdate.length > 0 && vault.rewardTokens.length > 0) {
-      const rewardTokenAddress = Address.fromString(vault.rewardTokens[0])
-      const rewardToken = getOrCreateToken(rewardTokenAddress)
-
-      let calls = new Array<ethereum.Tuple>(positionsToUpdate.length)
-      for (let i = 0; i < positionsToUpdate.length; i++) {
-        calls[i] = prepareMulicallCall(
-          Address.fromBytes(vault.stakingRewardsManager),
-          encodeFunctionCalldata(
-            'earned(address,address)',
-            ['address', 'address'],
-            [ownersOfPositions[i], rewardTokenAddress.toHexString()],
-          ),
-        )
-      }
-      const multicallResult = makeMulticall(calls)
-      log.error('[harborCommand] - block {} time taken for multicall', [block.number.toString()])
-      const multiCallResponseData = multicallResult.value.value1
-      for (let i = 0; i < multiCallResponseData.length; i++) {
-        const position = getOrCreatePosition(positionsToUpdate[i], block)
-        const results = decodeValues('uint256', multiCallResponseData[i])
-        const claimableNormalized = formatAmount(
-          BigInt.fromString(results[0]),
-          BigInt.fromI32(rewardToken.decimals),
-        )
-        const positionRewards = getOrCreatePositionRewards(positionsToUpdate[i], rewardToken, block)
-
-        positionRewards.claimable = BigInt.fromString(results[0])
-        positionRewards.claimableNormalized = claimableNormalized
-        positionRewards.save()
-
-        // ------------------------------------------------------------
-        // will be deprecated in the future
-        if (rewardTokenAddress.equals(addresses.SUMMER_TOKEN)) {
-          position.claimableSummerToken = positionRewards.claimable
-          position.claimableSummerTokenNormalized = positionRewards.claimableNormalized
-          position.save()
-        }
-        // ------------------------------------------------------------}
-      }
-    }
-    log.error('[harborCommand] - time taken for positionsToUpdate:', [block.number.toString()])
   }
 }
 
-function cleanUpOldHourlySnapshots(positionId: string, block: ethereum.Block): void {
-  const retentionTimestamp = block.timestamp.minus(
-    BigIntConstants.HOURLY_SNAPSHOT_RETENTION_TIME_IN_SECONDS,
-  )
-  let position = getOrCreatePosition(positionId, block)
-  const hourlySnapshots = position.hourlySnapshots.load()
-  if (hourlySnapshots && hourlySnapshots.length > 0) {
-    for (let i = 0; i < hourlySnapshots.length; i++) {
-      if (hourlySnapshots[i].timestamp.lt(retentionTimestamp)) {
-        store.remove('PositionHourlySnapshot', hourlySnapshots[i].id)
-      }
-    }
-  }
-}
 export function handleInterval(block: ethereum.Block): void {
-  // ENABLE ONLY for separate subgoldsky subgraph deployment
-  // temporary solution to track self managed vault deployment on base for institutional demo app
-  // if (dataSource.network() == 'base') {
-  //   const usdcDemoFleetOnBase = Address.fromString('0x29f13a877F3d1A14AC0B15B07536D4423b35E198')
-  //   getOrCreateVault(usdcDemoFleetOnBase, block)
-  // }
-
   if (!block || !block.timestamp) {
     log.warning('Invalid block or timestamp in handleInterval', [])
     return
   }
 
+  // Initialize caches for this interval run
+  initPriceCache()
+  const positionCache = new TypedMap<string, Position>()
+
   let protocol = getOrCreateYieldAggregator(block.timestamp)
 
   if (!protocol || !protocol.vaultsArray) {
     log.warning('Protocol or vaultsArray is null', [])
+    clearPriceCache()
     return
   }
 
   const hourPassed = hasHourPassed(protocol.lastHourlyUpdateTimestamp, block.timestamp)
-  if (hourPassed) {
-    updateAccountStakingRewards(block.number)
-  }
-
   const vaults = protocol.vaultsArray
 
   for (let i = 0; i < vaults.length; i++) {
@@ -257,11 +194,20 @@ export function handleInterval(block: ethereum.Block): void {
       protocol.lastDailyUpdateTimestamp,
       protocol.lastHourlyUpdateTimestamp,
       protocol.lastWeeklyUpdateTimestamp,
+      !protocol._hourlySnapshotsDeepCleaned,
+      positionCache,
     )
+  }
+
+  if (hourPassed && !protocol._hourlySnapshotsDeepCleaned) {
+    protocol._hourlySnapshotsDeepCleaned = true
   }
 
   updateProtocolTimestamps(protocol, block)
   protocol.save()
+
+  // Clear caches after processing
+  clearPriceCache()
 }
 
 function updateProtocolTimestamps(protocol: YieldAggregator, block: ethereum.Block): void {
