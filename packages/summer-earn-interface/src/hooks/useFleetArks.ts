@@ -27,6 +27,11 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
         maxDepositPercentageOfTVL: string
         maxRebalanceInflow: string
         maxRebalanceOutflow: string
+        withdrawalRequestId?: string
+        assetsInWithdrawalQueue?: string
+        isWithdrawalClaimRequired?: boolean
+        assetBalance?: string
+        needsSweep?: boolean
       }>
       const arks: ArkInfo[] = data.map((a) => ({
         address: a.address,
@@ -38,6 +43,15 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
         maxDepositPercentageOfTVL: BigInt(a.maxDepositPercentageOfTVL),
         maxRebalanceInflow: BigInt(a.maxRebalanceInflow),
         maxRebalanceOutflow: BigInt(a.maxRebalanceOutflow),
+        withdrawalRequestId: a.withdrawalRequestId,
+        assetsInWithdrawalQueue: a.assetsInWithdrawalQueue,
+        isWithdrawalClaimRequired: a.isWithdrawalClaimRequired,
+        assetBalance: a.assetBalance,
+        hasWithdrawalQueue:
+          a.withdrawalRequestId != null ||
+          a.assetsInWithdrawalQueue != null ||
+          a.isWithdrawalClaimRequired != null,
+        needsSweep: a.needsSweep,
       }))
       // Ensure buffer ark first
       return arks.sort((a, b) => (a.isBufferArk === b.isBufferArk ? 0 : a.isBufferArk ? -1 : 1))
@@ -51,5 +65,6 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
     arks: query.data ?? [],
     loading: query.isLoading,
     error: (query.error as Error) ?? null,
+    refetch: query.refetch,
   }
 }
