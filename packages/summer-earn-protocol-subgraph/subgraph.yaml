@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: SummerStakingV2
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: SummerStakingV2
       address: "0x0000000000000000000000000000000000000000"
-      startBlock: 24448007
+      startBlock: 301218468
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -28,11 +28,11 @@ dataSources:
       file: ./src/mappings/summerStakingV2.ts
   - kind: ethereum/contract
     name: SummerStakingV2Staging
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: SummerStakingV2
       address: "0x0000000000000000000000000000000000000000"
-      startBlock: 24448007
+      startBlock: 301218468
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -52,11 +52,11 @@ dataSources:
       file: ./src/mappings/summerStakingV2.ts      
   - kind: ethereum/contract
     name: HarborCommand
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: HarborCommand
-      address: "0x07060E282bd0FB99607c8915f1E538F8CebF5FC4"
-      startBlock: 24448007
+      address: "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
+      startBlock: 14240190
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -106,15 +106,15 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 50 
+            every: 120 
       file: ./src/mappings/harborCommand.ts
   - kind: ethereum/contract
     name: GovernanceRewardsManager
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: GovernanceRewardsManager
-      address: "0x0000000000000000000000000000000000000000"
-      startBlock: 24448007
+      address: "0xA02205E8E0e2dC64f6093b1eF1B2691866A45B95"
+      startBlock: 14240190
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -177,7 +177,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: FleetCommander
     mapping:
@@ -265,7 +265,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: Ark
     mapping:
@@ -328,7 +328,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: FleetCommanderRewardsManagerTemplate
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: FleetCommanderRewardsManager
     mapping:

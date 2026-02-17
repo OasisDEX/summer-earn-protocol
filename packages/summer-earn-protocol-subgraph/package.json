@@ -17,7 +17,7 @@
     "deploy:arbitrum": "bash -c 'source ../../.env && pnpm build:arbitrum && goldsky subgraph deploy summer-protocol-arbitrum/$npm_package_version --path .'",
     "deploy:sonic": "bash -c 'source ../../.env && pnpm build:sonic && goldsky subgraph deploy summer-protocol-sonic/$npm_package_version --path .'",
     "deploy:hyperliquid": "bash -c 'source ../../.env && pnpm build:hyperliquid && goldsky subgraph deploy summer-protocol-hyperliquid/$npm_package_version --path .'",
-    "deploy:all": "pnpm run deploy:base && pnpm run deploy:hyperliquid"
+    "deploy:all": "pnpm run deploy:base && pnpm run deploy:hyperliquid && pnpm run deploy:arbitrum && pnpm run deploy:sonic"
   },
   "devDependencies": {
     "@graphprotocol/graph-ts": "0.35.1",
