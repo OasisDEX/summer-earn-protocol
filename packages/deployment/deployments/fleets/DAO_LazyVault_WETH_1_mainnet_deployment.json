@@ -1,0 +1,33 @@
+{
+  "fleetName": "DAO_LazyVault_WETH_1",
+  "isBummer": false,
+  "fleetSymbol": "LVWETH",
+  "assetSymbol": "WETH",
+  "fleetAddress": "0x0C1FBCCC019320032D9acD193447560C8C632114",
+  "bufferArkAddress": "0x03548162DeEA204857121F56D362A27C783aF097",
+  "network": "mainnet",
+  "arks": [
+    "0xAE9fE6D7cdb5615b1906c317F314E0fBCCD191f8",
+    "0xb540D5511Bc9E9d1dB20c7272697A438204Bb68d",
+    "0xde0b59BA2A3D11Cf5B5258A330e69a06FB21c166",
+    "0x5Dd4143D87FAF600d98Fc24562B8ce25DD25FF71",
+    "0xfbC648a34b34F53799Ec6E5C8663D2451a1c5756",
+    "0x83c9D6cA29565Ae56CB7407792188d83B788448A",
+    "0xe5D12E8134FCA49cde7ff9245Ed319a1636412AD",
+    "0xD53D3a0B0848aBFc6c5ccc13562A1D73d6dEaDAf",
+    "0x771Fe29f9d6cee16268CA323caE5E70A35846f29",
+    "0x45342A8ac1e9Ef6877D7566ed7be5FC98F7e7cae",
+    "0x457436fdb96fb234A91c5516e1eb9303E3374a29"
+  ],
+  "initialMinimumBufferBalance": "500000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000000000000000",
+  "initialTipRate": "300000000000000000",
+  "details": {
+    "name": "DAO_LazyVault_WETH_1",
+    "chainId": 1,
+    "asset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "assetSymbol": "WETH",
+    "type": "dao"
+  }
+}

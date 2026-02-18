@@ -7,7 +7,15 @@
   "depositCap": "100000000000000000",
   "initialTipRate": "300000000000000000",
   "network": "mainnet",
-  "details": "",
+  "details": {
+    "type": "protocol",
+    "name": "LazyVault_LowerRisk_WETH",
+    "chainId": 1,
+    "asset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "assetSymbol": "WETH"
+  },
+  "isBummer": false,
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
   "arks": [
     {
       "type": "AaveV3Ark",
@@ -122,6 +130,22 @@
         "asset": "WETH",
         "vaultName": "Morpho_V2_KPK_ETH_Prime_v2",
         "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "MorphoV2VaultArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "Morpho_V2",
+        "vaultName": "Steakhouse_Prime_Instant_V2"
+      }
+    },
+    {
+      "type": "MorphoV2VaultArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "Morpho_V2",
+        "vaultName": "KPK_ETH_Prime_v2"
       }
     }
   ]

@@ -225,6 +225,27 @@ const KNOWN_ABIS = {
     'function createCampaign((bytes32 campaignId, address creator, address rewardToken, uint256 amount, uint32 campaignType, uint32 startTimestamp, uint32 duration, bytes campaignData)) external returns (uint256)',
   setNonSweepableToken:
     'function setNonSweepableToken(address ark, address token, bool isNonSweepable) external',
+  validateTimestamp: 'function validateTimestamp() external',
+  removeRoot: 'function removeRoot(uint256 index) external',
+  // TipJar functions
+  addTipStream: {
+    type: 'function',
+    name: 'addTipStream',
+    inputs: [
+      {
+        name: 'tipStream',
+        type: 'tuple',
+        internalType: 'struct ITipJar.TipStream',
+        components: [
+          { name: 'recipient', type: 'address', internalType: 'address' },
+          { name: 'allocation', type: 'uint256', internalType: 'Percentage' },
+          { name: 'lockedUntilEpoch', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
+    ],
+    outputs: [{ name: 'lockedUntilEpoch', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
 }
 
 // Create interfaces for each ABI

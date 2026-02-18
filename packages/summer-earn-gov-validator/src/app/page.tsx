@@ -209,6 +209,17 @@ export default function Home() {
       )
     }
 
+    if (typeof arg === 'object' && arg !== null) {
+      return (
+        <div className="flex flex-col gap-0.5">
+          {Object.entries(arg).map(([key, value]) => (
+            <div key={key}>
+              {key}: {formatAccountDisplay(value)}
+            </div>
+          ))}
+        </div>
+      )
+    }
     return <span>{String(arg)}</span>
   }
 
