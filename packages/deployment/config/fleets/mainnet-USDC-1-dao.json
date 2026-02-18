@@ -5,7 +5,7 @@
   "isBummer": false,
   "initialMinimumBufferBalance": "500000000",
   "initialRebalanceCooldown": "600",
-  "depositCap": "25000000000000",
+  "depositCap": "20000000000000",
   "initialTipRate": "1000000000000000000",
   "network": "mainnet",
   "keeper": "0xc2a8467a52Fec8383c424149000cf384de9Ba1B5",

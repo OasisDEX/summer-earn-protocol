@@ -891,8 +891,11 @@
             "Steakhouse_High_Yield_Instant": "0xbeeff07d991C04CD640DE9F15C08ba59c4FEDEb7"
           },
           "weth": {
-            "Steakhouse_Prime_Instant": "0xbeef0046fcab1dE47E41fB75BB3dC4Dfc94108E3",
-            "KPK_ETH_Prime_v2": "0xBb50A5341368751024ddf33385BA8cf61fE65FF9"
+            "Steakhouse_Prime_Instant_V2": "0xbeef0046fcab1dE47E41fB75BB3dC4Dfc94108E3",
+            "KPK_ETH_Prime_v2": "0xBb50A5341368751024ddf33385BA8cf61fE65FF9",
+            "Yearn_OG_WETH_V2": "0xbe518068EB6135117207256F8C9aFf81B4382DB1",
+            "Gauntlet_WETH_Prime_V2": "0x43fCd85E8D9D003D515f886891B7C742AC9f92da",
+            "KPK_WETH_Yield_v2": "0x5dbf760b4fd0cDdDe0366b33aEb338b2A6d77725"
           }
         },
         "markets": {
