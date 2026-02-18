@@ -1,5 +1,6 @@
 {
   "fleetName": "LazyVault_LowerRisk_WETH",
+  "isBummer": false,
   "fleetSymbol": "LVWETH",
   "assetSymbol": "WETH",
   "fleetAddress": "0x67e536797570b3d8919Df052484273815A0aB506",
@@ -20,10 +21,19 @@
     "0x41eE965F5D3CCc914E2E18c5319B75B91577A5fD",
     "0xdF8b1E08679D6035b6c1504e04C5C9e72a0555Fe",
     "0x32B632D16710fA9dd121FD22052057F5A5e39CB7",
-    "0xeaDBbFC3aD27a6CFE1e785598F4Ff6909DeC2D82"
+    "0xeaDBbFC3aD27a6CFE1e785598F4Ff6909DeC2D82",
+    "0x7765c64Fd93753bA537Da7d62025A7e68551637e",
+    "0x0030B0A5845624BaD5917e6738d42E95Ca4f36a5"
   ],
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "3600",
   "depositCap": "100000000000000000",
-  "initialTipRate": "300000000000000000"
+  "initialTipRate": "300000000000000000",
+  "details": {
+    "name": "LazyVault_LowerRisk_WETH",
+    "chainId": 1,
+    "asset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "assetSymbol": "WETH",
+    "type": "protocol"
+  }
 }

@@ -7,7 +7,15 @@
   "depositCap": "100000000",
   "initialTipRate": "1000000000000000000",
   "network": "mainnet",
-  "details": "",
+  "details": {
+    "type": "protocol",
+    "name": "LazyVault_LowerRisk_USDC",
+    "chainId": 1,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC"
+  },
+  "isBummer": false,
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
   "arks": [
     {
       "type": "AaveV3Ark",
@@ -201,6 +209,38 @@
         "asset": "USDC",
         "vaultName": "Morpho_V2_Avantgarde_USDC_Conservative",
         "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "MorphoV2VaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Morpho_V2",
+        "vaultName": "Gauntlet_USDC_Prime"
+      }
+    },
+    {
+      "type": "MorphoV2VaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Morpho_V2",
+        "vaultName": "KPK_USDC_Prime_v2"
+      }
+    },
+    {
+      "type": "MorphoV2VaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Morpho_V2",
+        "vaultName": "API3_Core_USDC"
+      }
+    },
+    {
+      "type": "MorphoV2VaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Morpho_V2",
+        "vaultName": "Avantgarde_USDC_Conservative"
       }
     }
   ]
