@@ -128,7 +128,7 @@ export default function FleetDetail() {
 
   if (fleetError || (!fleetLoading && !fleetInfo)) {
     return (
-      <div>
+      <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
           <Link href="/" className="text-slate-400 hover:text-white text-sm mb-4 inline-block">
             ← Back to Fleets

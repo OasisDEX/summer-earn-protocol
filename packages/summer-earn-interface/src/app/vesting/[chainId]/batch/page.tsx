@@ -7,7 +7,7 @@ import type { Environment } from '@/config/environments'
 
 async function getData(chainId: string, environment: Environment = 'production') {
   // We fetch our own API route to utilize the caching logic defined there
-  const host = headers().get('host')
+  const host = (await headers()).get('host')
   const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https'
 
   const res = await fetch(
@@ -33,29 +33,27 @@ export default async function VestingBatchPage({ params }: { params: { chainId: 
   const { snapshots, timestamp } = await getData(chainId, environment)
 
   return (
-    <main className="min-h-screen bg-charcoal-900 p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <header className="space-y-4">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <Link href="/" className="hover:text-white transition-colors">
-              Admin
-            </Link>
-            <span>›</span>
-            <span className="text-slate-400">Batch Vesting</span>
+    <main className="w-full min-h-screen bg-charcoal-900 p-8">
+      <header className="space-y-4">
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          <Link href="/" className="hover:text-white transition-colors">
+            Admin
+          </Link>
+          <span>›</span>
+          <span className="text-slate-400">Batch Vesting</span>
+        </div>
+        <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Batch Vesting</h1>
+            <p className="text-slate-500 text-sm mt-1">
+              Last updated: {new Date(timestamp).toLocaleTimeString()}
+            </p>
           </div>
-          <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Batch Vesting</h1>
-              <p className="text-slate-500 text-sm mt-1">
-                Last updated: {new Date(timestamp).toLocaleTimeString()}
-              </p>
-            </div>
-            <RefreshButton lastUpdated={timestamp} />
-          </div>
-        </header>
+          <RefreshButton lastUpdated={timestamp} />
+        </div>
+      </header>
 
-        <VestingBatchTable initialSnapshots={snapshots} chainId={chainId} />
-      </div>
+      <VestingBatchTable initialSnapshots={snapshots} chainId={chainId} />
     </main>
   )
 }

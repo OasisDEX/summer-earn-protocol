@@ -13,9 +13,9 @@ const CALLS_PER_ARK_BASE = 7
 
 export async function GET(
   _request: Request,
-  { params }: { params: { chainId: string; address: string } },
+  { params }: { params: Promise<{ chainId: string; address: string }> },
 ) {
-  const { chainId, address } = params
+  const { chainId, address } = await params
   const key = `arks:${chainId}:${address}`
   const now = Date.now()
   const cached = cache.get(key)

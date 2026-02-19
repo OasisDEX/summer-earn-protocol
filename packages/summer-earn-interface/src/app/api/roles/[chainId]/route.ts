@@ -6,9 +6,10 @@ import { resolveRole } from '@/utils/roleResolver'
 const TTL_MS = 5 * 60 * 1000
 const cache = new Map<string, { data: unknown; expiry: number }>()
 
-export async function GET(request: Request, { params }: { params: { chainId: string } }) {
+export async function GET(request: Request, { params }: { params:  Promise<{ chainId: string }> }) {
   const url = new URL(request.url)
-  const chainId = params.chainId as keyof typeof CHAIN_GOVERNANCE_SUBGRAPH_URLS
+  const { chainId } = await params
+  const chainIdKey = chainId as unknown as keyof typeof CHAIN_GOVERNANCE_SUBGRAPH_URLS
   const activeOnly = url.searchParams.get('activeOnly') === 'true'
   const key = `roles:${chainId}:${activeOnly}`
   const now = Date.now()
