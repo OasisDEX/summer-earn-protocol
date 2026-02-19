@@ -4,7 +4,7 @@ import { revalidateTag } from 'next/cache'
 
 export async function revalidateVestingData() {
   try {
-    revalidateTag('vesting-data')
+    revalidateTag('vesting-data', 'tags')
     return { success: true, now: Date.now() }
   } catch (err) {
     console.error('Error revalidating vesting data:', err)

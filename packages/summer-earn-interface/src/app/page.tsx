@@ -75,7 +75,7 @@ function HomeContent() {
   }
 
   return (
-    <div>
+    <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Control Bar */}
       <section className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <ChainPills selectedChain={selectedChain} onChange={setSelectedChain} />

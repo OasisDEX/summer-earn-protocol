@@ -184,6 +184,12 @@
             "Yearn_OG_WETH": "0x1D795E29044A62Da42D927c4b179269139A28A6B"
           }
         },
+        "vaultsV2": {
+          "eurc": {
+            "Gauntlet_EURC_Balanced": "0x94Af495DE1F56Aa5576dEB17986bDCeE5Dd9778D",
+            "Steakhouse_Prime_EURC": "0xbeef009F28cCf367444a9F79096862920e025DC1"
+          }
+        },
         "markets": {
           "usdc": {
             "wstETH_USDC": "0x13c42741a359ac4a8aa8287d2be109dcf28344484f91185f9a79bd5a805a55ae"

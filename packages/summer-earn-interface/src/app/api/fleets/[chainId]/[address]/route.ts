@@ -16,9 +16,9 @@ type FleetUserInfo = {
 
 export async function GET(
   request: Request,
-  { params }: { params: { chainId: string; address: string } },
+  { params }: { params: Promise<{ chainId: string; address: string }> },
 ) {
-  const { chainId, address } = params
+  const { chainId, address } = await params
   const url = new URL(request.url)
   const user = url.searchParams.get('user')
   const key = `${chainId}:${address}:${user ?? ''}`

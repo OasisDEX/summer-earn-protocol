@@ -67,15 +67,15 @@ export default function VestingBatchTable({
   const snapshots = useMemo(() => {
     return initialSnapshots.map((s) => ({
       ...s,
-      totalPlanned: BigInt(s.totalPlanned),
-      vested: BigInt(s.vested),
-      releasable: BigInt(s.releasable),
-      unvested: BigInt(s.unvested),
-      summerBalance: BigInt(s.summerBalance),
-      xSummerBalance: BigInt(s.xSummerBalance),
-      stakingBalance: BigInt(s.stakingBalance),
-      governanceRewardsBalance: BigInt(s.governanceRewardsBalance),
-      stakes: s.stakes.map((k: any) => ({ ...k, amount: BigInt(k.amount) })),
+      totalPlanned: BigInt(s.totalPlanned || 0),
+      vested: BigInt(s.vested || 0),
+      releasable: BigInt(s.releasable || 0),
+      unvested: BigInt(s.unvested || 0),
+      summerBalance: BigInt(s.summerBalance || 0),
+      xSummerBalance: BigInt(s.xSummerBalance || 0),
+      stakingBalance: BigInt(s.stakingBalance || 0),
+      governanceRewardsBalance: BigInt(s.governanceRewardsBalance || 0),
+      stakes: (s.stakes || []).map((k: any) => ({ ...k, amount: BigInt(k.amount || 0) })),
     })) as WalletSnapshot[]
   }, [initialSnapshots])
 
@@ -89,6 +89,7 @@ export default function VestingBatchTable({
   const filteredAndSortedSnapshots = useMemo(() => {
     let data = snapshots
 
+    // 1. Status Filter
     if (statusFilter !== 'all') {
       data = data.filter((s) => {
         const isCompleted = s.totalPlanned > BigInt(0) && s.vested >= s.totalPlanned
@@ -96,6 +97,7 @@ export default function VestingBatchTable({
       })
     }
 
+    // 2. Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       data = data.filter(
@@ -106,6 +108,7 @@ export default function VestingBatchTable({
       )
     }
 
+    // 3. Sort
     if (sortConfig) {
       data = [...data].sort((a, b) => {
         const valA = a[sortConfig.key] ?? 0
@@ -145,6 +148,8 @@ export default function VestingBatchTable({
     )
   }, [snapshots])
 
+  const uniqueRecipients = useMemo(() => new Set(snapshots.map((s) => s.owner)).size, [snapshots])
+
   const handleSort = (key: keyof WalletSnapshot) => {
     setSortConfig((current) => ({
       key,
@@ -152,17 +157,25 @@ export default function VestingBatchTable({
     }))
   }
 
-  const uniqueRecipients = useMemo(() => new Set(snapshots.map((s) => s.owner)).size, [snapshots])
-
   return (
     <>
       <div className="glass rounded-2xl p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            label="Total Pool Value"
+            label="Total Planned"
             value={formatDecimalOutput(summaryTotals.totalPlanned, 18)}
             suffix="SUMR"
             highlight
+          />
+          <StatCard
+            label="Vested Total"
+            value={formatDecimalOutput(summaryTotals.vested, 18)}
+            suffix="SUMR"
+          />
+          <StatCard
+            label="Unvested Future"
+            value={formatDecimalOutput(summaryTotals.unvested, 18)}
+            suffix="SUMR"
           />
           <StatCard label="Unique Recipients" value={String(uniqueRecipients)} suffix="wallets" />
         </div>
@@ -175,7 +188,7 @@ export default function VestingBatchTable({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search wallet or codename..."
-          className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 max-w-xs"
+          className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 w-full max-w-xs"
         />
         <div className="flex gap-2">
           {(['all', 'active', 'completed'] as const).map((s) => (
@@ -195,62 +208,111 @@ export default function VestingBatchTable({
       </div>
 
       {/* Table */}
-      <div className="glass rounded-2xl overflow-x-auto max-h-[70vh] relative">
-        <table className="min-w-full text-xs md:text-sm text-slate-200 whitespace-nowrap">
-          <thead className="bg-charcoal-800/80 sticky top-0 z-20">
+      <div className="glass rounded-2xl overflow-x-auto w-full relative shadow-2xl">
+        <table className="w-full table-auto text-xs md:text-sm text-slate-200 whitespace-nowrap">
+          <thead className="bg-charcoal-800/90 sticky top-0 z-20 backdrop-blur-md">
             <tr>
-              <th className="px-3 py-3 text-left sticky left-0 bg-charcoal-800/80 z-30 border-b border-white/10">
-                Wallet Address
+              <th className="px-3 py-3 text-left sticky left-0 bg-charcoal-800/95 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.3)] border-b border-white/10">
+                Codename
+              </th>
+              <th className="px-3 py-3 text-left border-b border-white/10 text-slate-400">
+                Wallet / Owner
               </th>
               <SortableHeader
-                label="Total Allocation"
+                label="Planned"
                 sortKey="totalPlanned"
                 onClick={handleSort}
                 currentSort={sortConfig}
               />
-              <th className="px-3 py-3 text-left border-b border-white/10">Vesting Progress</th>
+              <th className="px-3 py-3 text-left border-b border-white/10 text-slate-400">
+                Progress
+              </th>
               <SortableHeader
-                label="Amount Vested"
+                label="Vested"
                 sortKey="vested"
                 onClick={handleSort}
                 currentSort={sortConfig}
               />
-              <th className="px-3 py-3 text-right border-b border-white/10">Amount Claimed</th>
-              <th className="px-3 py-3 text-center border-b border-white/10">Status</th>
-              <th className="px-3 py-3 text-center border-b border-white/10">Actions</th>
+              <SortableHeader
+                label="Releasable"
+                sortKey="releasable"
+                onClick={handleSort}
+                currentSort={sortConfig}
+              />
+              <SortableHeader
+                label="Unvested"
+                sortKey="unvested"
+                onClick={handleSort}
+                currentSort={sortConfig}
+              />
+              <SortableHeader
+                label="SUMR Bal"
+                sortKey="summerBalance"
+                onClick={handleSort}
+                currentSort={sortConfig}
+              />
+              <SortableHeader
+                label="xSUMR Bal"
+                sortKey="xSummerBalance"
+                onClick={handleSort}
+                currentSort={sortConfig}
+              />
+              <th className="px-3 py-3 text-right border-b border-white/10 text-slate-400">
+                Staking V2
+              </th>
+              <SortableHeader
+                label="Staking V1"
+                sortKey="governanceRewardsBalance"
+                onClick={handleSort}
+                currentSort={sortConfig}
+              />
+              <th className="px-3 py-3 text-center border-b border-white/10 text-slate-400">
+                Escrow
+              </th>
+              <th className="px-3 py-3 text-center border-b border-white/10 text-slate-400">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {filteredAndSortedSnapshots.map((snap) => {
               const vestingProgressPct =
                 snap.totalPlanned > BigInt(0)
-                  ? Number((snap.vested * BigInt(100) * BigInt(10 ** 18)) / snap.totalPlanned) / 100
+                  ? Number((snap.vested * BigInt(100)) / snap.totalPlanned)
                   : 0
-              const amountClaimed = snap.vested - snap.releasable
-              const isCompleted = snap.totalPlanned > BigInt(0) && snap.vested >= snap.totalPlanned
 
               return (
                 <tr key={snap.codename} className="hover:bg-white/5 transition-colors group">
-                  <td className="px-3 py-3 sticky left-0 bg-charcoal-900 group-hover:bg-charcoal-800 z-10 border-r border-white/5">
+                  {/* Sticky Codename Column */}
+                  <td className="px-3 py-3 font-semibold sticky left-0 bg-charcoal-900 group-hover:bg-charcoal-800 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.3)] border-r border-white/5">
+                    <div className="text-white">
+                      {snap.codename}
+                      <div className="font-normal text-[9px] text-slate-500 mt-0.5 opacity-70 uppercase tracking-wider">
+                        {snap.version}
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Wallet / Owner */}
+                  <td className="px-3 py-3">
                     <div className="flex flex-col">
-                      <span className="text-primary font-mono text-sm font-medium">
+                      <span className="text-primary font-mono text-[11px] font-medium">
                         {snap.owner.slice(0, 6)}...{snap.owner.slice(-4)}
                       </span>
-                      {snap.vestingWallet && (
-                        <span className="text-slate-500 font-mono text-[10px]">
+                      {snap.vestingWallet ? (
+                        <span className="text-slate-400 font-mono text-[10px]">
                           {snap.vestingWallet.slice(0, 6)}...{snap.vestingWallet.slice(-4)}
                         </span>
-                      )}
-                      {snap.codename && (
-                        <span className="text-[10px] text-slate-600 uppercase mt-0.5">
-                          {snap.codename}
-                        </span>
+                      ) : (
+                        <span className="text-slate-600 text-[10px]">—</span>
                       )}
                     </div>
                   </td>
+
                   <td className="px-3 py-3 text-right font-medium text-white">
                     {formatDecimalOutput(snap.totalPlanned, snap.decimals)}
                   </td>
+
                   <td className="px-3 py-3 min-w-[120px]">
                     <div className="space-y-1">
                       <ProgressBar value={vestingProgressPct} className="h-2" />
@@ -259,23 +321,74 @@ export default function VestingBatchTable({
                       </span>
                     </div>
                   </td>
+
                   <td className="px-3 py-3 text-right text-emerald-400">
                     {formatDecimalOutput(snap.vested, snap.decimals)}
                   </td>
+
+                  <td className="px-3 py-3 text-right text-yellow-400 font-medium">
+                    {formatDecimalOutput(snap.releasable, snap.decimals)}
+                  </td>
+
+                  <td className="px-3 py-3 text-right text-slate-400">
+                    {formatDecimalOutput(snap.unvested, snap.decimals)}
+                  </td>
+
                   <td className="px-3 py-3 text-right text-slate-300">
-                    {formatDecimalOutput(amountClaimed, snap.decimals)}
+                    {formatDecimalOutput(snap.summerBalance, snap.decimals)}
                   </td>
+
+                  <td className="px-3 py-3 text-right text-slate-300">
+                    {formatDecimalOutput(snap.xSummerBalance, snap.decimals)}
+                  </td>
+
+                  {/* Staking V2 Map */}
+                  <td className="px-3 py-3 text-right min-w-[180px]">
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="mb-1 text-slate-200">
+                        {formatDecimalOutput(snap.stakingBalance, 18)}
+                      </span>
+                      {snap.stakes.length > 0 && (
+                        <div className="flex flex-col gap-1 w-full mt-1">
+                          {snap.stakes.map((stake, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-end gap-2 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-[10px]"
+                            >
+                              <span className="text-slate-400 font-mono">
+                                {new Date(Number(stake.lockupEndTime) * 1000).toLocaleDateString()}
+                              </span>
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-slate-200 font-medium tabular-nums">
+                                  {formatDecimalOutput(stake.amount, 18)}
+                                </span>
+                                <span className="text-slate-500 text-[9px] uppercase">SUMR</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+
+                  <td className="px-3 py-3 text-right text-slate-300">
+                    {formatDecimalOutput(snap.governanceRewardsBalance, 18)}
+                  </td>
+
                   <td className="px-3 py-3 text-center">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        isCompleted
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-primary/20 text-primary border border-primary/30'
-                      }`}
-                    >
-                      {isCompleted ? 'Completed' : 'Active'}
-                    </span>
+                    {snap.inEscrow ? (
+                      <span
+                        className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-500/30"
+                        title="In Escrow"
+                      />
+                    ) : (
+                      <span
+                        className="inline-block w-2 h-2 rounded-full bg-white/10"
+                        title="Not Escrow"
+                      />
+                    )}
                   </td>
+
                   <td className="px-3 py-3 text-center">
                     {chainId && (
                       <Link
