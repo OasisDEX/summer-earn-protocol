@@ -5,7 +5,10 @@ import { CHAIN_INSTITUTIONS_SUBGRAPH_URLS } from '@/config/chains'
 const TTL_MS = 5 * 60 * 1000
 const cache = new Map<string, { data: unknown; expiry: number }>()
 
-export async function GET(request: Request, { params }: { params: Promise<{ institutionId: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ institutionId: string }> },
+) {
   const url = new URL(request.url)
   const chainId = (url.searchParams.get('chainId') ||
     '1') as keyof typeof CHAIN_INSTITUTIONS_SUBGRAPH_URLS
