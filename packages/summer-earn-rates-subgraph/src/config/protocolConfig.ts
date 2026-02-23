@@ -311,6 +311,19 @@ class ProtocolConfig {
         ),
         new ERC4626Product(
           getOrCreateToken(addresses.USDC),
+          Address.fromString('0xb0f05E4De970A1aaf77f8C2F823953a367504BA9'),
+          BigInt.fromI32(24500124),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x9B5E92fd227876b4C07a8c02367E2CB23c639DfA'),
+          BigInt.fromI32(24500124),
+          'Morpho',
+        ),
+        // Morpho_V2 vaults
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
           Address.fromString('0x8c106EEDAd96553e64287A5A6839c3Cc78afA3D0'),
           BigInt.fromI32(24375455),
           'Morpho_V2',
@@ -343,6 +356,72 @@ class ProtocolConfig {
           getOrCreateToken(addresses.USDC),
           Address.fromString('0x0229dB3921dE71CFa43Cfe9fb6A87b403647A9ae'),
           BigInt.fromI32(24375455),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x69A238Ae7ebeb3c53ff3B544E48B96a2142fc284'),
+          BigInt.fromI32(24500124),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xD1E9242e075Db4bdd3f3c721D7d5fd4180A94A7e'),
+          BigInt.fromI32(24500124),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x951a9f4A2cE19B9DeA6B37e691d076A345b6c0F8'),
+          BigInt.fromI32(24500124),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xBEeFF047C03714965a54b671A37C18beF6b96210'),
+          BigInt.fromI32(24500124),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x093272C07700d3cA5301C3Bf9B3A392624179E2F'),
+          BigInt.fromI32(24500124),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x9a1D6bd5b8642C41F25e0958129B85f8E1176F3e'),
+          BigInt.fromI32(24500124),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xD5cCe260E7a755DDf0Fb9cdF06443d593AaeaA13'),
+          BigInt.fromI32(24500124),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xBEEf3f3A04e28895f3D5163d910474901981183D'),
+          BigInt.fromI32(24500124),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xbeeff2C5bF38f90e3482a8b19F12E5a6D2FCa757'),
+          BigInt.fromI32(24500124),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xbeef088055857739C12CD3765F20b7679Def0f51'),
+          BigInt.fromI32(24500124),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x7ceB0f01Cb7187a2EBED5661eCC4d5701d8F2350'),
+          BigInt.fromI32(24500124),
           'Morpho_V2',
         ),
         // USDT vaults
@@ -492,6 +571,24 @@ class ProtocolConfig {
           Address.fromString('0xd1d7d99764f8a52aff007b7831cc02748b2013b5'),
           BigInt.fromI32(19909022),
           'PendleLp',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0xbe518068EB6135117207256F8C9aFf81B4382DB1'),
+          BigInt.fromI32(24375455),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x43fCd85E8D9D003D515f886891B7C742AC9f92da'),
+          BigInt.fromI32(24375455),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x5dbf760b4fd0cDdDe0366b33aEb338b2A6d77725'),
+          BigInt.fromI32(24375455),
+          'Morpho_V2',
         ),
       ]),
       // https://github.com/balancer/code-review/blob/main/rate-providers/rswethRateProvider.md
