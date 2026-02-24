@@ -100,10 +100,9 @@ contract RoundsVaultOutput is
     {
         IERC20Metadata asset_ = IERC20Metadata(asset());
 
-        // TODO: this can be optimized by caching it
         uint256 OneAsset = 10 ** asset_.decimals();
         uint256 shares = IERC4626(vault()).previewRedeem(OneAsset);
 
-        return toPrice(OneAsset, shares);
+        return toPrice(shares, OneAsset);
     }
 }

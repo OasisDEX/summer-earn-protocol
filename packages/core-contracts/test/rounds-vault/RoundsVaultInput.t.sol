@@ -146,8 +146,8 @@ contract RoundsVaultInputTest is
 
         // Initial exchange rate for round 0 is 0 because it's not set until nextRound is called
         Price memory price = vault.getExchangeRate(0);
-        assertEq(UD60x18.unwrap(price.baseAmount), 0);
-        assertEq(UD60x18.unwrap(price.quoteAmount), 0);
+        assertEq(price.baseAmount, 0);
+        assertEq(price.quoteAmount, 0);
     }
 
     function test_RIV0002_DepositRound0() public {
@@ -180,7 +180,7 @@ contract RoundsVaultInputTest is
         emit AssetsDeposited(0, operator, assets, shares);
 
         // Price struct is (baseAmount, quoteAmount)
-        Price memory expectedPrice = Price(ud(1e18), ud(1e18));
+        Price memory expectedPrice = Price(1e18, 1e18);
 
         vm.expectEmit(true, true, true, true);
         emit NextRound(1, expectedPrice);
