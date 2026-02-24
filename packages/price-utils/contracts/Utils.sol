@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.28;
 
-import {UD60x18, ud, intoUint256} from "@prb/math/src/UD60x18.sol";
 import {Price} from "./Types.sol";
 import {toPrice} from "./Constructor.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
     @title PriceUtils
@@ -23,6 +23,7 @@ import {toPrice} from "./Constructor.sol";
  */
 library PriceUtils {
     using PriceUtils for Price;
+    using Math for uint256;
 
     /**
       @notice Inverts a given Price type, swapping base and quote amounts and decimals
@@ -34,11 +35,7 @@ library PriceUtils {
       @dev Used to convert from base/quote to quote/base representation
     */
     function invert(Price memory price) internal pure returns (Price memory) {
-        return
-            toPrice(
-                intoUint256(price.quoteAmount),
-                intoUint256(price.baseAmount)
-            );
+        return toPrice(price.quoteAmount, price.baseAmount);
     }
 
     /**
@@ -54,10 +51,7 @@ library PriceUtils {
         Price memory price,
         uint256 amount
     ) internal pure returns (uint256) {
-        return
-            intoUint256(
-                ud(amount).mul(price.baseAmount).div(price.quoteAmount)
-            );
+        return amount.mulDiv(price.baseAmount, price.quoteAmount);
     }
 
     /**
