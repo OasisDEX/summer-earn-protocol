@@ -9,4 +9,12 @@ interface ISyrupPool is IERC4626 {
     function requestWithdraw(uint256 assets_, address owner_) external;
 
     function manager() external view returns (address);
+
+    function convertToExitShares(
+        uint256 assets_
+    ) external view returns (uint256);
+
+    function convertToExitAssets(
+        uint256 shares_
+    ) external view returns (uint256);
 }
