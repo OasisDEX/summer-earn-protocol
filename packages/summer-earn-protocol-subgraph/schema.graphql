@@ -514,7 +514,7 @@ type Vault @entity @regularPolling {
   rebalanceCount: BigInt!
   actionSnapshots: [PostActionVaultSnapshot!]! @derivedFrom(field: "vault")
 
-  rewardsManager: RewardsManager! @derivedFrom(field: "vault")
+  rewardsManager: RewardsManager @derivedFrom(field: "vault")
 
   positions: [Position!]!
 }

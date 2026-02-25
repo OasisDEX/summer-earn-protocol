@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-subgraph",
-  "version": "1.6.2-deep-cleanup-optimizations",
+  "version": "1.7.0-nullable-rewards-manager",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
