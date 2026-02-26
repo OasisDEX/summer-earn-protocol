@@ -67,9 +67,7 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
             revert InvalidWithdrawalManager();
         }
 
-        // Approve vault to spend Ark's tokens
-        config.asset.forceApprove(_vault, Constants.MAX_UINT256);
-        summerReferralCode = bytes32("summer");
+        summerReferralCode = bytes32("0:summer");
     }
 
     /*//////////////////////////////////////////////////////////////
