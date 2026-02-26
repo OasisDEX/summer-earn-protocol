@@ -446,6 +446,145 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
             "There should be no syrupUSDC in the ark"
         );
     }
+
+    function test_CancelWithdrawal_Syrup_fork() public {
+        // Board some assets
+        uint256 amount = 1000 * 10 ** 6; // 1000 USDC
+        deal(address(usdc), commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 totalAssetsAfterBoard = ark.totalAssets();
+
+        // Request withdrawal
+        uint256 redeemAmount = 500 * 10 ** 6; // 500 USDC
+        vm.prank(keeper);
+        ark.requestWithdrawal(redeemAmount);
+
+        uint256 totalAssetsAfterRequest = ark.totalAssets();
+        assertApproxEqAbs(
+            totalAssetsAfterRequest,
+            totalAssetsAfterBoard,
+            1,
+            "totalAssets should be unchanged after requestWithdrawal"
+        );
+        assertGt(
+            ark.assetsInWithdrawalQueue(),
+            0,
+            "Should have assets in withdrawal queue"
+        );
+
+        // Cancel withdrawal
+        uint256 sharesInArkBefore = IERC20(address(syrupPool)).balanceOf(
+            address(ark)
+        );
+        vm.prank(keeper);
+        ark.cancelWithdrawal();
+
+        uint256 totalAssetsAfterCancel = ark.totalAssets();
+        assertApproxEqAbs(
+            totalAssetsAfterCancel,
+            totalAssetsAfterBoard,
+            1,
+            "totalAssets should be unchanged after cancelWithdrawal"
+        );
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            0,
+            "Withdrawal queue should be empty after cancel"
+        );
+        assertGt(
+            IERC20(address(syrupPool)).balanceOf(address(ark)),
+            sharesInArkBefore,
+            "Shares should be returned to the ark"
+        );
+    }
+
+    function test_CancelWithdrawal_NoRequest_Reverts() public {
+        vm.prank(keeper);
+        vm.expectRevert(abi.encodeWithSignature("NoWithdrawalToClaim()"));
+        ark.cancelWithdrawal();
+    }
+
+    function test_TotalAssetsConsistency_FullLifecycle() public {
+        // 1. Board
+        uint256 amount = 1000 * 10 ** 6; // 1000 USDC
+        deal(address(usdc), commander, amount);
+        deal(address(usdc), SYRUP_USDC_POOL_ADDRESS, amount * 100);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 totalAssetsAfterBoard = ark.totalAssets();
+        assertApproxEqAbs(
+            totalAssetsAfterBoard,
+            amount,
+            1,
+            "Step 1: totalAssets ~ amount after board"
+        );
+
+        // 2. Request withdrawal
+        uint256 redeemAmount = 500 * 10 ** 6;
+        vm.prank(keeper);
+        ark.requestWithdrawal(redeemAmount);
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            totalAssetsAfterBoard,
+            1,
+            "Step 2: totalAssets unchanged after request"
+        );
+
+        // 3. Cancel withdrawal
+        vm.prank(keeper);
+        ark.cancelWithdrawal();
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            totalAssetsAfterBoard,
+            1,
+            "Step 3: totalAssets unchanged after cancel"
+        );
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            0,
+            "Step 3: queue empty after cancel"
+        );
+
+        // 4. Re-request withdrawal (full amount)
+        vm.prank(keeper);
+        ark.requestWithdrawal(type(uint256).max);
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            totalAssetsAfterBoard,
+            1,
+            "Step 4: totalAssets unchanged after re-request"
+        );
+
+        // 5. Process redemption
+        vm.prank(SYRUP_REDEEMER);
+        withdrawalManager.processRedemptions(amount);
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            totalAssetsAfterBoard,
+            2,
+            "Step 5: totalAssets unchanged after processing"
+        );
+
+        // 6. Sweep to buffer ark
+        vm.prank(keeper);
+        ark.sweep();
+        // After sweep, assets moved to bufferArk, so totalAssets in this ark should be ~0
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            0,
+            2,
+            "Step 6: totalAssets ~0 after sweep"
+        );
+    }
 }
 interface IMapleWithdrawalManager {
     function processRedemptions(uint256 maxShares) external;

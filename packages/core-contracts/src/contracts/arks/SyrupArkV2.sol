@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../ArkWithWithdrawalRequest.sol";
-import {ISyrupPool} from "../../interfaces/syrup/ISyrupPool.sol";
 import {ISyrupManager} from "../../interfaces/syrup/ISyrupManager.sol";
-import {ISyrupWithdrawalManagerV2} from "../../interfaces/syrup/ISyrupWithdrawalManagerV2.sol";
+import {ISyrupPool} from "../../interfaces/syrup/ISyrupPool.sol";
 import {ISyrupRouter} from "../../interfaces/syrup/ISyrupRouter.sol";
+import {ISyrupWithdrawalManagerV2} from "../../interfaces/syrup/ISyrupWithdrawalManagerV2.sol";
+import "../ArkWithWithdrawalRequest.sol";
 
 error InvalidWithdrawalManager();
 error InvalidManager();
 error InvalidRouterAddress();
+error WrongAmountOfSharesReturned();
 
 /**
  * @title SyrupArkV2
@@ -87,7 +88,7 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
         returns (uint256 assets)
     {
         assets += _withdrawableTotalAssets();
-        assets += assetsInWithdrawalQueue();
+        assets += _assetsInWithdrawalQueue();
 
         // Add value of shares held by Ark
         uint256 sharesInArk = vault.balanceOf(address(this));
@@ -100,14 +101,12 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
      * @inheritdoc IArkWithWithdrawalRequest
      */
     function assetsInWithdrawalQueue() public view returns (uint256) {
-        uint256 escrowedShares = withdrawalManager.userEscrowedShares(
-            address(this)
-        );
-        return vault.convertToExitAssets(escrowedShares);
+        return _assetsInWithdrawalQueue();
     }
 
     /**
      * @notice Request redemption of shares from the Syrup pool
+     * @dev limited to single request at a time
      * @param amount Amount of token to withdraw
      */
     function requestWithdrawal(uint256 amount) external onlyKeeper {
@@ -149,9 +148,28 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
     function withdrawalRequestId() external view returns (uint256) {
         return _withdrawalRequestId();
     }
-    function _withdrawalRequestId() internal view returns (uint256) {
-        return withdrawalManager.requestIds(address(this));
+
+    /**
+     * @notice Cancels the pending withdrawal request and returns shares to the Ark
+     * @dev Uses Maple's pool.removeShares to cancel the request
+     */
+    function cancelWithdrawal() external onlyKeeper {
+        uint256 escrowedShares = withdrawalManager.userEscrowedShares(
+            address(this)
+        );
+        if (escrowedShares == 0) {
+            revert NoWithdrawalToClaim();
+        }
+        uint256 returnedShares = vault.removeShares(
+            escrowedShares,
+            address(this)
+        );
+        if (returnedShares != escrowedShares) {
+            revert WrongAmountOfSharesReturned();
+        }
+        emit WithdrawalCancelled(escrowedShares);
     }
+
     /**
      * @inheritdoc IArkWithWithdrawalRequest
      */
@@ -159,7 +177,8 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
         uint256 amount,
         bytes calldata data
     ) external onlyKeeper nonReentrant {
-        uint256 shares = vault.convertToShares(amount);
+        // conservative estimate of shares to withdraw (reflecting market knowledge of unrealized losses)
+        uint256 shares = vault.convertToExitShares(amount);
         SwapData memory swapData = abi.decode(data, (SwapData));
         uint256 assetBought = _swap(
             address(vault),
@@ -177,13 +196,17 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @dev Returns the underlying asset balance held directly by the Ark.
+     *      Only includes tokens already processed by Maple's withdrawal manager
+     *      and sent back to the Ark — not shares or escrowed amounts.
+     */
     function _withdrawableTotalAssets()
         internal
         view
         override
         returns (uint256)
     {
-        // we can only disembark the tokens that have already been processed by the withdrawal manager
         return IERC20(vault.asset()).balanceOf(address(this));
     }
 
@@ -215,4 +238,27 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
     }
 
     function _validateDisembarkData(bytes calldata) internal override {}
+
+    /**
+     * @dev Calculates the asset value of shares escrowed in Maple's withdrawal manager.
+     *      Uses the exit exchange rate (accounts for unrealizedLosses) to prevent
+     *      front-running of impairment events.
+     */
+    function _assetsInWithdrawalQueue() internal view returns (uint256) {
+        uint256 escrowedShares = withdrawalManager.userEscrowedShares(
+            address(this)
+        );
+        if (escrowedShares == 0) {
+            return 0;
+        }
+        return vault.convertToExitAssets(escrowedShares);
+    }
+
+    /**
+     * @dev Returns the last withdrawal request ID for this Ark from Maple's queue-based
+     *      withdrawal manager. Returns 0 if no pending request exists.
+     */
+    function _withdrawalRequestId() internal view returns (uint256) {
+        return withdrawalManager.requestIds(address(this));
+    }
 }
