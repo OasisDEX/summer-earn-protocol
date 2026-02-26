@@ -12,7 +12,6 @@ import {IProtocolAccessManager, ContractSpecificRoles} from "@summerfi/access-co
 import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
 import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
-import {UD60x18, ud} from "@prb/math/src/UD60x18.sol";
 
 // Mock Access Manager to handle role checks
 contract MockAccessManager {

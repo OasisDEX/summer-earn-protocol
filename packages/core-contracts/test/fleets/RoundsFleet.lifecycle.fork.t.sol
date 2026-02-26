@@ -9,15 +9,21 @@ import {TestHelpers} from "../helpers/TestHelpers.sol";
 import "../../src/contracts/arks/ERC4626Ark.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 
-import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
+import {FleetConfig, FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+import {FleetCommanderWhitelist} from "../../src/contracts/FleetCommanderWhitelist.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 
 import {RoundsVaultInput} from "../../src/contracts/rounds-vault/RoundsVaultInput.sol";
 import {RoundsVaultOutput} from "../../src/contracts/rounds-vault/RoundsVaultOutput.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+
 contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     ERC4626Ark public usdcGearboxERC4626Ark;
     BufferArk public usdcBufferArk;
@@ -75,14 +81,47 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     }
 
     function setupFleetCommanders(uint256 initialTipRate) internal {
-        // Setup USDC Fleet Commander
-        initializeFleetCommanderWithoutArks(USDC_ADDRESS, initialTipRate);
-        usdcFleetCommander = fleetCommander;
+        setupBaseContracts();
+        vm.startPrank(governor);
+
+        if (address(mockGovernor) == address(0)) {
+            mockGovernor = new MockSummerGovernor();
+        }
+
+        for (uint256 i = 0; i < 3; i++) {
+            rewardTokens.push(new ERC20Mock());
+        }
+
+        fleetCommanderParams = FleetCommanderParams({
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
+            initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
+            asset: USDC_ADDRESS,
+            name: fleetName,
+            symbol: "TEST-SUM",
+            details: "TestFleet-details",
+            initialTipRate: PercentageUtils.fromIntegerPercentage(
+                initialTipRate
+            ),
+            depositCap: type(uint256).max
+        });
+
+        FleetCommanderWhitelist f = new FleetCommanderWhitelist(
+            fleetCommanderParams
+        );
+        usdcFleetCommander = IFleetCommander(address(f));
+        fleetCommander = FleetCommander(address(f));
+
+        bufferArkAddress = f.bufferArk();
+        bufferArk = BufferArk(bufferArkAddress);
         usdcBufferArk = bufferArk;
 
-        // FleetCommander transfers are disabled by default. Enable them so the user can transfer shares to the output vault
-        vm.prank(governor);
-        usdcFleetCommander.setFleetTokenTransferability();
+        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
+            address(f)
+        );
+        harborCommand.enlistFleetCommander(address(f));
+        vm.stopPrank();
     }
 
     function addArksToFleetCommanders() internal {
@@ -118,6 +157,10 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     }
 
     function test_DepositRebalanceWithdraw_RoundsFleet() public {
+        FleetCommanderWhitelist usdcFleetCommanderWhitelisted = FleetCommanderWhitelist(
+                address(usdcFleetCommander)
+            );
+
         // Arrange
         RoundsVaultInput usdcRoundsVaultInput = new RoundsVaultInput(
             address(usdcFleetCommander),
@@ -130,9 +173,23 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
             "URI"
         );
 
+        address usdcUser = address(0x1);
+
         vm.startPrank(governor);
         accessManager.grantKeeperRole(address(usdcRoundsVaultInput), keeper);
         accessManager.grantKeeperRole(address(usdcRoundsVaultOutput), keeper);
+
+        usdcFleetCommanderWhitelisted.setWhitelisted(
+            address(usdcRoundsVaultInput),
+            true
+        );
+        usdcFleetCommanderWhitelisted.setWhitelisted(
+            address(usdcRoundsVaultOutput),
+            true
+        );
+        usdcFleetCommanderWhitelisted.setWhitelisted(usdcUser, true);
+        usdcFleetCommanderWhitelisted.setFleetTokenTransferability();
+
         vm.stopPrank();
 
         uint256 usdcTotalDeposit = 1000 * 10 ** 6; // 1000 USDC
@@ -141,7 +198,6 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         setFleetParameters(usdcFleetCommander, usdcTotalDeposit, 0);
 
         // Mint tokens for user
-        address usdcUser = address(0x1);
         deal(USDC_ADDRESS, usdcUser, usdcTotalDeposit);
 
         // User requests a deposit through the rounds input vault
