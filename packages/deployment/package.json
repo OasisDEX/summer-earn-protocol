@@ -14,7 +14,7 @@
     }
   },
   "scripts": {
-    "start:node": "hardhat node",
+    "start:node": "hardhat node --fork https://base-mainnet.g.alchemy.com/v2/rssSfHwTA7Uswv4e-O9y5",
     "build": "forge build --extra-output-files abi",
     "build:hh": "REPORT_CONTRACT_SIZE=true hardhat compile",
     "spawn:devnet": "export $(pnpx tsx scripts/node/spawn-devnet.ts)",
@@ -48,6 +48,7 @@
     "deploy:status:base": "hardhat ignition status chain-8453",
     "deploy:summer-vesting-factory-v2": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-summer-vesting-factory-v2.ts --network $NETWORK",
     "deploy:timelock-guard-factory": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-timelock-guard-factory.ts --network $NETWORK",
+    "deploy:wisdomtree-fleet": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-wisdomtree-fleet.ts --network $NETWORK",
     "verify:mainnet": "hardhat ignition verify chain-1",
     "verify:arbitrum": "hardhat ignition verify chain-42161",
     "verify:unichain": "hardhat ignition verify chain-130",

@@ -31,6 +31,7 @@ import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
+import { deployWisdomTreeArk } from '../arks/deploy-wisdom-tree-ark'
 import {
   validateAddress,
   validateErc4626Address,
@@ -52,6 +53,7 @@ export type ArkConfig = {
     maxRebalanceInflow?: string
     maxDepositPercentageOfTVL?: string
     vaultToken?: string // for arks with underlying token different than fleet asset
+    targetWallet?: string // for WisdomTreeArk
   }
 }
 
@@ -437,6 +439,15 @@ export async function deployArk(
         vaultId: erc4626VaultId,
         vaultName: erc4626VaultName,
       })
+      break
+    }
+    case ArkType.WisdomTreeArk: {
+      const targetWallet = validateAddress(arkConfig.params.targetWallet, 'targetWallet')
+      const ark = await deployWisdomTreeArk(config, {
+        ...baseArkParams,
+        targetWallet: targetWallet,
+      })
+      deployedArk = ark
       break
     }
     default:

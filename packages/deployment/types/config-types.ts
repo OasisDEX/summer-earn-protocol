@@ -41,6 +41,7 @@ export enum ArkType {
   Psm3ERC4626Ark = 'Psm3ERC4626Ark',
   HyperlendArk = 'HyperlendArk',
   HypurrArk = 'HypurrArk',
+  WisdomTreeArk = 'WisdomTreeArk',
 }
 
 export const arkTypes = [
@@ -72,6 +73,7 @@ export const arkTypes = [
   { title: 'Psm3ERC4626Ark', value: ArkType.Psm3ERC4626Ark },
   { title: 'HyperlendArk', value: ArkType.HyperlendArk },
   { title: 'HypurrArk', value: ArkType.HypurrArk },
+  { title: 'WisdomTreeArk', value: ArkType.WisdomTreeArk },
 ]
 
 export interface Config {
@@ -308,6 +310,7 @@ export interface ArkConfig {
     maxRebalanceInflow?: string // For FluidLiteArk
     targetChainId?: string // For CrossChainArk
     fleetName?: string // For CrossChainArk
+    targetWallet?: string // For WisdomTreeArk
   }
 }
 

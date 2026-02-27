@@ -324,6 +324,9 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
             amount,
             "User balance should be equal to deposit"
         );
+        
+        // FleetCommander transfers are disabled by default. Enable them so the user can transfer shares to the output vault
+        FleetCommanderWhitelist(address(usdcFleetCommander)).setFleetTokenTransferability();
         vm.stopPrank();
     }
 

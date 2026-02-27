@@ -1,0 +1,24 @@
+{
+  "fleetName": "WisdomTree_USDC_Base",
+  "isBummer": true,
+  "symbol": "WisdomTreeUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "10000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "1000000000000000000",
+  "network": "base",
+  "details": "",
+  "curator": "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
+  "arks": [
+    {
+      "type": "WisdomTree Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "wisdomtree",
+        "depositCap": "100000000",
+        "targetWallet": "0x609031d9D0A00Cc0d2CA3F6A0421456C7DAB90Fe"
+      }
+    }
+  ]
+}
