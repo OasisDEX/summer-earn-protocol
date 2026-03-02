@@ -43,8 +43,8 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
   const kpis = useMemo(
     () => ({
       total: stats.length,
-      healthy: stats.filter((s) => s.isUpToDate).length,
-      stale: stats.filter((s) => !s.isUpToDate).length,
+      healthy: stats.filter((s) => s.oracleStatus === 'healthy').length,
+      stale: stats.filter((s) => s.oracleStatus !== 'healthy').length,
     }),
     [stats],
   )
@@ -90,11 +90,13 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
               setIsSelectionMode(true)
               // Auto-select stale oracles initially
               setSelectedForBatch(
-                stats.filter((s) => !s.isUpToDate && s.offChainPrice > 0).map((s) => s.ticker),
+                stats
+                  .filter((s) => s.oracleStatus !== 'healthy' && s.offChainPrice > 0)
+                  .map((s) => s.ticker),
               )
             }
           }}
-          canBatchUpdate={stats.some((s) => !s.isUpToDate && s.offChainPrice > 0)}
+          canBatchUpdate={stats.some((s) => s.oracleStatus !== 'healthy' && s.offChainPrice > 0)}
           isSelectionMode={isSelectionMode}
           selectedCount={selectedForBatch.length}
           onCancelSelection={() => {

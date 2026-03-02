@@ -84,19 +84,76 @@ export const OracleGrid = memo(function OracleGrid({
                 <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
                   {s.ticker}
                 </h3>
-                <p className="text-[10px] font-mono text-slate-400 truncate w-32">
-                  {s.assetAddress}
-                </p>
+                <div className="mt-1 space-y-0.5">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase w-10">
+                      Asset
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 truncate w-24">
+                      {s.assetAddress}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigator.clipboard.writeText(s.assetAddress)
+                      }}
+                      className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                      title="Copy asset address"
+                    >
+                      <span
+                        className="material-icons-round text-slate-400"
+                        style={{ fontSize: '10px' }}
+                      >
+                        content_copy
+                      </span>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase w-10">
+                      Oracle
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 truncate w-24">
+                      {s.oracleAddress}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigator.clipboard.writeText(s.oracleAddress)
+                      }}
+                      className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                      title="Copy oracle address"
+                    >
+                      <span
+                        className="material-icons-round text-slate-400"
+                        style={{ fontSize: '10px' }}
+                      >
+                        content_copy
+                      </span>
+                    </button>
+                  </div>
+                </div>
               </div>
               <span
                 className={cn(
-                  'px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest border',
-                  s.isUpToDate
+                  'px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest border inline-flex items-center gap-1',
+                  s.oracleStatus === 'healthy'
                     ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                    : 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+                    : s.oracleStatus === 'warning'
+                      ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                      : 'bg-amber-500/10 text-amber-500 border-amber-500/20',
                 )}
+                title={s.statusDetail}
               >
-                {s.isUpToDate ? 'Healthy' : 'Stale'}
+                {s.oracleStatus === 'healthy'
+                  ? 'Healthy'
+                  : s.oracleStatus === 'warning'
+                    ? 'Check'
+                    : 'Stale'}
+                {s.oracleStatus !== 'healthy' && (
+                  <span className="material-icons-round" style={{ fontSize: '12px' }}>
+                    help_outline
+                  </span>
+                )}
               </span>
             </div>
             <div className="space-y-4">
@@ -123,19 +180,43 @@ export const OracleGrid = memo(function OracleGrid({
                   <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
                     Delta
                   </p>
-                  <p className="text-sm font-bold text-slate-500">
-                    {Math.abs(((s.onChainPrice - s.offChainPrice) / s.offChainPrice) * 100).toFixed(
-                      4,
+                  <p
+                    className={cn(
+                      'text-sm font-bold',
+                      s.offChainPrice > s.onChainPrice
+                        ? 'text-emerald-500'
+                        : s.offChainPrice < s.onChainPrice
+                          ? 'text-rose-500'
+                          : 'text-slate-500',
                     )}
-                    %
+                  >
+                    {s.offChainPrice > s.onChainPrice ? '+' : ''}
+                    {(((s.offChainPrice - s.onChainPrice) / s.onChainPrice) * 100).toFixed(4)}%
                   </p>
                 </div>
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-                  <span>Last Updated</span>
-                  <span className="text-primary">
-                    {new Date(s.onChainTimestamp * 1000).toLocaleTimeString()}
+                <div className="flex justify-between text-[10px] font-extrabold uppercase text-slate-400">
+                  <span className="tracking-widest">On-Chain Data</span>
+                  <span className="text-primary text-right">
+                    {s.onChainTimestamp > 0
+                      ? new Date(s.onChainTimestamp * 1000).toLocaleString()
+                      : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-[10px] font-extrabold uppercase text-slate-400">
+                  <span className="tracking-widest">Off-Chain Data</span>
+                  <span
+                    className={cn(
+                      'text-right',
+                      s.offChainTimestamp > 0 && Date.now() / 1000 - s.offChainTimestamp > 86400
+                        ? 'text-rose-500'
+                        : 'text-primary',
+                    )}
+                  >
+                    {s.offChainTimestamp > 0
+                      ? new Date(s.offChainTimestamp * 1000).toLocaleString()
+                      : 'N/A'}
                   </span>
                 </div>
               </div>

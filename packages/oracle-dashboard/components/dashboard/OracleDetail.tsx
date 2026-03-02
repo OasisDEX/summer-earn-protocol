@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { TickerStats } from '../../hooks/useOracleData'
@@ -16,6 +16,13 @@ interface OracleDetailProps {
 }
 
 export function OracleDetail({ oracle, onBack, onTriggerUpdate }: OracleDetailProps) {
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+
+  const copyToClipboard = useCallback((text: string, field: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 2000)
+  }, [])
   const [timeAgo, setTimeAgo] = useState<number | null>(null)
 
   useEffect(() => {
@@ -46,24 +53,67 @@ export function OracleDetail({ oracle, onBack, onTriggerUpdate }: OracleDetailPr
               <span className="material-icons-round text-primary">settings</span> Configuration
             </h3>
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
                   Status
                 </p>
                 <span
                   className={cn(
                     'font-bold',
-                    oracle.isUpToDate ? 'text-emerald-500' : 'text-amber-500',
+                    oracle.oracleStatus === 'healthy'
+                      ? 'text-emerald-500'
+                      : oracle.oracleStatus === 'warning'
+                        ? 'text-yellow-500'
+                        : 'text-amber-500',
                   )}
                 >
-                  {oracle.isUpToDate ? 'OPERATIONAL' : 'STALE DATA'}
+                  {oracle.oracleStatus === 'healthy'
+                    ? 'OPERATIONAL'
+                    : oracle.oracleStatus === 'warning'
+                      ? 'CHECK ORACLE'
+                      : 'STALE DATA'}
                 </span>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                  {oracle.statusDetail}
+                </p>
               </div>
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
                   Asset Address
                 </p>
-                <span className="text-xs font-mono break-all">{oracle.assetAddress}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono break-all text-slate-700 dark:text-slate-300">
+                    {oracle.assetAddress}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(oracle.assetAddress, 'asset')}
+                    className="shrink-0 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                    title="Copy asset address"
+                  >
+                    <span className="material-icons-round text-slate-400 text-sm">
+                      {copiedField === 'asset' ? 'check' : 'content_copy'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                  Oracle Address
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono break-all text-slate-700 dark:text-slate-300">
+                    {oracle.oracleAddress}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(oracle.oracleAddress, 'oracle')}
+                    className="shrink-0 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                    title="Copy oracle address"
+                  >
+                    <span className="material-icons-round text-slate-400 text-sm">
+                      {copiedField === 'oracle' ? 'check' : 'content_copy'}
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -96,10 +146,26 @@ export function OracleDetail({ oracle, onBack, onTriggerUpdate }: OracleDetailPr
                 <p className="text-slate-400 text-xs font-bold uppercase">
                   Off-chain Price (Source)
                 </p>
-                <p className="text-5xl font-black text-slate-700">
+                <p className="text-5xl font-black text-slate-700 dark:text-slate-300">
                   ${oracle.offChainPrice.toFixed(4)}
                 </p>
-                <p className="text-xs text-slate-400">Source: WisdomTree API</p>
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs text-slate-400">Source: WisdomTree API</p>
+                  <p
+                    className={cn(
+                      'text-[10px] font-bold uppercase',
+                      oracle.offChainTimestamp > 0 &&
+                        Date.now() / 1000 - oracle.offChainTimestamp > 86400
+                        ? 'text-rose-500'
+                        : 'text-slate-400',
+                    )}
+                  >
+                    Data Date:{' '}
+                    {oracle.offChainTimestamp > 0
+                      ? new Date(oracle.offChainTimestamp * 1000).toLocaleString()
+                      : 'N/A'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

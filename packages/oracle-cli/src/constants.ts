@@ -1,16 +1,5 @@
 export const RWA_ORACLE_ABI = [
   {
-    inputs: [
-      { internalType: 'int256', name: 'price', type: 'int256' },
-      { internalType: 'uint256', name: 'timestamp', type: 'uint256' },
-      { internalType: 'bytes[]', name: 'signatures', type: 'bytes[]' },
-    ],
-    name: 'updatePrice',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
     inputs: [],
     name: 'nonce',
     outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
@@ -29,6 +18,167 @@ export const RWA_ORACLE_ABI = [
     ],
     stateMutability: 'view',
     type: 'function',
+  },
+  {
+    type: 'function',
+    name: 'addSigner',
+    inputs: [
+      {
+        name: 'signer',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'removeSigner',
+    inputs: [
+      {
+        name: 'signer',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'setThreshold',
+    inputs: [
+      {
+        name: 'threshold',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'updatePrice',
+    inputs: [
+      {
+        name: 'price',
+        type: 'int256',
+        internalType: 'int256',
+      },
+      {
+        name: 'timestamp',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'signatures',
+        type: 'bytes[]',
+        internalType: 'bytes[]',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    name: 'PriceUpdated',
+    inputs: [
+      {
+        name: 'price',
+        type: 'int256',
+        indexed: false,
+        internalType: 'int256',
+      },
+      {
+        name: 'timestamp',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
+      {
+        name: 'roundId',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'SignerAdded',
+    inputs: [
+      {
+        name: 'signer',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'SignerRemoved',
+    inputs: [
+      {
+        name: 'signer',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'ThresholdUpdated',
+    inputs: [
+      {
+        name: 'threshold',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'error',
+    name: 'DuplicateSigner',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'FuturePrice',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InvalidConfiguration',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InvalidSignature',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'NotEnoughSignatures',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'StalePrice',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'Unauthorized',
+    inputs: [],
   },
 ] as const
 

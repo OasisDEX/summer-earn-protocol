@@ -62,7 +62,49 @@
       {
         "ticker": "WTGXX",
         "assetAddress": "0x5096b85Ed11798fDdCB8b5CB27C399c04689c435",
-        "oracleAddress": "0x15faf95ae42313e0cdacb6f8076e866eb6965961",
+        "oracleAddress": "0x15FAf95ae42313E0CdAcb6f8076E866Eb6965961",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "TIPSX",
+        "assetAddress": "0x534A448cEb99D8Ce1bBBB556A5C13c6Fe79CA68c",
+        "oracleAddress": "0xb3f9a39dc589336bb5675733b54f92cec593aba0",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "WTLGX",
+        "assetAddress": "0x8A4AD570238002E49f9A2681398BF9C822302eee",
+        "oracleAddress": "0x2b029bf53dad10969d3f14107f21c9cad59aaf12",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "WTSTX",
+        "assetAddress": "0xE2ab0b91244c6e04bB92034849768ac9B954112c",
+        "oracleAddress": "0x7f2a4bedc1329b102aff93bf205c7593cb103aee",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "EQTYX",
+        "assetAddress": "0xf4A3d6Da7E5F8A262B731DeEE62549C2c05035F5",
+        "oracleAddress": "0x731ebc4ebfb2062e54872f3047a07d59375a61fe",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "MODRX",
+        "assetAddress": "0x90A5aAD303D2170Bc846cd1237939Ac537F224A1",
+        "oracleAddress": "0x0b65c6ddb6cfaeb65da422488ae493aec5c1ae00",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "LNGVX",
+        "assetAddress": "0xC290Ff6eE86454B83a31C61010cd50DD53A56F24",
+        "oracleAddress": "0xe830ffc7d63a03284ffc459ab19752cbe8e4d546",
         "type": "WisdomTree",
         "subtype": "fixedNav"
       }

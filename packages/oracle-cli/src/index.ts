@@ -229,17 +229,28 @@ program
 program
   .command('start')
   .description('Run oracle node daemon')
-  .argument('<ticker>', 'Ticker to monitor')
+  .argument('[ticker]', 'Ticker to monitor (omit to monitor all from deployments.json)')
   .option('-h, --heartbeat <seconds>', 'Heartbeat threshold in seconds', '86400')
   .option('-d, --deviation <percent>', 'Deviation threshold percentage (e.g. 1 for 1%)', '1')
   .option('-i, --interval <seconds>', 'Polling interval in seconds', '60')
-  .action(async (ticker, options) => {
-    console.log(`Starting Oracle Node for ${ticker}`)
+  .action(async (tickerArg, options) => {
+    const chainId = await publicClient.getChainId()
+    const deploymentEntry = Object.values(deployments).find((d) => d.chainId === chainId)
+    const activeOracles = deploymentEntry?.oracles ?? []
+
+    const tickersToMonitor = tickerArg ? [tickerArg] : activeOracles.map((o) => o.ticker)
+
+    if (tickersToMonitor.length === 0) {
+      console.error('No oracles found to monitor.')
+      return
+    }
+
+    console.log(`Starting Oracle Node for: ${tickersToMonitor.join(', ')}`)
     console.log(
       `Config: Heartbeat=${options.heartbeat}s, Deviation=${options.deviation}%, Poll=${options.interval}s`,
     )
 
-    const runLoop = async () => {
+    const processTicker = async (ticker: string) => {
       try {
         // 1. Fetch Off-Chain Data
         const offChainData = await fetchOracleData(ticker)
@@ -256,7 +267,7 @@ program
         })
 
         if (oracleAddress === '0x0000000000000000000000000000000000000000') {
-          console.error(`No oracle found for ${ticker}`)
+          console.error(`[${ticker}] No oracle found in registry`)
           return
         }
 
@@ -270,32 +281,32 @@ program
         const lastTimestamp = currentData[2]
 
         // 3. Evaluate Triggers
-        const timeDiff = BigInt(Math.floor(Date.now() / 1000)) - lastTimestamp
+        const now = BigInt(Math.floor(Date.now() / 1000))
+        const timeDiff = now - lastTimestamp
 
         const priceDiff = newPrice > lastPrice ? newPrice - lastPrice : lastPrice - newPrice
-        const deviationBp = (priceDiff * 10000n) / lastPrice // Basis points
+        const deviationBp = lastPrice > 0n ? (priceDiff * 10000n) / lastPrice : 10000n // 100% if lastPrice is 0
         const thresholdBp = BigInt(Number(options.deviation) * 100)
 
         const isHeartbeat = timeDiff >= BigInt(options.heartbeat)
         const isDeviation = deviationBp >= thresholdBp
 
         console.log(
-          `[${new Date().toISOString()}] OnChain: $${Number(lastPrice) / 1e8} (${timeDiff}s ago) | ` +
+          `[${ticker}] [${new Date().toISOString()}] OnChain: $${Number(lastPrice) / 1e8} (${timeDiff}s ago) | ` +
             `OffChain: $${Number(newPrice) / 1e8} | ` +
             `Diff: ${Number(deviationBp) / 100}%`,
         )
 
         if (isHeartbeat || isDeviation) {
-          console.log(`>>> Triggering Update: Heartbeat=${isHeartbeat}, Deviation=${isDeviation}`)
+          console.log(
+            `[${ticker}] >>> Triggering Update: Heartbeat=${isHeartbeat}, Deviation=${isDeviation}`,
+          )
 
-          // Execute Update
           const nonce = await publicClient.readContract({
             address: oracleAddress,
             abi: RWA_ORACLE_ABI,
             functionName: 'nonce',
           })
-
-          const chainId = await publicClient.getChainId()
 
           const signatures = await signPriceData(
             newPrice,
@@ -322,13 +333,15 @@ program
           })
 
           const hash = await walletClient.writeContract(request)
-          console.log(`>>> Update Sent: ${hash}`)
-        } else {
-          console.log(`... Skipping update (No trigger condition met)`)
+          console.log(`[${ticker}] >>> Update Sent: ${hash}`)
         }
       } catch (error) {
-        console.error('Error in poll loop:', error)
+        console.error(`[${ticker}] Error in process loop:`, error)
       }
+    }
+
+    const runLoop = async () => {
+      await Promise.allSettled(tickersToMonitor.map(processTicker))
     }
 
     // Run immediately then loop

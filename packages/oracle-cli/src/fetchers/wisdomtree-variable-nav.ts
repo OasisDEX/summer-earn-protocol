@@ -1,6 +1,8 @@
+import { chromium } from 'playwright'
+
 /**
  * WisdomTree Variable NAV fetcher.
- * Fetches NAV data from the WisdomTree DataSpan API.
+ * Fetches NAV data from the WisdomTree DataSpan API using Playwright to bypass Cloudflare.
  */
 
 export interface OracleData {
@@ -12,40 +14,30 @@ export interface OracleData {
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
-/**
- * Fetches NAV data with a retry mechanism and realistic headers to bypass basic bot detection.
- */
 export async function fetchOracleData(ticker: string, retries = 3): Promise<OracleData> {
   const url = `https://dataspanapi.wisdomtree.com/funddetails/nav/?ticker=${ticker}`
 
-  const headers = {
-    'User-Agent':
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    Accept: 'application/json, text/plain, */*',
-    'Accept-Language': 'en-US,en;q=0.9',
-    Origin: 'https://www.wisdomtree.com',
-    Referer: 'https://www.wisdomtree.com/',
-    'Cache-Control': 'no-cache',
-    Pragma: 'no-cache',
-  }
-
   for (let i = 0; i < retries; i++) {
-    try {
-      const response = await fetch(url, {
-        headers,
-        method: 'GET',
-        signal: AbortSignal.timeout(10000),
-      })
+    // Uruchamiamy przeglądarkę w tle (headless)
+    const browser = await chromium.launch({ headless: true })
+    const context = await browser.newContext({
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    })
+    const page = await context.newPage()
 
-      if (response.status === 403) {
+    try {
+      // Wchodzimy pod adres URL - Playwright automatycznie rozwiąże JS Challenge od Cloudflare
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 })
+
+      // Wyciągamy czysty tekst z tagu <body> (ponieważ API zwraca po prostu tekst JSON na stronie)
+      const content = await page.innerText('body')
+
+      if (content.includes('Cloudflare') || content.includes('Attention Required')) {
         throw new Error('Cloudflare Block (403 Forbidden).')
       }
 
-      if (!response.ok) {
-        throw new Error(`HTTP Error ${response.status}: ${response.statusText}`)
-      }
-
-      const data = (await response.json()) as { ticker?: string; nav?: number; dt?: string }
+      const data = JSON.parse(content) as { ticker?: string; nav?: number; dt?: string }
 
       if (!data || !data.nav || !data.dt) {
         throw new Error('Malformed API response: Missing NAV or Date')
@@ -54,6 +46,8 @@ export async function fetchOracleData(ticker: string, retries = 3): Promise<Orac
       const date = new Date(data.dt)
       const timestamp = Math.floor(date.getTime() / 1000)
 
+      await browser.close()
+
       return {
         ticker: data.ticker ?? ticker,
         nav: data.nav,
@@ -61,6 +55,8 @@ export async function fetchOracleData(ticker: string, retries = 3): Promise<Orac
         timestamp,
       }
     } catch (error: unknown) {
+      await browser.close() // Upewnij się, że zamykamy przeglądarkę w przypadku błędu
+
       const isLastRetry = i === retries - 1
       const msg = error instanceof Error ? error.message : String(error)
       console.warn(`[WisdomTree] Attempt ${i + 1} for ${ticker} failed: ${msg}`)

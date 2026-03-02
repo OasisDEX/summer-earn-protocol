@@ -21,6 +21,8 @@ import {
   type DeploymentFile,
   PrivateKeySchema,
 } from './schemas'
+import dotenv from 'dotenv'
+dotenv.config()
 
 // Load ABIs and Bytecode
 const RwaOracleArtifact = JSON.parse(
@@ -137,7 +139,7 @@ async function main() {
   const rawInput = JSON.parse(fs.readFileSync(inputPath, 'utf8'))
   const parsed = DeploymentInputSchema.parse(rawInput)
   const configs = Array.isArray(parsed) ? parsed : [parsed]
-
+  console.log(process.env.DEPLOYER_PRIV_KEY)
   const privateKey = PrivateKeySchema.parse(process.env.DEPLOYER_PRIV_KEY)
   if (!privateKey) throw new Error('DEPLOYER_PRIV_KEY not set in env')
   const account = privateKeyToAccount(privateKey as `0x${string}`)

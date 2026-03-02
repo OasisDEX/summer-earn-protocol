@@ -6,13 +6,16 @@ import { getOffchainFetcher } from './fetchers'
 import deploymentsJson from './deployments.json'
 import { CHAIN_RPC_URLS } from '@/config/chains'
 
+export type OracleStatus = 'healthy' | 'warning' | 'stale'
+
 export interface TickerStats {
   ticker: string
   onChainPrice: number
   onChainTimestamp: number
   offChainPrice: number
   offChainTimestamp: number
-  isUpToDate: boolean
+  oracleStatus: OracleStatus
+  statusDetail: string
   oracleAddress: Address
   assetAddress: Address
 }
@@ -97,7 +100,12 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
     oracles.map(async (entry) => {
       const fetcher = getOffchainFetcher(entry.type, entry.subtype)
       if (!fetcher) return null
-      return fetcher(entry.ticker)
+
+      let offchainTicker = entry.ticker
+      if (entry.ticker === 'CRDT') offchainTicker = 'CRDYX'
+      if (entry.ticker === 'EPXC') offchainTicker = 'WTPIX'
+
+      return fetcher(offchainTicker)
     }),
   )
 
@@ -126,7 +134,61 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
     const offChainData =
       offchain?.status === 'fulfilled' && offchain.value ? offchain.value : null
 
-    const isUpToDate = offChainData ? onChainTimestamp >= offChainData.timestamp : false
+    const nowSec = Math.floor(Date.now() / 1000)
+    const ONE_DAY = 86400
+    const onChainAgeSec = nowSec - onChainTimestamp
+    const onChainStale = onChainAgeSec >= ONE_DAY
+    const offChainTs = offChainData?.timestamp ?? 0
+    const offChainAgeSec = offChainTs > 0 ? nowSec - offChainTs : 0
+    const offChainStale = offChainTs > 0 && offChainAgeSec >= ONE_DAY
+    const eitherStale = onChainStale || offChainStale
+    const pricesMatch = offChainData
+      ? Math.abs(onChainPriceNum - offChainData.nav) < 0.0001
+      : false
+
+    const formatAge = (seconds: number): string => {
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
+      if (seconds < ONE_DAY) return `${Math.floor(seconds / 3600)}h`
+      const days = Math.floor(seconds / ONE_DAY)
+      const hours = Math.floor((seconds % ONE_DAY) / 3600)
+      return hours > 0 ? `${days}d ${hours}h` : `${days}d`
+    }
+
+    let oracleStatus: OracleStatus
+    let statusDetail: string
+
+    if (!eitherStale) {
+      // Both sources are fresh
+      oracleStatus = 'healthy'
+      statusDetail = 'Both on-chain and off-chain data are up to date'
+    } else if (onChainStale && offChainStale && pricesMatch) {
+      // Both stale but prices match
+      oracleStatus = 'warning'
+      statusDetail = `Both sources stale — on-chain: ${formatAge(onChainAgeSec)} ago, off-chain: ${formatAge(offChainAgeSec)} ago. Prices match, verify oracle is running`
+    } else if (onChainStale && offChainStale && !pricesMatch) {
+      // Both stale and prices differ
+      oracleStatus = 'stale'
+      statusDetail = `Both sources stale — on-chain: ${formatAge(onChainAgeSec)} ago, off-chain: ${formatAge(offChainAgeSec)} ago. Prices differ, update needed`
+    } else if (!onChainStale && offChainStale && pricesMatch) {
+      // On-chain fresh, off-chain stale, prices match
+      oracleStatus = 'warning'
+      statusDetail = `No off-chain data update in ${formatAge(offChainAgeSec)}. Prices match, check off-chain source`
+    } else if (!onChainStale && offChainStale && !pricesMatch) {
+      // On-chain fresh, off-chain stale, prices differ
+      oracleStatus = 'stale'
+      statusDetail = `No off-chain data update in ${formatAge(offChainAgeSec)}. Prices differ, off-chain source may be down`
+    } else if (onChainStale && !offChainStale && pricesMatch) {
+      // On-chain stale, off-chain fresh, prices match
+      oracleStatus = 'warning'
+      statusDetail = `On-chain not updated in ${formatAge(onChainAgeSec)}. Prices match, verify oracle node is running`
+    } else if (onChainStale && !offChainStale) {
+      // On-chain stale, off-chain fresh, prices differ
+      oracleStatus = 'stale'
+      statusDetail = `On-chain not updated in ${formatAge(onChainAgeSec)}. Off-chain has newer price, update needed`
+    } else {
+      oracleStatus = 'healthy'
+      statusDetail = 'Data is current'
+    }
 
     filtered.push({
       ticker: entry.ticker,
@@ -134,7 +196,8 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
       onChainTimestamp,
       offChainPrice: offChainData?.nav ?? 0,
       offChainTimestamp: offChainData?.timestamp ?? 0,
-      isUpToDate,
+      oracleStatus,
+      statusDetail,
       oracleAddress: entry.oracleAddress as Address,
       assetAddress,
     })
