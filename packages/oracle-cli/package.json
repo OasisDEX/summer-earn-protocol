@@ -12,16 +12,16 @@
     "deploy:oracles": "ts-node src/deploy.ts"
   },
   "dependencies": {
-    "commander": "^12.0.0",
-    "dotenv": "^16.4.5",
+    "commander": "^12.1.0",
+    "dotenv": "^16.6.1",
     "playwright": "^1.58.2",
-    "viem": "^2.7.1",
+    "viem": "^2.46.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^20.11.24",
+    "@types/node": "^20.19.35",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.9.3"
   }
 }

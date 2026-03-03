@@ -18,6 +18,37 @@ import { deployYieldSystem } from './deploy-yield'
 import { RWA_ORACLE_ABI, ORACLE_REGISTRY_ABI } from './constants'
 import { DeploymentFileSchema } from './schemas'
 import deploymentsData from './deployments.json'
+import { encodeFunctionData } from 'viem'
+
+const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11' as Address
+const MULTICALL3_ABI = [
+  {
+    inputs: [
+      {
+        components: [
+          { name: 'target', type: 'address' },
+          { name: 'allowFailure', type: 'bool' },
+          { name: 'callData', type: 'bytes' },
+        ],
+        name: 'calls',
+        type: 'tuple[]',
+      },
+    ],
+    name: 'aggregate3',
+    outputs: [
+      {
+        components: [
+          { name: 'success', type: 'bool' },
+          { name: 'returnData', type: 'bytes' },
+        ],
+        name: 'returnData',
+        type: 'tuple[]',
+      },
+    ],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+] as const
 
 // Configuration Schema - RPC URLs via config.getRpcUrl()
 const ConfigSchema = z.object({
@@ -268,7 +299,7 @@ program
 
         if (oracleAddress === '0x0000000000000000000000000000000000000000') {
           console.error(`[${ticker}] No oracle found in registry`)
-          return
+          return null
         }
 
         const currentData = await publicClient.readContract({
@@ -317,6 +348,50 @@ program
             env.PRIVATE_KEYS,
           )
 
+          // Return instead of sending immediately
+          return {
+            ticker,
+            oracleAddress,
+            newPrice,
+            newTimestamp,
+            signatures,
+          }
+        }
+        return null
+      } catch (error) {
+        console.error(`[${ticker}] Error in process loop:`, error)
+        return null
+      }
+    }
+
+    let isProcessing = false
+
+    const runLoop = async () => {
+      if (isProcessing) return
+      isProcessing = true
+
+      try {
+        const results = await Promise.allSettled(tickersToMonitor.map(processTicker))
+
+        const updatesToExecute = results
+          .filter(
+            (r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null,
+          )
+          .map((r) => r.value)
+
+        if (updatesToExecute.length > 0) {
+          console.log(`\n>>> Batching ${updatesToExecute.length} updates via Multicall3...`)
+
+          const calls = updatesToExecute.map((u) => ({
+            target: u.oracleAddress,
+            allowFailure: true,
+            callData: encodeFunctionData({
+              abi: RWA_ORACLE_ABI,
+              functionName: 'updatePrice',
+              args: [u.newPrice, u.newTimestamp, u.signatures],
+            }),
+          }))
+
           const account = privateKeyToAccount(env.PRIVATE_KEYS[0])
           const walletClient = createWalletClient({
             account,
@@ -326,22 +401,23 @@ program
 
           const { request } = await publicClient.simulateContract({
             account,
-            address: oracleAddress,
-            abi: RWA_ORACLE_ABI,
-            functionName: 'updatePrice',
-            args: [newPrice, newTimestamp, signatures],
+            address: MULTICALL3_ADDRESS,
+            abi: MULTICALL3_ABI,
+            functionName: 'aggregate3',
+            args: [calls],
           })
 
           const hash = await walletClient.writeContract(request)
-          console.log(`[${ticker}] >>> Update Sent: ${hash}`)
-        }
-      } catch (error) {
-        console.error(`[${ticker}] Error in process loop:`, error)
-      }
-    }
+          console.log(`>>> Batch Multicall Transaction Submitted: ${hash}`)
 
-    const runLoop = async () => {
-      await Promise.allSettled(tickersToMonitor.map(processTicker))
+          await publicClient.waitForTransactionReceipt({ hash })
+          console.log(`>>> Batch Transaction Confirmed!`)
+        }
+      } catch (err) {
+        console.error('Error in runLoop multicall batch:', err)
+      } finally {
+        isProcessing = false
+      }
     }
 
     // Run immediately then loop
