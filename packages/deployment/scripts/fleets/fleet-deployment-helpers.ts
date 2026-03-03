@@ -17,8 +17,8 @@ import { GOVERNOR_ROLE } from '../common/constants'
 export async function deployArks(
   fleetDefinition: FleetConfig,
   config: BaseConfig,
-): Promise<Address[]> {
-  const deployedArks: Address[] = []
+): Promise<`0x${string}`[]> {
+  const deployedArks: `0x${string}`[] = []
   const MAX_RETRIES = 5
   const DELAY = 13000 // 13 seconds
 
@@ -34,7 +34,11 @@ export async function deployArks(
         console.log('Deploying Ark - fleet deployment helper [Debug]')
         const arkAddress = await deployArk(arkConfig, config, fleetDefinition)
         deployedArks.push(arkAddress)
-        console.log(kleur.green().bold(`Successfully deployed ${arkConfig.type} at ${arkAddress}`))
+        console.log(
+          kleur
+            .green()
+            .bold(`Successfully deployed ${arkConfig.type} at ${JSON.stringify(arkAddress)}`),
+        )
         break
       } catch (error) {
         if (retries === MAX_RETRIES) {

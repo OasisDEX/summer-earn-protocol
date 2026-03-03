@@ -44,9 +44,8 @@ export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTree
       },
     },
   })
-  const address = ark as string
 
-  console.log(kleur.green(`      WisdomTreeArk deployed to: ${address}`))
+  console.log(kleur.green(`      WisdomTreeArk deployed to: ${ark.address}`))
 
-  return { ark: { address } }
+  return { ark: { address: ark.address } }
 }

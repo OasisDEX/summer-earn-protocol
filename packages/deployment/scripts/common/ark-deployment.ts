@@ -60,7 +60,7 @@ export async function deployArk(
   arkConfig: ArkConfig,
   config: BaseConfig,
   fleetConfig: FleetConfig,
-): Promise<Address> {
+): Promise<`0x${string}`> {
   const { type, params } = arkConfig
   const { asset, protocol, vaultName } = params
 
@@ -464,7 +464,7 @@ export async function deployArk(
     throw new Error(`Failed to deploy ${type}`)
   }
 
-  return deployedArk.ark.address as Address
+  return deployedArk.ark.address as `0x${string}`
 }
 
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {

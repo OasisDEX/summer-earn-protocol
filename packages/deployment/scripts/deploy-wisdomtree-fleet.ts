@@ -53,10 +53,7 @@ async function selectInstitutionFleetConfig(
   const data = JSON.parse(fs.readFileSync(full, 'utf8'))
   const parsed = FleetConfigSchema.parse(data)
   // Preserve optional curator if present in raw data (schema may not include it)
-  return {
-    ...parsed,
-    details: JSON.stringify(parsed.details),
-  } as unknown as FleetConfig
+  return parsed as unknown as FleetConfig
 }
 
 enum WhitelistDeploymentMode {
@@ -162,7 +159,7 @@ async function main() {
         protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         fleetName: fleetDefinition.fleetName,
         fleetSymbol: fleetDefinition.symbol,
-        fleetDetails: fleetDefinition.details,
+        fleetDetails: JSON.stringify(fleetDefinition.details),
         asset: assetAddress,
         initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
@@ -172,6 +169,7 @@ async function main() {
       },
     },
   })
+
   // Config already contains institution overrides; debug prints kept terse
   console.log(
     'Using institution ProtocolAccessManager:',
@@ -183,6 +181,10 @@ async function main() {
   )
 
   const deployedFleetContent = deployedFleet as any
+
+  const { test } = deployedFleetContent
+  console.log(kleur.blue(`Deployed Fleet: ${JSON.stringify(test, null, 2)}`))
+
   const bufferArkAddress = await deployedFleetContent.fleetCommanderWhitelist.read.bufferArk()
   // Deploys WisdomTree Ark using standard helper
   const deployedArks = await deployArks(fleetDefinition, config)
@@ -195,7 +197,7 @@ async function main() {
   const outputVaultModule = createRoundsVaultOutputModule(outputModuleName)
 
   console.log(kleur.cyan().bold(`\nDeploying RoundsVaults...`))
-  const deployedInputVault = await hre.ignition.deploy(inputVaultModule, {
+  const { roundsVaultInput: deployedInputVault } = await hre.ignition.deploy(inputVaultModule, {
     parameters: {
       [inputModuleName]: {
         targetVault: deployedFleetContent.fleetCommanderWhitelist.address,
@@ -204,7 +206,7 @@ async function main() {
       },
     },
   })
-  const deployedOutputVault = await hre.ignition.deploy(outputVaultModule, {
+  const { roundsVaultOutput: deployedOutputVault } = await hre.ignition.deploy(outputVaultModule, {
     parameters: {
       [outputModuleName]: {
         targetVault: deployedFleetContent.fleetCommanderWhitelist.address,
@@ -227,6 +229,8 @@ async function main() {
   )
 
   // Persist institution-scoped fleet entry using the fleet config filename (requested: same name as config)
+  console.log(`Deployed arks: ${JSON.stringify(deployedArks)}`)
+
   const fleetNameKey = fleetDefinition.fleetName
   updateInstitutionFleetEntry(institutionId, useBummerConfig, network, fleetNameKey, {
     fleetCommander: deployedFleetContent.fleetCommanderWhitelist.address as ViemAddress,

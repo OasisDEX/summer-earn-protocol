@@ -170,7 +170,7 @@ export function saveFleetDeploymentJson(
     initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
     depositCap: fleetDefinition.depositCap,
     initialTipRate: fleetDefinition.initialTipRate,
-    arks: deployedArks?.map((address) => address.toString()),
+    arks: deployedArks?.map((address) => address.toString()) || undefined,
     details: fleetDefinition.details,
   }
 
