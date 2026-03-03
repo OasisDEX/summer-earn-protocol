@@ -255,6 +255,7 @@ type YieldAggregator implements Protocol @entity @regularPolling {
   lastHourlyUpdateTimestamp: BigInt
   lastWeeklyUpdateTimestamp: BigInt
   referralDatas: [ReferralData!]! @derivedFrom(field: "protocol")
+  _hourlySnapshotsDeepCleaned: Boolean
 }
 
 ###############################
@@ -513,7 +514,7 @@ type Vault @entity @regularPolling {
   rebalanceCount: BigInt!
   actionSnapshots: [PostActionVaultSnapshot!]! @derivedFrom(field: "vault")
 
-  rewardsManager: RewardsManager! @derivedFrom(field: "vault")
+  rewardsManager: RewardsManager @derivedFrom(field: "vault")
 
   positions: [Position!]!
 }
@@ -555,7 +556,6 @@ type VaultDailySnapshot @entity @dailySnapshot {
 
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
-
 
   " Amount of input token in the pool normalized "
   inputTokenBalanceNormalized: BigDecimal!
@@ -629,10 +629,9 @@ type VaultHourlySnapshot @entity @hourlySnapshot {
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
 
-      " Amount of input token in the position normalized "
+  " Amount of input token in the position normalized "
   inputTokenBalanceNormalized: BigDecimal!
   inputTokenBalanceWithdrawableNormalized: BigDecimal!
-
 
   " Total supply of output token "
   outputTokenSupply: BigInt!
@@ -976,9 +975,9 @@ type Account @entity @regularPolling {
   positions: [Position!]! @derivedFrom(field: "account")
   stakedSummerToken: BigInt!
   stakedSummerTokenNormalized: BigDecimal!
-    rewards: [AccountRewards!]! @derivedFrom(field: "account")
- lastUpdateBlock: BigInt!
- " deprecated "
+  rewards: [AccountRewards!]! @derivedFrom(field: "account")
+  lastUpdateBlock: BigInt!
+  " deprecated "
   claimedSummerToken: BigInt!
   claimedSummerTokenNormalized: BigDecimal!
 
@@ -1152,7 +1151,6 @@ type Position @entity {
   " Sum of withdrawals in the position - in input token precision normalized"
   inputTokenWithdrawalsNormalized: BigDecimal!
 
-
   " Sum of deposits in the position - in input token precision normalized to USD"
   inputTokenDepositsNormalizedInUSD: BigDecimal!
 
@@ -1215,8 +1213,6 @@ type Position @entity {
 
   claimedSummerToken: BigInt!
   claimedSummerTokenNormalized: BigDecimal!
-  claimableSummerToken: BigInt!
-  claimableSummerTokenNormalized: BigDecimal! 
 
   rewards: [PositionRewards!]! @derivedFrom(field: "position")
   referralData: ReferralData
@@ -1273,7 +1269,7 @@ type PositionDailySnapshot @entity @dailySnapshot {
   " Sum of deposits in the position - in input token precision"
   inputTokenDeposits: BigInt!
 
-    " Sum of deposits in the position - in input token precision normalized"
+  " Sum of deposits in the position - in input token precision normalized"
   inputTokenDepositsNormalized: BigDecimal!
 
   " Sum of withdrawals in the position - in input token precision normalized"
@@ -1314,7 +1310,7 @@ type PositionWeeklySnapshot @entity @weeklySnapshot {
   " Sum of deposits in the position - in input token precision"
   inputTokenDeposits: BigInt!
 
-    " Sum of deposits in the position - in input token precision normalized"
+  " Sum of deposits in the position - in input token precision normalized"
   inputTokenDepositsNormalized: BigDecimal!
 
   " Sum of withdrawals in the position - in input token precision normalized"
@@ -1628,8 +1624,6 @@ type WeeklyInterestRate @entity {
 type PositionRewards @entity {
   id: ID!
   position: Position!
-  claimable: BigInt!
-  claimableNormalized: BigDecimal!
   claimed: BigInt!
   claimedNormalized: BigDecimal!
   rewardToken: Token!
@@ -1638,8 +1632,6 @@ type PositionRewards @entity {
 type AccountRewards @entity {
   id: ID!
   account: Account!
-  claimable: BigInt!
-  claimableNormalized: BigDecimal!
   claimed: BigInt!
   claimedNormalized: BigDecimal!
   rewardToken: Token!
@@ -1670,7 +1662,6 @@ type GovernanceStaking @entity {
   amountOfLockedStakes: BigInt
 }
 
-
 type ReferralData @entity {
   id: ID!
   amountOfReferred: BigInt!
@@ -1679,7 +1670,7 @@ type ReferralData @entity {
   referredAccounts: [Account!]! @derivedFrom(field: "referralData")
   referredPositions: [Position!]! @derivedFrom(field: "referralData")
   protocol: YieldAggregator!
-  }
+}
 
 type StakeLockup @entity {
   id: ID!

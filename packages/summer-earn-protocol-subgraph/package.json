@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-subgraph",
-  "version": "1.5.6-update-hyperliquid-prod",
+  "version": "1.7.0-nullable-rewards-manager",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
@@ -17,7 +17,7 @@
     "deploy:arbitrum": "bash -c 'source ../../.env && pnpm build:arbitrum && goldsky subgraph deploy summer-protocol-arbitrum/$npm_package_version --path .'",
     "deploy:sonic": "bash -c 'source ../../.env && pnpm build:sonic && goldsky subgraph deploy summer-protocol-sonic/$npm_package_version --path .'",
     "deploy:hyperliquid": "bash -c 'source ../../.env && pnpm build:hyperliquid && goldsky subgraph deploy summer-protocol-hyperliquid/$npm_package_version --path .'",
-    "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum && pnpm run deploy:mainnet && pnpm run deploy:sonic"
+    "deploy:all": "pnpm run deploy:base && pnpm run deploy:hyperliquid && pnpm run deploy:arbitrum && pnpm run deploy:sonic"
   },
   "devDependencies": {
     "@graphprotocol/graph-ts": "0.35.1",

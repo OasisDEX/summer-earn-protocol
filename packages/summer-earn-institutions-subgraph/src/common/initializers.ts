@@ -750,6 +750,9 @@ export function getOrCreatePositionHourlySnapshot(
     position.stakedInputTokenBalance = position.stakedOutputTokenBalance
       .times(vault.inputTokenBalance)
       .div(vault.outputTokenSupply)
+    position.unstakedInputTokenBalance = position.unstakedOutputTokenBalance
+      .times(vault.inputTokenBalance)
+      .div(vault.outputTokenSupply)
 
     snapshot.inputTokenBalance = snapshot.outputTokenBalance
       .times(vault.inputTokenBalance)
@@ -764,11 +767,17 @@ export function getOrCreatePositionHourlySnapshot(
       position.stakedInputTokenBalance,
       BigInt.fromI32(inputToken.decimals),
     )
+    position.unstakedInputTokenBalanceNormalized = utils.formatAmount(
+      position.unstakedInputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
     position.inputTokenBalanceNormalizedInUSD = position.inputTokenBalanceNormalized.times(
       vault.inputTokenPriceUSD!,
     )
     position.stakedInputTokenBalanceNormalizedInUSD =
       position.stakedInputTokenBalanceNormalized.times(vault.inputTokenPriceUSD!)
+    position.unstakedInputTokenBalanceNormalizedInUSD =
+      position.unstakedInputTokenBalanceNormalized.times(vault.inputTokenPriceUSD!)
 
     snapshot.inputTokenBalanceNormalizedInUSD = utils
       .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))

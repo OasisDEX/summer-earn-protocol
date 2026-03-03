@@ -55,41 +55,39 @@ export function DepositWithdrawTabs({
   const depositNeedsApproval = needsApproval(depositAmount)
 
   return (
-    <div className="bg-gray-900 p-6 rounded-lg">
-      <h3 className="text-xl font-semibold text-white mb-6">Deposit & Withdraw</h3>
+    <div className="glass rounded-2xl p-6">
+      <h3 className="font-bold text-lg text-white mb-6">Deposit & Withdraw</h3>
 
       {/* Tab Navigation */}
-      <div className="flex space-x-1 mb-6 bg-gray-800 p-1 rounded-lg">
+      <div className="flex gap-1 mb-6 bg-white/5 p-1 rounded-xl border border-white/5">
         <button
           onClick={() => setActiveTab('deposit')}
-          className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-colors ${
+          className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all ${
             activeTab === 'deposit'
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-300 hover:text-white hover:bg-gray-700'
+              ? 'bg-primary text-white shadow-lg shadow-primary/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          💰 Deposit {assetSymbol}
+          Deposit {assetSymbol}
         </button>
         <button
           onClick={() => setActiveTab('withdraw')}
-          className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-colors ${
+          className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all ${
             activeTab === 'withdraw'
-              ? 'bg-orange-600 text-white'
-              : 'text-gray-300 hover:text-white hover:bg-gray-700'
+              ? 'bg-primary text-white shadow-lg shadow-primary/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          🏦 Withdraw {assetSymbol}
+          Withdraw {assetSymbol}
         </button>
       </div>
 
       {/* Tab Content */}
       {activeTab === 'deposit' && (
         <div className="space-y-4">
-          <div className="p-4 bg-blue-900 border border-blue-700 rounded-lg">
-            <p className="text-sm text-blue-200 mb-2">
-              <strong>Deposit Process:</strong>
-            </p>
-            <p className="text-xs text-blue-300">
+          <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
+            <p className="text-xs text-slate-400 uppercase font-bold mb-2">Deposit Process</p>
+            <p className="text-sm text-slate-300">
               1. Deposit {assetSymbol} → Get {fleetSymbol} shares
               <br />
               2. {fleetSymbol} shares earn yield from fleet strategies
@@ -117,10 +115,10 @@ export function DepositWithdrawTabs({
               <button
                 onClick={onApprove}
                 disabled={isApproveLoading || parsedDepositAmount === BigInt(0)}
-                className={`w-full p-3 rounded-lg font-semibold transition-colors ${
+                className={`w-full py-3 rounded-xl font-bold transition-all ${
                   isApproveLoading || parsedDepositAmount === BigInt(0)
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                    ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
+                    : 'bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:bg-amber-500/30'
                 }`}
               >
                 {isApproveLoading ? 'Approving...' : `Approve ${assetSymbol}`}
@@ -132,10 +130,10 @@ export function DepositWithdrawTabs({
               disabled={
                 isDepositLoading || parsedDepositAmount === BigInt(0) || depositNeedsApproval
               }
-              className={`w-full p-3 rounded-lg font-semibold transition-colors ${
+              className={`w-full py-3 rounded-xl font-bold transition-all ${
                 isDepositLoading || parsedDepositAmount === BigInt(0) || depositNeedsApproval
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
+                  : 'bg-primary hover:shadow-neon-glow border border-primary/50 text-white'
               }`}
             >
               {isDepositLoading ? 'Depositing...' : `Deposit ${assetSymbol}`}
@@ -146,11 +144,9 @@ export function DepositWithdrawTabs({
 
       {activeTab === 'withdraw' && (
         <div className="space-y-4">
-          <div className="p-4 bg-orange-900 border border-orange-700 rounded-lg">
-            <p className="text-sm text-orange-200 mb-2">
-              <strong>Withdraw Process:</strong>
-            </p>
-            <p className="text-xs text-orange-300">
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+            <p className="text-xs text-slate-400 uppercase font-bold mb-2">Withdraw Process</p>
+            <p className="text-sm text-slate-300">
               1. Burn {fleetSymbol} shares → Get {assetSymbol}
               <br />
               2. You&apos;ll receive your share of fleet performance
@@ -177,10 +173,10 @@ export function DepositWithdrawTabs({
           <button
             onClick={handleWithdraw}
             disabled={isWithdrawLoading || parsedWithdrawAmount === BigInt(0)}
-            className={`w-full p-3 rounded-lg font-semibold transition-colors ${
+            className={`w-full py-3 rounded-xl font-bold transition-all ${
               isWithdrawLoading || parsedWithdrawAmount === BigInt(0)
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-orange-600 hover:bg-orange-700 text-white'
+                ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
+                : 'bg-primary hover:shadow-neon-glow border border-primary/50 text-white'
             }`}
           >
             {isWithdrawLoading ? 'Withdrawing...' : `Withdraw to ${assetSymbol}`}

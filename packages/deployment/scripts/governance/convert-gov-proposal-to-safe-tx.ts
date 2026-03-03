@@ -13,13 +13,23 @@ import { resolve } from 'path'
 interface GovernanceProposal {
   title: string
   description: string
-  crossChainExecution?: Array<{
-    name: string
-    chainId: number
-    targets: string[]
-    values: string[]
-    datas: string[]
-  }>
+  crossChainExecution?:
+    | Array<{
+        name: string
+        chainId: number
+        targets: string[]
+        values: string[]
+        datas: string[]
+      }>
+    | {
+        targetChain: {
+          name: string
+          chainId: number
+          targets: string[]
+          values: string[]
+          datas: string[]
+        }
+      }
   timestamp?: number
 }
 
@@ -103,12 +113,14 @@ function extractChainExecution(
   values: string[]
   datas: string[]
 } | null {
-  if (!proposal.crossChainExecution || proposal.crossChainExecution.length === 0) {
+  if (!proposal.crossChainExecution) {
     console.warn(`Warning: No crossChainExecution found in proposal: ${proposal.title}`)
     return null
   }
-
-  const execution = proposal.crossChainExecution.find((exec) => exec.chainId === chainId)
+  const execution =
+    'targetChain' in proposal.crossChainExecution
+      ? proposal.crossChainExecution.targetChain
+      : proposal.crossChainExecution.find((exec) => exec.chainId === chainId)
   if (!execution) {
     console.warn(
       `Warning: No crossChainExecution found for chainId ${chainId} in proposal: ${proposal.title}`,

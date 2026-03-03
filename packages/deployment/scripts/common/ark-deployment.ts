@@ -2,7 +2,7 @@ import fs from 'fs'
 import kleur from 'kleur'
 import path from 'path'
 import { Address } from 'viem'
-import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
+import { ArkConfig, ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployAeraArk } from '../arks/deploy-aera-ark'
 import { deployArmArk } from '../arks/deploy-arm-ark'
@@ -15,6 +15,7 @@ import { deployHyperlendArk } from '../arks/deploy-hyperlend-ark'
 import { deployHypurrArk } from '../arks/deploy-hypurr-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { deployMorphoArk } from '../arks/deploy-morpho-ark'
+import { deployMorphoV2VaultArk } from '../arks/deploy-morpho-v2-vault-ark'
 import { deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
 import { deployOriginETHArk } from '../arks/deploy-origineth-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
@@ -34,28 +35,13 @@ import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import { deployWisdomTreeArk } from '../arks/deploy-wisdom-tree-ark'
 import {
   validateAddress,
+  validateConfigAddressEntry,
   validateErc4626Address,
   validateMarketId,
   validateString,
   validateToken,
 } from '../helpers/validation'
 import { ZERO_STRING } from './constants'
-
-export type ArkConfig = {
-  type: ArkType
-  params: {
-    asset: string
-    protocol?: string
-    vaultName?: string
-    targetChainId?: string
-    depositCap?: string
-    maxRebalanceOutflow?: string
-    maxRebalanceInflow?: string
-    maxDepositPercentageOfTVL?: string
-    vaultToken?: string // for arks with underlying token different than fleet asset
-    targetWallet?: string // for WisdomTreeArk
-  }
-}
 
 export type BaseArkParams = {
   token: {
@@ -131,8 +117,9 @@ export async function deployArk(
     }
     case ArkType.ERC4626Ark: {
       const validatedVaultName = validateString(vaultName, 'vault name')
-      const vaultAddress = validateErc4626Address(
-        config.protocolSpecific.erc4626[token][validatedVaultName],
+      const vaultAddress = validateConfigAddressEntry(
+        config.protocolSpecific.erc4626[token],
+        validatedVaultName,
         'ERC4626 vault',
       )
       const ark = await deployERC4626Ark(config, {
@@ -164,13 +151,29 @@ export async function deployArk(
     }
     case ArkType.MorphoVaultArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
-      const marketId = validateMarketId(
-        config.protocolSpecific.morpho.vaults[token][vaultName],
-        'Morpho vault market ID',
+      const vaultId = validateConfigAddressEntry(
+        config.protocolSpecific.morpho.vaults[token],
+        vaultName,
+        'Morpho vault ID',
       )
       const ark = await deployMorphoVaultArk(config, {
         ...baseArkParams,
-        vaultId: marketId as `0x${string}`,
+        vaultId: vaultId,
+        vaultName: vaultName,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.MorphoV2VaultArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateConfigAddressEntry(
+        config.protocolSpecific.morpho.vaultsV2[token],
+        vaultName,
+        'Morpho V2 vault ID',
+      )
+      const ark = await deployMorphoV2VaultArk(config, {
+        ...baseArkParams,
+        vaultId: vaultId,
         vaultName: vaultName,
       })
       deployedArk = ark
@@ -250,7 +253,10 @@ export async function deployArk(
       break
     }
     case ArkType.SkyRewardsArk: {
-      const ark = await deploySkyRewardsArk(config, baseArkParams)
+      const ark = await deploySkyRewardsArk(config, {
+        ...baseArkParams,
+        rewardToken: arkConfig.params.rewardToken,
+      })
       deployedArk = ark
       break
     }

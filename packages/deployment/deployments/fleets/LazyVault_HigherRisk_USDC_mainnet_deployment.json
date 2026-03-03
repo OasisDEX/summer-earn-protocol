@@ -38,10 +38,19 @@
     "0x5Ebbc493fD41dD607cDAd244a9E6CA7466A3F264",
     "0x78D0bf191f3D38713270E56d9b879A54C2864CFD",
     "0xEE828F95f95F0a0bbec792C4c9D2aF86918F1e4e",
-    "0x1B31793E0f8afD346CEAA60A3D1859F3A9d9cF69"
+    "0x1B31793E0f8afD346CEAA60A3D1859F3A9d9cF69",
+    "0x539b7f974cC8E19D7376003877965dFD5E4C97b2",
+    "0x8Ec71E0D225B4213A95E669A7286E6D5637462c7"
   ],
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "3600",
   "depositCap": "100000000",
-  "initialTipRate": "1000000000000000000"
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "LazyVault_HigherRisk_USDC",
+    "chainId": 1,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  }
 }

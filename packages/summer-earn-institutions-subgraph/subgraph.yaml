@@ -1,14 +1,19 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
+features:
+  - grafting
+graft:
+  base: QmNySYVT8KC2eszWXVZAJz9XAYei8Yf54rYprDAzyL4cSr
+  block: 426473915
 dataSources:
   - kind: ethereum/contract
     name: InstitutionalVaultRegistry
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: InstitutionalVaultRegistry
-      address: "0xCDa1586aDa05330e46075Ed8c58B9f6E8DCf7A7f"
-      startBlock: 24094872
+      address: "0x209dCC11C4A3424d7AA6c0690cbEa07de9d6D9B6"
+      startBlock: 394646348
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -70,7 +75,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: FleetCommander
     mapping:
@@ -165,7 +170,7 @@ templates:
 
   - kind: ethereum/contract
     name: ArkTemplate
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: Ark
     mapping:
@@ -234,7 +239,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: HarborCommand
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: HarborCommand
     mapping:
@@ -286,11 +291,11 @@ templates:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 600 
+            every: 240 
       file: ./src/mappings/harborCommand.ts
   - kind: ethereum/contract
     name: ProtocolAccessManager
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: ProtocolAccessManager
     mapping:
@@ -344,7 +349,7 @@ templates:
       file: ./src/mappings/accessManagement.ts      
   - kind: ethereum/contract
     name: AdmiralsQuarters
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: AdmiralsQuarters
     mapping:

@@ -1,5 +1,6 @@
 {
   "fleetName": "LazyVault_LowerRisk_USDC",
+  "isBummer": false,
   "fleetSymbol": "LVUSDC",
   "assetSymbol": "USDC",
   "fleetAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
@@ -30,10 +31,21 @@
     "0x0C939b702524fDaBa4914E905Bcb850182308141",
     "0x77e5f42d5cf2d1B9849AE6A5d2D7dC5b774f8290",
     "0x47F73542a9b59C2316832775C51cC99E6B468A67",
-    "0x565a4c04E32fBf001AE36C4fB60584A687Ffa27C"
+    "0x565a4c04E32fBf001AE36C4fB60584A687Ffa27C",
+    "0xeBA9b3d4336802CcfbDB80AfBDA820e9Eef97f8e",
+    "0xd0aAdDe147b6D683cBb80bFE0Fb9e8dB9De1958F",
+    "0x81f025C87367033d87B6d3A95289B36106770B25",
+    "0x857a0CaC1Ac29d8101822f8879E4e6918293c7b5"
   ],
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "3600",
   "depositCap": "100000000",
-  "initialTipRate": "1000000000000000000"
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "LazyVault_LowerRisk_USDC",
+    "chainId": 1,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  }
 }

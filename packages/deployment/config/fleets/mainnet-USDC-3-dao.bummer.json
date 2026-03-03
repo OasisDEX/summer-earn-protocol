@@ -1,0 +1,34 @@
+{
+  "fleetName": "BummerDAO_LazyVault_USDC_2",
+  "symbol": "LVUSDC",
+  "assetSymbol": "USDC",
+  "isBummer": true,
+  "initialMinimumBufferBalance": "500000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "25000000000000",
+  "initialTipRate": "1000000000000000000",
+  "network": "mainnet",
+  "keeper": "0xc2a8467a52Fec8383c424149000cf384de9Ba1B5",
+  "curator": "0x0f0fA89471259433b6955827226f19999D93c568",
+  "details": {
+    "type": "dao",
+    "name": "DAO_LazyVault_USDC",
+    "chainId": 1,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC"
+  },
+  "arks": [
+    {
+      "type": "MorphoV2VaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Morpho_V2",
+        "vaultName": "August_USDC_V2",
+        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "maxDepositPercentageOfTVL": "30000000000000000000"
+      }
+    }
+  ]
+}

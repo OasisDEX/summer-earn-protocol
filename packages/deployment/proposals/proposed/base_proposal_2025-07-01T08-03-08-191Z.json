@@ -1,0 +1,14 @@
+{
+  "title": "SIP5.21: Remove reward root from RAYS rewards in order to recoup unclaimed SUMR",
+  "description": "# SIP5.21: Remove reward root from RAYS rewards in order to recoup unclaimed SUMR \n\n## Summary\nThis proposal removes the reward root from RAYS rewards in order to recoup unclaimed SUMR.\n\n## Actions\n1. Validate timestamp -> 1772323140 \n2. Remove root `1`\n\n## References\nDiscourse: https://forum.summer.fi/t/sip5-21-remove-reward-root-from-rays-rewards-in-order-to-recoup-unclaimed-sumr/738\n",
+  "targets": [
+    "0x0207c809c92df79cd3e6d27e21e494767d087703",
+    "0x54a2ea2B8f57D62c149ace01d7Ac1fd9A880B8dd"
+  ],
+  "values": ["0", "0"],
+  "calldatas": [
+    "0xc329b175",
+    "0x38af30b00000000000000000000000000000000000000000000000000000000000000001"
+  ],
+  "proposalTxHash": "0x4a6744b551ec690b4988eba27400d6bc0b8e33ef778d556db6e1a6465aea2748"
+}

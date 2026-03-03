@@ -10,6 +10,6 @@
   "summer-staking-v2-staging-address": "0x0000000000000000000000000000000000000000",
   "summer-staking-v2-staging-start-block": 301218468,
   "enable-grafting": false,
-  "grafting-base": "QmPfSxJ5L4v7G3Ttjki4wXYYqcvFYh7ELGqP1QckeMAvnw",
-  "grafting-block": "45585548"
+  "grafting-base": "QmSY15inbSib3UbKXCygft2Y8a2ocstQwdGuco7xz423MD",
+  "grafting-block": "61400955"
 }
