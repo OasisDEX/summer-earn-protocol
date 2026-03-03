@@ -13,6 +13,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { toast } from 'sonner'
 import { RWA_ORACLE_ABI } from '../lib/constants'
+import { invalidateActivityLog } from '../app/actions/revalidate'
 
 /** EIP-712 types for RwaOracle price update - must match contract */
 const PRICE_UPDATE_TYPES = {
@@ -126,6 +127,10 @@ export function ManualUpdateModal({
 
       toast.success('Update broadcasted successfully!')
       console.log('Transaction Hash:', hash)
+
+      // Invalidate the ActivityLog cache
+      const networkName = chainId === 8453 ? 'base' : chainId === 42161 ? 'arbitrum' : chainId === 146 ? 'sonic' : 'mainnet'
+      await invalidateActivityLog(networkName)
 
       // Delay closing to let user see success
       setTimeout(() => {
