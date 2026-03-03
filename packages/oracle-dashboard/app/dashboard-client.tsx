@@ -13,6 +13,7 @@ import { DashboardHeader } from '../components/dashboard/DashboardHeader'
 import { KPIGrid } from '../components/dashboard/KPIGrid'
 import { OracleGrid } from '../components/dashboard/OracleGrid'
 import { OracleDetail } from '../components/dashboard/OracleDetail'
+import { ActivityLog } from '../components/dashboard/ActivityLog'
 
 const ManualUpdateModal = dynamic(() =>
   import('../components/ManualUpdateModal').then((mod) => mod.ManualUpdateModal),
@@ -136,13 +137,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
               />
             </>
           ) : currentTab === 'activity' ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center py-20">
-              <span className="material-icons-round text-slate-300 text-6xl mb-4">history</span>
-              <h3 className="text-xl font-bold">Activity Log</h3>
-              <p className="text-slate-500">
-                Recent heartbeat and manual update events will appear here.
-              </p>
-            </div>
+            <ActivityLog selectedNetwork={selectedNetwork} stats={stats} />
           ) : (
             <div className="bg-white rounded-xl border border-slate-200 p-8 text-center py-20">
               <span className="material-icons-round text-slate-300 text-6xl mb-4">settings</span>

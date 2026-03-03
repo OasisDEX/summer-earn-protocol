@@ -6,6 +6,8 @@ import { getOffchainFetcher } from './fetchers'
 import deploymentsJson from './deployments.json'
 import { CHAIN_RPC_URLS } from '@/config/chains'
 
+export { CHAIN_RPC_URLS }
+
 export type OracleStatus = 'healthy' | 'warning' | 'stale'
 
 export interface TickerStats {
