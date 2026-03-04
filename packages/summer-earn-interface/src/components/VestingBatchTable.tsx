@@ -443,7 +443,9 @@ export default function VestingBatchTable({
                         ) : isOk ? (
                           <span title="All tokens accounted for">✓</span>
                         ) : (
-                          <span title={`Deficit: ${formatDecimalOutput(-delta, snap.decimals)} SUMR`}>
+                          <span
+                            title={`Deficit: ${formatDecimalOutput(-delta, snap.decimals)} SUMR`}
+                          >
                             −{formatDecimalOutput(-delta, snap.decimals)}
                           </span>
                         )}
