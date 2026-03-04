@@ -9,8 +9,7 @@ test = 'test'
 cache_path  = 'cache_forge'
 solc = "0.8.28"
 viaIR = true
-optimizer = true
-optimizer_runs=25
+optimizer = false
 evm_version = "cancun"
 cbor_metadata = true
 
@@ -26,7 +25,7 @@ cache_path  = 'cache_forge'
 solc = "0.8.28"
 evm_version = "cancun"
 cbor_metadata = true
-viaIR = true
+viaIR = false
 optimizer = false
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 
