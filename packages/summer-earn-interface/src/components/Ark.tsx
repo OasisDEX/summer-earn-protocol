@@ -6,9 +6,9 @@ import { ChainId } from '@/types'
 
 import { useRaftContract } from '../contracts/Raft'
 import { useArkWithdrawalActions } from '../hooks/useArkWithdrawalActions'
+import { formatDecimalOutput } from '../utils/decimals'
 import { ArkManagementForm } from './ArkManagementForm'
 import { AuctionConfigModal } from './AuctionConfigModal'
-import { formatDecimalOutput } from '../utils/decimals'
 
 interface ArkProps {
   arkAddress: Address

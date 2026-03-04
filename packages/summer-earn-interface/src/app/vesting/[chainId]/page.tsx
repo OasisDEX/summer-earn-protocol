@@ -15,17 +15,17 @@ import { base as baseChain } from 'wagmi/chains'
 
 import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 
-import { ChainPills } from '../../../components/ChainPills'
-import { ConnectButton } from '../../../components/ConnectButton'
-import { GlassCard } from '../../../components/GlassCard'
-import { ProgressBar } from '../../../components/ProgressBar'
-import { StatCard } from '../../../components/StatCard'
 import { erc20Abi } from '../../../abis/ERC20'
 import { summerVestingWalletAbi } from '../../../abis/SummerVestingWallet'
 import { summerVestingWalletEscrowAbi } from '../../../abis/SummerVestingWalletEscrow'
 import { summerVestingWalletFactoryAbi } from '../../../abis/SummerVestingWalletFactory'
 import { summerVestingWalletFactoryV2Abi } from '../../../abis/SummerVestingWalletFactoryV2'
 import { summerVestingWalletV2Abi } from '../../../abis/SummerVestingWalletV2'
+import { ChainPills } from '../../../components/ChainPills'
+import { ConnectButton } from '../../../components/ConnectButton'
+import { GlassCard } from '../../../components/GlassCard'
+import { ProgressBar } from '../../../components/ProgressBar'
+import { StatCard } from '../../../components/StatCard'
 import {
   SUMMER_VESTING_WALLET_FACTORY_ADDRESSES,
   SUMMER_VESTING_WALLET_FACTORY_V2_ADDRESSES,
@@ -262,11 +262,11 @@ function VestingContent() {
     query: { enabled: !!vestingWalletAddress },
   })
 
-  // Extract V2 params by tuple position to avoid ABI name mismatches
-  const v2CliffAmount = useMemo(() => {
-    if (!isV2Wallet || vestingType === undefined) return null
-    return extractVestingParam(vestingType, 1, 'cliffAmount') ?? BigInt(0)
-  }, [isV2Wallet, vestingType])
+  // // Extract V2 params by tuple position to avoid ABI name mismatches
+  // const v2CliffAmount = useMemo(() => {
+  //   if (!isV2Wallet || vestingType === undefined) return null
+  //   return extractVestingParam(vestingType, 1, 'cliffAmount') ?? BigInt(0)
+  // }, [isV2Wallet, vestingType])
 
   const v2TotalVestingAmount = useMemo(() => {
     if (!isV2Wallet || vestingType === undefined) return null
