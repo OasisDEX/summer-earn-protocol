@@ -1,10 +1,11 @@
 'use client'
 
-import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import type { WalletSnapshot } from '@/lib/vesting-logic'
 import { formatDecimalOutput } from '@/utils/decimals'
+
 import { ProgressBar } from './ProgressBar'
 
 function StatCard({

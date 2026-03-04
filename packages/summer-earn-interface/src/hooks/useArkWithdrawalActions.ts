@@ -26,11 +26,9 @@ export function useArkWithdrawalActions({
 
   const { writeContractAsync, isPending: isWritePending, error: writeError } = useWriteContract()
 
-  const {
-    isLoading: isTxLoading,
-    isSuccess: isTxSuccess,
-    isError: isTxError,
-  } = useWaitForTransactionReceipt({ hash: txHash })
+  const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
+    hash: txHash,
+  })
 
   const chain = VIEM_CHAIN_ENTITIES[chainId]
   const explorerBase = CHAIN_BLOCK_EXPLORERS[chainId]

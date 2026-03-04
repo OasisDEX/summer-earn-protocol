@@ -5,12 +5,12 @@ import Link from 'next/link'
 import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 
-import { ProgressBar } from './ProgressBar'
 import { useFleetActions } from '../hooks/useFleetActions'
 import { useFleetInfo } from '../hooks/useFleetInfo'
 import { useStakingRewards } from '../hooks/useStakingRewards'
 import { ChainId, FleetCommanderInfo, UserFleetInfo } from '../types'
 import { formatDecimalOutput, parseDecimalInput } from '../utils/decimals'
+import { ProgressBar } from './ProgressBar'
 
 const MAX_UINT256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
 
