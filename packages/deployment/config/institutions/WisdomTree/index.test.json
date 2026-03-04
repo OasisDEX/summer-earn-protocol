@@ -3,25 +3,32 @@
     "deployedContracts": {
       "gov": {
         "protocolAccessManager": {
-          "address": "0x8cECf9d1Cc41B5f19258C4c58468b00e588C6a14"
+          "address": "0x8B3d875e363dd260b533039de7ed813348cf9ba8"
         }
       },
       "core": {
         "tipJar": {
-          "address": "0x7d7207D0D77a317E60d054E680d6DF494065a297"
+          "address": "0xd60B012c24F36bB72d2E50B01c38A490187690c1"
         },
         "configurationManager": {
-          "address": "0x3a4566C44b16C72E9D4A019C8FFb258738D1a389"
+          "address": "0xdDd8769D24E303e2f9648B35ea9f37285E6e6850"
         },
         "harborCommand": {
-          "address": "0xF0a9BBe9D536FB92FB51a76169490c5118459463"
+          "address": "0x8B88Eb316205426672578EB012827668547De032"
         },
         "admiralsQuarters": {
-          "address": "0x92B8049d51614bD8F9d029444634476F2d1b81e9"
+          "address": "0xA6216397787Abab354AC941Aa76a5f8659556D85"
         },
         "raft": {
-          "address": "0xB1EDbe581Fc851A7bE425689F7349426f4384dCb"
+          "address": "0x4f769Eb9B19936A54B735Ce8B804976A5Cf59899"
         }
+      }
+    },
+    "fleets": {
+      "WisdomTree_USDC_Base": {
+        "fleetCommander": "0x9FD22516FF2EBeaF1fcA9bcace1F25cf13Ae9cEC",
+        "bufferArk": "0x986dCA321BB6f136635Bb790d0bB3CE6291B7A5a",
+        "arks": ["0x24fE4af7261ADfb15843dc1Ba2F9B6a9e6646987"]
       }
     },
     "treasury": "0xA0d7E9F71597623355e407C0D55047306045cca0",

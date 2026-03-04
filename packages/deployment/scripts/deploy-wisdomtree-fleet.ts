@@ -112,6 +112,7 @@ async function main() {
       institutionId,
     ])) as Address
     const exists = (await registry.read.exists([institutionBytes32])) as boolean
+    console.log(institutionBytes32, registryAddress, exists)
     if (!exists) {
       console.log(
         kleur.red(

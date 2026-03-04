@@ -65,12 +65,3 @@ export function createInstitutionWhitelistModule(moduleName: string) {
     }
   })
 }
-
-export type InstitutionWhitelistContracts = {
-  protocolAccessManager: { address: string }
-  configurationManager: { address: string }
-  tipJar: { address: string }
-  harborCommand: { address: string }
-  raft: { address: string }
-  admiralsQuarters: { address: string }
-}

@@ -1,0 +1,23 @@
+{
+  "fleetName": "WisdomTree_USDC_Base",
+  "isBummer": true,
+  "fleetSymbol": "WisdomTreeUSDC",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0x9FD22516FF2EBeaF1fcA9bcace1F25cf13Ae9cEC",
+  "bufferArkAddress": "0x986dCA321BB6f136635Bb790d0bB3CE6291B7A5a",
+  "network": "base",
+  "initialMinimumBufferBalance": "10000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "WisdomTree_USDC_Base",
+    "chainId": 8453,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  },
+  "arks": [
+    "0x24fE4af7261ADfb15843dc1Ba2F9B6a9e6646987"
+  ]
+}
