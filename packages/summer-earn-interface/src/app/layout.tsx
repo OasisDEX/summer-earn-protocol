@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { Inter } from 'next/font/google'
+import Link from 'next/link'
 
 import { ConnectButton } from '../components/ConnectButton'
 import { EnvironmentSelector } from '../components/EnvironmentSelector'

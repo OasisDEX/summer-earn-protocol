@@ -17,10 +17,11 @@
     },
     "build": {
       "dependsOn": ["prebuild", "^build"],
-      "outputs": ["dist/**", "artifacts/**"]
+      "outputs": ["dist/**", "artifacts/**", "out/**", "cache/**"]
     },
     "test": {
-      "dependsOn": ["prebuild", "build", "^test"]
+      "dependsOn": ["prebuild", "build", "^test"],
+      "outputs": ["out/**", "cache/**"]
     },
     "test:integration": {
       "dependsOn": ["prebuild", "build", "^test:integration"]
@@ -54,6 +55,10 @@
     },
     "coverage": {
       "dependsOn": ["test", "test:integration", "^coverage"]
+    },
+    "coverage:lcov": {
+      "dependsOn": ["build"],
+      "outputs": ["lcov.info", "out/**", "cache/**"]
     }
   }
 }

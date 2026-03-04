@@ -1,10 +1,11 @@
 'use client'
 
-import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import type { WalletSnapshot } from '@/lib/vesting-logic'
 import { formatDecimalOutput } from '@/utils/decimals'
+
 import { ProgressBar } from './ProgressBar'
 
 function StatCard({
@@ -142,11 +143,31 @@ export default function VestingBatchTable({
         acc.totalPlanned += s.totalPlanned || 0n
         acc.vested += s.vested || 0n
         acc.unvested += s.unvested || 0n
+        const current =
+          (s.unvested || 0n) +
+          (s.releasable || 0n) +
+          (s.summerBalance || 0n) +
+          (s.xSummerBalance || 0n)
+        const delta = current - (s.totalPlanned || 0n)
+        if (delta < 0n) acc.totalDeficit += -delta
         return acc
       },
-      { totalPlanned: 0n, vested: 0n, unvested: 0n },
+      { totalPlanned: 0n, vested: 0n, unvested: 0n, totalDeficit: 0n },
     )
   }, [snapshots])
+
+  const deficitCount = useMemo(
+    () =>
+      snapshots.filter((s) => {
+        const current =
+          (s.unvested || 0n) +
+          (s.releasable || 0n) +
+          (s.summerBalance || 0n) +
+          (s.xSummerBalance || 0n)
+        return current < (s.totalPlanned || 0n)
+      }).length,
+    [snapshots],
+  )
 
   const uniqueRecipients = useMemo(() => new Set(snapshots.map((s) => s.owner)).size, [snapshots])
 
@@ -160,7 +181,7 @@ export default function VestingBatchTable({
   return (
     <>
       <div className="glass rounded-2xl p-4 mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             label="Total Planned"
             value={formatDecimalOutput(summaryTotals.totalPlanned, 18)}
@@ -178,6 +199,12 @@ export default function VestingBatchTable({
             suffix="SUMR"
           />
           <StatCard label="Unique Recipients" value={String(uniqueRecipients)} suffix="wallets" />
+          <StatCard
+            label="Deficit Wallets"
+            value={`${deficitCount}`}
+            suffix={`/ ${snapshots.length} (${formatDecimalOutput(summaryTotals.totalDeficit, 18)} SUMR)`}
+            highlight={deficitCount > 0}
+          />
         </div>
       </div>
 
@@ -268,6 +295,9 @@ export default function VestingBatchTable({
               />
               <th className="px-3 py-3 text-center border-b border-white/10 text-slate-400">
                 Escrow
+              </th>
+              <th className="px-3 py-3 text-right border-b border-white/10 text-slate-400">
+                Retention
               </th>
               <th className="px-3 py-3 text-center border-b border-white/10 text-slate-400">
                 Actions
@@ -388,6 +418,40 @@ export default function VestingBatchTable({
                       />
                     )}
                   </td>
+
+                  {/* Retention Check */}
+                  {(() => {
+                    const currentTokens =
+                      (snap.unvested || 0n) +
+                      (snap.releasable || 0n) +
+                      (snap.summerBalance || 0n) +
+                      (snap.xSummerBalance || 0n)
+                    const delta = currentTokens - (snap.totalPlanned || 0n)
+                    const isOk = delta >= 0n
+                    return (
+                      <td
+                        className={`px-3 py-3 text-right font-medium ${
+                          snap.totalPlanned === 0n
+                            ? 'text-slate-600'
+                            : isOk
+                              ? 'text-emerald-400'
+                              : 'text-red-400'
+                        }`}
+                      >
+                        {snap.totalPlanned === 0n ? (
+                          '—'
+                        ) : isOk ? (
+                          <span title="All tokens accounted for">✓</span>
+                        ) : (
+                          <span
+                            title={`Deficit: ${formatDecimalOutput(-delta, snap.decimals)} SUMR`}
+                          >
+                            −{formatDecimalOutput(-delta, snap.decimals)}
+                          </span>
+                        )}
+                      </td>
+                    )
+                  })()}
 
                   <td className="px-3 py-3 text-center">
                     {chainId && (
