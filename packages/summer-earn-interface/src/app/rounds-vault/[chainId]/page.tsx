@@ -13,7 +13,8 @@ export default function RoundsVaultPage({ params }: { params: Promise<{ chainId:
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Rounds Vault Dashboard</h1>
           <p className="text-gray-300">
-            Interact with the WisdomTree Rounds Vaults on chain {chainId}. Deposit assets or shares into the locked vaults and exchange your receipts.
+            Interact with the WisdomTree Rounds Vaults on chain {chainId}. Deposit assets or shares
+            into the locked vaults and exchange your receipts.
           </p>
         </div>
 

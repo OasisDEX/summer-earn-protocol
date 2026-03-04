@@ -28,17 +28,25 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
   const config = configs[chainId] || baseConfig
 
   // Addresses configuration mapped from deployment files
-  const ROUNDS_VAULT_INPUT = config['staging_RoundsVaultInput_WisdomTree_USDC_Base#RoundsVaultInput'] as `0x${string}`
-  const ROUNDS_VAULT_OUTPUT = config['staging_RoundsVaultOutput_WisdomTree_USDC_Base#RoundsVaultOutput'] as `0x${string}`
-  // USDC Base mock / standard address. 
+  const ROUNDS_VAULT_INPUT = config[
+    'staging_RoundsVaultInput_WisdomTree_USDC_Base#RoundsVaultInput'
+  ] as `0x${string}`
+  const ROUNDS_VAULT_OUTPUT = config[
+    'staging_RoundsVaultOutput_WisdomTree_USDC_Base#RoundsVaultOutput'
+  ] as `0x${string}`
+  // USDC Base mock / standard address.
   // TODO: Make this dynamic based on the vault's asset() call or from config
-  const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' 
-  const WT_ARK_ADDRESS = config['staging_WisdomTreeArk_WisdomTree_USDC_Base#WisdomTreeArk'] as `0x${string}`
+  const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+  const WT_ARK_ADDRESS = config[
+    'staging_WisdomTreeArk_WisdomTree_USDC_Base#WisdomTreeArk'
+  ] as `0x${string}`
 
   if (!ROUNDS_VAULT_INPUT || !ROUNDS_VAULT_OUTPUT) {
     return (
       <div className="bg-charcoal-800/60 p-6 rounded-2xl border border-white/5 backdrop-blur-xl">
-        <p className="text-white text-center">Rounds Vault not deployed on this chain ({chainId}).</p>
+        <p className="text-white text-center">
+          Rounds Vault not deployed on this chain ({chainId}).
+        </p>
       </div>
     )
   }

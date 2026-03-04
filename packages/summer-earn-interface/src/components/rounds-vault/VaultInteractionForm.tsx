@@ -65,6 +65,13 @@ export function VaultInteractionForm({
     },
   }) as { data: bigint | undefined }
 
+  // Read exchange asset
+  const { data: exchangeAsset } = useReadContract({
+    address: vaultAddress,
+    abi: vaultAbi,
+    functionName: 'exchangeAsset',
+  }) as { data: `0x${string}` | undefined }
+
   const { writeContractAsync, isPending } = useWriteContract()
 
   const handleDeposit = async () => {
@@ -105,6 +112,18 @@ export function VaultInteractionForm({
     }
   }
 
+  const handleNextRound = async () => {
+    try {
+      await (writeContractAsync as any)({
+        address: vaultAddress,
+        abi: vaultAbi,
+        functionName: 'nextRound',
+      })
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   return (
     <div className="bg-charcoal-800/60 p-6 rounded-2xl border border-white/5 backdrop-blur-xl shadow-2xl hover:border-white/10 transition-all duration-300">
       <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
@@ -122,7 +141,8 @@ export function VaultInteractionForm({
         <div className="flex justify-between items-center bg-gray-900/50 p-4 rounded-xl border border-white/5">
           <span className="text-gray-400">Your Receipts (Current Round)</span>
           <span className="font-mono text-white text-lg font-medium">
-            {receiptsBalance !== undefined ? formatUnits(receiptsBalance as bigint, decimals) : '0'} {receiptSymbol}
+            {receiptsBalance !== undefined ? formatUnits(receiptsBalance as bigint, decimals) : '0'}{' '}
+            {receiptSymbol}
           </span>
         </div>
       </div>
@@ -149,7 +169,8 @@ export function VaultInteractionForm({
             </button>
           </div>
           <div className="text-xs text-gray-500 text-right">
-            Balance: {balance !== undefined ? formatUnits(balance as bigint, decimals) : '0'} {symbol}
+            Balance: {balance !== undefined ? formatUnits(balance as bigint, decimals) : '0'}{' '}
+            {symbol}
           </div>
         </div>
 
@@ -173,6 +194,37 @@ export function VaultInteractionForm({
               className="bg-indigo-500 hover:bg-indigo-400 text-white font-medium px-6 py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
             >
               Exchange
+            </button>
+          </div>
+        </div>
+
+        <div className="h-px bg-white/5 w-full my-6"></div>
+
+        {/* Keeper & ABI Data Section */}
+        <div className="space-y-4 bg-gray-900/40 p-5 rounded-xl border border-blue-500/20">
+          <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wider flex items-center justify-between">
+            Keeper Actions & Protocol State
+          </h3>
+
+          {exchangeAsset && (
+            <div className="text-xs text-gray-400 break-all mb-4">
+              <span className="text-gray-500 block mb-1">Exchange Asset Contract:</span>
+              <code className="text-blue-300 font-mono bg-blue-900/20 px-2 py-1 rounded">
+                {exchangeAsset}
+              </code>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pt-2 border-t border-white/5">
+            <span className="text-sm text-gray-400">
+              Advance to Round {currentRound !== undefined ? Number(currentRound) + 1 : '...'}
+            </span>
+            <button
+              onClick={handleNextRound}
+              disabled={isPending}
+              className="bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 border border-red-500/30 font-medium px-4 py-2 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
+            >
+              Execute nextRound()
             </button>
           </div>
         </div>
