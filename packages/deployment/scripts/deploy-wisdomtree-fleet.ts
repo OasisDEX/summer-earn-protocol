@@ -180,12 +180,7 @@ async function main() {
     config.deployedContracts.core.configurationManager.address,
   )
 
-  const deployedFleetContent = deployedFleet as any
-
-  const { test } = deployedFleetContent
-  console.log(kleur.blue(`Deployed Fleet: ${JSON.stringify(test, null, 2)}`))
-
-  const bufferArkAddress = await deployedFleetContent.fleetCommanderWhitelist.read.bufferArk()
+  const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
   // Deploys WisdomTree Ark using standard helper
   const deployedArks = await deployArks(fleetDefinition, config)
 
@@ -197,32 +192,29 @@ async function main() {
   const outputVaultModule = createRoundsVaultOutputModule(outputModuleName)
 
   console.log(kleur.cyan().bold(`\nDeploying RoundsVaults...`))
-  const { roundsVaultInput: deployedInputVault } = await hre.ignition.deploy(inputVaultModule, {
+  const deployedInputVault = await hre.ignition.deploy(inputVaultModule, {
     parameters: {
       [inputModuleName]: {
-        targetVault: deployedFleetContent.fleetCommanderWhitelist.address,
+        targetVault: deployedFleet.fleetCommander.address,
         accessManager: config.deployedContracts.gov.protocolAccessManager.address,
         receiptsURI: `vaults/rounds/input/${fleetDefinition.symbol}`,
       },
     },
   })
-  const { roundsVaultOutput: deployedOutputVault } = await hre.ignition.deploy(outputVaultModule, {
+  const deployedOutputVault = await hre.ignition.deploy(outputVaultModule, {
     parameters: {
       [outputModuleName]: {
-        targetVault: deployedFleetContent.fleetCommanderWhitelist.address,
+        targetVault: deployedFleet.fleetCommander.address,
         accessManager: config.deployedContracts.gov.protocolAccessManager.address,
         receiptsURI: `vaults/rounds/output/${fleetDefinition.symbol}`,
       },
     },
   })
 
-  // Wrap to match saver/logger expected shape
-  const deployedCompat = { fleetCommander: deployedFleetContent.fleetCommanderWhitelist } as any
-
   // Save initial deployment info without arks; arks will be appended by addArkToFleet calls
   saveFleetDeploymentJson(
     fleetDefinition,
-    deployedCompat,
+    deployedFleet,
     bufferArkAddress as Address,
     undefined,
     useBummerConfig,
@@ -233,7 +225,7 @@ async function main() {
 
   const fleetNameKey = fleetDefinition.fleetName
   updateInstitutionFleetEntry(institutionId, useBummerConfig, network, fleetNameKey, {
-    fleetCommander: deployedFleetContent.fleetCommanderWhitelist.address as ViemAddress,
+    fleetCommander: deployedFleet.fleetCommander.address as ViemAddress,
     bufferArk: bufferArkAddress as ViemAddress,
     arks: deployedArks as ViemAddress[],
   })
@@ -252,7 +244,7 @@ async function main() {
   if (hasGovernorRole) {
     // Enlist fleet in Harbor
     await addFleetToHarbor(
-      deployedFleetContent.fleetCommanderWhitelist.address as Address,
+      deployedFleet.fleetCommander.address as Address,
       config.deployedContracts.core.harborCommand.address as Address,
       config.deployedContracts.gov.protocolAccessManager.address as Address,
     )
@@ -265,13 +257,13 @@ async function main() {
     // Grant keeper roles to vaults so they can be keepers of their operations
     await grantKeeperRole(
       config.deployedContracts.gov.protocolAccessManager.address as Address,
-      (deployedInputVault as any).roundsVaultInput.address as Address,
+      deployedInputVault.roundsVaultInput.address,
       fleetDefinition.keeper || (deployer.account.address as Address),
       hre,
     )
     await grantKeeperRole(
       config.deployedContracts.gov.protocolAccessManager.address as Address,
-      (deployedOutputVault as any).roundsVaultOutput.address as Address,
+      deployedOutputVault.roundsVaultOutput.address,
       fleetDefinition.keeper || (deployer.account.address as Address),
       hre,
     )
@@ -280,17 +272,17 @@ async function main() {
     console.log(kleur.blue('Whitelisting RoundsVaults on FleetCommander'))
     const fleetCommanderContract = await hre.viem.getContractAt(
       'FleetCommanderWhitelist' as string,
-      deployedFleetContent.fleetCommanderWhitelist.address as Address,
+      deployedFleet.fleetCommander.address as Address,
     )
 
     let whitelistHash = await fleetCommanderContract.write.setWhitelisted([
-      (deployedInputVault as any).roundsVaultInput.address as Address,
+      deployedInputVault.roundsVaultInput.address as Address,
       true,
     ])
     await (await hre.viem.getPublicClient()).waitForTransactionReceipt({ hash: whitelistHash })
 
     whitelistHash = await fleetCommanderContract.write.setWhitelisted([
-      (deployedOutputVault as any).roundsVaultOutput.address as Address,
+      deployedOutputVault.roundsVaultOutput.address as Address,
       true,
     ])
     await (await hre.viem.getPublicClient()).waitForTransactionReceipt({ hash: whitelistHash })
@@ -307,7 +299,7 @@ async function main() {
     if (fleetDefinition.curator) {
       await grantCuratorRole(
         config.deployedContracts.gov.protocolAccessManager.address as Address,
-        deployedFleetContent.fleetCommanderWhitelist.address as Address,
+        deployedFleet.fleetCommander.address as Address,
         fleetDefinition.curator as Address,
         hre,
       )
@@ -320,7 +312,7 @@ async function main() {
     )
   }
 
-  logDeploymentResults(deployedCompat)
+  logDeploymentResults(deployedFleet)
   console.log(kleur.green().bold('Rounds Whitelisted fleet deployed for institution.'))
 }
 

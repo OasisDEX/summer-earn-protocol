@@ -275,16 +275,13 @@ async function main() {
     config.deployedContracts.core.configurationManager.address,
   )
 
-  const bufferArkAddress = await deployedFleet.fleetCommanderWhitelist.read.bufferArk()
+  const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
   const deployedArks = await deployArks(fleetDefinition, config)
-
-  // Wrap to match saver/logger expected shape
-  const deployedCompat = { fleetCommander: deployedFleet.fleetCommanderWhitelist } as any
 
   // Save initial deployment info without arks; arks will be appended by addArkToFleet calls
   saveFleetDeploymentJson(
     fleetDefinition,
-    deployedCompat,
+    deployedFleet,
     bufferArkAddress as Address,
     undefined,
     useBummerConfig,
@@ -293,7 +290,7 @@ async function main() {
   // Persist institution-scoped fleet entry using the fleet config filename (requested: same name as config)
   const fleetNameKey = fleetDefinition.fleetName
   updateInstitutionFleetEntry(institutionId, useBummerConfig, network, fleetNameKey, {
-    fleetCommander: deployedFleet.fleetCommanderWhitelist.address as ViemAddress,
+    fleetCommander: deployedFleet.fleetCommander.address as ViemAddress,
     bufferArk: bufferArkAddress as ViemAddress,
     arks: deployedArks as ViemAddress[],
   })
@@ -312,7 +309,7 @@ async function main() {
   if (hasGovernorRole) {
     // Enlist fleet in Harbor
     await addFleetToHarbor(
-      deployedFleet.fleetCommanderWhitelist.address as Address,
+      deployedFleet.fleetCommander.address as Address,
       config.deployedContracts.core.harborCommand.address as Address,
       config.deployedContracts.gov.protocolAccessManager.address as Address,
     )
@@ -326,7 +323,7 @@ async function main() {
     if (fleetDefinition.curator) {
       await grantCuratorRole(
         config.deployedContracts.gov.protocolAccessManager.address as Address,
-        deployedFleet.fleetCommanderWhitelist.address as Address,
+        deployedFleet.fleetCommander.address as Address,
         fleetDefinition.curator as Address,
         hre,
       )
@@ -334,7 +331,7 @@ async function main() {
     if (fleetDefinition.keeper) {
       await grantKeeperRole(
         config.deployedContracts.gov.protocolAccessManager.address as Address,
-        deployedFleet.fleetCommanderWhitelist.address as Address,
+        deployedFleet.fleetCommander.address as Address,
         fleetDefinition.keeper as Address,
         hre,
       )
@@ -355,7 +352,7 @@ async function main() {
   ) {
     try {
       const rewardsManagerAddress = await getRewardsManagerAddress(
-        deployedFleet.fleetCommanderWhitelist.address as ViemAddress,
+        deployedFleet.fleetCommander.address as ViemAddress,
       )
       await setupFleetRewards(
         rewardsManagerAddress,
@@ -370,7 +367,7 @@ async function main() {
     }
   }
 
-  logDeploymentResults(deployedCompat)
+  logDeploymentResults(deployedFleet)
   console.log(kleur.green().bold('Whitelisted fleet deployed for institution.'))
 }
 

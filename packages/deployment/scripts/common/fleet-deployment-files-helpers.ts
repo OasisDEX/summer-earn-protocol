@@ -171,7 +171,10 @@ export function saveFleetDeploymentJson(
     depositCap: fleetDefinition.depositCap,
     initialTipRate: fleetDefinition.initialTipRate,
     arks: deployedArks?.map((address) => address.toString()) || undefined,
-    details: fleetDefinition.details,
+    details:
+      typeof fleetDefinition.details === 'string'
+        ? JSON.parse(fleetDefinition.details)
+        : fleetDefinition.details,
   }
 
   // Validate before write

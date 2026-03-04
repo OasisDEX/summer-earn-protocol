@@ -47,6 +47,6 @@ export function createFleetWhitelistModule(moduleName: string) {
         fleetCommanderRewardsManagerFactory: fleetCommanderRewardsManagerFactory,
       },
     ])
-    return { fleetCommanderWhitelist }
+    return { fleetCommander: fleetCommanderWhitelist }
   })
 }
