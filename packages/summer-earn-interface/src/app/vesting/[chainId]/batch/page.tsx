@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { headers } from 'next/headers'
+import Link from 'next/link'
 
 import { RefreshButton } from '@/components/RefreshButton'
 import VestingBatchTable from '@/components/VestingBatchTable'
@@ -25,12 +25,13 @@ async function getData(chainId: string, environment: Environment = 'production')
   return res.json()
 }
 
-export default async function VestingBatchPage({ params }: { params: { chainId: string } }) {
-  const chainId = params.chainId || '8453'
-  // Default to production, but the API route can accept environment as query param
-  // For now, we'll use production. In the future, this could come from a cookie or header
-  const environment: Environment = 'production'
-  const { snapshots, timestamp } = await getData(chainId, environment)
+export default async function VestingBatchPage({
+  params,
+}: {
+  params: Promise<{ chainId: string }>
+}) {
+  const { chainId } = await params
+  const { snapshots, timestamp } = await getData(chainId)
 
   return (
     <main className="w-full min-h-screen bg-charcoal-900 p-8">
