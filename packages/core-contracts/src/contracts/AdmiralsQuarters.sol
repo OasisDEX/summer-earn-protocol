@@ -1,33 +1,33 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
-import { IAdmiralsQuarters } from "../interfaces/IAdmiralsQuarters.sol";
-import { IFleetCommander } from "../interfaces/IFleetCommander.sol";
+import {IAdmiralsQuarters} from "../interfaces/IAdmiralsQuarters.sol";
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 
-import { IFleetCommanderRewardsManager } from "../interfaces/IFleetCommanderRewardsManager.sol";
-import { IHarborCommand } from "../interfaces/IHarborCommand.sol";
+import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
+import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 
-import { IAToken } from "../interfaces/aave-v3/IAtoken.sol";
-import { IPoolV3 } from "../interfaces/aave-v3/IPoolV3.sol";
-import { IComet } from "../interfaces/compound-v3/IComet.sol";
-import { IWETH } from "../interfaces/misc/IWETH.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ConfigurationManaged } from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
-import { Constants } from "@summerfi/constants/Constants.sol";
+import {IAToken} from "../interfaces/aave-v3/IAtoken.sol";
+import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
+import {IComet} from "../interfaces/compound-v3/IComet.sol";
+import {IWETH} from "../interfaces/misc/IWETH.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 
-import { ProtectedMulticall } from "./ProtectedMulticall.sol";
-import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ProtectedMulticall} from "./ProtectedMulticall.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { IDistributor } from "../interfaces/merkl/IDistributor.sol";
-import { ISignatureTransfer } from "../interfaces/permit2/IPermit2.sol";
-import { IGovernanceRewardsManager } from "@summerfi/earn-gov-contracts/interfaces/IGovernanceRewardsManager.sol";
-import { IStakingRewardsManagerBase } from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
-import { ISummerRewardsRedeemer } from "@summerfi/rewards-contracts/interfaces/ISummerRewardsRedeemer.sol";
+import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
+import {ISignatureTransfer} from "../interfaces/permit2/IPermit2.sol";
+import {IGovernanceRewardsManager} from "@summerfi/earn-gov-contracts/interfaces/IGovernanceRewardsManager.sol";
+import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
+import {ISummerRewardsRedeemer} from "@summerfi/rewards-contracts/interfaces/ISummerRewardsRedeemer.sol";
 
 /**
  * @title AdmiralsQuarters
@@ -72,24 +72,23 @@ contract AdmiralsQuarters is
     IAdmiralsQuarters,
     ConfigurationManaged
 {
-
     using SafeERC20 for IERC20;
     using SafeERC20 for IAToken;
 
     address public immutable ONE_INCH_ROUTER;
-    address public immutable NATIVE_PSEUDO_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address public immutable NATIVE_PSEUDO_ADDRESS =
+        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public immutable WRAPPED_NATIVE;
-    address public immutable MERKL_DISTRIBUTOR = 0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae;
-    address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    address public immutable MERKL_DISTRIBUTOR =
+        0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae;
+    address public constant PERMIT2 =
+        0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
     constructor(
         address _oneInchRouter,
         address _configurationManager,
         address _wrappedNative
-    )
-        Ownable(_msgSender())
-        ConfigurationManaged(_configurationManager)
-    {
+    ) Ownable(_msgSender()) ConfigurationManaged(_configurationManager) {
         if (_oneInchRouter == address(0)) revert InvalidRouterAddress();
         ONE_INCH_ROUTER = _oneInchRouter;
         if (_wrappedNative == address(0)) revert InvalidNativeTokenAddress();
@@ -97,13 +96,16 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function depositTokens(IERC20 asset, uint256 amount) external payable onlyMulticall nonReentrant {
+    function depositTokens(
+        IERC20 asset,
+        uint256 amount
+    ) external payable onlyMulticall nonReentrant {
         _validateToken(asset);
         _validateAmount(amount);
 
         if (address(asset) == NATIVE_PSEUDO_ADDRESS) {
             _validateNativeAmount(amount, msg.value);
-            IWETH(WRAPPED_NATIVE).deposit{ value: amount }();
+            IWETH(WRAPPED_NATIVE).deposit{value: amount}();
         } else {
             asset.safeTransferFrom(_msgSender(), address(this), amount);
         }
@@ -111,7 +113,10 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function withdrawTokens(IERC20 asset, uint256 amount) external payable onlyMulticall nonReentrant {
+    function withdrawTokens(
+        IERC20 asset,
+        uint256 amount
+    ) external payable onlyMulticall nonReentrant {
         _validateToken(asset);
 
         if (address(asset) == NATIVE_PSEUDO_ADDRESS) {
@@ -135,13 +140,7 @@ contract AdmiralsQuarters is
         address fleetCommander,
         uint256 assets,
         address receiver
-    )
-        external
-        payable
-        onlyMulticall
-        nonReentrant
-        returns (uint256 shares)
-    {
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -164,13 +163,7 @@ contract AdmiralsQuarters is
         uint256 assets,
         address receiver,
         bytes calldata referralCode
-    )
-        external
-        payable
-        onlyMulticall
-        nonReentrant
-        returns (uint256 shares)
-    {
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -184,7 +177,13 @@ contract AdmiralsQuarters is
         fleetAsset.forceApprove(address(fleet), assets);
         shares = fleet.deposit(assets, receiver, referralCode);
 
-        emit FleetEnteredWithReferral(_msgSender(), fleetCommander, assets, shares, referralCode);
+        emit FleetEnteredWithReferral(
+            _msgSender(),
+            fleetCommander,
+            assets,
+            shares,
+            referralCode
+        );
     }
 
     /// @inheritdoc IAdmiralsQuarters
@@ -197,18 +196,20 @@ contract AdmiralsQuarters is
         uint8 v,
         bytes32 r,
         bytes32 s
-    )
-        external
-        payable
-        onlyMulticall
-        nonReentrant
-        returns (uint256 shares)
-    {
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         IERC20 fleetAsset = IERC20(fleet.asset());
 
-        IERC20Permit(address(fleetAsset)).permit(owner, address(this), assets, deadline, v, r, s);
+        IERC20Permit(address(fleetAsset)).permit(
+            owner,
+            address(this),
+            assets,
+            deadline,
+            v,
+            r,
+            s
+        );
         fleetAsset.safeTransferFrom(owner, address(this), assets);
 
         fleetAsset.forceApprove(address(fleet), assets);
@@ -217,7 +218,13 @@ contract AdmiralsQuarters is
             emit FleetEntered(owner, fleetCommander, assets, shares);
         } else {
             shares = fleet.deposit(assets, owner, referralCode);
-            emit FleetEnteredWithReferral(owner, fleetCommander, assets, shares, referralCode);
+            emit FleetEnteredWithReferral(
+                owner,
+                fleetCommander,
+                assets,
+                shares,
+                referralCode
+            );
         }
     }
 
@@ -229,24 +236,20 @@ contract AdmiralsQuarters is
         bytes calldata referralCode,
         ISignatureTransfer.PermitTransferFrom calldata permitData,
         bytes calldata signature
-    )
-        external
-        payable
-        onlyMulticall
-        nonReentrant
-        returns (uint256 shares)
-    {
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         IERC20 fleetAsset = IERC20(fleet.asset());
 
-        ISignatureTransfer(PERMIT2)
-            .permitTransferFrom(
-                permitData,
-                ISignatureTransfer.SignatureTransferDetails({ to: address(this), requestedAmount: assets }),
-                owner,
-                signature
-            );
+        ISignatureTransfer(PERMIT2).permitTransferFrom(
+            permitData,
+            ISignatureTransfer.SignatureTransferDetails({
+                to: address(this),
+                requestedAmount: assets
+            }),
+            owner,
+            signature
+        );
 
         fleetAsset.forceApprove(address(fleet), assets);
         if (referralCode.length == 0) {
@@ -254,7 +257,13 @@ contract AdmiralsQuarters is
             emit FleetEntered(owner, fleetCommander, assets, shares);
         } else {
             shares = fleet.deposit(assets, owner, referralCode);
-            emit FleetEnteredWithReferral(owner, fleetCommander, assets, shares, referralCode);
+            emit FleetEnteredWithReferral(
+                owner,
+                fleetCommander,
+                assets,
+                shares,
+                referralCode
+            );
         }
     }
 
@@ -262,13 +271,7 @@ contract AdmiralsQuarters is
     function exitFleet(
         address fleetCommander,
         uint256 assets
-    )
-        external
-        payable
-        onlyMulticall
-        nonReentrant
-        returns (uint256 shares)
-    {
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -281,7 +284,10 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function stake(address fleetCommander, uint256 shares) external payable onlyMulticall nonReentrant {
+    function stake(
+        address fleetCommander,
+        uint256 shares
+    ) external payable onlyMulticall nonReentrant {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -292,7 +298,10 @@ contract AdmiralsQuarters is
         if (shares > balance) revert InsufficientOutputAmount();
 
         IERC20(fleetCommander).forceApprove(rewardsManager, shares);
-        IFleetCommanderRewardsManager(rewardsManager).stakeOnBehalfOf(_msgSender(), shares);
+        IFleetCommanderRewardsManager(rewardsManager).stakeOnBehalfOf(
+            _msgSender(),
+            shares
+        );
 
         emit FleetSharesStaked(_msgSender(), fleetCommander, shares);
     }
@@ -301,18 +310,19 @@ contract AdmiralsQuarters is
         address fleetCommander,
         uint256 shares,
         bool claimRewards
-    )
-        external
-        onlyMulticall
-        nonReentrant
-    {
+    ) external onlyMulticall nonReentrant {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         address rewardsManager = fleet.getConfig().stakingRewardsManager;
 
-        shares = shares == 0 ? IFleetCommanderRewardsManager(rewardsManager).balanceOf(_msgSender()) : shares;
-        IFleetCommanderRewardsManager(rewardsManager).unstakeAndWithdrawOnBehalfOf(_msgSender(), shares, claimRewards);
+        shares = shares == 0
+            ? IFleetCommanderRewardsManager(rewardsManager).balanceOf(
+                _msgSender()
+            )
+            : shares;
+        IFleetCommanderRewardsManager(rewardsManager)
+            .unstakeAndWithdrawOnBehalfOf(_msgSender(), shares, claimRewards);
 
         emit FleetSharesUnstaked(_msgSender(), fleetCommander, shares);
     }
@@ -338,9 +348,21 @@ contract AdmiralsQuarters is
         if (address(fromToken) == address(toToken)) {
             revert AssetMismatch();
         }
-        swappedAmount = _swap(fromToken, toToken, assets, minTokensReceived, swapCalldata);
+        swappedAmount = _swap(
+            fromToken,
+            toToken,
+            assets,
+            minTokensReceived,
+            swapCalldata
+        );
 
-        emit Swapped(_msgSender(), address(fromToken), address(toToken), assets, swappedAmount);
+        emit Swapped(
+            _msgSender(),
+            address(fromToken),
+            address(toToken),
+            assets,
+            swappedAmount
+        );
     }
 
     /// @inheritdoc IAdmiralsQuarters
@@ -350,20 +372,15 @@ contract AdmiralsQuarters is
         uint256[] calldata amounts,
         bytes32[][] calldata proofs,
         address rewardsRedeemer
-    )
-        external
-        onlyMulticall
-        nonReentrant
-    {
+    ) external onlyMulticall nonReentrant {
         _claimMerkleRewards(user, indices, amounts, proofs, rewardsRedeemer);
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function claimGovernanceRewards(address govRewardsManager, address rewardToken)
-        external
-        onlyMulticall
-        nonReentrant
-    {
+    function claimGovernanceRewards(
+        address govRewardsManager,
+        address rewardToken
+    ) external onlyMulticall nonReentrant {
         _claimGovernanceRewards(govRewardsManager, rewardToken);
     }
 
@@ -371,11 +388,7 @@ contract AdmiralsQuarters is
     function claimFleetRewards(
         address[] calldata fleetCommanders,
         address rewardToken
-    )
-        external
-        onlyMulticall
-        nonReentrant
-    {
+    ) external onlyMulticall nonReentrant {
         _claimFleetRewards(fleetCommanders, rewardToken);
     }
 
@@ -385,13 +398,16 @@ contract AdmiralsQuarters is
         address[] calldata tokens,
         uint256[] calldata amounts,
         bytes32[][] calldata proofs
-    )
-        external
-        onlyMulticall
-        nonReentrant
-    {
+    ) external onlyMulticall nonReentrant {
         IDistributor(MERKL_DISTRIBUTOR).claim(users, tokens, amounts, proofs);
-        emit MerklRewardsClaimed(_msgSender(), MERKL_DISTRIBUTOR, users, tokens, amounts, proofs);
+        emit MerklRewardsClaimed(
+            _msgSender(),
+            MERKL_DISTRIBUTOR,
+            users,
+            tokens,
+            amounts,
+            proofs
+        );
     }
 
     /**
@@ -409,14 +425,11 @@ contract AdmiralsQuarters is
         uint256 assets,
         uint256 minTokensReceived,
         bytes calldata swapCalldata
-    )
-        internal
-        returns (uint256 swappedAmount)
-    {
+    ) internal returns (uint256 swappedAmount) {
         uint256 balanceBefore = toToken.balanceOf(address(this));
 
         fromToken.forceApprove(ONE_INCH_ROUTER, assets);
-        (bool success,) = ONE_INCH_ROUTER.call(swapCalldata);
+        (bool success, ) = ONE_INCH_ROUTER.call(swapCalldata);
         if (!success) {
             revert SwapFailed();
         }
@@ -430,7 +443,11 @@ contract AdmiralsQuarters is
     }
 
     function _validateFleetCommander(address fleetCommander) internal view {
-        if (!IHarborCommand(harborCommand()).activeFleetCommanders(fleetCommander)) {
+        if (
+            !IHarborCommand(harborCommand()).activeFleetCommanders(
+                fleetCommander
+            )
+        ) {
             revert InvalidFleetCommander();
         }
     }
@@ -443,17 +460,24 @@ contract AdmiralsQuarters is
         if (amount == 0) revert ZeroAmount();
     }
 
-    function _validateNativeAmount(uint256 amount, uint256 msgValue) internal view {
+    function _validateNativeAmount(
+        uint256 amount,
+        uint256 msgValue
+    ) internal view {
         if (amount != msgValue) revert InvalidNativeAmount();
         // https://github.com/Uniswap/v3-periphery/issues/52
         if (msgValue > address(this).balance) revert InsufficientNativeAmount();
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function rescueTokens(IERC20 token, address to, uint256 amount) external onlyOwner {
+    function rescueTokens(
+        IERC20 token,
+        address to,
+        uint256 amount
+    ) external onlyOwner {
         if (address(token) == NATIVE_PSEUDO_ADDRESS) {
             uint256 ethAmount = amount == 0 ? address(this).balance : amount;
-            (bool success,) = payable(to).call{ value: ethAmount }("");
+            (bool success, ) = payable(to).call{value: ethAmount}("");
             if (!success) revert ETHTransferFailed();
             emit TokensRescued(NATIVE_PSEUDO_ADDRESS, to, ethAmount);
         } else {
@@ -465,7 +489,7 @@ contract AdmiralsQuarters is
     /**
      * @dev Required to receive ETH when unwrapping WETH
      */
-    receive() external payable { }
+    receive() external payable {}
 
     /**
      * @dev Claims rewards from merkle distributor
@@ -481,15 +505,18 @@ contract AdmiralsQuarters is
         uint256[] calldata amounts,
         bytes32[][] calldata proofs,
         address rewardsRedeemer
-    )
-        internal
-    {
+    ) internal {
         if (rewardsRedeemer == address(0)) {
             revert InvalidRewardsRedeemer();
         }
 
         // We can now directly pass the arrays to the redeemer
-        ISummerRewardsRedeemer(rewardsRedeemer).claimMultiple(user, indices, amounts, proofs);
+        ISummerRewardsRedeemer(rewardsRedeemer).claimMultiple(
+            user,
+            indices,
+            amounts,
+            proofs
+        );
     }
 
     /**
@@ -497,7 +524,10 @@ contract AdmiralsQuarters is
      * @param govRewardsManager Address of the governance rewards manager
      * @param rewardToken Address of the reward token to claim
      */
-    function _claimGovernanceRewards(address govRewardsManager, address rewardToken) internal {
+    function _claimGovernanceRewards(
+        address govRewardsManager,
+        address rewardToken
+    ) internal {
         if (govRewardsManager == address(0)) {
             revert InvalidRewardsManager();
         }
@@ -505,7 +535,10 @@ contract AdmiralsQuarters is
         _validateToken(IERC20(rewardToken));
 
         // Claim rewards
-        IGovernanceRewardsManager(govRewardsManager).getRewardFor(_msgSender(), rewardToken);
+        IGovernanceRewardsManager(govRewardsManager).getRewardFor(
+            _msgSender(),
+            rewardToken
+        );
     }
 
     /**
@@ -513,16 +546,24 @@ contract AdmiralsQuarters is
      * @param fleetCommanders Array of FleetCommander addresses
      * @param rewardToken Address of the reward token to claim
      */
-    function _claimFleetRewards(address[] calldata fleetCommanders, address rewardToken) internal {
-        for (uint256 i = 0; i < fleetCommanders.length;) {
+    function _claimFleetRewards(
+        address[] calldata fleetCommanders,
+        address rewardToken
+    ) internal {
+        for (uint256 i = 0; i < fleetCommanders.length; ) {
             address fleetCommander = fleetCommanders[i];
 
             // Validate FleetCommander through HarborCommand
             _validateFleetCommander(fleetCommander);
 
             // Get rewards manager from FleetCommander and claim
-            address rewardsManager = IFleetCommander(fleetCommander).getConfig().stakingRewardsManager;
-            IFleetCommanderRewardsManager(rewardsManager).getRewardFor(_msgSender(), rewardToken);
+            address rewardsManager = IFleetCommander(fleetCommander)
+                .getConfig()
+                .stakingRewardsManager;
+            IFleetCommanderRewardsManager(rewardsManager).getRewardFor(
+                _msgSender(),
+                rewardToken
+            );
 
             unchecked {
                 ++i;
@@ -531,7 +572,10 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function moveFromCompoundToAdmiralsQuarters(address cToken, uint256 assets) external onlyMulticall nonReentrant {
+    function moveFromCompoundToAdmiralsQuarters(
+        address cToken,
+        uint256 assets
+    ) external onlyMulticall nonReentrant {
         IComet token = IComet(cToken);
         address underlying = token.baseToken();
 
@@ -545,7 +589,10 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function moveFromAaveToAdmiralsQuarters(address aToken, uint256 assets) external onlyMulticall nonReentrant {
+    function moveFromAaveToAdmiralsQuarters(
+        address aToken,
+        uint256 assets
+    ) external onlyMulticall nonReentrant {
         IAToken token = IAToken(aToken);
         IPoolV3 pool = IPoolV3(token.POOL());
         IERC20 underlying = IERC20(token.UNDERLYING_ASSET_ADDRESS());
@@ -559,7 +606,10 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function moveFromERC4626ToAdmiralsQuarters(address vault, uint256 shares) external onlyMulticall nonReentrant {
+    function moveFromERC4626ToAdmiralsQuarters(
+        address vault,
+        uint256 shares
+    ) external onlyMulticall nonReentrant {
         IERC4626 vaultToken = IERC4626(vault);
 
         // Get actual shares if 0 was passed
@@ -569,5 +619,4 @@ contract AdmiralsQuarters is
 
         emit ERC4626PositionImported(_msgSender(), vault, shares);
     }
-
 }

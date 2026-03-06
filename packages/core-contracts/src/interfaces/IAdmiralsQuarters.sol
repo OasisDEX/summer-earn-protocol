@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import { IAdmiralsQuartersErrors } from "../errors/IAdmiralsQuartersErrors.sol";
-import { IAdmiralsQuartersEvents } from "../events/IAdmiralsQuartersEvents.sol";
-import { ISignatureTransfer } from "./permit2/IPermit2.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IAdmiralsQuartersErrors} from "../errors/IAdmiralsQuartersErrors.sol";
+import {IAdmiralsQuartersEvents} from "../events/IAdmiralsQuartersEvents.sol";
+import {ISignatureTransfer} from "./permit2/IPermit2.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title IAdmiralsQuarters
  * @notice Interface for the AdmiralsQuarters contract, which manages interactions with FleetCommanders and token swaps
  */
-interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors {
-
+interface IAdmiralsQuarters is
+    IAdmiralsQuartersEvents,
+    IAdmiralsQuartersErrors
+{
     /**
      * @notice Enters a fleet using an ERC-2612 permit signature
      * @param owner The address providing the tokens and receiving the shares
@@ -33,10 +35,7 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
         uint8 v,
         bytes32 r,
         bytes32 s
-    )
-        external
-        payable
-        returns (uint256 shares);
+    ) external payable returns (uint256 shares);
 
     /**
      * @notice Enters a fleet using a Uniswap Permit2 signature transfer
@@ -55,10 +54,7 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
         bytes calldata referralCode,
         ISignatureTransfer.PermitTransferFrom calldata permitData,
         bytes calldata signature
-    )
-        external
-        payable
-        returns (uint256 shares);
+    ) external payable returns (uint256 shares);
 
     /**
      *
@@ -90,10 +86,7 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
         address fleetCommander,
         uint256 assets,
         address receiver
-    )
-        external
-        payable
-        returns (uint256 shares);
+    ) external payable returns (uint256 shares);
 
     /**
      * @notice Enters a FleetCommander by depositing tokens
@@ -109,10 +102,7 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
         uint256 assets,
         address receiver,
         bytes calldata referralCode
-    )
-        external
-        payable
-        returns (uint256 shares);
+    ) external payable returns (uint256 shares);
 
     /**
      * @notice Stakes shares in a FleetCommander
@@ -131,7 +121,11 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
      * @param claimRewards Whether to claim rewards before unstaking
      * @dev Emits a FleetSharesUnstaked event
      */
-    function unstakeAndWithdrawAssets(address fleetCommander, uint256 shares, bool claimRewards) external;
+    function unstakeAndWithdrawAssets(
+        address fleetCommander,
+        uint256 shares,
+        bool claimRewards
+    ) external;
 
     /**
      * @notice Exits a FleetCommander by withdrawing tokens
@@ -140,7 +134,10 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
      * @return shares The amount of assets received from the FleetCommander
      * @dev Emits a FleetExited event
      */
-    function exitFleet(address fleetCommander, uint256 assets) external payable returns (uint256 shares);
+    function exitFleet(
+        address fleetCommander,
+        uint256 assets
+    ) external payable returns (uint256 shares);
 
     /**
      * @notice Performs a token swap using 1inch Router
@@ -158,10 +155,7 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
         uint256 amount,
         uint256 minTokensReceived,
         bytes calldata swapCalldata
-    )
-        external
-        payable
-        returns (uint256 swappedAmount);
+    ) external payable returns (uint256 swappedAmount);
 
     /**
      * @notice Allows the owner to rescue any ERC20 tokens sent to the contract by mistake
@@ -182,7 +176,10 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
      * @param shares The amount of vault tokens to import
      * @dev Emits an ERC4626PositionImported event
      */
-    function moveFromERC4626ToAdmiralsQuarters(address vault, uint256 shares) external;
+    function moveFromERC4626ToAdmiralsQuarters(
+        address vault,
+        uint256 shares
+    ) external;
 
     /**
      * @notice Imports a position from an Aave aToken to AdmiralsQuarters, has to be followed by a call to enter fleet
@@ -194,7 +191,10 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
      * @param amount The amount of tokens to import
      * @dev Emits an AavePositionImported event
      */
-    function moveFromAaveToAdmiralsQuarters(address aToken, uint256 amount) external;
+    function moveFromAaveToAdmiralsQuarters(
+        address aToken,
+        uint256 amount
+    ) external;
 
     /**
      * @notice Imports a position from a Compound cToken to AdmiralsQuarters, has to be followed by a call to enter
@@ -206,7 +206,10 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
      * @param amount The amount of tokens to import
      * @dev Emits a CompoundPositionImported event
      */
-    function moveFromCompoundToAdmiralsQuarters(address cToken, uint256 amount) external;
+    function moveFromCompoundToAdmiralsQuarters(
+        address cToken,
+        uint256 amount
+    ) external;
 
     /**
      * @notice Claims merkle rewards for a user
@@ -222,22 +225,27 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
         uint256[] calldata amounts,
         bytes32[][] calldata proofs,
         address rewardsRedeemer
-    )
-        external;
+    ) external;
 
     /**
      * @notice Claims governance rewards
      * @param govRewardsManager Address of the governance rewards manager
      * @param rewardToken Address of the reward token to claim
      */
-    function claimGovernanceRewards(address govRewardsManager, address rewardToken) external;
+    function claimGovernanceRewards(
+        address govRewardsManager,
+        address rewardToken
+    ) external;
 
     /**
      * @notice Claims rewards from fleet commanders
      * @param fleetCommanders Array of FleetCommander addresses
      * @param rewardToken Address of the reward token to claim
      */
-    function claimFleetRewards(address[] calldata fleetCommanders, address rewardToken) external;
+    function claimFleetRewards(
+        address[] calldata fleetCommanders,
+        address rewardToken
+    ) external;
 
     /**
      * @notice Claims rewards from a merkl distributor
@@ -251,7 +259,5 @@ interface IAdmiralsQuarters is IAdmiralsQuartersEvents, IAdmiralsQuartersErrors 
         address[] calldata tokens,
         uint256[] calldata amounts,
         bytes32[][] calldata proofs
-    )
-        external;
-
+    ) external;
 }
