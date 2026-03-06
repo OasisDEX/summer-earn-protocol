@@ -1,119 +1,293 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../Ark.sol";
+import { AggregatorV3Interface } from "../../interfaces/external/Chainlink/AggregatorV3Interface.sol";
+import "../ArkWithWithdrawalRequest.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /**
  * @title WisdomTreeArk
- * @notice Ark contract for managing token supply by sending boarded assets to a specific wallet.
- * @dev Implements strategy for depositing tokens to an external wallet and tracking the balance manually.
- *      Disembarking requires the assets to be manually returned to this contract beforehand.
+ * @notice Ark for managing off-chain WisdomTree tokenised assets (e.g. WTBTC).
+ *
+ * @dev Asset tracking model:
+ *   totalAssets() = (actualShares * oraclePrice) + pendingDepositAssets + pendingWithdrawalAssets
+ *
+ *   Lifecycle:
+ *   1. Deposit (`_board`):
+ *      - If it's the first deposit in the queue (`pendingDepositAssets == 0`), 
+ *        the Ark snapshots its live share balance into `cachedShareBalance`.
+ *      - USDC is transferred to `CUSTODIAN_WALLET`.
+ *      - `pendingDepositAssets` increases by the sent amount.
+ *
+ *   2. Share Delivery & Keeper Deposit Clearance (`clearPendingDeposit`):
+ *      - WisdomTree mints shares and transfers them to this Ark off-chain.
+ *      - While `pendingDepositAssets > 0`, `totalAssets` uses `cachedShareBalance`, 
+ *        so the newly arriving shares are NOT double-counted.
+ *      - The Keeper observes the incoming shares and calls `clearPendingDeposit`. 
+ *        This resets `pendingDepositAssets` to 0 (we assume no partial fills), 
+ *        releases the cache, and `totalAssets` switches back to using the pure live balance.
+ *
+ *   3. Withdrawal Request (`requestWithdrawal`):
+ *      - Calculates equivalent shares and transfers them to `CUSTODIAN_WALLET`.
+ *      - Reduces `cachedShareBalance` (if frozen) to prevent artificial value propping.
+ *      - Increases `pendingWithdrawalAssets`.
+ *
+ *   4. Sweep (`sweep`):
+ *      - USDC arrives from WisdomTree. Keeper calls `sweep()`.
+ *      - `pendingWithdrawalAssets = 0`. USDC swept to `bufferArk`.
  */
-contract WisdomTreeArk is Ark {
+contract WisdomTreeArk is ArkWithWithdrawalRequest {
+
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
-                                ERRORS
+                               ERRORS
     //////////////////////////////////////////////////////////////*/
 
     error InvalidTargetWallet();
-    error InsufficientDepositedAssets();
-    error InsufficientFundsInArk();
+    error InvalidOracleAddress();
+    error InvalidShareTokenAddress();
+    error OraclePriceNotPositive();
+    error InsufficientPendingDeposit();
+    error PendingDepositActive();
 
     /*//////////////////////////////////////////////////////////////
-                            STATE VARIABLES
+                            EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The wallet address where boarded assets are sent
-    address public immutable targetWallet;
-
-    /// @notice The total amount of assets currently considered deposited in the target wallet
-    uint256 public depositedAssets;
+    event PendingDepositCleared(uint256 amountCleared);
+    event SharesSentForRedemption(uint256 shares, uint256 expectedAssets);
 
     /*//////////////////////////////////////////////////////////////
-                                CONSTRUCTOR
+                           STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-    /**
-     * @notice Constructor to set up the WisdomTreeArk
-     * @param _targetWallet The address of the wallet to receive assets
-     * @param _params ArkParams struct containing necessary parameters for Ark initialization
-     */
-    constructor(address _targetWallet, ArkParams memory _params) Ark(_params) {
-        if (_targetWallet == address(0)) {
-            revert InvalidTargetWallet();
-        }
-        targetWallet = _targetWallet;
+
+    /// @notice The WisdomTree wallet that receives USDC
+    address public immutable CUSTODIAN_WALLET;
+
+    /// @notice The WisdomTree share token contract (e.g. WTBTC)
+    IERC20 public immutable shareToken;
+
+    /// @notice Chainlink price feed: price of 1 WisdomTree share denominated in underlying asset
+    AggregatorV3Interface public immutable oracle;
+
+    /// @notice Decimals reported by the Chainlink oracle
+    uint8 public immutable oracleDecimals;
+
+    /// @notice Decimals of the underlying asset (e.g. 6 for USDC)
+    uint8 public immutable assetDecimals;
+
+    /// @notice Decimals of the WisdomTree share token
+    uint8 public immutable shareDecimals;
+
+    /// @notice Validated USDC amounts deposited to WisdomTree, awaiting corresponding share issuance clearance.
+    uint256 public pendingDepositAssets;
+
+    /// @notice Frozen share balance used while deposits are pending to prevent double-counting newly minted shares.
+    uint256 public cachedShareBalance;
+
+    /// @notice Expected returning USDC amount equivalent to redeemed shares.
+    uint256 public pendingWithdrawalAssets;
+
+    /*//////////////////////////////////////////////////////////////
+                              CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(
+        address _targetWallet,
+        address _shareToken,
+        address _oracle,
+        uint256 _slippage,
+        ArkParams memory _params
+    )
+        ArkWithWithdrawalRequest(_params, _slippage)
+    {
+        if (_targetWallet == address(0)) revert InvalidTargetWallet();
+        if (_oracle == address(0)) revert InvalidOracleAddress();
+        if (_shareToken == address(0)) revert InvalidShareTokenAddress();
+
+        CUSTODIAN_WALLET = _targetWallet;
+        shareToken = IERC20(_shareToken);
+        oracle = AggregatorV3Interface(_oracle);
+        oracleDecimals = AggregatorV3Interface(_oracle).decimals();
+        shareDecimals = IERC20Metadata(_shareToken).decimals();
+        assetDecimals = IERC20Metadata(_params.asset).decimals();
     }
+
+    /*//////////////////////////////////////////////////////////////
+                              VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @inheritdoc IArk
-     * @notice Returns the total assets managed by this Ark
-     * @return assets The total balance of assets tracked as deposited
+     * @notice totalAssets = (actual shares * oracle price) + pending deposits + pending withdrawals
      */
-    function totalAssets() public view override returns (uint256 assets) {
-        assets = depositedAssets;
+    function totalAssets() public view override(Ark, IArk) returns (uint256 assets) {
+        uint256 currentShares = shareToken.balanceOf(address(this));
+        
+        // If there is an active deposit queue, we use the cached share balance.
+        // This prevents double-counting shares that arrive before the keeper clears the deposit.
+        if (pendingDepositAssets > 0) {
+            currentShares = cachedShareBalance;
+        }
+        
+        assets = _sharesToAssets(currentShares);
+        assets += pendingDepositAssets;
+        assets += pendingWithdrawalAssets;
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
+    function assetsInWithdrawalQueue() public view override returns (uint256) {
+        return pendingWithdrawalAssets;
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
+    function withdrawalRequestId() external pure override returns (uint256) {
+        return 0;
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
+    function isWithdrawalClaimRequired() external pure override returns (bool) {
+        return false;
+    }
+
+    /**
+     * @notice Converts WisdomTree shares to underlying asset amount using the oracle
+     * @param shares Amount in `shareDecimals`
+     * @return Equivalent amount in `assetDecimals`
+     */
+    function sharesToAssets(uint256 shares) external view returns (uint256) {
+        return _sharesToAssets(shares);
     }
 
     /*//////////////////////////////////////////////////////////////
-                                INTERNAL FUNCTIONS
+                         KEEPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Internal function to get the total assets that are withdrawable
-     * @dev WisdomTreeArk is considered withdrawable based on tracked deposits,
-     *      but actual withdrawal depends on manual funding of this contract.
+     * @notice Removes a fulfilled deposit amount from `pendingDepositAssets`.
+     * @dev Called by the keeper after WisdomTree issues shares to this contract.
+     *      Assumes full clearance (no partial fills).
      */
-    function _withdrawableTotalAssets()
-        internal
-        view
-        override
-        returns (uint256 withdrawableAssets)
-    {
-        withdrawableAssets = depositedAssets;
+    function clearPendingDeposit() external onlyKeeper {
+        uint256 clearedAmount = pendingDepositAssets;
+        pendingDepositAssets = 0;
+        
+        emit PendingDepositCleared(clearedAmount);
     }
 
     /**
-     * @notice Deposits assets by sending them to the target wallet
-     * @param amount The amount of assets to deposit
-     * @param /// data Additional data (unused in this implementation)
+     * @inheritdoc IArkWithWithdrawalRequest
+     * @notice Calculates the equivalent shares for the requested `amount` and sends them to the `CUSTODIAN_WALLET`.
+     * @dev Also records the expected returning USDC in `pendingWithdrawalAssets`. Reverts if deposit is pending.
+     */
+    function requestWithdrawal(uint256 amount) external override onlyKeeper {
+        // Prevent concurrent deposit/withdrawal cycles
+        if (pendingDepositAssets > 0) revert PendingDepositActive();
+
+        uint256 sharesToRedeem = _assetsToShares(amount);
+
+        // Transfer the WisdomTree shares off-chain (back to the target wallet)
+        shareToken.safeTransfer(CUSTODIAN_WALLET, sharesToRedeem);
+
+        // Record the expected returning USDC amount to keep totalAssets continuous
+        pendingWithdrawalAssets += amount;
+
+        emit SharesSentForRedemption(sharesToRedeem, amount);
+        emit WithdrawalRequested(amount, 0);
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     * @dev No-op: WisdomTree processes withdrawals entirely off-chain.
+     */
+    function claimWithdrawal() external override onlyKeeper {
+        // No-op
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     * @dev No-op: Swap-based exits are not supported for this Ark.
+     */
+    function withdrawUsingSwap(uint256, bytes calldata) external override onlyKeeper nonReentrant {
+        // No-op
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     * @notice Sweeps returned USDC to buffer and clears `pendingWithdrawalAssets`.
+     * @dev Called by keeper after WisdomTree returns the USDC equivalent for the retired shares.
+     */
+    function sweep()
+        external
+        override
+        onlyKeeper
+        nonReentrant
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        IERC20 asset = config.asset;
+        uint256 balance = asset.balanceOf(address(this));
+
+        pendingWithdrawalAssets = 0;
+
+        sweptTokens = new address[](1);
+        sweptAmounts = new uint256[](1);
+        sweptTokens[0] = address(asset);
+        sweptAmounts[0] = balance;
+
+        address bufferArk = address(IFleetCommander(config.commander).bufferArk());
+
+        emit Disembarked(msg.sender, address(asset), balance);
+
+        if (balance > 0 && address(this) != bufferArk) {
+            asset.forceApprove(bufferArk, balance);
+            IArk(bufferArk).board(balance, bytes(""));
+        }
+
+        emit ArkSwept(sweptTokens, sweptAmounts);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                         INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Caches placeholder deposit and sends USDC to WisdomTree target wallet.
+     * @dev If this is the start of a deposit queue, snapshots the real share balance.
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        depositedAssets += amount;
-        config.asset.safeTransfer(targetWallet, amount);
+        if (pendingDepositAssets == 0) {
+            cachedShareBalance = shareToken.balanceOf(address(this));
+        }
+
+        pendingDepositAssets += amount;
+        config.asset.safeTransfer(CUSTODIAN_WALLET, amount);
     }
 
     /**
-     * @notice Withdraws assets from the Ark
-     * @dev Assumes assets have been manually transferred back to this contract.
-     *      Updates the tracked deposited amount.
-     * @param amount The amount of assets to withdraw
-     * @param /// data Additional data (unused in this implementation)
+     * @dev No-op: Withdrawals are fully asynchronous via `requestWithdrawal` and `sweep`.
      */
-    function _disembark(uint256 amount, bytes calldata) internal override {
-        if (amount > depositedAssets) {
-            revert InsufficientDepositedAssets();
-        }
-        if (config.asset.balanceOf(address(this)) < amount) {
-            revert InsufficientFundsInArk();
-        }
-        depositedAssets -= amount;
-        // The base Ark.disembark function will handle the transfer to the user
-        // from this contract's balance. We just need to ensure the accounting is correct
-        // and that this contract HAS the tokens (checked by safeTransfer in base).
+    function _disembark(uint256, bytes calldata) internal pure override { }
+
+    /**
+     * @dev Always 0: Synchronous withdrawal is not supported.
+     */
+    function _withdrawableTotalAssets() internal pure override returns (uint256) {
+        return 0;
     }
 
     /**
-     * @notice Internal function for harvesting rewards
-     * @dev No rewards are generated by this Ark strategy
-     * @param /// data Additional data (unused in this implementation)
-     * @return rewardTokens Empty array
-     * @return rewardAmounts Empty array
+     * @dev No-op: No rewards generated by this Ark.
      */
-    function _harvest(
-        bytes calldata
-    )
+    function _harvest(bytes calldata)
         internal
-        virtual
+        pure
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
@@ -121,17 +295,35 @@ contract WisdomTreeArk is Ark {
         rewardAmounts = new uint256[](0);
     }
 
-    /**
-     * @notice Validates the board data
-     * @dev This Ark does not require any validation for board data
-     * @param /// data Additional data to validate (unused in this implementation)
-     */
-    function _validateBoardData(bytes calldata) internal override {}
+    function _validateBoardData(bytes calldata) internal override { }
+    function _validateDisembarkData(bytes calldata) internal override { }
+
+    /*//////////////////////////////////////////////////////////////
+                            ORACLE HELPERS
+    //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Validates the disembark data
-     * @dev This Ark does not require any validation for disembark data
-     * @param /// data Additional data to validate (unused in this implementation)
+     * @dev Converts WisdomTree shares to underlying asset amount via Chainlink oracle.
      */
-    function _validateDisembarkData(bytes calldata) internal override {}
+    function _sharesToAssets(uint256 shares) internal view returns (uint256) {
+        if (shares == 0) return 0;
+        (, int256 answer,,,) = oracle.latestRoundData();
+        if (answer <= 0) revert OraclePriceNotPositive();
+
+        uint256 divisor = 10 ** (uint256(oracleDecimals) + uint256(shareDecimals) - uint256(assetDecimals));
+        return (shares * uint256(answer)) / divisor;
+    }
+
+    /**
+     * @dev Converts underlying asset amount to WisdomTree shares via Chainlink oracle.
+     */
+    function _assetsToShares(uint256 assetAmount) internal view returns (uint256) {
+        if (assetAmount == 0) return 0;
+        (, int256 answer,,,) = oracle.latestRoundData();
+        if (answer <= 0) revert OraclePriceNotPositive();
+
+        uint256 multiplier = 10 ** (uint256(oracleDecimals) + uint256(shareDecimals) - uint256(assetDecimals));
+        return (assetAmount * multiplier) / uint256(answer);
+    }
+
 }

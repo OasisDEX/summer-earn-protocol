@@ -8,6 +8,8 @@ import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import "../../src/contracts/arks/WisdomTreeArk.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
+import {MockOracle} from "./mocks/MockOracle.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
@@ -23,6 +25,9 @@ contract WisdomTreeArkLifecycleTest is
     WisdomTreeArk public usdcWisdomTreeArk;
     BufferArk public usdcBufferArk;
     address public targetWallet;
+    
+    MockERC20 public wtToken;
+    MockOracle public oracle;
 
     address[] public usdcArks;
 
@@ -46,6 +51,10 @@ contract WisdomTreeArkLifecycleTest is
 
     function setupExternalContracts() internal {
         usdcTokenContract = IERC20(USDC_ADDRESS);
+        
+        // Setup mocks for WSBTC and Oracle
+        wtToken = new MockERC20("WisdomTree Bitcoin", "WTBTC", 18);
+        oracle = new MockOracle(8, 60000 * 1e8);
     }
 
     function setupArks() internal {
@@ -62,8 +71,8 @@ contract WisdomTreeArkLifecycleTest is
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        // Initialize WisdomTreeArk with targetWallet
-        usdcWisdomTreeArk = new WisdomTreeArk(targetWallet, usdcArkParams);
+        // Initialize WisdomTreeArk with targetWallet, mock token, and mock oracle
+        usdcWisdomTreeArk = new WisdomTreeArk(targetWallet, address(wtToken), address(oracle), 0, usdcArkParams);
     }
 
     function setupFleetCommanders(uint256 initialTipRate) internal {
@@ -127,50 +136,40 @@ contract WisdomTreeArkLifecycleTest is
             "Target wallet should receive funds"
         );
         assertEq(
+            usdcWisdomTreeArk.pendingDepositAssets(),
+            totalDeposit,
+            "Ark should track pending assets"
+        );
+        assertEq(
             usdcWisdomTreeArk.totalAssets(),
             totalDeposit,
-            "Ark should track deposited assets"
-        );
-        assertEq(
-            usdcWisdomTreeArk.withdrawableTotalAssets(),
-            totalDeposit,
-            "Ark should report withdrawable assets"
+            "Ark should track deposited assets via cache"
         );
 
-        // 3. User Withdraws - Should fail if not funded
-        // We expect it to fail at disembark step inside withdrawal if we don't fund it
-        // Simulating the withdrawal process...
+        // 3. Keeper clears deposit
+        // WisdomTree issues shares off-chain
+        uint256 expectedShares = 1000 * 1e18 / 60000; // rough mock equivalent
+        wtToken.mint(address(usdcWisdomTreeArk), expectedShares);
 
-        // Prepare for withdrawal: Target Wallet must send funds back to WisdomTreeArk
-        vm.startPrank(targetWallet);
-        usdcTokenContract.transfer(address(usdcWisdomTreeArk), totalDeposit);
-        vm.stopPrank();
+        vm.prank(keeper);
+        usdcWisdomTreeArk.clearPendingDeposit();
 
-        // Verify Ark has funds physically
-        assertEq(
-            usdcTokenContract.balanceOf(address(usdcWisdomTreeArk)),
-            totalDeposit,
-            "Ark should have funds back"
-        );
+        // 4. User Withdraw Request -> Fails. Users cannot directly withdraw from WisdomTreeArk
+        // It relies on FleetCommander rebalance logic or off-chain requests.
+        // Let's test the off chain withdrawal manual request via keeper instead.
+        
+        vm.prank(keeper);
+        usdcWisdomTreeArk.requestWithdrawal(totalDeposit);
+        
+        // 5. Sweep
+        deal(USDC_ADDRESS, address(usdcWisdomTreeArk), totalDeposit);
+        vm.prank(keeper);
+        usdcWisdomTreeArk.sweep();
 
-        // 4. User Withdraws
-        withdrawForUser(
-            usdcFleetCommander,
-            usdcTokenContract,
-            user,
-            totalDeposit
-        );
-
-        // Verify final state
-        assertEq(
-            usdcTokenContract.balanceOf(user),
-            totalDeposit,
-            "User should have their funds back"
-        );
         assertEq(
             usdcWisdomTreeArk.totalAssets(),
             0,
-            "Ark should have 0 assets tracked"
+            "Ark should have 0 assets tracked after sweep"
         );
     }
 
