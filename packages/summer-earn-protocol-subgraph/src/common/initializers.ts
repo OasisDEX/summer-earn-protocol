@@ -5,6 +5,7 @@ import {
   Ark,
   ArkDailySnapshot,
   ArkHourlySnapshot,
+  CurationEvent,
   DailyInterestRate,
   FinancialsDailySnapshot,
   GovernanceStaking,
@@ -1023,4 +1024,29 @@ export function getOrCreateGovernanceStakingV2(stakingAddress: Address): Governa
     governanceStakingV2.save()
   }
   return governanceStakingV2
+}
+
+export function createCurationEvent(
+  event: ethereum.Event,
+  action: string,
+  valueBefore: BigInt,
+  valueAfter: BigInt,
+  vault: Vault,
+  target: string,
+): CurationEvent {
+  const curationEvent = new CurationEvent(
+    event.receipt!.transactionHash.toHexString() + '--' + event.logIndex.toString(),
+  )
+  curationEvent.hash = event.receipt!.transactionHash.toHexString()
+  curationEvent.logIndex = event.logIndex.toI32()
+  curationEvent.timestamp = event.block.timestamp
+  curationEvent.blockNumber = event.block.number
+  curationEvent.vault = vault.id
+  curationEvent.action = action
+  curationEvent.caller = event.transaction.from.toHexString()
+  curationEvent.valueBefore = valueBefore
+  curationEvent.valueAfter = valueAfter
+  curationEvent.targetContract = target
+  curationEvent.save()
+  return curationEvent
 }
