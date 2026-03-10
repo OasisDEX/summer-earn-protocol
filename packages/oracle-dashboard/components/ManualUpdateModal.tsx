@@ -129,7 +129,14 @@ export function ManualUpdateModal({
       console.log('Transaction Hash:', hash)
 
       // Invalidate the ActivityLog cache
-      const networkName = chainId === 8453 ? 'base' : chainId === 42161 ? 'arbitrum' : chainId === 146 ? 'sonic' : 'mainnet'
+      const networkName =
+        chainId === 8453
+          ? 'base'
+          : chainId === 42161
+            ? 'arbitrum'
+            : chainId === 146
+              ? 'sonic'
+              : 'mainnet'
       await invalidateActivityLog(networkName)
 
       // Delay closing to let user see success

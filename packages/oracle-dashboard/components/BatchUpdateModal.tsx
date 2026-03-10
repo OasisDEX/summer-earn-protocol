@@ -199,7 +199,14 @@ export function BatchUpdateModal({ isOpen, onClose, oracles, chainId }: BatchUpd
       console.log('Batch Transaction Hash:', hash)
 
       // Invalidate the ActivityLog cache
-      const networkName = chainId === 8453 ? 'base' : chainId === 42161 ? 'arbitrum' : chainId === 146 ? 'sonic' : 'mainnet'
+      const networkName =
+        chainId === 8453
+          ? 'base'
+          : chainId === 42161
+            ? 'arbitrum'
+            : chainId === 146
+              ? 'sonic'
+              : 'mainnet'
       await invalidateActivityLog(networkName)
 
       setTimeout(() => {
