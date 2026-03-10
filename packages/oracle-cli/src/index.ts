@@ -665,19 +665,23 @@ program
         current.setDate(current.getDate() + 1)
       }
 
-      console.log(`Downloading/Loading ${dates.length} days of data...`)
+      console.log(`Downloading/Loading ${dates.length} days of data (in chunks of 10)...`)
 
       const navData: any[] = []
-      for (const d of dates) {
-        try {
-          const data = await fetchNAV(ticker, d)
-          // Only add if the date matches (avoid duplicates from 'latest' fallback)
-          if (data.dt === d) {
-            navData.push(data)
-          }
-        } catch (e) {
-          // Missing dates are fine
-        }
+      const CHUNK_SIZE = 10
+      for (let i = 0; i < dates.length; i += CHUNK_SIZE) {
+        const chunk = dates.slice(i, i + CHUNK_SIZE)
+        const chunkResults = await Promise.all(
+          chunk.map(async (d) => {
+            try {
+              const data = await fetchNAV(ticker, d)
+              return data.dt === d ? data : null
+            } catch (e) {
+              return null
+            }
+          }),
+        )
+        navData.push(...chunkResults.filter((d): d is any => d !== null))
       }
 
       if (navData.length === 0) {
@@ -687,26 +691,53 @@ program
 
       console.log(`Successfully retrieved ${navData.length} data points.`)
 
-      // Beautiful ASCII Chart
+      // Beautiful High-Res Line ASCII Chart
       const values = navData.map((d) => d.nav)
       const min = Math.min(...values)
       const max = Math.max(...values)
       const range = max - min || 1
-      const height = 10
-      const width = navData.length
+      const height = 12
+      const pointSpacing = 3
+      const width = navData.length * pointSpacing
+
+      const grid: string[][] = Array.from({ length: height + 1 }, () => Array(width).fill(' '))
+
+      for (let i = 0; i < navData.length; i++) {
+        const col = i * pointSpacing
+        const h = Math.round(((values[i] - min) / range) * height)
+        const row = height - h
+
+        let char = '-'
+        if (i > 0) {
+          if (values[i] > values[i - 1]) char = '/'
+          else if (values[i] < values[i - 1]) char = '\\'
+          else char = '_'
+        }
+
+        // Peaks and Valleys
+        if (i > 0 && i < navData.length - 1) {
+          if (values[i] > values[i - 1] && values[i] > values[i + 1]) char = '^'
+          if (values[i] < values[i - 1] && values[i] < values[i + 1]) char = 'v'
+        }
+
+        grid[row][col] = char
+
+        // Simple interpolation between points
+        if (i > 0) {
+          const prevH = Math.round(((values[i - 1] - min) / range) * height)
+          const prevRow = height - prevH
+          const midCol = col - 1
+
+          if (row < prevRow) grid[row + 1][midCol] = '/'
+          else if (row > prevRow) grid[row - 1][midCol] = '\\'
+          else grid[row][midCol] = '_'
+        }
+      }
 
       console.log('\n--- NAV Trend Chart ---')
-      for (let h = height; h >= 0; h--) {
-        let line = ''
-        const threshold = min + (range * h) / height
-        for (const v of values) {
-          if (v >= threshold) {
-            line += '█'
-          } else {
-            line += ' '
-          }
-        }
-        console.log(`${threshold.toFixed(4)} | ${line}`)
+      for (let h = 0; h <= height; h++) {
+        const threshold = max - (range * h) / height
+        console.log(`${threshold.toFixed(4)} | ${grid[h].join('')}`)
       }
       console.log(''.padEnd(width + 10, '-'))
       console.log(`       | ${navData[0].dt} ... ${navData[navData.length - 1].dt}\n`)
