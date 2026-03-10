@@ -9,4 +9,5 @@ interface IRwaOracleErrors {
     error Unauthorized();
     error InvalidConfiguration();
     error DuplicateSigner();
+    error NoDataPresent();
 }

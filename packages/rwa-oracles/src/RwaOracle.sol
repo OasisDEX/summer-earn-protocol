@@ -107,6 +107,7 @@ contract RwaOracle is Ownable, AggregatorV3Interface, IRwaOracle, EIP712 {
             uint80 answeredInRound
         )
     {
+        if (_roundId == 0 || _roundId > latestRoundId) revert NoDataPresent();
         RoundData memory round = rounds[_roundId];
         return (
             _roundId,
@@ -136,6 +137,7 @@ contract RwaOracle is Ownable, AggregatorV3Interface, IRwaOracle, EIP712 {
             uint80 answeredInRound
         )
     {
+        if (latestRoundId == 0) revert NoDataPresent();
         return (
             latestRoundId,
             latestPrice,
