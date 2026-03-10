@@ -25,7 +25,7 @@ contract WisdomTreeArkLifecycleTest is
     WisdomTreeArk public usdcWisdomTreeArk;
     BufferArk public usdcBufferArk;
     address public targetWallet;
-    
+
     MockERC20 public wtToken;
     MockOracle public oracle;
 
@@ -51,7 +51,7 @@ contract WisdomTreeArkLifecycleTest is
 
     function setupExternalContracts() internal {
         usdcTokenContract = IERC20(USDC_ADDRESS);
-        
+
         // Setup mocks for WSBTC and Oracle
         wtToken = new MockERC20("WisdomTree Bitcoin", "WTBTC", 18);
         oracle = new MockOracle(8, 60000 * 1e8);
@@ -72,7 +72,13 @@ contract WisdomTreeArkLifecycleTest is
         });
 
         // Initialize WisdomTreeArk with targetWallet, mock token, and mock oracle
-        usdcWisdomTreeArk = new WisdomTreeArk(targetWallet, address(wtToken), address(oracle), 0, usdcArkParams);
+        usdcWisdomTreeArk = new WisdomTreeArk(
+            targetWallet,
+            address(wtToken),
+            address(oracle),
+            0,
+            usdcArkParams
+        );
     }
 
     function setupFleetCommanders(uint256 initialTipRate) internal {
@@ -148,7 +154,7 @@ contract WisdomTreeArkLifecycleTest is
 
         // 3. Keeper clears deposit
         // WisdomTree issues shares off-chain
-        uint256 expectedShares = 1000 * 1e18 / 60000; // rough mock equivalent
+        uint256 expectedShares = (1000 * 1e18) / 60000; // rough mock equivalent
         wtToken.mint(address(usdcWisdomTreeArk), expectedShares);
 
         vm.prank(keeper);
@@ -157,10 +163,10 @@ contract WisdomTreeArkLifecycleTest is
         // 4. User Withdraw Request -> Fails. Users cannot directly withdraw from WisdomTreeArk
         // It relies on FleetCommander rebalance logic or off-chain requests.
         // Let's test the off chain withdrawal manual request via keeper instead.
-        
+
         vm.prank(keeper);
         usdcWisdomTreeArk.requestWithdrawal(totalDeposit);
-        
+
         // 5. Sweep
         deal(USDC_ADDRESS, address(usdcWisdomTreeArk), totalDeposit);
         vm.prank(keeper);

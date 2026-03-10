@@ -47,8 +47,9 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IArkWithWithdrawalRequest
-    function sweep() virtual
+    function sweep()
         external
+        virtual
         onlyKeeper
         nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)

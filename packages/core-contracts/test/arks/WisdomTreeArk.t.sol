@@ -27,18 +27,36 @@ contract MockOracle is AggregatorV3Interface {
     function decimals() external view override returns (uint8) {
         return _decimals;
     }
-    
-    function description() external pure override returns (string memory) { return "Mock"; }
-    function version() external pure override returns (uint256) { return 1; }
-    function getRoundData(uint80) external pure override returns (uint80, int256, uint256, uint256, uint80) { revert(); }
-    
-    function latestRoundData() external view override returns (
-        uint80 roundId,
-        int256 answer,
-        uint256 startedAt,
-        uint256 updatedAt,
-        uint80 answeredInRound
-    ) {
+
+    function description() external pure override returns (string memory) {
+        return "Mock";
+    }
+    function version() external pure override returns (uint256) {
+        return 1;
+    }
+    function getRoundData(
+        uint80
+    )
+        external
+        pure
+        override
+        returns (uint80, int256, uint256, uint256, uint80)
+    {
+        revert();
+    }
+
+    function latestRoundData()
+        external
+        view
+        override
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
+    {
         return (1, _answer, 1, 1, 1);
     }
 }
@@ -55,7 +73,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
     address public constant USDT_ADDRESS =
         0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address public targetWallet;
-     
 
     uint256 forkBlock = 21666256;
     uint256 forkId;
@@ -92,18 +109,18 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new WisdomTreeArk(targetWallet, address(wtToken), address(oracle), 0, params);
+        ark = new WisdomTreeArk(
+            targetWallet,
+            address(wtToken),
+            address(oracle),
+            0,
+            params
+        );
 
         // Permissioning
         vm.startPrank(governor);
-        accessManager.grantCommanderRole(
-            address(ark),
-            address(commander)
-        );
-        accessManager.grantKeeperRole(
-            address(ark),
-            keeper
-        );
+        accessManager.grantCommanderRole(address(ark), address(commander));
+        accessManager.grantKeeperRole(address(ark), keeper);
         vm.stopPrank();
 
         vm.startPrank(commander);
@@ -113,11 +130,23 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
     function test_Constructor() public {
         vm.expectRevert(WisdomTreeArk.InvalidTargetWallet.selector);
-        new WisdomTreeArk(address(0), address(wtToken), address(oracle), 0, params);
-        
+        new WisdomTreeArk(
+            address(0),
+            address(wtToken),
+            address(oracle),
+            0,
+            params
+        );
+
         vm.expectRevert(WisdomTreeArk.InvalidOracleAddress.selector);
-        new WisdomTreeArk(targetWallet, address(wtToken), address(0), 0, params);
-        
+        new WisdomTreeArk(
+            targetWallet,
+            address(wtToken),
+            address(0),
+            0,
+            params
+        );
+
         vm.expectRevert(WisdomTreeArk.InvalidShareTokenAddress.selector);
         new WisdomTreeArk(targetWallet, address(0), address(oracle), 0, params);
 
@@ -152,7 +181,11 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             amount,
             "Total assets should match boarded amount (pending deposit)"
         );
-        assertEq(ark.pendingDepositAssets(), amount, "Pending deposit should match");
+        assertEq(
+            ark.pendingDepositAssets(),
+            amount,
+            "Pending deposit should match"
+        );
     }
 
     function test_ClearPendingDeposit() public {
@@ -174,8 +207,16 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         ark.clearPendingDeposit();
         vm.stopPrank();
 
-        assertEq(ark.pendingDepositAssets(), 0, "Pending deposit should be cleared");
-        assertEq(ark.totalAssets(), amount, "Total assets should perfectly transition to oracle share value");
+        assertEq(
+            ark.pendingDepositAssets(),
+            0,
+            "Pending deposit should be cleared"
+        );
+        assertEq(
+            ark.totalAssets(),
+            amount,
+            "Total assets should perfectly transition to oracle share value"
+        );
     }
 
     /* Withdrawal Tests */
@@ -188,7 +229,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         usdt.forceApprove(address(ark), amount);
         ark.board(amount, bytes(""));
         vm.stopPrank();
-        
+
         // 2. Try to withdraw
         vm.startPrank(keeper);
         vm.expectRevert(WisdomTreeArk.PendingDepositActive.selector);
@@ -205,40 +246,56 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        uint256 sharesMinted = 1e18; 
+        uint256 sharesMinted = 1e18;
         wtToken.mint(address(ark), sharesMinted);
-        
+
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
         vm.stopPrank();
 
         // Verify initial state
         assertEq(ark.totalAssets(), amount);
-        
+
         // 2. Request Withdrawal
         vm.startPrank(keeper);
         ark.requestWithdrawal(amount);
         vm.stopPrank();
-        
+
         // Verify post-request state:
         // Shares should be back at targetWallet
-        assertEq(wtToken.balanceOf(targetWallet), sharesMinted, "Shares should be sent to target wallet");
-        assertEq(wtToken.balanceOf(address(ark)), 0, "Ark should have 0 shares");
+        assertEq(
+            wtToken.balanceOf(targetWallet),
+            sharesMinted,
+            "Shares should be sent to target wallet"
+        );
+        assertEq(
+            wtToken.balanceOf(address(ark)),
+            0,
+            "Ark should have 0 shares"
+        );
         // Pending withdrawal tracks the USD value
-        assertEq(ark.pendingWithdrawalAssets(), amount, "Pending withdrawal tracks USD value");
+        assertEq(
+            ark.pendingWithdrawalAssets(),
+            amount,
+            "Pending withdrawal tracks USD value"
+        );
         // Total assets remains continuous
-        assertEq(ark.totalAssets(), amount, "Total assets remains stable during withdrawal");
-        
+        assertEq(
+            ark.totalAssets(),
+            amount,
+            "Total assets remains stable during withdrawal"
+        );
+
         // 3. WisdomTree sends USDC back off-chain
         deal(USDT_ADDRESS, address(ark), amount);
-        
+
         // 4. Sweep
         // Temporarily set a bufferArk for sweep destination
         address bufferArk = makeAddr("bufferArk");
-        
+
         // the Ark will attempt to safeApprove to bufferArk and board
         // To mock this effectively in Integration test without deploying FleetCommander/BufferArk,
-        // we override the commander behavior or allow it to revert appropriately. 
+        // we override the commander behavior or allow it to revert appropriately.
         // For testing sweep logic, IFleetCommander(commander).bufferArk() needs to exist
         vm.mockCall(
             address(commander),
@@ -255,13 +312,21 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         ark.sweep();
         vm.stopPrank();
 
-        assertEq(ark.pendingWithdrawalAssets(), 0, "Pending withdrawal cleared");
-        assertEq(ark.totalAssets(), 0, "Total assets drops to 0 after sweep sends USDC away");
+        assertEq(
+            ark.pendingWithdrawalAssets(),
+            0,
+            "Pending withdrawal cleared"
+        );
+        assertEq(
+            ark.totalAssets(),
+            0,
+            "Total assets drops to 0 after sweep sends USDC away"
+        );
         assertEq(usdt.balanceOf(address(ark)), 0, "Ark has 0 USDC");
     }
 
     /* _withdrawableTotalAssets and Disembark should be no-ops for this Ark type */
-    
+
     function test_Disembark_IsNoOp() public {
         uint256 amount = 1000 * 1e6;
         deal(USDT_ADDRESS, commander, amount);
@@ -273,9 +338,9 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
         // Disembark directly from Ark (this is a no-op per our design, async only)
         // Wait, ArkWithWithdrawalRequest disembark wraps `_disembark` which is empty.
-        // It DOES transfer out assets if told, so we should ensure it handles it gracefully 
+        // It DOES transfer out assets if told, so we should ensure it handles it gracefully
         // or returns 0 for withdrawable.
-        
+
         // But for WisdomTreeArk, `_disembark` is empty, and Ark base handles transfers.
         // TotalAssets are managed by oracle.
     }
