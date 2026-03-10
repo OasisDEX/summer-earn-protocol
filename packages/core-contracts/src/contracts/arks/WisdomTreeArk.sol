@@ -5,6 +5,8 @@ import {AggregatorV3Interface} from "../../interfaces/external/Chainlink/Aggrega
 import "../ArkWithWithdrawalRequest.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+import "@summerfi/price-solidity/contracts/PriceUtils.sol";
+
 /**
  * @title WisdomTreeArk
  * @notice Ark for managing off-chain WisdomTree tokenised assets (e.g. WTBTC).
@@ -38,6 +40,14 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
  */
 contract WisdomTreeArk is ArkWithWithdrawalRequest {
     using SafeERC20 for IERC20;
+    using PriceUtils for Price;
+
+    /*//////////////////////////////////////////////////////////////
+                               CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Default slippage (0.02%)
+    uint256 public constant DEFAULT_SLIPPAGE = 2;
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -79,6 +89,9 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest {
     /// @notice Decimals of the WisdomTree share token
     uint8 public immutable shareDecimals;
 
+    /// @notice One full asset with the correct decimals
+    uint256 public immutable ONE_ASSET;
+
     /// @notice Validated USDC amounts deposited to WisdomTree, awaiting corresponding share issuance clearance.
     uint256 public pendingDepositAssets;
 
@@ -93,22 +106,22 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest {
     //////////////////////////////////////////////////////////////*/
 
     constructor(
-        address _targetWallet,
+        address _custodianWallet,
         address _shareToken,
         address _oracle,
-        uint256 _slippage,
         ArkParams memory _params
-    ) ArkWithWithdrawalRequest(_params, _slippage) {
-        if (_targetWallet == address(0)) revert InvalidTargetWallet();
+    ) ArkWithWithdrawalRequest(_params, DEFAULT_SLIPPAGE) {
+        if (_custodianWallet == address(0)) revert InvalidTargetWallet();
         if (_oracle == address(0)) revert InvalidOracleAddress();
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
 
-        CUSTODIAN_WALLET = _targetWallet;
+        CUSTODIAN_WALLET = _custodianWallet;
         shareToken = IERC20(_shareToken);
         oracle = AggregatorV3Interface(_oracle);
         oracleDecimals = AggregatorV3Interface(_oracle).decimals();
         shareDecimals = IERC20Metadata(_shareToken).decimals();
         assetDecimals = IERC20Metadata(_params.asset).decimals();
+        ONE_ASSET = 10 ** assetDecimals;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -125,17 +138,16 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest {
         override(Ark, IArk)
         returns (uint256 assets)
     {
-        uint256 currentShares = shareToken.balanceOf(address(this));
-
         // If there is an active deposit queue, we use the cached share balance.
         // This prevents double-counting shares that arrive before the keeper clears the deposit.
-        if (pendingDepositAssets > 0) {
-            currentShares = cachedShareBalance;
-        }
+        uint256 currentShares = pendingDepositAssets > 0
+            ? cachedShareBalance
+            : shareToken.balanceOf(address(this));
 
-        assets = _sharesToAssets(currentShares);
-        assets += pendingDepositAssets;
-        assets += pendingWithdrawalAssets;
+        assets =
+            _sharesToAssets(currentShares) +
+            pendingWithdrawalAssets +
+            pendingDepositAssets;
     }
 
     /**
@@ -178,10 +190,9 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest {
      *      Assumes full clearance (no partial fills).
      */
     function clearPendingDeposit() external onlyKeeper {
-        uint256 clearedAmount = pendingDepositAssets;
-        pendingDepositAssets = 0;
+        emit PendingDepositCleared(pendingDepositAssets);
 
-        emit PendingDepositCleared(clearedAmount);
+        pendingDepositAssets = 0;
     }
 
     /**
@@ -230,9 +241,10 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest {
      * @dev Called by keeper after WisdomTree returns the USDC equivalent for the retired shares.
      */
     function sweep()
-        external
+        public
         override
         onlyKeeper
+        nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
     {
         pendingWithdrawalAssets = 0;
@@ -253,6 +265,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest {
         }
 
         pendingDepositAssets += amount;
+
         config.asset.safeTransfer(CUSTODIAN_WALLET, amount);
     }
 
@@ -300,14 +313,10 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest {
      */
     function _sharesToAssets(uint256 shares) internal view returns (uint256) {
         if (shares == 0) return 0;
-        (, int256 answer, , , ) = oracle.latestRoundData();
-        if (answer <= 0) revert OraclePriceNotPositive();
 
-        uint256 divisor = 10 **
-            (uint256(oracleDecimals) +
-                uint256(shareDecimals) -
-                uint256(assetDecimals));
-        return (shares * uint256(answer)) / divisor;
+        Price memory sharesToAssetPrice = _fetchOracleSharesToAssetPrice();
+
+        return sharesToAssetPrice.quote(shares);
     }
 
     /**
@@ -317,13 +326,32 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest {
         uint256 assetAmount
     ) internal view returns (uint256) {
         if (assetAmount == 0) return 0;
+
+        Price memory assetToSharesPrice = _fetchOracleSharesToAssetPrice()
+            .invert();
+
+        return assetToSharesPrice.quote(assetAmount);
+    }
+
+    /**
+     * @dev Fetches the oracle shares to asset price and returns it as a Price type
+     *      for which the base amount is ONE_ASSET and the quote amount is the oracle price
+     *      adjusted for the shares decimals)
+     */
+    function _fetchOracleSharesToAssetPrice()
+        internal
+        view
+        returns (Price memory)
+    {
         (, int256 answer, , , ) = oracle.latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
 
-        uint256 multiplier = 10 **
-            (uint256(oracleDecimals) +
-                uint256(shareDecimals) -
-                uint256(assetDecimals));
-        return (assetAmount * multiplier) / uint256(answer);
+        return
+            toPriceFromOraclePrice(
+                ONE_ASSET,
+                answer,
+                oracleDecimals,
+                shareDecimals
+            );
     }
 }

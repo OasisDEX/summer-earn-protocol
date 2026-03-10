@@ -449,9 +449,13 @@ export async function deployArk(
     }
     case ArkType.WisdomTreeArk: {
       const targetWallet = validateAddress(arkConfig.params.targetWallet, 'targetWallet')
+      const shareToken = validateAddress(arkConfig.params.shareToken, 'shareToken')
+      const oracle = validateAddress(arkConfig.params.oracle, 'oracle')
       const ark = await deployWisdomTreeArk(config, {
         ...baseArkParams,
         targetWallet: targetWallet,
+        shareToken: shareToken,
+        oracle: oracle,
       })
       deployedArk = ark
       break

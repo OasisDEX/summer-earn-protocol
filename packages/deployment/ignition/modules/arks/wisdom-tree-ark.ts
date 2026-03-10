@@ -2,7 +2,10 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 export function createWisdomTreeArkModule(moduleName: string) {
   return buildModule(moduleName, (m) => {
-    const targetWallet = m.getParameter<string>('targetWallet')
+    const custodianWallet = m.getParameter<string>('targetWallet')
+    const shareToken = m.getParameter<string>('shareToken')
+    const oracle = m.getParameter<string>('oracle')
+    const slippage = m.getParameter<string>('slippage')
     const name = m.getParameter<string>('name')
     const details = m.getParameter<string>('details')
     const configurationManager = m.getParameter<string>('configurationManager')
@@ -15,7 +18,10 @@ export function createWisdomTreeArkModule(moduleName: string) {
     const maxDepositPercentageOfTVL = m.getParameter<string>('maxDepositPercentageOfTVL')
 
     const ark = m.contract('WisdomTreeArk', [
-      targetWallet,
+      custodianWallet,
+      shareToken,
+      oracle,
+      slippage,
       {
         name,
         details,

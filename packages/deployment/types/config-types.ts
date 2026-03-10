@@ -316,6 +316,8 @@ export interface ArkConfig {
     fleetName?: string // For CrossChainArk
     vaultToken?: string // for arks with underlying token different than fleet asset
     targetWallet?: string // For WisdomTreeArk
+    shareToken?: string // For WisdomTreeArk
+    oracle?: string // For WisdomTreeArk
   }
 }
 

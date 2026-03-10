@@ -6,6 +6,8 @@ import { BaseArkParams } from '../common/ark-deployment'
 
 export type WisdomTreeArkParams = BaseArkParams & {
   targetWallet: string
+  shareToken: string
+  oracle: string
 }
 
 export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTreeArkParams) {
@@ -18,6 +20,8 @@ export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTree
     fleetName,
     isBummer,
     targetWallet,
+    shareToken,
+    oracle,
   } = params
 
   const envLabel = isBummer ? 'staging_' : ''
@@ -31,6 +35,8 @@ export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTree
     parameters: {
       [moduleName]: {
         targetWallet,
+        shareToken,
+        oracle,
         name: `WisdomTree Ark ${token.symbol}`,
         details: 'WisdomTree Ark',
         configurationManager: config.deployedContracts.core.configurationManager.address,
