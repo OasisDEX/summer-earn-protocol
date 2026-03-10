@@ -7,11 +7,11 @@ import type { OracleData } from './fetchers/wisdomtree-variable-nav'
 
 export type { OracleData }
 
-export async function fetchOracleData(ticker: string, retries = 3): Promise<OracleData> {
+export async function fetchOracleData(ticker: string): Promise<OracleData> {
   let offchainTicker = ticker
   if (ticker === 'CRDT') offchainTicker = 'CRDYX'
   if (ticker === 'EPXC') offchainTicker = 'WTPIX'
 
-  const data = await fetchWisdomTreeVariableNav(offchainTicker, retries)
+  const data = await fetchWisdomTreeVariableNav(offchainTicker)
   return { ...data, ticker }
 }

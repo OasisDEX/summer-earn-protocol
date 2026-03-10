@@ -64,3 +64,18 @@ export function getRpcUrl(network: 'base' | 'arbitrum' | 'mainnet' | 'sonic'): s
 
   return result.data
 }
+
+const WTConfigSchema = z.object({
+  WT_CLIENT: z.string().min(1),
+  WT_SECRET: z.string().min(1),
+  WT_LOGIN: z.string().min(1),
+  WT_PASSWORD: z.string().min(1),
+})
+
+export function getWTConfig() {
+  const result = WTConfigSchema.safeParse(process.env)
+  if (!result.success) {
+    throw new Error(`WisdomTree Connect configuration is incomplete: ${result.error.message}`)
+  }
+  return result.data
+}

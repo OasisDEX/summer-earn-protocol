@@ -19,6 +19,8 @@ import { RWA_ORACLE_ABI, ORACLE_REGISTRY_ABI } from './constants'
 import { DeploymentFileSchema } from './schemas'
 import deploymentsData from './deployments.json'
 import { encodeFunctionData } from 'viem'
+import { WisdomTreeConnect } from './fetchers/wisdomtree-connect'
+import { fetchNAV } from './fetchers/wisdomtree-dataspan'
 
 const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11' as Address
 const MULTICALL3_ABI = [
@@ -434,6 +436,284 @@ program
       await deployYieldSystem(options.factory as Address)
     } catch (e) {
       console.error(e)
+    }
+  })
+
+const wt = new WisdomTreeConnect()
+
+program
+  .command('wt-accruals')
+  .description('Fetch WisdomTree open accruals')
+  .argument('[guid]', 'Optional organization GUID')
+  .action(async (guid) => {
+    try {
+      console.log('Fetching WisdomTree accruals...')
+      const accruals = await wt.getAccruals(guid)
+      console.table(
+        accruals.map((a) => ({
+          ticker: a.ticker,
+          blockchain: a.blockchain,
+          wallet_address: a.wallet_address,
+          pending_value: a.pending_value,
+          pending_since: a.pending_since,
+        })),
+      )
+    } catch (error) {
+      console.error('Error fetching accruals:', error)
+    }
+  })
+
+program
+  .command('wt-orders')
+  .description('Fetch all WisdomTree orders')
+  .action(async () => {
+    try {
+      console.log('Fetching WisdomTree orders...')
+      const orders = await wt.getAllOrders()
+      console.table(
+        orders.map((o) => ({
+          trade_type: o.trade_type,
+          user: o.user,
+          org: o.org,
+          status: o.status,
+          expected_settlement_date: o.expected_settlement_date,
+          exchange_code: o.exchange_code,
+          order_reference: o.order_reference,
+          order_date: o.order_date,
+        })),
+      )
+    } catch (error) {
+      console.error('Error fetching orders:', error)
+    }
+  })
+
+program
+  .command('wt-order')
+  .description('Fetch details for a single WisdomTree order')
+  .argument('<order_reference>', 'Order reference')
+  .action(async (orderReference) => {
+    try {
+      console.log(`Fetching detail for order ${orderReference}...`)
+      const o = await wt.getOrder(orderReference)
+      const details = {
+        order_reference: o.order_reference,
+        order_date: o.order_date,
+        exchange_code: o.exchange_code,
+        quantity: o.quantity,
+        expected_settlement_date: o.expected_settlement_date,
+        trade_type: o.trade_type,
+        settlement_currency: o.settlement_currency,
+        token_contract_address: o.token_contract_address,
+        blockchain: o.blockchain,
+        settlement_wallet_address: o.settlement_wallet_address,
+        wisdomtree_deposit_wallet_address: o.wisdomtree_deposit_wallet_address,
+        gross_value: o.gross_value,
+        net_value: o.net_value,
+        transaction_fee: o.transaction_fee,
+        network_fee: o.network_fee,
+        rate: o.rate,
+        user: o.user,
+        org: o.org,
+        status: o.status,
+      }
+      console.log(JSON.stringify(details, null, 2))
+    } catch (error) {
+      console.error('Error fetching order detail:', error)
+    }
+  })
+
+program
+  .command('wt-me')
+  .description('Fetch WisdomTree current organization details')
+  .action(async () => {
+    try {
+      const me = await wt.getMe()
+      console.log(JSON.stringify(me, null, 2))
+    } catch (error) {
+      console.error('Error fetching organization details:', error)
+    }
+  })
+
+program
+  .command('wt-wallets')
+  .description('Fetch On-Receipt wallets for all or a specific deployed oracle')
+  .argument('[ticker]', 'Optional ticker to fetch only one')
+  .action(async (tickerArg) => {
+    try {
+      console.log(
+        tickerArg
+          ? `Fetching On-Receipt wallet for ${tickerArg}...`
+          : 'Fetching On-Receipt wallets for all deployed oracles...',
+      )
+      const walletPromises: Promise<any>[] = []
+
+      for (const [network, data] of Object.entries(deployments)) {
+        if (!data.oracles) continue
+        const blockchain = network === 'base' ? 'Base Mainnet' : network
+
+        for (const oracle of data.oracles) {
+          if (tickerArg && oracle.ticker.toLowerCase() !== tickerArg.toLowerCase()) continue
+
+          let ticker = oracle.ticker
+          if (ticker === 'CRDT') ticker = 'CRDYX'
+          if (ticker === 'EPXC') ticker = 'WTPIX'
+
+          walletPromises.push(
+            (async () => {
+              try {
+                const startTime = Date.now()
+                // console.log(`fetching wallet for ${ticker}...`)
+                const wallet = await wt.getOnReceiptWallet({
+                  blockchain,
+                  currency: 'USDC',
+                  fund: ticker,
+                  trade_type: 'Purchase',
+                })
+                // console.log(`finished ${ticker} in ${Date.now() - startTime}ms`)
+                return {
+                  network,
+                  ticker: oracle.ticker,
+                  mappedFund: ticker,
+                  wallet: wallet.wallet_address,
+                  latency: `${Date.now() - startTime}ms`,
+                }
+              } catch (e) {
+                return {
+                  network,
+                  ticker: oracle.ticker,
+                  mappedFund: ticker,
+                  wallet: 'Error/Not Found',
+                }
+              }
+            })(),
+          )
+        }
+      }
+
+      const results = await Promise.all(walletPromises)
+
+      if (results.length === 0 && tickerArg) {
+        console.error(`Ticker "${tickerArg}" not found in deployments.json.`)
+        const available = Object.values(deployments).flatMap(
+          (d: any) => d.oracles?.map((o: any) => o.ticker) || [],
+        )
+        console.log('Available tickers:', [...new Set(available)].join(', '))
+        return
+      }
+
+      console.table(results)
+    } catch (error) {
+      console.error('Error fetching wallets:', error)
+    }
+  })
+
+program
+  .command('wt-tickers')
+  .description('List all documented tickers and their off-chain mappings')
+  .action(async () => {
+    const tickers: any[] = []
+    for (const [network, data] of Object.entries(deployments)) {
+      if (!data.oracles) continue
+      for (const oracle of data.oracles) {
+        let mapped = oracle.ticker
+        if (mapped === 'CRDT') mapped = 'CRDYX'
+        if (mapped === 'EPXC') mapped = 'WTPIX'
+        tickers.push({
+          network,
+          ticker: oracle.ticker,
+          offchainTicker: mapped,
+          type: oracle.type,
+          subtype: oracle.subtype,
+        })
+      }
+    }
+    console.table(tickers)
+  })
+
+program
+  .command('wt-data')
+  .description('Fetch fund NAV data from DataSpan API')
+  .argument('<ticker>', 'Fund ticker')
+  .argument('[date]', 'Optional date (YYYY-MM-DD)')
+  .action(async (ticker, date) => {
+    try {
+      console.log(`Fetching NAV data for ${ticker}${date ? ` on ${date}` : ''}...`)
+      const data = await fetchNAV(ticker, date)
+      console.log(JSON.stringify(data, null, 2))
+    } catch (error) {
+      console.error('Error fetching NAV data:', error)
+    }
+  })
+
+program
+  .command('wt-data-range')
+  .description('Fetch fund NAV data over a date range and display a chart')
+  .argument('<ticker>', 'Fund ticker')
+  .argument('<startDate>', 'Start date (YYYY-MM-DD)')
+  .argument('<endDate>', 'End date (YYYY-MM-DD)')
+  .action(async (ticker, startDate, endDate) => {
+    try {
+      console.log(`Fetching NAV data for ${ticker} from ${startDate} to ${endDate}...`)
+
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      const dates: string[] = []
+
+      let current = new Date(start)
+      while (current <= end) {
+        dates.push(current.toISOString().split('T')[0])
+        current.setDate(current.getDate() + 1)
+      }
+
+      console.log(`Downloading/Loading ${dates.length} days of data...`)
+
+      const navData: any[] = []
+      for (const d of dates) {
+        try {
+          const data = await fetchNAV(ticker, d)
+          // Only add if the date matches (avoid duplicates from 'latest' fallback)
+          if (data.dt === d) {
+            navData.push(data)
+          }
+        } catch (e) {
+          // Missing dates are fine
+        }
+      }
+
+      if (navData.length === 0) {
+        console.log('No data found for the specified range.')
+        return
+      }
+
+      console.log(`Successfully retrieved ${navData.length} data points.`)
+
+      // Beautiful ASCII Chart
+      const values = navData.map((d) => d.nav)
+      const min = Math.min(...values)
+      const max = Math.max(...values)
+      const range = max - min || 1
+      const height = 10
+      const width = navData.length
+
+      console.log('\n--- NAV Trend Chart ---')
+      for (let h = height; h >= 0; h--) {
+        let line = ''
+        const threshold = min + (range * h) / height
+        for (const v of values) {
+          if (v >= threshold) {
+            line += '█'
+          } else {
+            line += ' '
+          }
+        }
+        console.log(`${threshold.toFixed(4)} | ${line}`)
+      }
+      console.log(''.padEnd(width + 10, '-'))
+      console.log(`       | ${navData[0].dt} ... ${navData[navData.length - 1].dt}\n`)
+
+      console.table(navData.map((d) => ({ date: d.dt, nav: d.nav })))
+    } catch (error) {
+      console.error('Error fetching NAV range:', error)
     }
   })
 

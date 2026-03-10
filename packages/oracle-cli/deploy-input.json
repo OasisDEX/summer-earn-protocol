@@ -87,7 +87,7 @@
     "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
     "threshold": 1,
     "type": "WisdomTree",
-    "subtype": "fixedNav"
+    "subtype": "variableNav"
   },
   {
     "network": "base",
@@ -96,7 +96,7 @@
     "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
     "threshold": 1,
     "type": "WisdomTree",
-    "subtype": "fixedNav"
+    "subtype": "variableNav"
   },
   {
     "network": "base",
@@ -105,7 +105,7 @@
     "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
     "threshold": 1,
     "type": "WisdomTree",
-    "subtype": "fixedNav"
+    "subtype": "variableNav"
   },
   {
     "network": "base",
@@ -114,7 +114,7 @@
     "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
     "threshold": 1,
     "type": "WisdomTree",
-    "subtype": "fixedNav"
+    "subtype": "variableNav"
   },
   {
     "network": "base",
@@ -123,7 +123,7 @@
     "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
     "threshold": 1,
     "type": "WisdomTree",
-    "subtype": "fixedNav"
+    "subtype": "variableNav"
   },
   {
     "network": "base",
@@ -132,6 +132,6 @@
     "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
     "threshold": 1,
     "type": "WisdomTree",
-    "subtype": "fixedNav"
+    "subtype": "variableNav"
   }
 ]
