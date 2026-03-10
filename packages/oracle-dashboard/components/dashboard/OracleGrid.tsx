@@ -1,7 +1,9 @@
-import { useMemo, memo } from 'react'
+import { useMemo, memo, useState, useEffect } from 'react'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { formatDistanceToNow } from 'date-fns'
 import { TickerStats } from '../../hooks/useOracleData'
+import { MiniChart } from './MiniChart'
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -15,6 +17,26 @@ interface OracleGridProps {
   selectedForBatch: string[]
   onToggleBatchSelection: (ticker: string) => void
   isSelectionMode: boolean
+}
+
+// Sub-component to handle the live timer for each grid item without re-rendering the whole grid
+const TimeAgo = ({ timestamp }: { timestamp: number }) => {
+  const [timeAgoFormatted, setTimeAgoFormatted] = useState<string>('N/A')
+
+  useEffect(() => {
+    const update = () => {
+      if (timestamp > 0) {
+        setTimeAgoFormatted(formatDistanceToNow(timestamp * 1000, { addSuffix: true }))
+      } else {
+        setTimeAgoFormatted('N/A')
+      }
+    }
+    update()
+    const interval = setInterval(update, 1000)
+    return () => clearInterval(interval)
+  }, [timestamp])
+
+  return <>{timeAgoFormatted}</>
 }
 
 export const OracleGrid = memo(function OracleGrid({
@@ -161,10 +183,21 @@ export const OracleGrid = memo(function OracleGrid({
                 <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">
                   On-chain Price
                 </p>
-                <div className="flex items-baseline gap-2">
+                <div className="flex items-baseline justify-between gap-2">
                   <span className="text-3xl font-bold tracking-tighter">
                     ${s.onChainPrice.toFixed(4)}
                   </span>
+                  <div className="h-10 w-24">
+                    <MiniChart
+                      data={s.history}
+                      color={
+                        s.history.length >= 2 &&
+                        s.history[s.history.length - 1].price >= s.history[0].price
+                          ? '#10b981'
+                          : '#f43f5e'
+                      }
+                    />
+                  </div>
                 </div>
               </div>
               <div className="flex justify-between items-end bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
@@ -197,11 +230,9 @@ export const OracleGrid = memo(function OracleGrid({
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-[10px] font-extrabold uppercase text-slate-400">
-                  <span className="tracking-widest">On-Chain Data</span>
+                  <span className="tracking-widest">On-Chain Updated</span>
                   <span className="text-primary text-right">
-                    {s.onChainTimestamp > 0
-                      ? new Date(s.onChainTimestamp * 1000).toLocaleString()
-                      : 'N/A'}
+                    <TimeAgo timestamp={s.onChainTimestamp} />
                   </span>
                 </div>
                 <div className="flex justify-between text-[10px] font-extrabold uppercase text-slate-400">

@@ -16,7 +16,7 @@ importers:
         version: 2.1.2
       sonner:
         specifier: ^2.0.7
-        version: 2.0.7(react-dom@19.2.4)(react@19.2.4)
+        version: 2.0.7(react-dom@18.2.0)(react@18.2.0)
       viem:
         specifier: 2.21.55
         version: 2.21.55(typescript@5.4.5)(zod@3.22.4)
@@ -139,7 +139,7 @@ importers:
         version: 0.1.21-automation
       solhint-plugin-prettier:
         specifier: 0.1.0
-        version: 0.1.0(prettier-plugin-solidity@1.4.3)(prettier@3.8.1)
+        version: 0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.2.5)
       solidity-bytes-utils:
         specifier: 0.8.2
         version: 0.8.2
@@ -218,7 +218,7 @@ importers:
         version: 4.17.21
       solhint-plugin-prettier:
         specifier: 0.1.0
-        version: 0.1.0(prettier-plugin-solidity@1.4.3)(prettier@3.8.1)
+        version: 0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.2.5)
       solidity-bytes-utils:
         specifier: 0.8.2
         version: 0.8.2
@@ -312,7 +312,7 @@ importers:
         version: 2.4.2
       ts-node:
         specifier: 10.9.2
-        version: 10.9.2(@types/node@25.4.0)(typescript@5.9.3)
+        version: 10.9.2(@types/node@20.19.37)(typescript@5.9.3)
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -321,7 +321,7 @@ importers:
     dependencies:
       solhint-plugin-prettier:
         specifier: 0.1.0
-        version: 0.1.0(prettier-plugin-solidity@1.4.3)(prettier@3.0.0)
+        version: 0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.0.0)
     devDependencies:
       '@summerfi/dependencies':
         specifier: workspace:*
@@ -421,14 +421,14 @@ importers:
     dependencies:
       solhint-plugin-prettier:
         specifier: 0.1.0
-        version: 0.1.0(prettier-plugin-solidity@1.4.3)(prettier@3.8.1)
+        version: 0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.2.5)
       solidity-bytes-utils:
         specifier: 0.8.2
         version: 0.8.2
     devDependencies:
       '@layerzerolabs/test-devtools-evm-foundry':
         specifier: 0.2.12
-        version: 0.2.12(@layerzerolabs/lz-evm-messagelib-v2@2.3.44)(@layerzerolabs/lz-evm-protocol-v2@2.3.44)(@layerzerolabs/lz-evm-v1-0.7@2.3.44)(@layerzerolabs/oapp-evm@0.0.4)(@layerzerolabs/oft-evm@0.0.11)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)
+        version: 0.2.12(@layerzerolabs/lz-evm-messagelib-v2@2.3.39)(@layerzerolabs/lz-evm-protocol-v2@2.3.39)(@layerzerolabs/lz-evm-v1-0.7@2.3.39)(@layerzerolabs/oapp-evm@0.0.4)(@layerzerolabs/oft-evm@0.0.11)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)
       '@layerzerolabs/toolbox-foundry':
         specifier: 0.1.9
         version: 0.1.9
@@ -485,7 +485,7 @@ importers:
         version: 2.4.2
       ts-node:
         specifier: 10.9.2
-        version: 10.9.2(@types/node@25.4.0)(typescript@5.9.3)
+        version: 10.9.2(@types/node@20.19.37)(typescript@5.9.3)
 
   packages/intent-system:
     dependencies:
@@ -494,7 +494,7 @@ importers:
         version: 0.1.21-automation
       solhint-plugin-prettier:
         specifier: 0.1.0
-        version: 0.1.0(prettier-plugin-solidity@1.4.3)(prettier@3.8.1)
+        version: 0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.2.5)
       solidity-bytes-utils:
         specifier: 0.8.2
         version: 0.8.2
@@ -558,7 +558,7 @@ importers:
         version: 2.4.2
       ts-node:
         specifier: 10.9.2
-        version: 10.9.2(@types/node@25.4.0)(typescript@5.9.3)
+        version: 10.9.2(@types/node@20.19.37)(typescript@5.9.3)
 
   packages/jest-config:
     dependencies:
@@ -616,7 +616,7 @@ importers:
     dependencies:
       solhint-plugin-prettier:
         specifier: 0.1.0
-        version: 0.1.0(prettier-plugin-solidity@1.4.3)(prettier@3.0.0)
+        version: 0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.0.0)
     devDependencies:
       '@summerfi/dependencies':
         specifier: workspace:*
@@ -691,6 +691,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      date-fns:
+        specifier: 3.3.1
+        version: 3.3.1
       lucide-react:
         specifier: ^0.563.0
         version: 0.563.0(react@19.2.3)
@@ -754,7 +757,7 @@ importers:
     dependencies:
       solhint-plugin-prettier:
         specifier: 0.1.0
-        version: 0.1.0(prettier-plugin-solidity@1.4.3)(prettier@3.0.0)
+        version: 0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.0.0)
     devDependencies:
       '@summerfi/dependencies':
         specifier: workspace:*
@@ -788,7 +791,7 @@ importers:
         version: 4.1.0
       solhint-plugin-prettier:
         specifier: 0.1.0
-        version: 0.1.0(prettier-plugin-solidity@1.4.3)(prettier@3.0.0)
+        version: 0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.0.0)
     devDependencies:
       '@summerfi/dependencies':
         specifier: workspace:*
@@ -919,7 +922,7 @@ importers:
     devDependencies:
       '@graphprotocol/graph-cli':
         specifier: 0.82.0
-        version: 0.82.0(@types/node@25.4.0)(node-fetch@3.3.2)(typescript@5.9.3)
+        version: 0.82.0(@types/node@20.19.37)(node-fetch@3.3.2)(typescript@5.9.3)
       '@graphprotocol/graph-ts':
         specifier: 0.35.1
         version: 0.35.1
@@ -1126,7 +1129,7 @@ importers:
     devDependencies:
       '@graphprotocol/graph-cli':
         specifier: 0.82.0
-        version: 0.82.0(@types/node@25.4.0)(node-fetch@3.3.2)(typescript@5.9.3)
+        version: 0.82.0(@types/node@20.19.37)(node-fetch@3.3.2)(typescript@5.9.3)
       '@graphprotocol/graph-ts':
         specifier: 0.35.1
         version: 0.35.1
@@ -1138,13 +1141,13 @@ importers:
         version: 4.2.0
       ts-node:
         specifier: 10.9.2
-        version: 10.9.2(@types/node@25.4.0)(typescript@5.9.3)
+        version: 10.9.2(@types/node@20.19.37)(typescript@5.9.3)
 
   packages/summer-earn-rates-subgraph/generated:
     dependencies:
       '@rescript/react':
         specifier: 0.12.1
-        version: 0.12.1(react-dom@19.2.4)(react@18.2.0)
+        version: 0.12.1(react-dom@18.2.0)(react@18.2.0)
       bignumber.js:
         specifier: 9.1.2
         version: 9.1.2
@@ -1198,7 +1201,7 @@ importers:
         version: 9.3.0(rescript@11.1.3)
       ts-node:
         specifier: 10.9.1
-        version: 10.9.1(@types/node@25.4.0)(typescript@5.9.3)
+        version: 10.9.1(@types/node@20.19.37)(typescript@5.9.3)
       viem:
         specifier: 2.21.0
         version: 2.21.0(typescript@5.9.3)(zod@3.22.4)
@@ -2601,7 +2604,7 @@ packages:
       '@ethersproject/hash': 5.8.0
       '@ethersproject/keccak256': 5.8.0
       '@ethersproject/properties': 5.8.0
-      '@ethersproject/providers': 5.8.0
+      '@ethersproject/providers': 5.7.2
       '@ethersproject/rlp': 5.8.0
       '@ethersproject/transactions': 5.8.0
       '@ethersproject/web': 5.8.0
@@ -2862,7 +2865,6 @@ packages:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
-    dev: true
 
   /@ethersproject/providers@5.8.0:
     resolution: {integrity: sha512-3Il3oTzEx3o6kzcg9ZzbE+oCZYyY+3Zh83sKkn4s1DZfTUjIegHnN2Cm0kbn9YFy45FDVcuCLLONhU7ny0SsCw==}
@@ -3057,15 +3059,15 @@ packages:
       typescript: 5.9.3
     dev: false
 
-  /@graphprotocol/graph-cli@0.82.0(@types/node@25.4.0)(node-fetch@3.3.2)(typescript@5.9.3):
+  /@graphprotocol/graph-cli@0.82.0(@types/node@20.19.37)(node-fetch@3.3.2)(typescript@5.9.3):
     resolution: {integrity: sha512-Azuqlv6SaNnpyMQGD4GXRkRJMPO83R2ts8WpKG0XN6rpCeaJJGZSWo2Q38jVmkEsgw0GDroLTQ7tvP/f4KbxJg==}
     engines: {node: '>=18'}
     hasBin: true
     dependencies:
       '@float-capital/float-subgraph-uncrashable': 0.0.0-internal-testing.5
-      '@oclif/core': 2.8.6(@types/node@25.4.0)(typescript@5.9.3)
-      '@oclif/plugin-autocomplete': 2.3.10(@types/node@25.4.0)(typescript@5.9.3)
-      '@oclif/plugin-not-found': 2.4.3(@types/node@25.4.0)(typescript@5.9.3)
+      '@oclif/core': 2.8.6(@types/node@20.19.37)(typescript@5.9.3)
+      '@oclif/plugin-autocomplete': 2.3.10(@types/node@20.19.37)(typescript@5.9.3)
+      '@oclif/plugin-not-found': 2.4.3(@types/node@20.19.37)(typescript@5.9.3)
       '@whatwg-node/fetch': 0.8.8
       assemblyscript: 0.19.23
       binary-install-raw: 0.0.13(debug@4.3.4)
@@ -4269,35 +4271,6 @@ packages:
       '@openzeppelin/contracts-upgradeable': 5.6.1(@openzeppelin/contracts@5.6.1)
       hardhat-deploy: 0.12.4
       solidity-bytes-utils: 0.8.2
-    dev: false
-
-  /@layerzerolabs/lz-evm-messagelib-v2@2.3.44(@axelar-network/axelar-gmp-sdk-solidity@5.10.0)(@chainlink/contracts-ccip@0.7.6)(@eth-optimism/contracts@0.6.0)(@layerzerolabs/lz-evm-protocol-v2@2.3.44)(@layerzerolabs/lz-evm-v1-0.7@2.3.44)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2):
-    resolution: {integrity: sha512-2HZMjV0KZH0e3W2KL/H8HvE3I7QMJw1no46IQ5LpGSvxIm5Ri45tnQAynbmEbRyKXrRSP3Brkvkc2U7VrfZ/Cg==}
-    peerDependencies:
-      '@arbitrum/nitro-contracts': ^1.1.0
-      '@axelar-network/axelar-gmp-sdk-solidity': ^5.6.4
-      '@chainlink/contracts-ccip': ^0.7.6
-      '@eth-optimism/contracts': ^0.6.0
-      '@layerzerolabs/lz-evm-protocol-v2': ^2.3.44
-      '@layerzerolabs/lz-evm-v1-0.7': ^2.3.44
-      '@openzeppelin/contracts': ^4.8.1 || ^5.0.0
-      '@openzeppelin/contracts-upgradeable': ^4.8.1 || ^5.0.0
-      hardhat-deploy: ^0.12.4
-      solidity-bytes-utils: ^0.8.0
-    peerDependenciesMeta:
-      '@arbitrum/nitro-contracts':
-        optional: true
-    dependencies:
-      '@axelar-network/axelar-gmp-sdk-solidity': 5.10.0
-      '@chainlink/contracts-ccip': 0.7.6(ethers@5.8.0)
-      '@eth-optimism/contracts': 0.6.0(ethers@5.8.0)
-      '@layerzerolabs/lz-evm-protocol-v2': 2.3.44(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2)
-      '@layerzerolabs/lz-evm-v1-0.7': 2.3.44(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)
-      '@openzeppelin/contracts': 5.6.1
-      '@openzeppelin/contracts-upgradeable': 5.6.1(@openzeppelin/contracts@5.6.1)
-      hardhat-deploy: 0.12.4
-      solidity-bytes-utils: 0.8.2
-    dev: true
 
   /@layerzerolabs/lz-evm-messagelib-v2@3.0.81(@axelar-network/axelar-gmp-sdk-solidity@5.10.0)(@chainlink/contracts-ccip@0.7.6)(@eth-optimism/contracts@0.6.0)(@layerzerolabs/lz-evm-protocol-v2@3.0.81)(@layerzerolabs/lz-evm-v1-0.7@3.0.81)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2):
     resolution: {integrity: sha512-VfrJq/BqgRSs60uOn1/fXagNwa8bKfFVTQtdgIl68FSjqjtuETV9eDFdzb/mKuZCebwjyS5ZU5vbkB1uBOrUgg==}
@@ -4369,21 +4342,6 @@ packages:
       '@openzeppelin/contracts-upgradeable': 5.6.1(@openzeppelin/contracts@5.6.1)
       hardhat-deploy: 0.12.4
       solidity-bytes-utils: 0.8.2
-    dev: false
-
-  /@layerzerolabs/lz-evm-protocol-v2@2.3.44(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2):
-    resolution: {integrity: sha512-oNtwl4HGCogFVOr45T3FfrkB0/CRW2eGAEScBw/FY/6mlncnS4dqlvrCJ3SFlK17cu1w9q0ztD3NzS9sUrb7vw==}
-    peerDependencies:
-      '@openzeppelin/contracts': ^4.8.1 || ^5.0.0
-      '@openzeppelin/contracts-upgradeable': ^4.8.1 || ^5.0.0
-      hardhat-deploy: ^0.12.4
-      solidity-bytes-utils: ^0.8.0
-    dependencies:
-      '@openzeppelin/contracts': 5.6.1
-      '@openzeppelin/contracts-upgradeable': 5.6.1(@openzeppelin/contracts@5.6.1)
-      hardhat-deploy: 0.12.4
-      solidity-bytes-utils: 0.8.2
-    dev: true
 
   /@layerzerolabs/lz-evm-protocol-v2@3.0.81(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2):
     resolution: {integrity: sha512-Zams9UJQyIZRc/3gGdJeeUQhAg4Vs+nqRcZOH3ZzA0Ij8XBOBGcQ+WAyYR6FKOD5IQjZwSZb0rZMcpJT9zoomQ==}
@@ -4419,19 +4377,6 @@ packages:
       '@openzeppelin/contracts': 5.6.1
       '@openzeppelin/contracts-upgradeable': 5.6.1(@openzeppelin/contracts@5.6.1)
       hardhat-deploy: 0.12.4
-    dev: false
-
-  /@layerzerolabs/lz-evm-v1-0.7@2.3.44(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4):
-    resolution: {integrity: sha512-gxPUv5yk5TLy4Rp4KwFqiPHGpVOPMtnwUi+LvRysnGgkqopOJRCzzvWqEv6M2YMUAsof+Vmr3UYWxKcilvv97g==}
-    peerDependencies:
-      '@openzeppelin/contracts': 3.4.2-solc-0.7 || ^3.4.2 || ^4.0.0 || ^5.0.0
-      '@openzeppelin/contracts-upgradeable': 3.4.2-solc-0.7 || ^3.4.2 || ^4.0.0 || ^5.0.0
-      hardhat-deploy: ^0.12.4
-    dependencies:
-      '@openzeppelin/contracts': 5.6.1
-      '@openzeppelin/contracts-upgradeable': 5.6.1(@openzeppelin/contracts@5.6.1)
-      hardhat-deploy: 0.12.4
-    dev: true
 
   /@layerzerolabs/lz-evm-v1-0.7@3.0.81(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@4.9.6):
     resolution: {integrity: sha512-RleeYlqB20GoS3n+JSy/vw8VdfIwfkv+SyirUXoOd2YE9PBQ/0mzqiPD9IAX8ZJMGK49fFED8A04Fn3oiW0VZQ==}
@@ -4531,27 +4476,6 @@ packages:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
-    dev: false
-
-  /@layerzerolabs/oapp-evm@0.0.4(@layerzerolabs/lz-evm-messagelib-v2@2.3.44)(@layerzerolabs/lz-evm-protocol-v2@2.3.44)(@layerzerolabs/lz-evm-v1-0.7@2.3.44)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1):
-    resolution: {integrity: sha512-h0papPd9mQAPsWoQuzZk3dIcLWLrJ8tnDNPg7Hn8aa+v7HPY1lo6Zmyn3t7RmzfKnvrjnjKWDTbX2zgesu4hYg==}
-    peerDependencies:
-      '@layerzerolabs/lz-evm-messagelib-v2': ^2.3.39
-      '@layerzerolabs/lz-evm-protocol-v2': ^2.3.39
-      '@layerzerolabs/lz-evm-v1-0.7': ^2.3.39
-      '@openzeppelin/contracts': ^4.8.1 || ^5.0.0
-      '@openzeppelin/contracts-upgradeable': ^4.8.1 || ^5.0.0
-    dependencies:
-      '@layerzerolabs/lz-evm-messagelib-v2': 2.3.44(@axelar-network/axelar-gmp-sdk-solidity@5.10.0)(@chainlink/contracts-ccip@0.7.6)(@eth-optimism/contracts@0.6.0)(@layerzerolabs/lz-evm-protocol-v2@2.3.44)(@layerzerolabs/lz-evm-v1-0.7@2.3.44)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2)
-      '@layerzerolabs/lz-evm-protocol-v2': 2.3.44(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2)
-      '@layerzerolabs/lz-evm-v1-0.7': 2.3.44(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)
-      '@openzeppelin/contracts': 5.6.1
-      '@openzeppelin/contracts-upgradeable': 5.6.1(@openzeppelin/contracts@5.6.1)
-      ethers: 5.8.0
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-    dev: true
 
   /@layerzerolabs/oapp-evm@0.3.2(@layerzerolabs/lz-evm-messagelib-v2@3.0.81)(@layerzerolabs/lz-evm-protocol-v2@3.0.81)(@layerzerolabs/lz-evm-v1-0.7@3.0.81)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1):
     resolution: {integrity: sha512-QqazLEl9KEPsipU/3m5eFDhyse+sG4bO2FWUEf/Kuee4JW6P3iIBI9wg0QfalUqLj0HL0ChFHL3yRTZVqzxrww==}
@@ -4589,25 +4513,6 @@ packages:
       '@layerzerolabs/oapp-evm': 0.0.4(@layerzerolabs/lz-evm-messagelib-v2@2.3.39)(@layerzerolabs/lz-evm-protocol-v2@2.3.39)(@layerzerolabs/lz-evm-v1-0.7@2.3.39)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)
       '@openzeppelin/contracts': 5.6.1
       '@openzeppelin/contracts-upgradeable': 5.6.1(@openzeppelin/contracts@5.6.1)
-    dev: false
-
-  /@layerzerolabs/oft-evm@0.0.11(@layerzerolabs/lz-evm-messagelib-v2@2.3.44)(@layerzerolabs/lz-evm-protocol-v2@2.3.44)(@layerzerolabs/lz-evm-v1-0.7@2.3.44)(@layerzerolabs/oapp-evm@0.0.4)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1):
-    resolution: {integrity: sha512-lkhEiwMrcC0CtMcHkTTnaJwOsE/tE4MiO1nbU3QcWrTOGQj0BGiH05c50+lvZeFHlObp/QpIDXELnJgd2rz29w==}
-    peerDependencies:
-      '@layerzerolabs/lz-evm-messagelib-v2': ^2.3.39
-      '@layerzerolabs/lz-evm-protocol-v2': ^2.3.39
-      '@layerzerolabs/lz-evm-v1-0.7': ^2.3.39
-      '@layerzerolabs/oapp-evm': ^0.0.4
-      '@openzeppelin/contracts': ^4.8.1 || ^5.0.0
-      '@openzeppelin/contracts-upgradeable': ^4.8.1 || ^5.0.0
-    dependencies:
-      '@layerzerolabs/lz-evm-messagelib-v2': 2.3.44(@axelar-network/axelar-gmp-sdk-solidity@5.10.0)(@chainlink/contracts-ccip@0.7.6)(@eth-optimism/contracts@0.6.0)(@layerzerolabs/lz-evm-protocol-v2@2.3.44)(@layerzerolabs/lz-evm-v1-0.7@2.3.44)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2)
-      '@layerzerolabs/lz-evm-protocol-v2': 2.3.44(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2)
-      '@layerzerolabs/lz-evm-v1-0.7': 2.3.44(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)
-      '@layerzerolabs/oapp-evm': 0.0.4(@layerzerolabs/lz-evm-messagelib-v2@2.3.44)(@layerzerolabs/lz-evm-protocol-v2@2.3.44)(@layerzerolabs/lz-evm-v1-0.7@2.3.44)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)
-      '@openzeppelin/contracts': 5.6.1
-      '@openzeppelin/contracts-upgradeable': 5.6.1(@openzeppelin/contracts@5.6.1)
-    dev: true
 
   /@layerzerolabs/oft-evm@3.1.3(@layerzerolabs/lz-evm-messagelib-v2@3.0.81)(@layerzerolabs/lz-evm-protocol-v2@3.0.81)(@layerzerolabs/lz-evm-v1-0.7@3.0.81)(@layerzerolabs/oapp-evm@0.3.2)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1):
     resolution: {integrity: sha512-rn9VqNEsA625M6TT2pjUuO7l6vEPXu1HixW8Fi29nZ1Q0CeyP5/ZpSiJ0iyD/w8d10soWFk3GQDVAh+ojnVraQ==}
@@ -4645,27 +4550,6 @@ packages:
       '@layerzerolabs/oft-evm': 0.0.11(@layerzerolabs/lz-evm-messagelib-v2@2.3.39)(@layerzerolabs/lz-evm-protocol-v2@2.3.39)(@layerzerolabs/lz-evm-v1-0.7@2.3.39)(@layerzerolabs/oapp-evm@0.0.4)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)
       '@openzeppelin/contracts': 5.6.1
       '@openzeppelin/contracts-upgradeable': 5.6.1(@openzeppelin/contracts@5.6.1)
-    dev: false
-
-  /@layerzerolabs/test-devtools-evm-foundry@0.2.12(@layerzerolabs/lz-evm-messagelib-v2@2.3.44)(@layerzerolabs/lz-evm-protocol-v2@2.3.44)(@layerzerolabs/lz-evm-v1-0.7@2.3.44)(@layerzerolabs/oapp-evm@0.0.4)(@layerzerolabs/oft-evm@0.0.11)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1):
-    resolution: {integrity: sha512-r1uLTr2IZ6pFQc/4jq/7HFQVfPFm1c2yH80/fyLsDcBAA0Dt+PmqgsR2N99z/GGllw8JrzS2bH0EuyVFnF7SQw==}
-    peerDependencies:
-      '@layerzerolabs/lz-evm-messagelib-v2': ^2.3.3
-      '@layerzerolabs/lz-evm-protocol-v2': ^2.3.3
-      '@layerzerolabs/lz-evm-v1-0.7': ^2.3.3
-      '@layerzerolabs/oapp-evm': ^0.0.4
-      '@layerzerolabs/oft-evm': ^0.0.11
-      '@openzeppelin/contracts': ^4.9.5 || ^5.0.0
-      '@openzeppelin/contracts-upgradeable': ^4.9.5 || ^5.0.0
-    dependencies:
-      '@layerzerolabs/lz-evm-messagelib-v2': 2.3.44(@axelar-network/axelar-gmp-sdk-solidity@5.10.0)(@chainlink/contracts-ccip@0.7.6)(@eth-optimism/contracts@0.6.0)(@layerzerolabs/lz-evm-protocol-v2@2.3.44)(@layerzerolabs/lz-evm-v1-0.7@2.3.44)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2)
-      '@layerzerolabs/lz-evm-protocol-v2': 2.3.44(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2)
-      '@layerzerolabs/lz-evm-v1-0.7': 2.3.44(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4)
-      '@layerzerolabs/oapp-evm': 0.0.4(@layerzerolabs/lz-evm-messagelib-v2@2.3.44)(@layerzerolabs/lz-evm-protocol-v2@2.3.44)(@layerzerolabs/lz-evm-v1-0.7@2.3.44)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)
-      '@layerzerolabs/oft-evm': 0.0.11(@layerzerolabs/lz-evm-messagelib-v2@2.3.44)(@layerzerolabs/lz-evm-protocol-v2@2.3.44)(@layerzerolabs/lz-evm-v1-0.7@2.3.44)(@layerzerolabs/oapp-evm@0.0.4)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1)
-      '@openzeppelin/contracts': 5.6.1
-      '@openzeppelin/contracts-upgradeable': 5.6.1(@openzeppelin/contracts@5.6.1)
-    dev: true
 
   /@layerzerolabs/test-devtools-evm-foundry@6.0.3(@layerzerolabs/lz-evm-messagelib-v2@3.0.81)(@layerzerolabs/lz-evm-protocol-v2@3.0.81)(@layerzerolabs/lz-evm-v1-0.7@3.0.81)(@layerzerolabs/oapp-evm@0.3.2)(@layerzerolabs/oft-evm@3.1.3)(@openzeppelin/contracts-upgradeable@5.6.1)(@openzeppelin/contracts@5.6.1):
     resolution: {integrity: sha512-yJQzxcW2mVwnSB4vGmUfxDbR0K72f3jf+An6swmTXXrMvtZ5v9mKOUhN40c3mmrUq+/FJtvg+5sJCll37r369A==}
@@ -5827,7 +5711,7 @@ packages:
     resolution: {integrity: sha512-04/JGbw5mmVXvIKzqVuNgc64hL7x2mAqc6jCbesUpeCQPqJwI/a2TtU9WIp85j0C0PdZ5qZWcSPXaFXKGeClwQ==}
     dev: false
 
-  /@oclif/core@2.16.0(@types/node@25.4.0)(typescript@5.9.3):
+  /@oclif/core@2.16.0(@types/node@20.19.37)(typescript@5.9.3):
     resolution: {integrity: sha512-dL6atBH0zCZl1A1IXCKJgLPrM/wR7K+Wi401E/IvqsK8m2iCHW+0TEOGrans/cuN3oTW+uxIyJFHJ8Im0k4qBw==}
     engines: {node: '>=14.0.0'}
     dependencies:
@@ -5854,7 +5738,7 @@ packages:
       strip-ansi: 6.0.1
       supports-color: 8.1.1
       supports-hyperlinks: 2.3.0
-      ts-node: 10.9.2(@types/node@25.4.0)(typescript@5.9.3)
+      ts-node: 10.9.2(@types/node@20.19.37)(typescript@5.9.3)
       tslib: 2.8.1
       widest-line: 3.1.0
       wordwrap: 1.0.0
@@ -5866,7 +5750,7 @@ packages:
       - typescript
     dev: true
 
-  /@oclif/core@2.8.6(@types/node@25.4.0)(typescript@5.9.3):
+  /@oclif/core@2.8.6(@types/node@20.19.37)(typescript@5.9.3):
     resolution: {integrity: sha512-1QlPaHMhOORySCXkQyzjsIsy2GYTilOw3LkjeHkCgsPJQjAT4IclVytJusWktPbYNys9O+O4V23J44yomQvnBQ==}
     engines: {node: '>=14.0.0'}
     dependencies:
@@ -5894,7 +5778,7 @@ packages:
       strip-ansi: 6.0.1
       supports-color: 8.1.1
       supports-hyperlinks: 2.3.0
-      ts-node: 10.9.2(@types/node@25.4.0)(typescript@5.9.3)
+      ts-node: 10.9.2(@types/node@20.19.37)(typescript@5.9.3)
       tslib: 2.8.1
       widest-line: 3.1.0
       wordwrap: 1.0.0
@@ -5954,11 +5838,11 @@ packages:
       wrap-ansi: 7.0.0
     dev: true
 
-  /@oclif/plugin-autocomplete@2.3.10(@types/node@25.4.0)(typescript@5.9.3):
+  /@oclif/plugin-autocomplete@2.3.10(@types/node@20.19.37)(typescript@5.9.3):
     resolution: {integrity: sha512-Ow1AR8WtjzlyCtiWWPgzMyT8SbcDJFr47009riLioHa+MHX2BCDtVn2DVnN/E6b9JlPV5ptQpjefoRSNWBesmg==}
     engines: {node: '>=12.0.0'}
     dependencies:
-      '@oclif/core': 2.16.0(@types/node@25.4.0)(typescript@5.9.3)
+      '@oclif/core': 2.16.0(@types/node@20.19.37)(typescript@5.9.3)
       chalk: 4.1.2
       debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
@@ -5981,11 +5865,11 @@ packages:
       - supports-color
     dev: true
 
-  /@oclif/plugin-not-found@2.4.3(@types/node@25.4.0)(typescript@5.9.3):
+  /@oclif/plugin-not-found@2.4.3(@types/node@20.19.37)(typescript@5.9.3):
     resolution: {integrity: sha512-nIyaR4y692frwh7wIHZ3fb+2L6XEecQwRDIb4zbEam0TvaVmBQWZoColQyWA84ljFBPZ8XWiQyTz+ixSwdRkqg==}
     engines: {node: '>=12.0.0'}
     dependencies:
-      '@oclif/core': 2.16.0(@types/node@25.4.0)(typescript@5.9.3)
+      '@oclif/core': 2.16.0(@types/node@20.19.37)(typescript@5.9.3)
       chalk: 4.1.2
       fast-levenshtein: 3.0.0
     transitivePeerDependencies:
@@ -6285,12 +6169,12 @@ packages:
       prettier: 3.0.0
     dev: false
 
-  /@prettier/sync@0.3.0(prettier@3.8.1):
+  /@prettier/sync@0.3.0(prettier@3.2.5):
     resolution: {integrity: sha512-3dcmCyAxIcxy036h1I7MQU/uEEBq8oLwf1CE3xeze+MPlgkdlb/+w6rGR/1dhp6Hqi17fRS6nvwnOzkESxEkOw==}
     peerDependencies:
       prettier: ^3.0.0
     dependencies:
-      prettier: 3.8.1
+      prettier: 3.2.5
     dev: false
 
   /@protobuf-ts/grpcweb-transport@2.11.1:
@@ -7529,14 +7413,14 @@ packages:
       - zod
     dev: false
 
-  /@rescript/react@0.12.1(react-dom@19.2.4)(react@18.2.0):
+  /@rescript/react@0.12.1(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-ZD7nhDr5FZgLYqRH9s4CNM+LRz/3IMuTb+LH12fd2Akk0xYkYUP+DZveB2VQUC2UohJnTf/c8yPSNsiFihVCCg==}
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
     dependencies:
       react: 18.2.0
-      react-dom: 19.2.4(react@18.2.0)
+      react-dom: 18.2.0(react@18.2.0)
     dev: false
 
   /@rescript/std@9.0.0:
@@ -8520,11 +8404,6 @@ packages:
 
   /@solidity-parser/parser@0.17.0:
     resolution: {integrity: sha512-Nko8R0/kUo391jsEHHxrGM07QFdnPGvlmox4rmH0kNiNAashItAilhy4Mv4pK5gQmW5f4sXAF58fwJbmlkGcVw==}
-    dev: true
-
-  /@solidity-parser/parser@0.20.2:
-    resolution: {integrity: sha512-rbu0bzwNvMcwAjH86hiEAcOeRI2EeK8zCkHDrFykh/Al8mvJeFmjy3UrE7GYQjNwOgbGUUtCn5/k8CB8zIu7QA==}
-    dev: false
 
   /@stargatefinance/stg-definitions-v2@2.0.5:
     resolution: {integrity: sha512-MDpKCm67CtSbQZI7NQZC2EUrl5pRA7w7lpaVnaiJd397rJUthlG4zPtep0WgOOyPvo0mO2vuLb44h+IVc/DybQ==}
@@ -8900,7 +8779,7 @@ packages:
     dependencies:
       '@types/http-cache-semantics': 4.2.0
       '@types/keyv': 3.1.4
-      '@types/node': 25.4.0
+      '@types/node': 20.19.37
       '@types/responselike': 1.0.3
     dev: false
 
@@ -9046,7 +8925,7 @@ packages:
   /@types/keyv@3.1.4:
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 20.19.37
     dev: false
 
   /@types/lodash@4.17.20:
@@ -9182,7 +9061,7 @@ packages:
   /@types/responselike@1.0.3:
     resolution: {integrity: sha512-H/+L+UkTV33uf49PH5pCAUBVPNj2nDBXTN+qS1dOwyyg24l3CcicicCA7ca+HMvJBZcFgl5r8e+RR6elsb4Lyw==}
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 20.19.37
     dev: false
 
   /@types/secp256k1@4.0.7:
@@ -9821,7 +9700,6 @@ packages:
 
   /@wagmi/connectors@7.2.1(@wagmi/core@2.22.1)(typescript@5.4.5)(viem@2.41.2):
     resolution: {integrity: sha512-/tyDepUMDM8eNzNX3ofjqHNRFZ6XcZ3u0+cQp5x0/LHCpMA8tRh7A1/e7dTrYiIJeL7iLgHzfHUXCsU02OKMLQ==}
-    requiresBuild: true
     peerDependencies:
       '@base-org/account': ^2.5.1
       '@coinbase/wallet-sdk': ^4.3.6
@@ -11747,11 +11625,6 @@ packages:
     engines: {node: '>= 0.4'}
     dependencies:
       possible-typed-array-names: 1.1.0
-
-  /axe-core@4.11.0:
-    resolution: {integrity: sha512-ilYanEU8vxxBexpJd8cWM4ElSQq4QctCLKih0TSfjIfCQTeyH/6zVrmIJfLPrKTKJRbiG+cfnZbQIjAlJmF1jQ==}
-    engines: {node: '>=4'}
-    dev: true
 
   /axe-core@4.11.1:
     resolution: {integrity: sha512-BASOg+YwO2C+346x3LZOeoovTIoTrRqEsqMa6fmfAV0P+U9mFr9NsyOEpiYvFjbc64NMrSswhV50WdXzdb/Z5A==}
@@ -13848,66 +13721,6 @@ packages:
       unbox-primitive: 1.1.0
       which-typed-array: 1.1.19
 
-  /es-abstract@1.24.1:
-    resolution: {integrity: sha512-zHXBLhP+QehSSbsS9Pt23Gg964240DPd6QCf8WpkqEXxQ7fhdZzYsocOr5u7apWonsS5EjZDmTF+/slGMyasvw==}
-    engines: {node: '>= 0.4'}
-    dependencies:
-      array-buffer-byte-length: 1.0.2
-      arraybuffer.prototype.slice: 1.0.4
-      available-typed-arrays: 1.0.7
-      call-bind: 1.0.8
-      call-bound: 1.0.4
-      data-view-buffer: 1.0.2
-      data-view-byte-length: 1.0.2
-      data-view-byte-offset: 1.0.1
-      es-define-property: 1.0.1
-      es-errors: 1.3.0
-      es-object-atoms: 1.1.1
-      es-set-tostringtag: 2.1.0
-      es-to-primitive: 1.3.0
-      function.prototype.name: 1.1.8
-      get-intrinsic: 1.3.0
-      get-proto: 1.0.1
-      get-symbol-description: 1.1.0
-      globalthis: 1.0.4
-      gopd: 1.2.0
-      has-property-descriptors: 1.0.2
-      has-proto: 1.2.0
-      has-symbols: 1.1.0
-      hasown: 2.0.2
-      internal-slot: 1.1.0
-      is-array-buffer: 3.0.5
-      is-callable: 1.2.7
-      is-data-view: 1.0.2
-      is-negative-zero: 2.0.3
-      is-regex: 1.2.1
-      is-set: 2.0.3
-      is-shared-array-buffer: 1.0.4
-      is-string: 1.1.1
-      is-typed-array: 1.1.15
-      is-weakref: 1.1.1
-      math-intrinsics: 1.1.0
-      object-inspect: 1.13.4
-      object-keys: 1.1.1
-      object.assign: 4.1.7
-      own-keys: 1.0.1
-      regexp.prototype.flags: 1.5.4
-      safe-array-concat: 1.1.3
-      safe-push-apply: 1.0.0
-      safe-regex-test: 1.1.0
-      set-proto: 1.0.0
-      stop-iteration-iterator: 1.1.0
-      string.prototype.trim: 1.2.10
-      string.prototype.trimend: 1.0.9
-      string.prototype.trimstart: 1.0.8
-      typed-array-buffer: 1.0.3
-      typed-array-byte-length: 1.0.3
-      typed-array-byte-offset: 1.0.4
-      typed-array-length: 1.0.7
-      unbox-primitive: 1.1.0
-      which-typed-array: 1.1.20
-    dev: true
-
   /es-define-property@1.0.1:
     resolution: {integrity: sha512-e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g==}
     engines: {node: '>= 0.4'}
@@ -13936,28 +13749,6 @@ packages:
       internal-slot: 1.1.0
       iterator.prototype: 1.1.5
       safe-array-concat: 1.1.3
-
-  /es-iterator-helpers@1.2.2:
-    resolution: {integrity: sha512-BrUQ0cPTB/IwXj23HtwHjS9n7O4h9FX94b4xc5zlTHxeLgTAdzYUDyy6KdExAl9lbN5rtfe44xpjpmj9grxs5w==}
-    engines: {node: '>= 0.4'}
-    dependencies:
-      call-bind: 1.0.8
-      call-bound: 1.0.4
-      define-properties: 1.2.1
-      es-abstract: 1.24.1
-      es-errors: 1.3.0
-      es-set-tostringtag: 2.1.0
-      function-bind: 1.1.2
-      get-intrinsic: 1.3.0
-      globalthis: 1.0.4
-      gopd: 1.2.0
-      has-property-descriptors: 1.0.2
-      has-proto: 1.2.0
-      has-symbols: 1.1.0
-      internal-slot: 1.1.0
-      iterator.prototype: 1.1.5
-      safe-array-concat: 1.1.3
-    dev: true
 
   /es-object-atoms@1.1.1:
     resolution: {integrity: sha512-FGgH2h8zKNim9ljj7dankFPcICIK9Cp5bm+c2gQSYePhpaG5+esrLODihIorn+Pe6FGJzWhXQotPv73jTaldXA==}
@@ -14406,7 +14197,7 @@ packages:
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
-      minimatch: 3.1.2
+      minimatch: 3.1.5
       object.fromentries: 2.0.8
       object.groupby: 1.0.3
       object.values: 1.2.1
@@ -14466,7 +14257,7 @@ packages:
       array-includes: 3.1.9
       array.prototype.flatmap: 1.3.3
       ast-types-flow: 0.0.8
-      axe-core: 4.11.0
+      axe-core: 4.11.1
       axobject-query: 4.1.0
       damerau-levenshtein: 1.0.8
       emoji-regex: 9.2.2
@@ -14474,7 +14265,7 @@ packages:
       hasown: 2.0.2
       jsx-ast-utils: 3.3.5
       language-tags: 1.0.9
-      minimatch: 3.1.2
+      minimatch: 3.1.5
       object.fromentries: 2.0.8
       safe-regex-test: 1.1.0
       string.prototype.includes: 2.0.1
@@ -14565,17 +14356,17 @@ packages:
       array.prototype.flatmap: 1.3.3
       array.prototype.tosorted: 1.1.4
       doctrine: 2.1.0
-      es-iterator-helpers: 1.2.2
+      es-iterator-helpers: 1.2.1
       eslint: 9.39.4
       estraverse: 5.3.0
       hasown: 2.0.2
       jsx-ast-utils: 3.3.5
-      minimatch: 3.1.5
+      minimatch: 3.1.2
       object.entries: 1.1.9
       object.fromentries: 2.0.8
       object.values: 1.2.1
       prop-types: 15.8.1
-      resolve: 2.0.0-next.6
+      resolve: 2.0.0-next.5
       semver: 6.3.1
       string.prototype.matchall: 4.0.12
       string.prototype.repeat: 1.0.0
@@ -16005,7 +15796,7 @@ packages:
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.8.0
       '@ethersproject/contracts': 5.8.0
-      '@ethersproject/providers': 5.8.0
+      '@ethersproject/providers': 5.7.2
       '@ethersproject/solidity': 5.8.0
       '@ethersproject/transactions': 5.8.0
       '@ethersproject/wallet': 5.8.0
@@ -16078,7 +15869,7 @@ packages:
       solc: 0.8.26(debug@4.4.3)
       source-map-support: 0.5.21
       stacktrace-parser: 0.1.11
-      ts-node: 10.9.2(@types/node@25.4.0)(typescript@5.9.3)
+      ts-node: 10.9.2(@types/node@20.19.37)(typescript@5.9.3)
       tsort: 0.0.1
       typescript: 5.9.3
       undici: 5.29.0
@@ -16138,7 +15929,7 @@ packages:
       source-map-support: 0.5.21
       stacktrace-parser: 0.1.11
       tinyglobby: 0.2.15
-      ts-node: 10.9.2(@types/node@25.4.0)(typescript@5.9.3)
+      ts-node: 10.9.2(@types/node@20.19.37)(typescript@5.9.3)
       tsort: 0.0.1
       typescript: 5.9.3
       undici: 5.29.0
@@ -19321,16 +19112,6 @@ packages:
     deprecated: Use your platform's native DOMException instead
     dev: true
 
-  /node-exports-info@1.6.0:
-    resolution: {integrity: sha512-pyFS63ptit/P5WqUkt+UUfe+4oevH+bFeIiPPdfb0pFeYEu/1ELnJu5l+5EcTKYL5M7zaAa7S8ddywgXypqKCw==}
-    engines: {node: '>= 0.4'}
-    dependencies:
-      array.prototype.flatmap: 1.3.3
-      es-errors: 1.3.0
-      object.entries: 1.1.9
-      semver: 6.3.1
-    dev: true
-
   /node-fetch-native@1.6.7:
     resolution: {integrity: sha512-g9yhqoedzIUm0nTnTqAQvueMPVOuIY16bqgAJJC8XOOubYFNwz6IER9qs0Gq2Xd0+CecCKFjtdDTMA4u4xG06Q==}
     dev: false
@@ -20705,6 +20486,18 @@ packages:
       fast-diff: 1.3.0
     dev: false
 
+  /prettier-plugin-solidity@1.3.1(prettier@3.0.0):
+    resolution: {integrity: sha512-MN4OP5I2gHAzHZG1wcuJl0FsLS3c4Cc5494bbg+6oQWBPuEamjwDvmGfFMZ6NFzsh3Efd9UUxeT7ImgjNH4ozA==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      prettier: '>=2.3.0'
+    dependencies:
+      '@solidity-parser/parser': 0.17.0
+      prettier: 3.0.0
+      semver: 7.7.3
+      solidity-comments-extractor: 0.0.8
+    dev: false
+
   /prettier-plugin-solidity@1.3.1(prettier@3.2.5):
     resolution: {integrity: sha512-MN4OP5I2gHAzHZG1wcuJl0FsLS3c4Cc5494bbg+6oQWBPuEamjwDvmGfFMZ6NFzsh3Efd9UUxeT7ImgjNH4ozA==}
     engines: {node: '>=16'}
@@ -20715,29 +20508,6 @@ packages:
       prettier: 3.2.5
       semver: 7.7.3
       solidity-comments-extractor: 0.0.8
-    dev: true
-
-  /prettier-plugin-solidity@1.4.3(prettier@3.0.0):
-    resolution: {integrity: sha512-Mrr/iiR9f9IaeGRMZY2ApumXcn/C5Gs3S7B7hWB3gigBFML06C0yEyW86oLp0eqiA0qg+46FaChgLPJCj/pIlg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      prettier: '>=2.3.0'
-    dependencies:
-      '@solidity-parser/parser': 0.20.2
-      prettier: 3.0.0
-      semver: 7.7.4
-    dev: false
-
-  /prettier-plugin-solidity@1.4.3(prettier@3.8.1):
-    resolution: {integrity: sha512-Mrr/iiR9f9IaeGRMZY2ApumXcn/C5Gs3S7B7hWB3gigBFML06C0yEyW86oLp0eqiA0qg+46FaChgLPJCj/pIlg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      prettier: '>=2.3.0'
-    dependencies:
-      '@solidity-parser/parser': 0.20.2
-      prettier: 3.8.1
-      semver: 7.7.4
-    dev: false
 
   /prettier@2.8.8:
     resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}
@@ -20762,19 +20532,12 @@ packages:
     resolution: {integrity: sha512-3/GWa9aOC0YeD7LUfvOG2NiDyhOWRvt1k+rcKhOuYnMY24iiCphgneUfJDyFXd6rZCAnuLBv6UeAULtrhT/F4A==}
     engines: {node: '>=14'}
     hasBin: true
-    dev: true
 
   /prettier@3.4.2:
     resolution: {integrity: sha512-e9MewbtFo+Fevyuxn/4rrcDAaq0IYxPGLvObpQjiZBMAzB9IGmzlnG9RZy3FFas+eBMu2vA0CszMeduow5dIuQ==}
     engines: {node: '>=14'}
     hasBin: true
     dev: true
-
-  /prettier@3.8.1:
-    resolution: {integrity: sha512-UOnG6LftzbdaHZcKoPFtOcCKztrQ57WkHDeRD9t/PTQtmT0NHSeWWepj6pS0z/N7+08BHFDQVUrfmfMRcZwbMg==}
-    engines: {node: '>=14'}
-    hasBin: true
-    dev: false
 
   /pretty-format@29.7.0:
     resolution: {integrity: sha512-Pdlw/oPxN+aXdmM9R00JVC9WVFoCLTKJvDVLgmJ+qAffBMxsV85l/Lu7sNx4zSzPyoL2euImuEwHhOXdEgNFZQ==}
@@ -21096,24 +20859,6 @@ packages:
       scheduler: 0.27.0
     dev: false
 
-  /react-dom@19.2.4(react@18.2.0):
-    resolution: {integrity: sha512-AXJdLo8kgMbimY95O2aKQqsz2iWi9jMgKJhRBAxECE4IFxfcazB2LmzloIoibJI3C12IlY20+KFaLv+71bUJeQ==}
-    peerDependencies:
-      react: ^19.2.4
-    dependencies:
-      react: 18.2.0
-      scheduler: 0.27.0
-    dev: false
-
-  /react-dom@19.2.4(react@19.2.4):
-    resolution: {integrity: sha512-AXJdLo8kgMbimY95O2aKQqsz2iWi9jMgKJhRBAxECE4IFxfcazB2LmzloIoibJI3C12IlY20+KFaLv+71bUJeQ==}
-    peerDependencies:
-      react: ^19.2.4
-    dependencies:
-      react: 19.2.4
-      scheduler: 0.27.0
-    dev: false
-
   /react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
@@ -21197,11 +20942,6 @@ packages:
 
   /react@19.2.3:
     resolution: {integrity: sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA==}
-    engines: {node: '>=0.10.0'}
-    dev: false
-
-  /react@19.2.4:
-    resolution: {integrity: sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ==}
     engines: {node: '>=0.10.0'}
     dev: false
 
@@ -21474,19 +21214,6 @@ packages:
       is-core-module: 2.16.1
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
-
-  /resolve@2.0.0-next.6:
-    resolution: {integrity: sha512-3JmVl5hMGtJ3kMmB3zi3DL25KfkCEyy3Tw7Gmw7z5w8M9WlwoPFnIvwChzu1+cF3iaK3sp18hhPz8ANeimdJfA==}
-    engines: {node: '>= 0.4'}
-    hasBin: true
-    dependencies:
-      es-errors: 1.3.0
-      is-core-module: 2.16.1
-      node-exports-info: 1.6.0
-      object-keys: 1.1.1
-      path-parse: 1.0.7
-      supports-preserve-symlinks-flag: 1.0.0
-    dev: true
 
   /responselike@2.0.1:
     resolution: {integrity: sha512-4gl03wn3hj1HP3yzgdI7d3lCkF95F21Pz4BPGvKHinyQzALR5CapwC8yIi0Rh58DEMQ/SguC03wFj2k0M/mHhw==}
@@ -21977,7 +21704,7 @@ packages:
       - debug
     dev: true
 
-  /solhint-plugin-prettier@0.1.0(prettier-plugin-solidity@1.4.3)(prettier@3.0.0):
+  /solhint-plugin-prettier@0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.0.0):
     resolution: {integrity: sha512-SDOTSM6tZxZ6hamrzl3GUgzF77FM6jZplgL2plFBclj/OjKP8Z3eIPojKU73gRr0MvOS8ACZILn8a5g0VTz/Gw==}
     peerDependencies:
       prettier: ^3.0.0
@@ -21986,19 +21713,19 @@ packages:
       '@prettier/sync': 0.3.0(prettier@3.0.0)
       prettier: 3.0.0
       prettier-linter-helpers: 1.0.0
-      prettier-plugin-solidity: 1.4.3(prettier@3.0.0)
+      prettier-plugin-solidity: 1.3.1(prettier@3.0.0)
     dev: false
 
-  /solhint-plugin-prettier@0.1.0(prettier-plugin-solidity@1.4.3)(prettier@3.8.1):
+  /solhint-plugin-prettier@0.1.0(prettier-plugin-solidity@1.3.1)(prettier@3.2.5):
     resolution: {integrity: sha512-SDOTSM6tZxZ6hamrzl3GUgzF77FM6jZplgL2plFBclj/OjKP8Z3eIPojKU73gRr0MvOS8ACZILn8a5g0VTz/Gw==}
     peerDependencies:
       prettier: ^3.0.0
       prettier-plugin-solidity: ^1.0.0
     dependencies:
-      '@prettier/sync': 0.3.0(prettier@3.8.1)
-      prettier: 3.8.1
+      '@prettier/sync': 0.3.0(prettier@3.2.5)
+      prettier: 3.2.5
       prettier-linter-helpers: 1.0.0
-      prettier-plugin-solidity: 1.4.3(prettier@3.8.1)
+      prettier-plugin-solidity: 1.3.1(prettier@3.2.5)
     dev: false
 
   /solhint@3.6.2(typescript@5.4.5):
@@ -22036,7 +21763,6 @@ packages:
 
   /solidity-comments-extractor@0.0.8:
     resolution: {integrity: sha512-htM7Vn6LhHreR+EglVMd2s+sZhcXAirB1Zlyrv5zBuTxieCvjfnRpd7iZk75m/u6NOlEyQ94C6TWbBn2cY7w8g==}
-    dev: true
 
   /sonic-boom@2.8.0:
     resolution: {integrity: sha512-kuonw1YOYYNOve5iHdSahXPOK49GqwA+LZhI6Wz/l0rP57iKyXXIHaRagOBHAPmGwJC6od2Z9zgvZ5loSgMlVg==}
@@ -22073,16 +21799,6 @@ packages:
     dependencies:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-    dev: false
-
-  /sonner@2.0.7(react-dom@19.2.4)(react@19.2.4):
-    resolution: {integrity: sha512-W6ZN4p58k8aDKA4XPcx2hpIQXBRAgyiWVkYhT7CvK6D3iAu7xjvVyhQHg2/iaKJZ1XVJ4r7XuwGL+WGEK37i9w==}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-    dependencies:
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
     dev: false
 
   /source-map-js@1.2.1:
@@ -22915,7 +22631,7 @@ packages:
       yargs-parser: 21.1.1
     dev: true
 
-  /ts-node@10.9.1(@types/node@25.4.0)(typescript@5.9.3):
+  /ts-node@10.9.1(@types/node@20.19.37)(typescript@5.9.3):
     resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
     hasBin: true
     peerDependencies:
@@ -22934,7 +22650,7 @@ packages:
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
-      '@types/node': 25.4.0
+      '@types/node': 20.19.37
       acorn: 8.15.0
       acorn-walk: 8.3.4
       arg: 4.1.3
@@ -22977,7 +22693,7 @@ packages:
       yn: 3.1.1
     dev: true
 
-  /ts-node@10.9.2(@types/node@25.4.0)(typescript@5.9.3):
+  /ts-node@10.9.2(@types/node@20.19.37)(typescript@5.9.3):
     resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==}
     hasBin: true
     peerDependencies:
@@ -22996,7 +22712,7 @@ packages:
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
-      '@types/node': 25.4.0
+      '@types/node': 20.19.37
       acorn: 8.15.0
       acorn-walk: 8.3.4
       arg: 4.1.3
@@ -24343,19 +24059,6 @@ packages:
       gopd: 1.2.0
       has-tostringtag: 1.0.2
 
-  /which-typed-array@1.1.20:
-    resolution: {integrity: sha512-LYfpUkmqwl0h9A2HL09Mms427Q1RZWuOHsukfVcKRq9q95iQxdw0ix1JQrqbcDR9PH1QDwf5Qo8OZb5lksZ8Xg==}
-    engines: {node: '>= 0.4'}
-    dependencies:
-      available-typed-arrays: 1.0.7
-      call-bind: 1.0.8
-      call-bound: 1.0.4
-      for-each: 0.3.5
-      get-proto: 1.0.1
-      gopd: 1.2.0
-      has-tostringtag: 1.0.2
-    dev: true
-
   /which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
@@ -24452,7 +24155,6 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
-    dev: true
 
   /ws@7.5.10:
     resolution: {integrity: sha512-+dbF1tHwZpXcbOJdVOkzLDxZP1ailvSxM6ZweXTegylPny803bFhA+vqBYw4s31NSAk4S2Qz+AKXK9a4wkdjcQ==}

@@ -20,6 +20,14 @@ export interface TickerStats {
   statusDetail: string
   oracleAddress: Address
   assetAddress: Address
+  threshold: number
+  description: string
+  version: number
+  latestRoundId: bigint
+  nonce: bigint
+  owner: Address
+  signers: Address[]
+  history: { price: number; timestamp: number }[]
 }
 
 export type NetworkType = 'base' | 'arbitrum' | 'mainnet' | 'sonic' | 'hyperliquid'
@@ -77,7 +85,7 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
     transport: createRpcTransport(rpcUrls),
   })
 
-  // Multicall: oracleToAsset + latestRoundData for each oracle (allowFailure: true)
+  // Multicall: registry + all oracle properties (allowFailure: true)
   const multicallContracts = oracles.flatMap((entry) => [
     {
       address: registryAddress,
@@ -90,6 +98,43 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
       abi: RWA_ORACLE_ABI,
       functionName: 'latestRoundData' as const,
     },
+    {
+      address: entry.oracleAddress as Address,
+      abi: RWA_ORACLE_ABI,
+      functionName: 'threshold' as const,
+    },
+    {
+      address: entry.oracleAddress as Address,
+      abi: RWA_ORACLE_ABI,
+      functionName: 'description' as const,
+    },
+    {
+      address: entry.oracleAddress as Address,
+      abi: RWA_ORACLE_ABI,
+      functionName: 'version' as const,
+    },
+    {
+      address: entry.oracleAddress as Address,
+      abi: RWA_ORACLE_ABI,
+      functionName: 'latestRoundId' as const,
+    },
+    {
+      address: entry.oracleAddress as Address,
+      abi: RWA_ORACLE_ABI,
+      functionName: 'nonce' as const,
+    },
+    {
+      address: entry.oracleAddress as Address,
+      abi: RWA_ORACLE_ABI,
+      functionName: 'owner' as const,
+    },
+    // Signers (fetching up to 5)
+    ...[0, 1, 2, 3, 4].map((idx) => ({
+      address: entry.oracleAddress as Address,
+      abi: RWA_ORACLE_ABI,
+      functionName: 'signersList' as const,
+      args: [BigInt(idx)],
+    })),
   ])
 
   const onChainResults = await publicClient.multicall({
@@ -112,10 +157,20 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
   )
 
   const filtered: TickerStats[] = []
+  const CALLS_PER_ORACLE = 13
+
   for (let i = 0; i < oracles.length; i++) {
     const entry = oracles[i]
-    const assetResult = onChainResults[2 * i]
-    const roundResult = onChainResults[2 * i + 1]
+    const baseIdx = i * CALLS_PER_ORACLE
+
+    const assetResult = onChainResults[baseIdx]
+    const roundResult = onChainResults[baseIdx + 1]
+    const thresholdResult = onChainResults[baseIdx + 2]
+    const descriptionResult = onChainResults[baseIdx + 3]
+    const versionResult = onChainResults[baseIdx + 4]
+    const roundIdResult = onChainResults[baseIdx + 5]
+    const nonceResult = onChainResults[baseIdx + 6]
+    const ownerResult = onChainResults[baseIdx + 7]
 
     if (
       assetResult.status === 'failure' ||
@@ -123,7 +178,7 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
       !assetResult.result ||
       !roundResult.result
     ) {
-      console.warn(`[fetchOracleStats] Onchain fetch failed for ${entry.ticker}`)
+      console.warn(`[fetchOracleStats] Critical onchain fetch failed for ${entry.ticker}`)
       continue
     }
 
@@ -131,6 +186,22 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
     const roundData = roundResult.result as [bigint, bigint, bigint, bigint, bigint]
     const onChainPriceNum = Number(formatUnits(roundData[1], 8))
     const onChainTimestamp = Number(roundData[2])
+
+    const threshold = Number((thresholdResult.result as bigint) ?? 0n)
+    const description = (descriptionResult.result as string) ?? ''
+    const version = Number((versionResult.result as bigint) ?? 0n)
+    // Prioritize roundId from latestRoundData (roundData[0]) over explicit latestRoundId call
+    const latestRoundId = roundData[0] || ((roundIdResult.result as bigint) ?? 0n)
+    const nonce = (nonceResult.result as bigint) ?? 0n
+    const owner = (ownerResult.result as Address) ?? ('0x' as Address)
+
+    const signers: Address[] = []
+    for (let sIdx = 0; sIdx < 5; sIdx++) {
+      const signerResult = onChainResults[baseIdx + 8 + sIdx]
+      if (signerResult.status === 'success' && signerResult.result) {
+        signers.push(signerResult.result as Address)
+      }
+    }
 
     const offchain = offchainSettled[i]
     const offChainData =
@@ -160,33 +231,26 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
     let statusDetail: string
 
     if (!eitherStale) {
-      // Both sources are fresh
       oracleStatus = 'healthy'
       statusDetail = 'Both on-chain and off-chain data are up to date'
     } else if (onChainStale && offChainStale && pricesMatch) {
-      // Both stale but prices match
       oracleStatus = 'warning'
-      statusDetail = `Both sources stale — on-chain: ${formatAge(onChainAgeSec)} ago, off-chain: ${formatAge(offChainAgeSec)} ago. Prices match, verify oracle is running`
+      statusDetail = `Both sources stale — on-chain: ${formatAge(onChainAgeSec)} ago, off-chain: ${formatAge(offChainAgeSec)} ago. Prices match`
     } else if (onChainStale && offChainStale && !pricesMatch) {
-      // Both stale and prices differ
       oracleStatus = 'stale'
-      statusDetail = `Both sources stale — on-chain: ${formatAge(onChainAgeSec)} ago, off-chain: ${formatAge(offChainAgeSec)} ago. Prices differ, update needed`
+      statusDetail = `Both sources stale — on-chain: ${formatAge(onChainAgeSec)} ago, off-chain: ${formatAge(offChainAgeSec)} ago. Prices differ`
     } else if (!onChainStale && offChainStale && pricesMatch) {
-      // On-chain fresh, off-chain stale, prices match
       oracleStatus = 'warning'
-      statusDetail = `No off-chain data update in ${formatAge(offChainAgeSec)}. Prices match, check off-chain source`
+      statusDetail = `Off-chain stale in ${formatAge(offChainAgeSec)}. Prices match`
     } else if (!onChainStale && offChainStale && !pricesMatch) {
-      // On-chain fresh, off-chain stale, prices differ
       oracleStatus = 'stale'
-      statusDetail = `No off-chain data update in ${formatAge(offChainAgeSec)}. Prices differ, off-chain source may be down`
+      statusDetail = `Off-chain stale in ${formatAge(offChainAgeSec)}. Prices differ`
     } else if (onChainStale && !offChainStale && pricesMatch) {
-      // On-chain stale, off-chain fresh, prices match
       oracleStatus = 'warning'
-      statusDetail = `On-chain not updated in ${formatAge(onChainAgeSec)}. Prices match, verify oracle node is running`
+      statusDetail = `On-chain stale in ${formatAge(onChainAgeSec)}. Prices match`
     } else if (onChainStale && !offChainStale) {
-      // On-chain stale, off-chain fresh, prices differ
       oracleStatus = 'stale'
-      statusDetail = `On-chain not updated in ${formatAge(onChainAgeSec)}. Off-chain has newer price, update needed`
+      statusDetail = `On-chain stale in ${formatAge(onChainAgeSec)}. Newer off-chain price available`
     } else {
       oracleStatus = 'healthy'
       statusDetail = 'Data is current'
@@ -202,7 +266,58 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
       statusDetail,
       oracleAddress: entry.oracleAddress as Address,
       assetAddress,
+      threshold,
+      description,
+      version,
+      latestRoundId,
+      nonce,
+      owner,
+      signers,
+      history: [], // Will be filled in second pass
     })
+  }
+
+  // Second Pass: Fetch History (Last 10 rounds)
+  const historyContracts = filtered.flatMap((stats) => {
+    const rounds = []
+    const start = stats.latestRoundId > 10n ? stats.latestRoundId - 9n : 1n
+    for (let r = start; r <= stats.latestRoundId; r++) {
+      rounds.push({
+        address: stats.oracleAddress,
+        abi: RWA_ORACLE_ABI,
+        functionName: 'getRoundData' as const,
+        args: [r],
+      })
+    }
+    return rounds
+  })
+
+  if (historyContracts.length > 0) {
+    const historyResults = await publicClient.multicall({
+      contracts: historyContracts,
+      allowFailure: true,
+    })
+
+    let hIdx = 0
+    for (const stats of filtered) {
+      const start = stats.latestRoundId > 10n ? stats.latestRoundId - 9n : 1n
+      const numRounds = Number(stats.latestRoundId - start + 1n)
+      const oracleHistory: { price: number; timestamp: number }[] = []
+
+      for (let j = 0; j < numRounds; j++) {
+        const res = historyResults[hIdx++]
+        if (res.status === 'success' && res.result) {
+          const [_, price, timestamp] = res.result as [bigint, bigint, bigint, bigint, bigint]
+          if (timestamp > 0n) {
+            oracleHistory.push({
+              price: Number(formatUnits(price, 8)),
+              timestamp: Number(timestamp),
+            })
+          }
+        }
+      }
+      stats.history = oracleHistory.sort((a, b) => a.timestamp - b.timestamp)
+    }
   }
 
   return filtered
