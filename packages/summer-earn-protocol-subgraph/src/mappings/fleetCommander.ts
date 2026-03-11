@@ -29,6 +29,7 @@ import { addresses } from '../common/addressProvider'
 import * as constants from '../common/constants'
 import { ADDRESS_ZERO, BigIntConstants, VaultFeeType } from '../common/constants'
 import {
+  createCurationEvent,
   getOrCreateAccount,
   getOrCreateArk,
   getOrCreatePosition,
@@ -199,6 +200,14 @@ export function handleFleetCommanderMinimumBufferBalanceUpdated(
 ): void {
   const vault = getOrCreateVault(event.address, event.block)
   if (vault) {
+    createCurationEvent(
+      event,
+      constants.AdminAction.VAULT_MIN_BUFFER_CHANGED,
+      vault.minimumBufferBalance,
+      event.params.newBalance,
+      vault,
+      vault.id,
+    )
     vault.minimumBufferBalance = event.params.newBalance
     vault.save()
   }
@@ -209,6 +218,14 @@ export function handleFleetCommanderDepositCapUpdated(
 ): void {
   const vault = getOrCreateVault(event.address, event.block)
   if (vault) {
+    createCurationEvent(
+      event,
+      constants.AdminAction.VAULT_CAP_CHANGED,
+      vault.depositCap,
+      event.params.newCap,
+      vault,
+      vault.id,
+    )
     vault.depositCap = event.params.newCap
     vault.save()
   }
@@ -335,6 +352,14 @@ export function handleTipAccrued(event: TipAccrued): void {
 
 export function handleTipRateUpdated(event: TipRateUpdated): void {
   const vault = getOrCreateVault(event.address, event.block)
+  createCurationEvent(
+    event,
+    constants.AdminAction.VAULT_TIP_RATE_CHANGED,
+    vault.tipRate,
+    event.params.newTipRate,
+    vault,
+    vault.id,
+  )
   vault.tipRate = event.params.newTipRate
   vault.save()
 }
@@ -373,10 +398,6 @@ export function handleRewardPaid(event: RewardPaid): void {
         formatAmount(event.params.reward, BigInt.fromI32(18)),
       )
       account.save()
-
-      position.claimableSummerToken = constants.BigIntConstants.ZERO
-      position.claimableSummerTokenNormalized = constants.BigDecimalConstants.ZERO
-      position.save()
     }
   }
 }

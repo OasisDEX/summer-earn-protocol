@@ -1757,6 +1757,19 @@
   },
   {
     "type": "event",
+    "name": "FleetCommanderTipJarUpdated",
+    "inputs": [
+      {
+        "name": "newTipJar",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "FleetCommanderWithdrawnFromArks",
     "inputs": [
       {
@@ -2644,6 +2657,11 @@
   {
     "type": "error",
     "name": "FleetCommanderInvalidStakingRewardsManager",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderInvalidTipJar",
     "inputs": []
   },
   {

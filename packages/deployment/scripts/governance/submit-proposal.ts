@@ -79,9 +79,12 @@ async function main() {
         }
 
         fs.writeFileSync(proposalPath, JSON.stringify(updatedProposal, null, 2))
-        console.log(
-          kleur.cyan(`Transaction hash saved to proposal file: ${result.transactionHash}`),
-        )
+        const proposedDir = path.join(proposalsDir, 'proposed')
+        if (!fs.existsSync(proposedDir)) {
+          fs.mkdirSync(proposedDir, { recursive: true })
+        }
+        fs.renameSync(proposalPath, path.join(proposedDir, filename))
+        console.log(kleur.green(`Proposal file moved to /proposed folder: ${filename}`))
       }
     } else {
       console.log(kleur.red('Proposal submission was cancelled or failed.'))

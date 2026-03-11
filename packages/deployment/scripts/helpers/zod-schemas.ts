@@ -15,6 +15,7 @@ export const InstitutionNetworkDeployedContractsSchema = z
     core: z
       .object({
         tipJar: AddressObj.optional(),
+        daoTipJar: AddressObj.optional(),
         configurationManager: AddressObj.optional(),
         harborCommand: AddressObj.optional(),
         admiralsQuarters: AddressObj.optional(),
@@ -57,41 +58,6 @@ export type InstitutionIndex = z.infer<typeof InstitutionIndexSchema>
 export type InstitutionGovernance = z.infer<typeof InstitutionGovernanceSchema>
 export type InstitutionFleetEntry = z.infer<typeof InstitutionFleetEntrySchema>
 
-export const FleetConfigSchema = z.object({
-  fleetName: z.string().min(1),
-  symbol: z.string().min(1),
-  assetSymbol: z.string().min(1),
-  initialMinimumBufferBalance: z.string().min(1),
-  initialRebalanceCooldown: z.string().min(1),
-  depositCap: z.string().min(1),
-  initialTipRate: z.string().min(1),
-  network: z.string().min(1),
-  details: z.unknown(),
-  arks: z.array(z.any()).optional(),
-  curator: AddressSchema.optional(),
-  keeper: AddressSchema.optional(),
-  rewardTokens: z.array(AddressSchema).optional(),
-  rewardAmounts: z.array(z.string()).optional(),
-  rewardsDuration: z.number().optional(),
-  bridgeAmount: z.string().optional(),
-})
-
-export const FleetDeploymentSchema = z.object({
-  fleetName: z.string().min(1),
-  isBummer: z.boolean().optional(),
-  fleetSymbol: z.string().min(1),
-  assetSymbol: z.string().min(1),
-  fleetAddress: AddressSchema,
-  bufferArkAddress: AddressSchema,
-  network: z.string().min(1),
-  // Allow optional during initial save (filled later by addArkToFleet)
-  arks: z.array(AddressSchema).optional(),
-  initialMinimumBufferBalance: z.string().optional(),
-  initialRebalanceCooldown: z.string().optional(),
-  depositCap: z.string().optional(),
-  initialTipRate: z.string().optional(),
-})
-
 // Schema for ark details validation - ensures minimal required fields for offchain processing
 export const ArkDetailsSchema = z.object({
   protocol: z.string().min(1),
@@ -123,6 +89,55 @@ export const ArkDetailsSchema = z.object({
   aaveV3Pool: AddressSchema.optional(),
 })
 
+// Schema for fleet details validation - ensures required fields for fleet metadata
+export const FleetDetailsSchema = z.object({
+  name: z.string().min(1),
+  chainId: z.number().int().positive(),
+  asset: AddressSchema,
+  assetSymbol: z.string().min(1),
+  type: z.enum(['protocol', 'dao']),
+})
+
+export const FleetConfigSchema = z.object({
+  fleetName: z.string().min(1),
+  isBummer: z.boolean(),
+  symbol: z.string().min(1),
+  assetSymbol: z.string().min(1),
+  initialMinimumBufferBalance: z.string().min(1),
+  initialRebalanceCooldown: z.string().min(1),
+  depositCap: z.string().min(1),
+  initialTipRate: z.string().min(1),
+  network: z.string().min(1),
+  details: FleetDetailsSchema,
+  arks: z.array(z.any()),
+  curator: AddressSchema,
+  keeper: AddressSchema.optional(),
+  rewardTokens: z.array(AddressSchema).optional(),
+  rewardAmounts: z.array(z.string()).optional(),
+  rewardsDuration: z.number().optional(),
+  bridgeAmount: z.string().optional(),
+  sipNumber: z.string().optional(),
+  discourseURL: z.string().optional(),
+})
+
+export const FleetDeploymentSchema = z.object({
+  fleetName: z.string().min(1),
+  isBummer: z.boolean(),
+  fleetSymbol: z.string().min(1),
+  assetSymbol: z.string().min(1),
+  fleetAddress: AddressSchema,
+  bufferArkAddress: AddressSchema,
+  network: z.string().min(1),
+  // Allow optional during initial save (filled later by addArkToFleet)
+  arks: z.array(AddressSchema).optional(),
+  initialMinimumBufferBalance: z.string().optional(),
+  initialRebalanceCooldown: z.string().optional(),
+  depositCap: z.string().optional(),
+  initialTipRate: z.string().optional(),
+  details: FleetDetailsSchema,
+})
+
+export type FleetDetails = z.infer<typeof FleetDetailsSchema>
 export type ArkDetails = z.infer<typeof ArkDetailsSchema>
 
 // Schema for vault name validation - ensures protocol_name format

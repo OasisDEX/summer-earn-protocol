@@ -96,6 +96,22 @@ export function validateErc4626Address(address: unknown, context: string) {
   return validatedAddress
 }
 
+export function validateConfigAddressEntry(
+  fragment: Record<string, unknown>,
+  key: unknown,
+  context: string,
+): Address {
+  const validatedKey = validateString(key, `${context} key`)
+  const value = fragment[validatedKey]
+  if (value === undefined) {
+    const availableKeys = Object.keys(fragment)
+    throw new ValidationError(
+      `Invalid ${context}: key "${validatedKey}" not found. Available keys: ${availableKeys.join(', ')}`,
+    )
+  }
+  return validateAddress(value, context)
+}
+
 /**
  * Validates ark details object to ensure it contains the minimal required fields
  * for offchain processing: protocol (string), pool (Address), and chainId (number).

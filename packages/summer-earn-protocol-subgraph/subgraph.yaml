@@ -8,7 +8,7 @@ dataSources:
     source:
       abi: SummerStakingV2
       address: "0x0000000000000000000000000000000000000000"
-      startBlock: 23930155
+      startBlock: 24626300
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -32,7 +32,7 @@ dataSources:
     source:
       abi: SummerStakingV2
       address: "0x0000000000000000000000000000000000000000"
-      startBlock: 23930155
+      startBlock: 24626300
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -55,8 +55,8 @@ dataSources:
     network: hyperevm
     source:
       abi: HarborCommand
-      address: "0xf5A69789Bf5e62A43C47E4c8d857b8DAE14d4ab0"
-      startBlock: 23930155
+      address: "0x5CD5D7e3A1b604E0EdeDc4A2343b312729e09E3F"
+      startBlock: 24626300
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -114,7 +114,7 @@ dataSources:
     source:
       abi: GovernanceRewardsManager
       address: "0x0000000000000000000000000000000000000000"
-      startBlock: 23930155
+      startBlock: 24626300
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

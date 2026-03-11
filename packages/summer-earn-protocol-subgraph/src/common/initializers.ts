@@ -5,6 +5,7 @@ import {
   Ark,
   ArkDailySnapshot,
   ArkHourlySnapshot,
+  CurationEvent,
   DailyInterestRate,
   FinancialsDailySnapshot,
   GovernanceStaking,
@@ -133,8 +134,6 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position.inputTokenWithdrawalsNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.claimedSummerToken = constants.BigIntConstants.ZERO
     position.claimedSummerTokenNormalized = constants.BigDecimalConstants.ZERO
-    position.claimableSummerToken = constants.BigIntConstants.ZERO
-    position.claimableSummerTokenNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenDepositsNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenWithdrawalsNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
@@ -748,7 +747,6 @@ export function getOrCreatePositionHourlySnapshot(
     snapshot.outputTokenBalance = constants.BIGINT_ZERO
   }
 
-  // Update balances
   let position = Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
@@ -757,6 +755,9 @@ export function getOrCreatePositionHourlySnapshot(
       .times(vault.inputTokenBalance)
       .div(vault.outputTokenSupply)
     position.stakedInputTokenBalance = position.stakedOutputTokenBalance
+      .times(vault.inputTokenBalance)
+      .div(vault.outputTokenSupply)
+    position.unstakedInputTokenBalance = position.unstakedOutputTokenBalance
       .times(vault.inputTokenBalance)
       .div(vault.outputTokenSupply)
 
@@ -773,12 +774,17 @@ export function getOrCreatePositionHourlySnapshot(
       position.stakedInputTokenBalance,
       BigInt.fromI32(inputToken.decimals),
     )
+    position.unstakedInputTokenBalanceNormalized = utils.formatAmount(
+      position.unstakedInputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
     position.inputTokenBalanceNormalizedInUSD = position.inputTokenBalanceNormalized.times(
       vault.inputTokenPriceUSD!,
     )
     position.stakedInputTokenBalanceNormalizedInUSD =
       position.stakedInputTokenBalanceNormalized.times(vault.inputTokenPriceUSD!)
-
+    position.unstakedInputTokenBalanceNormalizedInUSD =
+      position.unstakedInputTokenBalanceNormalized.times(vault.inputTokenPriceUSD!)
     snapshot.inputTokenBalanceNormalizedInUSD = utils
       .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
       .times(vault.inputTokenPriceUSD!)
@@ -818,7 +824,6 @@ export function getOrCreatePositionDailySnapshot(
     snapshot.outputTokenBalance = constants.BIGINT_ZERO
   }
 
-  // Update balances
   let position = Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
@@ -863,7 +868,6 @@ export function getOrCreatePositionWeeklySnapshot(
     snapshot.outputTokenBalance = constants.BIGINT_ZERO
   }
 
-  // Update balances
   let position = Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
@@ -979,8 +983,6 @@ export function getOrCreatePositionRewards(
     positionRewards = new PositionRewards(id)
     positionRewards.position = positionId
     positionRewards.rewardToken = rewardToken.id
-    positionRewards.claimable = constants.BigIntConstants.ZERO
-    positionRewards.claimableNormalized = constants.BigDecimalConstants.ZERO
     positionRewards.claimed = constants.BigIntConstants.ZERO
     positionRewards.claimedNormalized = constants.BigDecimalConstants.ZERO
   }
@@ -1022,4 +1024,29 @@ export function getOrCreateGovernanceStakingV2(stakingAddress: Address): Governa
     governanceStakingV2.save()
   }
   return governanceStakingV2
+}
+
+export function createCurationEvent(
+  event: ethereum.Event,
+  action: string,
+  valueBefore: BigInt,
+  valueAfter: BigInt,
+  vault: Vault,
+  target: string,
+): CurationEvent {
+  const curationEvent = new CurationEvent(
+    event.receipt!.transactionHash.toHexString() + '--' + event.logIndex.toString(),
+  )
+  curationEvent.hash = event.receipt!.transactionHash.toHexString()
+  curationEvent.logIndex = event.logIndex.toI32()
+  curationEvent.timestamp = event.block.timestamp
+  curationEvent.blockNumber = event.block.number
+  curationEvent.vault = vault.id
+  curationEvent.action = action
+  curationEvent.caller = event.transaction.from.toHexString()
+  curationEvent.valueBefore = valueBefore
+  curationEvent.valueAfter = valueAfter
+  curationEvent.targetContract = target
+  curationEvent.save()
+  return curationEvent
 }

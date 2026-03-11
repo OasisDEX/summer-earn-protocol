@@ -23,6 +23,23 @@ struct FleetCommanderParams {
 }
 
 /**
+ * @notice Configuration parameters for the FleetCommanderDao contract
+ */
+struct FleetCommanderDaoParams {
+    string name;
+    string details;
+    string symbol;
+    address configurationManager;
+    address accessManager;
+    address asset;
+    uint256 initialMinimumBufferBalance;
+    uint256 initialRebalanceCooldown;
+    uint256 depositCap;
+    Percentage initialTipRate;
+    address tipJar;
+}
+
+/**
  * @title FleetConfig
  * @notice Configuration parameters for the FleetCommander contract
  * @dev This struct encapsulates the mutable configuration settings of a FleetCommander.
@@ -57,6 +74,47 @@ struct FleetConfig {
      * @notice The address of the staking rewards contract
      */
     address stakingRewardsManager;
+}
+
+/**
+ * @title FleetConfigDao
+ * @notice Configuration parameters for the FleetCommanderDao contract
+ * @dev This struct encapsulates the mutable configuration settings of a FleetCommanderDao.
+ *      These parameters can be updated during the contract's lifecycle to adjust its behavior.
+ */
+struct FleetConfigDao {
+    /**
+     * @notice The buffer Ark associated with this FleetCommanderDao
+     * @dev This Ark is used as a temporary holding area for funds before they are allocated
+     *      to other Arks or when they need to be quickly accessed for withdrawals.
+     */
+    IArk bufferArk;
+    /**
+     * @notice The minimum balance that should be maintained in the buffer Ark
+     * @dev This value is used to ensure there's always a certain amount of funds readily
+     *      available for withdrawals or rebalancing operations. It's denominated in the
+     *      smallest unit of the underlying asset (e.g., wei for ETH).
+     */
+    uint256 minimumBufferBalance;
+    /**
+     * @notice The maximum total value of assets that can be deposited into the FleetCommanderDao
+     * @dev This cap helps manage the total assets under management and can be used to
+     *      implement controlled growth strategies. It's denominated in the smallest unit
+     *      of the underlying asset.
+     */
+    uint256 depositCap;
+    /**
+     * @notice The maximum number of rebalance operations in a single rebalance
+     */
+    uint256 maxRebalanceOperations;
+    /**
+     * @notice Kept for backward compatibility with the old staking rewards manager
+     */
+    address _stakingRewardsManager;
+    /**
+     * @notice The address of the tip jar (DAO vaults do not use the global tip jar)
+     */
+    address tipJar;
 }
 
 /**

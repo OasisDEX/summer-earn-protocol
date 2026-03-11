@@ -82,7 +82,7 @@ library PercentageUtils {
     ) internal pure returns (Percentage) {
         return
             Percentage.wrap(
-                (numerator * PERCENTAGE_FACTOR * 100) / denominator
+                (numerator * 100 * PERCENTAGE_FACTOR) / denominator
             );
     }
 

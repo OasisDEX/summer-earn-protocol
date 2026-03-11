@@ -1,6 +1,7 @@
 import { Address } from 'viem'
 
 import { CoreContracts as CoreContractsBase } from '../ignition/modules/core'
+import { FleetDetails } from '../scripts/helpers/zod-schemas'
 import { DeployedBridge } from './bridge-types'
 
 export enum SupportedNetworks {
@@ -41,6 +42,7 @@ export enum ArkType {
   Psm3ERC4626Ark = 'Psm3ERC4626Ark',
   HyperlendArk = 'HyperlendArk',
   HypurrArk = 'HypurrArk',
+  MorphoV2VaultArk = 'MorphoV2VaultArk',
 }
 
 export const arkTypes = [
@@ -134,6 +136,7 @@ export interface BaseConfig {
       admiralsQuarters: { address: string }
       fleetCommanderRewardsManagerFactory: { address: string }
       institutionalVaultRegistry?: { address: string }
+      daoTipJar?: { address: string }
     }
     bridge?: {
       bridgeRouter: { address: string }
@@ -182,6 +185,7 @@ export interface BaseConfig {
       blue: string
       urdFactory: string
       vaults: Record<string, Record<string, string>>
+      vaultsV2: Record<string, Record<string, string>>
       markets: Record<string, Record<string, string>>
     }
     compoundV3: {
@@ -196,9 +200,7 @@ export interface BaseConfig {
       psm3: {
         [key in Token]: Address
       }
-      staking: {
-        sky: Address
-      }
+      staking: Record<string, Address>
     }
     moonwell: {
       pools: {
@@ -303,11 +305,14 @@ export interface ArkConfig {
     asset: string
     protocol: string
     vaultName?: string // For ERC4626Ark
+    rewardToken?: string // For SkyRewardsArk (e.g. 'sky' | 'spk')
     depositCap?: string // For FluidLiteArk
     maxRebalanceOutflow?: string // For FluidLiteArk
     maxRebalanceInflow?: string // For FluidLiteArk
+    maxDepositPercentageOfTVL?: string // For ArkConfigProvider
     targetChainId?: string // For CrossChainArk
     fleetName?: string // For CrossChainArk
+    vaultToken?: string // for arks with underlying token different than fleet asset
   }
 }
 
@@ -326,10 +331,10 @@ export interface FleetConfig {
   rewardsDuration: number[]
   bridgeAmount: string
   arks: ArkConfig[]
+  details: FleetDetails
+  curator: Address
   discourseURL?: string
   sipNumber?: string
-  details: string
-  curator?: Address
   keeper?: Address
 }
 
@@ -346,6 +351,7 @@ export interface FleetDeployment {
   initialRebalanceCooldown?: string
   depositCap?: string
   initialTipRate?: string
+  details: FleetDetails
 }
 
 // Extend CoreContracts to include InstitutionalVaultRegistry for networks

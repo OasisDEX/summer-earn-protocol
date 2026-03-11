@@ -1,4 +1,12 @@
-import { Address, BigDecimal, BigInt, dataSource, ethereum, log } from '@graphprotocol/graph-ts'
+import {
+  Address,
+  BigDecimal,
+  BigInt,
+  dataSource,
+  ethereum,
+  log,
+  TypedMap,
+} from '@graphprotocol/graph-ts'
 import { TokenPrice as TokenPriceEntity } from '../../generated/schema'
 import { addresses, getOneInchOracle, services } from './addressProvider'
 import { BigDecimalConstants, BigIntConstants } from './constants'
@@ -14,13 +22,48 @@ export class TokenPrice {
   }
 }
 
+// In-memory cache for price lookups during interval processing
+// Key: tokenAddress.toHexString(), Value: TokenPrice
+let priceCache: TypedMap<string, TokenPrice> | null = null
+
+/**
+ * Initialize the price cache for interval processing.
+ * Call this at the start of handleInterval to enable caching.
+ */
+export function initPriceCache(): void {
+  priceCache = new TypedMap<string, TokenPrice>()
+}
+
+/**
+ * Clear the price cache after interval processing.
+ * Call this at the end of handleInterval to free memory.
+ */
+export function clearPriceCache(): void {
+  priceCache = null
+}
+
 export function getTokenPriceInUSD(tokenAddress: Address, block: ethereum.Block): TokenPrice {
+  // Check in-memory cache first if available
+  const cache = priceCache
+  if (cache != null) {
+    const cacheKey = tokenAddress.toHexString()
+    const cachedPrice = cache.get(cacheKey)
+    if (cachedPrice != null) {
+      return cachedPrice
+    }
+  }
+
   const token = getOrCreateToken(tokenAddress)
   let existingPrice = TokenPriceEntity.load(tokenAddress)
   if (existingPrice == null) {
     existingPrice = new TokenPriceEntity(tokenAddress)
   } else if (existingPrice && existingPrice.blockNumber.equals(block.number)) {
-    return new TokenPrice(existingPrice.price, existingPrice.oracle)
+    const price = new TokenPrice(existingPrice.price, existingPrice.oracle)
+    // Cache the result
+    if (cache != null) {
+      cache.set(tokenAddress.toHexString(), price)
+    }
+    return price
   }
   const price = _getTokenPriceInUSD(tokenAddress, block.number)
   existingPrice.price = price.price
@@ -33,7 +76,12 @@ export function getTokenPriceInUSD(tokenAddress: Address, block: ethereum.Block)
   token.lastPriceBlockNumber = block.number
   token.save()
 
-  return new TokenPrice(existingPrice.price, existingPrice.oracle)
+  // Cache the result
+  if (cache != null) {
+    cache.set(tokenAddress.toHexString(), price)
+  }
+
+  return price
 }
 
 /**

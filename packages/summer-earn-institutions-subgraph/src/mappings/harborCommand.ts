@@ -1,12 +1,11 @@
 import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { FleetCommanderEnlisted } from '../../generated/HarborCommand/HarborCommand'
 import { Vault, YieldAggregator } from '../../generated/schema'
-import { BigDecimalConstants, BigIntConstants } from '../common/constants'
+import { BigIntConstants } from '../common/constants'
 import {
   getOrCreateAccessController,
   getOrCreateArksDailySnapshots,
   getOrCreateArksHourlySnapshots,
-  getOrCreatePosition,
   getOrCreatePositionDailySnapshot,
   getOrCreatePositionHourlySnapshot,
   getOrCreatePositionWeeklySnapshot,
@@ -16,6 +15,10 @@ import {
   getOrCreateVaultsHourlySnapshots,
   getOrCreateYieldAggregator,
 } from '../common/initializers'
+import {
+  deepCleanPositionHourlySnapshots,
+  removeOldPositionHourlySnapshot,
+} from '../common/cleanup'
 import { getArkDetails } from '../utils/ark'
 import { getVaultDetails } from '../utils/vault'
 import {
@@ -26,7 +29,6 @@ import {
 } from '../utils/vaultRateHandlers'
 import { updateArk } from './entities/ark'
 import { updateVault } from './entities/vault'
-import { updateAccountStakingRewards } from './governanceRewardsManager'
 
 export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): void {
   const accessController = getOrCreateAccessController(event.address.toHexString())
@@ -80,6 +82,7 @@ function processHourlyVaultUpdate(
   protocolLastDailyUpdateTimestamp: BigInt | null,
   protocolLastHourlyUpdateTimestamp: BigInt | null,
   protocolLastWeeklyUpdateTimestamp: BigInt | null,
+  shouldDeepClean: boolean,
 ): void {
   const dayPassed = hasDayPassed(protocolLastDailyUpdateTimestamp, block.timestamp)
   const hourPassed = hasHourPassed(protocolLastHourlyUpdateTimestamp, block.timestamp)
@@ -124,21 +127,18 @@ function processHourlyVaultUpdate(
           continue
         }
         getOrCreatePositionHourlySnapshot(positionId, vault, block)
+
+        if (shouldDeepClean) {
+          deepCleanPositionHourlySnapshots(positionId, block.timestamp)
+        } else {
+          removeOldPositionHourlySnapshot(positionId, block.timestamp)
+        }
         if (dayPassed) {
           getOrCreatePositionDailySnapshot(positionId, vault, block)
         }
         if (weekPassed) {
           getOrCreatePositionWeeklySnapshot(positionId, vault, block)
         }
-      }
-    }
-    const positionsToUpdate: string[] = []
-    const ownersOfPositions: string[] = []
-    for (let i = 0; i < positions.length; i++) {
-      const position = getOrCreatePosition(positions[i], block)
-      if (position.stakedInputTokenBalanceNormalized.gt(BigDecimalConstants.ZERO)) {
-        positionsToUpdate.push(positions[i])
-        ownersOfPositions.push(position.account)
       }
     }
   }
@@ -155,11 +155,6 @@ export function handleInterval(block: ethereum.Block): void {
   if (!protocol || protocol.vaults.load().length == 0) {
     log.warning('Protocol or vaults are empty', [])
     return
-  }
-
-  const hourPassed = hasHourPassed(protocol.lastHourlyUpdateTimestamp, block.timestamp)
-  if (hourPassed) {
-    updateAccountStakingRewards(block.number)
   }
 
   const vaults = protocol.vaults.load()
@@ -183,7 +178,13 @@ export function handleInterval(block: ethereum.Block): void {
       protocol.lastDailyUpdateTimestamp,
       protocol.lastHourlyUpdateTimestamp,
       protocol.lastWeeklyUpdateTimestamp,
+      !protocol._hourlySnapshotsDeepCleaned,
     )
+  }
+
+  const hourPassed = hasHourPassed(protocol.lastHourlyUpdateTimestamp, block.timestamp)
+  if (hourPassed && !protocol._hourlySnapshotsDeepCleaned) {
+    protocol._hourlySnapshotsDeepCleaned = true
   }
 
   updateProtocolTimestamps(protocol, block)

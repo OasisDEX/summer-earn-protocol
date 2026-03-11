@@ -110,24 +110,8 @@ export function getPositionDetails(
     if (stakedInputTokenNormalized.gt(constants.BigDecimalConstants.ZERO)) {
       const rewardTokenAddress = Address.fromString(vault.rewardTokens[i])
       const rewardToken = getOrCreateToken(rewardTokenAddress)
-      const claimable = utils.readValue<BigInt>(
-        rewardsManagerContract.try_earned(account, rewardTokenAddress),
-        constants.BigIntConstants.ZERO,
-      )
-      const claimableNormalized = formatAmount(claimable, BigInt.fromI32(rewardToken.decimals))
       const positionRewards = getOrCreatePositionRewards(positionId, rewardToken, block)
-
-      positionRewards.claimable = claimable
-      positionRewards.claimableNormalized = claimableNormalized
       rewards.push(positionRewards)
-
-      // ------------------------------------------------------------
-      // will be deprecated in the future
-      if (rewardTokenAddress.equals(addresses.SUMMER_TOKEN)) {
-        claimableSummer = positionRewards.claimable
-        claimableSummerNormalized = positionRewards.claimableNormalized
-      }
-      // ------------------------------------------------------------}
     }
   }
 

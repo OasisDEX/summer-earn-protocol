@@ -64,39 +64,39 @@ export function StakingSection({
   }
 
   return (
-    <div className="bg-gray-900 p-6 rounded-lg">
-      <h3 className="text-xl font-semibold text-white mb-6">Staking Rewards</h3>
+    <div className="glass rounded-2xl p-6">
+      <h3 className="font-bold text-lg text-white mb-6">xSUMMER Staking</h3>
 
       {/* Staking Info */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="p-4 bg-gray-800 rounded-lg">
-          <p className="text-sm text-gray-400">Your Staked Balance</p>
-          <p className="text-lg font-semibold text-white">
+        <div className="p-4 bg-white/5 rounded-xl border border-white/5">
+          <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Your Staked Balance</p>
+          <p className="text-lg font-bold text-white">
             {formatDecimalOutput(stakedBalance, fleetDecimals)} {fleetSymbol}
           </p>
         </div>
 
-        <div className="p-4 bg-gray-800 rounded-lg">
-          <p className="text-sm text-gray-400">Total Staked</p>
-          <p className="text-lg font-semibold text-white">
+        <div className="p-4 bg-white/5 rounded-xl border border-white/5">
+          <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Total Staked</p>
+          <p className="text-lg font-bold text-white">
             {formatDecimalOutput(totalStakedSupply, fleetDecimals)} {fleetSymbol}
           </p>
         </div>
 
         {rewardTokensLength > 0 && (
-          <div className="p-4 bg-gray-800 rounded-lg">
-            <p className="text-sm text-gray-400">Earned Rewards</p>
-            <p className="text-lg font-semibold text-green-400">
+          <div className="p-4 bg-white/5 rounded-xl border border-white/5">
+            <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Earned Rewards</p>
+            <p className="text-lg font-bold text-emerald-400">
               {formatDecimalOutput(earnedRewards, 18)}
             </p>
             {earnedRewards > BigInt(0) && (
               <button
                 onClick={handleClaimRewards}
                 disabled={isClaimLoading}
-                className={`mt-2 px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                className={`mt-2 px-4 py-2 text-xs rounded-xl font-bold transition-all ${
                   isClaimLoading
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
+                    ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
+                    : 'bg-primary hover:shadow-neon-glow border border-primary/50 text-white'
                 }`}
               >
                 {isClaimLoading ? 'Claiming...' : 'Claim'}
@@ -128,17 +128,17 @@ export function StakingSection({
           <button
             onClick={handleStake}
             disabled={isStakeLoading || parsedStakeAmount === BigInt(0)}
-            className={`w-full p-3 rounded-lg font-semibold transition-colors ${
+            className={`w-full py-3 rounded-xl font-bold transition-all ${
               isStakeLoading || parsedStakeAmount === BigInt(0)
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
+                : 'bg-primary hover:shadow-neon-glow border border-primary/50 text-white'
             }`}
           >
             {isStakeLoading ? 'Staking...' : `Stake ${fleetSymbol}`}
           </button>
 
           {isStakeConfirmed && (
-            <div className="p-3 bg-green-900 border border-green-600 rounded-lg">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
               <p className="text-green-200 text-sm">
                 Successfully staked {stakeAmount} {fleetSymbol}!
               </p>
@@ -167,17 +167,17 @@ export function StakingSection({
           <button
             onClick={handleUnstake}
             disabled={isUnstakeLoading || parsedUnstakeAmount === BigInt(0)}
-            className={`w-full p-3 rounded-lg font-semibold transition-colors ${
+            className={`w-full py-3 rounded-xl font-bold transition-all ${
               isUnstakeLoading || parsedUnstakeAmount === BigInt(0)
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-orange-600 hover:bg-orange-700 text-white'
+                ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
+                : 'bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30'
             }`}
           >
             {isUnstakeLoading ? 'Unstaking...' : `Unstake ${fleetSymbol}`}
           </button>
 
           {isUnstakeConfirmed && (
-            <div className="p-3 bg-green-900 border border-green-600 rounded-lg">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
               <p className="text-green-200 text-sm">
                 Successfully unstaked {unstakeAmount} {fleetSymbol}!
               </p>
@@ -187,9 +187,9 @@ export function StakingSection({
       </div>
 
       {/* Staking Info */}
-      <div className="mt-6 p-4 bg-gray-800 rounded-lg">
-        <h5 className="text-sm font-medium text-gray-300 mb-2">About Staking</h5>
-        <div className="text-sm text-gray-400 space-y-1">
+      <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/5">
+        <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">About Staking</h5>
+        <div className="text-sm text-slate-400 space-y-1">
           <p>• Stake your {fleetSymbol} fleet shares to earn additional rewards</p>
           <p>• Staked shares continue earning fleet returns plus bonus rewards</p>
           <p>• You can unstake at any time, but rewards accrue over time</p>
@@ -198,10 +198,10 @@ export function StakingSection({
       </div>
 
       {/* Contract Info */}
-      <div className="mt-4 p-3 bg-gray-800 rounded-lg">
-        <p className="text-xs text-gray-400">
+      <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/5">
+        <p className="text-xs text-slate-500">
           <strong>Staking Contract:</strong>{' '}
-          <span className="font-mono text-blue-300">{stakingRewardsManagerAddress}</span>
+          <span className="font-mono text-primary">{stakingRewardsManagerAddress}</span>
         </p>
       </div>
     </div>

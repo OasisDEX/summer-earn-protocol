@@ -2,13 +2,16 @@
 
 ## Introduction
 
-This subgraph indexes and tracks events from the FleetCommander smart contract, providing easily queryable data for FleetCommander activities on the Ethereum blockchain.
+This subgraph indexes and tracks events from the FleetCommander smart contract, providing easily
+queryable data for FleetCommander activities on the Ethereum blockchain.
 
 ## FleetCommander Functionality
 
-FleetCommander is a smart contract that manages a fleet of "Arks" (yield-generating vaults). Its main functionalities include:
+FleetCommander is a smart contract that manages a fleet of "Arks" (yield-generating vaults). Its
+main functionalities include:
 
-1. **Deposit**: Users can deposit assets into the FleetCommander, which then allocates these assets among various Arks.
+1. **Deposit**: Users can deposit assets into the FleetCommander, which then allocates these assets
+   among various Arks.
 2. **Withdraw**: Users can withdraw their assets from the FleetCommander.
 3. **Rebalance**: The contract can rebalance assets between different Arks to optimize yield.
 4. **Buffer Management**: Maintains a buffer of funds for quick withdrawals.
@@ -20,7 +23,8 @@ This subgraph tracks two main events:
 1. **Deposit**: When users deposit assets into the FleetCommander.
 2. **Withdraw**: When users withdraw assets from the FleetCommander.
 
-It creates and updates entities for Vaults, Accounts, and Positions, providing a comprehensive view of the FleetCommander's state and user interactions.
+It creates and updates entities for Vaults, Accounts, and Positions, providing a comprehensive view
+of the FleetCommander's state and user interactions.
 
 ## File Structure
 
@@ -53,6 +57,7 @@ The subgraph primarily handles two events:
 ### Deposit
 
 When a Deposit event is emitted:
+
 1. The vault and account entities are created or retrieved.
 2. Vault and position details are fetched and updated.
 3. The deposit amount is normalized and converted to USD.
@@ -61,6 +66,7 @@ When a Deposit event is emitted:
 ### Withdraw
 
 When a Withdraw event is emitted:
+
 1. The vault and account entities are created or retrieved.
 2. Vault and position details are fetched and updated.
 3. The withdrawal amount is normalized and converted to USD.
@@ -81,37 +87,38 @@ Query the deployed subgraph using the GraphQL endpoint provided after deployment
 
 ```graphql
 {
-    deposits(first: 5) {
-        id
-        amount
-        amountUSD
-        from
-        to
-        timestamp
+  deposits(first: 5) {
+    id
+    amount
+    amountUSD
+    from
+    to
+    timestamp
+  }
+  withdraws(first: 5) {
+    id
+    amount
+    amountUSD
+    from
+    to
+    timestamp
+  }
+  accounts {
+    id
+    positions {
+      id
+      inputTokenBalance
+      outputTokenBalance
+      outputTokenBalanceNormalized
+      outputTokenBalanceNormalizedInUSD
     }
-    withdraws(first: 5) {
-        id
-        amount
-        amountUSD
-        from
-        to
-        timestamp
-    }
-    accounts {
-        id
-        positions {
-            id
-            inputTokenBalance
-            outputTokenBalance
-            outputTokenBalanceNormalized
-            outputTokenBalanceNormalizedInUSD
-        }
-    }
+  }
 }
 ```
 
-This query fetches the latest 5 deposits and withdrawals, including their amounts in original tokens and USD.
-It also fetches the accounts and their positions, including token balances and normalized balances in USD.
+This query fetches the latest 5 deposits and withdrawals, including their amounts in original tokens
+and USD. It also fetches the accounts and their positions, including token balances and normalized
+balances in USD.
 
 ## Contributing
 
