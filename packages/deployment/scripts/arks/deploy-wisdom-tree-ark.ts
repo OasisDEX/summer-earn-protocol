@@ -3,11 +3,14 @@ import kleur from 'kleur'
 import { createWisdomTreeArkModule } from '../../ignition/modules/arks/wisdom-tree-ark'
 import { BaseConfig } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
+import { getChainId } from '../helpers/get-chainid'
+import { validateArkDetails } from '../helpers/validation'
 
 export type WisdomTreeArkParams = BaseArkParams & {
   targetWallet: string
   shareToken: string
   oracle: string
+  fundName: string
 }
 
 export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTreeArkParams) {
@@ -22,23 +25,42 @@ export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTree
     targetWallet,
     shareToken,
     oracle,
+    fundName,
   } = params
-
+  const chainId = getChainId()
   const envLabel = isBummer ? 'staging_' : ''
-  const name = fleetName ? fleetName.replace(/\W/g, '') : ''
-  const moduleName = `${envLabel}WisdomTreeArk_${name}`
+  const arkName = `WisdomTree-${fundName}-${token.symbol}-${chainId}`
+  const moduleName = `${envLabel}${fleetName}_${arkName.replace(/-/g, '_')}`
+  const protocol = 'WisdomTree'
 
   const arkModule = createWisdomTreeArkModule(moduleName)
 
-  console.log(kleur.cyan(`      Deploying WisdomTreeArk for ${token.symbol}`))
+  // Create and validate ark details
+
+  const arkDetails = {
+    protocol: protocol,
+    type: 'WisdomTree',
+    asset: token.address,
+    marketAsset: token.address,
+    pool: shareToken,
+    chainId: chainId,
+  }
+
+  // Validate the details object to ensure it has the minimal required fields
+
+  validateArkDetails(arkDetails, 'Syrup ark details')
+
+  console.log(
+    kleur.cyan(`      Deploying WisdomTreeArk for ${token.symbol} - ${fundName}: ${arkName}`),
+  )
   const { ark } = await hre.ignition.deploy(arkModule, {
     parameters: {
       [moduleName]: {
         targetWallet,
         shareToken,
         oracle,
-        name: `WisdomTree Ark ${token.symbol}`,
-        details: 'WisdomTree Ark',
+        name: arkName,
+        details: JSON.stringify(arkDetails),
         configurationManager: config.deployedContracts.core.configurationManager.address,
         accessManager: config.deployedContracts.gov.protocolAccessManager.address,
         asset: token.address,

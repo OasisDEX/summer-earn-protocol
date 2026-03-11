@@ -175,6 +175,15 @@ export interface BaseConfig {
     }
   }
   protocolSpecific: {
+    wisdomtree: {
+      [key in Token]: {
+        [key: string]: {
+          oracle: string
+          shareToken: string
+          targetWallet: string
+        }
+      }
+    }
     aaveV3: {
       pool: string
       rewards: string
@@ -307,6 +316,7 @@ export interface ArkConfig {
     asset: string
     protocol: string
     vaultName?: string // For ERC4626Ark
+    fundName?: string // For WisdomTreeArk (lookup key in protocolSpecific.wisdomtree[asset])
     rewardToken?: string // For SkyRewardsArk (e.g. 'sky' | 'spk')
     depositCap?: string // For FluidLiteArk
     maxRebalanceOutflow?: string // For FluidLiteArk
@@ -315,9 +325,6 @@ export interface ArkConfig {
     targetChainId?: string // For CrossChainArk
     fleetName?: string // For CrossChainArk
     vaultToken?: string // for arks with underlying token different than fleet asset
-    targetWallet?: string // For WisdomTreeArk
-    shareToken?: string // For WisdomTreeArk
-    oracle?: string // For WisdomTreeArk
   }
 }
 

@@ -448,11 +448,31 @@ export async function deployArk(
       break
     }
     case ArkType.WisdomTreeArk: {
-      const targetWallet = validateAddress(arkConfig.params.targetWallet, 'targetWallet')
-      const shareToken = validateAddress(arkConfig.params.shareToken, 'shareToken')
-      const oracle = validateAddress(arkConfig.params.oracle, 'oracle')
+      const fundName = validateString(arkConfig.params.fundName, 'fundName')
+
+      const wisdomtreeByToken = config.protocolSpecific.wisdomtree[token]
+      if (!wisdomtreeByToken) {
+        throw new Error(`WisdomTree config missing for token '${token}'`)
+      }
+
+      const targetWallet = validateConfigAddressEntry(
+        wisdomtreeByToken[fundName],
+        'targetWallet',
+        `WisdomTree fund '${fundName}' targetWallet`,
+      )
+      const shareToken = validateConfigAddressEntry(
+        wisdomtreeByToken[fundName],
+        'shareToken',
+        `WisdomTree fund '${fundName}' shareToken`,
+      )
+      const oracle = validateConfigAddressEntry(
+        wisdomtreeByToken[fundName],
+        'oracle',
+        `WisdomTree fund '${fundName}' oracle`,
+      )
       const ark = await deployWisdomTreeArk(config, {
         ...baseArkParams,
+        fundName: fundName,
         targetWallet: targetWallet,
         shareToken: shareToken,
         oracle: oracle,

@@ -6,6 +6,10 @@
   "fleetAddress": "0x9FD22516FF2EBeaF1fcA9bcace1F25cf13Ae9cEC",
   "bufferArkAddress": "0x986dCA321BB6f136635Bb790d0bB3CE6291B7A5a",
   "network": "base",
+  "arks": [
+    "0xf32d434a475F0983dC99353faabfec3053a6d772",
+    "0xaF6DDe695cf71EF2a2A9eF69A95FB581f724301d"
+  ],
   "initialMinimumBufferBalance": "10000000",
   "initialRebalanceCooldown": "600",
   "depositCap": "1000000000",
@@ -16,8 +20,5 @@
     "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     "assetSymbol": "USDC",
     "type": "protocol"
-  },
-  "arks": [
-    "0x24fE4af7261ADfb15843dc1Ba2F9B6a9e6646987"
-  ]
+  }
 }

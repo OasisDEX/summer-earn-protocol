@@ -137,6 +137,20 @@
       }
     },
     "protocolSpecific": {
+      "wisdomtree": {
+        "usdc": {
+          "WTGXX": {
+            "oracle": "0x609031d9D0A00Cc0d2CA3F6A0421456C7DAB90Fe",
+            "shareToken": "0x5096b85Ed11798fDdCB8b5CB27C399c04689c435",
+            "targetWallet": "0x63a8bb98D70d0aC73460d22b6756528a087ecBf8"
+          },
+          "WTSIX": {
+            "oracle": "0x872E73cC259a025f089CEcF525cc657a9D521af3",
+            "shareToken": "0xCf997c6A8DbdC1449e4dDE59Dbdf9cf6dA9d41c1",
+            "targetWallet": "0xa6fe9331eae8DFfA4A4fE93c8B8544653856E882"
+          }
+        }
+      },
       "aera": {
         "vaults": {
           "usdc": {

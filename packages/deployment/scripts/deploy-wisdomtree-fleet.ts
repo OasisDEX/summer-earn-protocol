@@ -12,7 +12,10 @@ import {
 import { BaseConfig, FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { ADDRESS_ZERO, GOVERNOR_ROLE } from './common/constants'
-import { saveFleetDeploymentJson } from './common/fleet-deployment-files-helpers'
+import {
+  loadFleetDeploymentJson,
+  saveFleetDeploymentJson,
+} from './common/fleet-deployment-files-helpers'
 import { logDeploymentResults } from './fleets/fleet-contracts'
 import {
   addFleetToHarbor,
@@ -87,6 +90,10 @@ async function main() {
     message: 'What would you like to do?',
     choices: [
       { title: 'Deploy New Rounds Whitelisted Fleet', value: WhitelistDeploymentMode.NEW_FLEET },
+      {
+        title: 'Add Ark to Existing Rounds Whitelisted Fleet',
+        value: WhitelistDeploymentMode.ADD_ARK,
+      },
     ],
   })
 
@@ -127,6 +134,94 @@ async function main() {
         `Failed to verify institution registration in registry: ${e instanceof Error ? e.message : String(e)}`,
       ),
     )
+    return
+  }
+
+  if (mode === WhitelistDeploymentMode.ADD_ARK) {
+    // Load existing deployment for this fleet
+    const deploymentData = await loadFleetDeploymentJson(fleetDefinition)
+    if (!deploymentData || !deploymentData.fleetAddress) {
+      console.log(kleur.red('Error: Could not find deployment data for this fleet.'))
+      console.log(kleur.yellow('Please ensure you have deployed this fleet previously.'))
+      return
+    }
+
+    // Get the fleet commander contract to validate on-chain state
+    const fleetCommander = await hre.viem.getContractAt(
+      'FleetCommanderWhitelist' as string,
+      deploymentData.fleetAddress as Address,
+    )
+
+    // Get on-chain arks
+    const onChainArks = (await fleetCommander.read.getActiveArks()) as Address[]
+    console.log(kleur.blue('On-chain Active Arks:'), kleur.cyan(onChainArks.length.toString()))
+
+    // Get existing arks from deployment file
+    const existingArks: string[] = deploymentData.arks || []
+    console.log(kleur.blue('Deployment File Arks:'), kleur.cyan(existingArks.length.toString()))
+
+    // Compare on-chain state with deployment file
+    if (onChainArks.length !== existingArks.length) {
+      console.log(
+        kleur.red().bold('ERROR: Mismatch detected between on-chain and deployment file!'),
+      )
+      console.log(kleur.red(`On-chain arks: ${onChainArks.length}`))
+      console.log(kleur.red(`Deployment file arks: ${existingArks.length}`))
+
+      onChainArks.forEach((ark) => {
+        if (!existingArks.includes(ark)) {
+          console.log(kleur.red(`    Ark ${ark} is not in the deployment file.`))
+        }
+      })
+
+      existingArks.forEach((ark) => {
+        if (!onChainArks.includes(ark as Address)) {
+          console.log(kleur.red(`    Ark ${ark} is not on the on-chain.`))
+        }
+      })
+
+      console.log(kleur.yellow('\nOn-chain arks:'))
+      onChainArks.forEach((ark, i) => console.log(kleur.cyan(`  ${i + 1}. ${ark}`)))
+      console.log(kleur.yellow('\nDeployment file arks:'))
+      existingArks.forEach((ark, i) => console.log(kleur.cyan(`  ${i + 1}. ${ark}`)))
+
+      throw new Error(
+        'Deployment file state does not match on-chain state. Please reconcile the deployment file before adding new arks.',
+      )
+    }
+
+    console.log(
+      kleur.green('✓ On-chain state matches deployment file. Safe to proceed with ark addition.'),
+    )
+
+    const remainingArksToAdd = existingArks.length
+      ? (fleetDefinition.arks || []).slice(existingArks.length)
+      : fleetDefinition.arks || []
+
+    if (remainingArksToAdd.length === 0) {
+      console.log(kleur.yellow('No new arks to deploy. All arks from config are already deployed.'))
+      return
+    }
+
+    const newArkFleetDefinition = { ...fleetDefinition, arks: remainingArksToAdd }
+    const newlyDeployedArks = await deployArks(newArkFleetDefinition, config)
+
+    for (const arkAddress of newlyDeployedArks) {
+      await addArkToFleet(arkAddress as Address, config, hre, fleetDefinition)
+    }
+    const allArks = [...existingArks, ...newlyDeployedArks.map((ark) => ark.toString())]
+    updateInstitutionFleetEntry(
+      institutionId,
+      useBummerConfig,
+      network,
+      fleetDefinition.fleetName,
+      {
+        arks: allArks,
+        fleetCommander: deploymentData.fleetAddress,
+        bufferArk: deploymentData.bufferArkAddress,
+      },
+    )
+    console.log(kleur.green().bold('Completed Ark addition flow.'))
     return
   }
 

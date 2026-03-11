@@ -71,10 +71,11 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest {
                            STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    // TODO: not 100% sure it will be immutable - we might need an option for the keeper to change it
     /// @notice The WisdomTree wallet that receives USDC
     address public immutable CUSTODIAN_WALLET;
 
-    /// @notice The WisdomTree share token contract (e.g. WTBTC)
+    /// @notice The WisdomTree share token contract (e.g. WTGXX)
     IERC20 public immutable shareToken;
 
     /// @notice Chainlink price feed: price of 1 WisdomTree share denominated in underlying asset

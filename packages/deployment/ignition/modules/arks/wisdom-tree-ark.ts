@@ -21,7 +21,6 @@ export function createWisdomTreeArkModule(moduleName: string) {
       custodianWallet,
       shareToken,
       oracle,
-      slippage,
       {
         name,
         details,

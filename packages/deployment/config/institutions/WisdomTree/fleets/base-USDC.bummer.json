@@ -23,9 +23,16 @@
         "asset": "USDC",
         "protocol": "wisdomtree",
         "depositCap": "100000000",
-        "targetWallet": "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
-        "shareToken": "0x5096b85Ed11798fDdCB8b5CB27C399c04689c435",
-        "oracle": "0x609031d9D0A00Cc0d2CA3F6A0421456C7DAB90Fe"
+        "fundName": "WTGXX"
+      }
+    },
+    {
+      "type": "WisdomTreeArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "wisdomtree",
+        "depositCap": "100000000",
+        "fundName": "WTSIX"
       }
     }
   ]
