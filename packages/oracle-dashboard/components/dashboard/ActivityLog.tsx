@@ -81,7 +81,7 @@ export function ActivityLog({
     if (stats.length > 0) {
       fetchEvents(0, 1)
     }
-  }, [fetchEvents])
+  }, [fetchEvents, stats])
 
   return (
     <div className="bg-white dark:bg-[#0f1623] rounded-xl border border-slate-200 dark:border-primary/10 overflow-hidden shadow-sm">

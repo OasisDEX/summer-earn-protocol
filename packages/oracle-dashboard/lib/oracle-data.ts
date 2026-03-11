@@ -307,7 +307,7 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
       for (let j = 0; j < numRounds; j++) {
         const res = historyResults[hIdx++]
         if (res.status === 'success' && res.result) {
-          const [_, price, timestamp] = res.result as [bigint, bigint, bigint, bigint, bigint]
+          const [, price, timestamp] = res.result as [bigint, bigint, bigint, bigint, bigint]
           if (timestamp > 0n) {
             oracleHistory.push({
               price: Number(formatUnits(price, 8)),

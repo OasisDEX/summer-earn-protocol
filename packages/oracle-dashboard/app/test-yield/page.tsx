@@ -10,15 +10,11 @@ import yieldDeployments from '../../lib/yield-deployments.json'
 import { YieldActionModal } from '../../components/YieldActionModal'
 
 // Type for the JSON import
-type YieldDeploymentFile = Record<
-  string,
-  { chainId: number; factoryAddress: string; tokens: any[] }
->
+type YieldDeploymentFile = Record<string, { chainId: number; factoryAddress: string }>
 
 // Component for a single row
 function YieldContractRow({
   address,
-  factoryAddress,
   onAction,
 }: {
   address: Address
@@ -113,28 +109,32 @@ function YieldContractRow({
 }
 
 export default function TestYieldPage() {
-  const [factoryAddress, setFactoryAddress] = useState<Address | ''>('')
-  const [inputAddr, setInputAddr] = useState('')
+  const getNetworkFactory = (network: NetworkType) => {
+    const deployments = yieldDeployments as YieldDeploymentFile
+    const networkKey = network === 'mainnet' ? 'ethereum' : network
+    const chainData = deployments[networkKey]
+    if (chainData?.factoryAddress && /^0x[a-fA-F0-9]{40}$/.test(chainData.factoryAddress)) {
+      return chainData.factoryAddress
+    }
+    return ''
+  }
+
+  const initialFactory = getNetworkFactory('base')
+  const [factoryAddress, setFactoryAddress] = useState<Address | ''>(initialFactory as Address | '')
+  const [inputAddr, setInputAddr] = useState<string>(initialFactory)
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkType>('base')
+
+  const handleNetworkChange = (network: NetworkType) => {
+    setSelectedNetwork(network)
+    const newFactory = getNetworkFactory(network)
+    setFactoryAddress(newFactory as Address | '')
+    setInputAddr(newFactory)
+  }
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalAction, setModalAction] = useState<'deposit' | 'withdraw'>('deposit')
   const [selectedTicker, setSelectedTicker] = useState('')
   const [selectedTokenAddress, setSelectedTokenAddress] = useState<Address | undefined>()
-
-  useEffect(() => {
-    const deployments = yieldDeployments as YieldDeploymentFile
-    const networkKey = selectedNetwork === 'mainnet' ? 'ethereum' : selectedNetwork
-    const chainData = deployments[networkKey]
-
-    if (chainData?.factoryAddress && /^0x[a-fA-F0-9]{40}$/.test(chainData.factoryAddress)) {
-      setFactoryAddress(chainData.factoryAddress as Address)
-      setInputAddr(chainData.factoryAddress)
-    } else {
-      setFactoryAddress('')
-      setInputAddr('')
-    }
-  }, [selectedNetwork])
 
   const {
     data: allTickers,
@@ -163,7 +163,7 @@ export default function TestYieldPage() {
       <DashboardHeader
         title="Test Yield Contracts"
         selectedNetwork={selectedNetwork}
-        onNetworkChange={setSelectedNetwork}
+        onNetworkChange={handleNetworkChange}
         loading={isLoading}
         onRefresh={() => refetch()}
         onBatchUpdate={() => {}}

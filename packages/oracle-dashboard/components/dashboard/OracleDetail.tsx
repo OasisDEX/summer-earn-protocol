@@ -26,8 +26,10 @@ export function OracleDetail({ oracle, onBack, onTriggerUpdate }: OracleDetailPr
     setTimeout(() => setCopiedField(null), 2000)
   }, [])
   const [timeAgoFormatted, setTimeAgoFormatted] = useState<string | null>(null)
+  const [currentSecs, setCurrentSecs] = useState<number>(0)
 
   useEffect(() => {
+    const timeout = setTimeout(() => setCurrentSecs(Date.now() / 1000), 0)
     const update = () => {
       if (oracle.onChainTimestamp > 0) {
         setTimeAgoFormatted(
@@ -38,8 +40,14 @@ export function OracleDetail({ oracle, onBack, onTriggerUpdate }: OracleDetailPr
       }
     }
     update()
-    const interval = setInterval(update, 1000)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => {
+      update()
+      setCurrentSecs(Date.now() / 1000)
+    }, 1000)
+    return () => {
+      clearTimeout(timeout)
+      clearInterval(interval)
+    }
   }, [oracle.onChainTimestamp])
 
   return (
@@ -185,7 +193,8 @@ export function OracleDetail({ oracle, onBack, onTriggerUpdate }: OracleDetailPr
                     className={cn(
                       'text-[10px] font-bold uppercase',
                       oracle.offChainTimestamp > 0 &&
-                        Date.now() / 1000 - oracle.offChainTimestamp > 86400
+                        currentSecs > 0 &&
+                        currentSecs - oracle.offChainTimestamp > 86400
                         ? 'text-rose-500'
                         : 'text-slate-400',
                     )}

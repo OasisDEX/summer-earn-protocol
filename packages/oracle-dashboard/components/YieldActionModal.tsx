@@ -72,8 +72,6 @@ export function YieldActionModal({
     args: [pocketAddress!],
     query: { enabled: !!usdcAddress && !!pocketAddress },
   })
-  const totalContractUsdc = (contractUsdcBal ?? BigInt(0)) + (pocketUsdcBal ?? BigInt(0))
-
   // Contract's share balance (shares deposited by users for withdrawal)
   const { data: contractShareBalance } = useReadContract({
     address: tokenAddress,
@@ -114,8 +112,8 @@ export function YieldActionModal({
           args: [ticker, userAddress as Address, parsedAmount],
         })
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Transaction failed')
+    } catch (err: unknown) {
+      toast.error((err as Error).message ?? 'Transaction failed')
     }
   }
 

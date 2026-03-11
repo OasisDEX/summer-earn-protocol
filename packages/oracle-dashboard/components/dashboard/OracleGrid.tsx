@@ -48,6 +48,20 @@ export const OracleGrid = memo(function OracleGrid({
   onToggleBatchSelection,
   isSelectionMode,
 }: OracleGridProps) {
+  // Track current time in seconds safely outside the render phase
+  const [currentSecs, setCurrentSecs] = useState<number>(0)
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setCurrentSecs(Date.now() / 1000), 0)
+    const interval = setInterval(() => {
+      setCurrentSecs(Date.now() / 1000)
+    }, 60000) // Update once a minute to keep stale data accurate
+    return () => {
+      clearTimeout(timeout)
+      clearInterval(interval)
+    }
+  }, [])
+
   const filteredStats = useMemo(() => {
     return stats.filter((s) => s.ticker.toLowerCase().includes(searchQuery.toLowerCase()))
   }, [stats, searchQuery])
@@ -240,7 +254,9 @@ export const OracleGrid = memo(function OracleGrid({
                   <span
                     className={cn(
                       'text-right',
-                      s.offChainTimestamp > 0 && Date.now() / 1000 - s.offChainTimestamp > 86400
+                      s.offChainTimestamp > 0 &&
+                        currentSecs > 0 &&
+                        currentSecs - s.offChainTimestamp > 86400
                         ? 'text-rose-500'
                         : 'text-primary',
                     )}
