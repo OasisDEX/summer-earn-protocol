@@ -1,0 +1,123 @@
+{
+  "base": {
+    "chainId": 8453,
+    "oracleRegistry": "0xeb997187b6d4e6ce75c9e6c9d2cbeb788b7e4d5d",
+    "oracles": [
+      {
+        "ticker": "SPXUX",
+        "assetAddress": "0xfec440FdF48860FF6E2265BD1ef9Cae8bB2cCe8a",
+        "oracleAddress": "0xEbE3ffFB369bE1ae32046D9bcC6a66cAbd19f079",
+        "type": "WisdomTree",
+        "subtype": "variableNav"
+      },
+      {
+        "ticker": "TECHX",
+        "assetAddress": "0xF21cEDcEB91979C7877B98D4D60190215a5e6dC7",
+        "oracleAddress": "0x64e433409041313496b6563C293Ebe466C6d3eFF",
+        "type": "WisdomTree",
+        "subtype": "variableNav"
+      },
+      {
+        "ticker": "CRDT",
+        "assetAddress": "0x10fe70382576f271caeF5C152266FB458eFB53fa",
+        "oracleAddress": "0x27137F39D8ecA6db037370EcDedFF3DFD01A229c",
+        "type": "WisdomTree",
+        "subtype": "variableNav"
+      },
+      {
+        "ticker": "FLTTX",
+        "assetAddress": "0xcE6C2fDF6676e80F29D7f15B012A3a92cA3008C4",
+        "oracleAddress": "0x48C1a4a76EBA4De411607C84F351F169086E786B",
+        "type": "WisdomTree",
+        "subtype": "variableNav"
+      },
+      {
+        "ticker": "EPXC",
+        "assetAddress": "0xF20f050321DEb97F9180150E99f0e8133Aa71051",
+        "oracleAddress": "0xbf4d24f1A611C8C0F91A83D9EE33053330e223E0",
+        "type": "WisdomTree",
+        "subtype": "variableNav"
+      },
+      {
+        "ticker": "WTSIX",
+        "assetAddress": "0xCf997c6A8DbdC1449e4dDE59Dbdf9cf6dA9d41c1",
+        "oracleAddress": "0x872E73cC259a025f089CEcF525cc657a9D521af3",
+        "type": "WisdomTree",
+        "subtype": "variableNav"
+      },
+      {
+        "ticker": "WTSYX",
+        "assetAddress": "0xbb2ce6Adb794F1C9d6779DF86626bB6B4e485818",
+        "oracleAddress": "0xe65D7c2FDECE1EcCeA471fCfe26D1cb397EBF831",
+        "type": "WisdomTree",
+        "subtype": "variableNav"
+      },
+      {
+        "ticker": "WTTSX",
+        "assetAddress": "0x3403292bA55fFBFc5a655c75b757b00Fd57Ee51c",
+        "oracleAddress": "0xC985c807B3Af1A69CD15CEF044599083B1DAc3Fd",
+        "type": "WisdomTree",
+        "subtype": "variableNav"
+      },
+      {
+        "ticker": "WTGXX",
+        "assetAddress": "0x5096b85Ed11798fDdCB8b5CB27C399c04689c435",
+        "oracleAddress": "0x15FAf95ae42313E0CdAcb6f8076E866Eb6965961",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "TIPSX",
+        "assetAddress": "0x534A448cEb99D8Ce1bBBB556A5C13c6Fe79CA68c",
+        "oracleAddress": "0xb3f9a39dc589336bb5675733b54f92cec593aba0",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "WTLGX",
+        "assetAddress": "0x8A4AD570238002E49f9A2681398BF9C822302eee",
+        "oracleAddress": "0x2b029bf53dad10969d3f14107f21c9cad59aaf12",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "WTSTX",
+        "assetAddress": "0xE2ab0b91244c6e04bB92034849768ac9B954112c",
+        "oracleAddress": "0x7f2a4bedc1329b102aff93bf205c7593cb103aee",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "EQTYX",
+        "assetAddress": "0xf4A3d6Da7E5F8A262B731DeEE62549C2c05035F5",
+        "oracleAddress": "0x731ebc4ebfb2062e54872f3047a07d59375a61fe",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "MODRX",
+        "assetAddress": "0x90A5aAD303D2170Bc846cd1237939Ac537F224A1",
+        "oracleAddress": "0x0b65c6ddb6cfaeb65da422488ae493aec5c1ae00",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      },
+      {
+        "ticker": "LNGVX",
+        "assetAddress": "0xC290Ff6eE86454B83a31C61010cd50DD53A56F24",
+        "oracleAddress": "0xe830ffc7d63a03284ffc459ab19752cbe8e4d546",
+        "type": "WisdomTree",
+        "subtype": "fixedNav"
+      }
+    ]
+  },
+  "arbitrum": {
+    "chainId": 42161,
+    "oracleRegistry": "0x0000000000000000000000000000000000000000",
+    "oracles": []
+  },
+  "ethereum": {
+    "chainId": 1,
+    "oracleRegistry": "0x0000000000000000000000000000000000000000",
+    "oracles": []
+  }
+}
