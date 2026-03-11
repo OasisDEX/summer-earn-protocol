@@ -263,8 +263,7 @@ program
   .command('start')
   .description('Run oracle node daemon')
   .argument('[ticker]', 'Ticker to monitor (omit to monitor all from deployments.json)')
-  .option('-h, --heartbeat <seconds>', 'Heartbeat threshold in seconds', '86400')
-  .option('-d, --deviation <percent>', 'Deviation threshold percentage (e.g. 1 for 1%)', '1')
+  .option('-d, --deviation <percent>', 'Deviation threshold percentage (e.g. 1 for 1%)', '0.01')
   .option('-i, --interval <seconds>', 'Polling interval in seconds', '60')
   .action(async (tickerArg, options) => {
     const chainId = await publicClient.getChainId()
@@ -279,9 +278,7 @@ program
     }
 
     console.log(`Starting Oracle Node for: ${tickersToMonitor.join(', ')}`)
-    console.log(
-      `Config: Heartbeat=${options.heartbeat}s, Deviation=${options.deviation}%, Poll=${options.interval}s`,
-    )
+    console.log(`Config: Deviation=${options.deviation}%, Poll=${options.interval}s`)
 
     const processTicker = async (ticker: string) => {
       try {
@@ -321,7 +318,6 @@ program
         const deviationBp = lastPrice > 0n ? (priceDiff * 10000n) / lastPrice : 10000n // 100% if lastPrice is 0
         const thresholdBp = BigInt(Number(options.deviation) * 100)
 
-        const isHeartbeat = timeDiff >= BigInt(options.heartbeat)
         const isDeviation = deviationBp >= thresholdBp
 
         console.log(
@@ -330,10 +326,8 @@ program
             `Diff: ${Number(deviationBp) / 100}%`,
         )
 
-        if (isHeartbeat || isDeviation) {
-          console.log(
-            `[${ticker}] >>> Triggering Update: Heartbeat=${isHeartbeat}, Deviation=${isDeviation}`,
-          )
+        if (isDeviation) {
+          console.log(`[${ticker}] >>> Triggering Update due to price deviation`)
 
           const nonce = await publicClient.readContract({
             address: oracleAddress,
