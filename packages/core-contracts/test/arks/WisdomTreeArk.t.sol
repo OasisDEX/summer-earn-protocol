@@ -113,7 +113,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             targetWallet,
             address(wtToken),
             address(oracle),
-            0,
             params
         );
 
@@ -134,21 +133,14 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             address(0),
             address(wtToken),
             address(oracle),
-            0,
             params
         );
 
         vm.expectRevert(WisdomTreeArk.InvalidOracleAddress.selector);
-        new WisdomTreeArk(
-            targetWallet,
-            address(wtToken),
-            address(0),
-            0,
-            params
-        );
+        new WisdomTreeArk(targetWallet, address(wtToken), address(0), params);
 
         vm.expectRevert(WisdomTreeArk.InvalidShareTokenAddress.selector);
-        new WisdomTreeArk(targetWallet, address(0), address(oracle), 0, params);
+        new WisdomTreeArk(targetWallet, address(0), address(oracle), params);
 
         assertEq(
             ark.CUSTODIAN_WALLET(),

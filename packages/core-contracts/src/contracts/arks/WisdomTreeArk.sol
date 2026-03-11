@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {AggregatorV3Interface} from "../../interfaces/external/Chainlink/AggregatorV3Interface.sol";
 import "../ArkWithWithdrawalRequest.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
+import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 /**
@@ -38,7 +38,7 @@ import "@summerfi/price-solidity/contracts/PriceUtils.sol";
  *      - USDC arrives from WisdomTree. Keeper calls `sweep()`.
  *      - `pendingWithdrawalAssets = 0`. USDC swept to `bufferArk`.
  */
-contract WisdomTreeArk is ArkWithWithdrawalRequest {
+contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     using SafeERC20 for IERC20;
     using PriceUtils for Price;
 
