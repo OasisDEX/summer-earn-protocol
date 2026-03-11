@@ -249,7 +249,25 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
     {
         pendingWithdrawalAssets = 0;
-        return super.sweep();
+        IERC20 asset = config.asset;
+        sweptTokens = new address[](1);
+        sweptAmounts = new uint256[](1);
+
+        sweptTokens[0] = address(asset);
+        sweptAmounts[0] = asset.balanceOf(address(this));
+
+        address bufferArk = address(
+            IFleetCommander(config.commander).bufferArk()
+        );
+        // to keep compatibility with the subgraph
+        emit Disembarked(msg.sender, address(asset), sweptAmounts[0]);
+
+        if (sweptAmounts[0] > 0 && address(this) != bufferArk) {
+            asset.forceApprove(bufferArk, sweptAmounts[0]);
+            IArk(bufferArk).board(sweptAmounts[0], bytes(""));
+        }
+
+        emit ArkSwept(sweptTokens, sweptAmounts);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -315,9 +333,10 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     function _sharesToAssets(uint256 shares) internal view returns (uint256) {
         if (shares == 0) return 0;
 
-        Price memory sharesToAssetPrice = _fetchOracleSharesToAssetPrice();
+        Price memory assetPerSharePrice = _fetchOracleAssetPerSharePrice();
 
-        return sharesToAssetPrice.quote(shares);
+        // Convert Base (Shares) to Quote (Asset)
+        return assetPerSharePrice.invert().quote(shares);
     }
 
     /**
@@ -328,18 +347,18 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     ) internal view returns (uint256) {
         if (assetAmount == 0) return 0;
 
-        Price memory assetToSharesPrice = _fetchOracleSharesToAssetPrice()
-            .invert();
+        Price memory assetPerSharePrice = _fetchOracleAssetPerSharePrice();
 
-        return assetToSharesPrice.quote(assetAmount);
+        // Convert Quote (Asset) to Base (Shares)
+        return assetPerSharePrice.quote(assetAmount);
     }
 
     /**
-     * @dev Fetches the oracle shares to asset price and returns it as a Price type
-     *      for which the base amount is ONE_ASSET and the quote amount is the oracle price
-     *      adjusted for the shares decimals)
+     * @dev Fetches the oracle asset per share price and returns it as a Price type
+     *      for which the base amount is 1 Share and the quote amount is the oracle price
+     *      adjusted for the asset decimals
      */
-    function _fetchOracleSharesToAssetPrice()
+    function _fetchOracleAssetPerSharePrice()
         internal
         view
         returns (Price memory)
@@ -347,12 +366,14 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         (, int256 answer, , , ) = oracle.latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
 
+        // The oracle returns the price of 1 share denominated in the underlying asset.
+        // Therefore, the Base Asset is the WisdomTree share, and Quote Asset is the underlying asset.
         return
             toPriceFromOraclePrice(
-                ONE_ASSET,
-                answer,
-                oracleDecimals,
-                shareDecimals
+                10 ** shareDecimals, // baseAmount (1 Share)
+                answer, // oracle price of 1 Share in Assets
+                oracleDecimals, // decimals of oracle price
+                assetDecimals // decimals of quote asset (Asset)
             );
     }
 }
