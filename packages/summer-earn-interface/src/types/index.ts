@@ -43,6 +43,10 @@ export interface ArkInfo {
   hasWithdrawalQueue?: boolean
   /** True when assetBalance > 0 and ark supports sweep */
   needsSweep?: boolean
+  /** WisdomTree: USDC deposits waiting for shares to arrive */
+  pendingDepositAssets?: string
+  /** WisdomTree: Default value of 1 share in underlying asset */
+  sharesToAssets1e18?: string
 }
 
 export interface RebalanceData {

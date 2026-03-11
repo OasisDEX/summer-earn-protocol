@@ -32,6 +32,8 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
         isWithdrawalClaimRequired?: boolean
         assetBalance?: string
         needsSweep?: boolean
+        pendingDepositAssets?: string
+        sharesToAssets1e18?: string
       }>
       const arks: ArkInfo[] = data.map((a) => ({
         address: a.address,
@@ -47,6 +49,8 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
         assetsInWithdrawalQueue: a.assetsInWithdrawalQueue,
         isWithdrawalClaimRequired: a.isWithdrawalClaimRequired,
         assetBalance: a.assetBalance,
+        pendingDepositAssets: a.pendingDepositAssets,
+        sharesToAssets1e18: a.sharesToAssets1e18,
         hasWithdrawalQueue:
           a.withdrawalRequestId != null ||
           a.assetsInWithdrawalQueue != null ||
