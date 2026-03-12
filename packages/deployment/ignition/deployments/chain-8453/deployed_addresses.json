@@ -130,6 +130,6 @@
   "staging_RoundsFleetWhitelist_WisdomTree_USDC_Base#FleetCommanderWhitelist": "0x9FD22516FF2EBeaF1fcA9bcace1F25cf13Ae9cEC",
   "staging_RoundsVaultInput_WisdomTree_USDC_Base#RoundsVaultInput": "0xA5ffD1e5d6Ddc4c3B90Bb618b257522ce108922B",
   "staging_RoundsVaultOutput_WisdomTree_USDC_Base#RoundsVaultOutput": "0xAC2F8f0a4B078d853D54fd8Ab8Cc69EA0f2c54aD",
-  "staging_WisdomTree_USDC_Base_WisdomTree_WTGXX_usdc_8453#WisdomTreeArk": "0x02B05c06b4484aD85cc165f5522Db3bE3D151280",
-  "staging_WisdomTree_USDC_Base_WisdomTree_WTSIX_usdc_8453#WisdomTreeArk": "0x900B60fC4D2C26965Ec638B43083124cE934dD5C"
+  "staging_WisdomTree_USDC_Base_WisdomTree_WTGXX_usdc_8453#WisdomTreeArk": "0x6049dA0261232Cbb7ca189f1681F23BAd06BF54e",
+  "staging_WisdomTree_USDC_Base_WisdomTree_WTSIX_usdc_8453#WisdomTreeArk": "0x573dB12030d77eEa49162F3e9C4B1D988BB2396B"
 }

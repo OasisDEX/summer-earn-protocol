@@ -7,8 +7,8 @@
   "bufferArkAddress": "0x986dCA321BB6f136635Bb790d0bB3CE6291B7A5a",
   "network": "base",
   "arks": [
-    "0x02B05c06b4484aD85cc165f5522Db3bE3D151280",
-    "0x900B60fC4D2C26965Ec638B43083124cE934dD5C"
+    "0x6049dA0261232Cbb7ca189f1681F23BAd06BF54e",
+    "0x573dB12030d77eEa49162F3e9C4B1D988BB2396B"
   ],
   "initialMinimumBufferBalance": "10000000",
   "initialRebalanceCooldown": "600",
