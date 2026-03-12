@@ -140,7 +140,7 @@
       "wisdomtree": {
         "usdc": {
           "WTGXX": {
-            "oracle": "0x609031d9D0A00Cc0d2CA3F6A0421456C7DAB90Fe",
+            "oracle": "0x15FAf95ae42313E0CdAcb6f8076E866Eb6965961",
             "shareToken": "0x5096b85Ed11798fDdCB8b5CB27C399c04689c435",
             "targetWallet": "0x63a8bb98D70d0aC73460d22b6756528a087ecBf8"
           },
