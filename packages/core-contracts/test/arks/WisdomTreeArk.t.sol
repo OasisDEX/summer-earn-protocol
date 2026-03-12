@@ -68,6 +68,8 @@ contract MockOracle is AggregatorV3Interface {
 contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
+    event CustodianWalletUpdated(address oldWallet, address newWallet);
+
     WisdomTreeArk public ark;
     BufferArk public bufferArk;
     AssetsForwarder public forwarder;
@@ -194,11 +196,39 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         );
 
         assertEq(
-            ark.CUSTODIAN_WALLET(),
+            ark.custodianWallet(),
             targetWallet,
             "Target wallet should match"
         );
         assertEq(address(ark.asset()), USDC_ADDRESS, "Asset should match");
+    }
+
+    function test_SetCustodianWallet() public {
+        address newWallet = makeAddr("newWallet");
+
+        // Reverts if called by non-keeper
+        vm.prank(targetWallet);
+        vm.expectRevert();
+        ark.setCustodianWallet(newWallet);
+
+        vm.startPrank(keeper);
+
+        // Reverts if address(0)
+        vm.expectRevert(WisdomTreeArk.InvalidTargetWallet.selector);
+        ark.setCustodianWallet(address(0));
+
+        // Success
+        vm.expectEmit(false, false, false, true);
+        emit CustodianWalletUpdated(targetWallet, newWallet);
+        ark.setCustodianWallet(newWallet);
+        
+        vm.stopPrank();
+
+        assertEq(
+            ark.custodianWallet(),
+            newWallet,
+            "Custodian wallet should be updated"
+        );
     }
 
     function test_Board_And_PendingDeposit() public {

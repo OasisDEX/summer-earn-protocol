@@ -19,7 +19,7 @@ import {IAssetsForwarder} from "../../utils/AssetsForwarder/IAssetsForwarder.sol
  *   1. Deposit (`_board`):
  *      - If it's the first deposit in the queue (`pendingDepositAssets == 0`),
  *        the Ark snapshots its live share balance into `cachedShareBalance`.
- *      - USDC is transferred to `CUSTODIAN_WALLET`.
+ *      - USDC is transferred to `custodianWallet`.
  *      - `pendingDepositAssets` increases by the sent amount.
  *
  *   2. Share Delivery & Keeper Deposit Clearance (`clearPendingDeposit`):
@@ -31,7 +31,7 @@ import {IAssetsForwarder} from "../../utils/AssetsForwarder/IAssetsForwarder.sol
  *        releases the cache, and `totalAssets` switches back to using the pure live balance.
  *
  *   3. Withdrawal Request (`requestWithdrawal`):
- *      - Calculates equivalent shares and transfers them to `CUSTODIAN_WALLET`.
+ *      - Calculates equivalent shares and transfers them to `custodianWallet`.
  *      - Reduces `cachedShareBalance` (if frozen) to prevent artificial value propping.
  *      - Increases `pendingWithdrawalAssets`.
  *
@@ -68,14 +68,14 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
     event PendingDepositCleared(uint256 amountCleared);
     event SharesSentForRedemption(uint256 shares, uint256 expectedAssets);
+    event CustodianWalletUpdated(address oldWallet, address newWallet);
 
     /*//////////////////////////////////////////////////////////////
                            STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    // TODO: not 100% sure it will be immutable - we might need an option for the keeper to change it
     /// @notice The WisdomTree wallet that receives USDC
-    address public immutable CUSTODIAN_WALLET;
+    address public custodianWallet;
 
     /// @notice The WisdomTree share token contract (e.g. WTGXX)
     IERC20 public immutable shareToken;
@@ -123,7 +123,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
         if (_assetsForwarder == address(0)) revert InvalidForwarderAddress();
 
-        CUSTODIAN_WALLET = _custodianWallet;
+        custodianWallet = _custodianWallet;
         shareToken = IERC20(_shareToken);
         oracle = AggregatorV3Interface(_oracle);
         assetsForwarder = IAssetsForwarder(_assetsForwarder);
@@ -194,6 +194,16 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Updates the WisdomTree target wallet receiving USDC.
+     * @param _custodianWallet The new custodian wallet address
+     */
+    function setCustodianWallet(address _custodianWallet) external onlyKeeper {
+        if (_custodianWallet == address(0)) revert InvalidTargetWallet();
+        emit CustodianWalletUpdated(custodianWallet, _custodianWallet);
+        custodianWallet = _custodianWallet;
+    }
+
+    /**
      * @notice Removes a fulfilled deposit amount from `pendingDepositAssets`.
      * @dev Called by the keeper after WisdomTree issues shares to this contract.
      *      Assumes full clearance (no partial fills).
@@ -206,7 +216,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
     /**
      * @inheritdoc IArkWithWithdrawalRequest
-     * @notice Calculates the equivalent shares for the requested `amount` and sends them to the `CUSTODIAN_WALLET`.
+     * @notice Calculates the equivalent shares for the requested `amount` and sends them to the `custodianWallet`.
      * @dev Also records the expected returning USDC in `pendingWithdrawalAssets`. Reverts if deposit is pending.
      */
     function requestWithdrawal(uint256 amount) external override onlyKeeper {
@@ -217,7 +227,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
         // Transfer the WisdomTree shares off-chain (back to the target wallet) via the assetsForwarder
         assetsForwarder.sendAsset(
-            CUSTODIAN_WALLET,
+            custodianWallet,
             address(shareToken),
             sharesToRedeem
         );
@@ -305,7 +315,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
         config.asset.forceApprove(address(assetsForwarder), amount);
         assetsForwarder.forwardAsset(
-            CUSTODIAN_WALLET,
+            custodianWallet,
             address(config.asset),
             amount
         );
