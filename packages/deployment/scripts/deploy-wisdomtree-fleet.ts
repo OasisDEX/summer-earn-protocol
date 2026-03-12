@@ -10,7 +10,7 @@ import {
   createRoundsVaultOutputModule,
 } from '../ignition/modules/rounds/rounds-vault'
 import { createAssetsForwarderModule } from '../ignition/modules/utils/assets-forwarder'
-import { BaseConfig, FleetConfig } from '../types/config-types'
+import { ArkType, BaseConfig, FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { ADDRESS_ZERO, GOVERNOR_ROLE } from './common/constants'
 import {
@@ -32,7 +32,7 @@ import {
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { getAssetAddress } from './helpers/token-helpers'
-import { validateToken } from './helpers/validation'
+import { validateConfigAddressEntry, validateString, validateToken } from './helpers/validation'
 import { FleetConfigSchema } from './helpers/zod-schemas'
 
 async function selectInstitutionFleetConfig(
@@ -419,14 +419,25 @@ async function main() {
     )
 
     for (const arkConfig of fleetDefinition.arks) {
-      const fundName =
-        typeof arkConfig.params.fundName === 'string' ? arkConfig.params.fundName : ''
-      const mappedConfig = config.protocolSpecific.wisdomtree[
-        arkConfig.params.asset as keyof typeof config.protocolSpecific.wisdomtree
-      ] as Record<string, { targetWallet: string }> | undefined
-      const targetWallet = mappedConfig?.[fundName]?.targetWallet as Address
+      if (arkConfig.type !== ArkType.WisdomTreeArk) {
+        continue
+      }
+      const token = validateToken(config, arkConfig.params.asset)
+      const fundName = validateString(arkConfig.params.fundName, 'fundName')
+
+      const wisdomtreeByToken = config.protocolSpecific.wisdomtree[token]
+      if (!wisdomtreeByToken) {
+        throw new Error(`WisdomTree config missing for token '${token}'`)
+      }
+
+      const targetWallet = validateConfigAddressEntry(
+        wisdomtreeByToken[fundName],
+        'targetWallet',
+        `WisdomTree fund '${fundName}' targetWallet`,
+      )
 
       if (targetWallet) {
+        console.log(kleur.blue(`Whitelisting Target Wallet in Assets Forwarder: ${targetWallet}`))
         const whitelistTargetWalletHash = await forwarderContract.write.setWhitelisted([
           targetWallet,
           true,
