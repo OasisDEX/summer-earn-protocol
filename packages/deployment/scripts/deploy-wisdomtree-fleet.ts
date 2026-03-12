@@ -9,6 +9,7 @@ import {
   createRoundsVaultInputModule,
   createRoundsVaultOutputModule,
 } from '../ignition/modules/rounds/rounds-vault'
+import { createAssetsForwarderModule } from '../ignition/modules/utils/assets-forwarder'
 import { BaseConfig, FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { ADDRESS_ZERO, GOVERNOR_ROLE } from './common/constants'
@@ -277,6 +278,25 @@ async function main() {
   )
 
   const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
+
+  // Deploy AssetsForwarder
+  console.log(kleur.cyan().bold(`\nDeploying AssetsForwarder...`))
+  const forwarderModuleName = `${envLabel}AssetsForwarder_${name}`
+  const forwarderModule = createAssetsForwarderModule(forwarderModuleName)
+  const deployedForwarder = await hre.ignition.deploy(forwarderModule, {
+    parameters: {
+      [forwarderModuleName]: {
+        accessManager: config.deployedContracts.gov.protocolAccessManager.address,
+      },
+    },
+  })
+
+  const forwarderAddress = (deployedForwarder as any).assetsForwarder.address as Address
+  config.deployedContracts.core.assetsForwarder = {
+    address: forwarderAddress,
+  }
+  console.log(kleur.green(`AssetsForwarder deployed to: ${forwarderAddress}`))
+
   // Deploys WisdomTree Ark using standard helper
   const deployedArks = await deployArks(fleetDefinition, config)
 
@@ -390,6 +410,40 @@ async function main() {
     ).waitForTransactionReceipt({ hash: transferabilityHash })
 
     console.log(kleur.green('Vaults whitelisted and transferability enabled'))
+
+    // Whitelist Arks & Target Wallets in AssetsForwarder
+    console.log(kleur.blue('Whitelisting Arks & Target Wallets in AssetsForwarder'))
+    const forwarderContract = await hre.viem.getContractAt(
+      'AssetsForwarder' as string,
+      forwarderAddress,
+    )
+
+    for (const arkConfig of fleetDefinition.arks) {
+      const fundName =
+        typeof arkConfig.params.fundName === 'string' ? arkConfig.params.fundName : ''
+      const mappedConfig = config.protocolSpecific.wisdomtree[
+        arkConfig.params.asset as keyof typeof config.protocolSpecific.wisdomtree
+      ] as Record<string, { targetWallet: string }> | undefined
+      const targetWallet = mappedConfig?.[fundName]?.targetWallet as Address
+
+      if (targetWallet) {
+        const whitelistTargetWalletHash = await forwarderContract.write.setWhitelisted([
+          targetWallet,
+          true,
+        ])
+        await (
+          await hre.viem.getPublicClient()
+        ).waitForTransactionReceipt({ hash: whitelistTargetWalletHash })
+      }
+    }
+
+    // Deployed Arks addresses
+    for (const ark of deployedArks) {
+      const whitelistArkHash = await forwarderContract.write.setWhitelisted([ark as Address, true])
+      await (await hre.viem.getPublicClient()).waitForTransactionReceipt({ hash: whitelistArkHash })
+    }
+
+    console.log(kleur.green('Arks and Target Wallets whitelisted on AssetsForwarder'))
 
     // Grant curator role if curator is specified
     if (fleetDefinition.curator) {

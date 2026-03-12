@@ -5,11 +5,11 @@ export function createWisdomTreeArkModule(moduleName: string) {
     const custodianWallet = m.getParameter<string>('targetWallet')
     const shareToken = m.getParameter<string>('shareToken')
     const oracle = m.getParameter<string>('oracle')
-    const slippage = m.getParameter<string>('slippage')
     const name = m.getParameter<string>('name')
     const details = m.getParameter<string>('details')
     const configurationManager = m.getParameter<string>('configurationManager')
     const accessManager = m.getParameter<string>('accessManager')
+    const assetsForwarder = m.getParameter<string>('assetsForwarder')
     const asset = m.getParameter<string>('asset')
     const depositCap = m.getParameter<string>('depositCap')
     const maxRebalanceOutflow = m.getParameter<string>('maxRebalanceOutflow')
@@ -21,6 +21,7 @@ export function createWisdomTreeArkModule(moduleName: string) {
       custodianWallet,
       shareToken,
       oracle,
+      assetsForwarder,
       {
         name,
         details,
