@@ -69,6 +69,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     event PendingDepositCleared(uint256 amountCleared);
     event SharesSentForRedemption(uint256 shares, uint256 expectedAssets);
     event CustodianWalletUpdated(address oldWallet, address newWallet);
+    event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
 
     /*//////////////////////////////////////////////////////////////
                            STATE VARIABLES
@@ -84,7 +85,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     AggregatorV3Interface public immutable oracle;
 
     /// @notice The AssetsForwarder utilized to handle external transfers securely
-    IAssetsForwarder public immutable assetsForwarder;
+    IAssetsForwarder public assetsForwarder;
 
     /// @notice Decimals reported by the Chainlink oracle
     uint8 public immutable oracleDecimals;
@@ -201,6 +202,16 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         if (_custodianWallet == address(0)) revert InvalidTargetWallet();
         emit CustodianWalletUpdated(custodianWallet, _custodianWallet);
         custodianWallet = _custodianWallet;
+    }
+
+    /**
+     * @notice Updates the AssetsForwarder utilized to handle external transfers.
+     * @param _assetsForwarder The new assets forwarder address
+     */
+    function setAssetsForwarder(address _assetsForwarder) external onlyKeeper {
+        if (_assetsForwarder == address(0)) revert InvalidForwarderAddress();
+        emit AssetsForwarderUpdated(address(assetsForwarder), _assetsForwarder);
+        assetsForwarder = IAssetsForwarder(_assetsForwarder);
     }
 
     /**

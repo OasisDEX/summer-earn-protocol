@@ -69,6 +69,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     event CustodianWalletUpdated(address oldWallet, address newWallet);
+    event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
 
     WisdomTreeArk public ark;
     BufferArk public bufferArk;
@@ -228,6 +229,34 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             ark.custodianWallet(),
             newWallet,
             "Custodian wallet should be updated"
+        );
+    }
+
+    function test_SetAssetsForwarder() public {
+        address newForwarder = makeAddr("newForwarder");
+
+        // Reverts if called by non-keeper
+        vm.prank(targetWallet);
+        vm.expectRevert();
+        ark.setAssetsForwarder(newForwarder);
+
+        vm.startPrank(keeper);
+
+        // Reverts if address(0)
+        vm.expectRevert(WisdomTreeArk.InvalidForwarderAddress.selector);
+        ark.setAssetsForwarder(address(0));
+
+        // Success
+        vm.expectEmit(false, false, false, true);
+        emit AssetsForwarderUpdated(address(forwarder), newForwarder);
+        ark.setAssetsForwarder(newForwarder);
+        
+        vm.stopPrank();
+
+        assertEq(
+            address(ark.assetsForwarder()),
+            newForwarder,
+            "Assets forwarder should be updated"
         );
     }
 
