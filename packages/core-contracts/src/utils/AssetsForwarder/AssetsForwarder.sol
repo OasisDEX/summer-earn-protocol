@@ -8,6 +8,7 @@ import {Whitelist} from "../Whitelist/Whitelist.sol";
 import {IWhitelist} from "../Whitelist/IWhitelist.sol";
 import {IAssetsForwarder} from "./IAssetsForwarder.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
 /**
  * @title AssetsForwarder
@@ -17,7 +18,8 @@ contract AssetsForwarder is
     IAssetsForwarder,
     Context,
     ProtocolAccessManaged,
-    Whitelist
+    Whitelist,
+    ERC721Holder
 {
     using SafeERC20 for IERC20;
 
