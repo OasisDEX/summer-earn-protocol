@@ -2,17 +2,20 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/WisdomTreeArk.sol";
+import {AssetsForwarder} from "../../src/utils/AssetsForwarder/AssetsForwarder.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {AggregatorV3Interface} from "../../src/interfaces/external/Chainlink/AggregatorV3Interface.sol";
 
 contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     WisdomTreeArk public ark;
+    AssetsForwarder public forwarder;
     IERC20 public usdc;
     IERC20 public wtToken;
     AggregatorV3Interface public oracle;
@@ -53,10 +56,17 @@ contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new WisdomTreeArk(TARGET_WALLET, SHARE_TOKEN, ORACLE, params);
-
-        // Permissioning
         vm.startPrank(governor);
+        forwarder = new AssetsForwarder(address(accessManager));
+        accessManager.grantKeeperRole(address(forwarder), keeper);
+        forwarder.setWhitelisted(TARGET_WALLET, true);
+        ark = new WisdomTreeArk(
+            TARGET_WALLET,
+            SHARE_TOKEN,
+            ORACLE,
+            address(forwarder),
+            params
+        );
         accessManager.grantCommanderRole(address(ark), address(commander));
         accessManager.grantKeeperRole(address(ark), keeper);
         vm.stopPrank();

@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import { BufferArk } from "../../src/contracts/arks/BufferArk.sol";
+import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/WisdomTreeArk.sol";
+import {AssetsForwarder} from "../../src/utils/AssetsForwarder/AssetsForwarder.sol";
 import "../../src/events/IArkEvents.sol";
-import { ArkParams } from "../../src/types/ArkTypes.sol";
-import { MockERC20 } from "../mocks/MockERC20.sol";
-import { ArkTestBase } from "./ArkTestBase.sol";
-import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { PERCENTAGE_100 } from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import { Test, console } from "forge-std/Test.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 // Dummy mock for Chainlink Oracle
 contract MockOracle is AggregatorV3Interface {
-
     uint8 public _decimals;
     int256 public _answer;
 
@@ -38,7 +38,14 @@ contract MockOracle is AggregatorV3Interface {
         return 1;
     }
 
-    function getRoundData(uint80) external pure override returns (uint80, int256, uint256, uint256, uint80) {
+    function getRoundData(
+        uint80
+    )
+        external
+        pure
+        override
+        returns (uint80, int256, uint256, uint256, uint80)
+    {
         revert();
     }
 
@@ -46,25 +53,31 @@ contract MockOracle is AggregatorV3Interface {
         external
         view
         override
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
     {
         return (1, _answer, 1, 1, 1);
     }
-
 }
 
 contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
-
     using SafeERC20 for IERC20;
 
     WisdomTreeArk public ark;
     BufferArk public bufferArk;
+    AssetsForwarder public forwarder;
     IERC20 public usdc;
     MockERC20 public wtToken;
     MockOracle public oracle;
     ArkParams public params;
 
-    address public constant USDC_ADDRESS = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+    address public constant USDC_ADDRESS =
+        0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address public targetWallet;
 
     uint256 forkBlock = 21666256;
@@ -103,7 +116,16 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new WisdomTreeArk(targetWallet, address(wtToken), address(oracle), params);
+        vm.startPrank(governor);
+        forwarder = new AssetsForwarder(address(accessManager));
+        ark = new WisdomTreeArk(
+            targetWallet,
+            address(wtToken),
+            address(oracle),
+            address(forwarder),
+            params
+        );
+        vm.stopPrank();
 
         ArkParams memory bParams = ArkParams({
             name: "TestArk",
@@ -123,6 +145,10 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.startPrank(governor);
         accessManager.grantCommanderRole(address(ark), address(commander));
         accessManager.grantKeeperRole(address(ark), keeper);
+        accessManager.grantKeeperRole(address(forwarder), keeper);
+
+        forwarder.setWhitelisted(address(ark), true);
+        forwarder.setWhitelisted(targetWallet, true);
         vm.stopPrank();
 
         vm.startPrank(commander);
@@ -132,15 +158,46 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
     function test_Constructor() public {
         vm.expectRevert(WisdomTreeArk.InvalidTargetWallet.selector);
-        new WisdomTreeArk(address(0), address(wtToken), address(oracle), params);
+        new WisdomTreeArk(
+            address(0),
+            address(wtToken),
+            address(oracle),
+            address(forwarder),
+            params
+        );
 
         vm.expectRevert(WisdomTreeArk.InvalidOracleAddress.selector);
-        new WisdomTreeArk(targetWallet, address(wtToken), address(0), params);
+        new WisdomTreeArk(
+            targetWallet,
+            address(wtToken),
+            address(0),
+            address(forwarder),
+            params
+        );
 
         vm.expectRevert(WisdomTreeArk.InvalidShareTokenAddress.selector);
-        new WisdomTreeArk(targetWallet, address(0), address(oracle), params);
+        new WisdomTreeArk(
+            targetWallet,
+            address(0),
+            address(oracle),
+            address(forwarder),
+            params
+        );
 
-        assertEq(ark.CUSTODIAN_WALLET(), targetWallet, "Target wallet should match");
+        vm.expectRevert(WisdomTreeArk.InvalidForwarderAddress.selector);
+        new WisdomTreeArk(
+            targetWallet,
+            address(wtToken),
+            address(oracle),
+            address(0),
+            params
+        );
+
+        assertEq(
+            ark.CUSTODIAN_WALLET(),
+            targetWallet,
+            "Target wallet should match"
+        );
         assertEq(address(ark.asset()), USDC_ADDRESS, "Asset should match");
     }
 
@@ -157,9 +214,21 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         uint256 finalTargetBalance = usdc.balanceOf(targetWallet);
-        assertEq(finalTargetBalance, initialTargetBalance + amount, "Target wallet should receive tokens");
-        assertEq(ark.totalAssets(), amount, "Total assets should match boarded amount (pending deposit)");
-        assertEq(ark.pendingDepositAssets(), amount, "Pending deposit should match");
+        assertEq(
+            finalTargetBalance,
+            initialTargetBalance + amount,
+            "Target wallet should receive tokens"
+        );
+        assertEq(
+            ark.totalAssets(),
+            amount,
+            "Total assets should match boarded amount (pending deposit)"
+        );
+        assertEq(
+            ark.pendingDepositAssets(),
+            amount,
+            "Pending deposit should match"
+        );
     }
 
     function test_ClearPendingDeposit() public {
@@ -174,15 +243,23 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
         // 2. Shares arrive off-chain
         uint256 sharesMinted = 1e18; // 1 WTBTC
-        wtToken.mint(address(ark), sharesMinted);
+        wtToken.mint(address(forwarder), sharesMinted);
 
         // 3. Keep clears
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
         vm.stopPrank();
 
-        assertEq(ark.pendingDepositAssets(), 0, "Pending deposit should be cleared");
-        assertEq(ark.totalAssets(), amount, "Total assets should perfectly transition to oracle share value");
+        assertEq(
+            ark.pendingDepositAssets(),
+            0,
+            "Pending deposit should be cleared"
+        );
+        assertEq(
+            ark.totalAssets(),
+            amount,
+            "Total assets should perfectly transition to oracle share value"
+        );
     }
 
     /* Withdrawal Tests */
@@ -213,7 +290,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         uint256 sharesMinted = 1e18;
-        wtToken.mint(address(ark), sharesMinted);
+        wtToken.mint(address(forwarder), sharesMinted);
 
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
@@ -228,22 +305,55 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         // Verify post-request state
-        assertEq(wtToken.balanceOf(targetWallet), sharesMinted, "Shares should be sent to target wallet");
-        assertEq(wtToken.balanceOf(address(ark)), 0, "Ark should have 0 shares");
-        assertEq(ark.pendingWithdrawalAssets(), amount, "Pending withdrawal tracks USD value");
-        assertEq(ark.totalAssets(), amount, "Total assets remains stable during withdrawal");
+        assertEq(
+            wtToken.balanceOf(targetWallet),
+            sharesMinted,
+            "Shares should be sent to target wallet"
+        );
+        assertEq(
+            wtToken.balanceOf(address(forwarder)),
+            0,
+            "Forwarder should have 0 shares"
+        );
+        assertEq(
+            ark.pendingWithdrawalAssets(),
+            amount,
+            "Pending withdrawal tracks USD value"
+        );
+        assertEq(
+            ark.totalAssets(),
+            amount,
+            "Total assets remains stable during withdrawal"
+        );
 
-        deal(USDC_ADDRESS, address(ark), amount);
+        // The swept USDC goes to the Forwarder now
+        deal(USDC_ADDRESS, address(forwarder), amount);
 
-        vm.mockCall(address(commander), abi.encodeWithSignature("bufferArk()"), abi.encode(address(bufferArk)));
-        vm.mockCall(address(commander), abi.encodeWithSignature("isArkActiveOrBufferArk(address)"), abi.encode(true));
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
 
         vm.startPrank(keeper);
         ark.sweep();
         vm.stopPrank();
 
-        assertEq(ark.pendingWithdrawalAssets(), 0, "Pending withdrawal cleared");
-        assertEq(ark.totalAssets(), 0, "Total assets drops to 0 after sweep sends USDC away");
+        assertEq(
+            ark.pendingWithdrawalAssets(),
+            0,
+            "Pending withdrawal cleared"
+        );
+        assertEq(
+            ark.totalAssets(),
+            0,
+            "Total assets drops to 0 after sweep sends USDC away"
+        );
         assertEq(usdc.balanceOf(address(ark)), 0, "Ark has 0 USDC");
     }
 
@@ -258,5 +368,4 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         ark.board(amount, bytes(""));
         vm.stopPrank();
     }
-
 }

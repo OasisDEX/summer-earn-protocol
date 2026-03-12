@@ -6,6 +6,7 @@ import "../ArkWithWithdrawalRequest.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
+import {IAssetsForwarder} from "../../utils/AssetsForwarder/IAssetsForwarder.sol";
 
 /**
  * @title WisdomTreeArk
@@ -56,6 +57,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     error InvalidTargetWallet();
     error InvalidOracleAddress();
     error InvalidShareTokenAddress();
+    error InvalidForwarderAddress();
     error OraclePriceNotPositive();
     error InsufficientPendingDeposit();
     error PendingDepositActive();
@@ -80,6 +82,9 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
     /// @notice Chainlink price feed: price of 1 WisdomTree share denominated in underlying asset
     AggregatorV3Interface public immutable oracle;
+
+    /// @notice The AssetsForwarder utilized to handle external transfers securely
+    IAssetsForwarder public immutable assetsForwarder;
 
     /// @notice Decimals reported by the Chainlink oracle
     uint8 public immutable oracleDecimals;
@@ -110,15 +115,18 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         address _custodianWallet,
         address _shareToken,
         address _oracle,
+        address _assetsForwarder,
         ArkParams memory _params
     ) ArkWithWithdrawalRequest(_params, DEFAULT_SLIPPAGE) {
         if (_custodianWallet == address(0)) revert InvalidTargetWallet();
         if (_oracle == address(0)) revert InvalidOracleAddress();
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
+        if (_assetsForwarder == address(0)) revert InvalidForwarderAddress();
 
         CUSTODIAN_WALLET = _custodianWallet;
         shareToken = IERC20(_shareToken);
         oracle = AggregatorV3Interface(_oracle);
+        assetsForwarder = IAssetsForwarder(_assetsForwarder);
         oracleDecimals = AggregatorV3Interface(_oracle).decimals();
         shareDecimals = IERC20Metadata(_shareToken).decimals();
         assetDecimals = IERC20Metadata(_params.asset).decimals();
@@ -143,7 +151,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         // This prevents double-counting shares that arrive before the keeper clears the deposit.
         uint256 currentShares = pendingDepositAssets > 0
             ? cachedShareBalance
-            : shareToken.balanceOf(address(this));
+            : shareToken.balanceOf(address(assetsForwarder));
 
         assets =
             _sharesToAssets(currentShares) +
@@ -207,8 +215,12 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
         uint256 sharesToRedeem = _assetsToShares(amount);
 
-        // Transfer the WisdomTree shares off-chain (back to the target wallet)
-        shareToken.safeTransfer(CUSTODIAN_WALLET, sharesToRedeem);
+        // Transfer the WisdomTree shares off-chain (back to the target wallet) via the assetsForwarder
+        assetsForwarder.sendAsset(
+            CUSTODIAN_WALLET,
+            address(shareToken),
+            sharesToRedeem
+        );
 
         // Record the expected returning USDC amount to keep totalAssets continuous
         pendingWithdrawalAssets += amount;
@@ -254,7 +266,13 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         sweptAmounts = new uint256[](1);
 
         sweptTokens[0] = address(asset);
-        sweptAmounts[0] = asset.balanceOf(address(this));
+        sweptAmounts[0] = asset.balanceOf(address(assetsForwarder));
+
+        assetsForwarder.sendAsset(
+            address(this),
+            address(asset),
+            sweptAmounts[0]
+        );
 
         address bufferArk = address(
             IFleetCommander(config.commander).bufferArk()
@@ -280,12 +298,17 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      */
     function _board(uint256 amount, bytes calldata) internal override {
         if (pendingDepositAssets == 0) {
-            cachedShareBalance = shareToken.balanceOf(address(this));
+            cachedShareBalance = shareToken.balanceOf(address(assetsForwarder));
         }
 
         pendingDepositAssets += amount;
 
-        config.asset.safeTransfer(CUSTODIAN_WALLET, amount);
+        config.asset.forceApprove(address(assetsForwarder), amount);
+        assetsForwarder.forwardAsset(
+            CUSTODIAN_WALLET,
+            address(config.asset),
+            amount
+        );
     }
 
     /**
