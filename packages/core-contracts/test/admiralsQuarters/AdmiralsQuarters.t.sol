@@ -50,7 +50,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
     uint256 constant FORK_BLOCK = 20576616;
 
-    function setUp() public {
+    function setUp() public virtual {
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
         oneInchRouter = IAggregationRouterV6(ONE_INCH_ROUTER);
         uint256 initialTipRate = 0;
@@ -359,6 +359,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         vm.stopPrank();
     }
+
     function test_Deposit_Enter_Stake_With_Referral() public {
         address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
         uint256 usdcAmount = 1000e6; // 1000 USDC
@@ -396,6 +397,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         vm.stopPrank();
     }
+
     function test_Deposit_Enter_Stake_WETH() public {
         uint256 wethAmount = 1e18; // 1 WETH
 
@@ -480,6 +482,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         vm.stopPrank();
     }
+
     function test_EnterWithETH_ExitToETH() public {
         uint256 ethAmount = 1e18; // 1 ETH
 
@@ -563,6 +566,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         vm.stopPrank();
     }
+
     function test_EnterWithETH_ExitToWETH() public {
         uint256 ethAmount = 1e18; // 1 ETH
 
@@ -646,6 +650,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         vm.stopPrank();
     }
+
     function test_Deposit_ETH_Swap_EnterFleet() public {
         uint256 ethAmount = 1e18; // 1 ETH
         uint256 minUsdcAmount = 1500e6; // Expecting at least 1500 USDC for 1 ETH
