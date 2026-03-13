@@ -50,6 +50,7 @@
     "deploy:status:base": "hardhat ignition status chain-8453",
     "deploy:summer-vesting-factory-v2": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-summer-vesting-factory-v2.ts --network $NETWORK",
     "deploy:timelock-guard-factory": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-timelock-guard-factory.ts --network $NETWORK",
+    "deploy:assets-forwarder": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-assets-forwarder.ts --network $NETWORK",
     "deploy:wisdomtree-fleet": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-wisdomtree-fleet.ts --network $NETWORK",
     "verify:mainnet": "hardhat ignition verify chain-1",
     "verify:arbitrum": "hardhat ignition verify chain-42161",
