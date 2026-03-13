@@ -108,11 +108,10 @@ contract AssetsForwarder is
         address asset,
         uint256 amount
     ) internal {
-        if (from == address(this)) {
-            IERC20(asset).safeTransfer(to, amount);
-        } else {
-            IERC20(asset).safeTransferFrom(from, to, amount);
+        if (from != address(this)) {
+            IERC20(asset).safeTransferFrom(from, address(this), amount);
         }
+        IERC20(asset).safeTransfer(to, amount);
     }
 
     /**
