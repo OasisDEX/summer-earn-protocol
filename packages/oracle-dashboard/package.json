@@ -2,7 +2,7 @@
   "name": "oracle-dashboard",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@8.15.4",
+  "packageManager": "pnpm@10.32.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,8 +10,8 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@reown/appkit": "1.8.13",
-    "@reown/appkit-adapter-wagmi": "1.8.13",
+    "@reown/appkit": "1.8.19",
+    "@reown/appkit-adapter-wagmi": "1.8.19",
     "@tanstack/react-query": "^5.90.21",
     "clsx": "^2.1.1",
     "date-fns": "3.3.1",

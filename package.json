@@ -47,7 +47,7 @@
     "zx": "8.8.5"
   },
   "name": "summerfi-monorepo",
-  "packageManager": "pnpm@8.15.4",
+  "packageManager": "pnpm@10.32.1",
   "engines": {
     "node": ">=20"
   },
