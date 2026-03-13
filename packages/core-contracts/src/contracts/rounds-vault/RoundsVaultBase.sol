@@ -11,6 +11,8 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 
 import {ERC4626MultiTokenWrapper} from "../../extensions/ERC4626MultiTokenWrapper.sol";
 import {IERC4626MultiToken, ERC4626MultiToken} from "../../extensions/ERC4626MultiToken.sol";
+import {Whitelist} from "../../utils/Whitelist/Whitelist.sol";
+import {IWhitelist} from "../../utils/Whitelist/IWhitelist.sol";
 
 import {IRoundsVaultBase} from "../../interfaces/rounds-vault/IRoundsVaultBase.sol";
 import {IRoundsVaultBaseErrors} from "../../interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
@@ -36,6 +38,7 @@ import {IRoundsVaultBaseEnums} from "../../interfaces/rounds-vault/IRoundsVaultB
 abstract contract RoundsVaultBase is
     ProtocolAccessManaged,
     ERC4626MultiTokenWrapper,
+    Whitelist,
     IRoundsVaultBase,
     IRoundsVaultBaseErrors,
     IRoundsVaultBaseEvents,
@@ -114,6 +117,32 @@ abstract contract RoundsVaultBase is
         emit NextRound(_roundNumber, exchangeRate);
     }
 
+    ///@inheritdoc Whitelist
+    function setWhitelisted(
+        address account,
+        bool allowed
+    ) external override onlyGovernor {
+        _setWhitelisted(account, allowed);
+    }
+
+    ///@inheritdoc Whitelist
+    function setWhitelistedBatch(
+        address[] memory accounts,
+        bool[] memory allowed
+    ) external override onlyGovernor {
+        _setWhitelistedBatch(accounts, allowed);
+    }
+
+    /**
+        @inheritdoc IERC4626MultiToken
+     */
+    function deposit(
+        uint256 assets,
+        address receiver
+    ) public virtual override(IERC4626MultiToken, ERC4626MultiToken) onlyWhitelisted(receiver) onlyWhitelisted(_msgSender()) returns (uint256) {
+        return super.deposit(assets, receiver);
+    }
+
     /**
         @inheritdoc IERC4626MultiToken
      */
@@ -122,12 +151,7 @@ abstract contract RoundsVaultBase is
         uint256 amount,
         address receiver,
         address owner
-    )
-        public
-        virtual
-        override(IERC4626MultiToken, ERC4626MultiToken)
-        returns (uint256)
-    {
+    ) public virtual override(IERC4626MultiToken, ERC4626MultiToken) onlyWhitelisted(receiver) onlyWhitelisted(_msgSender()) returns (uint256) {
         if (id != _roundNumber) {
             revert CanOnlyRedeemCurrentRound(id, _roundNumber);
         }
@@ -150,6 +174,8 @@ abstract contract RoundsVaultBase is
         public
         virtual
         override(IERC4626MultiToken, ERC4626MultiToken)
+        onlyWhitelisted(receiver)
+        onlyWhitelisted(_msgSender())
         returns (uint256 assets)
     {
         for (uint256 i = 0; i < ids.length; i++) {
@@ -169,7 +195,7 @@ abstract contract RoundsVaultBase is
         uint256 amount,
         address receiver,
         address owner
-    ) public returns (uint256) {
+    ) public onlyWhitelisted(receiver) onlyWhitelisted(_msgSender()) returns (uint256) {
         if (id >= _roundNumber) {
             revert CannotRedeeemExchangeAssetCurrentRound(id, _roundNumber);
         }
@@ -191,7 +217,7 @@ abstract contract RoundsVaultBase is
         uint256[] calldata amounts,
         address receiver,
         address owner
-    ) public returns (uint256 shares) {
+    ) public onlyWhitelisted(receiver) onlyWhitelisted(_msgSender()) returns (uint256 shares) {
         if (ids.length != amounts.length) {
             revert BadRedeemBatchParameters(ids.length, amounts.length);
         }

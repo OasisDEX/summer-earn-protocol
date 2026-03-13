@@ -12,9 +12,12 @@ import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
 import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
 import {UD60x18, ud} from "@prb/math/src/UD60x18.sol";
+import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
 
 // Mock Access Manager
 contract MockAccessManager {
+    bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
+
     mapping(bytes32 => mapping(address => bool)) public roles;
 
     function hasRole(
@@ -130,6 +133,7 @@ contract RoundsVaultOutputTest is
     MockERC4626 public targetVault;
     MockAccessManager public accessManager;
 
+    address public admin = address(0x1);
     address public operator = address(0x2);
     address public unprivilegedAccount = address(0x3);
 
@@ -156,6 +160,11 @@ contract RoundsVaultOutputTest is
             abi.encodePacked(ContractSpecificRoles.KEEPER_ROLE, address(vault))
         );
         accessManager.grantRole(specificKeeperRole, operator);
+
+        accessManager.grantRole(accessManager.GOVERNOR_ROLE(), admin);
+
+        vm.prank(admin);
+        vault.setWhitelisted(address(0), true);
 
         // Setup user with Shares
         vm.startPrank(unprivilegedAccount);
@@ -355,5 +364,70 @@ contract RoundsVaultOutputTest is
         assertEq(returnedAssets, shares0 + shares1);
 
         assertEq(assetToken.balanceOf(unprivilegedAccount), 3 ether);
+    }
+
+    function test_ROV0009_RevertIfNotWhitelisted() public {
+        // Disable open whitelist
+        vm.prank(admin);
+        vault.setWhitelisted(address(0), false);
+
+        uint256 shares = 1 ether;
+
+        vm.startPrank(unprivilegedAccount);
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount));
+        vault.deposit(shares, unprivilegedAccount);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount));
+        vault.redeem(0, shares, unprivilegedAccount, unprivilegedAccount);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 0;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = shares;
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount));
+        vault.redeemBatch(ids, amounts, unprivilegedAccount, unprivilegedAccount);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount));
+        vault.redeemExchangeAsset(0, shares, unprivilegedAccount, unprivilegedAccount);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount));
+        vault.redeemExchangeAssetBatch(ids, amounts, unprivilegedAccount, unprivilegedAccount);
+        vm.stopPrank();
+    }
+
+    function test_ROV0010_RevertIfCallerNotWhitelisted() public {
+        address receiver = address(0x4);
+
+        // Disable open whitelist
+        vm.prank(admin);
+        vault.setWhitelisted(address(0), false);
+        
+        vm.prank(admin);
+        vault.setWhitelisted(receiver, true);
+
+        uint256 shares = 1 ether;
+
+        vm.startPrank(unprivilegedAccount);
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount));
+        vault.deposit(shares, receiver);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount));
+        vault.redeem(0, shares, receiver, unprivilegedAccount);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 0;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = shares;
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount));
+        vault.redeemBatch(ids, amounts, receiver, unprivilegedAccount);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount));
+        vault.redeemExchangeAsset(0, shares, receiver, unprivilegedAccount);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount));
+        vault.redeemExchangeAssetBatch(ids, amounts, receiver, unprivilegedAccount);
+        vm.stopPrank();
     }
 }
