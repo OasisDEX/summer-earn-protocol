@@ -97,4 +97,9 @@ interface IAdmiralsQuartersErrors {
      * @notice Thrown when ETH transfer fails.
      */
     error ETHTransferFailed();
+
+    /**
+     * @notice Thrown when the provided amount is invalid.
+     */
+    error InvalidAmount();
 }

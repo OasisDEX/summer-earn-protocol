@@ -240,7 +240,8 @@ contract AdmiralsQuarters is
         _validateFleetCommander(fleetCommander);
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         IERC20 fleetAsset = IERC20(fleet.asset());
-
+        if (permitData.permitted.token != fleetAsset) revert InvalidToken();
+        if (permitData.permitted.amount != assets) revert InvalidAmount();
         ISignatureTransfer(PERMIT2).permitTransferFrom(
             permitData,
             ISignatureTransfer.SignatureTransferDetails({
