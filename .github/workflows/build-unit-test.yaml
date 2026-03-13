@@ -45,6 +45,14 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
+      - name: Cache solc
+        uses: actions/cache@v3
+        with:
+          path: ~/.svm
+          key: ${{ runner.os }}-svm-${{ hashFiles('packages/**/foundry.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-svm-     
+
       - name: Cache Foundry build artifacts
         uses: actions/cache@v3
         with:
