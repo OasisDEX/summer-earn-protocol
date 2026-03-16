@@ -174,7 +174,7 @@ export default function Home() {
   }
 
   // Helper function to format account display
-  const formatAccountDisplay = (arg: any): React.ReactNode => {
+  const formatAccountDisplay = (arg: any) => {
     if (typeof arg === 'string' && arg.includes('#')) {
       // Format: mainnet:FleetModule_LazyVault_HigherRisk_USDC#FleetCommander(0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06)
       const parts = arg.split('#')

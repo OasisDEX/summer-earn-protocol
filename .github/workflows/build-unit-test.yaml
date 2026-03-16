@@ -45,12 +45,31 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
+      - name: Cache solc
+        uses: actions/cache@v3
+        with:
+          path: ~/.svm
+          key: ${{ runner.os }}-svm-${{ hashFiles('packages/**/foundry.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-svm-     
+
+      - name: Cache Foundry build artifacts
+        uses: actions/cache@v3
+        with:
+          path: |
+            packages/*/cache
+            packages/*/out
+          key: ${{ runner.os }}-foundry-${{ hashFiles('packages/**/*.sol', 'packages/**/foundry.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-foundry-
+
       - name: Lint
         run: pnpm lint
 
       - name: Format
         run: pnpm format
 
+        
       - name: Test
         run: pnpm test
         env:
@@ -69,12 +88,7 @@ jobs:
           SONIC_RPC_URL: ${{ secrets.SONIC_RPC_URL }}
           OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
           HYPERLIQUID_RPC_URL: ${{ secrets.HYPERLIQUID_RPC_URL }}
-        run: |
-          cd packages/core-contracts && pnpm coverage:lcov
-          cd ../access-contracts && pnpm coverage:lcov
-          cd ../rewards-contracts && pnpm coverage:lcov
-          cd ../gov-contracts && pnpm coverage:lcov
-          cd ../voting-decay && pnpm coverage:lcov
+        run: pnpm turbo run coverage:lcov
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v4

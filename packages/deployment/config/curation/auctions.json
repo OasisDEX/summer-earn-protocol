@@ -322,5 +322,23 @@
     "decayType": "linear",
     "maxMultiplier": 3,
     "minMultiplier": 0.2
+  },
+  {
+    "rewardTokenSymbol": "dam",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.0000015,
+      "usdt": 0.03,
+      "usdc": 0.03,
+      "dai": 0.03,
+      "usde": 0.03,
+      "usdce": 0.03,
+      "eurc": 0.03
+    },
+    "duration": "1d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 1,
+    "minMultiplier": 0.99
   }
 ]

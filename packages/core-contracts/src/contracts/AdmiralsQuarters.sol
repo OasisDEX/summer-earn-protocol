@@ -13,19 +13,21 @@ import {IAToken} from "../interfaces/aave-v3/IAtoken.sol";
 import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
 import {IComet} from "../interfaces/compound-v3/IComet.sol";
 import {IWETH} from "../interfaces/misc/IWETH.sol";
-import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 
 import {ProtectedMulticall} from "./ProtectedMulticall.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
+import {ISignatureTransfer} from "../interfaces/permit2/IPermit2.sol";
+import {IGovernanceRewardsManager} from "@summerfi/earn-gov-contracts/interfaces/IGovernanceRewardsManager.sol";
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
 import {ISummerRewardsRedeemer} from "@summerfi/rewards-contracts/interfaces/ISummerRewardsRedeemer.sol";
-import {IGovernanceRewardsManager} from "@summerfi/earn-gov-contracts/interfaces/IGovernanceRewardsManager.sol";
-import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
 
 /**
  * @title AdmiralsQuarters
@@ -79,6 +81,8 @@ contract AdmiralsQuarters is
     address public immutable WRAPPED_NATIVE;
     address public immutable MERKL_DISTRIBUTOR =
         0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae;
+    address public constant PERMIT2 =
+        0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
     constructor(
         address _oneInchRouter,
@@ -180,6 +184,88 @@ contract AdmiralsQuarters is
             shares,
             referralCode
         );
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function enterFleetWithPermit(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        bytes calldata referralCode,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _validateFleetCommander(fleetCommander);
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        IERC20 fleetAsset = IERC20(fleet.asset());
+
+        IERC20Permit(address(fleetAsset)).permit(
+            owner,
+            address(this),
+            assets,
+            deadline,
+            v,
+            r,
+            s
+        );
+        fleetAsset.safeTransferFrom(owner, address(this), assets);
+
+        fleetAsset.forceApprove(address(fleet), assets);
+        if (referralCode.length == 0) {
+            shares = fleet.deposit(assets, owner);
+            emit FleetEntered(owner, fleetCommander, assets, shares);
+        } else {
+            shares = fleet.deposit(assets, owner, referralCode);
+            emit FleetEnteredWithReferral(
+                owner,
+                fleetCommander,
+                assets,
+                shares,
+                referralCode
+            );
+        }
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function enterFleetWithPermit2(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        bytes calldata referralCode,
+        ISignatureTransfer.PermitTransferFrom calldata permitData,
+        bytes calldata signature
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _validateFleetCommander(fleetCommander);
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        IERC20 fleetAsset = IERC20(fleet.asset());
+        if (permitData.permitted.token != fleetAsset) revert InvalidToken();
+        if (permitData.permitted.amount != assets) revert InvalidAmount();
+        ISignatureTransfer(PERMIT2).permitTransferFrom(
+            permitData,
+            ISignatureTransfer.SignatureTransferDetails({
+                to: address(this),
+                requestedAmount: assets
+            }),
+            owner,
+            signature
+        );
+
+        fleetAsset.forceApprove(address(fleet), assets);
+        if (referralCode.length == 0) {
+            shares = fleet.deposit(assets, owner);
+            emit FleetEntered(owner, fleetCommander, assets, shares);
+        } else {
+            shares = fleet.deposit(assets, owner, referralCode);
+            emit FleetEnteredWithReferral(
+                owner,
+                fleetCommander,
+                assets,
+                shares,
+                referralCode
+            );
+        }
     }
 
     /// @inheritdoc IAdmiralsQuarters

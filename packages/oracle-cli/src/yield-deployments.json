@@ -1,0 +1,71 @@
+{
+  "base": {
+    "chainId": 8453,
+    "factoryAddress": "0xab48c050647c826471c7d0eee4192d427b6d67db",
+    "tokens": [
+      {
+        "ticker": "SPXUX",
+        "yieldTokenAddress": "0xd7ABFa341c68A2ED6CadBc01c5F94772FF959502",
+        "pocketAddress": "0x266C208d001bE6820c436ED55bB51400A0526073",
+        "usdcAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "oracleAddress": "0xEbE3ffFB369bE1ae32046D9bcC6a66cAbd19f079"
+      },
+      {
+        "ticker": "TECHX",
+        "yieldTokenAddress": "0xd8D279beB44438F58AE23482Fc44B3F1244DE347",
+        "pocketAddress": "0xcC6A3d05FA64fdAFB139E872120f7A9404D6f880",
+        "usdcAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "oracleAddress": "0x64e433409041313496b6563C293Ebe466C6d3eFF"
+      },
+      {
+        "ticker": "CRDT",
+        "yieldTokenAddress": "0xe6092953b9D9b83A5495A971a872586bEd2996D7",
+        "pocketAddress": "0xcCE2cAED1E4b4B7Fcf62eC5910F7E2b22970E4bb",
+        "usdcAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "oracleAddress": "0x27137F39D8ecA6db037370EcDedFF3DFD01A229c"
+      },
+      {
+        "ticker": "FLTTX",
+        "yieldTokenAddress": "0x209A0e1a40807ae650132414AB0fFb9Ed03d215c",
+        "pocketAddress": "0x40A6287352F68d1eCb97Ec9d63bE28D178eEF295",
+        "usdcAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "oracleAddress": "0x48C1a4a76EBA4De411607C84F351F169086E786B"
+      },
+      {
+        "ticker": "EPXC",
+        "yieldTokenAddress": "0xC4b53200F945872DBc689eA84cb20530205AC7b1",
+        "pocketAddress": "0x0f8887b4F54d84BDBA36Fed090F20B4a63De5Fa6",
+        "usdcAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "oracleAddress": "0xbf4d24f1A611C8C0F91A83D9EE33053330e223E0"
+      },
+      {
+        "ticker": "WTSIX",
+        "yieldTokenAddress": "0xdF5F8f6614e6e126898904Cad70C731b6dcc6575",
+        "pocketAddress": "0x9016e025a74fcdd4B1759377dB7988297866150d",
+        "usdcAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "oracleAddress": "0x872E73cC259a025f089CEcF525cc657a9D521af3"
+      },
+      {
+        "ticker": "WTSYX",
+        "yieldTokenAddress": "0x9D24Bf1c837652383752338811FE2e7D8Ed16106",
+        "pocketAddress": "0x524d0faeac07e579f3715c87bfeEdc274b1fEd44",
+        "usdcAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "oracleAddress": "0xe65D7c2FDECE1EcCeA471fCfe26D1cb397EBF831"
+      },
+      {
+        "ticker": "WTTSX",
+        "yieldTokenAddress": "0xfDbf89FB98C74dad97296ED7CfEBef6f8AD1cea9",
+        "pocketAddress": "0x1f56373596400DAd16C8b433aC918c3160708b98",
+        "usdcAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "oracleAddress": "0xC985c807B3Af1A69CD15CEF044599083B1DAc3Fd"
+      },
+      {
+        "ticker": "WTGXX",
+        "yieldTokenAddress": "0x609031d9D0A00Cc0d2CA3F6A0421456C7DAB90Fe",
+        "pocketAddress": "0xA24ae21A6577de6fb8DF09f1AFe3C6c926721514",
+        "usdcAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "oracleAddress": "0x15faf95ae42313e0cdacb6f8076e866eb6965961"
+      }
+    ]
+  }
+}

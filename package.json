@@ -47,12 +47,13 @@
     "zx": "8.8.5"
   },
   "name": "summerfi-monorepo",
-  "packageManager": "pnpm@8.15.4",
+  "packageManager": "pnpm@10.32.1",
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "bignumber.js": "9.1.2",
+    "detect-libc": "^2.1.2",
     "sonner": "^2.0.7",
     "viem": "2.21.55",
     "zod": "3.22.4"

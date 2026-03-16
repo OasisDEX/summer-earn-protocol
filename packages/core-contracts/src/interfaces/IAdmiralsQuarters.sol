@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {IAdmiralsQuartersErrors} from "../errors/IAdmiralsQuartersErrors.sol";
 import {IAdmiralsQuartersEvents} from "../events/IAdmiralsQuartersEvents.sol";
+import {ISignatureTransfer} from "./permit2/IPermit2.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
@@ -14,6 +15,50 @@ interface IAdmiralsQuarters is
     IAdmiralsQuartersErrors
 {
     /**
+     * @notice Enters a fleet using an ERC-2612 permit signature
+     * @param owner The address providing the tokens and receiving the shares
+     * @param fleetCommander The address of the fleet commander
+     * @param assets The amount of tokens to deposit
+     * @param referralCode The referral code (empty for no referral)
+     * @param deadline The deadline beyond which the permit signature is invalid
+     * @param v The recovery byte of the signature
+     * @param r Half of the ECDSA signature pair
+     * @param s Half of the ECDSA signature pair
+     * @return shares The amount of shares received
+     */
+    function enterFleetWithPermit(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        bytes calldata referralCode,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable returns (uint256 shares);
+
+    /**
+     * @notice Enters a fleet using a Uniswap Permit2 signature transfer
+     * @param owner The address providing the tokens and receiving the shares
+     * @param fleetCommander The address of the fleet commander
+     * @param assets The amount of tokens to deposit
+     * @param referralCode The referral code (empty for no referral)
+     * @param permitData The permit transfer from details (token, amount, nonce, deadline)
+     * @param signature The Permit2 signature from the user
+     * @return shares The amount of shares received
+     */
+    function enterFleetWithPermit2(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        bytes calldata referralCode,
+        ISignatureTransfer.PermitTransferFrom calldata permitData,
+        bytes calldata signature
+    ) external payable returns (uint256 shares);
+
+    /**
+     *
+     **
      * @notice Deposits tokens into the contract
      * @param asset The token to be deposited
      * @param amount The amount of tokens to deposit
