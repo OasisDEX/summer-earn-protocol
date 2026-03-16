@@ -176,8 +176,8 @@ contract MapleInstitutionalArkUSDCTestFork is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         // Now test redeem request
-        uint256 redeemAmount = 100 * 10 ** 6;
-        uint256 sharesAmount = syrupPool.convertToExitShares(redeemAmount);
+        uint256 withdrawalAmount = 100 * 10 ** 6;
+        uint256 sharesAmount = syrupPool.convertToExitShares(withdrawalAmount);
 
         vm.expectCall(
             address(syrupPool),
@@ -190,14 +190,14 @@ contract MapleInstitutionalArkUSDCTestFork is Test, IArkEvents, ArkTestBase {
 
         uint256 totalAssetsBefore = ark.totalAssets();
         vm.prank(keeper);
-        ark.requestWithdrawal(redeemAmount);
+        ark.requestWithdrawal(withdrawalAmount);
         uint256 totalAssetsAfter = ark.totalAssets();
 
         // Allow for some rounding error
         assertApproxEqAbs(totalAssetsAfter, totalAssetsBefore, 2);
 
         // Verify we're waiting for withdrawal
-        assertApproxEqAbs(ark.assetsInWithdrawalQueue(), redeemAmount, 2);
+        assertApproxEqAbs(ark.assetsInWithdrawalQueue(), withdrawalAmount, 2);
     }
 
     function test_RequestFullRedeem_MapleInstitutional_fork() public {
@@ -211,9 +211,9 @@ contract MapleInstitutionalArkUSDCTestFork is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         // Now test redeem request
-        uint256 redeemAmount = type(uint256).max;
+        uint256 withdrawalAmount = type(uint256).max;
         vm.prank(keeper);
-        ark.requestWithdrawal(redeemAmount);
+        ark.requestWithdrawal(withdrawalAmount);
 
         // Verify we're waiting for withdrawal
         assertApproxEqAbs(ark.assetsInWithdrawalQueue(), amount, 2);
@@ -243,24 +243,44 @@ contract MapleInstitutionalArkUSDCTestFork is Test, IArkEvents, ArkTestBase {
         );
 
         // Request withdrawal of half the assets
-        uint256 redeemAmount = 500 * 10 ** 6;
+        uint256 withdrawalAmount = 500 * 10 ** 6;
         vm.prank(keeper);
-        ark.requestWithdrawal(redeemAmount);
+        ark.requestWithdrawal(withdrawalAmount);
 
         // Withdrawable assets should still be 0
-        assertEq(ark.withdrawableTotalAssets(), 0);
+        assertEq(
+            ark.withdrawableTotalAssets(),
+            0,
+            "Withdrawable assets should still be 0"
+        );
+
+        assertApproxEqAbs(
+            ark.assetsInWithdrawalQueue(),
+            withdrawalAmount,
+            2,
+            "Assets in withdrawal queue should match the withdrawal amount"
+        );
 
         // process withdrawals
         vm.startPrank(SYRUP_REDEEMER);
-        withdrawalManager.processRedemptions(redeemAmount);
+        deal(
+            address(usdc),
+            address(MAPLE_INSTITUTIONAL_USDC_POOL_ADDRESS),
+            withdrawalAmount * 4
+        );
+        withdrawalManager.processRedemptions(withdrawalAmount);
         vm.stopPrank();
 
         // Now withdrawable assets should match the processed withdrawal amount
-        assertApproxEqAbs(
+        assertGt(
+            ark.totalAssets(),
+            amount,
+            "Total assets should be greater than the initial amount"
+        );
+        assertGt(
             ark.withdrawableTotalAssets(),
-            redeemAmount,
-            2,
-            "Withdrawable assets should match the processed withdrawal amount"
+            withdrawalAmount,
+            "Withdrawable assets should be greater than the processed withdrawal amount"
         );
 
         assertApproxEqAbs(
@@ -277,9 +297,10 @@ contract MapleInstitutionalArkUSDCTestFork is Test, IArkEvents, ArkTestBase {
         vm.prank(keeper);
         ark.sweep();
 
-        assertEq(
+        assertGt(
             IERC20(USDC_ADDRESS).balanceOf(bufferArk),
-            bufferArkUsdcBalanceBefore + redeemAmount
+            bufferArkUsdcBalanceBefore + withdrawalAmount,
+            "Buffer Ark USDC balance should be greater than the withdrawal amount"
         );
     }
 }

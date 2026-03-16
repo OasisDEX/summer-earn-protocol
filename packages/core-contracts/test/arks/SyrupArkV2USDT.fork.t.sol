@@ -195,10 +195,10 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         // Now test redeem request
-        uint256 redeemAmount = 100 * 10 ** 6; // 100 USDT worth of shares
+        uint256 withdrawalAmount = 100 * 10 ** 6; // 100 USDT worth of shares
 
         uint256 sharesAmount = ISyrupPool(SYRUP_USDT_POOL_ADDRESS)
-            .convertToExitShares(redeemAmount);
+            .convertToExitShares(withdrawalAmount);
         vm.expectCall(
             address(syrupPool),
             abi.encodeWithSelector(
@@ -209,14 +209,14 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
         );
         uint256 totalAssetsBefore = ark.totalAssets();
         vm.prank(keeper);
-        ark.requestWithdrawal(redeemAmount);
+        ark.requestWithdrawal(withdrawalAmount);
         uint256 totalAssetsAfter = ark.totalAssets();
 
         // Allow for some rounding error
         assertApproxEqAbs(totalAssetsAfter, totalAssetsBefore, 2);
 
         // Verify we're waiting for withdrawal
-        assertApproxEqAbs(ark.assetsInWithdrawalQueue(), redeemAmount, 2);
+        assertApproxEqAbs(ark.assetsInWithdrawalQueue(), withdrawalAmount, 2);
     }
 
     function test_RequestFullRedeem_Syrup_fork() public {
@@ -230,9 +230,9 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         // Now test redeem request
-        uint256 redeemAmount = type(uint256).max; // 1000 USDT worth of shares
+        uint256 withdrawalAmount = type(uint256).max; // 1000 USDT worth of shares
         vm.prank(keeper);
-        ark.requestWithdrawal(redeemAmount);
+        ark.requestWithdrawal(withdrawalAmount);
 
         // Verify we're waiting for withdrawal
         assertApproxEqAbs(ark.assetsInWithdrawalQueue(), amount, 1);
@@ -266,9 +266,9 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
             "Withdrawal claim should not be required"
         );
         // Request withdrawal of half the assets
-        uint256 redeemAmount = 500 * 10 ** 6; // 500 USDT
+        uint256 withdrawalAmount = 500 * 10 ** 6; // 500 USDT
         vm.prank(keeper);
-        ark.requestWithdrawal(redeemAmount);
+        ark.requestWithdrawal(withdrawalAmount);
         assertEq(
             ark.isWithdrawalClaimRequired(),
             false,
@@ -283,20 +283,20 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
         );
         assertApproxEqAbs(
             ark.assetsInWithdrawalQueue(),
-            redeemAmount,
+            withdrawalAmount,
             1,
             "Post redeem request, assets in withdrawal queue should be the same as the redeem amount"
         );
 
         // process withdrawals
         vm.startPrank(SYRUP_REDEEMER);
-        withdrawalManager.processRedemptions(redeemAmount);
+        withdrawalManager.processRedemptions(withdrawalAmount);
         vm.stopPrank();
 
         // Now withdrawable assets should match the processed withdrawal amount
         assertApproxEqAbs(
             ark.withdrawableTotalAssets(),
-            redeemAmount,
+            withdrawalAmount,
             1,
             "Withdrawable assets should match the processed withdrawal amount"
         );
@@ -317,14 +317,14 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
             bufferArk
         );
         vm.expectEmit(true, true, true, true);
-        emit Disembarked(address(keeper), USDT_ADDRESS, redeemAmount);
+        emit Disembarked(address(keeper), USDT_ADDRESS, withdrawalAmount);
 
         vm.prank(keeper);
         ark.sweep();
 
         assertEq(
             IERC20(USDT_ADDRESS).balanceOf(bufferArk),
-            bufferArkUsdtBalanceBefore + redeemAmount
+            bufferArkUsdtBalanceBefore + withdrawalAmount
         );
     }
 
@@ -353,7 +353,7 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
         );
 
         // Request withdrawal of half the assets
-        uint256 redeemAmount = amount; // 1000 USDT
+        uint256 withdrawalAmount = amount; // 1000 USDT
         vm.prank(keeper);
         ark.requestWithdrawal(type(uint256).max);
 
@@ -365,20 +365,20 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
         );
         assertApproxEqAbs(
             ark.assetsInWithdrawalQueue(),
-            redeemAmount,
+            withdrawalAmount,
             1,
             "Post redeem request, assets in withdrawal queue should be the same as the redeem amount"
         );
 
         // process withdrawals
         vm.startPrank(SYRUP_REDEEMER);
-        withdrawalManager.processRedemptions(redeemAmount);
+        withdrawalManager.processRedemptions(withdrawalAmount);
         vm.stopPrank();
 
         // Now withdrawable assets should match the processed withdrawal amount
         assertApproxEqAbs(
             ark.withdrawableTotalAssets(),
-            redeemAmount,
+            withdrawalAmount,
             1,
             "Withdrawable assets should be greater than the processed withdrawal amount"
         );
