@@ -2,43 +2,52 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/SyrupArkV2.sol";
-import { Test, console } from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import { ConfigurationManager } from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 
 import "../../src/events/IArkEvents.sol";
-import { IFleetCommanderConfigProvider } from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
-import { ISyrupPool } from "../../src/interfaces/syrup/ISyrupPool.sol";
-import { ISyrupRouter } from "../../src/interfaces/syrup/ISyrupRouter.sol";
-import { ArkTestBase } from "./ArkTestBase.sol";
-import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ProtocolAccessManager } from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import { IProtocolAccessManager } from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import { IConfigurationManager } from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
-import { ConfigurationManagerParams } from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
-import { PERCENTAGE_100 } from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
+import {ISyrupPool} from "../../src/interfaces/syrup/ISyrupPool.sol";
+import {ISyrupRouter} from "../../src/interfaces/syrup/ISyrupRouter.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 // Mock interface for PoolPermissionManager
 interface IPoolPermissionManager {
-
-    function setLenderAllowlist(address poolManager_, address[] calldata lenders_, bool[] calldata booleans_) external;
-
+    function setLenderAllowlist(
+        address poolManager_,
+        address[] calldata lenders_,
+        bool[] calldata booleans_
+    ) external;
 }
 
 contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
-
     using SafeERC20 for IERC20;
     SyrupArkV2 public ark;
     IMapleWithdrawalManager public withdrawalManager;
     address public bufferArk;
-    address public constant SYRUP_USDC_POOL_ADDRESS = 0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
-    address public constant USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    address public constant SYRUP_USDC_ROUTER_ADDRESS = 0x134cCaaA4F1e4552eC8aEcb9E4A2360dDcF8df76;
-    address public constant SYRUP_USDC_POOL_MANAGER_ADDRESS = 0x7aD5fFa5fdF509E30186F4609c2f6269f4B6158F;
-    address public constant SYRUP_POOL_PERMISSION_MANAGER = 0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3;
-    address public constant SYRUP_USDC_WITHDRAWAL_MANAGER_ADDRESS = 0x1bc47a0Dd0FdaB96E9eF982fdf1F34DC6207cfE3;
-    address public constant SYRUP_REDEEMER = 0x074a98D830eD61f39732FFa258e407f5cA7a8AaF;
-    address public constant SYRUP_ADMIN_ADDRESS = 0xd6d4Bcde6c816F17889f1Dd3000aF0261B03a196;
+    address public constant SYRUP_USDC_POOL_ADDRESS =
+        0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
+    address public constant USDC_ADDRESS =
+        0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public constant SYRUP_USDC_ROUTER_ADDRESS =
+        0x134cCaaA4F1e4552eC8aEcb9E4A2360dDcF8df76;
+    address public constant SYRUP_USDC_POOL_MANAGER_ADDRESS =
+        0x7aD5fFa5fdF509E30186F4609c2f6269f4B6158F;
+    address public constant SYRUP_POOL_PERMISSION_MANAGER =
+        0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3;
+    address public constant SYRUP_USDC_WITHDRAWAL_MANAGER_ADDRESS =
+        0x1bc47a0Dd0FdaB96E9eF982fdf1F34DC6207cfE3;
+    address public constant SYRUP_REDEEMER =
+        0x074a98D830eD61f39732FFa258e407f5cA7a8AaF;
+    address public constant SYRUP_ADMIN_ADDRESS =
+        0xd6d4Bcde6c816F17889f1Dd3000aF0261B03a196;
 
     ISyrupPool public syrupPool;
     IERC20 public usdc;
@@ -48,14 +57,19 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
 
     function setUp() public {
         initializeCoreContracts();
-        (address _commander, address _bufferArk) = setupFleetCommanderWithBufferArk(USDC_ADDRESS, "Test Fleet");
+        (
+            address _commander,
+            address _bufferArk
+        ) = setupFleetCommanderWithBufferArk(USDC_ADDRESS, "Test Fleet");
         commander = _commander;
         bufferArk = _bufferArk;
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         usdc = IERC20(USDC_ADDRESS);
         syrupPool = ISyrupPool(SYRUP_USDC_POOL_ADDRESS);
-        withdrawalManager = IMapleWithdrawalManager(SYRUP_USDC_WITHDRAWAL_MANAGER_ADDRESS);
+        withdrawalManager = IMapleWithdrawalManager(
+            SYRUP_USDC_WITHDRAWAL_MANAGER_ADDRESS
+        );
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
@@ -70,12 +84,22 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new SyrupArkV2(address(syrupPool), SYRUP_USDC_ROUTER_ADDRESS, params);
+        ark = new SyrupArkV2(
+            address(syrupPool),
+            SYRUP_USDC_ROUTER_ADDRESS,
+            params
+        );
 
         // Permissioning
         vm.startPrank(governor);
-        accessManager.grantCommanderRole(address(address(ark)), address(commander));
-        accessManager.grantCuratorRole(address(address(commander)), address(curator));
+        accessManager.grantCommanderRole(
+            address(address(ark)),
+            address(commander)
+        );
+        accessManager.grantCuratorRole(
+            address(address(commander)),
+            address(curator)
+        );
         IFleetCommanderConfigProvider(commander).addArk(address(ark));
         vm.stopPrank();
 
@@ -89,7 +113,11 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
         bool[] memory booleans = new bool[](1);
         booleans[0] = true;
         IPoolPermissionManager(SYRUP_POOL_PERMISSION_MANAGER)
-            .setLenderAllowlist(SYRUP_USDC_POOL_MANAGER_ADDRESS, lenders, booleans);
+            .setLenderAllowlist(
+                SYRUP_USDC_POOL_MANAGER_ADDRESS,
+                lenders,
+                booleans
+            );
         vm.stopPrank();
 
         vm.makePersistent(address(usdc));
@@ -121,9 +149,15 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
 
         vm.expectCall(
             address(SYRUP_USDC_ROUTER_ADDRESS),
-            abi.encodeWithSelector(ISyrupRouter.deposit.selector, amount, bytes32("0:summer"))
+            abi.encodeWithSelector(
+                ISyrupRouter.deposit.selector,
+                amount,
+                bytes32("0:summer")
+            )
         );
-        uint256 shares = ISyrupPool(SYRUP_USDC_POOL_ADDRESS).convertToShares(amount);
+        uint256 shares = ISyrupPool(SYRUP_USDC_POOL_ADDRESS).convertToShares(
+            amount
+        );
 
         // Expect the Transfer event to be emitted - minted shares
         vm.expectEmit();
@@ -131,7 +165,11 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
 
         // Expect the DepositData event to be emitted with summer referral code
         vm.expectEmit();
-        emit ISyrupRouter.DepositData(address(ark), amount, bytes32("0:summer"));
+        emit ISyrupRouter.DepositData(
+            address(ark),
+            amount,
+            bytes32("0:summer")
+        );
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
@@ -159,9 +197,15 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
 
         // Now test redeem request
         uint256 redeemAmount = 100 * 10 ** 6; // 500 USDC worth of shares
-        uint256 sharesAmount = ISyrupPool(SYRUP_USDC_POOL_ADDRESS).convertToExitShares(redeemAmount);
+        uint256 sharesAmount = ISyrupPool(SYRUP_USDC_POOL_ADDRESS)
+            .convertToExitShares(redeemAmount);
         vm.expectCall(
-            address(syrupPool), abi.encodeWithSelector(syrupPool.requestRedeem.selector, sharesAmount, address(ark))
+            address(syrupPool),
+            abi.encodeWithSelector(
+                syrupPool.requestRedeem.selector,
+                sharesAmount,
+                address(ark)
+            )
         );
         uint256 totalAssetsBefore = ark.totalAssets();
         vm.prank(keeper);
@@ -205,19 +249,38 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         // Initially, withdrawable assets should be 0 since everything is in the vault
-        assertEq(ark.withdrawableTotalAssets(), 0, "Pre redeem request, withdrawable assets should be 0");
-        assertApproxEqAbs(
-            ark.totalAssets(), amount, 1, "Pre redeem request, total assets should be the same as the initial amount"
+        assertEq(
+            ark.withdrawableTotalAssets(),
+            0,
+            "Pre redeem request, withdrawable assets should be 0"
         );
-        assertEq(ark.isWithdrawalClaimRequired(), false, "Withdrawal claim should not be required");
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            amount,
+            1,
+            "Pre redeem request, total assets should be the same as the initial amount"
+        );
+        assertEq(
+            ark.isWithdrawalClaimRequired(),
+            false,
+            "Withdrawal claim should not be required"
+        );
         // Request withdrawal of half the assets
         uint256 redeemAmount = 500 * 10 ** 6; // 500 USDC
         vm.prank(keeper);
         ark.requestWithdrawal(redeemAmount);
-        assertEq(ark.isWithdrawalClaimRequired(), false, "Withdrawal claim should not be required");
+        assertEq(
+            ark.isWithdrawalClaimRequired(),
+            false,
+            "Withdrawal claim should not be required"
+        );
 
         // Withdrawable assets should still be 0 since the withdrawal is still in queue
-        assertEq(ark.withdrawableTotalAssets(), 0, "Post redeem request, withdrawable assets should still be 0");
+        assertEq(
+            ark.withdrawableTotalAssets(),
+            0,
+            "Post redeem request, withdrawable assets should still be 0"
+        );
         assertApproxEqAbs(
             ark.assetsInWithdrawalQueue(),
             redeemAmount,
@@ -237,17 +300,32 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
             1,
             "Withdrawable assets should match the processed withdrawal amount"
         );
-        assertApproxEqAbs(ark.assetsInWithdrawalQueue(), 0, 1, "Assets in withdrawal queue should be 0");
-        assertApproxEqAbs(ark.totalAssets(), amount, 2, "Total assets should be the initial amount");
+        assertApproxEqAbs(
+            ark.assetsInWithdrawalQueue(),
+            0,
+            1,
+            "Assets in withdrawal queue should be 0"
+        );
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            amount,
+            2,
+            "Total assets should be the initial amount"
+        );
 
-        uint256 bufferArkUsdcBalanceBefore = IERC20(USDC_ADDRESS).balanceOf(bufferArk);
+        uint256 bufferArkUsdcBalanceBefore = IERC20(USDC_ADDRESS).balanceOf(
+            bufferArk
+        );
         vm.expectEmit(true, true, true, true);
         emit Disembarked(address(keeper), USDC_ADDRESS, redeemAmount);
 
         vm.prank(keeper);
         ark.sweep();
 
-        assertEq(IERC20(USDC_ADDRESS).balanceOf(bufferArk), bufferArkUsdcBalanceBefore + redeemAmount);
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(bufferArk),
+            bufferArkUsdcBalanceBefore + redeemAmount
+        );
     }
 
     function test_WithdrawableTotalAssets_Syrup_maxuint_fork() public {
@@ -262,9 +340,16 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         // Initially, withdrawable assets should be 0 since everything is in the vault
-        assertEq(ark.withdrawableTotalAssets(), 0, "Pre redeem request, withdrawable assets should be 0");
+        assertEq(
+            ark.withdrawableTotalAssets(),
+            0,
+            "Pre redeem request, withdrawable assets should be 0"
+        );
         assertApproxEqAbs(
-            ark.totalAssets(), amount, 1, "Pre redeem request, total assets should be the same as the initial amount"
+            ark.totalAssets(),
+            amount,
+            1,
+            "Pre redeem request, total assets should be the same as the initial amount"
         );
 
         // Request withdrawal of half the assets
@@ -273,7 +358,11 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
         ark.requestWithdrawal(type(uint256).max);
 
         // Withdrawable assets should still be 0 since the withdrawal is still in queue
-        assertEq(ark.withdrawableTotalAssets(), 0, "Post redeem request, withdrawable assets should still be 0");
+        assertEq(
+            ark.withdrawableTotalAssets(),
+            0,
+            "Post redeem request, withdrawable assets should still be 0"
+        );
         assertApproxEqAbs(
             ark.assetsInWithdrawalQueue(),
             redeemAmount,
@@ -293,10 +382,22 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
             1,
             "Withdrawable assets should be greater than the processed withdrawal amount"
         );
-        assertApproxEqAbs(ark.assetsInWithdrawalQueue(), 0, 1, "Assets in withdrawal queue should be 0");
-        assertApproxEqAbs(ark.totalAssets(), amount, 1, "Total assets should be greater than the initial amount");
+        assertApproxEqAbs(
+            ark.assetsInWithdrawalQueue(),
+            0,
+            1,
+            "Assets in withdrawal queue should be 0"
+        );
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            amount,
+            1,
+            "Total assets should be greater than the initial amount"
+        );
 
-        uint256 bufferArkUsdcBalanceBefore = IERC20(USDC_ADDRESS).balanceOf(bufferArk);
+        uint256 bufferArkUsdcBalanceBefore = IERC20(USDC_ADDRESS).balanceOf(
+            bufferArk
+        );
 
         vm.expectEmit(true, true, true, true);
         emit Disembarked(address(keeper), USDC_ADDRESS, amount - 1);
@@ -304,15 +405,19 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
         vm.prank(keeper);
         ark.sweep();
 
-        assertEq(IERC20(USDC_ADDRESS).balanceOf(bufferArk), bufferArkUsdcBalanceBefore + amount - 1);
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(bufferArk),
+            bufferArkUsdcBalanceBefore + amount - 1
+        );
     }
 
     function test_WithdrawUsingSwap_NonWhitelistedRouter() public {
         test_Board_Syrup_fork();
-        IArkWithWithdrawalRequest.SwapData memory swapData = IArkWithWithdrawalRequest.SwapData({
-            router: address(0x123), // Non-whitelisted router
-            swapCalldata: hex"83bd37f9000180ac24aa929eaf5013f6436cda2a7ba190f5cc0b0001a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480569e9e421000574457d4f8d004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE9900000001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef04020204012fb5d42107010101020195538979e579d49999f780c04fc4bf68778b6f0000000000000000000006d9000d0101030101ff000000000000000000000080ac24aa929eaf5013f6436cda2a7ba190f5cc0ba0b86991c6218b36c1d19d4a2e9eb0ce3606eb48ab22d1d671bb5cee8735c5ba29ea651ccda48a8e00000000"
-        });
+        IArkWithWithdrawalRequest.SwapData
+            memory swapData = IArkWithWithdrawalRequest.SwapData({
+                router: address(0x123), // Non-whitelisted router
+                swapCalldata: hex"83bd37f9000180ac24aa929eaf5013f6436cda2a7ba190f5cc0b0001a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480569e9e421000574457d4f8d004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE9900000001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef04020204012fb5d42107010101020195538979e579d49999f780c04fc4bf68778b6f0000000000000000000006d9000d0101030101ff000000000000000000000080ac24aa929eaf5013f6436cda2a7ba190f5cc0ba0b86991c6218b36c1d19d4a2e9eb0ce3606eb48ab22d1d671bb5cee8735c5ba29ea651ccda48a8e00000000"
+            });
         bytes memory data = abi.encode(swapData);
         vm.prank(keeper);
         vm.expectRevert(abi.encodeWithSignature("RouterNotWhitelisted()"));
@@ -329,7 +434,11 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        assertGt(IERC20(address(syrupPool)).balanceOf(address(ark)), 0, "There should be syrupUSDC in the ark");
+        assertGt(
+            IERC20(address(syrupPool)).balanceOf(address(ark)),
+            0,
+            "There should be syrupUSDC in the ark"
+        );
         // Now test redeem request with max uint
         vm.prank(keeper);
         ark.requestWithdrawal(type(uint256).max);
@@ -337,7 +446,11 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
         // Verify we're waiting for withdrawal of the full amount
         assertApproxEqAbs(ark.assetsInWithdrawalQueue(), amount, 1);
 
-        assertEq(IERC20(address(syrupPool)).balanceOf(address(ark)), 0, "There should be no syrupUSDC in the ark");
+        assertEq(
+            IERC20(address(syrupPool)).balanceOf(address(ark)),
+            0,
+            "There should be no syrupUSDC in the ark"
+        );
     }
 
     function test_CancelWithdrawal_Syrup_fork() public {
@@ -359,20 +472,36 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
 
         uint256 totalAssetsAfterRequest = ark.totalAssets();
         assertApproxEqAbs(
-            totalAssetsAfterRequest, totalAssetsAfterBoard, 1, "totalAssets should be unchanged after requestWithdrawal"
+            totalAssetsAfterRequest,
+            totalAssetsAfterBoard,
+            1,
+            "totalAssets should be unchanged after requestWithdrawal"
         );
-        assertGt(ark.assetsInWithdrawalQueue(), 0, "Should have assets in withdrawal queue");
+        assertGt(
+            ark.assetsInWithdrawalQueue(),
+            0,
+            "Should have assets in withdrawal queue"
+        );
 
         // Cancel withdrawal
-        uint256 sharesInArkBefore = IERC20(address(syrupPool)).balanceOf(address(ark));
+        uint256 sharesInArkBefore = IERC20(address(syrupPool)).balanceOf(
+            address(ark)
+        );
         vm.prank(keeper);
         ark.cancelWithdrawal();
 
         uint256 totalAssetsAfterCancel = ark.totalAssets();
         assertApproxEqAbs(
-            totalAssetsAfterCancel, totalAssetsAfterBoard, 1, "totalAssets should be unchanged after cancelWithdrawal"
+            totalAssetsAfterCancel,
+            totalAssetsAfterBoard,
+            1,
+            "totalAssets should be unchanged after cancelWithdrawal"
         );
-        assertEq(ark.assetsInWithdrawalQueue(), 0, "Withdrawal queue should be empty after cancel");
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            0,
+            "Withdrawal queue should be empty after cancel"
+        );
         assertGt(
             IERC20(address(syrupPool)).balanceOf(address(ark)),
             sharesInArkBefore,
@@ -398,41 +527,72 @@ contract SyrupArkV2TestFork is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         uint256 totalAssetsAfterBoard = ark.totalAssets();
-        assertApproxEqAbs(totalAssetsAfterBoard, amount, 1, "Step 1: totalAssets ~ amount after board");
+        assertApproxEqAbs(
+            totalAssetsAfterBoard,
+            amount,
+            1,
+            "Step 1: totalAssets ~ amount after board"
+        );
 
         // 2. Request withdrawal
         uint256 redeemAmount = 500 * 10 ** 6;
         vm.prank(keeper);
         ark.requestWithdrawal(redeemAmount);
-        assertApproxEqAbs(ark.totalAssets(), totalAssetsAfterBoard, 1, "Step 2: totalAssets unchanged after request");
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            totalAssetsAfterBoard,
+            1,
+            "Step 2: totalAssets unchanged after request"
+        );
 
         // 3. Cancel withdrawal
         vm.prank(keeper);
         ark.cancelWithdrawal();
-        assertApproxEqAbs(ark.totalAssets(), totalAssetsAfterBoard, 1, "Step 3: totalAssets unchanged after cancel");
-        assertEq(ark.assetsInWithdrawalQueue(), 0, "Step 3: queue empty after cancel");
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            totalAssetsAfterBoard,
+            1,
+            "Step 3: totalAssets unchanged after cancel"
+        );
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            0,
+            "Step 3: queue empty after cancel"
+        );
 
         // 4. Re-request withdrawal (full amount)
         vm.prank(keeper);
         ark.requestWithdrawal(type(uint256).max);
-        assertApproxEqAbs(ark.totalAssets(), totalAssetsAfterBoard, 1, "Step 4: totalAssets unchanged after re-request");
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            totalAssetsAfterBoard,
+            1,
+            "Step 4: totalAssets unchanged after re-request"
+        );
 
         // 5. Process redemption
         vm.prank(SYRUP_REDEEMER);
         withdrawalManager.processRedemptions(amount);
-        assertApproxEqAbs(ark.totalAssets(), totalAssetsAfterBoard, 2, "Step 5: totalAssets unchanged after processing");
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            totalAssetsAfterBoard,
+            2,
+            "Step 5: totalAssets unchanged after processing"
+        );
 
         // 6. Sweep to buffer ark
         vm.prank(keeper);
         ark.sweep();
         // After sweep, assets moved to bufferArk, so totalAssets in this ark should be ~0
-        assertApproxEqAbs(ark.totalAssets(), 0, 2, "Step 6: totalAssets ~0 after sweep");
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            0,
+            2,
+            "Step 6: totalAssets ~0 after sweep"
+        );
     }
-
 }
 
 interface IMapleWithdrawalManager {
-
     function processRedemptions(uint256 maxShares) external;
-
 }
