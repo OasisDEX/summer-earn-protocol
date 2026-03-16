@@ -114,4 +114,5 @@ interface IArkWithWithdrawalRequest is IArk {
         uint256 amount,
         bytes swapCalldata
     );
+    event WithdrawalCancelled(uint256 shares);
 }
