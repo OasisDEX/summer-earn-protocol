@@ -1,7 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local"],
-  "globalEnv": ["NODE_ENV"],
+  "globalDependencies": ["**/.env.*local", "foundry.toml"],
+  "globalEnv": ["NODE_ENV", "MAINNET_RPC_URL", "ARBITRUM_RPC_URL", "BASE_RPC_URL", "SONIC_RPC_URL", "OPTIMISM_RPC_URL", "HYPERLIQUID_RPC_URL", "FOUNDRY_FUZZ_RUNS"],
   "pipeline": {
     "dev": {
       "cache": false,
@@ -21,6 +21,7 @@
     },
     "test": {
       "dependsOn": ["prebuild", "build", "^test"],
+      "inputs": ["src/**/*.sol", "test/**/*.sol", "foundry.toml"],
       "outputs": ["out/**", "cache/**"]
     },
     "test:integration": {
@@ -54,10 +55,11 @@
       "dependsOn": ["cicheck", "^deploy:staging"]
     },
     "coverage": {
-      "dependsOn": ["test", "test:integration", "^coverage"]
+      "dependsOn": ["prebuild", "build", "^coverage"]
     },
     "coverage:lcov": {
-      "dependsOn": ["build"],
+      "dependsOn": ["prebuild", "build"],
+      "inputs": ["src/**/*.sol", "test/**/*.sol", "foundry.toml"],
       "outputs": ["lcov.info", "out/**", "cache/**"]
     }
   }

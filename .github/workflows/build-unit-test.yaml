@@ -71,6 +71,7 @@ jobs:
 
         
       - name: Test
+        if: github.event_name == 'pull_request'
         run: pnpm test
         env:
           MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
@@ -81,6 +82,7 @@ jobs:
           HYPERLIQUID_RPC_URL: ${{ secrets.HYPERLIQUID_RPC_URL }}
 
       - name: Generate coverage reports
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
           ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
@@ -88,9 +90,11 @@ jobs:
           SONIC_RPC_URL: ${{ secrets.SONIC_RPC_URL }}
           OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
           HYPERLIQUID_RPC_URL: ${{ secrets.HYPERLIQUID_RPC_URL }}
-        run: pnpm turbo run coverage:lcov
+          FOUNDRY_FUZZ_RUNS: 1
+        run: pnpm turbo run coverage:lcov -- --no-match-coverage "(test|script|Mock)"
 
       - name: Upload coverage report to Codecov
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -103,25 +107,3 @@ jobs:
           flags: unittests
           name: codecov-umbrella
 
-      - name: Checkout to PR Branch
-        if: github.event_name == 'pull_request'
-        run: |
-          BRANCH_NAME=${GITHUB_HEAD_REF}
-          git fetch origin ${BRANCH_NAME}:${BRANCH_NAME}
-          git checkout ${BRANCH_NAME}
-
-      - name: Update Markdown with Dynamic Codecov Badge
-        run: |
-          BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-          echo "Current branch is ${BRANCH_NAME}"
-          BADGE_URL="https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/${BRANCH_NAME}/graph/badge.svg?token=${{ secrets.CODECOV_EMBED_TOKEN }}"
-          sed -i "s|\(\[!\[codecov](\)[^)]*)|\1${BADGE_URL})|g" README.md
-
-      - name: Commit and Push Changes
-        run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          git add README.md
-          git commit -m "Update Codecov badge to current branch" -a || echo "No changes to commit"
-          BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-          git push origin HEAD:refs/heads/${BRANCH_NAME}
