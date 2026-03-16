@@ -89,7 +89,7 @@ jobs:
           OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
           HYPERLIQUID_RPC_URL: ${{ secrets.HYPERLIQUID_RPC_URL }}
           FOUNDRY_FUZZ_RUNS: 1
-        run: pnpm turbo run coverage:lcov -- --no-match-coverage "(test|script|Mock)"
+        run: pnpm turbo run coverage:lcov
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v4

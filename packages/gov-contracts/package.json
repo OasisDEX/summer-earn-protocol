@@ -23,7 +23,9 @@
     "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info",
     "deploy:list": "hardhat ignition deployments",
     "deploy:status:arbitrum": "hardhat ignition status chain-42161",
-    "verify:arbitrum": "hardhat ignition verify chain-42161"
+    "verify:arbitrum": "hardhat ignition verify chain-42161",
+    "format": "prettier --check \"**/*.sol\" --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern"
   },
   "devDependencies": {
     "@layerzerolabs/test-devtools-evm-foundry": "0.2.12",

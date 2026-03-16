@@ -7,7 +7,7 @@ export const OracleTypeSchema = z.enum(['WisdomTree'])
 export type OracleType = z.infer<typeof OracleTypeSchema>
 
 /** Oracle data source subtype (e.g. variableNav) */
-export const OracleSubtypeSchema = z.enum(['variableNav','fixedNav'])
+export const OracleSubtypeSchema = z.enum(['variableNav', 'fixedNav'])
 export type OracleSubtype = z.infer<typeof OracleSubtypeSchema>
 
 /** Single oracle entry in the deployment file */

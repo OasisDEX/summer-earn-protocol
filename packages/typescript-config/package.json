@@ -6,6 +6,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "scripts": {
+    "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --no-error-on-unmatched-pattern"
+  },
   "devDependencies": {
     "@tsconfig/node20": "20.1.4"
   }
