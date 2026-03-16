@@ -33,3 +33,4 @@ apps/**/types/generated/*
 **/build-info/**
 lib/**
 **/lib/**
+next-env.d.ts
