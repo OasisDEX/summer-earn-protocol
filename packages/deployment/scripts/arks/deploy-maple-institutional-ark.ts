@@ -2,7 +2,10 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { createSyrupArkModule, SyrupArkContracts } from '../../ignition/modules/arks/syrup-ark'
+import {
+  createMapleInstitutionalArkModule,
+  MapleInstitutionalArkContracts,
+} from '../../ignition/modules/arks/maple-institutional-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
@@ -12,30 +15,32 @@ import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 import { validateAddress, validateArkDetails } from '../helpers/validation'
 
-export async function deploySyrupArk(config: BaseConfig, arkParams?: BaseArkParams) {
-  console.log(kleur.green().bold('Starting SyrupArk deployment process...'))
+export async function deployMapleInstitutionalArk(config: BaseConfig, arkParams?: BaseArkParams) {
+  console.log(kleur.green().bold('Starting MapleInstitutionalArk deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))
 
   if (await confirmDeployment(userInput, config, arkParams != undefined)) {
-    const deployedSyrupArk = await deploySyrupArkContract(config, userInput)
-    return { ark: deployedSyrupArk.syrupArk }
+    const deployedMapleInstitutionalArk = await deployMapleInstitutionalArkContract(
+      config,
+      userInput,
+    )
+    return { ark: deployedMapleInstitutionalArk.mapleInstitutionalArk }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
 }
 
 async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
-  // Extract Syrup vaults from the configuration
-  const syrupVaults = []
-  if (!config.protocolSpecific.syrup) {
-    throw new Error('No Syrup vaults found in the configuration.')
+  const mapleVaults = []
+  if (!config.protocolSpecific.mapleInstitutional) {
+    throw new Error('No Maple Institutional vaults found in the configuration.')
   }
-  for (const token in config.protocolSpecific.syrup) {
-    for (const vaultName in config.protocolSpecific.syrup.pools[token as Token]) {
-      const vaultId = config.protocolSpecific.syrup.pools[token as Token].syrup
-      syrupVaults.push({
-        title: `${token.toUpperCase()} - ${vaultName}`,
+  for (const token in config.protocolSpecific.mapleInstitutional.pools) {
+    for (const vaultName in config.protocolSpecific.mapleInstitutional.pools[token as Token]) {
+      const vaultId = config.protocolSpecific.mapleInstitutional.pools[token as Token].pool
+      mapleVaults.push({
+        title: `${token.toUpperCase()} - Maple Institutional (${vaultName})`,
         value: { token, vaultId, vaultName },
       })
     }
@@ -45,8 +50,8 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
     {
       type: 'select',
       name: 'vaultSelection',
-      message: 'Select a Syrup vault:',
-      choices: syrupVaults,
+      message: 'Select a Maple Institutional vault:',
+      choices: mapleVaults,
     },
     {
       type: 'text',
@@ -85,7 +90,7 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
     maxDepositPercentageOfTVL: responses.maxDepositPercentageOfTVL,
     token: { address: tokenAddress, symbol: selectedVault.token },
     fleetName: fleetDefinition.fleetName,
-    version: 2,
+    version: 1,
   }
 
   return aggregatedData
@@ -103,47 +108,42 @@ async function confirmDeployment(userInput: BaseArkParams, config: BaseConfig, s
   return skip ? true : await continueDeploymentCheck()
 }
 
-async function deploySyrupArkContract(
+async function deployMapleInstitutionalArkContract(
   config: BaseConfig,
   userInput: BaseArkParams,
-): Promise<SyrupArkContracts> {
+): Promise<MapleInstitutionalArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const arkName = `Syrup-${userInput.token.symbol}-${chainId}`
+  const arkName = `MapleInstitutional-${userInput.token.symbol}-${chainId}`
   const envLabel = userInput.isBummer ? 'staging_' : ''
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}` + '_' + 'gov'
 
-  const protocol = `Syrup`
+  const protocol = `MapleInstitutional`
 
-  const syrupAddress = validateAddress(
-    config.protocolSpecific.syrup.pools[userInput.token.symbol].syrup,
-    'Syrup Vault',
-  )
-  const routerAddress = validateAddress(
-    config.protocolSpecific.syrup.pools[userInput.token.symbol].router,
-    'Syrup Router',
+  const mapleVaultAddress = validateAddress(
+    config.protocolSpecific.mapleInstitutional.pools[userInput.token.symbol].pool,
+    'Maple Institutional Vault',
   )
 
   // Create and validate ark details
 
   const arkDetails = {
     protocol: protocol,
-    type: 'Syrup',
+    type: 'MapleInstitutional',
     asset: userInput.token.address,
     marketAsset: userInput.token.address,
-    pool: syrupAddress,
+    pool: mapleVaultAddress,
     chainId: chainId,
   }
 
   // Validate the details object to ensure it has the minimal required fields
 
-  validateArkDetails(arkDetails, 'Syrup ark details')
+  validateArkDetails(arkDetails, 'Maple Institutional ark details')
 
-  return (await hre.ignition.deploy(createSyrupArkModule(moduleName, userInput.version), {
+  return (await hre.ignition.deploy(createMapleInstitutionalArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        vault: syrupAddress,
-        router: routerAddress,
+        vault: mapleVaultAddress,
         arkParams: {
           name: arkName,
           details: JSON.stringify(arkDetails),
@@ -160,5 +160,5 @@ async function deploySyrupArkContract(
       },
     },
     deploymentId,
-  })) as SyrupArkContracts
+  })) as MapleInstitutionalArkContracts
 }
