@@ -1,10 +1,11 @@
 'use client'
 
-import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import type { WalletSnapshot } from '@/lib/vesting-logic'
 import { formatDecimalOutput } from '@/utils/decimals'
+
 import { ProgressBar } from './ProgressBar'
 
 function StatCard({
@@ -143,9 +144,10 @@ export default function VestingBatchTable({
         acc.vested += s.vested || 0n
         acc.unvested += s.unvested || 0n
         const current =
-          (s.inEscrow ? 0n : BigInt(s.vestingWalletBalance) || 0n) +
-          (BigInt(s.summerBalance) || 0n) +
-          (BigInt(s.xSummerBalance) || 0n)
+          (s.unvested || 0n) +
+          (s.releasable || 0n) +
+          (s.summerBalance || 0n) +
+          (s.xSummerBalance || 0n)
         const delta = current - (s.totalPlanned || 0n)
         if (delta < 0n) acc.totalDeficit += -delta
         return acc
@@ -158,9 +160,10 @@ export default function VestingBatchTable({
     () =>
       snapshots.filter((s) => {
         const current =
-          (s.inEscrow ? 0n : BigInt(s.vestingWalletBalance) || 0n) +
-            (BigInt(s.summerBalance) || 0n) +
-            (BigInt(s.xSummerBalance) || 0n) || 0n
+          (s.unvested || 0n) +
+          (s.releasable || 0n) +
+          (s.summerBalance || 0n) +
+          (s.xSummerBalance || 0n)
         return current < (s.totalPlanned || 0n)
       }).length,
     [snapshots],
@@ -419,9 +422,10 @@ export default function VestingBatchTable({
                   {/* Retention Check */}
                   {(() => {
                     const currentTokens =
-                      (snap.inEscrow ? 0n : BigInt(snap.vestingWalletBalance) || 0n) +
-                      (BigInt(snap.summerBalance) || 0n) +
-                      (BigInt(snap.xSummerBalance) || 0n)
+                      (snap.unvested || 0n) +
+                      (snap.releasable || 0n) +
+                      (snap.summerBalance || 0n) +
+                      (snap.xSummerBalance || 0n)
                     const delta = currentTokens - (snap.totalPlanned || 0n)
                     const isOk = delta >= 0n
                     return (

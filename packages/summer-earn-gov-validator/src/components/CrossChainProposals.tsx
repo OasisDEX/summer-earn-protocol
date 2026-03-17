@@ -847,8 +847,8 @@ export const CrossChainProposals: React.FC = () => {
 
                       {/* Voting Buttons */}
                       {isConnected &&
-                        votingPower &&
-                        votingPower > 0 &&
+                        votingPower !== undefined &&
+                        votingPower > 0n &&
                         proposalData[baseProposal.id]?.hasVoted !== true && (
                           <div className="space-y-3">
                             <h4 className="text-sm font-medium text-gray-700">Cast Your Vote</h4>

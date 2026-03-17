@@ -1,4 +1,4 @@
-import { Address,createPublicClient, getAddress, http, parseAbiItem } from 'viem'
+import { Address, createPublicClient, getAddress, parseAbiItem } from 'viem'
 import { base } from 'viem/chains'
 
 import { erc20Abi } from '@/abis/ERC20'
@@ -18,7 +18,6 @@ import {
   SUMMER_VESTING_WALLETS_ESCROW_ADDRESSES,
 } from '@/config/environments'
 import type { ChainId } from '@/types'
-
 
 // Helper to serialize BigInt for JSON
 export const replacer = (key: string, value: any) =>
@@ -75,7 +74,7 @@ const recipientsRaw: { codename: string; address: Address }[] = [
 const ownerAbi = [parseAbiItem('function owner() view returns (address)')]
 
 // Randomize order using Fisher-Yates shuffle
-const shuffleArray = <T,>(array: T[]): T[] => {
+const shuffleArray = <T>(array: T[]): T[] => {
   const shuffled = [...array]
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
@@ -155,12 +154,11 @@ export async function fetchVestingData(
 
   if (!rpcUrls) {
     throw new Error(`Unsupported chain: ${chainId}`)
-  }    
-
+  }
 
   const publicClient = createPublicClient({
     chain,
-    transport:  createRpcTransport(rpcUrls),
+    transport: createRpcTransport(rpcUrls),
   })
 
   // Environment Config
@@ -242,7 +240,7 @@ export async function fetchVestingData(
       },
     )
   })
-// @ts-expect-error - outdated wagmi types
+  // @ts-expect-error - outdated wagmi types
   const discoveryResults = await publicClient.multicall({
     contracts: discoveryCalls,
     allowFailure: true,
@@ -262,13 +260,11 @@ export async function fetchVestingData(
     const govRes = discoveryResults[base + 6]
 
     const v1Addr =
-      v1Res.status === 'success' &&
-      v1Res.result !== '0x0000000000000000000000000000000000000000'
+      v1Res.status === 'success' && v1Res.result !== '0x0000000000000000000000000000000000000000'
         ? getAddress(v1Res.result as string)
         : undefined
     const v2Addr =
-      v2Res.status === 'success' &&
-      v2Res.result !== '0x0000000000000000000000000000000000000000'
+      v2Res.status === 'success' && v2Res.result !== '0x0000000000000000000000000000000000000000'
         ? getAddress(v2Res.result as string)
         : undefined
 
@@ -386,8 +382,8 @@ export async function fetchVestingData(
 
   const combinedResults =
     combinedCalls.length > 0
-    // @ts-expect-error - outdated wagmi types
-      ? await publicClient.multicall({ contracts: combinedCalls, allowFailure: true })
+      ? // @ts-expect-error - outdated wagmi types
+        await publicClient.multicall({ contracts: combinedCalls, allowFailure: true })
       : []
 
   // ---------------------------------------------------------

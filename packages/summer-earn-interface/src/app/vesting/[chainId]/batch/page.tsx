@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { headers } from 'next/headers'
+import Link from 'next/link'
 
 import { RefreshButton } from '@/components/RefreshButton'
 import VestingBatchTable from '@/components/VestingBatchTable'

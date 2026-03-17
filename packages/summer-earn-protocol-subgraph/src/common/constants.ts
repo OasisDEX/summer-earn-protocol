@@ -182,3 +182,13 @@ export class AccesManagerRoles {
   static AdmiralsQuartersRole: string =
     '0xb00be3d6a5434b97b328543d1486d56adcb7e74080170d1cdd7e0306c3d9ba3d'
 }
+
+export namespace AdminAction {
+  export const VAULT_CAP_CHANGED = 'VAULT_CAP_CHANGED'
+  export const VAULT_MIN_BUFFER_CHANGED = 'VAULT_MIN_BUFFER_CHANGED'
+  export const VAULT_TIP_RATE_CHANGED = 'VAULT_TIP_RATE_CHANGED'
+  export const ARK_CAP_CHANGED = 'ARK_CAP_CHANGED'
+  export const ARK_MAX_PCT_TVL_CHANGED = 'ARK_MAX_PCT_TVL_CHANGED'
+  export const ARK_MAX_REBALANCE_OUTFLOW_CHANGED = 'ARK_MAX_REBALANCE_OUTFLOW_CHANGED'
+  export const ARK_MAX_REBALANCE_INFLOW_CHANGED = 'ARK_MAX_REBALANCE_INFLOW_CHANGED'
+}

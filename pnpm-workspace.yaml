@@ -1,6 +1,9 @@
 packages:
   - 'packages/**'
   - '!**/test/**'
+  - '!**/generated/**'
+  - '!**/build/**'
+  - '!**/.next/**'
   - '!packages/core-contracts/lib/**'
   - '!packages/gov-contracts/lib/**'
   - '!packages/dutch-auction/lib/**'

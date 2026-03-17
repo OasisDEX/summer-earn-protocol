@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useAccount } from 'wagmi'
 
 import { Ark } from '../../../../components/Ark'
@@ -27,7 +27,6 @@ import {
 
 export default function FleetDetail() {
   const params = useParams()
-  const router = useRouter()
   const address = params.address as `0x${string}`
   const chainId = params.chainId as ChainId
   const [assetInfo, setAssetInfo] = useState({ symbol: '', decimals: 18 })

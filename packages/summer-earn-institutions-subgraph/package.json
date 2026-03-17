@@ -17,7 +17,9 @@
     "deploy:arbitrum": "bash -c 'source ../../.env && pnpm build:arbitrum && goldsky subgraph deploy summer-institutions-arbitrum/$npm_package_version --path .'",
     "deploy:sonic": "bash -c 'source ../../.env && pnpm build:sonic && goldsky subgraph deploy summer-institutions-sonic/$npm_package_version --path .'",
     "deploy:hyperliquid": "bash -c 'source ../../.env && pnpm build:hyperliquid && goldsky subgraph deploy summer-institutions-hyperliquid/$npm_package_version --path .'",
-    "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum && pnpm run deploy:mainnet && pnpm run deploy:sonic && pnpm run deploy:hyperliquid"
+    "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum && pnpm run deploy:mainnet && pnpm run deploy:sonic && pnpm run deploy:hyperliquid",
+    "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --ignore-path .prettierignore",
+    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --ignore-path .prettierignore"
   },
   "devDependencies": {
     "@graphprotocol/graph-ts": "0.35.1",

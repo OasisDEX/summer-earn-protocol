@@ -38,6 +38,8 @@ enum Token {
   ARB = 'arb',
   ASONWS = 'asonws',
   FLUID = 'fluid',
+  DAM = 'dam',
+  FXN = 'fxn',
 }
 const addresses: Record<
   SupportedChain,
@@ -71,6 +73,8 @@ const addresses: Record<
       arb: '0x0000000000000000000000000000000000000000',
       asonws: '0x0000000000000000000000000000000000000000',
       fluid: '0x61E030A56D33e8260FdD81f03B162A79Fe3449Cd',
+      dam: '0x0000000000000000000000000000000000000000',
+      fxn: '0x0000000000000000000000000000000000000000',
     },
   },
   mainnet: {
@@ -97,6 +101,8 @@ const addresses: Record<
       arb: '0x0000000000000000000000000000000000000000',
       asonws: '0x0000000000000000000000000000000000000000',
       fluid: '0x6f40d4A6237C257fff2dB00FA0510DeEECd303eb',
+      dam: '0x0FedbA9178b70e8b54e2Af08eBffcf28A1e5A43B',
+      fxn: '0x365AccFCa291e7D3914637ABf1F7635dB165Bb09',
     },
   },
   sonic: {
@@ -119,6 +125,8 @@ const addresses: Record<
       extra: '0x0000000000000000000000000000000000000000',
       arb: '0x0000000000000000000000000000000000000000',
       asonws: '0x6C5E14A212c1C3e4Baf6f871ac9B1a969918c131',
+      dam: '0x0000000000000000000000000000000000000000',
+      fxn: '0x0000000000000000000000000000000000000000',
     },
   },
   arbitrum: {
@@ -142,6 +150,8 @@ const addresses: Record<
       arb: '0x912CE59144191C1204E64559FE8253a0e49E6548',
       asonws: '0x0000000000000000000000000000000000000000',
       fluid: '0x61E030A56D33e8260FdD81f03B162A79Fe3449Cd',
+      dam: '0x0000000000000000000000000000000000000000',
+      fxn: '0x0000000000000000000000000000000000000000',
     },
   },
 }
@@ -380,6 +390,7 @@ interface ArkConfig {
   reallocInterval: string
   deployedBySummerFi: string
   WhiteListedByBA: string
+  isDynamicAuctionOnly?: boolean
 }
 
 // Add new interface for auction config
@@ -471,12 +482,24 @@ async function loadConfigurations() {
     ],
   })
 
+  let daoArksOnly = false
+  if (modeResponse.mode === 'auctions_only') {
+    const daoResponse = await prompts({
+      type: 'confirm',
+      name: 'daoOnly',
+      message: 'Only process DAO arks?',
+      initial: true,
+    })
+    daoArksOnly = daoResponse.daoOnly
+  }
+
   return {
     arksConfig,
     auctionsConfig,
     source: response.source,
     mode: modeResponse.mode,
     institutionId,
+    daoArksOnly,
   }
 }
 
@@ -518,6 +541,7 @@ function getAssetDecimals(assetSymbol: string): bigint {
     case 'extra':
     case 'asonws':
     case 'fluid':
+    case 'dam':
       return EIGHTEEN_DECIMALS
     case 'usdc':
     case 'usdce':
@@ -583,7 +607,8 @@ function calculateAuctionMultipliers(
 const rewardsConfig: Record<string, Record<string, Token[]>> = {
   mainnet: {
     'sky-rewards': [Token.SKY, Token.SPK],
-    morpho: [Token.MORPHO],
+    morpho: [Token.MORPHO, Token.DAM],
+    morphoV2: [Token.MORPHO],
     euler: [Token.REUL, Token.SPK],
     gearbox: [Token.GEAR, Token.SPK, Token.USDF],
     siloV2: [Token.SILO, Token.XSILO, Token.SPK],
@@ -744,7 +769,8 @@ async function handleSingleRewardToken(
 ) {
   if (
     rewardTokenSymbol === 'spk' &&
-    !spkArkAddresses.includes(arkConfig.arkAddress.toLowerCase())
+    !spkArkAddresses.includes(arkConfig.arkAddress.toLowerCase()) &&
+    !arkConfig.arkSymbol.toLowerCase().includes('sky')
   ) {
     console.log(
       `Skipping ${rewardTokenSymbol.toUpperCase()} for ${arkConfig.arkSymbol} as it is a SPK ark`,
@@ -754,6 +780,12 @@ async function handleSingleRewardToken(
   if (rewardTokenSymbol === 'extra' && !arkConfig.arkSymbol.includes('extrafi')) {
     console.log(
       `Skipping ${rewardTokenSymbol.toUpperCase()} for ${arkConfig.arkSymbol} as it is a EXTRA ark`,
+    )
+    return []
+  }
+  if (rewardTokenSymbol === 'dam' && !arkConfig.arkSymbol.toLowerCase().includes('reservoir')) {
+    console.log(
+      `Skipping ${rewardTokenSymbol.toUpperCase()} for ${arkConfig.arkSymbol} as it is a DAM ark`,
     )
     return []
   }
@@ -919,7 +951,7 @@ async function createConfigurationTransactions(
   const transactions: TransactionBase[] = []
 
   // Only set fleet-wide parameters once per fleet
-  if (isFirstArkForFleet && updateMode === 'all') {
+  if (isFirstArkForFleet && updateMode === 'all' && !arkConfig.isDynamicAuctionOnly) {
     console.log(`\n📊 Reading current fleet configuration...`)
     const currentFleetConfig = await readFleetConfig(
       arkConfig.fleetAddress as Address,
@@ -1010,7 +1042,7 @@ async function createConfigurationTransactions(
     transactions.push(...auctionTransactions)
   }
 
-  if (updateMode === 'all') {
+  if (updateMode === 'all' && !arkConfig.isDynamicAuctionOnly) {
     // Configure ark parameters
     const arkAddress = arkConfig.arkAddress
     console.log(
@@ -1110,6 +1142,117 @@ async function createConfigurationTransactions(
   return transactions
 }
 
+function getDynamicArksFromDeployedAddresses(
+  chain: SupportedChain,
+  daoArksOnly: boolean,
+): ArkConfig[] {
+  const chainIdMap: Record<SupportedChain, number> = {
+    [SupportedChain.mainnet]: 1,
+    [SupportedChain.base]: 8453,
+    [SupportedChain.arbitrum]: 42161,
+    [SupportedChain.sonic]: 146,
+  }
+
+  const chainId = chainIdMap[chain]
+  const deployedAddressesPath = path.join(
+    __dirname,
+    `../../ignition/deployments/chain-${chainId}/deployed_addresses.json`,
+  )
+
+  if (!fs.existsSync(deployedAddressesPath)) {
+    return []
+  }
+
+  const deployedAddresses: Record<string, string> = JSON.parse(
+    fs.readFileSync(deployedAddressesPath, 'utf-8'),
+  )
+  const dynamicArks: ArkConfig[] = []
+
+  const fleetMap = new Map<string, string>()
+  for (const [key, address] of Object.entries(deployedAddresses)) {
+    if (
+      key.endsWith('#FleetCommanderDao') &&
+      !key.includes('staging') &&
+      !key.toLocaleLowerCase().includes('bummer')
+    ) {
+      const prefix = key.split('#')[0].replace('FleetModule_', '').replace('FleetDaoModule_', '')
+      fleetMap.set(prefix, address)
+    } else if (
+      !daoArksOnly &&
+      key.endsWith('#FleetCommander') &&
+      !key.includes('staging') &&
+      !key.toLocaleLowerCase().includes('bummer')
+    ) {
+      const prefix = key.split('#')[0].replace('FleetModule_', '').replace('FleetDaoModule_', '')
+      fleetMap.set(prefix, address)
+    }
+  }
+  console.log(fleetMap)
+  // filter out entries based on daoArksOnly flag
+  const filteredDeployedAddresses = Object.fromEntries(
+    Object.entries(deployedAddresses).filter(([key]) => {
+      if (daoArksOnly) {
+        return key.startsWith('DAO_LazyVault')
+      }
+      return key.startsWith('LazyVault')
+    }),
+  )
+  for (const [key, address] of Object.entries(filteredDeployedAddresses)) {
+    if (!key.endsWith('Ark')) continue
+
+    let arkType = ''
+    if (key.includes('MorphoVault') || key.includes('MorphoV2Vault')) {
+      arkType = 'morpho'
+    } else if (key.includes('ERC4626_Fluid')) {
+      arkType = 'fluid'
+    } else if (key.includes('SkyRewards_SPK_USDC')) {
+      arkType = 'sky'
+    } else {
+      continue
+    }
+
+    let activeFleet = ''
+    let activePrefix = ''
+    for (const prefix of fleetMap.keys()) {
+      if (key.startsWith(prefix) && prefix.length > activePrefix.length) {
+        activePrefix = prefix
+        activeFleet = fleetMap.get(prefix)!
+      }
+    }
+
+    if (!activeFleet) {
+      console.log(`⚠️ Could not find fleet for dynamic ark: ${key}`)
+      continue
+    }
+
+    let asset = 'weth'
+    if (activePrefix.toLowerCase().includes('usdc')) asset = 'usdc'
+    else if (activePrefix.toLowerCase().includes('usdt')) asset = 'usdt'
+    else if (activePrefix.toLowerCase().includes('weth')) asset = 'weth'
+
+    dynamicArks.push({
+      chain: chain,
+      fleetAsset: asset,
+      fleetAddress: activeFleet,
+      arkAddress: address,
+      fleetCap: '0',
+      FleetMinimumBuffer: '0',
+      ark: arkType,
+      arkSymbol: key.split('#')[0],
+      arkMaxCap: '0',
+      arkMaxPercTVL: '0',
+      arkMaxInflow: '0',
+      arkMaxOutflow: '0',
+      reallocInterval: '0',
+      deployedBySummerFi: 'true',
+      WhiteListedByBA: 'true',
+      isDynamicAuctionOnly: true,
+    } as ArkConfig)
+  }
+
+  return dynamicArks
+}
+
 async function main() {
   console.log('🚀 Starting fleet configuration update process...\n')
 
@@ -1120,6 +1263,7 @@ async function main() {
     source,
     mode,
     institutionId,
+    daoArksOnly,
   } = await loadConfigurations()
   const isInstitution = source === 'institution'
   const updateMode = mode as 'auctions_only' | 'all'
@@ -1134,11 +1278,24 @@ async function main() {
       rpcUrl: RPC_URL_MAP[chain],
     }
 
-    // Filter arks for current chain
-    const arksConfig = allArksConfig.filter((arkConfig) => {
-      const isMatchingChain = arkConfig.chain.toLowerCase() === chain.toLowerCase()
-      return isMatchingChain
-    })
+    // Filter arks for current chain (skip regular config if user requested ONLY DAO arks)
+    let arksConfig = daoArksOnly
+      ? []
+      : allArksConfig.filter((arkConfig) => {
+          const isMatchingChain = arkConfig.chain.toLowerCase() === chain.toLowerCase()
+          return isMatchingChain
+        })
+
+    // Add dynamically discovered arks
+    if (mode === 'auctions_only' && daoArksOnly) {
+      const dynamicArks = getDynamicArksFromDeployedAddresses(chain, daoArksOnly)
+      if (dynamicArks.length > 0) {
+        console.log(
+          `\n📌 Added ${dynamicArks.length} dynamic arks from deployed_addresses.json for ${chain}`,
+        )
+        arksConfig = [...arksConfig, ...dynamicArks]
+      }
+    }
 
     if (arksConfig.length === 0) {
       console.log(`⚠️ No ark configurations found for chain ${chain}, skipping...`)
