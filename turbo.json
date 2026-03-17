@@ -83,7 +83,8 @@
         "prebuild",
         "build",
         "^lint:fix"
-      ]
+      ],
+      "cache": false
     },
     "format": {
       "dependsOn": [
@@ -93,7 +94,8 @@
     "format:fix": {
       "dependsOn": [
         "^format:fix"
-      ]
+      ],
+      "cache": false
     },
     "check-circular": {
       "dependsOn": [

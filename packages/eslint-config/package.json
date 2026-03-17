@@ -5,8 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --no-error-on-unmatched-pattern",
-    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --no-error-on-unmatched-pattern"
+    "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern"
   },
   "exports": {
     "./next": "./next.mjs",

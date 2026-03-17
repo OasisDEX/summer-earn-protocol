@@ -8,8 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --no-error-on-unmatched-pattern",
-    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --no-error-on-unmatched-pattern"
+    "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern"
   },
   "dependencies": {
     "@radix-ui/react-tabs": "^1.1.3",
