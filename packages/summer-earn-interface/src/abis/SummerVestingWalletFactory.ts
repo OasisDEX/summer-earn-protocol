@@ -7,5 +7,3 @@ export const summerVestingWalletFactoryAbi = [
     stateMutability: 'view',
   },
 ] as const
-
-

@@ -1,278 +1,278 @@
 export const IntentBondFactoryABI = [
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "_summerToken",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '_summerToken',
+        type: 'address',
+      },
     ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
+    stateMutability: 'nonpayable',
+    type: 'constructor',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "solver",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'solver',
+        type: 'address',
+      },
     ],
-    "name": "createBond",
-    "outputs": [
+    name: 'createBond',
+    outputs: [
       {
-        "internalType": "address",
-        "name": "bondContract",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'bondContract',
+        type: 'address',
+      },
     ],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "solver",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'solver',
+        type: 'address',
+      },
     ],
-    "name": "getSolverBond",
-    "outputs": [
+    name: 'getSolverBond',
+    outputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "solver",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'solver',
+        type: 'address',
+      },
     ],
-    "name": "hasBond",
-    "outputs": [
+    name: 'hasBond',
+    outputs: [
       {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "solver",
-        "type": "address"
+        internalType: 'address',
+        name: 'solver',
+        type: 'address',
       },
       {
-        "internalType": "uint256",
-        "name": "requiredAmount",
-        "type": "uint256"
-      }
+        internalType: 'uint256',
+        name: 'requiredAmount',
+        type: 'uint256',
+      },
     ],
-    "name": "isSolverVouched",
-    "outputs": [
+    name: 'isSolverVouched',
+    outputs: [
       {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "solver",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'solver',
+        type: 'address',
+      },
     ],
-    "name": "getSolverBondAmount",
-    "outputs": [
+    name: 'getSolverBondAmount',
+    outputs: [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "getAllBonds",
-    "outputs": [
+    inputs: [],
+    name: 'getAllBonds',
+    outputs: [
       {
-        "internalType": "address[]",
-        "name": "",
-        "type": "address[]"
-      }
+        internalType: 'address[]',
+        name: '',
+        type: 'address[]',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "getBondCount",
-    "outputs": [
+    inputs: [],
+    name: 'getBondCount',
+    outputs: [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "getVouchedSolvers",
-    "outputs": [
+    inputs: [],
+    name: 'getVouchedSolvers',
+    outputs: [
       {
-        "internalType": "address[]",
-        "name": "",
-        "type": "address[]"
-      }
+        internalType: 'address[]',
+        name: '',
+        type: 'address[]',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "getVouchedSolverCount",
-    "outputs": [
+    inputs: [],
+    name: 'getVouchedSolverCount',
+    outputs: [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "summerToken",
-    "outputs": [
+    inputs: [],
+    name: 'summerToken',
+    outputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "solver",
-        "type": "address"
+        internalType: 'address',
+        name: 'solver',
+        type: 'address',
       },
       {
-        "internalType": "uint256",
-        "name": "slashAmount",
-        "type": "uint256"
-      }
+        internalType: 'uint256',
+        name: 'slashAmount',
+        type: 'uint256',
+      },
     ],
-    "name": "slashBond",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    name: 'slashBond',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "handler",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'handler',
+        type: 'address',
+      },
     ],
-    "name": "grantHandlerRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    name: 'grantHandlerRole',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "liquidator",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'liquidator',
+        type: 'address',
+      },
     ],
-    "name": "grantLiquidatorRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    name: 'grantLiquidatorRole',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "solver",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'solver',
+        type: 'address',
+      },
     ],
-    "name": "removeBond",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    name: 'removeBond',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
+        internalType: 'bytes32',
+        name: 'role',
+        type: 'bytes32',
       },
       {
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'account',
+        type: 'address',
+      },
     ],
-    "name": "hasRole",
-    "outputs": [
+    name: 'hasRole',
+    outputs: [
       {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      }
+        internalType: 'bytes32',
+        name: 'role',
+        type: 'bytes32',
+      },
     ],
-    "name": "DEFAULT_ADMIN_ROLE",
-    "outputs": [
+    name: 'DEFAULT_ADMIN_ROLE',
+    outputs: [
       {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
+        internalType: 'bytes32',
+        name: '',
+        type: 'bytes32',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
-  }
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const
