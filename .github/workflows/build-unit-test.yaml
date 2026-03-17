@@ -16,19 +16,36 @@ jobs:
           fetch-depth: 2
           submodules: recursive
 
-      - name: Cache turbo build setup
-        uses: actions/cache@v4
+      - name: Restore turbo build setup
+        uses: actions/cache/restore@v4
         with:
           path: |
             .turbo
             node_modules/.cache/turbo 
-          key:
-            ${{ runner.os }}-turbo-${{ github.ref_name }}-${{ hashFiles('pnpm-lock.yaml') }}-${{
-            github.sha }}
+          key: ${{ runner.os }}-turbo-${{ github.ref_name }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-turbo-${{ github.ref_name }}-
             ${{ runner.os }}-turbo-
 
+      - name: Restore solc
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.svm
+          key: ${{ runner.os }}-svm-${{ hashFiles('packages/**/foundry.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-svm-     
+
+      - name: Restore Foundry build artifacts
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            packages/*/cache_forge
+            packages/*/out
+          key: ${{ runner.os }}-foundry-${{ hashFiles('packages/**/*.sol', 'packages/**/foundry.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-foundry-
+
+      # 2. RUN ENVIRONMENT & TESTS
       - uses: pnpm/action-setup@v2.0.1
         with:
           version: 10.32.1
@@ -44,24 +61,6 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-
-      - name: Cache solc
-        uses: actions/cache@v4
-        with:
-          path: ~/.svm
-          key: ${{ runner.os }}-svm-${{ hashFiles('packages/**/foundry.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-svm-     
-
-      - name: Cache Foundry build artifacts
-        uses: actions/cache@v4
-        with:
-          path: |
-            packages/*/cache_forge
-            packages/*/out
-          key: ${{ runner.os }}-foundry-${{ hashFiles('packages/**/*.sol', 'packages/**/foundry.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-foundry-
 
       - name: Lint & Format
         run: |
@@ -99,3 +98,28 @@ jobs:
           files: ./packages/**/lcov.info
           flags: unittests
           name: codecov-umbrella
+
+      - name: Save turbo build setup
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .turbo
+            node_modules/.cache/turbo 
+          key: ${{ runner.os }}-turbo-${{ github.ref_name }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+
+      - name: Save solc
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.svm
+          key: ${{ runner.os }}-svm-${{ hashFiles('packages/**/foundry.toml') }}
+
+      - name: Save Foundry build artifacts
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            packages/*/cache_forge
+            packages/*/out
+          key: ${{ runner.os }}-foundry-${{ hashFiles('packages/**/*.sol', 'packages/**/foundry.toml') }}
