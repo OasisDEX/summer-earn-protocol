@@ -9,7 +9,9 @@
     "build": "tsc",
     "start": "ts-node src/index.ts",
     "cli": "ts-node src/index.ts",
-    "deploy:oracles": "ts-node src/deploy.ts"
+    "deploy:oracles": "ts-node src/deploy.ts",
+    "format": "prettier --check \"./**/*.{ts,tsx}\"",
+    "format:fix": "prettier --write \"./**/*.{ts,tsx}\""
   },
   "dependencies": {
     "commander": "^12.1.0",

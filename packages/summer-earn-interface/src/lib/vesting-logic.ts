@@ -19,7 +19,6 @@ import {
 } from '@/config/environments'
 import type { ChainId } from '@/types'
 
-
 // Helper to serialize BigInt for JSON
 export const replacer = (key: string, value: any) =>
   typeof value === 'bigint' ? value.toString() : value
@@ -75,11 +74,11 @@ const recipientsRaw: { codename: string; address: Address }[] = [
 const ownerAbi = [parseAbiItem('function owner() view returns (address)')]
 
 // Randomize order using Fisher-Yates shuffle
-const shuffleArray = <T,>(array: T[]): T[] => {
+const shuffleArray = <T>(array: T[]): T[] => {
   const shuffled = [...array]
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
   return shuffled
 }
@@ -157,7 +156,6 @@ export async function fetchVestingData(
     throw new Error(`Unsupported chain: ${chainId}`)
   }
 
-
   const publicClient = createPublicClient({
     chain,
     transport: createRpcTransport(rpcUrls),
@@ -199,17 +197,17 @@ export async function fetchVestingData(
       },
       xSummerTokenAddress
         ? {
-          address: xSummerTokenAddress,
-          abi: erc20Abi,
-          functionName: 'balanceOf',
-          args: [r.address],
-        }
+            address: xSummerTokenAddress,
+            abi: erc20Abi,
+            functionName: 'balanceOf',
+            args: [r.address],
+          }
         : {
-          address: summerTokenAddress,
-          abi: erc20Abi,
-          functionName: 'balanceOf',
-          args: [r.address],
-        }, // Filler
+            address: summerTokenAddress,
+            abi: erc20Abi,
+            functionName: 'balanceOf',
+            args: [r.address],
+          }, // Filler
       {
         address: factoryAddress,
         abi: summerVestingWalletFactoryAbi,
@@ -262,13 +260,11 @@ export async function fetchVestingData(
     const govRes = discoveryResults[base + 6]
 
     const v1Addr =
-      v1Res.status === 'success' &&
-        v1Res.result !== '0x0000000000000000000000000000000000000000'
+      v1Res.status === 'success' && v1Res.result !== '0x0000000000000000000000000000000000000000'
         ? getAddress(v1Res.result as string)
         : undefined
     const v2Addr =
-      v2Res.status === 'success' &&
-        v2Res.result !== '0x0000000000000000000000000000000000000000'
+      v2Res.status === 'success' && v2Res.result !== '0x0000000000000000000000000000000000000000'
         ? getAddress(v2Res.result as string)
         : undefined
 
@@ -386,8 +382,8 @@ export async function fetchVestingData(
 
   const combinedResults =
     combinedCalls.length > 0
-      // @ts-expect-error - outdated wagmi types
-      ? await publicClient.multicall({ contracts: combinedCalls, allowFailure: true })
+      ? // @ts-expect-error - outdated wagmi types
+        await publicClient.multicall({ contracts: combinedCalls, allowFailure: true })
       : []
 
   // ---------------------------------------------------------

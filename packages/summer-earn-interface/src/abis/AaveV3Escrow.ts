@@ -1,285 +1,285 @@
 export const AaveV3EscrowABI = [
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "_accessManager",
-        "type": "address"
+        internalType: 'address',
+        name: '_accessManager',
+        type: 'address',
       },
       {
-        "internalType": "address",
-        "name": "_aaveV3Pool",
-        "type": "address"
+        internalType: 'address',
+        name: '_aaveV3Pool',
+        type: 'address',
       },
       {
-        "internalType": "address",
-        "name": "_rewardsController",
-        "type": "address"
+        internalType: 'address',
+        name: '_rewardsController',
+        type: 'address',
       },
       {
-        "internalType": "address",
-        "name": "_ark",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '_ark',
+        type: 'address',
+      },
     ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
+    stateMutability: 'nonpayable',
+    type: 'constructor',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "asset",
-        "type": "address"
+        internalType: 'address',
+        name: 'asset',
+        type: 'address',
       },
       {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
       },
       {
-        "internalType": "address",
-        "name": "onBehalfOf",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'onBehalfOf',
+        type: 'address',
+      },
     ],
-    "name": "deposit",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    name: 'deposit',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "asset",
-        "type": "address"
+        internalType: 'address',
+        name: 'asset',
+        type: 'address',
       },
       {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
       },
       {
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'to',
+        type: 'address',
+      },
     ],
-    "name": "withdraw",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    name: 'withdraw',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address[]",
-        "name": "assets",
-        "type": "address[]"
+        internalType: 'address[]',
+        name: 'assets',
+        type: 'address[]',
       },
       {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'user',
+        type: 'address',
+      },
     ],
-    "name": "claimAllRewards",
-    "outputs": [
+    name: 'claimAllRewards',
+    outputs: [
       {
-        "internalType": "address[]",
-        "name": "rewardTokens",
-        "type": "address[]"
+        internalType: 'address[]',
+        name: 'rewardTokens',
+        type: 'address[]',
       },
       {
-        "internalType": "uint256[]",
-        "name": "rewardAmounts",
-        "type": "uint256[]"
-      }
+        internalType: 'uint256[]',
+        name: 'rewardAmounts',
+        type: 'uint256[]',
+      },
     ],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "asset",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: 'asset',
+        type: 'address',
+      },
     ],
-    "name": "getReserveData",
-    "outputs": [
+    name: 'getReserveData',
+    outputs: [
       {
-        "components": [
+        components: [
           {
-            "internalType": "uint256",
-            "name": "configuration",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'configuration',
+            type: 'uint256',
           },
           {
-            "internalType": "uint128",
-            "name": "liquidityIndex",
-            "type": "uint128"
+            internalType: 'uint128',
+            name: 'liquidityIndex',
+            type: 'uint128',
           },
           {
-            "internalType": "uint128",
-            "name": "currentLiquidityRate",
-            "type": "uint128"
+            internalType: 'uint128',
+            name: 'currentLiquidityRate',
+            type: 'uint128',
           },
           {
-            "internalType": "uint128",
-            "name": "variableBorrowIndex",
-            "type": "uint128"
+            internalType: 'uint128',
+            name: 'variableBorrowIndex',
+            type: 'uint128',
           },
           {
-            "internalType": "uint128",
-            "name": "currentVariableBorrowRate",
-            "type": "uint128"
+            internalType: 'uint128',
+            name: 'currentVariableBorrowRate',
+            type: 'uint128',
           },
           {
-            "internalType": "uint128",
-            "name": "currentStableBorrowRate",
-            "type": "uint128"
+            internalType: 'uint128',
+            name: 'currentStableBorrowRate',
+            type: 'uint128',
           },
           {
-            "internalType": "uint40",
-            "name": "lastUpdateTimestamp",
-            "type": "uint40"
+            internalType: 'uint40',
+            name: 'lastUpdateTimestamp',
+            type: 'uint40',
           },
           {
-            "internalType": "uint16",
-            "name": "id",
-            "type": "uint16"
+            internalType: 'uint16',
+            name: 'id',
+            type: 'uint16',
           },
           {
-            "internalType": "address",
-            "name": "aTokenAddress",
-            "type": "address"
+            internalType: 'address',
+            name: 'aTokenAddress',
+            type: 'address',
           },
           {
-            "internalType": "address",
-            "name": "stableDebtTokenAddress",
-            "type": "address"
+            internalType: 'address',
+            name: 'stableDebtTokenAddress',
+            type: 'address',
           },
           {
-            "internalType": "address",
-            "name": "variableDebtTokenAddress",
-            "type": "address"
+            internalType: 'address',
+            name: 'variableDebtTokenAddress',
+            type: 'address',
           },
           {
-            "internalType": "address",
-            "name": "interestRateStrategyAddress",
-            "type": "address"
+            internalType: 'address',
+            name: 'interestRateStrategyAddress',
+            type: 'address',
           },
           {
-            "internalType": "uint8",
-            "name": "usageAsCollateralEnabledOnUser",
-            "type": "uint8"
-          }
+            internalType: 'uint8',
+            name: 'usageAsCollateralEnabledOnUser',
+            type: 'uint8',
+          },
         ],
-        "internalType": "struct DataTypes.ReserveData",
-        "name": "",
-        "type": "tuple"
-      }
+        internalType: 'struct DataTypes.ReserveData',
+        name: '',
+        type: 'tuple',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "totalAssets",
-    "outputs": [
+    inputs: [],
+    name: 'totalAssets',
+    outputs: [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "asset",
-        "type": "address"
+        internalType: 'address',
+        name: 'asset',
+        type: 'address',
       },
       {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      },
     ],
-    "name": "returnEscrowedYield",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    name: 'returnEscrowedYield',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "aaveV3Pool",
-    "outputs": [
+    inputs: [],
+    name: 'aaveV3Pool',
+    outputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "rewardsController",
-    "outputs": [
+    inputs: [],
+    name: 'rewardsController',
+    outputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "ark",
-    "outputs": [
+    inputs: [],
+    name: 'ark',
+    outputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "aToken",
-    "outputs": [
+    inputs: [],
+    name: 'aToken',
+    outputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "asset",
-    "outputs": [
+    inputs: [],
+    name: 'asset',
+    outputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
-  }
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const

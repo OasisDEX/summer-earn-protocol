@@ -1,312 +1,312 @@
 export const GenericIntentArkABI = [
   {
-    "inputs": [
+    inputs: [
       {
-        "components": [
+        components: [
           {
-            "internalType": "string",
-            "name": "name",
-            "type": "string"
+            internalType: 'string',
+            name: 'name',
+            type: 'string',
           },
           {
-            "internalType": "string",
-            "name": "details",
-            "type": "string"
+            internalType: 'string',
+            name: 'details',
+            type: 'string',
           },
           {
-            "internalType": "address",
-            "name": "accessManager",
-            "type": "address"
+            internalType: 'address',
+            name: 'accessManager',
+            type: 'address',
           },
           {
-            "internalType": "address",
-            "name": "configurationManager",
-            "type": "address"
+            internalType: 'address',
+            name: 'configurationManager',
+            type: 'address',
           },
           {
-            "internalType": "address",
-            "name": "asset",
-            "type": "address"
+            internalType: 'address',
+            name: 'asset',
+            type: 'address',
           },
           {
-            "internalType": "uint256",
-            "name": "depositCap",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'depositCap',
+            type: 'uint256',
           },
           {
-            "internalType": "uint256",
-            "name": "maxRebalanceOutflow",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'maxRebalanceOutflow',
+            type: 'uint256',
           },
           {
-            "internalType": "uint256",
-            "name": "maxRebalanceInflow",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'maxRebalanceInflow',
+            type: 'uint256',
           },
           {
-            "internalType": "bool",
-            "name": "requiresKeeperData",
-            "type": "bool"
+            internalType: 'bool',
+            name: 'requiresKeeperData',
+            type: 'bool',
           },
           {
-            "internalType": "uint256",
-            "name": "maxDepositPercentageOfTVL",
-            "type": "uint256"
-          }
+            internalType: 'uint256',
+            name: 'maxDepositPercentageOfTVL',
+            type: 'uint256',
+          },
         ],
-        "internalType": "struct ArkParams",
-        "name": "_params",
-        "type": "tuple"
+        internalType: 'struct ArkParams',
+        name: '_params',
+        type: 'tuple',
       },
       {
-        "internalType": "address",
-        "name": "_intentHandler",
-        "type": "address"
+        internalType: 'address',
+        name: '_intentHandler',
+        type: 'address',
       },
       {
-        "internalType": "address",
-        "name": "_intentBondFactory",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '_intentBondFactory',
+        type: 'address',
+      },
     ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
+    stateMutability: 'nonpayable',
+    type: 'constructor',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "bytes32",
-        "name": "intentId",
-        "type": "bytes32"
+        internalType: 'bytes32',
+        name: 'intentId',
+        type: 'bytes32',
       },
       {
-        "internalType": "uint256",
-        "name": "requiredNotional",
-        "type": "uint256"
+        internalType: 'uint256',
+        name: 'requiredNotional',
+        type: 'uint256',
       },
       {
-        "internalType": "uint256",
-        "name": "term",
-        "type": "uint256"
+        internalType: 'uint256',
+        name: 'term',
+        type: 'uint256',
       },
       {
-        "internalType": "uint256",
-        "name": "targetYield",
-        "type": "uint256"
+        internalType: 'uint256',
+        name: 'targetYield',
+        type: 'uint256',
       },
       {
-        "internalType": "address",
-        "name": "summerToken",
-        "type": "address"
+        internalType: 'address',
+        name: 'summerToken',
+        type: 'address',
       },
       {
-        "internalType": "address",
-        "name": "oracle",
-        "type": "address"
+        internalType: 'address',
+        name: 'oracle',
+        type: 'address',
       },
       {
-        "internalType": "uint256",
-        "name": "expiry",
-        "type": "uint256"
-      }
+        internalType: 'uint256',
+        name: 'expiry',
+        type: 'uint256',
+      },
     ],
-    "name": "postIntent",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    name: 'postIntent',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "bytes32",
-        "name": "intentId",
-        "type": "bytes32"
-      }
+        internalType: 'bytes32',
+        name: 'intentId',
+        type: 'bytes32',
+      },
     ],
-    "name": "cancelIntent",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    name: 'cancelIntent',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "bytes32",
-        "name": "intentId",
-        "type": "bytes32"
-      }
+        internalType: 'bytes32',
+        name: 'intentId',
+        type: 'bytes32',
+      },
     ],
-    "name": "isIntentActive",
-    "outputs": [
+    name: 'isIntentActive',
+    outputs: [
       {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "bytes32",
-        "name": "intentId",
-        "type": "bytes32"
-      }
+        internalType: 'bytes32',
+        name: 'intentId',
+        type: 'bytes32',
+      },
     ],
-    "name": "getIntent",
-    "outputs": [
+    name: 'getIntent',
+    outputs: [
       {
-        "components": [
+        components: [
           {
-            "internalType": "uint256",
-            "name": "requiredNotional",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'requiredNotional',
+            type: 'uint256',
           },
           {
-            "internalType": "uint256",
-            "name": "term",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'term',
+            type: 'uint256',
           },
           {
-            "internalType": "uint256",
-            "name": "targetYield",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'targetYield',
+            type: 'uint256',
           },
           {
-            "internalType": "address",
-            "name": "token",
-            "type": "address"
+            internalType: 'address',
+            name: 'token',
+            type: 'address',
           },
           {
-            "internalType": "address",
-            "name": "oracle",
-            "type": "address"
+            internalType: 'address',
+            name: 'oracle',
+            type: 'address',
           },
           {
-            "internalType": "uint256",
-            "name": "expiry",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'expiry',
+            type: 'uint256',
           },
           {
-            "internalType": "address",
-            "name": "solver",
-            "type": "address"
+            internalType: 'address',
+            name: 'solver',
+            type: 'address',
           },
           {
-            "internalType": "uint256",
-            "name": "escrowedYield",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'escrowedYield',
+            type: 'uint256',
           },
           {
-            "internalType": "uint256",
-            "name": "startTime",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'startTime',
+            type: 'uint256',
           },
           {
-            "internalType": "enum IIntentHandler.IntentState",
-            "name": "state",
-            "type": "uint8"
-          }
+            internalType: 'enum IIntentHandler.IntentState',
+            name: 'state',
+            type: 'uint8',
+          },
         ],
-        "internalType": "struct IIntentHandler.Intent",
-        "name": "",
-        "type": "tuple"
-      }
+        internalType: 'struct IIntentHandler.Intent',
+        name: '',
+        type: 'tuple',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "intentHandler",
-    "outputs": [
+    inputs: [],
+    name: 'intentHandler',
+    outputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "intentBondFactory",
-    "outputs": [
+    inputs: [],
+    name: 'intentBondFactory',
+    outputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    "inputs": [],
-    "name": "config",
-    "outputs": [
+    inputs: [],
+    name: 'config',
+    outputs: [
       {
-        "components": [
+        components: [
           {
-            "internalType": "string",
-            "name": "name",
-            "type": "string"
+            internalType: 'string',
+            name: 'name',
+            type: 'string',
           },
           {
-            "internalType": "string",
-            "name": "details",
-            "type": "string"
+            internalType: 'string',
+            name: 'details',
+            type: 'string',
           },
           {
-            "internalType": "address",
-            "name": "accessManager",
-            "type": "address"
+            internalType: 'address',
+            name: 'accessManager',
+            type: 'address',
           },
           {
-            "internalType": "address",
-            "name": "configurationManager",
-            "type": "address"
+            internalType: 'address',
+            name: 'configurationManager',
+            type: 'address',
           },
           {
-            "internalType": "address",
-            "name": "asset",
-            "type": "address"
+            internalType: 'address',
+            name: 'asset',
+            type: 'address',
           },
           {
-            "internalType": "uint256",
-            "name": "depositCap",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'depositCap',
+            type: 'uint256',
           },
           {
-            "internalType": "uint256",
-            "name": "maxRebalanceOutflow",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'maxRebalanceOutflow',
+            type: 'uint256',
           },
           {
-            "internalType": "uint256",
-            "name": "maxRebalanceInflow",
-            "type": "uint256"
+            internalType: 'uint256',
+            name: 'maxRebalanceInflow',
+            type: 'uint256',
           },
           {
-            "internalType": "bool",
-            "name": "requiresKeeperData",
-            "type": "bool"
+            internalType: 'bool',
+            name: 'requiresKeeperData',
+            type: 'bool',
           },
           {
-            "internalType": "uint256",
-            "name": "maxDepositPercentageOfTVL",
-            "type": "uint256"
-          }
+            internalType: 'uint256',
+            name: 'maxDepositPercentageOfTVL',
+            type: 'uint256',
+          },
         ],
-        "internalType": "struct ArkParams",
-        "name": "",
-        "type": "tuple"
-      }
+        internalType: 'struct ArkParams',
+        name: '',
+        type: 'tuple',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
-  }
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const
