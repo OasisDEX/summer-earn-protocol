@@ -5,6 +5,7 @@ export function createWisdomTreeArkModule(moduleName: string) {
     const custodianWallet = m.getParameter<string>('targetWallet')
     const shareToken = m.getParameter<string>('shareToken')
     const oracle = m.getParameter<string>('oracle')
+    const arkType = m.getParameter<number>('arkType')
     const name = m.getParameter<string>('name')
     const details = m.getParameter<string>('details')
     const configurationManager = m.getParameter<string>('configurationManager')
@@ -22,6 +23,7 @@ export function createWisdomTreeArkModule(moduleName: string) {
       shareToken,
       oracle,
       assetsForwarder,
+      arkType,
       {
         name,
         details,

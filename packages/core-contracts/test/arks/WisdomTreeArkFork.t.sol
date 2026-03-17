@@ -65,6 +65,7 @@ contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBase {
             SHARE_TOKEN,
             ORACLE,
             address(forwarder),
+            WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
         accessManager.grantCommanderRole(address(ark), address(commander));

@@ -470,12 +470,14 @@ export async function deployArk(
         'oracle',
         `WisdomTree fund '${fundName}' oracle`,
       )
+      const arkType = arkConfig.params.arkType
       const ark = await deployWisdomTreeArk(config, {
         ...baseArkParams,
         fundName: fundName,
         targetWallet: targetWallet,
         shareToken: shareToken,
         oracle: oracle,
+        arkType: arkType,
       })
       deployedArk = ark
       break

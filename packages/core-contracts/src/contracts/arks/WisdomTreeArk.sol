@@ -47,6 +47,18 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
+    /*//////////////////////////////////////////////////////////////
+                                  ENUMS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Type of Ark (MoneyMarket or NonMoneyMarket)
+    /// @dev MoneyMarket arks can have multiple deposits at once
+    /// @dev NonMoneyMarket arks can only have one deposit at a time
+    enum WTArkType {
+        NonMoneyMarket,
+        MoneyMarket
+    }
+
     /// @notice Default slippage (0.02%)
     uint256 public constant DEFAULT_SLIPPAGE = 2;
 
@@ -61,6 +73,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     error OraclePriceNotPositive();
     error InsufficientPendingDeposit();
     error PendingDepositActive();
+    error DepositsFrozen();
 
     /*//////////////////////////////////////////////////////////////
                             EVENTS
@@ -70,6 +83,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     event SharesSentForRedemption(uint256 shares, uint256 expectedAssets);
     event CustodianWalletUpdated(address oldWallet, address newWallet);
     event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
+    event DepositsFrozenUpdated(bool isFrozen);
 
     /*//////////////////////////////////////////////////////////////
                            STATE VARIABLES
@@ -108,6 +122,12 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /// @notice Expected returning USDC amount equivalent to redeemed shares.
     uint256 public pendingWithdrawalAssets;
 
+    /// @notice Type of Ark (MoneyMarket or NonMoneyMarket)
+    WTArkType public immutable arkType;
+
+    /// @notice Flag to disable deposits
+    bool public depositsFrozen;
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -117,6 +137,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         address _shareToken,
         address _oracle,
         address _assetsForwarder,
+        WTArkType _arkType,
         ArkParams memory _params
     ) ArkWithWithdrawalRequest(_params, DEFAULT_SLIPPAGE) {
         if (_custodianWallet == address(0)) revert InvalidTargetWallet();
@@ -132,6 +153,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         shareDecimals = IERC20Metadata(_shareToken).decimals();
         assetDecimals = IERC20Metadata(_params.asset).decimals();
         ONE_ASSET = 10 ** assetDecimals;
+        arkType = _arkType;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -212,6 +234,15 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         if (_assetsForwarder == address(0)) revert InvalidForwarderAddress();
         emit AssetsForwarderUpdated(address(assetsForwarder), _assetsForwarder);
         assetsForwarder = IAssetsForwarder(_assetsForwarder);
+    }
+
+    /**
+     * @notice Freezes or unfreezes deposits for this Ark.
+     * @param _depositsFrozen The new frozen state
+     */
+    function setDepositsFrozen(bool _depositsFrozen) external onlyKeeper {
+        depositsFrozen = _depositsFrozen;
+        emit DepositsFrozenUpdated(_depositsFrozen);
     }
 
     /**
@@ -318,6 +349,11 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      * @dev If this is the start of a deposit queue, snapshots the real share balance.
      */
     function _board(uint256 amount, bytes calldata) internal override {
+        if (depositsFrozen) revert DepositsFrozen();
+
+        if (arkType == WTArkType.NonMoneyMarket && pendingDepositAssets > 0)
+            revert PendingDepositActive();
+
         if (pendingDepositAssets == 0) {
             cachedShareBalance = shareToken.balanceOf(address(assetsForwarder));
         }

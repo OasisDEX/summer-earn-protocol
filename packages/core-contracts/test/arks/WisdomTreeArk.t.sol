@@ -70,6 +70,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
     event CustodianWalletUpdated(address oldWallet, address newWallet);
     event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
+    event DepositsFrozenUpdated(bool isFrozen);
 
     WisdomTreeArk public ark;
     BufferArk public bufferArk;
@@ -126,6 +127,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             address(wtToken),
             address(oracle),
             address(forwarder),
+            WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
         vm.stopPrank();
@@ -166,6 +168,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             address(wtToken),
             address(oracle),
             address(forwarder),
+            WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
 
@@ -175,6 +178,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             address(wtToken),
             address(0),
             address(forwarder),
+            WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
 
@@ -184,6 +188,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             address(0),
             address(oracle),
             address(forwarder),
+            WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
 
@@ -193,6 +198,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             address(wtToken),
             address(oracle),
             address(0),
+            WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
 
@@ -319,6 +325,51 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             amount,
             "Total assets should perfectly transition to oracle share value"
         );
+    }
+
+    function test_SetDepositsFrozen() public {
+        vm.prank(targetWallet);
+        vm.expectRevert();
+        ark.setDepositsFrozen(true);
+
+        vm.startPrank(keeper);
+        vm.expectEmit(false, false, false, true);
+        emit DepositsFrozenUpdated(true);
+        ark.setDepositsFrozen(true);
+        vm.stopPrank();
+
+        assertTrue(ark.depositsFrozen());
+    }
+
+    function test_RevertBoardWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setDepositsFrozen(true);
+
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        
+        vm.expectRevert(WisdomTreeArk.DepositsFrozen.selector);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_RevertBoardWhenPendingDepositNonMoneyMarket() public {
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount * 2);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount * 2);
+        
+        // First board succeeds
+        ark.board(amount, bytes(""));
+
+        // Second board reverts because it's a NonMoneyMarket ark
+        vm.expectRevert(WisdomTreeArk.PendingDepositActive.selector);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
     }
 
     /* Withdrawal Tests */

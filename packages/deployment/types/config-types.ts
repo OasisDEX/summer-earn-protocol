@@ -326,6 +326,7 @@ export interface ArkConfig {
     targetChainId?: string // For CrossChainArk
     fleetName?: string // For CrossChainArk
     vaultToken?: string // for arks with underlying token different than fleet asset
+    arkType?: number // 0 for NonMoneyMarket, 1 for MoneyMarket
   }
 }
 
