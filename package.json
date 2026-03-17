@@ -15,9 +15,10 @@
     "cicheck": "turbo run cicheck --cache-dir=.turbo --filter=./packages/* && pnpm run coverage:total",
     "cicheck:dev": "turbo run cicheck --cache-dir=.turbo --output-logs=new-only --concurrency=100% --continue",
     "graph": "pnpm dlx nx graph",
-    "format": "prettier --check \"./**/*.{ts,tsx,js,jsx,json,sol}\"",
-    "format:fix": "prettier --write \"./**/*.{ts,tsx,js,jsx,json,sol}\"",
+    "format": "turbo run format",
+    "format:fix": "turbo run format:fix",
     "coverage": "turbo run coverage --cache-dir=.turbo",
+    "coverage:lcov": "turbo run coverage:lcov --cache-dir=.turbo",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -47,12 +48,13 @@
     "zx": "8.8.5"
   },
   "name": "summerfi-monorepo",
-  "packageManager": "pnpm@8.15.4",
+  "packageManager": "pnpm@10.32.1",
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "bignumber.js": "9.1.2",
+    "detect-libc": "^2.1.2",
     "sonner": "^2.0.7",
     "viem": "2.21.55",
     "zod": "3.22.4"

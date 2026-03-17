@@ -1,0 +1,29 @@
+{
+  "name": "@summerfi/oracle-cli",
+  "version": "0.1.0",
+  "private": true,
+  "bin": {
+    "oracle-cli": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "cli": "ts-node src/index.ts",
+    "deploy:oracles": "ts-node src/deploy.ts",
+    "format": "prettier --check \"./**/*.{ts,tsx}\"",
+    "format:fix": "prettier --write \"./**/*.{ts,tsx}\""
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "dotenv": "^16.6.1",
+    "playwright": "^1.58.2",
+    "viem": "^2.46.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.19.35",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

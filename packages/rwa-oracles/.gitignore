@@ -1,0 +1,13 @@
+# Foundry
+out
+cache
+broadcast
+lib/forge-std
+lib/openzeppelin-contracts
+lib/chainlink
+
+# Node
+node_modules
+.env
+.env.*
+.DS_Store

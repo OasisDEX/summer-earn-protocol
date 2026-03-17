@@ -1684,3 +1684,27 @@ type StakeLockup @entity {
   startTimestamp: BigInt!
   endTimestamp: BigInt!
 }
+
+type CurationEvent @entity @transaction {
+  id: ID!
+  hash: String!
+  logIndex: Int!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  action: AdminAction!
+  caller: String!
+vault: Vault!
+  valueBefore: BigInt!
+  valueAfter: BigInt!
+  targetContract: String!
+}
+
+enum AdminAction {
+  VAULT_CAP_CHANGED
+  VAULT_MIN_BUFFER_CHANGED
+  VAULT_TIP_RATE_CHANGED
+  ARK_CAP_CHANGED
+  ARK_MAX_PCT_TVL_CHANGED
+  ARK_MAX_REBALANCE_OUTFLOW_CHANGED
+  ARK_MAX_REBALANCE_INFLOW_CHANGED
+}

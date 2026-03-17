@@ -31,6 +31,7 @@ import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
+import { deployMapleInstitutionalArk } from '../arks/deploy-maple-institutional-ark'
 import {
   validateAddress,
   validateConfigAddressEntry,
@@ -53,6 +54,7 @@ export type BaseArkParams = {
   maxDepositPercentageOfTVL: string
   fleetName: string
   isBummer?: boolean
+  version: number
 }
 
 export async function deployArk(
@@ -79,6 +81,7 @@ export async function deployArk(
     maxDepositPercentageOfTVL: params.maxDepositPercentageOfTVL || ZERO_STRING,
     fleetName: fleetConfig.fleetName,
     isBummer: fleetConfig.isBummer,
+    version: params.version,
   }
 
   let deployedArk
@@ -246,6 +249,13 @@ export async function deployArk(
     }
     case ArkType.SyrupArk: {
       const ark = await deploySyrupArk(config, {
+        ...baseArkParams,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.MapleInstitutionalArk: {
+      const ark = await deployMapleInstitutionalArk(config, {
         ...baseArkParams,
       })
       deployedArk = ark
@@ -481,6 +491,9 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
       break
     case ArkType.CompoundV3Ark:
       deployedArk = await deployCompoundV3Ark(config)
+      break
+    case ArkType.MapleInstitutionalArk:
+      deployedArk = await deployMapleInstitutionalArk(config)
       break
 
     case ArkType.ERC4626Ark:

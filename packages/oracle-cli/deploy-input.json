@@ -1,0 +1,137 @@
+[
+  {
+    "network": "base",
+    "assetAddress": "0xfec440FdF48860FF6E2265BD1ef9Cae8bB2cCe8a",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xF21cEDcEB91979C7877B98D4D60190215a5e6dC7",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0x10fe70382576f271caeF5C152266FB458eFB53fa",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xcE6C2fDF6676e80F29D7f15B012A3a92cA3008C4",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xF20f050321DEb97F9180150E99f0e8133Aa71051",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xCf997c6A8DbdC1449e4dDE59Dbdf9cf6dA9d41c1",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xbb2ce6Adb794F1C9d6779DF86626bB6B4e485818",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0x3403292bA55fFBFc5a655c75b757b00Fd57Ee51c",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0x5096b85Ed11798fDdCB8b5CB27C399c04689c435",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "fixedNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0x534A448cEb99D8Ce1bBBB556A5C13c6Fe79CA68c",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0x8A4AD570238002E49f9A2681398BF9C822302eee",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xE2ab0b91244c6e04bB92034849768ac9B954112c",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xf4A3d6Da7E5F8A262B731DeEE62549C2c05035F5",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0x90A5aAD303D2170Bc846cd1237939Ac537F224A1",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xC290Ff6eE86454B83a31C61010cd50DD53A56F24",
+    "description": "Base USDC Oracle",
+    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  }
+]

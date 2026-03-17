@@ -85,6 +85,7 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
     maxDepositPercentageOfTVL: responses.maxDepositPercentageOfTVL,
     token: { address: tokenAddress, symbol: selectedVault.token },
     fleetName: fleetDefinition.fleetName,
+    version: 2,
   }
 
   return aggregatedData
@@ -138,7 +139,7 @@ async function deploySyrupArkContract(
 
   validateArkDetails(arkDetails, 'Syrup ark details')
 
-  return (await hre.ignition.deploy(createSyrupArkModule(moduleName), {
+  return (await hre.ignition.deploy(createSyrupArkModule(moduleName, userInput.version), {
     parameters: {
       [moduleName]: {
         vault: syrupAddress,

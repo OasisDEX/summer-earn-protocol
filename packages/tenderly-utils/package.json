@@ -16,8 +16,9 @@
     "test": "jest tests/ --passWithNoTests",
     "testw": "jest --watch",
     "e2e": "jest e2e/",
-    "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
     "build": "tsc -b -v tsconfig.build.json",
     "dev": "tsc -b tsconfig.build.json  -w"
   },
