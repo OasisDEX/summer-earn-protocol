@@ -70,7 +70,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
     event CustodianWalletUpdated(address oldWallet, address newWallet);
     event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
-    event DepositsFrozenUpdated(bool isFrozen);
+    event isArkFrozenUpdated(bool isFrozen);
 
     WisdomTreeArk public ark;
     BufferArk public bufferArk;
@@ -327,23 +327,23 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         );
     }
 
-    function test_SetDepositsFrozen() public {
+    function test_SetArkFrozen() public {
         vm.prank(targetWallet);
         vm.expectRevert();
-        ark.setDepositsFrozen(true);
+        ark.setArkFrozen(true);
 
         vm.startPrank(keeper);
         vm.expectEmit(false, false, false, true);
-        emit DepositsFrozenUpdated(true);
-        ark.setDepositsFrozen(true);
+        emit isArkFrozenUpdated(true);
+        ark.setArkFrozen(true);
         vm.stopPrank();
 
-        assertTrue(ark.depositsFrozen());
+        assertTrue(ark.isArkFrozen());
     }
 
     function test_RevertBoardWhenFrozen() public {
         vm.prank(keeper);
-        ark.setDepositsFrozen(true);
+        ark.setArkFrozen(true);
 
         uint256 amount = 1000 * 1e6;
         deal(USDC_ADDRESS, commander, amount);
@@ -351,9 +351,78 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
         
-        vm.expectRevert(WisdomTreeArk.DepositsFrozen.selector);
+        vm.expectRevert(WisdomTreeArk.ArkIsFrozen.selector);
         ark.board(amount, bytes(""));
         vm.stopPrank();
+    }
+
+    function test_RevertRequestWithdrawalWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true);
+
+        uint256 amount = 1000 * 1e6;
+        vm.startPrank(keeper);
+        vm.expectRevert(WisdomTreeArk.ArkIsFrozen.selector);
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+    }
+
+    function test_TotalAssetsIsCachedWhenFrozen() public {
+        uint256 amount = 60000 * 1e6; // 1 share worth
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(forwarder), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+
+        uint256 assetsBeforeFreeze = ark.totalAssets();
+        
+        vm.prank(keeper);
+        ark.setArkFrozen(true);
+
+        // Change oracle price
+        oracle.setAnswer(120000 * 1e8);
+
+        uint256 assetsAfterFreeze = ark.totalAssets();
+        assertEq(assetsBeforeFreeze, assetsAfterFreeze, "Total assets should be cached if frozen");
+
+        vm.prank(keeper);
+        ark.setArkFrozen(false);
+
+        uint256 assetsAfterUnfreeze = ark.totalAssets();
+        assertTrue(assetsAfterUnfreeze > assetsBeforeFreeze, "Total assets should update after unfreeze");
+    }
+
+    function test_ClearPendingDepositAmount() public {
+        uint256 amount = 60000 * 1e6; // Exact price of 1 share
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        assertEq(ark.pendingDepositAssets(), amount);
+
+        uint256 clearAmount = 10000 * 1e6;
+        
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit(clearAmount);
+        vm.stopPrank();
+
+        assertEq(
+            ark.pendingDepositAssets(),
+            amount - clearAmount,
+            "Pending deposit should be partially cleared"
+        );
     }
 
     function test_RevertBoardWhenPendingDepositNonMoneyMarket() public {

@@ -73,7 +73,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     error OraclePriceNotPositive();
     error InsufficientPendingDeposit();
     error PendingDepositActive();
-    error DepositsFrozen();
+    error ArkIsFrozen();
 
     /*//////////////////////////////////////////////////////////////
                             EVENTS
@@ -83,7 +83,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     event SharesSentForRedemption(uint256 shares, uint256 expectedAssets);
     event CustodianWalletUpdated(address oldWallet, address newWallet);
     event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
-    event DepositsFrozenUpdated(bool isFrozen);
+    event ArkIsFrozenUpdated(bool isFrozen);
 
     /*//////////////////////////////////////////////////////////////
                            STATE VARIABLES
@@ -125,8 +125,11 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /// @notice Type of Ark (MoneyMarket or NonMoneyMarket)
     WTArkType public immutable arkType;
 
-    /// @notice Flag to disable deposits
-    bool public depositsFrozen;
+    /// @notice Report of shares is given from cache or not
+    bool public isArkFrozen;
+
+    /// @notice Last oracle price
+    Price private _lastOraclePrice;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -172,7 +175,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     {
         // If there is an active deposit queue, we use the cached share balance.
         // This prevents double-counting shares that arrive before the keeper clears the deposit.
-        uint256 currentShares = pendingDepositAssets > 0
+        uint256 currentShares = pendingDepositAssets > 0 || isArkFrozen
             ? cachedShareBalance
             : shareToken.balanceOf(address(assetsForwarder));
 
@@ -238,11 +241,11 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
     /**
      * @notice Freezes or unfreezes deposits for this Ark.
-     * @param _depositsFrozen The new frozen state
+     * @param _isArkFrozen The new frozen state
      */
-    function setDepositsFrozen(bool _depositsFrozen) external onlyKeeper {
-        depositsFrozen = _depositsFrozen;
-        emit DepositsFrozenUpdated(_depositsFrozen);
+    function setArkFrozen(bool _isArkFrozen) external onlyKeeper {
+        isArkFrozen = _isArkFrozen;
+        emit ArkIsFrozenUpdated(_isArkFrozen);
     }
 
     /**
@@ -251,9 +254,16 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      *      Assumes full clearance (no partial fills).
      */
     function clearPendingDeposit() external onlyKeeper {
-        emit PendingDepositCleared(pendingDepositAssets);
+        _clearPendingDeposit(pendingDepositAssets);
+    }
 
-        pendingDepositAssets = 0;
+    /**
+     * @notice Removes a fulfilled deposit amount from `pendingDepositAssets`.
+     * @dev Called by the keeper after WisdomTree issues shares to this contract to
+     *      clear a partial deposit.
+     */
+    function clearPendingDeposit(uint256 amount) external onlyKeeper {
+        _clearPendingDeposit(amount);
     }
 
     /**
@@ -262,6 +272,9 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      * @dev Also records the expected returning USDC in `pendingWithdrawalAssets`. Reverts if deposit is pending.
      */
     function requestWithdrawal(uint256 amount) external override onlyKeeper {
+        // Deposits and withdrawals are locked if ark is frozen
+        if (isArkFrozen) revert ArkIsFrozen();
+
         // Prevent concurrent deposit/withdrawal cycles
         if (pendingDepositAssets > 0) revert PendingDepositActive();
 
@@ -349,10 +362,13 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      * @dev If this is the start of a deposit queue, snapshots the real share balance.
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        if (depositsFrozen) revert DepositsFrozen();
+        // Deposits and withdrawals are locked if ark is frozen
+        if (isArkFrozen) revert ArkIsFrozen();
 
-        if (arkType == WTArkType.NonMoneyMarket && pendingDepositAssets > 0)
+        // Non-money market arks cannot have concurrent deposits
+        if (arkType == WTArkType.NonMoneyMarket && pendingDepositAssets > 0) {
             revert PendingDepositActive();
+        }
 
         if (pendingDepositAssets == 0) {
             cachedShareBalance = shareToken.balanceOf(address(assetsForwarder));
@@ -422,9 +438,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /**
      * @dev Converts underlying asset amount to WisdomTree shares via Chainlink oracle.
      */
-    function _assetsToShares(
-        uint256 assetAmount
-    ) internal view returns (uint256) {
+    function _assetsToShares(uint256 assetAmount) internal view returns (uint256) {
         if (assetAmount == 0) return 0;
 
         Price memory assetPerSharePrice = _fetchOracleAssetPerSharePrice();
@@ -438,22 +452,33 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      *      for which the base amount is 1 Share and the quote amount is the oracle price
      *      adjusted for the asset decimals
      */
-    function _fetchOracleAssetPerSharePrice()
-        internal
-        view
-        returns (Price memory)
-    {
+    function _fetchOracleAssetPerSharePrice() internal view returns (Price memory) {
+        if (isArkFrozen) {
+            return _lastOraclePrice;
+        }
+
         (, int256 answer, , , ) = oracle.latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
 
         // The oracle returns the price of 1 share denominated in the underlying asset.
         // Therefore, the Base Asset is the WisdomTree share, and Quote Asset is the underlying asset.
-        return
-            toPriceFromOraclePrice(
-                10 ** shareDecimals, // baseAmount (1 Share)
-                answer, // oracle price of 1 Share in Assets
-                oracleDecimals, // decimals of oracle price
-                assetDecimals // decimals of quote asset (Asset)
-            );
+        return toPriceFromOraclePrice(
+            10 ** shareDecimals, // baseAmount (1 Share)
+            answer, // oracle price of 1 Share in Assets
+            oracleDecimals, // decimals of oracle price
+            assetDecimals // decimals of quote asset (Asset)
+        );
+    }
+
+    /**
+     * @notice Removes a fulfilled deposit amount from `pendingDepositAssets`.
+     * @param amount The amount of deposit to clear.
+     */
+    function _clearPendingDeposit(uint256 amount) internal {
+        if (amount > pendingDepositAssets) revert InsufficientPendingDeposit();
+
+        pendingDepositAssets -= amount;
+
+        emit PendingDepositCleared(amount);
     }
 }
