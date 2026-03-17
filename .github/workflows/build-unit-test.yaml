@@ -1,11 +1,9 @@
 name: Build and Unit Test
 on:
   pull_request:
-    types: [opened, synchronize]
+    branches: [main]
   push:
-    branches:
-      - main
-      - dev
+    branches: [main]
 jobs:
   build:
     name: Build and Unit Test
@@ -13,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
           submodules: recursive
@@ -21,7 +19,9 @@ jobs:
       - name: Cache turbo build setup
         uses: actions/cache@v4
         with:
-          path: .turbo
+          path: |
+            .turbo
+            node_modules/.cache/turbo 
           key:
             ${{ runner.os }}-turbo-${{ github.ref_name }}-${{ hashFiles('pnpm-lock.yaml') }}-${{
             github.sha }}
@@ -63,14 +63,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-foundry-
 
-      - name: Lint
-        run: pnpm lint
+      - name: Lint & Format
+        run: |
+          pnpm lint
+          pnpm format
 
-      - name: Format
-        run: pnpm format
-
-        
-      - name: Test
+      - name: Run Tests (PR only)
+        if: github.event_name == 'pull_request'
         run: pnpm test
         env:
           MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
@@ -80,7 +79,9 @@ jobs:
           OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
           HYPERLIQUID_RPC_URL: ${{ secrets.HYPERLIQUID_RPC_URL }}
 
-      - name: Generate coverage reports
+      - name: Generate coverage reports (Main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: pnpm coverage:lcov
         env:
           MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
           ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
@@ -89,18 +90,12 @@ jobs:
           OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
           HYPERLIQUID_RPC_URL: ${{ secrets.HYPERLIQUID_RPC_URL }}
           FOUNDRY_FUZZ_RUNS: 1
-        run: pnpm turbo run coverage:lcov
 
-      - name: Upload coverage report to Codecov
+      - name: Upload coverage report to Codecov (Main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: |
-            ./packages/core-contracts/lcov.info
-            ./packages/access-contracts/lcov.info
-            ./packages/rewards-contracts/lcov.info
-            ./packages/gov-contracts/lcov.info
-            ./packages/voting-decay/lcov.info
+          files: ./packages/**/lcov.info
           flags: unittests
           name: codecov-umbrella
-

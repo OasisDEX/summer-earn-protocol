@@ -1,6 +1,8 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local", "foundry.toml"],
+  "globalDependencies": [
+    "**/.env.*local"
+  ],
   "globalEnv": [
     "NODE_ENV",
     "MAINNET_RPC_URL",
@@ -17,39 +19,88 @@
       "persistent": true
     },
     "prebuild": {
-      "dependsOn": ["^prebuild", "^prebuild:nocache"],
-      "outputs": ["src/types/graphql/generated.ts", "src/generated"]
+      "dependsOn": [
+        "^prebuild",
+        "^prebuild:nocache"
+      ],
+      "outputs": [
+        "src/types/graphql/generated.ts",
+        "src/generated"
+      ]
     },
     "prebuild:nocache": {
-      "dependsOn": ["^prebuild:nocache"],
+      "dependsOn": [
+        "^prebuild:nocache"
+      ],
       "cache": false
     },
     "build": {
-      "dependsOn": ["prebuild", "^build"],
-      "outputs": ["dist/**", "artifacts/**", "out/**", "cache/**", ".next/**", "!.next/cache/**"]
+      "dependsOn": [
+        "prebuild",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        "artifacts/**",
+        "out/**",
+        "cache_forge/**",
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
     "test": {
-      "dependsOn": ["prebuild", "build", "^test"],
-      "inputs": ["src/**/*.sol", "test/**/*.sol", "foundry.toml"],
-      "outputs": ["out/**", "cache/**"]
+      "dependsOn": [
+        "prebuild",
+        "build",
+        "^test"
+      ],
+      "inputs": [
+        "src/**/*.sol",
+        "test/**/*.sol",
+        "foundry.toml",
+        "package.json"
+      ],
+      "outputs": [
+        "out/**",
+        "cache_forge/**"
+      ]
     },
     "test:integration": {
-      "dependsOn": ["prebuild", "build", "^test:integration"]
+      "dependsOn": [
+        "prebuild",
+        "build",
+        "^test:integration"
+      ]
     },
     "lint": {
-      "dependsOn": ["prebuild", "^lint"]
+      "dependsOn": [
+        "prebuild",
+        "^lint"
+      ]
     },
     "lint:fix": {
-      "dependsOn": ["prebuild", "build", "^lint:fix"]
+      "dependsOn": [
+        "prebuild",
+        "build",
+        "^lint:fix"
+      ]
     },
     "format": {
-      "dependsOn": ["^format"]
+      "dependsOn": [
+        "^format"
+      ]
     },
     "format:fix": {
-      "dependsOn": ["^format:fix"]
+      "dependsOn": [
+        "^format:fix"
+      ]
     },
     "check-circular": {
-      "dependsOn": ["prebuild", "build", "^check-circular"]
+      "dependsOn": [
+        "prebuild",
+        "build",
+        "^check-circular"
+      ]
     },
     "cicheck": {
       "dependsOn": [
@@ -64,15 +115,34 @@
       ]
     },
     "deploy:staging": {
-      "dependsOn": ["cicheck", "^deploy:staging"]
+      "dependsOn": [
+        "cicheck",
+        "^deploy:staging"
+      ]
     },
     "coverage": {
-      "dependsOn": ["prebuild", "build", "^coverage"]
+      "dependsOn": [
+        "prebuild",
+        "build",
+        "^coverage"
+      ]
     },
     "coverage:lcov": {
-      "dependsOn": ["prebuild", "build"],
-      "inputs": ["src/**/*.sol", "test/**/*.sol", "foundry.toml"],
-      "outputs": ["lcov.info", "out/**", "cache/**"]
+      "dependsOn": [
+        "prebuild",
+        "build"
+      ],
+      "inputs": [
+        "src/**/*.sol",
+        "test/**/*.sol",
+        "foundry.toml",
+        "package.json"
+      ],
+      "outputs": [
+        "lcov.info",
+        "out/**",
+        "cache_forge/**"
+      ]
     }
   }
 }
