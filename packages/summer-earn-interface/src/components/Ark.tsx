@@ -6,6 +6,8 @@ import { ChainId } from '@/types'
 
 import { useRaftContract } from '../contracts/Raft'
 import { useArkWithdrawalActions } from '../hooks/useArkWithdrawalActions'
+import { useWisdomTreeActions } from '../hooks/useWisdomTreeActions'
+import { useWisdomTreeSharesToAssets } from '../hooks/useWisdomTreeSharesToAssets'
 import { formatDecimalOutput } from '../utils/decimals'
 import { ArkManagementForm } from './ArkManagementForm'
 import { AuctionConfigModal } from './AuctionConfigModal'
@@ -25,6 +27,8 @@ interface ArkProps {
   isWithdrawalClaimRequired?: boolean
   assetBalance?: string
   needsSweep?: boolean
+  pendingDepositAssets?: string
+  sharesToAssets1e18?: string
   /** Called after successful withdrawal action (for refetch) */
   onWithdrawalSuccess?: () => void
 }
@@ -48,6 +52,8 @@ export function Ark({
   isWithdrawalClaimRequired,
   assetBalance,
   needsSweep,
+  pendingDepositAssets,
+  sharesToAssets1e18,
   onWithdrawalSuccess,
 }: ArkProps) {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false)
@@ -68,6 +74,31 @@ export function Ark({
     arkAddress,
     chainId: chainId.toString() as ChainId,
     onSuccess: onWithdrawalSuccess,
+  })
+
+  // WisdomTree specific
+  const isWisdomTree = name.toLowerCase().includes('wisdomtree')
+  const [isWisdomTreeControlsOpen, setIsWisdomTreeControlsOpen] = useState(false)
+  const [sharesQueryInput, setSharesQueryInput] = useState('1')
+
+  const { clearPendingDeposit, isPending: isClearPending } = useWisdomTreeActions({
+    arkAddress,
+    chainId: chainId.toString() as ChainId,
+    onSuccess: onWithdrawalSuccess,
+  })
+
+  const { assets: queriedAssets, isLoading: isQueryingShares } = useWisdomTreeSharesToAssets({
+    arkAddress,
+    chainId: chainId.toString() as ChainId,
+    shares: (() => {
+      try {
+        // Assume WisdomTree shares have 18 decimals like standard WAD
+        return parseUnits(sharesQueryInput || '0', 18)
+      } catch {
+        return 0n
+      }
+    })(),
+    enabled: isWisdomTree && isWisdomTreeControlsOpen && Boolean(sharesQueryInput),
   })
 
   const handleHarvest = async () => {
@@ -101,7 +132,14 @@ export function Ark({
   return (
     <div className="bg-gray-400 shadow rounded-lg p-6 mb-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">{name}</h2>
+        <h2 className="text-xl font-bold">
+          {name}
+          {isWisdomTree && (
+            <span className="ml-2 px-2 py-0.5 bg-blue-500/20 text-blue-800 text-xs font-medium rounded-lg align-middle">
+              WisdomTree
+            </span>
+          )}
+        </h2>
       </div>
 
       {/* Auction Controls Section - Foldable */}
@@ -253,6 +291,81 @@ export function Ark({
                 >
                   Sweep
                 </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* WisdomTree Controls Section - Foldable */}
+      {isWisdomTree && (
+        <div className="mb-4">
+          <button
+            onClick={() => setIsWisdomTreeControlsOpen(!isWisdomTreeControlsOpen)}
+            className="w-full flex items-center justify-between bg-blue-800 text-white py-2 px-4 rounded-md hover:bg-blue-900 mb-2"
+          >
+            <span className="font-semibold">WisdomTree Controls</span>
+            <span
+              className={`transform transition-transform ${isWisdomTreeControlsOpen ? 'rotate-180' : ''}`}
+            >
+              ▼
+            </span>
+          </button>
+
+          {isWisdomTreeControlsOpen && (
+            <div className="bg-blue-100 p-4 rounded-md space-y-4">
+              {pendingDepositAssets != null && (
+                <div>
+                  <p className="text-sm text-blue-800 font-semibold mb-1">Pending Deposit Assets</p>
+                  <p className="font-medium text-blue-900 border border-blue-300 rounded px-2 py-1 bg-white inline-block">
+                    {formatDecimalOutput(BigInt(pendingDepositAssets), assetDecimals)} {assetSymbol}
+                  </p>
+                  {BigInt(pendingDepositAssets) > 0n && (
+                    <button
+                      onClick={() => clearPendingDeposit()}
+                      disabled={isClearPending}
+                      className="ml-3 bg-red-600 text-white py-1 px-3 rounded text-sm hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {isClearPending ? 'Clearing...' : 'Clear Pending Deposit'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {sharesToAssets1e18 != null && (
+                <div className="pt-2 border-t border-blue-200">
+                  <p className="text-sm text-blue-800 font-semibold mb-1">
+                    Default Share Price (1 share)
+                  </p>
+                  <p className="font-medium text-blue-900">
+                    {formatDecimalOutput(BigInt(sharesToAssets1e18), assetDecimals)} {assetSymbol}
+                  </p>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-blue-200">
+                <p className="text-sm text-blue-800 font-semibold mb-2">Convert Shares to Assets</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.0001"
+                    placeholder="E.g. 1.5"
+                    value={sharesQueryInput}
+                    onChange={(e) => setSharesQueryInput(e.target.value)}
+                    className="w-32 px-2 py-1.5 border border-blue-300 rounded text-sm"
+                  />
+                  <span className="text-sm text-blue-800">shares =</span>
+                  <div className="px-3 py-1.5 bg-white border border-blue-300 rounded text-sm font-medium min-w-[100px] text-blue-900 flex items-center justify-center">
+                    {isQueryingShares ? (
+                      <span className="animate-pulse">Loading...</span>
+                    ) : queriedAssets !== undefined ? (
+                      `${formatDecimalOutput(queriedAssets as bigint, assetDecimals)} ${assetSymbol}`
+                    ) : (
+                      '-'
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}

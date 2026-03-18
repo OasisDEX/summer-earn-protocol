@@ -457,6 +457,8 @@ export default function FleetDetail() {
                       isWithdrawalClaimRequired={ark.isWithdrawalClaimRequired}
                       assetBalance={ark.assetBalance}
                       needsSweep={ark.needsSweep}
+                      pendingDepositAssets={ark.pendingDepositAssets}
+                      sharesToAssets1e18={ark.sharesToAssets1e18}
                       onWithdrawalSuccess={() => refetchArks()}
                     />
                   </div>
