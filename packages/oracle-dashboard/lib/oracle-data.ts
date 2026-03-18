@@ -204,8 +204,7 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
     }
 
     const offchain = offchainSettled[i]
-    const offChainData =
-      offchain?.status === 'fulfilled' && offchain.value ? offchain.value : null
+    const offChainData = offchain?.status === 'fulfilled' && offchain.value ? offchain.value : null
 
     const nowSec = Math.floor(Date.now() / 1000)
     const ONE_DAY = 86400
@@ -215,9 +214,7 @@ export async function fetchOracleStats(selectedNetwork: NetworkType): Promise<Ti
     const offChainAgeSec = offChainTs > 0 ? nowSec - offChainTs : 0
     const offChainStale = offChainTs > 0 && offChainAgeSec >= ONE_DAY
     const eitherStale = onChainStale || offChainStale
-    const pricesMatch = offChainData
-      ? Math.abs(onChainPriceNum - offChainData.nav) < 0.0001
-      : false
+    const pricesMatch = offChainData ? Math.abs(onChainPriceNum - offChainData.nav) < 0.0001 : false
 
     const formatAge = (seconds: number): string => {
       if (seconds < 3600) return `${Math.floor(seconds / 60)}m`

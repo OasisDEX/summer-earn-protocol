@@ -22,22 +22,32 @@ const ARK_ACTIONS = {
   euler: 'sweepAndStart',
   moonwell: 'harvestAndStart',
   gearbox: 'sweepAndStart',
-  silo: 'harvestAndStart',
+  silo: 'sweepAndStart', // Updated to match Python script
   SkyRewards: 'harvestAndStart',
   compound: 'harvestAndStart',
+  fluid: 'harvestAndStart',
+  syrup: 'sweepAndStart',
 } as const
 
 const ARK_TOKENS = {
   morpho: {
     1: [
-      { address: '0x58D97B57BB95320F9a05dC918Aef65434969c2B2', threshold: 30 }, // MORPHO
+      { address: '0x58D97B57BB95320F9a05dC918Aef65434969c2B2', threshold: 25 }, // MORPHO
       { address: '0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66', threshold: 200 }, // syrup
     ],
     8453: [
-      { address: '0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842', threshold: 50 }, // Base MORPHO
-      { address: '0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85', threshold: 500 }, // Base SEAM
-      { address: '0xA88594D404727625A9437C3f886C7643872296AE', threshold: 2000 }, // Base WELL
+      { address: '0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842', threshold: 25 }, // Base MORPHO
+      { address: '0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85', threshold: 2000 }, // Base SEAM
+      { address: '0xA88594D404727625A9437C3f886C7643872296AE', threshold: 1000 }, // Base WELL
+      { address: '0x2dAD3a13ef0C6366220f989157009e501e7938F8', threshold: 1000 }, // Base EXTRA
     ],
+    42161: [
+      { address: '0x912CE59144191C1204E64559FE8253a0e49E6548', threshold: 100 }, // ARB
+      { address: '0x40BD670A58238e6E230c430BBb5cE6ec0d40df48', threshold: 10 },
+    ],
+  },
+  syrup: {
+    1: [{ address: '0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66', threshold: 200 }], // syrup
   },
   aave: {
     146: [{ address: '0x6C5E14A212c1C3e4Baf6f871ac9B1a969918c131', threshold: 500 }], // aWS
@@ -47,16 +57,43 @@ const ARK_TOKENS = {
   },
   gearbox: {
     1: [
-      { address: '0xBa3335588D9403515223F109EdC4eB7269a9Ab5D', threshold: 40000 },
+      { address: '0xBa3335588D9403515223F109EdC4eB7269a9Ab5D', threshold: 10000 },
       { address: '0xFa2B947eEc368f42195f24F36d2aF29f7c24CeC2', threshold: 1000 },
     ],
+  },
+  fluid: {
+    42161: [{ address: '0x912CE59144191C1204E64559FE8253a0e49E6548', threshold: 100 }], // ARB
+  },
+  silo: {
+    42161: [{ address: '0x912CE59144191C1204E64559FE8253a0e49E6548', threshold: 100 }], // ARB
+  },
+} as const
+
+const FLUID_CONFIGS = {
+  1: {
+    merkleClaimer: '0x7060FE0Dd3E31be01EFAc6B28C8D38018fD163B0',
+    programSlug: 'inst-rewards-dec-2024',
+  },
+  8453: {
+    merkleClaimer: '0x94312a608246Cecfce6811Db84B3Ef4B2619054E',
+    programSlug: 'base-fluid-rewards-jul-2025',
+  },
+  42161: {
+    merkleClaimer: '0x94312a608246Cecfce6811Db84B3Ef4B2619054E',
+    programSlug: 'arb-fluid-rewards-jul-2025',
+  },
+  146: {
+    merkleClaimer: '0x94312a608246Cecfce6811Db84B3Ef4B2619054E',
+    programSlug: 'sonic-fluid-rewards-jul-2025',
   },
 } as const
 
 const HARVEST_CONFIGS = {
   SkyRewards: {
     1: {
-      contractAddress: '0x0650CAF159C5A49f711e8169D4336ECB9b950275',
+      contractAddress: {
+        '0x3d8c278f05f655f26dcbf828c084e5182fd8d409': '0x0650CAF159C5A49f711e8169D4336ECB9b950275',
+      },
       abi: [
         {
           inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
@@ -66,12 +103,18 @@ const HARVEST_CONFIGS = {
           type: 'function',
         },
       ],
+      arkData: {
+        '0x3d8c278f05f655f26dcbf828c084e5182fd8d409': '0x3d8c278f05f655f26dcbf828c084e5182fd8d409',
+      },
       rewardThreshold: 100000000000000000000, // 100 tokens
     },
   },
   moonwell: {
     8453: {
-      contractAddress: '0xe9005b078701e2A0948D2EaC43010D35870Ad9d2',
+      contractAddress: {
+        '0x07e33789cf837b52821c7cded1247938969008ef': '0xe9005b078701e2A0948D2EaC43010D35870Ad9d2',
+        '0xe2ad084b9639ccc689217704577e538ca2c251e5': '0xe9005b078701e2A0948D2EaC43010D35870Ad9d2',
+      },
       abi: [
         {
           inputs: [
@@ -104,8 +147,10 @@ const HARVEST_CONFIGS = {
     },
   },
   silo: {
-    146: {
-      contractAddress: '0x2d3d269334485d2d876df7363e1a50b13220a7d8',
+    1: {
+      contractAddress: {
+        '0xd7038e29f353cc6ac601cfe56af3e1affa80a170': '0xC8EfCde0df33a01BD155bFAaf09FdAdbB17EF647',
+      },
       abi: [
         {
           inputs: [
@@ -118,7 +163,32 @@ const HARVEST_CONFIGS = {
           type: 'function',
         },
       ],
-      // todo: read all program names
+      arkData: {
+        '0xd7038e29f353cc6ac601cfe56af3e1affa80a170': ['apfUSDC_xSILO_5th_batch'],
+      },
+      rewardThreshold: 1000000000000000000000, // 1000 tokens
+    },
+    146: {
+      contractAddress: {
+        '0x5c841955d7ee3e2f7a077aa0aca3a7d724b15da2': '0x2d3d269334485d2d876df7363e1a50b13220a7d8',
+        '0x42aade02448fdaf56bbb153b2984e3d53dc531c1': '0x2d3d269334485d2d876df7363e1a50b13220a7d8',
+        '0xf67e17c4627e9d9c150b247b6a4e82c01bf36c5f': '0x306Fad9009b104a323A232238afffD1f261bD05c',
+        '0x39c5d327ff8b12649a0a8056ca4499cb27f82fa0': '0xfFd019f29b068BCec229Ad352bA8346814BCFf72',
+        '0x8faf711962e89047cb26fb4b4f8dbd578069db53': '0xB5073fC0dff2142FDdbb548e749B5acf259d4807',
+        '0x4c62fc0393393f3a5e455576bda95ccb3e284b19': '0xDedaD1d42caeDa6F3Ed4c53820F4C2FBa90870F3',
+      },
+      abi: [
+        {
+          inputs: [
+            { internalType: 'address', name: '_user', type: 'address' },
+            { internalType: 'string[]', name: '_programNames', type: 'string[]' },
+          ],
+          name: 'getRewardsBalance',
+          outputs: [{ name: 'unclaimedRewards', type: 'uint256' }],
+          stateMutability: 'view',
+          type: 'function',
+        },
+      ],
       arkData: {
         '0x5c841955d7ee3e2f7a077aa0aca3a7d724b15da2': ['wS_sUSDC_0020'],
         '0x42aade02448fdaf56bbb153b2984e3d53dc531c1': ['wS_sUSDC_0008'],
@@ -487,6 +557,39 @@ async function getClaimableRewards(
 ): Promise<ClaimableReward[]> {
   const claimableRewards: ClaimableReward[] = []
 
+  // Handle Fluid ARKs separately via Merkle API
+  if (ark.name.toLowerCase().includes('fluid')) {
+    const config = FLUID_CONFIGS[chainId as keyof typeof FLUID_CONFIGS]
+    if (config) {
+      try {
+        const url = `https://merkle.api.fluid.instadapp.io/programs/${config.programSlug}/users/${ark.address}/claims`
+        const resp = await fetch(url)
+        if (resp.ok) {
+          const claims = await resp.json()
+          console.log(claims)
+          if (Array.isArray(claims) && claims.length > 0) {
+            for (const claim of claims) {
+              const amount = BigInt(claim.amountWei || 0)
+              if (amount > BigInt(0)) {
+                claimableRewards.push({
+                  contractAddress: config.merkleClaimer,
+                  amount,
+                  amountFormatted: parseFloat(formatUnits(amount, 18)),
+                  symbol: 'FLUID',
+                  decimals: 18,
+                  threshold: 0,
+                })
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching Fluid rewards for ARK ${ark.address}:`, error)
+      }
+    }
+    return claimableRewards
+  }
+
   // Find harvest config for this ARK
   const matchedPattern = Object.keys(HARVEST_CONFIGS).find((pattern) =>
     ark.name.toLowerCase().includes(pattern.toLowerCase()),
@@ -507,11 +610,18 @@ async function getClaimableRewards(
   try {
     let result: any
 
+    const contractAddress =
+      typeof config.contractAddress === 'string'
+        ? config.contractAddress
+        : config.contractAddress[ark.address]
+
+    if (!contractAddress) return claimableRewards
+
     if (matchedPattern === 'SkyRewards') {
       // @ts-ignore - Type inference issue with complex nested types
       result = await // @ts-ignore
       publicClient.readContract({
-        address: config.contractAddress as `0x${string}`,
+        address: contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'earned',
         args: [ark.address as `0x${string}`],
@@ -524,7 +634,7 @@ async function getClaimableRewards(
       // @ts-ignore - Type inference issue with complex nested types
       result = await // @ts-ignore
       publicClient.readContract({
-        address: config.contractAddress as `0x${string}`,
+        address: contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'getOutstandingRewardsForUser',
         args: [mTokenAddress as `0x${string}`, ark.address as `0x${string}`],
@@ -537,7 +647,7 @@ async function getClaimableRewards(
       // @ts-ignore - Type inference issue with complex nested types
       result = await // @ts-ignore
       publicClient.readContract({
-        address: config.contractAddress as `0x${string}`,
+        address: contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'getRewardsBalance',
         args: [ark.address as `0x${string}`, programNames],
@@ -553,7 +663,7 @@ async function getClaimableRewards(
       // @ts-ignore - Type inference issue with complex nested types
       result = await // @ts-ignore
       publicClient.readContract({
-        address: config.contractAddress as `0x${string}`,
+        address: contractAddress as `0x${string}`,
         abi: config.abi,
         functionName: 'getRewardOwed',
         args: [cometAddress as `0x${string}`, ark.address as `0x${string}`],
@@ -595,7 +705,7 @@ async function getClaimableRewards(
 
         claimableRewards.push({
           // @ts-ignore - Type inference issue with complex nested types
-          contractAddress: config.contractAddress,
+          contractAddress: contractAddress,
           amount,
           amountFormatted,
           symbol,

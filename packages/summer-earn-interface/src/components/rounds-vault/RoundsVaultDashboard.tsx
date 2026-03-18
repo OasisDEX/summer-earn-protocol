@@ -1,16 +1,17 @@
 'use client'
 
 import React from 'react'
-import baseConfig from '@/config/deployment/deployed/base.json'
-import arbitrumConfig from '@/config/deployment/deployed/arbitrum.json'
-import mainnetConfig from '@/config/deployment/deployed/mainnet.json'
-import sonicConfig from '@/config/deployment/deployed/sonic.json'
-import hyperliquidConfig from '@/config/deployment/deployed/hyperliquid.json'
 
 import { RoundsVaultInputABI } from '@/abis/RoundsVaultInput'
 import { RoundsVaultOutputABI } from '@/abis/RoundsVaultOutput'
-import { VaultInteractionForm } from './VaultInteractionForm'
+import arbitrumConfig from '@/config/deployment/deployed/arbitrum.json'
+import baseConfig from '@/config/deployment/deployed/base.json'
+import hyperliquidConfig from '@/config/deployment/deployed/hyperliquid.json'
+import mainnetConfig from '@/config/deployment/deployed/mainnet.json'
+import sonicConfig from '@/config/deployment/deployed/sonic.json'
 import type { ChainId } from '@/types'
+
+import { VaultInteractionForm } from './VaultInteractionForm'
 
 interface RoundsVaultDashboardProps {
   chainId: ChainId

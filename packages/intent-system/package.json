@@ -15,7 +15,9 @@
   },
   "scripts": {
     "test": "forge test",
-    "build": "forge build --extra-output-files abi"
+    "build": "forge build --extra-output-files abi",
+    "format": "prettier --check \"**/*.sol\" --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern"
   },
   "devDependencies": {
     "@summerfi/access-contracts": "workspace:*",
