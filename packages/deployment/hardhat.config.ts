@@ -3,7 +3,7 @@ import { resolve } from 'path'
 
 import '@nomicfoundation/hardhat-verify'
 import 'hardhat-contract-sizer'
-import './plugins/multiSourceCompile'
+// import './plugins/multiSourceCompile'
 
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
@@ -16,6 +16,14 @@ if (!process.env.API_KEY_ETHERSCAN) {
   throw new Error(
     'Please set your process.env.API_KEY_ETHERSCAN in a .env file ( etherscan v2 api key )',
   )
+}
+
+if (!process.env.STAGING_DEPLOYER_KEY) {
+  throw new Error('Please set your process.env.STAGING_DEPLOYER_KEY in a .env file')
+}
+
+if (!process.env.DEPLOYER_PRIV_KEY) {
+  throw new Error('Please set your process.env.DEPLOYER_PRIV_KEY in a .env file')
 }
 
 const config: HardhatUserConfig = {
@@ -80,66 +88,70 @@ const config: HardhatUserConfig = {
           privateKey: `0x${process.env.DEPLOYER_PRIV_KEY}`,
           balance: '1000000000000000000000', // 1000 ETH in wei
         },
+        {
+          privateKey: `0x${process.env.STAGING_DEPLOYER_KEY}`,
+          balance: '1000000000000000000000', // 1000 ETH in wei
+        },
       ],
     },
     // mainnets
     mainnet: {
       url: `${process.env.MAINNET_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
       chainId: 1,
     },
     optimism: {
       url: `${process.env.OPTIMISM_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
       chainId: 10,
     },
     unichain: {
       url: `${process.env.UNICHAIN_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
       chainId: 130,
     },
     arbitrum: {
       url: `${process.env.ARBITRUM_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
       chainId: 42161,
     },
     base: {
       url: `${process.env.BASE_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
       chainId: 8453,
     },
     sonic: {
       url: `${process.env.SONIC_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
       chainId: 146,
     },
     monad: {
       url: `${process.env.MONAD_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
       chainId: 143,
     },
     hyperliquid: {
       url: `${process.env.HYPERLIQUID_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
       chainId: 999,
     },
 
     // testnets
     sepolia_mainnet: {
       url: `${process.env.SEPOLIA_MAINNET_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
     },
     sepolia_optimism: {
       url: `${process.env.SEPOLIA_OPTIMISM_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
     },
     sepolia_arbitrum: {
       url: `${process.env.SEPOLIA_ARBITRUM_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
     },
     sepolia_base: {
       url: `${process.env.SEPOLIA_BASE_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`, `0x${process.env.STAGING_DEPLOYER_KEY}`],
     },
   },
 }

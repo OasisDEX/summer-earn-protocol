@@ -1,0 +1,518 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "InstitutionalVaultRegistry",
+  "sourceName": "src/contracts/InstitutionalVaultRegistry.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "AddressZero",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "field",
+          "type": "bytes32"
+        }
+      ],
+      "name": "ImmutableFieldUpdateForbidden",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "InstitutionAlreadyExists",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "InstitutionIsDisabled",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "InstitutionNotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnableInvalidOwner",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "OwnableUnauthorizedAccount",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "newId",
+          "type": "bytes32"
+        }
+      ],
+      "name": "ReplacementIdConflict",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "SameAddress",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "configurationManager",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "protocolAccessManager",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "admiralsQuarters",
+          "type": "address"
+        }
+      ],
+      "name": "InstitutionAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "previousAdmiralsQuarters",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newAdmiralsQuarters",
+          "type": "address"
+        }
+      ],
+      "name": "InstitutionAdmiralsQuartersUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "InstitutionRemoved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "oldId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "newId",
+          "type": "bytes32"
+        }
+      ],
+      "name": "InstitutionReplaced",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "configurationManager",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "protocolAccessManager",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "admiralsQuarters",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct IInstitutionalVaultRegistry.Institution",
+          "name": "institution",
+          "type": "tuple"
+        }
+      ],
+      "name": "addInstitution",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "exists",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getAdmiralsQuarters",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "name": "getBytes32InstitutionId",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getConfigurationManager",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getHarborCommand",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getInstitution",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "configurationManager",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "protocolAccessManager",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "admiralsQuarters",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct IInstitutionalVaultRegistry.Institution",
+          "name": "institution",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getProtocolAccessManager",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getStringInstitutionId",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "institutions",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "configurationManager",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "protocolAccessManager",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "admiralsQuarters",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "removeInstitution",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "newAdmiralsQuarters",
+          "type": "address"
+        }
+      ],
+      "name": "updateAdmiralsQuarters",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60803460b857601f6109f238819003918201601f19168301916001600160401b0383118484101760bc5780849260209460405283398101031260b857516001600160a01b0381169081900360b857801560a5575f80546001600160a01b031981168317825560405192916001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09080a361092190816100d18239f35b631e4fbdf760e01b5f525f60045260245ffd5b5f80fd5b634e487b7160e01b5f52604160045260245ffdfe60806040526004361015610011575f80fd5b5f3560e01c8063348470181461060757806338a699a4146105df5780633d54eecf146105025780635ea344ec146104b8578063715018a614610474578063857a6518146104445780638b58546c146103cf5780638da5cb5b146103a85780639582973814610353578063965734691461032b57806398501713146102af578063a34506dd14610216578063b904061d1461016a578063caca596d146101385763f2fde38b146100be575f80fd5b34610134576020366003190112610134576004356001600160a01b03811690819003610134576100ec6108a5565b8015610121575f80546001600160a01b03198116831782556001600160a01b0316905f5160206108cc5f395f51905f529080a3005b631e4fbdf760e01b5f525f60045260245ffd5b5f80fd5b346101345760203660031901126101345760206001600160a01b038161015f600435610841565b015116604051908152f35b3461013457602036600319011261013457600460206001600160a01b036101918335610841565b511660405192838092635b0f83f360e01b82525afa801561020b575f906101c8575b6040516001600160a01b039091168152602090f35b506020813d602011610203575b816101e260209383610820565b8101031261013457516001600160a01b0381168103610134576020906101b3565b3d91506101d5565b6040513d5f823e3d90fd5b3461013457602036600319011261013457600435604080516102388282610820565b6020808252810192601f1983013685375f5b6020811061027f5750508151928391602083525180918160208501528484015e5f828201840152601f01601f19168101030190f35b825181101561029b5780826001921a602082860101530161024a565b634e487b7160e01b5f52603260045260245ffd5b34610134576020366003190112610134576004356102cb6108a5565b6102d4816107d5565b1561031957805f5260016020525f60026040822082815582600182015501557fb9dbe99d236affa00d03dd8dc5941f24f0f602d3a1814b552291821d1d27b1c55f80a2005b63047d712b60e21b5f5260045260245ffd5b346101345760203660031901126101345760206001600160a01b03604061015f600435610841565b34610134576020366003190112610134576004355f9081526001602081905260409182902080549181015460029091015492519283926103a4926001600160a01b0392831692908116911684610770565b0390f35b34610134575f366003190112610134575f546040516001600160a01b039091168152602090f35b34610134576020366003190112610134576004356001600160401b03811161013457366023820112156101345780600401356001600160401b038111610134573660248284010111610134576024602092013590828110610434575b50604051908152f35b5f1990830360031b1b168261042b565b346101345760203660031901126101345760206001600160a01b0361046a600435610841565b5116604051908152f35b34610134575f3660031901126101345761048c6108a5565b5f80546001600160a01b0319811682556001600160a01b03165f5160206108cc5f395f51905f528280a3005b346101345760203660031901126101345760606104d6600435610841565b6040805182516001600160a01b0390811682526020808501518216908301529282015190921690820152f35b34610134576040366003190112610134576004356024356001600160a01b03811690819003610134576105336108a5565b61053c826107d5565b156105cc57815f52600160205260405f2081156105bd5760020180546001600160a01b03168281146105ae5781546001600160a01b03191683179091556040805191825260208201929092527fb1d3ccce8d0b4ad9ed344695c28211faf4f603e4ac385dc9a52f6b8d8fbe6dae9190a2005b63367558c360e01b5f5260045ffd5b639fabe1c160e01b5f5260045ffd5b5063047d712b60e21b5f5260045260245ffd5b346101345760203660031901126101345760206105fd6004356107d5565b6040519015158152f35b346101345760803660031901126101345760043560603660231901126101345761062f6108a5565b610638816107d5565b61075e576001600160a01b0361064c610793565b16158015610746575b801561072e575b6105bd575f8181526001602052604090206001600160a01b0361067d610793565b82546001600160a01b03191691161781556106966107a9565b6001820180546001600160a01b0319166001600160a01b0390921691909117905560026106c16107bf565b910180546001600160a01b0319166001600160a01b039092169190911790557f12b2a8af67c6b8005847a6035128d269f61dd347b334012296dd0251a11ad65b610709610793565b6107116107a9565b9061072961071d6107bf565b60405193849384610770565b0390a2005b506001600160a01b0361073f6107bf565b161561065c565b506001600160a01b036107576107a9565b1615610655565b639037b9eb60e01b5f5260045260245ffd5b6001600160a01b0391821681529181166020830152909116604082015260600190565b6024356001600160a01b03811681036101345790565b6044356001600160a01b03811681036101345790565b6064356001600160a01b03811681036101345790565b5f908152600160205260409020546001600160a01b0316151590565b606081019081106001600160401b0382111761080c57604052565b634e487b7160e01b5f52604160045260245ffd5b90601f801991011681019081106001600160401b0382111761080c57604052565b905f60408051610850816107f1565b8281528260208201520152815f52600160205260405f2091604051610874816107f1565b83546001600160a01b0390811680835260018601548216602084015260029095015416604082015292156103195750565b5f546001600160a01b031633036108b857565b63118cdaa760e01b5f523360045260245ffdfe8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0a264697066735822122068b2b06ae11204339d800ac5e57c5e3598078fec30d434b475bfb3b2dbd5c7af64736f6c634300081c0033",
+  "deployedBytecode": "0x60806040526004361015610011575f80fd5b5f3560e01c8063348470181461060757806338a699a4146105df5780633d54eecf146105025780635ea344ec146104b8578063715018a614610474578063857a6518146104445780638b58546c146103cf5780638da5cb5b146103a85780639582973814610353578063965734691461032b57806398501713146102af578063a34506dd14610216578063b904061d1461016a578063caca596d146101385763f2fde38b146100be575f80fd5b34610134576020366003190112610134576004356001600160a01b03811690819003610134576100ec6108a5565b8015610121575f80546001600160a01b03198116831782556001600160a01b0316905f5160206108cc5f395f51905f529080a3005b631e4fbdf760e01b5f525f60045260245ffd5b5f80fd5b346101345760203660031901126101345760206001600160a01b038161015f600435610841565b015116604051908152f35b3461013457602036600319011261013457600460206001600160a01b036101918335610841565b511660405192838092635b0f83f360e01b82525afa801561020b575f906101c8575b6040516001600160a01b039091168152602090f35b506020813d602011610203575b816101e260209383610820565b8101031261013457516001600160a01b0381168103610134576020906101b3565b3d91506101d5565b6040513d5f823e3d90fd5b3461013457602036600319011261013457600435604080516102388282610820565b6020808252810192601f1983013685375f5b6020811061027f5750508151928391602083525180918160208501528484015e5f828201840152601f01601f19168101030190f35b825181101561029b5780826001921a602082860101530161024a565b634e487b7160e01b5f52603260045260245ffd5b34610134576020366003190112610134576004356102cb6108a5565b6102d4816107d5565b1561031957805f5260016020525f60026040822082815582600182015501557fb9dbe99d236affa00d03dd8dc5941f24f0f602d3a1814b552291821d1d27b1c55f80a2005b63047d712b60e21b5f5260045260245ffd5b346101345760203660031901126101345760206001600160a01b03604061015f600435610841565b34610134576020366003190112610134576004355f9081526001602081905260409182902080549181015460029091015492519283926103a4926001600160a01b0392831692908116911684610770565b0390f35b34610134575f366003190112610134575f546040516001600160a01b039091168152602090f35b34610134576020366003190112610134576004356001600160401b03811161013457366023820112156101345780600401356001600160401b038111610134573660248284010111610134576024602092013590828110610434575b50604051908152f35b5f1990830360031b1b168261042b565b346101345760203660031901126101345760206001600160a01b0361046a600435610841565b5116604051908152f35b34610134575f3660031901126101345761048c6108a5565b5f80546001600160a01b0319811682556001600160a01b03165f5160206108cc5f395f51905f528280a3005b346101345760203660031901126101345760606104d6600435610841565b6040805182516001600160a01b0390811682526020808501518216908301529282015190921690820152f35b34610134576040366003190112610134576004356024356001600160a01b03811690819003610134576105336108a5565b61053c826107d5565b156105cc57815f52600160205260405f2081156105bd5760020180546001600160a01b03168281146105ae5781546001600160a01b03191683179091556040805191825260208201929092527fb1d3ccce8d0b4ad9ed344695c28211faf4f603e4ac385dc9a52f6b8d8fbe6dae9190a2005b63367558c360e01b5f5260045ffd5b639fabe1c160e01b5f5260045ffd5b5063047d712b60e21b5f5260045260245ffd5b346101345760203660031901126101345760206105fd6004356107d5565b6040519015158152f35b346101345760803660031901126101345760043560603660231901126101345761062f6108a5565b610638816107d5565b61075e576001600160a01b0361064c610793565b16158015610746575b801561072e575b6105bd575f8181526001602052604090206001600160a01b0361067d610793565b82546001600160a01b03191691161781556106966107a9565b6001820180546001600160a01b0319166001600160a01b0390921691909117905560026106c16107bf565b910180546001600160a01b0319166001600160a01b039092169190911790557f12b2a8af67c6b8005847a6035128d269f61dd347b334012296dd0251a11ad65b610709610793565b6107116107a9565b9061072961071d6107bf565b60405193849384610770565b0390a2005b506001600160a01b0361073f6107bf565b161561065c565b506001600160a01b036107576107a9565b1615610655565b639037b9eb60e01b5f5260045260245ffd5b6001600160a01b0391821681529181166020830152909116604082015260600190565b6024356001600160a01b03811681036101345790565b6044356001600160a01b03811681036101345790565b6064356001600160a01b03811681036101345790565b5f908152600160205260409020546001600160a01b0316151590565b606081019081106001600160401b0382111761080c57604052565b634e487b7160e01b5f52604160045260245ffd5b90601f801991011681019081106001600160401b0382111761080c57604052565b905f60408051610850816107f1565b8281528260208201520152815f52600160205260405f2091604051610874816107f1565b83546001600160a01b0390811680835260018601548216602084015260029095015416604082015292156103195750565b5f546001600160a01b031633036108b857565b63118cdaa760e01b5f523360045260245ffdfe8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0a264697066735822122068b2b06ae11204339d800ac5e57c5e3598078fec30d434b475bfb3b2dbd5c7af64736f6c634300081c0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
