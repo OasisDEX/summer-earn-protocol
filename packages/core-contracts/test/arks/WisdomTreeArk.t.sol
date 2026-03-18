@@ -222,7 +222,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.expectEmit(false, false, false, true);
         emit CustodianWalletUpdated(targetWallet, newWallet);
         ark.setCustodianWallet(newWallet);
-        
+
         vm.stopPrank();
 
         assertEq(
@@ -250,7 +250,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.expectEmit(false, false, false, true);
         emit AssetsForwarderUpdated(address(forwarder), newForwarder);
         ark.setAssetsForwarder(newForwarder);
-        
+
         vm.stopPrank();
 
         assertEq(
