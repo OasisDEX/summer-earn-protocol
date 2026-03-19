@@ -75,8 +75,6 @@ async function main() {
     process.exit(1)
   }
 
-  // Set hardhat network so we can use hre.viem properly if needed, although we are mostly building calldata.
-  // Actually, let's just use it to get the config.
   const config = getConfigByNetwork(
     network,
     { common: true, gov: true, core: false },
@@ -158,12 +156,8 @@ async function main() {
   )
 
   // 3. Read minDelay from the network (we can reuse hre for this if network is correct, otherwise we might need publicClient)
-  // Let's use createPublicClient from viem to be safe, but since it's hardhat we can use hre.viem if we run via hardhat script.
-  // Instead, let's just ask user for delay or read it. We cannot use hre.viem directly if we didn't run with --network.
-  // Wait, schedule-token-transfers-safe runs via `hardhat run`. Let's assume this script does too.
   let delay = BigInt(3600 * 24 * 2) // fallback to 2 days
   try {
-    // But since it's a safe tx builder mostly meant to be run via tsx or hardhat run, let's just prompt for the delay or fetch via viem.
     const publicClient = await hre.viem.getPublicClient()
     const timelock = await hre.viem.getContractAt('SummerTimelockController', timelockAddress)
     delay = await timelock.read.getMinDelay()
