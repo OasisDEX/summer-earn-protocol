@@ -128,8 +128,8 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /// @notice Report of shares is given from cache or not
     bool public isArkFrozen;
 
-    /// @notice Last oracle price
-    Price private _lastOraclePrice;
+    /// @notice Total assets of the ark when it was frozen
+    uint256 private _frozenTotalAssets;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -173,6 +173,10 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         override(Ark, IArk)
         returns (uint256 assets)
     {
+        if (isArkFrozen) {
+            return _frozenTotalAssets;
+        }
+
         // If there is an active deposit queue, we use the cached share balance.
         // This prevents double-counting shares that arrive before the keeper clears the deposit.
         uint256 currentShares = pendingDepositAssets > 0 || isArkFrozen
@@ -243,8 +247,18 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      * @notice Freezes or unfreezes deposits for this Ark.
      * @param _isArkFrozen The new frozen state
      */
-    function setArkFrozen(bool _isArkFrozen) external onlyKeeper {
+    function setArkFrozen(
+        bool _isArkFrozen,
+        uint256 frozenTotalAssets
+    ) external onlyKeeper {
+        if (_isArkFrozen) {
+            _frozenTotalAssets = frozenTotalAssets == type(uint256).max
+                ? totalAssets()
+                : frozenTotalAssets;
+        }
+
         isArkFrozen = _isArkFrozen;
+
         emit ArkIsFrozenUpdated(_isArkFrozen);
     }
 
@@ -438,7 +452,9 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /**
      * @dev Converts underlying asset amount to WisdomTree shares via Chainlink oracle.
      */
-    function _assetsToShares(uint256 assetAmount) internal view returns (uint256) {
+    function _assetsToShares(
+        uint256 assetAmount
+    ) internal view returns (uint256) {
         if (assetAmount == 0) return 0;
 
         Price memory assetPerSharePrice = _fetchOracleAssetPerSharePrice();
@@ -452,22 +468,23 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      *      for which the base amount is 1 Share and the quote amount is the oracle price
      *      adjusted for the asset decimals
      */
-    function _fetchOracleAssetPerSharePrice() internal view returns (Price memory) {
-        if (isArkFrozen) {
-            return _lastOraclePrice;
-        }
-
+    function _fetchOracleAssetPerSharePrice()
+        internal
+        view
+        returns (Price memory)
+    {
         (, int256 answer, , , ) = oracle.latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
 
         // The oracle returns the price of 1 share denominated in the underlying asset.
         // Therefore, the Base Asset is the WisdomTree share, and Quote Asset is the underlying asset.
-        return toPriceFromOraclePrice(
-            10 ** shareDecimals, // baseAmount (1 Share)
-            answer, // oracle price of 1 Share in Assets
-            oracleDecimals, // decimals of oracle price
-            assetDecimals // decimals of quote asset (Asset)
-        );
+        return
+            toPriceFromOraclePrice(
+                10 ** shareDecimals, // baseAmount (1 Share)
+                answer, // oracle price of 1 Share in Assets
+                oracleDecimals, // decimals of oracle price
+                assetDecimals // decimals of quote asset (Asset)
+            );
     }
 
     /**

@@ -70,7 +70,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
     event CustodianWalletUpdated(address oldWallet, address newWallet);
     event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
-    event isArkFrozenUpdated(bool isFrozen);
+    event ArkIsFrozenUpdated(bool isFrozen);
 
     WisdomTreeArk public ark;
     BufferArk public bufferArk;
@@ -330,12 +330,12 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
     function test_SetArkFrozen() public {
         vm.prank(targetWallet);
         vm.expectRevert();
-        ark.setArkFrozen(true);
+        ark.setArkFrozen(true, type(uint256).max);
 
         vm.startPrank(keeper);
         vm.expectEmit(false, false, false, true);
-        emit isArkFrozenUpdated(true);
-        ark.setArkFrozen(true);
+        emit ArkIsFrozenUpdated(true);
+        ark.setArkFrozen(true, type(uint256).max);
         vm.stopPrank();
 
         assertTrue(ark.isArkFrozen());
@@ -343,7 +343,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
     function test_RevertBoardWhenFrozen() public {
         vm.prank(keeper);
-        ark.setArkFrozen(true);
+        ark.setArkFrozen(true, type(uint256).max);
 
         uint256 amount = 1000 * 1e6;
         deal(USDC_ADDRESS, commander, amount);
@@ -358,7 +358,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
     function test_RevertRequestWithdrawalWhenFrozen() public {
         vm.prank(keeper);
-        ark.setArkFrozen(true);
+        ark.setArkFrozen(true, type(uint256).max);
 
         uint256 amount = 1000 * 1e6;
         vm.startPrank(keeper);
@@ -367,7 +367,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
     }
 
-    function test_TotalAssetsIsCachedWhenFrozen() public {
+    function test_TotalAssetsIsCachedWhenFrozen_MaxUint256() public {
         uint256 amount = 60000 * 1e6; // 1 share worth
         deal(USDC_ADDRESS, commander, amount);
 
@@ -386,7 +386,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         uint256 assetsBeforeFreeze = ark.totalAssets();
         
         vm.prank(keeper);
-        ark.setArkFrozen(true);
+        ark.setArkFrozen(true, type(uint256).max);
 
         // Change oracle price
         oracle.setAnswer(120000 * 1e8);
@@ -395,10 +395,45 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         assertEq(assetsBeforeFreeze, assetsAfterFreeze, "Total assets should be cached if frozen");
 
         vm.prank(keeper);
-        ark.setArkFrozen(false);
+        ark.setArkFrozen(false, 0);
 
         uint256 assetsAfterUnfreeze = ark.totalAssets();
         assertTrue(assetsAfterUnfreeze > assetsBeforeFreeze, "Total assets should update after unfreeze");
+    }
+
+    function test_TotalAssetsIsCachedWhenFrozen_NormalValue() public {
+        uint256 amount = 60000 * 1e6; // 1 share worth
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(forwarder), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+
+        uint256 customFrozenValue = 1337 * 1e6;
+        
+        vm.prank(keeper);
+        ark.setArkFrozen(true, customFrozenValue);
+
+        // Change oracle price
+        oracle.setAnswer(120000 * 1e8);
+
+        uint256 assetsAfterFreeze = ark.totalAssets();
+        assertEq(assetsAfterFreeze, customFrozenValue, "Total assets should equal the custom frozen value");
+
+        vm.prank(keeper);
+        ark.setArkFrozen(false, 0);
+
+        uint256 assetsAfterUnfreeze = ark.totalAssets();
+        assertTrue(assetsAfterUnfreeze > customFrozenValue, "Total assets should update after unfreeze");
+        assertTrue(assetsAfterUnfreeze > amount, "Total assets should reflect the new oracle price");
     }
 
     function test_ClearPendingDepositAmount() public {
