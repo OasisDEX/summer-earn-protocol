@@ -70,6 +70,7 @@
     "gov:test-transfer-bummer-tokens": "hardhat run scripts/governance/test-transfer-bummer-tokens.ts --network $NETWORK",
     "gov:execute-proposal": "hardhat run scripts/governance/execute-proposal.ts --network $NETWORK",
     "gov:execute-proposal:direct": "hardhat run scripts/governance/execute-proposal-direct.ts --network $NETWORK",
+    "gov:execute-timelock": "hardhat run scripts/governance/execute-timelock.ts --network $NETWORK",
     "gov:create-fleet-rewards-proposals": "hardhat run scripts/governance/create-fleet-rewards-proposals.ts --network $NETWORK",
     "gov:enable-fleet-transferability": "hardhat run scripts/governance/enable-fleet-transferability-proposal.ts --network $NETWORK",
     "gov:setup-foundation-roles": "hardhat run scripts/governance/setup-foundation-roles.ts --network $NETWORK",
@@ -89,8 +90,8 @@
     "gov:convert-safe-tx-to-timelock": "tsx scripts/governance/convert-safe-tx-to-timelock.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --check \"**/*.sol\" --no-error-on-unmatched-pattern",
-    "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern"
+    "format": "prettier --check \"**/*.ts\" --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.ts\" --no-error-on-unmatched-pattern"
   },
   "devDependencies": {
     "@layerzerolabs/lz-v2-utilities": "2.3.39",
