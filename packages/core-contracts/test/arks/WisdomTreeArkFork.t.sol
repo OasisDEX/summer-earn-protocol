@@ -7,7 +7,7 @@ import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Percentage, PERCENTAGE_FACTOR, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {AggregatorV3Interface} from "../../src/interfaces/external/Chainlink/AggregatorV3Interface.sol";
 
@@ -60,11 +60,13 @@ contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBase {
         forwarder = new AssetsForwarder(address(accessManager));
         accessManager.grantKeeperRole(address(forwarder), keeper);
         forwarder.setWhitelisted(TARGET_WALLET, true);
+        Percentage sweepSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
         ark = new WisdomTreeArk(
             TARGET_WALLET,
             SHARE_TOKEN,
             ORACLE,
             address(forwarder),
+            sweepSlippage,
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );

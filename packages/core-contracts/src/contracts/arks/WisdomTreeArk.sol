@@ -7,6 +7,8 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 import {IAssetsForwarder} from "../../utils/AssetsForwarder/IAssetsForwarder.sol";
+import {Percentage, PERCENTAGE_FACTOR} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title WisdomTreeArk
@@ -42,6 +44,7 @@ import {IAssetsForwarder} from "../../utils/AssetsForwarder/IAssetsForwarder.sol
 contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     using SafeERC20 for IERC20;
     using PriceUtils for Price;
+    using PercentageUtils for uint256;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
@@ -60,7 +63,11 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     }
 
     /// @notice Default slippage (0.02%)
-    uint256 public constant DEFAULT_SLIPPAGE = 2;
+    uint256 public constant DEFAULT_SWAP_SLIPPAGE = 2;
+
+    /// @notice Maximum sweep slippage (0.5%)
+    Percentage public constant MAX_SWEEP_SLIPPAGE =
+        Percentage.wrap(PERCENTAGE_FACTOR / 2);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -74,6 +81,13 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     error InsufficientPendingDeposit();
     error PendingDepositActive();
     error ArkIsFrozen();
+    error InvalidSweepSlippage(Percentage newSlippage, Percentage maxSlippage);
+    error InsufficientAssetsReturned(
+        uint256 expectedAssets,
+        uint256 receivedAssets,
+        uint256 expectedShares,
+        uint256 receivedShares
+    );
 
     /*//////////////////////////////////////////////////////////////
                             EVENTS
@@ -84,6 +98,10 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     event CustodianWalletUpdated(address oldWallet, address newWallet);
     event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
     event ArkIsFrozenUpdated(bool isFrozen, uint256 frozenTotalAssets);
+    event SweepSlippageUpdated(
+        Percentage oldSweepSlippage,
+        Percentage newSweepSlippage
+    );
 
     /*//////////////////////////////////////////////////////////////
                            STATE VARIABLES
@@ -121,12 +139,16 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
     /// @notice Expected returning USDC amount equivalent to redeemed shares.
     uint256 public pendingWithdrawalAssets;
+    uint256 public pendingWithdrawalShares;
 
     /// @notice Type of Ark (MoneyMarket or NonMoneyMarket)
     WTArkType public immutable arkType;
 
     /// @notice Report of shares is given from cache or not
     bool public isArkFrozen;
+
+    /// @notice Maximum slippage for the sweep swap
+    Percentage public sweepSlippage;
 
     /// @notice Total assets of the ark when it was frozen
     uint256 private _frozenTotalAssets;
@@ -140,9 +162,10 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         address _shareToken,
         address _oracle,
         address _assetsForwarder,
+        Percentage _sweepSlippage,
         WTArkType _arkType,
         ArkParams memory _params
-    ) ArkWithWithdrawalRequest(_params, DEFAULT_SLIPPAGE) {
+    ) ArkWithWithdrawalRequest(_params, DEFAULT_SWAP_SLIPPAGE) {
         if (_custodianWallet == address(0)) revert InvalidTargetWallet();
         if (_oracle == address(0)) revert InvalidOracleAddress();
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
@@ -152,6 +175,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         shareToken = IERC20(_shareToken);
         oracle = AggregatorV3Interface(_oracle);
         assetsForwarder = IAssetsForwarder(_assetsForwarder);
+        sweepSlippage = _sweepSlippage;
         oracleDecimals = AggregatorV3Interface(_oracle).decimals();
         shareDecimals = IERC20Metadata(_shareToken).decimals();
         assetDecimals = IERC20Metadata(_params.asset).decimals();
@@ -303,6 +327,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
         // Record the expected returning USDC amount to keep totalAssets continuous
         pendingWithdrawalAssets += amount;
+        pendingWithdrawalShares += sharesToRedeem;
 
         emit SharesSentForRedemption(sharesToRedeem, amount);
         emit WithdrawalRequested(amount, 0);
@@ -339,13 +364,33 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
     {
-        pendingWithdrawalAssets = 0;
         IERC20 asset = config.asset;
+
+        // Check that the amount of assets returned in shares with current oracle price
+        // is not less than the amount of shares requested minus the sweep slippage
+        uint256 assetsInForwarder = asset.balanceOf(address(assetsForwarder));
+        uint256 sharesInForwarder = _assetsToShares(assetsInForwarder);
+
+        uint256 pendingWithdrawalSharesMinusSlippage = pendingWithdrawalShares
+            .subtractPercentage(sweepSlippage);
+
+        if (sharesInForwarder < pendingWithdrawalSharesMinusSlippage) {
+            revert InsufficientAssetsReturned(
+                pendingWithdrawalAssets,
+                assetsInForwarder,
+                pendingWithdrawalShares,
+                sharesInForwarder
+            );
+        }
+
         sweptTokens = new address[](1);
         sweptAmounts = new uint256[](1);
 
         sweptTokens[0] = address(asset);
-        sweptAmounts[0] = asset.balanceOf(address(assetsForwarder));
+        sweptAmounts[0] = assetsInForwarder;
+
+        pendingWithdrawalAssets = 0;
+        pendingWithdrawalShares = 0;
 
         assetsForwarder.sendAsset(
             address(this),
@@ -365,6 +410,20 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         }
 
         emit ArkSwept(sweptTokens, sweptAmounts);
+    }
+
+    /**
+     * @notice Sets the sweep slippage
+     * @param newSweepSlippage The new sweep slippage
+     */
+    function setSweepSlippage(Percentage newSweepSlippage) external onlyKeeper {
+        if (newSweepSlippage > MAX_SWEEP_SLIPPAGE) {
+            revert InvalidSweepSlippage(newSweepSlippage, MAX_SWEEP_SLIPPAGE);
+        }
+
+        emit SweepSlippageUpdated(sweepSlippage, newSweepSlippage);
+
+        sweepSlippage = newSweepSlippage;
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -12,6 +12,7 @@ export type WisdomTreeArkParams = BaseArkParams & {
   oracle: string
   fundName: string
   arkType?: number
+  sweepSlippage?: string
 }
 
 export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTreeArkParams) {

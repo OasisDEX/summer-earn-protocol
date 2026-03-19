@@ -13,6 +13,7 @@ import { deployFluidFTokenArk } from '../arks/deploy-fluid-ftoken-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployHyperlendArk } from '../arks/deploy-hyperlend-ark'
 import { deployHypurrArk } from '../arks/deploy-hypurr-ark'
+import { deployMapleInstitutionalArk } from '../arks/deploy-maple-institutional-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { deployMorphoArk } from '../arks/deploy-morpho-ark'
 import { deployMorphoV2VaultArk } from '../arks/deploy-morpho-v2-vault-ark'
@@ -33,7 +34,6 @@ import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import { deployWisdomTreeArk } from '../arks/deploy-wisdom-tree-ark'
-import { deployMapleInstitutionalArk } from '../arks/deploy-maple-institutional-ark'
 import {
   validateAddress,
   validateConfigAddressEntry,
@@ -481,12 +481,14 @@ export async function deployArk(
         `WisdomTree fund '${fundName}' oracle`,
       )
       const arkType = arkConfig.params.arkType
+      const sweepSlippage = arkConfig.params.sweepSlippage
       const ark = await deployWisdomTreeArk(config, {
         ...baseArkParams,
         fundName: fundName,
         targetWallet: targetWallet,
         shareToken: shareToken,
         oracle: oracle,
+        sweepSlippage: sweepSlippage,
         arkType: arkType,
       })
       deployedArk = ark

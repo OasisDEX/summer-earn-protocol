@@ -142,12 +142,14 @@
           "WTGXX": {
             "oracle": "0x15FAf95ae42313E0CdAcb6f8076E866Eb6965961",
             "shareToken": "0x5096b85Ed11798fDdCB8b5CB27C399c04689c435",
-            "targetWallet": "0x63a8bb98D70d0aC73460d22b6756528a087ecBf8"
+            "targetWallet": "0x63a8bb98D70d0aC73460d22b6756528a087ecBf8",
+            "sweepSlippage": "500000000000000000"
           },
           "WTSIX": {
             "oracle": "0x872E73cC259a025f089CEcF525cc657a9D521af3",
             "shareToken": "0xCf997c6A8DbdC1449e4dDE59Dbdf9cf6dA9d41c1",
-            "targetWallet": "0xa6fe9331eae8DFfA4A4fE93c8B8544653856E882"
+            "targetWallet": "0xa6fe9331eae8DFfA4A4fE93c8B8544653856E882",
+            "sweepSlippage": "500000000000000000"
           }
         }
       },

@@ -9,7 +9,7 @@ import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Percentage, PERCENTAGE_FACTOR, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 // Dummy mock for Chainlink Oracle
@@ -122,11 +122,13 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
         vm.startPrank(governor);
         forwarder = new AssetsForwarder(address(accessManager));
+        Percentage sweepSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
         ark = new WisdomTreeArk(
             targetWallet,
             address(wtToken),
             address(oracle),
             address(forwarder),
+            sweepSlippage,
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
@@ -168,6 +170,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             address(wtToken),
             address(oracle),
             address(forwarder),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
@@ -178,6 +181,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             address(wtToken),
             address(0),
             address(forwarder),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
@@ -188,6 +192,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             address(0),
             address(oracle),
             address(forwarder),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
@@ -198,6 +203,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
             address(wtToken),
             address(oracle),
             address(0),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
@@ -580,6 +586,85 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
         ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_Sweep_Success() public {
+        uint256 amount = 60000 * 1e6; // Equals 1 share worth exactly based on oracle Price
+        deal(USDC_ADDRESS, commander, amount);
+        
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18; 
+        wtToken.mint(address(forwarder), sharesMinted);
+        
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        // 0.5% slippage expected to work. 60000e6 * 0.995 = 59700e6
+        uint256 returnedUsdc = 59700 * 1e6;
+        deal(USDC_ADDRESS, address(forwarder), returnedUsdc);
+
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        vm.startPrank(keeper);
+        ark.sweep();
+        vm.stopPrank();
+
+        assertEq(ark.pendingWithdrawalShares(), 0);
+        assertEq(ark.pendingWithdrawalAssets(), 0);
+        assertEq(usdc.balanceOf(address(bufferArk)), returnedUsdc);
+    }
+
+    function test_Sweep_Reverts_InsufficientAssets() public {
+        uint256 amount = 60000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18; 
+        wtToken.mint(address(forwarder), sharesMinted);
+        
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        // 59600e6 is less than 59700e6 (0.5% slippage limit)
+        uint256 returnedUsdc = 59600 * 1e6; // Fails slippage constraint
+        deal(USDC_ADDRESS, address(forwarder), returnedUsdc);
+        
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        vm.startPrank(keeper);
+        vm.expectRevert();
+        ark.sweep();
         vm.stopPrank();
     }
 }
