@@ -83,7 +83,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     event SharesSentForRedemption(uint256 shares, uint256 expectedAssets);
     event CustodianWalletUpdated(address oldWallet, address newWallet);
     event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
-    event ArkIsFrozenUpdated(bool isFrozen);
+    event ArkIsFrozenUpdated(bool isFrozen, uint256 frozenTotalAssets);
 
     /*//////////////////////////////////////////////////////////////
                            STATE VARIABLES
@@ -179,7 +179,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
         // If there is an active deposit queue, we use the cached share balance.
         // This prevents double-counting shares that arrive before the keeper clears the deposit.
-        uint256 currentShares = pendingDepositAssets > 0 || isArkFrozen
+        uint256 currentShares = pendingDepositAssets > 0
             ? cachedShareBalance
             : shareToken.balanceOf(address(assetsForwarder));
 
@@ -259,7 +259,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
         isArkFrozen = _isArkFrozen;
 
-        emit ArkIsFrozenUpdated(_isArkFrozen);
+        emit ArkIsFrozenUpdated(_isArkFrozen, _frozenTotalAssets);
     }
 
     /**

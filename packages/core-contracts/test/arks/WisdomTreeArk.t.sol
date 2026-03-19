@@ -70,7 +70,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
     event CustodianWalletUpdated(address oldWallet, address newWallet);
     event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
-    event ArkIsFrozenUpdated(bool isFrozen);
+    event ArkIsFrozenUpdated(bool isFrozen, uint256 frozenTotalAssets);
 
     WisdomTreeArk public ark;
     BufferArk public bufferArk;
@@ -334,7 +334,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
         vm.startPrank(keeper);
         vm.expectEmit(false, false, false, true);
-        emit ArkIsFrozenUpdated(true);
+        emit ArkIsFrozenUpdated(true, 0);
         ark.setArkFrozen(true, type(uint256).max);
         vm.stopPrank();
 
