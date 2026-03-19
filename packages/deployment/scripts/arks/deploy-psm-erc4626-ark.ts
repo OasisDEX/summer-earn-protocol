@@ -126,6 +126,7 @@ async function getUserInput(config: BaseConfig): Promise<PsmERC4626ArkUserInput>
     vaultToken: responses.vaultSelection.token,
     psmType: psmTypeResponse.psmType,
     fleetName: fleetDefinition.fleetName,
+    version: 1,
   }
 }
 

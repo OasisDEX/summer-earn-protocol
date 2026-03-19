@@ -45,6 +45,7 @@ export enum ArkType {
   MorphoV2VaultArk = 'MorphoV2VaultArk',
   MapleInstitutionalArk = 'MapleInstitutionalArk',
   UpshiftArk = 'UpshiftArk',
+  OriginUSDArk = 'OriginUSDArk',
 }
 
 export const arkTypes = [
@@ -78,6 +79,7 @@ export const arkTypes = [
   { title: 'HypurrArk', value: ArkType.HypurrArk },
   { title: 'MapleInstitutionalArk', value: ArkType.MapleInstitutionalArk },
   { title: 'UpshiftArk', value: ArkType.UpshiftArk },
+  { title: 'OriginUSDArk', value: ArkType.OriginUSDArk },
 ]
 
 export interface Config {
@@ -265,6 +267,9 @@ export interface BaseConfig {
         }
       }
     }
+    originUSD: {
+      originUSD: Address
+    }
     originETH: {
       originETH: Address
       arm: Address
@@ -273,6 +278,9 @@ export interface BaseConfig {
           [key: string]: Address
         }
       }
+    }
+    upshift: {
+      [key in Token]: Address
     }
     aera: {
       vaults: {

@@ -17,6 +17,7 @@ import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { deployMorphoArk } from '../arks/deploy-morpho-ark'
 import { deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
 import { deployOriginETHArk } from '../arks/deploy-origineth-ark'
+import { deployOriginUSDArk } from '../arks/deploy-originusd-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
@@ -362,6 +363,11 @@ export async function deployArk(
         siloName: vaultName,
       }
       deployedArk = await deploySiloArkV2(config, siloParams)
+      break
+    }
+    case ArkType.OriginUSDArk: {
+      const ark = await deployOriginUSDArk(config, baseArkParams)
+      deployedArk = ark
       break
     }
     case ArkType.OriginETHArk: {
