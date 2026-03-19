@@ -1,13 +1,20 @@
 {
   "fleetName": "BummerLazyVault_USDC",
   "symbol": "LVUSDC",
+  "isBummer": true,
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "100000000",
   "initialRebalanceCooldown": "600",
   "depositCap": "0",
   "initialTipRate": "1000000000000000000",
   "network": "mainnet",
-  "details": "",
+  "details": {
+    "type": "protocol",
+    "name": "BummerLazyVault_LowerRisk_USDC_1",
+    "chainId": 1,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC"
+  },
   "discourseURL": "",
   "sipNumber": "1",
   "rewardTokens": [],
@@ -50,6 +57,39 @@
         "protocol": "Sky",
         "vaultToken": "USDS",
         "vaultName": "Sky_Staked_USDS",
+        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+      }
+    },
+    {
+      "type": "PsmLiteERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Sky",
+        "vaultToken": "USDS",
+        "vaultName": "Sky_Staked_USDS",
+        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+      }
+    },
+    {
+      "type": "OriginUSDArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Origin",
+        "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+      }
+    },
+    {
+      "type": "UpshiftArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Upshift",
+        "vaultName": "Upshift_Core_USDC",
         "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
         "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
         "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
