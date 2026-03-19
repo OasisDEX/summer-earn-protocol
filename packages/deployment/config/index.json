@@ -972,6 +972,11 @@
       "infinifi": {
         "gateway": "0x3f04b65Ddbd87f9CE0A2e7Eb24d80e7fb87625b5",
         "siUSD": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB"
+      },
+      "upshift": {
+        "usdc": {
+          "Upshift_Core_USDC": "0xf2cd14f02b4fdc0d26681fbc7f60a11b8378f96d"
+        }
       }
     },
     "bridge": {

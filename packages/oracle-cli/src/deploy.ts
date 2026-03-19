@@ -44,16 +44,10 @@ const deployResultsPath = path.join(__dirname, '../deploy-results.json')
 
 const NETWORK_TO_CHAIN_ID: Record<string, number> = {
   mainnet: 1,
-  ethereum: 1,
   base: 8453,
   arbitrum: 42161,
   sonic: 146,
   hyperliquid: 999,
-}
-
-/** Map config network to deployment file key (mainnet <-> ethereum) */
-function toDeploymentKey(network: string): string {
-  return network === 'mainnet' ? 'ethereum' : network
 }
 
 function loadOrMigrateDeployments(): DeploymentFile {
@@ -80,7 +74,7 @@ function loadOrMigrateDeployments(): DeploymentFile {
     }>
     for (const r of results) {
       if ((r.status === 'deployed' || r.status === 'skipped') && r.oracle !== '0x0') {
-        const key = toDeploymentKey(r.network)
+        const key = r.network
         const chain = migrated[key]
         if (
           chain &&
@@ -157,7 +151,7 @@ async function main() {
       const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
       const walletClient = createWalletClient({ account, chain, transport: http(rpcUrl) })
 
-      const deployKey = toDeploymentKey(config.network)
+      const deployKey = config.network
       const chainDeploy = deployments[deployKey] ?? {
         chainId: chain.id,
         oracleRegistry: zeroAddress,

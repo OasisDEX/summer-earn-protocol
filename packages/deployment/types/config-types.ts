@@ -179,6 +179,15 @@ export interface BaseConfig {
     }
   }
   protocolSpecific: {
+    wisdomtree: {
+      [key in Token]: {
+        [key: string]: {
+          oracle: string
+          shareToken: string
+          targetWallet: string
+        }
+      }
+    }
     aaveV3: {
       pool: string
       rewards: string
@@ -314,6 +323,7 @@ export interface BaseConfig {
       pool: Address
       rewards: Address
     }
+    upshift: Record<Token, Record<string, string>>
   }
   bridge?: DeployedBridge
 }
