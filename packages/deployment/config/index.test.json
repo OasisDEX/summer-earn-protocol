@@ -258,6 +258,11 @@
         "psm3": {
           "usdc": "0x1601843c5E9bC251A3272907010AFa41Fa18347E"
         }
+      },
+      "upshift": {
+        "usdc": {
+          "Upshift_Core_USDC": "0xf2cd14f02b4fdc0d26681fbc7f60a11b8378f96d"
+        }
       }
     }
   },
