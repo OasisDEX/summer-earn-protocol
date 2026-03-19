@@ -5,6 +5,7 @@ import { arkAbi } from '@/abis/Ark'
 import { arkWithWithdrawalRequestAbi } from '@/abis/ArkWithWithdrawalRequest'
 import { erc20Abi } from '@/abis/ERC20'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
+import { wisdomTreeArkAbi } from '@/abis/WisdomTreeArk'
 import { CHAIN_RPC_URLS, createRpcTransport, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 
 const TTL_MS = 10 * 60 * 1000
@@ -55,7 +56,7 @@ export async function GET(
   const allArks = [...activeArks, bufferArkAddress]
   if (allArks.length === 0) return NextResponse.json([])
 
-  const callsPerArk = CALLS_PER_ARK_BASE + 3 + (assetAddress ? 1 : 0)
+  const callsPerArk = CALLS_PER_ARK_BASE + 5 + (assetAddress ? 1 : 0) // +2 for WisdomTree methods
 
   // Multicall 2: base ark reads + optional IArkWithWithdrawalRequest reads + asset balanceOf
   const arkCalls = allArks.flatMap((arkAddress) => [
@@ -86,6 +87,18 @@ export async function GET(
       address: arkAddress,
       abi: arkWithWithdrawalRequestAbi,
       functionName: 'isWithdrawalClaimRequired' as const,
+    },
+    // Optional WisdomTree methods (allow failure)
+    {
+      address: arkAddress,
+      abi: wisdomTreeArkAbi,
+      functionName: 'pendingDepositAssets' as const,
+    },
+    {
+      address: arkAddress,
+      abi: wisdomTreeArkAbi,
+      functionName: 'sharesToAssets' as const,
+      args: [1000000000000000000n] as const,
     },
     ...(assetAddress
       ? [
@@ -128,9 +141,10 @@ export async function GET(
       withdrawalRequestIdRes,
       assetsInWithdrawalQueueRes,
       isWithdrawalClaimRequiredRes,
+      pendingDepositAssetsRes,
+      sharesToAssets1e18Res,
     ] = slice
-    const assetBalanceRes = assetAddress ? slice[10] : undefined
-
+    const assetBalanceRes = assetAddress ? slice[12] : undefined
     const withdrawalRequestId =
       withdrawalRequestIdRes?.status === 'success'
         ? (withdrawalRequestIdRes.result as bigint).toString()
@@ -148,6 +162,15 @@ export async function GET(
         ? (assetBalanceRes.result as bigint).toString()
         : undefined
 
+    const pendingDepositAssets =
+      pendingDepositAssetsRes?.status === 'success'
+        ? (pendingDepositAssetsRes.result as bigint).toString()
+        : undefined
+
+    const sharesToAssets1e18 =
+      sharesToAssets1e18Res?.status === 'success'
+        ? (sharesToAssets1e18Res.result as bigint).toString()
+        : undefined
     const hasWithdrawalQueue =
       withdrawalRequestIdRes?.status === 'success' ||
       assetsInWithdrawalQueueRes?.status === 'success' ||
@@ -170,6 +193,8 @@ export async function GET(
       }),
       assetBalance,
       needsSweep: assetBalance !== undefined && assetBalance !== '0',
+      ...(pendingDepositAssets !== undefined && { pendingDepositAssets }),
+      ...(sharesToAssets1e18 !== undefined && { sharesToAssets1e18 }),
     }
   })
 
