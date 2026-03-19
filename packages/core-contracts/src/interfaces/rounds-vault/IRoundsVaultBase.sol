@@ -96,4 +96,18 @@ interface IRoundsVaultBase is IERC4626MultiTokenWrapper {
     function getExchangeRate(
         uint256 round
     ) external view returns (Price memory);
+
+    /**
+        @notice Function to mark a round as settled
+     
+        @dev Only the caller can call this function
+     */
+    function setRoundSettled(uint256 roundNumber) external;
+
+    /**
+        @notice Function to mark a batch of rounds as settled
+     
+        @dev Only the caller can call this function
+     */
+    function setRoundSettledBatch(uint256[] calldata roundNumbers) external;
 }

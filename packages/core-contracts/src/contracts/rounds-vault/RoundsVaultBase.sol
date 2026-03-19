@@ -57,6 +57,10 @@ abstract contract RoundsVaultBase is
     /// For an Output Vault, this is the underlying asset of the target vault.
     address private _exchangeAsset;
 
+    /// @notice Tracks the current progression phase of each round.
+    /// @dev Used to ensure users can only redeem assets for rounds that are fully `Settled`.
+    mapping(uint256 => RoundState) public roundState;
+
     /**
      * CONSTRUCTOR
      */
@@ -110,11 +114,31 @@ abstract contract RoundsVaultBase is
 
         _exchangeRateByRound[_roundNumber] = exchangeRate;
 
+        roundState[_roundNumber] = RoundState.InSettlement;
+
         _operate();
 
         _roundNumber++;
 
+        roundState[_roundNumber] = RoundState.Opened;
+
         emit NextRound(_roundNumber, exchangeRate);
+    }
+
+    /**
+     * @inheritdoc IRoundsVaultBase
+     */
+    function setRoundSettled(uint256 roundNumber) external onlyKeeper {
+        _setRoundSettled(roundNumber);
+    }
+
+    /**
+     * @inheritdoc IRoundsVaultBase
+     */
+    function setRoundSettledBatch(uint256[] calldata roundNumbers) external onlyKeeper {
+        for (uint256 i = 0; i < roundNumbers.length; i++) {
+            _setRoundSettled(roundNumbers[i]);
+        }
     }
 
     ///@inheritdoc Whitelist
@@ -199,6 +223,9 @@ abstract contract RoundsVaultBase is
         if (id >= _roundNumber) {
             revert CannotRedeeemExchangeAssetCurrentRound(id, _roundNumber);
         }
+        if (roundState[id] != RoundState.Settled) {
+            revert RoundNotSettled(id);
+        }
 
         return _redeemExchangeAsset(_msgSender(), receiver, owner, id, amount);
     }
@@ -228,6 +255,9 @@ abstract contract RoundsVaultBase is
                     ids[i],
                     _roundNumber
                 );
+            }
+            if (roundState[ids[i]] != RoundState.Settled) {
+                revert RoundNotSettled(ids[i]);
             }
         }
 
@@ -294,6 +324,14 @@ abstract contract RoundsVaultBase is
         view
         virtual
         returns (Price memory);
+
+    /**
+     * @notice Helper function to mark a round as settled
+     */
+    function _setRoundSettled(uint256 roundNumber) internal {
+        roundState[roundNumber] = RoundState.Settled;
+        emit RoundSettled(roundNumber);
+    }
 
     // PRIVATES
 

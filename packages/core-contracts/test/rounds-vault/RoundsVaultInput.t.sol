@@ -325,8 +325,10 @@ contract RoundsVaultInputTest is
         assertEq(vault.balanceOf(unprivilegedAccount, 1), assets);
 
         // Advance round
-        vm.prank(operator);
+        vm.startPrank(operator);
         vault.nextRound(); // 1 -> 2
+        vault.setRoundSettled(1);
+        vm.stopPrank();
 
         vm.startPrank(unprivilegedAccount);
 
@@ -376,8 +378,14 @@ contract RoundsVaultInputTest is
         vault.deposit(assets / 2, unprivilegedAccount);
         vm.stopPrank();
 
-        vm.prank(operator);
+        vm.startPrank(operator);
         vault.nextRound(); // 2 -> 3
+        
+        uint256[] memory settleIds = new uint256[](2);
+        settleIds[0] = 1;
+        settleIds[1] = 2;
+        vault.setRoundSettledBatch(settleIds);
+        vm.stopPrank();
 
         vm.startPrank(unprivilegedAccount);
 

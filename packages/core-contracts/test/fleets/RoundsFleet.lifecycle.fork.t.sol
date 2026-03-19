@@ -23,6 +23,7 @@ import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {RoundsVaultInput} from "../../src/contracts/rounds-vault/RoundsVaultInput.sol";
 import {RoundsVaultOutput} from "../../src/contracts/rounds-vault/RoundsVaultOutput.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
 
 contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     ERC4626Ark public usdcGearboxERC4626Ark;
@@ -190,6 +191,9 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         usdcFleetCommanderWhitelisted.setWhitelisted(usdcUser, true);
         usdcFleetCommanderWhitelisted.setFleetTokenTransferability();
 
+        usdcRoundsVaultInput.setWhitelisted(usdcUser, true);
+        usdcRoundsVaultOutput.setWhitelisted(usdcUser, true);
+
         vm.stopPrank();
 
         uint256 usdcTotalDeposit = 1000 * 10 ** 6; // 1000 USDC
@@ -210,8 +214,10 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.stopPrank();
 
         // Wait for the keeper to go to the next round
-        vm.prank(keeper);
+        vm.startPrank(keeper);
         usdcRoundsVaultInput.nextRound();
+        usdcRoundsVaultInput.setRoundSettled(0);
+        vm.stopPrank();
 
         // Exchange the receipt for shares
         vm.prank(usdcUser);
@@ -264,9 +270,38 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         usdcFleetCommander.rebalance(rebalanceData);
 
-        // Wait for the keeper to go another round
+        // Wait for the keeper to go another 3 rounds to have unsettled rounds
+        vm.startPrank(keeper);
+        usdcRoundsVaultOutput.nextRound(); // Round 0 finishes
+        usdcRoundsVaultOutput.nextRound(); // Round 1 finishes
+        usdcRoundsVaultOutput.nextRound(); // Round 2 finishes
+        vm.stopPrank();
+
+        // Check that not settled rounds cannot redeemExchangeAsset
+        vm.startPrank(usdcUser);
+        vm.expectRevert(abi.encodeWithSelector(IRoundsVaultBaseErrors.RoundNotSettled.selector, 0));
+        usdcRoundsVaultOutput.redeemExchangeAsset(
+            0,
+            userShares,
+            usdcUser,
+            usdcUser
+        );
+        vm.stopPrank();
+
+        // Settle the first round
         vm.prank(keeper);
-        usdcRoundsVaultOutput.nextRound();
+        usdcRoundsVaultOutput.setRoundSettled(0);
+
+        // Verify round 1 still reverts
+        vm.startPrank(usdcUser);
+        vm.expectRevert(abi.encodeWithSelector(IRoundsVaultBaseErrors.RoundNotSettled.selector, 1));
+        usdcRoundsVaultOutput.redeemExchangeAsset(
+            1,
+            userShares,
+            usdcUser,
+            usdcUser
+        );
+        vm.stopPrank();
 
         // Exchange their receipt ticket for withdrawal for the actual assets
         vm.prank(usdcUser);

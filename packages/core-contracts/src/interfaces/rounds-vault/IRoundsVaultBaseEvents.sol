@@ -36,4 +36,7 @@ interface IRoundsVaultBaseEvents {
         uint256[] receiptIds,
         uint256[] receiptAmounts
     );
+
+    /// Emitted when a round is marked as settled
+    event RoundSettled(uint256 indexed roundNumber);
 }

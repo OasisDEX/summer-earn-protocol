@@ -234,8 +234,10 @@ contract RoundsVaultOutputTest is
         vm.prank(unprivilegedAccount);
         vault.deposit(sharesToDeposit, unprivilegedAccount);
 
-        vm.prank(operator);
+        vm.startPrank(operator);
         vault.nextRound(); // 0 -> 1
+        vault.setRoundSettled(0);
+        vm.stopPrank();
 
         // Now User redeems receipt from Round 0
         vm.startPrank(unprivilegedAccount);
@@ -340,8 +342,14 @@ contract RoundsVaultOutputTest is
         vault.deposit(shares1, unprivilegedAccount);
         vm.stopPrank();
 
-        vm.prank(operator);
+        vm.startPrank(operator);
         vault.nextRound(); // 1 -> 2
+        
+        uint256[] memory settleIds = new uint256[](2);
+        settleIds[0] = 0;
+        settleIds[1] = 1;
+        vault.setRoundSettledBatch(settleIds);
+        vm.stopPrank();
 
         // Redeem Batch (0 and 1) -> Should get Assets
         vm.startPrank(unprivilegedAccount);

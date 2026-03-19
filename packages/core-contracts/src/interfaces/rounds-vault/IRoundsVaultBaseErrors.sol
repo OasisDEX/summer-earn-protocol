@@ -29,4 +29,7 @@ interface IRoundsVaultBaseErrors {
         uint256[] receiptIds,
         uint256 currentRound
     );
+
+    /// Error thrown when trying to redeem an exchange asset for a round that is not settled
+    error RoundNotSettled(uint256 roundNumber);
 }
