@@ -21,8 +21,8 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
     /// @notice The decimals offset between OUSD (18 decimals) and USDC (6 decimals)
     uint256 private constant DECIMALS_OFFSET = 1e12;
 
-    /// @notice The number of days required to wait before claiming withdrawal (15 days for OETH/OUSD)
-    uint256 private constant CLAIM_DELAY_IN_DAYS = 15;
+    /// @notice Default slippage for swaps
+    uint256 private constant DEFAULT_SLIPPAGE = 15;
 
     /// @notice The Origin USD contract this Ark interacts with
     IOriginUSD public immutable originUSD;
@@ -42,7 +42,7 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
     constructor(
         address _originUSD,
         ArkParams memory _params
-    ) ArkWithWithdrawalRequest(_params, CLAIM_DELAY_IN_DAYS) {
+    ) ArkWithWithdrawalRequest(_params, DEFAULT_SLIPPAGE) {
         if (_originUSD == address(0)) {
             revert InvalidOriginUSDAddress();
         }
@@ -55,6 +55,8 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
         }
 
         originUSDVault = IOriginUSDVault(vaultAddress);
+
+        // Origin requires rebase opt-in for smart contracts - otherwise there is no yield
         originUSD.rebaseOptIn();
     }
 
@@ -71,7 +73,7 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
         returns (uint256 assets)
     {
         assets += config.asset.balanceOf(address(this));
-        assets += originUSD.balanceOf(address(this)) / DECIMALS_OFFSET;
+        assets += fromOriginDecimals(originUSD.balanceOf(address(this)));
         assets += assetsInWithdrawalQueue();
     }
 
@@ -86,7 +88,7 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
             memory withdrawalRequest = originUSDVault.withdrawalRequests(
                 withdrawalRequestId
             );
-        return withdrawalRequest.amount / DECIMALS_OFFSET;
+        return fromOriginDecimals(withdrawalRequest.amount);
     }
 
     /**
@@ -101,7 +103,7 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
             address(originUSD),
             address(config.asset),
             swapData.router,
-            amount * DECIMALS_OFFSET,
+            toOriginDecimals(amount),
             _applySlippage(amount),
             swapData.swapCalldata
         );
@@ -120,7 +122,7 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
         if (amount == type(uint256).max) {
             withdrawAmount = originUSD.balanceOf(address(this));
         } else {
-            withdrawAmount = amount * DECIMALS_OFFSET;
+            withdrawAmount = toOriginDecimals(amount);
         }
         (uint256 requestId, ) = originUSDVault.requestWithdrawal(
             withdrawAmount
@@ -160,7 +162,7 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
         override
         returns (uint256 withdrawableAssets)
     {
-        withdrawableAssets += config.asset.balanceOf(address(this));
+        withdrawableAssets = config.asset.balanceOf(address(this));
     }
 
     /**
@@ -178,12 +180,7 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
      * @param amount The amount of assets to withdraw
      * @param /// data Additional data (unused in this implementation)
      */
-    function _disembark(uint256 amount, bytes calldata) internal override {
-        uint256 usdcBalance = config.asset.balanceOf(address(this));
-        if (usdcBalance < amount) {
-            revert InsufficientAssetBalance();
-        }
-    }
+    function _disembark(uint256 amount, bytes calldata) internal override {}
 
     /**
      * @notice Internal function for harvesting rewards
@@ -217,6 +214,26 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
      * @param /// data Additional data to validate
      */
     function _validateDisembarkData(bytes calldata) internal pure override {}
+
+    /**
+     * @notice Converts an amount to Origin USD decimals
+     * @param amount The amount to convert
+     * @return The amount in Origin USD decimals
+     */
+    function toOriginDecimals(uint256 amount) internal pure returns (uint256) {
+        return amount * DECIMALS_OFFSET;
+    }
+
+    /**
+     * @notice Converts an amount from Origin USD decimals
+     * @param amount The amount to convert
+     * @return The amount in standard decimals
+     */
+    function fromOriginDecimals(
+        uint256 amount
+    ) internal pure returns (uint256) {
+        return amount / DECIMALS_OFFSET;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
