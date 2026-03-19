@@ -1,0 +1,8 @@
+node_modules
+build
+.turbo
+generated
+artifacts
+ignition
+.next
+.vercel

@@ -80,5 +80,3 @@ export const summerVestingWalletAbi = [
     stateMutability: 'nonpayable',
   },
 ] as const
-
-

@@ -163,7 +163,14 @@ abstract contract RoundsVaultBase is
     function deposit(
         uint256 assets,
         address receiver
-    ) public virtual override(IERC4626MultiToken, ERC4626MultiToken) onlyWhitelisted(receiver) onlyWhitelisted(_msgSender()) returns (uint256) {
+    )
+        public
+        virtual
+        override(IERC4626MultiToken, ERC4626MultiToken)
+        onlyWhitelisted(receiver)
+        onlyWhitelisted(_msgSender())
+        returns (uint256)
+    {
         return super.deposit(assets, receiver);
     }
 
@@ -175,7 +182,14 @@ abstract contract RoundsVaultBase is
         uint256 amount,
         address receiver,
         address owner
-    ) public virtual override(IERC4626MultiToken, ERC4626MultiToken) onlyWhitelisted(receiver) onlyWhitelisted(_msgSender()) returns (uint256) {
+    )
+        public
+        virtual
+        override(IERC4626MultiToken, ERC4626MultiToken)
+        onlyWhitelisted(receiver)
+        onlyWhitelisted(_msgSender())
+        returns (uint256)
+    {
         if (id != _roundNumber) {
             revert CanOnlyRedeemCurrentRound(id, _roundNumber);
         }
@@ -219,7 +233,12 @@ abstract contract RoundsVaultBase is
         uint256 amount,
         address receiver,
         address owner
-    ) public onlyWhitelisted(receiver) onlyWhitelisted(_msgSender()) returns (uint256) {
+    )
+        public
+        onlyWhitelisted(receiver)
+        onlyWhitelisted(_msgSender())
+        returns (uint256)
+    {
         if (id >= _roundNumber) {
             revert CannotRedeeemExchangeAssetCurrentRound(id, _roundNumber);
         }
@@ -244,7 +263,12 @@ abstract contract RoundsVaultBase is
         uint256[] calldata amounts,
         address receiver,
         address owner
-    ) public onlyWhitelisted(receiver) onlyWhitelisted(_msgSender()) returns (uint256 shares) {
+    )
+        public
+        onlyWhitelisted(receiver)
+        onlyWhitelisted(_msgSender())
+        returns (uint256 shares)
+    {
         if (ids.length != amounts.length) {
             revert BadRedeemBatchParameters(ids.length, amounts.length);
         }

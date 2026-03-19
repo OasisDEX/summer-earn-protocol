@@ -2,5 +2,9 @@
   "name": "@summerfi/constants",
   "version": "0.0.1",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts"
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern"
+  }
 }

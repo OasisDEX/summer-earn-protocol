@@ -128,10 +128,9 @@
   "InstitutionWhitelist_WisdomTree#AdmiralsQuartersWhitelist": "0xA6216397787Abab354AC941Aa76a5f8659556D85",
   "InstitutionWhitelist_WisdomTree#TipJar": "0xd60B012c24F36bB72d2E50B01c38A490187690c1",
   "staging_RoundsFleetWhitelist_WisdomTree_USDC_Base#FleetCommanderWhitelist": "0x9FD22516FF2EBeaF1fcA9bcace1F25cf13Ae9cEC",
-  "staging_WisdomTreeArk_WisdomTree_USDC_Base#WisdomTreeArk": "0x24fE4af7261ADfb15843dc1Ba2F9B6a9e6646987",
   "staging_RoundsVaultInput_WisdomTree_USDC_Base#RoundsVaultInput": "0xA5ffD1e5d6Ddc4c3B90Bb618b257522ce108922B",
   "staging_RoundsVaultOutput_WisdomTree_USDC_Base#RoundsVaultOutput": "0xAC2F8f0a4B078d853D54fd8Ab8Cc69EA0f2c54aD",
-  "staging_WisdomTreeArk_test_2_WisdomTree_USDC_Base#WisdomTreeArk": "0x252E5Aa42c1804b85b2ce6712cd418A0561232Ba",
-  "staging_WisdomTree_USDC_Base_WisdomTree_WTSIX_usdc_8453#WisdomTreeArk": "0xaF6DDe695cf71EF2a2A9eF69A95FB581f724301d",
-  "staging_WisdomTree_USDC_Base_WisdomTree_WTGXX_usdc_8453#WisdomTreeArk": "0xf32d434a475F0983dC99353faabfec3053a6d772"
+  "staging_WisdomTree_USDC_Base_WisdomTree_WTGXX_usdc_8453#WisdomTreeArk": "0x6049dA0261232Cbb7ca189f1681F23BAd06BF54e",
+  "staging_WisdomTree_USDC_Base_WisdomTree_WTSIX_usdc_8453#WisdomTreeArk": "0x573dB12030d77eEa49162F3e9C4B1D988BB2396B",
+  "AssetsForwarderModule#AssetsForwarder": "0xbFd0cED8fcd053291127203Ad1cd1616077418ec"
 }

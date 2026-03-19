@@ -1,26 +1,26 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import { Escrow } from "../src/contracts/Escrow.sol";
-import { IntentBondFactory } from "../src/contracts/IntentBondFactory.sol";
-import { IntentHandler } from "../src/contracts/IntentHandler.sol";
-import { SolverBond } from "../src/contracts/SolverBond.sol";
-import { IIntentHandler } from "../src/interfaces/IIntentHandler.sol";
-import { MockIntentOracle } from "../src/mocks/MockIntentOracle.sol";
-import { MockSummerToken } from "../src/mocks/MockSummerToken.sol";
-import { MockERC20 } from "./mocks/MockERC20.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { ProtocolAccessManager } from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import { ConfigurationManager } from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
-import { ConfigurationManagerParams } from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
-import { AaveV3Ark } from "@summerfi/earn-protocol-contracts/contracts/arks/AaveV3Ark.sol";
-import { DataTypes } from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/DataTypes.sol";
-import { IPoolV3 } from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IPoolV3.sol";
-import { IRewardsController } from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IRewardsController.sol";
-import { ArkParams } from "@summerfi/earn-protocol-contracts/types/ArkTypes.sol";
-import { ArkTestBase } from "@summerfi/earn-protocol-test/arks/ArkTestBase.sol";
-import { Percentage } from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import { Test } from "forge-std/Test.sol";
+import {Escrow} from "../src/contracts/Escrow.sol";
+import {IntentBondFactory} from "../src/contracts/IntentBondFactory.sol";
+import {IntentHandler} from "../src/contracts/IntentHandler.sol";
+import {SolverBond} from "../src/contracts/SolverBond.sol";
+import {IIntentHandler} from "../src/interfaces/IIntentHandler.sol";
+import {MockIntentOracle} from "../src/mocks/MockIntentOracle.sol";
+import {MockSummerToken} from "../src/mocks/MockSummerToken.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
+import {AaveV3Ark} from "@summerfi/earn-protocol-contracts/contracts/arks/AaveV3Ark.sol";
+import {DataTypes} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/DataTypes.sol";
+import {IPoolV3} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IPoolV3.sol";
+import {IRewardsController} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IRewardsController.sol";
+import {ArkParams} from "@summerfi/earn-protocol-contracts/types/ArkTypes.sol";
+import {ArkTestBase} from "@summerfi/earn-protocol-test/arks/ArkTestBase.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Test} from "forge-std/Test.sol";
 
 /**
  * @title AaveV3 Intent Flow Integration Test
@@ -28,7 +28,6 @@ import { Test } from "forge-std/Test.sol";
  * @dev Recreates AaveV3IntentArk functionality using the new modular architecture
  */
 contract AaveV3IntentFlowTest is Test, ArkTestBase {
-
     // Core contracts
     Escrow public escrow;
     IntentHandler public intentHandler;
@@ -43,11 +42,16 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
     MockSummerToken public summerToken;
     AaveV3Ark public ark;
 
-    address public constant USDC_MAINNET = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    address public constant aaveV3PoolAddress = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
-    address public aaveAddressProvider = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
-    address public aaveV3DataProvider = 0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3;
-    address public rewardsController = 0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
+    address public constant USDC_MAINNET =
+        0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public constant aaveV3PoolAddress =
+        0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+    address public aaveAddressProvider =
+        0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+    address public aaveV3DataProvider =
+        0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3;
+    address public rewardsController =
+        0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
 
     // Test addresses
     address public solver = address(0x789);
@@ -68,7 +72,10 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         vm.selectFork(forkId);
 
         initializeCoreContracts();
-        (commander,) = setupFleetCommanderWithBufferArk(USDC_MAINNET, "Aave V3 USDC Ark");
+        (commander, ) = setupFleetCommanderWithBufferArk(
+            USDC_MAINNET,
+            "Aave V3 USDC Ark"
+        );
 
         // Deploy infrastructure
         accessManager = new ProtocolAccessManager(governor);
@@ -86,9 +93,16 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         // Deploy intent system
 
         mockOracle = new MockIntentOracle();
-        intentBondFactory = new IntentBondFactory(address(summerToken), address(accessManager), address(mockOracle));
+        intentBondFactory = new IntentBondFactory(
+            address(summerToken),
+            address(accessManager),
+            address(mockOracle)
+        );
         intentHandler = new IntentHandler(
-            address(intentBondFactory), address(mockOracle), address(summerToken), address(accessManager)
+            address(intentBondFactory),
+            address(mockOracle),
+            address(summerToken),
+            address(accessManager)
         );
 
         // Setup roles
@@ -120,7 +134,10 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
 
         // Permissioning
         vm.startPrank(governor);
-        accessManager.grantCommanderRole(address(address(ark)), address(commander));
+        accessManager.grantCommanderRole(
+            address(address(ark)),
+            address(commander)
+        );
         vm.stopPrank();
 
         vm.startPrank(commander);
@@ -170,7 +187,10 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         vm.stopPrank();
 
         // Verify intent was created
-        assertTrue(intentHandler.intentStates(keccak256(abi.encode(intent))) == IIntentHandler.IntentState.Created);
+        assertTrue(
+            intentHandler.intentStates(keccak256(abi.encode(intent))) ==
+                IIntentHandler.IntentState.Created
+        );
 
         // Step 2: Solver solves the intent
         vm.startPrank(solver);
@@ -180,7 +200,10 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         vm.stopPrank();
 
         // Verify intent was solved
-        assertTrue(intentHandler.intentStates(keccak256(abi.encode(intent))) == IIntentHandler.IntentState.Solved);
+        assertTrue(
+            intentHandler.intentStates(keccak256(abi.encode(intent))) ==
+                IIntentHandler.IntentState.Solved
+        );
 
         // Step 3: Time passes - yield generation period
         vm.warp(block.timestamp + TERM + 1);
@@ -191,7 +214,10 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         vm.stopPrank();
 
         // Verify intent is settled
-        assertTrue(intentHandler.intentStates(keccak256(abi.encode(intent))) == IIntentHandler.IntentState.Settled);
+        assertTrue(
+            intentHandler.intentStates(keccak256(abi.encode(intent))) ==
+                IIntentHandler.IntentState.Settled
+        );
 
         // Verify solver bond is intact (successful completion)
         assertTrue(intentBondFactory.isSolverVouched(solver, BOND_AMOUNT));
@@ -213,7 +239,11 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
 
         // Test return escrowed yield operation
         vm.startPrank(address(intentHandler));
-        solverEscrow.withdraw(address(usdc), address(intentHandler), bytes32("1"));
+        solverEscrow.withdraw(
+            address(usdc),
+            address(intentHandler),
+            bytes32("1")
+        );
         vm.stopPrank();
     }
 
@@ -237,7 +267,10 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         vm.stopPrank();
 
         // Verify intent was cancelled
-        assertTrue(intentHandler.intentStates(keccak256(abi.encode(intent))) == IIntentHandler.IntentState.UserResigned);
+        assertTrue(
+            intentHandler.intentStates(keccak256(abi.encode(intent))) ==
+                IIntentHandler.IntentState.UserResigned
+        );
     }
 
     function test_SolverResignation() public {
@@ -267,11 +300,15 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
 
         // Verify resignation and bond slashing
         assertTrue(
-            intentHandler.intentStates(keccak256(abi.encode(intent))) == IIntentHandler.IntentState.SolverResigned
+            intentHandler.intentStates(keccak256(abi.encode(intent))) ==
+                IIntentHandler.IntentState.SolverResigned
         );
 
         // Bond should be slashed by 50%
-        assertEq(intentBondFactory.getSolverBondAmount(solver), BOND_AMOUNT / 2);
+        assertEq(
+            intentBondFactory.getSolverBondAmount(solver),
+            BOND_AMOUNT / 2
+        );
     }
 
     function test_OracleDecimalHandling() public {
@@ -284,14 +321,23 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         mockOracle.setPrice(usdcToken, 1e18, 6); // $1.00, 6 decimals
         vm.stopPrank();
 
-        (uint256 usdcPrice,, uint8 usdcDecimals) = mockOracle.getPrice(usdcToken);
-        assertEq(usdcPrice, 1e18, "USDC price should be $1.00 with 18 decimals");
+        (uint256 usdcPrice, , uint8 usdcDecimals) = mockOracle.getPrice(
+            usdcToken
+        );
+        assertEq(
+            usdcPrice,
+            1e18,
+            "USDC price should be $1.00 with 18 decimals"
+        );
         assertEq(usdcDecimals, 6, "USDC should have 6 decimals");
 
         // Calculate notional value of 1000 USDC
         // Formula: (amount * price) / (10 ** decimals)
         // (1000e6 * 1e18) / (10 ** 6) = 1000e18 = $1000.00
-        uint256 usdcNotional = mockOracle.calculateNotionalValue(usdcToken, 1000e6);
+        uint256 usdcNotional = mockOracle.calculateNotionalValue(
+            usdcToken,
+            1000e6
+        );
         assertEq(usdcNotional, 1000e18, "1000 USDC should equal $1000.00");
 
         // Test 2: Summer token (18 decimals) at $1.00
@@ -300,21 +346,36 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         mockOracle.setPrice(summerTokenAddr, 1e18, 18); // $1.00, 18 decimals
         vm.stopPrank();
 
-        (uint256 sumrPrice,, uint8 sumrDecimals) = mockOracle.getPrice(summerTokenAddr);
-        assertEq(sumrPrice, 1e18, "SUMR price should be $1.00 with 18 decimals");
+        (uint256 sumrPrice, , uint8 sumrDecimals) = mockOracle.getPrice(
+            summerTokenAddr
+        );
+        assertEq(
+            sumrPrice,
+            1e18,
+            "SUMR price should be $1.00 with 18 decimals"
+        );
         assertEq(sumrDecimals, 18, "SUMR should have 18 decimals");
 
         // Calculate notional value of 1000 SUMR
         // Formula: (amount * price) / (10 ** decimals)
         // (1000e18 * 1e18) / (10 ** 18) = 1000e18 = $1000.00
-        uint256 sumrNotional = mockOracle.calculateNotionalValue(summerTokenAddr, 1000e18);
+        uint256 sumrNotional = mockOracle.calculateNotionalValue(
+            summerTokenAddr,
+            1000e18
+        );
         assertEq(sumrNotional, 1000e18, "1000 SUMR should equal $1000.00");
 
         // Test 3: Verify bond requirement calculation
         // The solver has BOND_AMOUNT (1000e6) SUMR tokens as bond
         // But 1000e6 with 18 decimals is actually 0.001 SUMR tokens, not 1000!
-        uint256 actualBondAmount = intentBondFactory.getSolverBondAmount(solver);
-        assertEq(actualBondAmount, BOND_AMOUNT, "Solver should have 1000e6 SUMR tokens as bond");
+        uint256 actualBondAmount = intentBondFactory.getSolverBondAmount(
+            solver
+        );
+        assertEq(
+            actualBondAmount,
+            BOND_AMOUNT,
+            "Solver should have 1000e6 SUMR tokens as bond"
+        );
 
         // For $1000 worth of SUMR bonds at $1/SUMR, we need 1000e18 SUMR tokens
         // But the solver only has 1000e6 SUMR tokens, so this should fail
@@ -348,27 +409,51 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         vm.stopPrank();
 
         // Verify prices are set correctly
-        (uint256 sumrPrice,, uint8 sumrDecimals) = mockOracle.getPrice(sumrToken);
-        assertEq(sumrPrice, 5e17, "SUMR price should be 0.5 USD with 18 decimals");
+        (uint256 sumrPrice, , uint8 sumrDecimals) = mockOracle.getPrice(
+            sumrToken
+        );
+        assertEq(
+            sumrPrice,
+            5e17,
+            "SUMR price should be 0.5 USD with 18 decimals"
+        );
         assertEq(sumrDecimals, 18, "SUMR should have 18 decimals");
 
         // Test 1: Calculate notional value of 1000 SUMR at 0.5 USD each
         // Expected: 1000 SUMR * 0.5 USD = 500 USD
         // Formula: (1000e18 * 5e17) / (10 ** 18) = 500e18 = $500.00
-        uint256 sumrNotional = mockOracle.calculateNotionalValue(sumrToken, 1000e18);
-        assertEq(sumrNotional, 500e18, "1000 SUMR at 0.5 USD each should equal $500.00");
+        uint256 sumrNotional = mockOracle.calculateNotionalValue(
+            sumrToken,
+            1000e18
+        );
+        assertEq(
+            sumrNotional,
+            500e18,
+            "1000 SUMR at 0.5 USD each should equal $500.00"
+        );
 
         // Test 2: Calculate notional value of 2000 SUMR at 0.5 USD each
         // Expected: 2000 SUMR * 0.5 USD = 1000 USD
         // Formula: (2000e18 * 5e17) / (10 ** 18) = 1000e18 = $1000.00
-        uint256 sumrNotional2 = mockOracle.calculateNotionalValue(sumrToken, 2000e18);
-        assertEq(sumrNotional2, 1000e18, "2000 SUMR at 0.5 USD each should equal $1000.00");
+        uint256 sumrNotional2 = mockOracle.calculateNotionalValue(
+            sumrToken,
+            2000e18
+        );
+        assertEq(
+            sumrNotional2,
+            1000e18,
+            "2000 SUMR at 0.5 USD each should equal $1000.00"
+        );
 
         // Test 3: Calculate how many SUMR tokens needed for $1000 worth of bonds
         // We want: token_amount = (USD_amount * 10^decimals) / price
         // For $1000 worth of SUMR: (1000e18 * 10^18) / 5e17 = 2000e18 SUMR tokens
         uint256 requiredBondAmount = (1000e18 * (10 ** 18)) / 5e17;
-        assertEq(requiredBondAmount, 2000e18, "Should need 2000 SUMR tokens for $1000 worth of bonds");
+        assertEq(
+            requiredBondAmount,
+            2000e18,
+            "Should need 2000 SUMR tokens for $1000 worth of bonds"
+        );
 
         // Test 4: Verify bond requirement logic with fractional pricing
         // If we want $500 worth of SUMR bonds, we need 1000 SUMR tokens
@@ -381,8 +466,15 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
 
         // Test 5: Edge case - calculate notional value of fractional amounts
         // 500 SUMR at 0.5 USD each = 250 USD
-        uint256 fractionalNotional = mockOracle.calculateNotionalValue(sumrToken, 500e18);
-        assertEq(fractionalNotional, 250e18, "500 SUMR at 0.5 USD each should equal $250.00");
+        uint256 fractionalNotional = mockOracle.calculateNotionalValue(
+            sumrToken,
+            500e18
+        );
+        assertEq(
+            fractionalNotional,
+            250e18,
+            "500 SUMR at 0.5 USD each should equal $250.00"
+        );
     }
 
     function test_ArchitecturalBenefits() public {
@@ -390,10 +482,16 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
 
         // 1. Escrow is deployed for specific solver
         Escrow solverEscrow = intentHandler.solverEscrows(solver);
-        assertEq(address(solverEscrow), address(intentHandler.solverEscrows(solver)));
+        assertEq(
+            address(solverEscrow),
+            address(intentHandler.solverEscrows(solver))
+        );
 
         // 2. Escrow is registered with specific solver
-        assertEq(address(intentHandler.solverEscrows(solver)), address(solverEscrow));
+        assertEq(
+            address(intentHandler.solverEscrows(solver)),
+            address(solverEscrow)
+        );
 
         // 3. Access control is centralized and consistent
         // Commander (ark) can create intents (this is verified by the successful createIntent call above)
@@ -422,5 +520,4 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         // The same pattern can be used for Compound, Morpho, etc.
         // Just deploy new escrows and register them with solvers
     }
-
 }

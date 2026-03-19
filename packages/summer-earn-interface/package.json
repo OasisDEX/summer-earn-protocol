@@ -9,13 +9,15 @@
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
     "sync-config": "node scripts/sync-config.js"
   },
   "dependencies": {
     "@reown/appkit": "1.8.19",
     "@reown/appkit-adapter-wagmi": "1.8.19",
     "@tanstack/react-query": "^5.76.1",
-    "next": "16.1.5",
+    "next": "16.1.7",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "recharts": "^2.15.3",

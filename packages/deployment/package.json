@@ -90,7 +90,9 @@
     "gov:convert-gov-proposal-to-safe-tx": "tsx scripts/governance/convert-gov-proposal-to-safe-tx.ts",
     "gov:convert-safe-tx-to-timelock": "tsx scripts/governance/convert-safe-tx-to-timelock.ts",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --check \"**/*.ts\" --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.ts\" --no-error-on-unmatched-pattern"
   },
   "devDependencies": {
     "@layerzerolabs/lz-v2-utilities": "2.3.39",

@@ -11,13 +11,16 @@ async function deployAssetsForwarder() {
     type: 'text',
     name: 'accessManager',
     message: 'Enter the AccessManager address: ',
-    validate: (input: string) => input.startsWith('0x') && input.length === 42 ? true : 'Invalid address format. Needs to be a valid 42-character hex string starting with 0x.',
+    validate: (input: string) =>
+      input.startsWith('0x') && input.length === 42
+        ? true
+        : 'Invalid address format. Needs to be a valid 42-character hex string starting with 0x.',
   })
 
-  const accessManager = response.accessManager;
+  const accessManager = response.accessManager
   if (!accessManager) {
-    console.log(kleur.red('Deployment cancelled. AccessManager address is required.'));
-    return;
+    console.log(kleur.red('Deployment cancelled. AccessManager address is required.'))
+    return
   }
 
   const args = {

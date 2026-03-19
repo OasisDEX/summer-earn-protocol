@@ -44,6 +44,7 @@ export enum ArkType {
   HypurrArk = 'HypurrArk',
   WisdomTreeArk = 'WisdomTreeArk',
   MorphoV2VaultArk = 'MorphoV2VaultArk',
+  MapleInstitutionalArk = 'MapleInstitutionalArk',
 }
 
 export const arkTypes = [
@@ -76,6 +77,7 @@ export const arkTypes = [
   { title: 'HyperlendArk', value: ArkType.HyperlendArk },
   { title: 'HypurrArk', value: ArkType.HypurrArk },
   { title: 'WisdomTreeArk', value: ArkType.WisdomTreeArk },
+  { title: 'MapleInstitutionalArk', value: ArkType.MapleInstitutionalArk },
 ]
 
 export interface Config {
@@ -230,6 +232,13 @@ export interface BaseConfig {
         }
       }
     }
+    mapleInstitutional: {
+      pools: {
+        [key in Token]: {
+          pool: Address
+        }
+      }
+    }
     silo: {
       pools: {
         [key in Token]: {
@@ -327,6 +336,7 @@ export interface ArkConfig {
     fleetName?: string // For CrossChainArk
     vaultToken?: string // for arks with underlying token different than fleet asset
     arkType?: number // 0 for NonMoneyMarket, 1 for MoneyMarket
+    version: number
   }
 }
 

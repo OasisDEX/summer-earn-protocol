@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { formatUnits, parseUnits } from 'viem'
 import { erc20Abi } from 'viem'
+import { useAccount, useReadContract, useWriteContract } from 'wagmi'
 
 interface VaultInteractionFormProps {
   title: string
@@ -27,7 +27,6 @@ export function VaultInteractionForm({
   vaultAddress,
   vaultAbi,
   depositAsset,
-  receiveAsset,
   decimals,
   symbol,
   receiptSymbol,
@@ -101,7 +100,7 @@ export function VaultInteractionForm({
   const handleExchange = async () => {
     if (!receiptId || !address) return
     try {
-      const balanceToConvert = await (writeContractAsync as any)({
+      await (writeContractAsync as any)({
         address: vaultAddress,
         abi: vaultAbi,
         functionName: 'redeemExchangeAsset',

@@ -6,15 +6,16 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  * This function creates a module that deploys the SyrupArk contract, which integrates with any Syrup-compliant vault.
  *
  * @param {string} moduleName - Name of the module
+ * @param {number} version - Version of the SyrupArk contract
  * @returns {Function} A function that builds the module
  */
-export function createSyrupArkModule(moduleName: string) {
+export function createSyrupArkModule(moduleName: string, version: number) {
   return buildModule(moduleName, (m) => {
     const vault = m.getParameter('vault')
     const router = m.getParameter('router')
     const arkParams = m.getParameter('arkParams')
-
-    const syrupArk = m.contract('SyrupArk', [vault, router, arkParams])
+    const versionString = version == 1 ? 'SyrupArk' : `SyrupArkV${version}`
+    const syrupArk = m.contract(versionString, [vault, router, arkParams])
 
     return { syrupArk }
   })
