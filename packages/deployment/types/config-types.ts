@@ -44,6 +44,7 @@ export enum ArkType {
   HypurrArk = 'HypurrArk',
   MorphoV2VaultArk = 'MorphoV2VaultArk',
   MapleInstitutionalArk = 'MapleInstitutionalArk',
+  UpshiftArk = 'UpshiftArk',
 }
 
 export const arkTypes = [
@@ -76,6 +77,7 @@ export const arkTypes = [
   { title: 'HyperlendArk', value: ArkType.HyperlendArk },
   { title: 'HypurrArk', value: ArkType.HypurrArk },
   { title: 'MapleInstitutionalArk', value: ArkType.MapleInstitutionalArk },
+  { title: 'UpshiftArk', value: ArkType.UpshiftArk },
 ]
 
 export interface Config {
@@ -304,6 +306,7 @@ export interface BaseConfig {
       pool: Address
       rewards: Address
     }
+    upshift: Record<Token, Record<string, string>>
   }
   bridge?: DeployedBridge
 }

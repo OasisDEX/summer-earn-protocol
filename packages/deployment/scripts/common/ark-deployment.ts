@@ -32,6 +32,7 @@ import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import { deployMapleInstitutionalArk } from '../arks/deploy-maple-institutional-ark'
+import { deployUpshiftArk } from '../arks/deploy-upshift-ark'
 import {
   validateAddress,
   validateConfigAddressEntry,
@@ -125,6 +126,21 @@ export async function deployArk(
         'ERC4626 vault',
       )
       const ark = await deployERC4626Ark(config, {
+        ...baseArkParams,
+        vaultId: vaultAddress,
+        vaultName: validatedVaultName,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.UpshiftArk: {
+      const validatedVaultName = validateString(vaultName, 'vault name')
+      const vaultAddress = validateConfigAddressEntry(
+        config.protocolSpecific.upshift[token],
+        validatedVaultName,
+        'Upshift vault',
+      )
+      const ark = await deployUpshiftArk(config, {
         ...baseArkParams,
         vaultId: vaultAddress,
         vaultName: validatedVaultName,
@@ -498,6 +514,10 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.ERC4626Ark:
       deployedArk = await deployERC4626Ark(config)
+      break
+
+    case ArkType.UpshiftArk:
+      deployedArk = await deployUpshiftArk(config)
       break
 
     case ArkType.MorphoArk: {
