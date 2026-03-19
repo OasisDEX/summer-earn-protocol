@@ -17,6 +17,13 @@ export interface NAVData {
 
 const CACHE_DIR = path.resolve(process.cwd(), '.wt-nav-cache')
 
+export interface BlockchainAddress {
+  wtID: number
+  blockchainName: string
+  tokenSymbol: string
+  contractAddress: string
+}
+
 export async function fetchNAV(ticker: string, date?: string): Promise<NAVData> {
   const tickerLower = ticker.toLowerCase()
   const cachePath = date ? path.join(CACHE_DIR, tickerLower, `${date}.json`) : null
@@ -42,4 +49,9 @@ export async function fetchNAV(ticker: string, date?: string): Promise<NAVData> 
   }
 
   return data
+}
+
+export async function fetchBlockchainAddresses(ticker: string): Promise<BlockchainAddress[]> {
+  const url = `https://dataspanapi.wisdomtree.com/funddetails/blockchain_addresses/?ticker=${ticker}`
+  return await fetchWithPlaywright<BlockchainAddress[]>(url)
 }

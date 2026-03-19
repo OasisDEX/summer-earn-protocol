@@ -175,6 +175,15 @@ export interface BaseConfig {
     }
   }
   protocolSpecific: {
+    wisdomtree: {
+      [key in Token]: {
+        [key: string]: {
+          oracle: string
+          shareToken: string
+          targetWallet: string
+        }
+      }
+    }
     aaveV3: {
       pool: string
       rewards: string

@@ -6,12 +6,17 @@ import {
   type Address,
   type Hex,
   parseUnits,
+  ContractFunctionRevertedError,
+  BaseError,
+  AbiErrorSignatureNotFoundError,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { base } from 'viem/chains'
-import { getRpcUrl } from './config'
+import { getRpcUrl, getChain, type DeployNetwork } from './config'
+import 'dotenv/config'
 
 import { z } from 'zod'
+import { execSync } from 'child_process'
 import { fetchOracleData } from './fetcher'
 import { signPriceData } from './signer'
 import { deployYieldSystem } from './deploy-yield'
@@ -20,7 +25,9 @@ import { DeploymentFileSchema } from './schemas'
 import deploymentsData from './deployments.json'
 import { encodeFunctionData } from 'viem'
 import { WisdomTreeConnect } from './fetchers/wisdomtree-connect'
-import { fetchNAV } from './fetchers/wisdomtree-dataspan'
+import { fetchNAV, fetchBlockchainAddresses } from './fetchers/wisdomtree-dataspan'
+import fs from 'fs'
+import path from 'path'
 
 const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11' as Address
 const MULTICALL3_ABI = [
@@ -63,12 +70,26 @@ const deployments = DeploymentFileSchema.parse(deploymentsData)
 
 const program = new Command()
 
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http(getRpcUrl('base')),
-})
+function getNetworkClients(network: DeployNetwork) {
+  const chain = getChain(network)
+  const rpcUrl = getRpcUrl(network)
 
-async function getRegistryAddress() {
+  const publicClient = createPublicClient({
+    chain,
+    transport: http(rpcUrl),
+  })
+
+  const account = privateKeyToAccount(env.PRIVATE_KEYS[0])
+  const walletClient = createWalletClient({
+    account,
+    chain,
+    transport: http(rpcUrl),
+  })
+
+  return { publicClient, walletClient, account, chainId: chain.id }
+}
+
+async function getRegistryAddress(publicClient: any) {
   const chainId = await publicClient.getChainId()
   const entry = Object.values(deployments).find((d) => d.chainId === chainId)
   if (!entry) {
@@ -83,13 +104,16 @@ program
   .command('update')
   .description('Update price for a given ticker')
   .argument('<ticker>', 'Ticker to update (e.g. CRDYX)')
-  .action(async (ticker) => {
+  .option('-n, --network <network>', 'Network to update on', 'base')
+  .action(async (ticker, options) => {
     try {
-      console.log(`Fetching data for ${ticker}...`)
+      const network = options.network as DeployNetwork
+      console.log(`Fetching data for ${ticker} on ${network}...`)
+      const { publicClient, walletClient, account, chainId } = getNetworkClients(network)
+
       const data = await fetchOracleData(ticker)
 
       // Convert NAV to 8 decimal bigint
-      // nav is like 8.7423
       const price = BigInt(Math.round(data.nav * 10 ** 8))
       const timestamp = BigInt(data.timestamp)
 
@@ -97,7 +121,7 @@ program
         `Ticker: ${data.ticker}, NAV: ${data.nav}, Price (8 dec): ${price}, TS: ${timestamp}`,
       )
 
-      const registryAddress = await getRegistryAddress()
+      const registryAddress = await getRegistryAddress(publicClient)
       // Get oracle address from registry
       const oracleAddress = await publicClient.readContract({
         address: registryAddress,
@@ -107,10 +131,10 @@ program
       })
 
       if (oracleAddress === '0x0000000000000000000000000000000000000000') {
-        throw new Error(`No oracle found for ticker ${ticker}`)
+        throw new Error(`No oracle found for ticker ${ticker} on ${network}`)
       }
 
-      console.log(`Oracle Address: ${oracleAddress}`)
+      console.log(`Oracle Address: ${oracleAddress} (ChainId: ${chainId})`)
 
       // Get current nonce
       const nonce = await publicClient.readContract({
@@ -118,8 +142,6 @@ program
         abi: RWA_ORACLE_ABI,
         functionName: 'nonce',
       })
-
-      const chainId = await publicClient.getChainId()
 
       console.log(`Signing data with nonce ${nonce}...`)
       const signatures = await signPriceData(
@@ -132,13 +154,6 @@ program
       )
 
       console.log(`Submitting update transaction...`)
-      const account = privateKeyToAccount(env.PRIVATE_KEYS[0])
-      const walletClient = createWalletClient({
-        account,
-        chain: base,
-        transport: http(getRpcUrl('base')),
-      })
-
       const { request } = await publicClient.simulateContract({
         account,
         address: oracleAddress,
@@ -160,16 +175,13 @@ program
   .argument('<ticker>', 'Ticker')
   .argument('<asset>', 'Asset address')
   .argument('<oracle>', 'Oracle address')
-  .action(async (ticker, asset, oracle) => {
+  .option('-n, --network <network>', 'Network', 'base')
+  .action(async (ticker, asset, oracle, options) => {
     try {
-      const account = privateKeyToAccount(env.PRIVATE_KEYS[0])
-      const walletClient = createWalletClient({
-        account,
-        chain: base,
-        transport: http(getRpcUrl('base')),
-      })
+      const network = options.network as DeployNetwork
+      const { publicClient, walletClient, account } = getNetworkClients(network)
 
-      const registryAddress = await getRegistryAddress()
+      const registryAddress = await getRegistryAddress(publicClient)
       const { request } = await publicClient.simulateContract({
         account,
         address: registryAddress,
@@ -179,7 +191,7 @@ program
       })
 
       const hash = await walletClient.writeContract(request)
-      console.log(`Registry updated: ${hash}`)
+      console.log(`Registry updated on ${network}: ${hash}`)
     } catch (error) {
       console.error('Error:', error)
     }
@@ -190,14 +202,11 @@ program
   .description('Add a signer to an oracle')
   .argument('<oracle>', 'Oracle address')
   .argument('<signer>', 'Signer address')
-  .action(async (oracle, signer) => {
+  .option('-n, --network <network>', 'Network', 'base')
+  .action(async (oracle, signer, options) => {
     try {
-      const account = privateKeyToAccount(env.PRIVATE_KEYS[0])
-      const walletClient = createWalletClient({
-        account,
-        chain: base,
-        transport: http(getRpcUrl('base')),
-      })
+      const network = options.network as DeployNetwork
+      const { publicClient, walletClient, account } = getNetworkClients(network)
 
       const { request } = await publicClient.simulateContract({
         account,
@@ -216,7 +225,7 @@ program
       })
 
       const hash = await walletClient.writeContract(request)
-      console.log(`Signer added: ${hash}`)
+      console.log(`Signer added on ${network}: ${hash}`)
     } catch (error) {
       console.error('Error:', error)
     }
@@ -227,14 +236,11 @@ program
   .description('Set threshold for an oracle')
   .argument('<oracle>', 'Oracle address')
   .argument('<threshold>', 'New threshold')
-  .action(async (oracle, threshold) => {
+  .option('-n, --network <network>', 'Network', 'base')
+  .action(async (oracle, threshold, options) => {
     try {
-      const account = privateKeyToAccount(env.PRIVATE_KEYS[0])
-      const walletClient = createWalletClient({
-        account,
-        chain: base,
-        transport: http(getRpcUrl('base')),
-      })
+      const network = options.network as DeployNetwork
+      const { publicClient, walletClient, account } = getNetworkClients(network)
 
       const { request } = await publicClient.simulateContract({
         account,
@@ -253,7 +259,7 @@ program
       })
 
       const hash = await walletClient.writeContract(request)
-      console.log(`Threshold updated: ${hash}`)
+      console.log(`Threshold updated on ${network}: ${hash}`)
     } catch (error) {
       console.error('Error:', error)
     }
@@ -263,24 +269,20 @@ program
   .command('start')
   .description('Run oracle node daemon')
   .argument('[ticker]', 'Ticker to monitor (omit to monitor all from deployments.json)')
+  .option('-n, --network <network>', 'Specific network to monitor')
   .option('-d, --deviation <percent>', 'Deviation threshold percentage (e.g. 1 for 1%)', '0.01')
   .option('-i, --interval <seconds>', 'Polling interval in seconds', '60')
   .action(async (tickerArg, options) => {
-    const chainId = await publicClient.getChainId()
-    const deploymentEntry = Object.values(deployments).find((d) => d.chainId === chainId)
-    const activeOracles = deploymentEntry?.oracles ?? []
+    const networkArg = options.network as DeployNetwork | undefined
 
-    const tickersToMonitor = tickerArg ? [tickerArg] : activeOracles.map((o) => o.ticker)
-
-    if (tickersToMonitor.length === 0) {
-      console.error('No oracles found to monitor.')
-      return
-    }
-
-    console.log(`Starting Oracle Node for: ${tickersToMonitor.join(', ')}`)
+    console.log(`Starting Oracle Node...`)
     console.log(`Config: Deviation=${options.deviation}%, Poll=${options.interval}s`)
 
-    const processTicker = async (ticker: string) => {
+    const processTickerOnNetwork = async (
+      ticker: string,
+      network: DeployNetwork,
+      publicClient: any,
+    ) => {
       try {
         // 1. Fetch Off-Chain Data
         const offChainData = await fetchOracleData(ticker)
@@ -288,7 +290,7 @@ program
         const newTimestamp = BigInt(offChainData.timestamp)
 
         // 2. Fetch On-Chain Data
-        const registryAddress = await getRegistryAddress()
+        const registryAddress = await getRegistryAddress(publicClient)
         const oracleAddress = await publicClient.readContract({
           address: registryAddress,
           abi: ORACLE_REGISTRY_ABI,
@@ -297,43 +299,70 @@ program
         })
 
         if (oracleAddress === '0x0000000000000000000000000000000000000000') {
-          console.error(`[${ticker}] No oracle found in registry`)
+          console.error(`[${network}:${ticker}] No oracle found in registry`)
           return null
         }
 
-        const currentData = await publicClient.readContract({
-          address: oracleAddress,
-          abi: RWA_ORACLE_ABI,
-          functionName: 'latestRoundData',
-        })
+        let lastPrice = 0n
+        let lastTimestamp = 0n
 
-        const lastPrice = currentData[1]
-        const lastTimestamp = currentData[2]
+        try {
+          const currentData = await publicClient.readContract({
+            address: oracleAddress,
+            abi: RWA_ORACLE_ABI,
+            functionName: 'latestRoundData',
+          })
+
+          lastPrice = currentData[1]
+          lastTimestamp = currentData[2]
+        } catch (error: any) {
+          const isNoData =
+            // 0xbb258700 is the signature for NoData
+            error.signature === '0xbb258700' ||
+            error.data === '0xbb258700' ||
+            (error.cause &&
+              (error.cause.signature === '0xbb258700' || error.cause.data === '0xbb258700'))
+
+          if (isNoData) {
+            console.log(`[${network}:${ticker}] No data available yet - first update`)
+          } else if (error instanceof BaseError) {
+            console.error(
+              `[${network}:${ticker}] Error fetching on-chain data:`,
+              error.shortMessage || error.message,
+            )
+            return null
+          } else {
+            console.error(`[${network}:${ticker}] Unknown error fetching on-chain data:`, error)
+            return null
+          }
+        }
 
         // 3. Evaluate Triggers
         const now = BigInt(Math.floor(Date.now() / 1000))
         const timeDiff = now - lastTimestamp
 
         const priceDiff = newPrice > lastPrice ? newPrice - lastPrice : lastPrice - newPrice
-        const deviationBp = lastPrice > 0n ? (priceDiff * 10000n) / lastPrice : 10000n // 100% if lastPrice is 0
+        const deviationBp = lastPrice > 0n ? (priceDiff * 10000n) / lastPrice : 10000n
         const thresholdBp = BigInt(Number(options.deviation) * 100)
 
         const isDeviation = deviationBp >= thresholdBp
 
         console.log(
-          `[${ticker}] [${new Date().toISOString()}] OnChain: $${Number(lastPrice) / 1e8} (${timeDiff}s ago) | ` +
+          `[${network}:${ticker}] [${new Date().toISOString()}] OnChain: $${Number(lastPrice) / 1e8} (${timeDiff}s ago) | ` +
             `OffChain: $${Number(newPrice) / 1e8} | ` +
             `Diff: ${Number(deviationBp) / 100}%`,
         )
 
         if (isDeviation) {
-          console.log(`[${ticker}] >>> Triggering Update due to price deviation`)
+          console.log(`[${network}:${ticker}] >>> Triggering Update due to price deviation`)
 
           const nonce = await publicClient.readContract({
             address: oracleAddress,
             abi: RWA_ORACLE_ABI,
             functionName: 'nonce',
           })
+
+          const { chainId } = getNetworkClients(network)
 
           const signatures = await signPriceData(
             newPrice,
@@ -344,7 +373,6 @@ program
             env.PRIVATE_KEYS,
           )
 
-          // Return instead of sending immediately
           return {
             ticker,
             oracleAddress,
@@ -355,7 +383,7 @@ program
         }
         return null
       } catch (error) {
-        console.error(`[${ticker}] Error in process loop:`, error)
+        console.error(`[${network}:${ticker}] Error in process loop:`, error)
         return null
       }
     }
@@ -367,50 +395,65 @@ program
       isProcessing = true
 
       try {
-        const results = await Promise.allSettled(tickersToMonitor.map(processTicker))
+        const networksToProcess = networkArg
+          ? [networkArg]
+          : (Object.keys(deployments) as DeployNetwork[])
 
-        const updatesToExecute = results
-          .filter(
-            (r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null,
+        for (const network of networksToProcess) {
+          const deployEntry = deployments[network]
+          if (!deployEntry || !deployEntry.oracles || deployEntry.oracles.length === 0) continue
+
+          const { publicClient, walletClient, account } = getNetworkClients(network)
+          const tickersToMonitor = tickerArg
+            ? deployEntry.oracles.some((o) => o.ticker === tickerArg)
+              ? [tickerArg]
+              : []
+            : deployEntry.oracles.map((o) => o.ticker)
+
+          if (tickersToMonitor.length === 0) continue
+
+          const results = await Promise.allSettled(
+            tickersToMonitor.map((t) => processTickerOnNetwork(t, network, publicClient)),
           )
-          .map((r) => r.value)
 
-        if (updatesToExecute.length > 0) {
-          console.log(`\n>>> Batching ${updatesToExecute.length} updates via Multicall3...`)
+          const updatesToExecute = results
+            .filter(
+              (r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null,
+            )
+            .map((r) => r.value)
 
-          const calls = updatesToExecute.map((u) => ({
-            target: u.oracleAddress,
-            allowFailure: true,
-            callData: encodeFunctionData({
-              abi: RWA_ORACLE_ABI,
-              functionName: 'updatePrice',
-              args: [u.newPrice, u.newTimestamp, u.signatures],
-            }),
-          }))
+          if (updatesToExecute.length > 0) {
+            console.log(
+              `\n>>> [${network}] Batching ${updatesToExecute.length} updates via Multicall3...`,
+            )
 
-          const account = privateKeyToAccount(env.PRIVATE_KEYS[0])
-          const walletClient = createWalletClient({
-            account,
-            chain: base,
-            transport: http(getRpcUrl('base')),
-          })
+            const calls = updatesToExecute.map((u) => ({
+              target: u.oracleAddress,
+              allowFailure: true,
+              callData: encodeFunctionData({
+                abi: RWA_ORACLE_ABI,
+                functionName: 'updatePrice',
+                args: [u.newPrice, u.newTimestamp, u.signatures],
+              }),
+            }))
 
-          const { request } = await publicClient.simulateContract({
-            account,
-            address: MULTICALL3_ADDRESS,
-            abi: MULTICALL3_ABI,
-            functionName: 'aggregate3',
-            args: [calls],
-          })
+            const { request } = await publicClient.simulateContract({
+              account,
+              address: MULTICALL3_ADDRESS,
+              abi: MULTICALL3_ABI,
+              functionName: 'aggregate3',
+              args: [calls],
+            })
 
-          const hash = await walletClient.writeContract(request)
-          console.log(`>>> Batch Multicall Transaction Submitted: ${hash}`)
+            const hash = await walletClient.writeContract(request)
+            console.log(`>>> [${network}] Batch Multicall Transaction Submitted: ${hash}`)
 
-          await publicClient.waitForTransactionReceipt({ hash })
-          console.log(`>>> Batch Transaction Confirmed!`)
+            await publicClient.waitForTransactionReceipt({ hash })
+            console.log(`>>> [${network}] Batch Transaction Confirmed!`)
+          }
         }
       } catch (err) {
-        console.error('Error in runLoop multicall batch:', err)
+        console.error('Error in runLoop multichain:', err)
       } finally {
         isProcessing = false
       }
@@ -541,9 +584,16 @@ program
       )
       const walletPromises: Promise<any>[] = []
 
-      for (const [network, data] of Object.entries(deployments)) {
+      for (const [networkKey, data] of Object.entries(deployments)) {
+        const network = networkKey as DeployNetwork
         if (!data.oracles) continue
-        const blockchain = network === 'base' ? 'Base Mainnet' : network
+        const blockchainMap: Record<string, string> = {
+          base: 'Base Mainnet',
+          arbitrum: 'Arbitrum Mainnet',
+          mainnet: 'Ethereum Mainnet',
+          ethereum: 'Ethereum Mainnet',
+        }
+        const blockchain = blockchainMap[network] || network
 
         for (const oracle of data.oracles) {
           if (tickerArg && oracle.ticker.toLowerCase() !== tickerArg.toLowerCase()) continue
@@ -556,14 +606,12 @@ program
             (async () => {
               try {
                 const startTime = Date.now()
-                // console.log(`fetching wallet for ${ticker}...`)
                 const wallet = await wt.getOnReceiptWallet({
                   blockchain,
                   currency: 'USDC',
                   fund: ticker,
                   trade_type: 'Purchase',
                 })
-                // console.log(`finished ${ticker} in ${Date.now() - startTime}ms`)
                 return {
                   network,
                   ticker: oracle.ticker,
@@ -739,6 +787,183 @@ program
       console.table(navData.map((d) => ({ date: d.dt, nav: d.nav })))
     } catch (error) {
       console.error('Error fetching NAV range:', error)
+    }
+  })
+
+program
+  .command('wt-assets')
+  .description('Fetch fund asset addresses from DataSpan API across all blockchains')
+  .argument('<ticker>', 'Fund ticker')
+  .action(async (ticker) => {
+    try {
+      console.log(`Fetching blockchain addresses for ${ticker}...`)
+      const addresses = await fetchBlockchainAddresses(ticker)
+      console.table(
+        addresses.map((a) => ({
+          blockchain: a.blockchainName,
+          symbol: a.tokenSymbol,
+          address: a.contractAddress,
+        })),
+      )
+    } catch (error) {
+      console.error('Error fetching blockchain addresses:', error)
+    }
+  })
+
+program
+  .command('generate-deploy-input')
+  .description('Generate deploy-input.json for a list of tickers across supported blockchains')
+  .argument('<tickers...>', 'List of tickers')
+  .option('-o, --output <path>', 'Output file path', 'deploy-input.json')
+  .action(async (tickers, options) => {
+    try {
+      const results: any[] = []
+      const networksMapping: Record<string, string> = {
+        Base: 'base',
+        Arbitrum: 'arbitrum',
+        Ethereum: 'mainnet',
+        Sonic: 'sonic',
+        // Add more as supported
+      }
+
+      for (let ticker of tickers) {
+        if (ticker === 'CRDT') ticker = 'CRDYX'
+        if (ticker === 'EPXC') ticker = 'WTPIX'
+        console.log(`Processing ticker: ${ticker}...`)
+        const addresses = await fetchBlockchainAddresses(ticker)
+
+        for (const addr of addresses) {
+          const network = networksMapping[addr.blockchainName]
+          if (network) {
+            results.push({
+              network,
+              assetAddress: addr.contractAddress,
+              description: `Oracle for ${ticker} on ${addr.blockchainName}`,
+              signers: [], // User needs to fill this
+              threshold: 1, // Default threshold
+              type: 'WisdomTree',
+              subtype: 'variableNav',
+            })
+          }
+        }
+      }
+
+      const outputPath = path.resolve(process.cwd(), options.output)
+      fs.writeFileSync(outputPath, JSON.stringify(results, null, 2))
+      console.log(`Generated ${results.length} deployment configs in ${options.output}`)
+      console.log('NOTE: You still need to fill in the "signers" array for each config!')
+    } catch (error) {
+      console.error('Error generating deploy-input:', error)
+    }
+  })
+
+program
+  .command('sync-config')
+  .description('Sync deployments.json and WT wallets to packages/deployment/config/index.test.json')
+  .action(async () => {
+    try {
+      console.log('Starting sync-config...')
+      const configPath = path.resolve(__dirname, '../../deployment/config/index.test.json')
+      console.log(`Target config path: ${configPath}`)
+      if (!fs.existsSync(configPath)) {
+        console.error(`Config file not found at ${configPath}`)
+        return
+      }
+
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+      let updated = false
+
+      for (const [networkKey, data] of Object.entries(deployments)) {
+        const network = networkKey as DeployNetwork
+        console.log(`Processing network: ${network}...`)
+        if (!data.oracles || data.oracles.length === 0) {
+          console.log(`No oracles for ${network}, skipping.`)
+          continue
+        }
+
+        // Ensure network exists in config
+        if (!config[network]) {
+          console.warn(`Network ${network} not found in index.test.json, skipping...`)
+          continue
+        }
+
+        if (!config[network].protocolSpecific) config[network].protocolSpecific = {}
+        if (!config[network].protocolSpecific.wisdomtree)
+          config[network].protocolSpecific.wisdomtree = {}
+        if (!config[network].protocolSpecific.wisdomtree.usdc)
+          config[network].protocolSpecific.wisdomtree.usdc = {}
+
+        const wtConfig = config[network].protocolSpecific.wisdomtree.usdc
+        const blockchainMap: Record<string, string> = {
+          base: 'Base Mainnet',
+          arbitrum: 'Arbitrum Mainnet',
+          mainnet: 'Ethereum',
+        }
+        if (network !== 'mainnet') {
+          continue
+        }
+        const blockchain = blockchainMap[network] || network
+
+        console.log(`[${network}] Fetching wallets for ${data.oracles.length} oracles...`)
+
+        const walletResults = await Promise.allSettled(
+          data.oracles.map(async (oracle) => {
+            let ticker = oracle.ticker
+            if (ticker === 'CRDT') ticker = 'CRDYX'
+            if (ticker === 'EPXC') ticker = 'WTPIX'
+
+            const wallet = await wt.getOnReceiptWallet({
+              blockchain,
+              currency: 'USDC',
+              fund: ticker,
+              trade_type: 'Purchase',
+            })
+
+            return {
+              ticker: oracle.ticker,
+              oracleAddress: oracle.oracleAddress,
+              assetAddress: oracle.assetAddress,
+              walletAddress: wallet.wallet_address,
+            }
+          }),
+        )
+
+        for (const result of walletResults) {
+          if (result.status === 'fulfilled') {
+            const val = result.value
+            wtConfig[val.ticker] = {
+              oracle: val.oracleAddress,
+              shareToken: val.assetAddress,
+              targetWallet: val.walletAddress,
+            }
+            updated = true
+          } else {
+            console.error(`[${network}] Failed to fetch a wallet:`, result.reason.message)
+          }
+        }
+      }
+
+      if (updated) {
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+        console.log(`\nSuccessfully updated ${configPath}`)
+      } else {
+        console.log('\nNo updates made to config.')
+      }
+    } catch (error) {
+      console.error('Error syncing config:', error)
+    }
+  })
+
+program
+  .command('verify')
+  .description('Verify deployed contracts on Etherscan/Arbiscan/Basescan/Sonicscan')
+  .action(async () => {
+    try {
+      const scriptPath = path.resolve(__dirname, 'scripts/verify-contracts.ts')
+      console.log('Starting contract verification...')
+      execSync(`pnpx ts-node ${scriptPath}`, { stdio: 'inherit' })
+    } catch (error) {
+      console.error('Error during verification:', error)
     }
   })
 

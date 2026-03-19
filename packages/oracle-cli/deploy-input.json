@@ -1,72 +1,11 @@
 [
   {
-    "network": "base",
-    "assetAddress": "0xfec440FdF48860FF6E2265BD1ef9Cae8bB2cCe8a",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
-    "threshold": 1,
-    "type": "WisdomTree",
-    "subtype": "variableNav"
-  },
-  {
-    "network": "base",
-    "assetAddress": "0xF21cEDcEB91979C7877B98D4D60190215a5e6dC7",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
-    "threshold": 1,
-    "type": "WisdomTree",
-    "subtype": "variableNav"
-  },
-  {
-    "network": "base",
-    "assetAddress": "0x10fe70382576f271caeF5C152266FB458eFB53fa",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
-    "threshold": 1,
-    "type": "WisdomTree",
-    "subtype": "variableNav"
-  },
-  {
-    "network": "base",
-    "assetAddress": "0xcE6C2fDF6676e80F29D7f15B012A3a92cA3008C4",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
-    "threshold": 1,
-    "type": "WisdomTree",
-    "subtype": "variableNav"
-  },
-  {
-    "network": "base",
-    "assetAddress": "0xF20f050321DEb97F9180150E99f0e8133Aa71051",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
-    "threshold": 1,
-    "type": "WisdomTree",
-    "subtype": "variableNav"
-  },
-  {
-    "network": "base",
-    "assetAddress": "0xCf997c6A8DbdC1449e4dDE59Dbdf9cf6dA9d41c1",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
-    "threshold": 1,
-    "type": "WisdomTree",
-    "subtype": "variableNav"
-  },
-  {
-    "network": "base",
-    "assetAddress": "0xbb2ce6Adb794F1C9d6779DF86626bB6B4e485818",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
-    "threshold": 1,
-    "type": "WisdomTree",
-    "subtype": "variableNav"
-  },
-  {
-    "network": "base",
-    "assetAddress": "0x3403292bA55fFBFc5a655c75b757b00Fd57Ee51c",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "network": "arbitrum",
+    "assetAddress": "0xfeb26f0943c3885b2cb85a9f933975356c81c33d",
+    "description": "Oracle for WTGXX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
     "threshold": 1,
     "type": "WisdomTree",
     "subtype": "variableNav"
@@ -74,53 +13,32 @@
   {
     "network": "base",
     "assetAddress": "0x5096b85Ed11798fDdCB8b5CB27C399c04689c435",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
-    "threshold": 1,
-    "type": "WisdomTree",
-    "subtype": "fixedNav"
-  },
-  {
-    "network": "base",
-    "assetAddress": "0x534A448cEb99D8Ce1bBBB556A5C13c6Fe79CA68c",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "description": "Oracle for WTGXX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
     "threshold": 1,
     "type": "WisdomTree",
     "subtype": "variableNav"
   },
   {
-    "network": "base",
-    "assetAddress": "0x8A4AD570238002E49f9A2681398BF9C822302eee",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "network": "mainnet",
+    "assetAddress": "0x1feCF3d9d4Fee7f2c02917A66028a48C6706c179",
+    "description": "Oracle for WTGXX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
     "threshold": 1,
     "type": "WisdomTree",
     "subtype": "variableNav"
   },
   {
-    "network": "base",
-    "assetAddress": "0xE2ab0b91244c6e04bB92034849768ac9B954112c",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
-    "threshold": 1,
-    "type": "WisdomTree",
-    "subtype": "variableNav"
-  },
-  {
-    "network": "base",
-    "assetAddress": "0xf4A3d6Da7E5F8A262B731DeEE62549C2c05035F5",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
-    "threshold": 1,
-    "type": "WisdomTree",
-    "subtype": "variableNav"
-  },
-  {
-    "network": "base",
-    "assetAddress": "0x90A5aAD303D2170Bc846cd1237939Ac537F224A1",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "network": "arbitrum",
+    "assetAddress": "0x777A4d310cf66C1D272c7cd17Bd054a456A26d34",
+    "description": "Oracle for LNGVX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
     "threshold": 1,
     "type": "WisdomTree",
     "subtype": "variableNav"
@@ -128,8 +46,450 @@
   {
     "network": "base",
     "assetAddress": "0xC290Ff6eE86454B83a31C61010cd50DD53A56F24",
-    "description": "Base USDC Oracle",
-    "signers": ["0x0f0fA89471259433b6955827226f19999D93c568"],
+    "description": "Oracle for LNGVX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0x2EcAD4280b7720Ba4F3830B47AB8eF2dA4763f04",
+    "description": "Oracle for LNGVX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0x496D35292D68c988Ba37668cA92AafdaF5c35415",
+    "description": "Oracle for MODRX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0x90A5aAD303D2170Bc846cd1237939Ac537F224A1",
+    "description": "Oracle for MODRX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0xFb20015Fb2047320a0f1c209f35c6432147770E8",
+    "description": "Oracle for MODRX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0x6bb04085922d08d1c7De0Cfe95f7626a6F54Be95",
+    "description": "Oracle for EQTYX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xf4A3d6Da7E5F8A262B731DeEE62549C2c05035F5",
+    "description": "Oracle for EQTYX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0xA14669a76B12F94d6Ad09304aD15905e900a6E25",
+    "description": "Oracle for EQTYX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0x19842916B4F346D48526d5bc3eBBC540b408A647",
+    "description": "Oracle for WTSTX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xE2ab0b91244c6e04bB92034849768ac9B954112c",
+    "description": "Oracle for WTSTX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0xA58B23027CdEb442854bb8063164D1Fd48F37707",
+    "description": "Oracle for WTSTX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0xF9cBf82f5A609a59fb53864FE1B01e010daF6C27",
+    "description": "Oracle for WTLGX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0x8A4AD570238002E49f9A2681398BF9C822302eee",
+    "description": "Oracle for WTLGX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0x4D682cBD74a67B1fFE97A2bb78475a16Efe23e8A",
+    "description": "Oracle for WTLGX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0x4e933C45e1cFdd309Eeef439Bf0eC481C38849DA",
+    "description": "Oracle for TIPSX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0x534A448cEb99D8Ce1bBBB556A5C13c6Fe79CA68c",
+    "description": "Oracle for TIPSX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0xA4964a2fE606f1D445e36006BcB7f7Faee580042",
+    "description": "Oracle for TIPSX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0xC66BB5e302e6948A5A902CC17f1894250Ca82500",
+    "description": "Oracle for WTTSX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0x3403292bA55fFBFc5a655c75b757b00Fd57Ee51c",
+    "description": "Oracle for WTTSX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0xE7D2e561B8E3b1A0125f45da596706110F8953BE",
+    "description": "Oracle for WTTSX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0xeAC8180e6c03bB5E8ed11B1C09e06d4A7A6FEcC4",
+    "description": "Oracle for WTSYX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xbb2ce6Adb794F1C9d6779DF86626bB6B4e485818",
+    "description": "Oracle for WTSYX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0x3340E2C0ddcc4A035737bC1F5445c7D0Fa6CBF5c",
+    "description": "Oracle for WTSYX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0xf414bFBE375941b1BA91B1A5683FE2C59d2c7b9B",
+    "description": "Oracle for WTSIX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xCf997c6A8DbdC1449e4dDE59Dbdf9cf6dA9d41c1",
+    "description": "Oracle for WTSIX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0x518FB6aFeFea9bB0A5135014d8032EDEe4a8B1eC",
+    "description": "Oracle for WTSIX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0xbEAd71e04a745d5423B83E9B2bD348c4e6eDff8F",
+    "description": "Oracle for WTPIX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xF20f050321DEb97F9180150E99f0e8133Aa71051",
+    "description": "Oracle for WTPIX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0x3Aa66362b62712F281a00E3d1F72b7b5B851736e",
+    "description": "Oracle for WTPIX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0x3b9C11cB16B4c9EeB1408dad409afbe800AbDE3f",
+    "description": "Oracle for FLTTX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xcE6C2fDF6676e80F29D7f15B012A3a92cA3008C4",
+    "description": "Oracle for FLTTX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0x98F865Bd2E5a3e289b8CCA54f24A7Eeb2bBa56cE",
+    "description": "Oracle for FLTTX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0x6116715Dc9C7116b01C38485DF55c25EEDf26bc0",
+    "description": "Oracle for CRDYX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0x10fe70382576f271caeF5C152266FB458eFB53fa",
+    "description": "Oracle for CRDYX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0x9E5621b5Da05435F9931e5CCD01c3c24476155a7",
+    "description": "Oracle for CRDYX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0x5EF799DcE2E8272B4A72a62c0d34250Ef7e42ac0",
+    "description": "Oracle for TECHX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xF21cEDcEB91979C7877B98D4D60190215a5e6dC7",
+    "description": "Oracle for TECHX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0x1A17f2bdb023e516F1b32b121F332fA931802A9F",
+    "description": "Oracle for TECHX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "arbitrum",
+    "assetAddress": "0x4122047076a1106618e984a8776A3F7bbcB1d429",
+    "description": "Oracle for SPXUX on Arbitrum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "base",
+    "assetAddress": "0xfec440FdF48860FF6E2265BD1ef9Cae8bB2cCe8a",
+    "description": "Oracle for SPXUX on Base",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "threshold": 1,
+    "type": "WisdomTree",
+    "subtype": "variableNav"
+  },
+  {
+    "network": "mainnet",
+    "assetAddress": "0x873d589F38abBCDD1fCA27261aBA2F1aA0661d44",
+    "description": "Oracle for SPXUX on Ethereum",
+    "signers": [
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
     "threshold": 1,
     "type": "WisdomTree",
     "subtype": "variableNav"
