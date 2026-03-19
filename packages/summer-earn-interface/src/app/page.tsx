@@ -138,6 +138,40 @@ function HomeContent() {
           </p>
         </a>
       </div>
+
+      {/* Protocol Modules Links */}
+      <section className="mt-16">
+        <h2 className="text-xl font-bold text-white mb-6">Protocol Modules & Tools</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[
+            { name: 'Access Manager', href: '/access-manager/1' },
+            { name: 'Account Abstraction', href: '/account-abstraction' },
+            { name: 'Institutions', href: '/institutions' },
+            { name: 'Intent System', href: '/intent-system' },
+            { name: 'Interest Rates', href: '/interest-rates' },
+            { name: 'Rewards', href: '/rewards' },
+            { name: 'Roles', href: '/roles' },
+            { name: 'Rounds Vault', href: '/rounds-vault' },
+            { name: 'Summer Staking', href: '/summer-staking' },
+            { name: 'Vault APR', href: '/vault-apr' },
+            { name: 'Vesting', href: '/vesting' },
+            { name: 'Vesting Staking', href: '/vesting-staking' },
+          ].map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="glass rounded-xl p-4 flex items-center justify-between group hover:bg-white/5 transition-colors border-white/5 hover:border-white/20"
+            >
+              <span className="text-white font-medium text-sm group-hover:text-primary transition-colors">
+                {link.name}
+              </span>
+              <span className="text-slate-500 group-hover:text-primary group-hover:translate-x-1 transition-all">
+                →
+              </span>
+            </a>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }

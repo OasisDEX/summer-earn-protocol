@@ -49,7 +49,9 @@ async function main() {
 
   const treasury = governance.treasury
 
-  const moduleName = `InstitutionWhitelist_${institutionId}`
+  const envLabel = useBummerConfig ? 'staging_' : ''
+  const moduleName = `${envLabel}InstitutionWhitelist_${institutionId}`
+
   const InstitutionModule = createInstitutionWhitelistModule(moduleName)
   const deployed = (await hre.ignition.deploy(InstitutionModule, {
     parameters: {

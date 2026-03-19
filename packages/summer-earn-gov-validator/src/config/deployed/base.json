@@ -119,5 +119,18 @@
   "staging_BummerDAO_LazyVault_LowerRisk_USDC_MorphoVault_usdc_Moonwell_Flagship_USDC_8453#MorphoVaultArk": "0xd3c8EB256b0cbda8d9b165E2B67912C242D3c52A",
   "staging_BummerDAO_LazyVault_LowerRisk_USDC_Moonwell_usdc_8453#MoonwellArk": "0xfBAd3C72a4102EE803C23028a250d837E2e93560",
   "LazyVault_LowerRisk_EURC_MorphoV2Vault_eurc_Gauntlet_EURC_Balanced_8453#MorphoV2VaultArk": "0xaCB489beD8c98831D6b1d7A63ED46CdCf06C524D",
-  "LazyVault_LowerRisk_EURC_MorphoV2Vault_eurc_Steakhouse_Prime_EURC_8453#MorphoV2VaultArk": "0x7332FeC21f1179aeA6d4Df34206aFA3B9074987c"
+  "LazyVault_LowerRisk_EURC_MorphoV2Vault_eurc_Steakhouse_Prime_EURC_8453#MorphoV2VaultArk": "0x7332FeC21f1179aeA6d4Df34206aFA3B9074987c",
+  "InstitutionWhitelist_WisdomTree#DutchAuctionLibrary": "0xd863c21C44bcBAd74852A8762830e7741Bc99605",
+  "InstitutionWhitelist_WisdomTree#ProtocolAccessManager": "0x8B3d875e363dd260b533039de7ed813348cf9ba8",
+  "InstitutionWhitelist_WisdomTree#ConfigurationManagerWhitelist": "0xdDd8769D24E303e2f9648B35ea9f37285E6e6850",
+  "InstitutionWhitelist_WisdomTree#HarborCommand": "0x8B88Eb316205426672578EB012827668547De032",
+  "InstitutionWhitelist_WisdomTree#Raft": "0x4f769Eb9B19936A54B735Ce8B804976A5Cf59899",
+  "InstitutionWhitelist_WisdomTree#AdmiralsQuartersWhitelist": "0xA6216397787Abab354AC941Aa76a5f8659556D85",
+  "InstitutionWhitelist_WisdomTree#TipJar": "0xd60B012c24F36bB72d2E50B01c38A490187690c1",
+  "staging_RoundsFleetWhitelist_WisdomTree_USDC_Base#FleetCommanderWhitelist": "0x9FD22516FF2EBeaF1fcA9bcace1F25cf13Ae9cEC",
+  "staging_RoundsVaultInput_WisdomTree_USDC_Base#RoundsVaultInput": "0xA5ffD1e5d6Ddc4c3B90Bb618b257522ce108922B",
+  "staging_RoundsVaultOutput_WisdomTree_USDC_Base#RoundsVaultOutput": "0xAC2F8f0a4B078d853D54fd8Ab8Cc69EA0f2c54aD",
+  "staging_WisdomTree_USDC_Base_WisdomTree_WTGXX_usdc_8453#WisdomTreeArk": "0x6049dA0261232Cbb7ca189f1681F23BAd06BF54e",
+  "staging_WisdomTree_USDC_Base_WisdomTree_WTSIX_usdc_8453#WisdomTreeArk": "0x573dB12030d77eEa49162F3e9C4B1D988BB2396B",
+  "AssetsForwarderModule#AssetsForwarder": "0xbFd0cED8fcd053291127203Ad1cd1616077418ec"
 }
