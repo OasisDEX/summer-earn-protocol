@@ -216,5 +216,6 @@
   "LazyVault_LowerRisk_WETH_MorphoV2Vault_weth_Steakhouse_Prime_Instant_V2_1#MorphoV2VaultArk": "0x7765c64Fd93753bA537Da7d62025A7e68551637e",
   "LazyVault_LowerRisk_WETH_MorphoV2Vault_weth_KPK_ETH_Prime_v2_1#MorphoV2VaultArk": "0x0030B0A5845624BaD5917e6738d42E95Ca4f36a5",
   "staging_BummerLazyVault_USDC_OriginUSD_usdc_1_gov#OriginUSDArk": "0xA0b609c2925A9F112C7EC6f7D48Ab19650393662",
-  "staging_BummerLazyVault_USDC_Upshift_Upshift_Core_USDC_usdc_1#UpshiftArk": "0xA4eD88aae7d742A61903a391FCeFdE1eeF158067"
+  "staging_BummerLazyVault_USDC_Upshift_Upshift_Core_USDC_usdc_1#UpshiftArk": "0xA4eD88aae7d742A61903a391FCeFdE1eeF158067",
+  "staging_BummerLazyVault_USDC_MapleInstitutional_usdc_1_gov#MapleInstitutionalArk": "0xC287004D09D0D2Dc43bEeC30A563EB8696A02477"
 }

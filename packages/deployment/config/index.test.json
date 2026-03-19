@@ -806,6 +806,13 @@
           }
         }
       },
+      "mapleInstitutional": {
+        "pools": {
+          "usdc": {
+            "pool": "0xc39a5a616f0ad1ff45077fa2de3f79ab8eb8b8b9"
+          }
+        }
+      },
       "syrup": {
         "pools": {
           "usdc": {
