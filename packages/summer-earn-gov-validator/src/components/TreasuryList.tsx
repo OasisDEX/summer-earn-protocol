@@ -1,9 +1,10 @@
 'use client'
 
-import { useTreasuryBalances, TreasuryBalance } from '@/hooks/useTreasuryBalances'
-import { CHAIN_CONFIG, SupportedChainId } from '@/config/constants'
+import { Suspense, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, Suspense } from 'react'
+
+import { CHAIN_CONFIG, SupportedChainId } from '@/config/constants'
+import { TreasuryBalance, useTreasuryBalances } from '@/hooks/useTreasuryBalances'
 
 const ChainBadge = ({ chainId }: { chainId: number }) => {
   const config = CHAIN_CONFIG[chainId as SupportedChainId]

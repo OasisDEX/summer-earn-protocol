@@ -1,10 +1,11 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useReadContracts } from 'wagmi'
-import { ERC20_ABI, SupportedChainId, CHAIN_CONFIG } from '@/config/constants'
-import { TOKEN_LISTS } from '@/config/tokenLists'
 import { formatUnits, getAddress } from 'viem'
+import { useReadContracts } from 'wagmi'
+
+import { CHAIN_CONFIG, ERC20_ABI, SupportedChainId } from '@/config/constants'
+import { TOKEN_LISTS } from '@/config/tokenLists'
 
 export interface TreasuryBalance {
   address: string

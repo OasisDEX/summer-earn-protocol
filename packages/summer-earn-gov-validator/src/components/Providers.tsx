@@ -10,8 +10,8 @@ import {
 } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { http, WagmiProvider } from 'wagmi'
-import { arbitrum, base, mainnet, sonic, hyperliquid } from 'wagmi/chains'
+import { WagmiProvider } from 'wagmi'
+import { arbitrum, base, hyperliquid, mainnet, sonic } from 'wagmi/chains'
 
 import { CHAIN_RPC_URLS, createRpcTransport } from '@/config/rpc'
 
