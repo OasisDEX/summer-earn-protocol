@@ -51,7 +51,7 @@ export function useProposalVoting(proposalId: string | undefined) {
   const { address } = useAccount()
 
   const governorAddress = config.base?.deployedContracts?.gov?.summerGovernor?.address
-  const tokenAddress = config.base?.deployedContracts?.gov?.summerToken?.address
+  const tokenAddress = config.base?.deployedContracts?.govV2?.summerGovernanceToken?.address
 
   // Get proposal votes
   const { data: proposalVotes, refetch: refetchVotes } = useReadContract({
@@ -91,18 +91,18 @@ export function useProposalVoting(proposalId: string | undefined) {
 
   const votes: ProposalVotes | undefined = proposalVotes
     ? {
-        againstVotes: proposalVotes[0],
-        forVotes: proposalVotes[1],
-        abstainVotes: proposalVotes[2],
-      }
+      againstVotes: proposalVotes[0],
+      forVotes: proposalVotes[1],
+      abstainVotes: proposalVotes[2],
+    }
     : undefined
 
   const userInfo: UserVotingInfo | undefined =
     votingPower !== undefined && hasVoted !== undefined
       ? {
-          votingPower,
-          hasVoted,
-        }
+        votingPower,
+        hasVoted,
+      }
       : undefined
 
   const refetch = () => {
@@ -135,14 +135,14 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
     },
     ...(address
       ? [
-          {
-            address: governorAddress as `0x${string}`,
-            abi: GOVERNOR_ABI,
-            functionName: 'hasVoted' as const,
-            args: [BigInt(proposalId), address],
-            chainId: 8453,
-          },
-        ]
+        {
+          address: governorAddress as `0x${string}`,
+          abi: GOVERNOR_ABI,
+          functionName: 'hasVoted' as const,
+          args: [BigInt(proposalId), address],
+          chainId: 8453,
+        },
+      ]
       : []),
   ])
 
@@ -150,14 +150,14 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
   const votingPowerContract =
     address && tokenAddress
       ? [
-          {
-            address: tokenAddress as `0x${string}`,
-            abi: SUMMER_TOKEN_ABI,
-            functionName: 'getVotes' as const,
-            args: [address],
-            chainId: 8453,
-          },
-        ]
+        {
+          address: tokenAddress as `0x${string}`,
+          abi: SUMMER_TOKEN_ABI,
+          functionName: 'getVotes' as const,
+          args: [address],
+          chainId: 8453,
+        },
+      ]
       : []
 
   const contracts = [...proposalContracts, ...votingPowerContract]
