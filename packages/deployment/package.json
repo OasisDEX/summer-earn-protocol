@@ -72,6 +72,7 @@
     "gov:test-transfer-bummer-tokens": "hardhat run scripts/governance/test-transfer-bummer-tokens.ts --network $NETWORK",
     "gov:execute-proposal": "hardhat run scripts/governance/execute-proposal.ts --network $NETWORK",
     "gov:execute-proposal:direct": "hardhat run scripts/governance/execute-proposal-direct.ts --network $NETWORK",
+    "gov:execute-timelock": "hardhat run scripts/governance/execute-timelock.ts --network $NETWORK",
     "gov:create-fleet-rewards-proposals": "hardhat run scripts/governance/create-fleet-rewards-proposals.ts --network $NETWORK",
     "gov:enable-fleet-transferability": "hardhat run scripts/governance/enable-fleet-transferability-proposal.ts --network $NETWORK",
     "gov:setup-foundation-roles": "hardhat run scripts/governance/setup-foundation-roles.ts --network $NETWORK",

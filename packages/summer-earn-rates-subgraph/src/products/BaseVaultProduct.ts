@@ -58,7 +58,7 @@ export abstract class BaseVaultProduct extends Product {
     const previousSharePrice = vaultState.lastSharePrice
     const previousRate = vaultState.lastRate!
     if (previousSharePrice.equals(sharePrice)) {
-      return previousRate
+      return BigDecimalConstants.ZERO
     }
     const priceChange = sharePrice.minus(previousSharePrice).div(previousSharePrice)
     const timeDiff = this.getTimeDifference(currentTimestamp, vaultState)

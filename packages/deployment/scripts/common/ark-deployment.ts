@@ -19,6 +19,7 @@ import { deployMorphoArk } from '../arks/deploy-morpho-ark'
 import { deployMorphoV2VaultArk } from '../arks/deploy-morpho-v2-vault-ark'
 import { deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
 import { deployOriginETHArk } from '../arks/deploy-origineth-ark'
+import { deployOriginUSDArk } from '../arks/deploy-originusd-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
@@ -33,6 +34,7 @@ import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
+import { deployUpshiftArk } from '../arks/deploy-upshift-ark'
 import { deployWisdomTreeArk } from '../arks/deploy-wisdom-tree-ark'
 import {
   validateAddress,
@@ -126,6 +128,21 @@ export async function deployArk(
         'ERC4626 vault',
       )
       const ark = await deployERC4626Ark(config, {
+        ...baseArkParams,
+        vaultId: vaultAddress,
+        vaultName: validatedVaultName,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.UpshiftArk: {
+      const validatedVaultName = validateString(vaultName, 'vault name')
+      const vaultAddress = validateConfigAddressEntry(
+        config.protocolSpecific.upshift[token],
+        validatedVaultName,
+        'Upshift vault',
+      )
+      const ark = await deployUpshiftArk(config, {
         ...baseArkParams,
         vaultId: vaultAddress,
         vaultName: validatedVaultName,
@@ -349,6 +366,11 @@ export async function deployArk(
       deployedArk = await deploySiloArkV2(config, siloParams)
       break
     }
+    case ArkType.OriginUSDArk: {
+      const ark = await deployOriginUSDArk(config, baseArkParams)
+      deployedArk = ark
+      break
+    }
     case ArkType.OriginETHArk: {
       const ark = await deployOriginETHArk(config, baseArkParams)
       deployedArk = ark
@@ -480,8 +502,8 @@ export async function deployArk(
         'oracle',
         `WisdomTree fund '${fundName}' oracle`,
       )
+      const sweepSlippage = wisdomtreeByToken[fundName].sweepSlippage
       const arkType = arkConfig.params.arkType
-      const sweepSlippage = arkConfig.params.sweepSlippage
       const ark = await deployWisdomTreeArk(config, {
         ...baseArkParams,
         fundName: fundName,
@@ -536,6 +558,10 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.ERC4626Ark:
       deployedArk = await deployERC4626Ark(config)
+      break
+
+    case ArkType.UpshiftArk:
+      deployedArk = await deployUpshiftArk(config)
       break
 
     case ArkType.MorphoArk: {
