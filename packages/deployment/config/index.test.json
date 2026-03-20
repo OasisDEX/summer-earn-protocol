@@ -337,11 +337,6 @@
         "psm3": {
           "usdc": "0x1601843c5E9bC251A3272907010AFa41Fa18347E"
         }
-      },
-      "upshift": {
-        "usdc": {
-          "Upshift_Core_USDC": "0xf2cd14f02b4fdc0d26681fbc7f60a11b8378f96d"
-        }
       }
     }
   },
@@ -795,6 +790,11 @@
       }
     },
     "protocolSpecific": {
+      "upshift": {
+        "usdc": {
+          "Upshift_Core_USDC": "0xE9B725010A9E419412ed67d0fA5f3A5f40159D32"
+        }
+      },
       "originUSD": {
         "originUSD": "0x2A8e1E676Ec238d8A992307B495b45B3fEAa5e86"
       },
@@ -803,6 +803,13 @@
         "arms": {
           "weth": {
             "steth": "0x85B78AcA6Deae198fBF201c82DAF6Ca21942acc6"
+          }
+        }
+      },
+      "mapleInstitutional": {
+        "pools": {
+          "usdc": {
+            "pool": "0xc39a5a616f0ad1ff45077fa2de3f79ab8eb8b8b9"
           }
         }
       },

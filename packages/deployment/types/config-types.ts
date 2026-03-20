@@ -279,9 +279,6 @@ export interface BaseConfig {
         }
       }
     }
-    upshift: {
-      [key in Token]: Address
-    }
     aera: {
       vaults: {
         [key in Token]: {

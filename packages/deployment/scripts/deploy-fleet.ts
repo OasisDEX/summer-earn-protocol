@@ -15,6 +15,7 @@ import {
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
 } from './common/fleet-deployment-files-helpers'
+import { getGovernorClient } from './common/governance-utils'
 import { grantCommanderRole } from './common/grant-commander-role'
 import { deployFleetContracts, logDeploymentResults } from './fleets/fleet-contracts'
 import {
@@ -212,20 +213,19 @@ async function handleNewFleetDeployment(
       useBummerConfig,
     )
 
-    // Check if deployer has governor role
-    const protocolAccessManager = await hre.viem.getContractAt(
-      'ProtocolAccessManager' as string,
+    // Check if any of the first 10 deployers has governor role
+    const governorClient = await getGovernorClient(
+      hre,
       config.deployedContracts.gov.protocolAccessManager.address as Address,
     )
-    const [deployer] = await hre.viem.getWalletClients()
-    const hasGovernorRole = await protocolAccessManager.read.hasRole([
-      GOVERNOR_ROLE,
-      deployer.account.address,
-    ])
 
-    if (hasGovernorRole) {
+    if (governorClient) {
       // Directly execute actions if we have governor role
-      console.log(kleur.green('Deployer has governor role. Executing actions directly...'))
+      console.log(
+        kleur.green(
+          `Governor found (${governorClient.account?.address}). Executing actions directly...`,
+        ),
+      )
 
       // Add each Ark to the Fleet
       for (const arkAddress of deployedArks) {
@@ -481,20 +481,17 @@ async function handleArkAddition(
       console.log(kleur.green(`Successfully deployed ${deployedArks.length} new arks.`))
     }
 
-    // Check if deployer has governor role
-    const protocolAccessManager = await hre.viem.getContractAt(
-      'ProtocolAccessManager' as string,
+    // Check if any of the first 10 deployers has governor role
+    const governorClient = await getGovernorClient(
+      hre,
       config.deployedContracts.gov.protocolAccessManager.address as Address,
     )
-    const [deployer] = await hre.viem.getWalletClients()
-    const hasGovernorRole = await protocolAccessManager.read.hasRole([
-      GOVERNOR_ROLE,
-      deployer.account.address,
-    ])
 
-    if (hasGovernorRole) {
+    if (governorClient) {
       // Directly execute actions if we have governor role
-      console.log(kleur.green('Deployer has governor role. Adding Arks directly...'))
+      console.log(
+        kleur.green(`Governor found (${governorClient.account?.address}). Adding Arks directly...`),
+      )
 
       // Add each Ark to the Fleet
       for (const arkAddress of deployedArks) {
