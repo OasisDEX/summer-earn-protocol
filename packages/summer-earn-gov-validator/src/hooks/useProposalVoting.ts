@@ -51,7 +51,7 @@ export function useProposalVoting(proposalId: string | undefined) {
   const { address } = useAccount()
 
   const governorAddress = config.base?.deployedContracts?.gov?.summerGovernor?.address
-  const tokenAddress = config.base?.deployedContracts?.gov?.summerToken?.address
+  const tokenAddress = config.base?.deployedContracts?.govV2?.summerGovernanceToken?.address
 
   // Get proposal votes
   const { data: proposalVotes, refetch: refetchVotes } = useReadContract({
