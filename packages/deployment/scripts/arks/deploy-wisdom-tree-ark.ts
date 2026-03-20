@@ -29,6 +29,7 @@ export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTree
     oracle,
     fundName,
     arkType,
+    sweepSlippage,
   } = params
   const chainId = getChainId()
   const envLabel = isBummer ? 'staging_' : ''
@@ -68,6 +69,7 @@ export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTree
         shareToken,
         oracle,
         assetsForwarder,
+        sweepSlippage: sweepSlippage ?? 0,
         arkType: arkType ?? 0,
         name: arkName,
         details: JSON.stringify(arkDetails),

@@ -26,6 +26,24 @@
         "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
         "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
       }
+    },
+    {
+      "type": "WisdomTreeArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "wisdomtree",
+        "depositCap": "100000000",
+        "fundName": "WTGXX"
+      }
+    },
+    {
+      "type": "WisdomTreeArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "wisdomtree",
+        "depositCap": "100000000",
+        "fundName": "WTSIX"
+      }
     }
   ]
 }

@@ -594,76 +594,91 @@
           "WTGXX": {
             "oracle": "0x8b34B45ddE9C6f88E56F45e7608E01e35d342d93",
             "shareToken": "0xFEb26F0943C3885B2CB85A9F933975356c81C33d",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x63a8bb98D70d0aC73460d22b6756528a087ecBf8"
           },
           "LNGVX": {
             "oracle": "0xB130089c5B0bBa74618De08286cC7A73060a98e3",
             "shareToken": "0x777A4d310cf66C1D272c7cd17Bd054a456A26d34",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x52824473d93aCe8a21515526856dAEfd735d855A"
           },
           "MODRX": {
             "oracle": "0x5A4ac204864a36e9820A3663836299ed963F0857",
             "shareToken": "0x496D35292D68c988Ba37668cA92AafdaF5c35415",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x41A29dE80572D3896D83d87F52cFEDE369Cb11d9"
           },
           "EQTYX": {
             "oracle": "0xBcA69b2918bad37E8A4e1F77B6864F27eee05AEe",
             "shareToken": "0x6bb04085922d08d1c7De0Cfe95f7626a6F54Be95",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x377ED8f6980B95429Ad1720714839EDDefBE0bE6"
           },
           "WTSTX": {
             "oracle": "0x3D4AE5aefbE0F5471Eb33BCFcBBcf6d9234D32a5",
             "shareToken": "0x19842916B4F346D48526d5bc3eBBC540b408A647",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x8C00b161EB8A40E833703453235897173Fd4C47D"
           },
           "WTLGX": {
             "oracle": "0xD6f6548cF8643303F8C6bc9f4fcEC6Ed57f9A573",
             "shareToken": "0xF9cBf82f5A609a59fb53864FE1B01e010daF6C27",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x5bC6710CcDC4074eAFac57f2e079Af761501d6fD"
           },
           "TIPSX": {
             "oracle": "0x98a6A05DDeDBd9Ba019D7949C6c0c723379F001a",
             "shareToken": "0x4e933C45e1cFdd309Eeef439Bf0eC481C38849DA",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x81ce58FD1812cac9f60b20f3B39B30C39fF00d3d"
           },
           "WTTSX": {
             "oracle": "0x70CC68C7d19c7cFB285Ff8508974D6a70ccEd136",
             "shareToken": "0xC66BB5e302e6948A5A902CC17f1894250Ca82500",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x15A7A8a67Bc47F506a7eb30468e8533dD47299F7"
           },
           "WTSYX": {
             "oracle": "0xd3c8EB256b0cbda8d9b165E2B67912C242D3c52A",
             "shareToken": "0xeAC8180e6c03bB5E8ed11B1C09e06d4A7A6FEcC4",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x4b9cC5C587fe5Dbe6BF16F33BE948B8619F2E07E"
           },
           "WTSIX": {
             "oracle": "0x08B7689A32106275c07CEce320cF4336A5AaA1a6",
             "shareToken": "0xf414bFBE375941b1BA91B1A5683FE2C59d2c7b9B",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0xa6fe9331eae8DFfA4A4fE93c8B8544653856E882"
           },
           "EPXC": {
             "oracle": "0x538BD684176Ac87616910AFaE08d681E8cd50c15",
             "shareToken": "0xbEAd71e04a745d5423B83E9B2bD348c4e6eDff8F",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0xD358cE49Bc42e9e62746f584e107E989390de7AA"
           },
           "FLTTX": {
             "oracle": "0xf5A69789Bf5e62A43C47E4c8d857b8DAE14d4ab0",
             "shareToken": "0x3b9C11cB16B4c9EeB1408dad409afbe800AbDE3f",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0xB0B673a031c80e0c9917DC73eA199ebA1e689fFC"
           },
           "CRDT": {
             "oracle": "0xabF2654d149E0fDcCb7e319796D065299376AFcC",
             "shareToken": "0x6116715Dc9C7116b01C38485DF55c25EEDf26bc0",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0xc24d277EEdc174b764C822a6965740f8C22CF95A"
           },
           "TECHX": {
             "oracle": "0xf4882fA8FBc93005A69ebde1F03e5e5aD707D30b",
             "shareToken": "0x5EF799DcE2E8272B4A72a62c0d34250Ef7e42ac0",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x6859Bb46626a6E0b00558eA00159b8C14A36882B"
           },
           "SPXUX": {
             "oracle": "0x1C354B455bEf33744397A561dC518A2a9F4f5bab",
             "shareToken": "0x4122047076a1106618e984a8776A3F7bbcB1d429",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x79d83332fa4735a7B1A54728af3F578fAB97C9F1"
           }
         }
@@ -846,13 +861,6 @@
             "poolManager": "0x0cdA32E08B48bFDDbc7eE96B44b09cf286F9E21a",
             "poolPermissionManager": "0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3",
             "withdrawalManager": "0x86eBDf902d800F2a82038290B6DBb2A5eE29eB8C"
-          }
-        }
-      },
-      "mapleInstitutional": {
-        "pools": {
-          "usdc": {
-            "pool": "0xc39a5a616f0ad1ff45077fa2de3f79ab8eb8b8b9"
           }
         }
       },
@@ -1113,76 +1121,91 @@
           "WTGXX": {
             "oracle": "0x1dB644c6077912cF5DaB0B5A7f2D8eFB5B61df5C",
             "shareToken": "0x1feCF3d9d4Fee7f2c02917A66028a48C6706c179",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x63a8bb98D70d0aC73460d22b6756528a087ecBf8"
           },
           "LNGVX": {
             "oracle": "0x47d1BEb79cbF9da6b50e4941479752D9D1Cb559C",
             "shareToken": "0x2EcAD4280b7720Ba4F3830B47AB8eF2dA4763f04",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x52824473d93aCe8a21515526856dAEfd735d855A"
           },
           "MODRX": {
             "oracle": "0x2D55c68e6b9b6B3f70be2e51f289751E627f50aD",
             "shareToken": "0xFb20015Fb2047320a0f1c209f35c6432147770E8",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x41A29dE80572D3896D83d87F52cFEDE369Cb11d9"
           },
           "WTSTX": {
             "oracle": "0x447DC75c83D69e8e221b77a68C9195f78a11De2E",
             "shareToken": "0xA58B23027CdEb442854bb8063164D1Fd48F37707",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x8C00b161EB8A40E833703453235897173Fd4C47D"
           },
           "WTLGX": {
             "oracle": "0x600028D79Fc66e7fBa2ca7D4Da6388DB210D215e",
             "shareToken": "0x4D682cBD74a67B1fFE97A2bb78475a16Efe23e8A",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x5bC6710CcDC4074eAFac57f2e079Af761501d6fD"
           },
           "TIPSX": {
             "oracle": "0x1F7032dD9EefD95ce42CD196779138475CbA46CD",
             "shareToken": "0xA4964a2fE606f1D445e36006BcB7f7Faee580042",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x81ce58FD1812cac9f60b20f3B39B30C39fF00d3d"
           },
           "WTTSX": {
             "oracle": "0x244c6EFC140b9cC4D69d3bf4d9137Dc4195Be86c",
             "shareToken": "0xE7D2e561B8E3b1A0125f45da596706110F8953BE",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x15A7A8a67Bc47F506a7eb30468e8533dD47299F7"
           },
           "WTSYX": {
             "oracle": "0x47de098267EcA3a5deD9ab0B986F244Cb5446f21",
             "shareToken": "0x3340E2C0ddcc4A035737bC1F5445c7D0Fa6CBF5c",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x4b9cC5C587fe5Dbe6BF16F33BE948B8619F2E07E"
           },
           "WTSIX": {
             "oracle": "0x0398DA19EBb8F5DEcdc2E78465c2ef4F2412233b",
             "shareToken": "0x518FB6aFeFea9bB0A5135014d8032EDEe4a8B1eC",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0xa6fe9331eae8DFfA4A4fE93c8B8544653856E882"
           },
           "EPXC": {
             "oracle": "0x8EBE75854A62A6bE7803fFFe597b21a3c19e8Dac",
             "shareToken": "0x3Aa66362b62712F281a00E3d1F72b7b5B851736e",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0xD358cE49Bc42e9e62746f584e107E989390de7AA"
           },
           "FLTTX": {
             "oracle": "0x0E101c3e5d90AC9522cF4E74CD138C4A740837d8",
             "shareToken": "0x98F865Bd2E5a3e289b8CCA54f24A7Eeb2bBa56cE",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0xB0B673a031c80e0c9917DC73eA199ebA1e689fFC"
           },
           "CRDT": {
             "oracle": "0x2e2fA0fc0f6EFE801C7B4Fb4827aCB03dCC1669B",
             "shareToken": "0x9E5621b5Da05435F9931e5CCD01c3c24476155a7",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0xc24d277EEdc174b764C822a6965740f8C22CF95A"
           },
           "TECHX": {
             "oracle": "0x8b34B45ddE9C6f88E56F45e7608E01e35d342d93",
             "shareToken": "0x1A17f2bdb023e516F1b32b121F332fA931802A9F",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x6859Bb46626a6E0b00558eA00159b8C14A36882B"
           },
           "SPXUX": {
             "oracle": "0xB130089c5B0bBa74618De08286cC7A73060a98e3",
             "shareToken": "0x873d589F38abBCDD1fCA27261aBA2F1aA0661d44",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x79d83332fa4735a7B1A54728af3F578fAB97C9F1"
           },
           "EQTYX": {
             "oracle": "0x5a4ac204864a36e9820a3663836299ed963f0857",
             "shareToken": "0xA14669a76B12F94d6Ad09304aD15905e900a6E25",
+            "sweepSlippage": "500000000000000000",
             "targetWallet": "0x377ED8f6980B95429Ad1720714839EDDefBE0bE6"
           }
         }
