@@ -647,6 +647,12 @@ class ProtocolConfig {
         ),
         new SkyRewardsProduct(
           getOrCreateToken(addresses.USDC),
+          Address.fromString('0x173e314C7635B45322cd8Cb14f44b312e079F3af'),
+          BigInt.fromI32(24684743),
+          'Sky',
+        ),
+        new SkyRewardsProduct(
+          getOrCreateToken(addresses.USDC),
           Address.fromString('0x0650CAF159C5A49f711e8169D4336ECB9b950275'),
           BigInt.fromI32(22373484),
           'Sky',
