@@ -6,27 +6,29 @@ import { formatAmount } from '../utils/formatters'
 import { getTokenPriceInUSD } from '../utils/price-helper'
 import { BaseVaultProduct } from './BaseVaultProduct'
 
+/**
+ * @depreacted: use ERC4626Product instead
+ */
 export class ERC4626FluidLiteProduct extends BaseVaultProduct {
   getSharePrice(): BigDecimal {
     const vault = ERC4626FluidLite.bind(this.poolAddress)
-    const netAssets = vault.try_getNetAssets()
-    if (netAssets.reverted) {
+    const totalAssets = vault.try_totalAssets()
+    if (totalAssets.reverted) {
       return BigDecimalConstants.ZERO
     }
-    const netAssetsValue = netAssets.value.getNetAssets_()
     const totalSupply = vault.try_totalSupply()
 
     if (totalSupply.reverted) {
       return BigDecimalConstants.ZERO
     }
-
+    const totalAssetsValue = totalAssets.value
     const totalSupplyValue = totalSupply.value
 
     if (totalSupplyValue.equals(BigIntConstants.ZERO)) {
       return BigDecimalConstants.ZERO
     }
 
-    return netAssetsValue.toBigDecimal().div(totalSupplyValue.toBigDecimal())
+    return totalAssetsValue.toBigDecimal().div(totalSupplyValue.toBigDecimal())
   }
 
   getTvl(currentTimestamp: BigInt, currentBlock: BigInt): TvlData {
