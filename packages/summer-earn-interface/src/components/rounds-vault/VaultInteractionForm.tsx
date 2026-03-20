@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { formatUnits, parseUnits } from 'viem'
 import { erc20Abi } from 'viem'
-import { useAccount, useReadContract, useWriteContract } from 'wagmi'
+import {  useConnection, useReadContract, useWriteContract } from 'wagmi'
 
 interface VaultInteractionFormProps {
   title: string
@@ -31,7 +31,7 @@ export function VaultInteractionForm({
   symbol,
   receiptSymbol,
 }: VaultInteractionFormProps) {
-  const { address } = useAccount()
+  const { address } = useConnection()
   const [amount, setAmount] = useState('')
   const [receiptId, setReceiptId] = useState('')
 
