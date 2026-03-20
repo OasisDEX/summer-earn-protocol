@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { useReadContracts } from 'wagmi'
 import { ERC20_ABI, SupportedChainId, CHAIN_CONFIG } from '@/config/constants'
 import { TOKEN_LISTS } from '@/config/tokenLists'
-import { formatUnits } from 'viem'
+import { formatUnits, getAddress } from 'viem'
 
 export interface TreasuryBalance {
   address: string
@@ -13,72 +13,36 @@ export interface TreasuryBalance {
   decimals: number
   balance: string
   formattedBalance: string
-  logoURI?: string
+  logoURI?: string | undefined
   chainId: number
 }
 
 export function useTreasuryBalances() {
   const supportedChains = Object.keys(CHAIN_CONFIG).map(Number) as SupportedChainId[]
 
-  // Create contract calls for each chain
-  const mainnetResults = useReadContracts({
-    contracts: TOKEN_LISTS[1].flatMap((token) => [
-      {
-        address: token.address as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: [CHAIN_CONFIG[1].timelock as `0x${string}`],
-        chainId: 1,
-      },
-    ]),
-    query: {
-      enabled: true,
-      retry: 1,
-    },
-  })
+  // Flatten tokens across all supported chains
+  const allTokens = useMemo(() => {
+    return supportedChains.flatMap((chainId) =>
+      TOKEN_LISTS[chainId].map((token) => ({
+        ...token,
+        chainId,
+      })),
+    )
+  }, [supportedChains])
 
-  const baseResults = useReadContracts({
-    contracts: TOKEN_LISTS[8453].flatMap((token) => [
-      {
-        address: token.address as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: [CHAIN_CONFIG[8453].timelock as `0x${string}`],
-        chainId: 8453,
-      },
-    ]),
-    query: {
-      enabled: true,
-      retry: 1,
-    },
-  })
+  // Create contract calls for each token/chain
+  const contracts = useMemo(() => {
+    return allTokens.map((token) => ({
+      address: getAddress(token.address),
+      abi: ERC20_ABI,
+      functionName: 'balanceOf',
+      args: [getAddress(CHAIN_CONFIG[token.chainId as SupportedChainId].timelock)],
+      chainId: token.chainId,
+    }))
+  }, [allTokens])
 
-  const arbitrumResults = useReadContracts({
-    contracts: TOKEN_LISTS[42161].flatMap((token) => [
-      {
-        address: token.address as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: [CHAIN_CONFIG[42161].timelock as `0x${string}`],
-        chainId: 42161,
-      },
-    ]),
-    query: {
-      enabled: true,
-      retry: 1,
-    },
-  })
-
-  const sonicResults = useReadContracts({
-    contracts: TOKEN_LISTS[146].flatMap((token) => [
-      {
-        address: token.address as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: [CHAIN_CONFIG[146].timelock as `0x${string}`],
-        chainId: 146,
-      },
-    ]),
+  const { data, isLoading, isError, refetch } = useReadContracts({
+    contracts,
     query: {
       enabled: true,
       retry: 1,
@@ -87,65 +51,41 @@ export function useTreasuryBalances() {
 
   // Watch for errors in console
   useMemo(() => {
-    if (mainnetResults.error) console.error('Mainnet Treasury Fetch Error:', mainnetResults.error)
-    if (baseResults.error) console.error('Base Treasury Fetch Error:', baseResults.error)
-    if (arbitrumResults.error)
-      console.error('Arbitrum Treasury Fetch Error:', arbitrumResults.error)
-    if (sonicResults.error) console.error('Sonic Treasury Fetch Error:', sonicResults.error)
-  }, [mainnetResults.error, baseResults.error, arbitrumResults.error, sonicResults.error])
-
-  const isLoading =
-    mainnetResults.isLoading ||
-    baseResults.isLoading ||
-    arbitrumResults.isLoading ||
-    sonicResults.isLoading
+    if (isError) {
+      console.error('Treasury Fetch Error: One or more RPC reads failed.')
+    }
+  }, [isError])
 
   const balances = useMemo(() => {
-    const allBalances: TreasuryBalance[] = []
+    if (!data) return []
 
-    const processResults = (
-      chainId: SupportedChainId,
-      results: any,
-      tokens: (typeof TOKEN_LISTS)[SupportedChainId],
-    ) => {
-      if (!results.data) return
-
-      results.data.forEach((result: any, index: number) => {
+    return data
+      .map((result, index) => {
         const balance = result.result as bigint | undefined
         if (balance && balance > 0n) {
-          const token = tokens[index]
-          if (!token) return
-          allBalances.push({
+          const token = allTokens[index]
+          if (!token) return null
+          const b: TreasuryBalance = {
             address: token.address,
             symbol: token.symbol,
             name: token.name,
             decimals: token.decimals,
             balance: balance.toString(),
             formattedBalance: formatUnits(balance, token.decimals),
-            logoURI: token.logoURI,
-            chainId,
-          })
+            logoURI: token.logoURI ?? undefined,
+            chainId: token.chainId as number,
+          }
+          return b
         }
+        return null
       })
-    }
-
-    processResults(1, mainnetResults, TOKEN_LISTS[1])
-    processResults(8453, baseResults, TOKEN_LISTS[8453])
-    processResults(42161, arbitrumResults, TOKEN_LISTS[42161])
-    processResults(146, sonicResults, TOKEN_LISTS[146])
-
-    return allBalances
-  }, [mainnetResults, baseResults, arbitrumResults, sonicResults])
-
-  // Only consider it an error if ALL attempts failed and we have no data at all
-  const isError =
-    !isLoading &&
-    balances.length === 0 &&
-    (mainnetResults.isError || baseResults.isError || arbitrumResults.isError || sonicResults.isError)
+      .filter((b): b is TreasuryBalance => !!b)
+  }, [data, allTokens])
 
   return {
     balances,
     isLoading,
-    isError,
+    isError: isError && balances.length === 0,
+    refetch,
   }
 }
