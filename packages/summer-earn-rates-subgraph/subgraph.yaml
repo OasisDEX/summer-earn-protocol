@@ -6,7 +6,7 @@ features:
   - grafting
 graft:
   base: QmeXeVsiSwt8eNS1nH5oubP8exfGDVNsD9xkGUcDwvtBJk
-  block: 24680000
+  block: 24670000
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
