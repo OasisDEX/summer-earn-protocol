@@ -12,7 +12,7 @@ import type { ChainId } from '@/types'
 export function useSyncWalletChain(selectedChainId: ChainId | undefined) {
   const currentWalletChainId = useChainId()
   const { isConnected } = useAccount()
-  const { switchChain } = useSwitchChain()
+  const { mutate: switchChain } = useSwitchChain()
 
   useEffect(() => {
     if (!isConnected) return
