@@ -79,7 +79,7 @@ contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
     }
 
-    function test_BaseFork_OraclePrice_And_SharesToAssets() public {
+    function test_BaseFork_OraclePrice_And_SharesToAssets() public view {
         (, int256 answer, , , ) = oracle.latestRoundData();
 
         // Oracle decimals are 8 (typically for USD pairs)

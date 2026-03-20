@@ -460,7 +460,11 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /**
      * @dev No-op: Withdrawals are fully asynchronous via `requestWithdrawal` and `sweep`.
      */
-    function _disembark(uint256, bytes calldata) internal pure override {}
+    function _disembark(uint256, bytes calldata) internal view override {
+        if (isArkFrozen) {
+            revert ArkIsFrozen();
+        }
+    }
 
     /**
      * @dev Always 0: Synchronous withdrawal is not supported.
