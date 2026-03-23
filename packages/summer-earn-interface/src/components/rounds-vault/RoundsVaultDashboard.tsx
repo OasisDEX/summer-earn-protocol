@@ -55,22 +55,21 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
 
     // Find all RoundsVaultInput contracts
     const inputRegex = /^staging_RoundsVaultInput_(.*)#RoundsVaultInput$/
-    
+
     keys.forEach((key) => {
       const match = key.match(inputRegex)
 
       if (match) {
         const identifier = match[1]
         const outputKey = `staging_RoundsVaultOutput_${identifier}#RoundsVaultOutput`
-        
+
         if (config[outputKey]) {
           // Extract token symbol from identifier (e.g., extDemo_USDC_mainnet -> USDC)
           // We can try to match against known tokens in the index
           const tokens = (deploymentIndex as any)[chainName]?.tokens || {}
-          const tokenSymbol = identifier.split('_').find(part => 
-            tokens[part.toLowerCase()]
-          ) || 'USDC'
-          
+          const tokenSymbol =
+            identifier.split('_').find((part) => tokens[part.toLowerCase()]) || 'USDC'
+
           const tokenAddress = tokens[tokenSymbol.toLowerCase()] as `0x${string}`
 
           pairs.push({
@@ -89,12 +88,12 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
   }, [config, chainName])
 
   const [selectedPairId, setSelectedPairId] = useState<string | null>(
-    vaultPairs.length > 0 ? vaultPairs[0].id : null
+    vaultPairs.length > 0 ? vaultPairs[0].id : null,
   )
 
   const selectedPair = useMemo(
     () => vaultPairs.find((p) => p.id === selectedPairId) || vaultPairs[0],
-    [vaultPairs, selectedPairId]
+    [vaultPairs, selectedPairId],
   )
 
   if (vaultPairs.length === 0) {
@@ -138,9 +137,16 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
           // The form component handles exchangeAsset internally
           sharesAsset="0x0" // Placeholder as it's not used in body
           receiveAsset="0x0" // Placeholder
-          decimals={selectedPair.tokenSymbol === 'USDC' || selectedPair.tokenSymbol === 'USDT' || selectedPair.tokenSymbol === 'EURC' ? 6 : 18}
+          decimals={
+            selectedPair.tokenSymbol === 'USDC' ||
+            selectedPair.tokenSymbol === 'USDT' ||
+            selectedPair.tokenSymbol === 'EURC'
+              ? 6
+              : 18
+          }
           symbol={selectedPair.tokenSymbol}
           receiptSymbol="rInput"
+          showFleetURL={true}
         />
 
         {/* Output Vault Module */}
@@ -153,7 +159,13 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
           underlyingAsset={selectedPair.tokenAddress}
           sharesAsset={selectedPair.tokenAddress}
           receiveAsset={selectedPair.tokenAddress}
-          decimals={selectedPair.tokenSymbol === 'USDC' || selectedPair.tokenSymbol === 'USDT' || selectedPair.tokenSymbol === 'EURC' ? 6 : 18}
+          decimals={
+            selectedPair.tokenSymbol === 'USDC' ||
+            selectedPair.tokenSymbol === 'USDT' ||
+            selectedPair.tokenSymbol === 'EURC'
+              ? 6
+              : 18
+          }
           symbol={`${selectedPair.tokenSymbol} Shares`}
           receiptSymbol="rOutput"
         />

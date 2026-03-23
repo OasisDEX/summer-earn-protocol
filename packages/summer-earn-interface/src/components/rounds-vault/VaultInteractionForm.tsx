@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatUnits, parseUnits } from 'viem'
 import { erc20Abi } from 'viem'
-import {  useConnection, useReadContract, useWriteContract } from 'wagmi'
+import { useConnection, useReadContract, useWriteContract } from 'wagmi'
 
 interface VaultInteractionFormProps {
   title: string
@@ -19,6 +19,7 @@ interface VaultInteractionFormProps {
   decimals: number
   symbol: string
   receiptSymbol: string
+  showFleetURL?: boolean
 }
 
 export function VaultInteractionForm({
@@ -30,10 +31,12 @@ export function VaultInteractionForm({
   decimals,
   symbol,
   receiptSymbol,
+  showFleetURL = false,
 }: VaultInteractionFormProps) {
-  const { address } = useConnection()
+  const { address, chainId } = useConnection()
   const [amount, setAmount] = useState('')
   const [receiptId, setReceiptId] = useState('')
+  const [fleetURL, setFleetURL] = useState('')
 
   // Read current round
   const { data: currentRound } = useReadContract({
@@ -70,6 +73,12 @@ export function VaultInteractionForm({
     abi: vaultAbi,
     functionName: 'exchangeAsset',
   }) as { data: `0x${string}` | undefined }
+
+  useEffect(() => {
+    if (!address) return
+    if (!chainId) return
+    setFleetURL(`${window.location.origin}/fleet/${chainId}/${exchangeAsset}`)
+  }, [chainId, exchangeAsset])
 
   const { writeContractAsync, isPending } = useWriteContract()
 
@@ -211,6 +220,17 @@ export function VaultInteractionForm({
               <code className="text-blue-300 font-mono bg-blue-900/20 px-2 py-1 rounded">
                 {exchangeAsset}
               </code>
+              <br />
+              {showFleetURL && address && (
+                <a
+                  href={fleetURL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 underline"
+                >
+                  View on Summer Earn Interface
+                </a>
+              )}
             </div>
           )}
 

@@ -5,7 +5,7 @@ import { erc20Abi } from '@/abis/ERC20'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
 import { CHAIN_RPC_URLS, createRpcTransport, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 
-const TTL_MS = 10 * 60 * 1000
+const TTL_MS = 30 * 1000
 const cache = new Map<string, { data: unknown; expiry: number }>()
 
 type FleetUserInfo = {
