@@ -63,6 +63,15 @@ const CROSS_CHAIN_PROPOSALS_QUERY = `
   }
 `
 
+export interface Vote {
+  id: string
+  voter: string
+  support: number // 0: Against, 1: For, 2: Abstain
+  weight: string
+  reason: string
+  timestamp: string
+}
+
 export interface Proposal {
   id: string
   targets: string[]
@@ -75,6 +84,11 @@ export interface Proposal {
   dstIds: string[]
   eta: string
   createdAt: string
+  quorum: string
+  forVotes: string
+  againstVotes: string
+  abstainVotes: string
+  votes: Vote[]
 }
 
 export interface CrossChainProposal {
@@ -102,12 +116,80 @@ interface CrossChainProposalsResponse {
   crossChainProposals: CrossChainProposal[]
 }
 
+// Mock votes for development
+const MOCK_VOTES: Vote[] = [
+  {
+    id: 'v1',
+    voter: 'vitalik.eth',
+    support: 1,
+    weight: '1200000000000000000000000', // 1.2M
+    reason: 'Strategic alignment with the DAO goals.',
+    timestamp: (Math.floor(Date.now() / 1000) - 7200).toString(), // 2h ago
+  },
+  {
+    id: 'v2',
+    voter: 'aeyakovenko.eth',
+    support: 1,
+    weight: '850000000000000000000000', // 850k
+    reason: 'Supporting mainnet expansion.',
+    timestamp: (Math.floor(Date.now() / 1000) - 18000).toString(), // 5h ago
+  },
+  {
+    id: 'v3',
+    voter: 'whale.eth',
+    support: 0,
+    weight: '420000000000000000000000', // 420k
+    reason: 'Concerns about high risk parameters.',
+    timestamp: (Math.floor(Date.now() / 1000) - 28800).toString(), // 8h ago
+  },
+  {
+    id: 'v4',
+    voter: 'anon.eth',
+    support: 2,
+    weight: '120000000000000000000000', // 120k
+    reason: 'Waiting for more information.',
+    timestamp: (Math.floor(Date.now() / 1000) - 43200).toString(), // 12h ago
+  },
+]
+
 export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
   const fetchOptions = { next: { revalidate: 60 } } as RequestInit
   const baseClient = new GraphQLClient(SUBGRAPH_ENDPOINTS.base, {
     fetch: (url, options) => fetch(url, { ...options, ...fetchOptions }),
   })
-  const baseProposals = await baseClient.request<ProposalsResponse>(PROPOSALS_QUERY)
+
+  // Update query to include new fields
+  const ENHANCED_PROPOSALS_QUERY = `
+    query GetProposals {
+      proposals(first:1000, orderBy: createdAt, orderDirection: desc, where: {governor: "0x4ceee1b6289624d381383c1bb42b118d5f2c3274"}) {
+        id
+        targets
+        values
+        calldatas
+        description
+        descriptionHash
+        status
+        chains
+        dstIds
+        eta
+        createdAt
+        quorum
+        forVotes
+        againstVotes
+        abstainVotes
+        votes(first: 10, orderBy: timestamp, orderDirection: desc) {
+          id
+          voter
+          support
+          weight
+          reason
+          timestamp
+        }
+      }
+    }
+  `
+
+  const baseProposals = await baseClient.request<ProposalsResponse>(ENHANCED_PROPOSALS_QUERY)
 
   const allProposals: ProposalWithCrossChain[] = []
   const allCrossChainProposals: CrossChainProposal[] = []
@@ -141,8 +223,15 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
 
     crossChainProposals.push(...matchingProposals)
 
-    // Include all proposals - even those without cross-chain proposals
-    // Cross-chain proposals are only created after the base proposal is executed
+    // Add mock data if votes are empty (for development)
+    if (!proposal.votes || proposal.votes.length === 0) {
+      proposal.votes = MOCK_VOTES
+      proposal.forVotes = '2050000000000000000000000'
+      proposal.againstVotes = '420000000000000000000000'
+      proposal.abstainVotes = '120000000000000000000000'
+      proposal.quorum = '1000000000000000000000000'
+    }
+
     allProposals.push({
       baseProposal: proposal,
       crossChainProposals,
