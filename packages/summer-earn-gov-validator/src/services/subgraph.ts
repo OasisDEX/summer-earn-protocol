@@ -29,24 +29,6 @@ const DELEGATES_QUERY = `
   }
 `
 
-const PROPOSALS_QUERY = `
-  query GetProposals {
-    proposals(first:1000, orderBy: createdAt, orderDirection: desc, where: {governor: "0x4ceee1b6289624d381383c1bb42b118d5f2c3274"}) {
-      id
-      targets
-      values
-      calldatas
-      description
-      descriptionHash
-      status
-      chains
-      dstIds
-      eta
-      createdAt
-    }
-  }
-`
-
 const CROSS_CHAIN_PROPOSALS_QUERY = `
   query GetCrossChainProposals {
     crossChainProposals(first:1000) {
@@ -115,42 +97,6 @@ interface ProposalsResponse {
 interface CrossChainProposalsResponse {
   crossChainProposals: CrossChainProposal[]
 }
-
-// Mock votes for development
-const MOCK_VOTES: Vote[] = [
-  {
-    id: 'v1',
-    voter: 'vitalik.eth',
-    support: 1,
-    weight: '1200000000000000000000000', // 1.2M
-    reason: 'Strategic alignment with the DAO goals.',
-    timestamp: (Math.floor(Date.now() / 1000) - 7200).toString(), // 2h ago
-  },
-  {
-    id: 'v2',
-    voter: 'aeyakovenko.eth',
-    support: 1,
-    weight: '850000000000000000000000', // 850k
-    reason: 'Supporting mainnet expansion.',
-    timestamp: (Math.floor(Date.now() / 1000) - 18000).toString(), // 5h ago
-  },
-  {
-    id: 'v3',
-    voter: 'whale.eth',
-    support: 0,
-    weight: '420000000000000000000000', // 420k
-    reason: 'Concerns about high risk parameters.',
-    timestamp: (Math.floor(Date.now() / 1000) - 28800).toString(), // 8h ago
-  },
-  {
-    id: 'v4',
-    voter: 'anon.eth',
-    support: 2,
-    weight: '120000000000000000000000', // 120k
-    reason: 'Waiting for more information.',
-    timestamp: (Math.floor(Date.now() / 1000) - 43200).toString(), // 12h ago
-  },
-]
 
 export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
   const fetchOptions = { next: { revalidate: 60 } } as RequestInit
@@ -222,15 +168,6 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
     )
 
     crossChainProposals.push(...matchingProposals)
-
-    // Add mock data if votes are empty (for development)
-    if (!proposal.votes || proposal.votes.length === 0) {
-      proposal.votes = MOCK_VOTES
-      proposal.forVotes = '2050000000000000000000000'
-      proposal.againstVotes = '420000000000000000000000'
-      proposal.abstainVotes = '120000000000000000000000'
-      proposal.quorum = '1000000000000000000000000'
-    }
 
     allProposals.push({
       baseProposal: proposal,

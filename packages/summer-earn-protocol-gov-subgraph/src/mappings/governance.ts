@@ -15,12 +15,16 @@ import { CrossChainProposalByCallId, Vote } from '../../generated/schema'
 import { TimelockControllerTemplate } from '../../generated/templates'
 
 import { BigIntOne, EventSignature } from '../constants'
-import { getOrCreateCrossChainProposal, getOrCreateProposal } from '../initializers'
+import {
+  getOrCreateCrossChainProposal,
+  getOrCreateDelegate,
+  getOrCreateProposal,
+} from '../initializers'
 import { dstEidToChainIdMap, isHub } from '../utils/chain'
 import { dataToTuple, getEventLogs } from '../utils/events'
 
 function isGovernorV2(address: string): boolean {
-  return address == '0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274'
+  return address.toLowerCase() == '0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274'.toLowerCase()
 }
 
 export function handleTimelockChange(event: TimelockChange): void {
@@ -81,12 +85,14 @@ export function handleVoteCast(event: VoteCast): void {
   vote.timestamp = event.block.timestamp
   vote.save()
 
+  const delegate = getOrCreateDelegate(event.params.voter.toHexString())
+
   if (event.params.support == VoteType.VoteAgainst) {
-    proposal.againstVotes = proposal.againstVotes.plus(event.params.weight)
+    proposal.againstVotes = proposal.againstVotes.plus(delegate.votingPower)
   } else if (event.params.support == VoteType.VoteFor) {
-    proposal.forVotes = proposal.forVotes.plus(event.params.weight)
+    proposal.forVotes = proposal.forVotes.plus(delegate.votingPower)
   } else if (event.params.support == VoteType.VoteAbstain) {
-    proposal.abstainVotes = proposal.abstainVotes.plus(event.params.weight)
+    proposal.abstainVotes = proposal.abstainVotes.plus(delegate.votingPower)
   }
   proposal.save()
 }
@@ -113,12 +119,14 @@ export function handleVoteCastWithParams(event: VoteCastWithParams): void {
   vote.timestamp = event.block.timestamp
   vote.save()
 
+  const delegate = getOrCreateDelegate(event.params.voter.toHexString())
+
   if (event.params.support == 0) {
-    proposal.againstVotes = proposal.againstVotes.plus(event.params.weight)
+    proposal.againstVotes = proposal.againstVotes.plus(delegate.votingPower)
   } else if (event.params.support == 1) {
-    proposal.forVotes = proposal.forVotes.plus(event.params.weight)
+    proposal.forVotes = proposal.forVotes.plus(delegate.votingPower)
   } else if (event.params.support == 2) {
-    proposal.abstainVotes = proposal.abstainVotes.plus(event.params.weight)
+    proposal.abstainVotes = proposal.abstainVotes.plus(delegate.votingPower)
   }
   proposal.save()
 }
