@@ -126,7 +126,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
       const abstainPercent = totalVotes > 0 ? Math.round((abstainVotes / totalVotes) * 100) : 0
 
       // Quorum is 15% of total supply (dynamic from token contract)
-      const QUORUM_THRESHOLD = 0.15 * (Number(totalSupply) / 1e18)
+      const QUORUM_THRESHOLD = 0.5 * (Number(totalSupply) / 1e18)
       const quorumReached = forVotes >= QUORUM_THRESHOLD
 
       return {
@@ -161,7 +161,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
           color: 'text-primary',
           bgColor: 'bg-primary/10',
           borderColor: 'border-primary/20',
-          glowColor: 'shadow-[0_0_30px_rgba(125,211,252,0.25)]',
+          glowColor: 'shadow-[0_0_15px_rgba(125,211,252,1)]',
           buttonClass:
             'bg-primary text-slate-950 shadow-[0_0_15px_rgba(125,211,252,0.4)] hover:brightness-110',
           indicatorColor: 'bg-primary',
@@ -172,7 +172,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
           color: 'text-emerald-400',
           bgColor: 'bg-emerald-400/10',
           borderColor: 'border-emerald-400/20',
-          glowColor: 'shadow-[0_0_30px_rgba(52,211,153,0.15)]',
+          glowColor: 'shadow-[0_0_15px_rgba(52,211,153,1)]',
           buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
           indicatorColor: 'bg-emerald-400',
         }
@@ -181,7 +181,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
           color: 'text-amber-400',
           bgColor: 'bg-amber-400/10',
           borderColor: 'border-amber-400/20',
-          glowColor: 'shadow-[0_0_30px_rgba(251,191,36,0.15)]',
+          glowColor: 'shadow-[0_0_15px_rgba(251,191,36,1)]',
           buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
           indicatorColor: 'bg-amber-400',
         }
@@ -190,7 +190,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
           color: 'text-tertiary',
           bgColor: 'bg-tertiary/10',
           borderColor: 'border-tertiary/20',
-          glowColor: 'shadow-[0_0_30px_rgba(200,160,240,0.25)]',
+          glowColor: 'shadow-[0_0_15px_rgba(200,160,240,0.25)]',
           buttonClass:
             'border-tertiary/30 text-tertiary hover:bg-tertiary/10 shadow-[0_0_15px_rgba(200,160,240,0.2)]',
           indicatorColor: 'bg-tertiary',
@@ -201,7 +201,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
           color: 'text-error',
           bgColor: 'bg-error/10',
           borderColor: 'border-error/20',
-          glowColor: 'shadow-[0_0_30px_rgba(255,107,107,0.15)]',
+          glowColor: 'shadow-[0_0_15px_rgba(255,107,107,1)]',
           buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
           indicatorColor: 'bg-error',
         }
@@ -317,7 +317,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
             >
               {/* Status Highlight / Partial Frame */}
               <div
-                className={`absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-[30%] rounded-r-full group-hover:h-[40%] transition-all ${statusConfig.indicatorColor}`}
+                className={`absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-[30%] rounded-r-full group-hover:h-[40%] transition-all `}
               />
               <div className="flex justify-between items-start mb-4">
                 <div className="flex flex-col">
