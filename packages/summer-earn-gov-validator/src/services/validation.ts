@@ -1,14 +1,6 @@
-import {
-  Abi,
-  decodeFunctionData,
-  formatUnits,
-  Hex,
-  keccak256,
-  parseAbiItem,
-  toBytes,
-  toFunctionSelector,
-} from 'viem'
+import { decodeFunctionData, formatUnits, Hex, keccak256, toFunctionSelector } from 'viem'
 
+import { COMBINED_ABI } from '../config/abis/combined'
 import deployedArbitrum from '../config/deployed/arbitrum.json'
 import deployedBase from '../config/deployed/base.json'
 import deployedMainnet from '../config/deployed/mainnet.json'
@@ -34,9 +26,9 @@ const dstEidToChainIdMap: Record<string, string> = {
 type DstId = '30101' | '30110' | '30184' | '30332'
 
 // Role constants
-export const PROPOSER_ROLE = keccak256(toBytes('PROPOSER_ROLE'))
-export const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
-export const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
+export const PROPOSER_ROLE = keccak256(new TextEncoder().encode('PROPOSER_ROLE'))
+export const EXECUTOR_ROLE = keccak256(new TextEncoder().encode('EXECUTOR_ROLE'))
+export const CANCELLER_ROLE = keccak256(new TextEncoder().encode('CANCELLER_ROLE'))
 export const DEFAULT_ADMIN_ROLE =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
@@ -80,10 +72,10 @@ type NetworkConfig = {
   }
   common: {
     chainId: string
-    [key: string]: any
+    [key: string]: unknown
   }
   protocolSpecific: {
-    [key: string]: any
+    [key: string]: unknown
   }
 }
 
@@ -109,7 +101,7 @@ interface ValidationResult {
 
 interface DecodedFunction {
   functionName: string
-  args: any[]
+  args: (string | number | boolean | object)[]
   paramNames: string[]
   internalTypes?: string[]
   isFallbackDecimal?: boolean[]
@@ -122,7 +114,7 @@ export interface CrossChainData {
   dstValues: string[]
   dstCalldatas: string[]
   dstDescriptionHash: string
-  options: any
+  options: Hex
   decodedCalldatas?: DecodedFunction[]
   formattedProposals?: Array<{
     target: string
@@ -131,130 +123,6 @@ export interface CrossChainData {
     decodedCall?: DecodedFunction
   }>
 }
-
-// Separate string ABIs from Object ABIs to properly maintain internalTypes for Percentage
-const KNOWN_STRING_ABIS = [
-  'function sendProposalToTargetChain(uint32 _dstEid, address[] _dstTargets, uint256[] _dstValues, bytes[] _dstCalldatas, bytes32 _dstDescriptionHash, bytes _options) external',
-  'function grantCuratorRole(address fleetAddress, address account) external',
-  'function grantAdmiralsQuartersRole(address account) external',
-  'function revokeAdmiralsQuartersRole(address account) external',
-  'function grantCommanderRole(address arkAddress, address account) external',
-  'function addArk(address ark) external',
-  'function enlistFleetCommander(address fleetCommander) external',
-  'function grantRole(bytes32 role, address account) external',
-  'function revokeRole(bytes32 role, address account) external',
-  'function grantGovernorRole(address account) external',
-  'function revokeGovernorRole(address account) external',
-  'function grantSuperKeeperRole(address account) external',
-  'function revokeSuperKeeperRole(address account) external',
-  'function grantGuardianRole(address account) external',
-  'function revokeGuardianRole(address account) external',
-  'function setGuardianExpiration(address account, uint256 expiration) external',
-  'function grantDecayControllerRole(address account) external',
-  'function revokeDecayControllerRole(address account) external',
-  'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration) external',
-  'function setRewardsDuration(address rewardToken, uint256 _rewardsDuration) external',
-  'function setRaft(address raft) external',
-  'function sweep(address ark,address[] tokens) external',
-  'function sweep(address[] tokens) external',
-  'function approve(address spender, uint256 amount) external returns (bool)',
-  'function transfer(address to, uint256 amount) external returns (bool)',
-  'function transferFrom(address from, address to, uint256 amount) external returns (bool)',
-  'function setVotingDelay(uint48 newVotingDelay) external',
-  'function setVotingPeriod(uint32 newVotingPeriod) external',
-  'function setQuorumNumerator(uint256 newQuorumNumerator) external',
-  'function setProposalThreshold(uint256 newProposalThreshold) external',
-  'function setProposalMaxOperations(uint256 newProposalMaxOperations) external',
-  'function setProposalMaxDuration(uint256 newProposalMaxDuration) external',
-  'function updateDelay(uint256 newDelay) external',
-  'function addToWhitelist(address account) external',
-  'function setFleetTokenTransferability() external',
-  'function schedule(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt, uint256 delay) public',
-  'function scheduleBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt, uint256 delay) public',
-  'function execute(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public payable',
-  'function executeBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt) public payable',
-  'function cancel(bytes32 id) public',
-  'function hashOperation(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public pure returns (bytes32)',
-  'function hashOperationBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt) public pure returns (bytes32)',
-  'function hasRole(bytes32 role, address account) public view returns (bool)',
-  'function castVote(uint256 proposalId, uint8 support) public returns (uint256)',
-  'function propose(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) public returns (uint256)',
-  'function cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) public returns (uint256)',
-  'function createCampaign((bytes32 campaignId, address creator, address rewardToken, uint256 amount, uint32 campaignType, uint32 startTimestamp, uint32 duration, bytes campaignData)) external returns (uint256)',
-  'function setNonSweepableToken(address ark, address token, bool isNonSweepable) external',
-  'function validateTimestamp() external',
-  'function removeRoot(uint256 index) external',
-]
-
-const KNOWN_OBJECT_ABIS = [
-  {
-    type: 'function',
-    name: 'send',
-    inputs: [
-      {
-        components: [
-          { name: 'dstEid', type: 'uint32' },
-          { name: 'to', type: 'bytes32' },
-          { name: 'amountLD', type: 'uint256' },
-          { name: 'minAmountLD', type: 'uint256' },
-          { name: 'extraOptions', type: 'bytes' },
-          { name: 'composeMsg', type: 'bytes' },
-          { name: 'oftCmd', type: 'bytes' },
-        ],
-        name: 'sendParams',
-        type: 'tuple',
-      },
-      {
-        components: [
-          { name: 'nativeFee', type: 'uint256' },
-          { name: 'lzTokenFee', type: 'uint256' },
-        ],
-        name: 'feeParams',
-        type: 'tuple',
-      },
-      { name: '_refundAddress', type: 'address' },
-    ],
-    outputs: [],
-    stateMutability: 'external',
-  },
-  {
-    type: 'function',
-    name: 'setTipRate',
-    inputs: [
-      {
-        name: 'newTipRate',
-        type: 'uint256',
-        internalType: 'Percentage',
-      },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'addTipStream',
-    inputs: [
-      {
-        name: 'tipStream',
-        type: 'tuple',
-        internalType: 'struct ITipJar.TipStream',
-        components: [
-          { name: 'recipient', type: 'address', internalType: 'address' },
-          { name: 'allocation', type: 'uint256', internalType: 'Percentage' },
-          { name: 'lockedUntilEpoch', type: 'uint256', internalType: 'uint256' },
-        ],
-      },
-    ],
-    outputs: [{ name: 'lockedUntilEpoch', type: 'uint256', internalType: 'uint256' }],
-    stateMutability: 'nonpayable',
-  },
-]
-
-// Unified ABI containing both formatted objects and parsed strings
-export const COMBINED_ABI: Abi = [
-  ...KNOWN_STRING_ABIS.map((sig) => parseAbiItem(sig)),
-  ...KNOWN_OBJECT_ABIS,
-] as Abi
 
 /**
  * Gets role tags for an address based on role information
@@ -269,6 +137,44 @@ export function getRoleTags(address: string, roleInfo?: RoleInfo): string[] {
 }
 
 // Helper function to decode an address to its contract name
+export function addresToContractName(address: string, network: SupportedNetworks): string {
+  const networkConfig = typedConfig[network]
+  const normalizedAddress = address.toLowerCase()
+
+  for (const category in networkConfig.deployedContracts) {
+    const contracts = networkConfig.deployedContracts[category]
+
+    for (const contractName in contracts) {
+      const contract = contracts[contractName]
+
+      if (contract.address && contract.address.toLowerCase() === normalizedAddress) {
+        return `${category}.${contractName}`
+      }
+    }
+  }
+
+  for (const tokenName in networkConfig.tokens) {
+    const tokenAddress = networkConfig.tokens[tokenName]
+    if (tokenAddress && tokenAddress.toLowerCase() === normalizedAddress) {
+      return `token.${tokenName}`
+    }
+  }
+
+  const deployedAddresses = deployedAddressesByNetwork[network]
+  if (!deployedAddresses) {
+    console.warn(`No deployed addresses found for network ${network}`)
+    return 'Unknown'
+  }
+
+  for (const [contractName, contractAddress] of Object.entries(deployedAddresses)) {
+    if (contractAddress.toLowerCase() === normalizedAddress) {
+      return contractName
+    }
+  }
+
+  return 'Unknown'
+}
+
 function decodeAddress(address: string, network?: SupportedNetworks): string {
   const targetNetwork = network ?? SupportedNetworks.BASE
   const name = addresToContractName(address, targetNetwork)
@@ -276,6 +182,13 @@ function decodeAddress(address: string, network?: SupportedNetworks): string {
     return `${targetNetwork}:${name}(${address})`
   }
   return address
+}
+
+interface ParamInfo {
+  name: string
+  internalType: string
+  type: string
+  components?: ParamInfo[]
 }
 
 // Function to decode any calldata using known ABIs
@@ -299,14 +212,14 @@ export const decodeCalldata = (
         (item) => item.type === 'function' && item.name === decoded.functionName,
       )
       const fragment = abiItems.find(
-        (item: any) => item.inputs?.length === (decoded.args?.length || 0),
-      ) as any
+        (item) => item.type === 'function' && item.inputs?.length === (decoded.args?.length || 0),
+      )
 
-      if (!fragment) return null
+      if (!fragment || fragment.type !== 'function') return null
 
       // Recursively pull out param names and exact internal types mapped back from JSON fragments
-      const getParamInfo = (inputs: readonly any[]): any[] => {
-        return inputs.map((input) => {
+      const getParamInfo = (inputs: readonly unknown[]): ParamInfo[] => {
+        return (inputs as any[]).map((input) => {
           if (input.type === 'tuple' || input.type.startsWith('tuple[')) {
             return {
               name: input.name,
@@ -347,7 +260,7 @@ export const decodeCalldata = (
       }
 
       // Recursively process arguments to handle tuples and special types
-      const processArg = (arg: any, paramInfo: any): any => {
+      const processArg = (arg: any, paramInfo: ParamInfo): any => {
         // Viem maps tuples directly to Objects, and arrays correctly to arrays
         if (Array.isArray(arg)) {
           return arg.map((item) =>
@@ -356,9 +269,9 @@ export const decodeCalldata = (
         }
 
         if (paramInfo?.components && typeof arg === 'object' && arg !== null) {
-          const result: any = {}
-          paramInfo.components.forEach((compInfo: any) => {
-            result[compInfo.name] = processArg(arg[compInfo.name], compInfo)
+          const result: Record<string, any> = {}
+          paramInfo.components.forEach((compInfo) => {
+            result[compInfo.name] = processArg(arg[compInfo.name as keyof typeof arg], compInfo)
           })
           return result
         }
@@ -371,7 +284,7 @@ export const decodeCalldata = (
             const bigVal = BigInt(arg.toString())
             const percent = Number(bigVal * 10000n) / Number(WAD) / 100
             return `${arg} (${percent.toFixed(2)}%)`
-          } catch (e) {
+          } catch {
             return arg
           }
         }
@@ -387,7 +300,7 @@ export const decodeCalldata = (
           try {
             const formatted = formatUnits(BigInt(arg.toString()), fixedDecimals)
             return `${arg} [formatted:${formatted}${usedFallback ? ':fallback' : ''}]`
-          } catch (e) {
+          } catch {
             return arg
           }
         }
@@ -419,7 +332,7 @@ export const decodeCalldata = (
         internalTypes: paramInfos.map((p) => p.internalType),
       }
     }
-  } catch (error) {
+  } catch {
     // Continue/Return null on fail to mirror old iteration behaviour
   }
   return null
@@ -437,7 +350,7 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
       throw new Error('Calldata is not sendProposalToTargetChain')
     }
 
-    const args = decoded.args as any[]
+    const args = decoded.args as [number, string[], bigint[], string[], Hex, Hex]
     const dstEid = args[0]
     const dstTargets = args[1]
     const dstValues = args[2]
@@ -450,17 +363,15 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
     const network = dstEidToChainIdMap[dstIdAsString] as SupportedNetworks
 
     // Decode nested calldatas
-    const decodedCalldatas = dstCalldatas.map((nestedCalldata: string, index: number) =>
-      decodeCalldata(nestedCalldata, dstTargets[index], network),
-    )
+    const decodedCalldatas = dstCalldatas
+      .map((nestedCalldata, index) => decodeCalldata(nestedCalldata, dstTargets[index], network))
+      .filter((d): d is DecodedFunction => d !== null)
 
     // Get contract names for the targets
-    const targetContractNames = dstTargets.map((target: string) =>
-      addresToContractName(target, network),
-    )
+    const targetContractNames = dstTargets.map((target) => addresToContractName(target, network))
 
     // Format proposals for better readability
-    const formattedProposals = dstTargets.map((target: string, index: number) => ({
+    const formattedProposals = dstTargets.map((target, index) => ({
       target: target.toLowerCase(),
       targetName: targetContractNames[index],
       value: dstValues[index].toString(),
@@ -469,9 +380,9 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
 
     return {
       dstEid: network,
-      dstTargets: dstTargets.map((addr: string) => addr.toLowerCase()),
+      dstTargets: dstTargets.map((addr) => addr.toLowerCase()),
       dstTargetNames: targetContractNames,
-      dstValues: dstValues.map((val: bigint) => val.toString()),
+      dstValues: dstValues.map((val) => val.toString()),
       dstCalldatas: dstCalldatas,
       dstDescriptionHash: dstDescriptionHash,
       options,
@@ -483,44 +394,6 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
   }
 }
 
-export function addresToContractName(address: string, network: SupportedNetworks): string {
-  const networkConfig = typedConfig[network]
-  const normalizedAddress = address.toLowerCase()
-
-  for (const category in networkConfig.deployedContracts) {
-    const contracts = networkConfig.deployedContracts[category]
-
-    for (const contractName in contracts) {
-      const contract = contracts[contractName]
-
-      if (contract.address && contract.address.toLowerCase() === normalizedAddress) {
-        return `${category}.${contractName}`
-      }
-    }
-  }
-
-  for (const tokenName in networkConfig.tokens) {
-    const tokenAddress = networkConfig.tokens[tokenName]
-    if (tokenAddress && tokenAddress.toLowerCase() === normalizedAddress) {
-      return `token.${tokenName}`
-    }
-  }
-
-  const deployedAddresses = deployedAddressesByNetwork[network]
-  if (!deployedAddresses) {
-    console.warn(`No deployed addresses found for network ${network}`)
-    return 'Unknown'
-  }
-
-  for (const [contractName, contractAddress] of Object.entries(deployedAddresses)) {
-    if (contractAddress.toLowerCase() === normalizedAddress) {
-      return contractName
-    }
-  }
-
-  return 'Unknown'
-}
-
 export const validateTargets = (
   targets: string[],
   network: SupportedNetworks = SupportedNetworks.BASE,
@@ -530,15 +403,16 @@ export const validateTargets = (
   const contractNames: string[] = []
 
   const networkConfig = typedConfig[network]
-  const collectAddresses = (obj: any) => {
+  const collectAddresses = (obj: unknown) => {
     if (typeof obj !== 'object' || obj === null) return
+    const record = obj as Record<string, unknown>
     if (
-      typeof obj.address === 'string' &&
-      obj.address !== '0x0000000000000000000000000000000000000000'
+      typeof record.address === 'string' &&
+      record.address !== '0x0000000000000000000000000000000000000000'
     ) {
-      validAddresses.add(obj.address.toLowerCase())
+      validAddresses.add((record.address as string).toLowerCase())
     }
-    Object.values(obj).forEach(collectAddresses)
+    Object.values(record).forEach(collectAddresses)
   }
 
   collectAddresses(networkConfig)

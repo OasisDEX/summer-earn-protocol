@@ -1,4 +1,4 @@
-import { Address } from 'viem'
+import { Address, PublicClient } from 'viem'
 import { getEnsName } from 'viem/actions'
 import { arbitrum, base, mainnet } from 'viem/chains'
 
@@ -48,12 +48,12 @@ export async function resolveEnsNames(addresses: string[]): Promise<Record<strin
       }))
 
     // Perform resolutions: Parallel for Mainnet (robust), Multicall for L2s (fast)
-    const [ethResultsRaw, baseResults, arbResults] = await Promise.all([
+    const [ethResultsRaw, baseRestultsRaw, arbResultsRaw] = await Promise.all([
       Promise.all(
         addressesTyped.map((addr) =>
-          getEnsName(getClient(REGISTRARS.ethereum.chainId) as any, { address: addr }).catch(
-            () => null,
-          ),
+          getEnsName(getClient(REGISTRARS.ethereum.chainId) as PublicClient, {
+            address: addr,
+          }).catch(() => null),
         ),
       ),
       getClient(REGISTRARS.base.chainId).multicall({
@@ -65,6 +65,9 @@ export async function resolveEnsNames(addresses: string[]): Promise<Record<strin
         allowFailure: true,
       }),
     ])
+
+    const baseResults = baseRestultsRaw as Array<{ status: string; result?: unknown }>
+    const arbResults = arbResultsRaw as Array<{ status: string; result?: unknown }>
 
     // Apply priority: Ethereum > Base > Arbitrum
     addresses.forEach((addr, i) => {

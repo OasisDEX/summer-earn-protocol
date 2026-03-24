@@ -1,9 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ethers, keccak256 } from 'ethers'
 import Link from 'next/link'
-import { toBytes } from 'viem'
+import { keccak256, stringToBytes } from 'viem'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { VoteBar } from '@/components/VoteBar'
@@ -38,15 +37,15 @@ export function ProposalVotingInfo({
   const handleQueueBaseProposal = async () => {
     if (!isConnected || !address || !proposalData) return
 
-    const governorAddress = (config as any).base?.deployedContracts?.gov?.summerGovernor?.address
+    const governorAddress = (config as Record<string, any>).base?.deployedContracts?.gov
+      ?.summerGovernor?.address
     if (!governorAddress) return
 
     try {
       setIsExecuting(true)
       if (chainId !== 8453) await switchChain({ chainId: 8453 })
 
-      // const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposalData.description))
-      const descriptionHash = keccak256(toBytes(proposalData.description))
+      const descriptionHash = keccak256(stringToBytes(proposalData.description))
 
       await writeContract({
         address: governorAddress as `0x${string}`,
@@ -69,15 +68,15 @@ export function ProposalVotingInfo({
   const handleExecuteBaseProposal = async () => {
     if (!isConnected || !address || !proposalData) return
 
-    const governorAddress = (config as any).base?.deployedContracts?.gov?.summerGovernor?.address
+    const governorAddress = (config as Record<string, any>).base?.deployedContracts?.gov
+      ?.summerGovernor?.address
     if (!governorAddress) return
 
     try {
       setIsExecuting(true)
       if (chainId !== 8453) await switchChain({ chainId: 8453 })
 
-      // const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposalData.description))
-      const descriptionHash = keccak256(toBytes(proposalData.description))
+      const descriptionHash = keccak256(stringToBytes(proposalData.description))
 
       await writeContract({
         address: governorAddress as `0x${string}`,

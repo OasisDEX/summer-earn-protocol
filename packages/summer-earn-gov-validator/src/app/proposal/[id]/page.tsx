@@ -7,7 +7,11 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { ProposalExecutionDetails } from '@/components/ProposalExecutionDetails'
 import { ProposalVotingInfo } from '@/components/ProposalVotingInfo'
 import { getChainNameById, HUB_CHAIN_ID } from '@/config/chains'
-import { fetchProposalWithCrossChainById, ProposalWithCrossChain } from '@/services/subgraph'
+import {
+  CrossChainProposal,
+  fetchProposalWithCrossChainById,
+  ProposalWithCrossChain,
+} from '@/services/subgraph'
 import { SupportedNetworks } from '@/services/validation'
 import { convertRawUrlsToMarkdown, extractProposalMetadata } from '@/utils/text'
 
@@ -49,7 +53,7 @@ function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): Tran
   let finalStatus = statusMap[proposal.status] || 'Active'
   if (finalStatus === 'Executed' && proposalWithCrossChain.crossChainProposals.length > 0) {
     const hasPendingCrossChain = proposalWithCrossChain.crossChainProposals.some(
-      (ccp: any) => ccp.status !== 'Executed',
+      (ccp: CrossChainProposal) => ccp.status !== 'Executed',
     )
     if (hasPendingCrossChain) {
       finalStatus = 'Executed on Hub'
@@ -174,36 +178,33 @@ export default async function ProposalDetailPage({ params }: PageProps) {
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
                 components={{
-                  h1: ({ children }: any) => (
+                  h1: ({ children }) => (
                     <h1 className="text-2xl font-bold text-on-surface mb-4 mt-6">{children}</h1>
                   ),
-                  h2: ({ children }: any) => (
+                  h2: ({ children }) => (
                     <h2 className="text-xl font-semibold text-on-surface mb-3 mt-5">{children}</h2>
                   ),
-                  h3: ({ children }: any) => (
+                  h3: ({ children }) => (
                     <h3 className="text-lg font-medium text-on-surface mb-2 mt-4">{children}</h3>
                   ),
-                  p: ({ children }: any) => <p className="mb-3">{children}</p>,
-                  ul: ({ children }: any) => (
+                  p: ({ children }) => <p className="mb-3">{children}</p>,
+                  ul: ({ children }) => (
                     <ul className="list-disc list-inside mb-3 space-y-2">{children}</ul>
                   ),
-                  ol: ({ children }: any) => (
+                  ol: ({ children }) => (
                     <ol className="list-decimal list-inside mb-3 space-y-2">{children}</ol>
                   ),
-                  li: ({ children }: any) => (
-                    <li className="text-on-surface-variant">{children}</li>
-                  ),
-                  img: ({ node, ...props }: any) => (
+                  li: ({ children }) => <li className="text-on-surface-variant">{children}</li>,
+                  img: ({ ...props }) => (
                     <span className="block my-6 overflow-hidden rounded-xl border border-outline/10 shadow-lg">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        {...props}
+                        {...(props as any)}
                         className="max-w-full h-auto mx-auto"
                         alt={props.alt || 'Proposal Image'}
                       />
                     </span>
                   ),
-                  a: ({ href, children }: any) => (
+                  a: ({ href, children }) => (
                     <a
                       href={href}
                       className="text-primary hover:underline"
@@ -213,45 +214,45 @@ export default async function ProposalDetailPage({ params }: PageProps) {
                       {children}
                     </a>
                   ),
-                  strong: ({ children }: any) => (
+                  strong: ({ children }) => (
                     <strong className="font-semibold text-on-surface">{children}</strong>
                   ),
-                  em: ({ children }: any) => <em className="italic">{children}</em>,
-                  code: ({ children }: any) => (
+                  em: ({ children }) => <em className="italic">{children}</em>,
+                  code: ({ children }) => (
                     <code className="bg-surface-container-low px-1 py-0.5 rounded text-sm font-mono">
                       {children}
                     </code>
                   ),
-                  pre: ({ children }: any) => (
+                  pre: ({ children }) => (
                     <pre className="bg-surface-container-low p-4 rounded-lg overflow-x-auto mb-3">
                       {children}
                     </pre>
                   ),
-                  blockquote: ({ children }: any) => (
+                  blockquote: ({ children }) => (
                     <blockquote className="border-l-4 border-primary pl-4 italic text-on-surface-variant mb-3">
                       {children}
                     </blockquote>
                   ),
-                  table: ({ children }: any) => (
+                  table: ({ children }) => (
                     <div className="overflow-x-auto mb-4 border border-outline/10 rounded-xl">
                       <table className="min-w-full divide-y divide-outline/10">{children}</table>
                     </div>
                   ),
-                  thead: ({ children }: any) => (
+                  thead: ({ children }) => (
                     <thead className="bg-surface-container-low">{children}</thead>
                   ),
-                  tbody: ({ children }: any) => (
+                  tbody: ({ children }) => (
                     <tbody className="divide-y divide-outline/10">{children}</tbody>
                   ),
-                  tr: ({ children }: any) => (
+                  tr: ({ children }) => (
                     <tr className="hover:bg-surface-container-low transition-colors">{children}</tr>
                   ),
-                  th: ({ children }: any) => (
+                  th: ({ children }) => (
                     <th className="px-4 py-3 text-left text-xs font-bold text-on-surface uppercase tracking-wider">
                       {children}
                     </th>
                   ),
-                  td: ({ children }: any) => (
+                  td: ({ children }) => (
                     <td className="px-4 py-3 text-sm text-on-surface-variant whitespace-nowrap">
                       {children}
                     </td>

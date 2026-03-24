@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo,useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import {
   AlertCircle,
@@ -25,67 +25,37 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import remarkGfm from 'remark-gfm'
-import { Address, encodeFunctionData, Hex,isAddress, keccak256, stringToHex } from 'viem'
-import { useAccount, usePublicClient,useReadContract, useWriteContract } from 'wagmi'
+import { Address, encodeFunctionData, Hex, isAddress, keccak256, stringToHex } from 'viem'
+import { useAccount, useReadContract, useWriteContract } from 'wagmi'
 
 import { SideNavBar } from '@/components/SideNavBar'
 import { TopNavBar } from '@/components/TopNavBar'
-import { CHAINS,HUB_CHAIN_ID, HUB_GOVERNOR_ADDRESS } from '@/config/chains'
+import { GOVERNOR_ABI as HUB_GOVERNOR_ABI } from '@/config/abis/governor'
+import { CHAINS, HUB_CHAIN_ID, HUB_GOVERNOR_ADDRESS } from '@/config/chains'
 import deploymentConfig from '@/config/index.json'
 
-const HUB_GOVERNOR_ABI = [
-  {
-    name: 'proposalThreshold',
-    type: 'function',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    name: 'getVotes',
-    type: 'function',
-    inputs: [
-      { name: 'account', type: 'address' },
-      { name: 'timepoint', type: 'uint256' },
-    ],
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    name: 'propose',
-    type: 'function',
-    inputs: [
-      { name: 'targets', type: 'address[]' },
-      { name: 'values', type: 'uint256[]' },
-      { name: 'calldatas', type: 'bytes[]' },
-      { name: 'description', type: 'string' },
-    ],
-    outputs: [{ name: 'proposalId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    name: 'sendProposalToTargetChain',
-    type: 'function',
-    inputs: [
-      { name: '_dstEid', type: 'uint32' },
-      { name: '_dstTargets', type: 'address[]' },
-      { name: '_dstValues', type: 'uint256[]' },
-      { name: '_dstCalldatas', type: 'bytes[]' },
-      { name: '_dstDescriptionHash', type: 'bytes32' },
-      { name: '_options', type: 'bytes' },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-] as const
-
 // --- Types ---
+
+interface AbiInput {
+  name: string
+  type: string
+  components?: AbiInput[]
+  internalType?: string
+}
+
+interface AbiItem {
+  name?: string
+  type: string
+  inputs?: AbiInput[]
+  outputs?: any[]
+  stateMutability?: string
+}
 
 interface Action {
   id: string
   chainId: string
   target: string
-  abi: any[]
+  abi: AbiItem[]
   method: string
   args: Record<string, any>
   isValid: boolean
@@ -95,10 +65,10 @@ interface Action {
 
 const getContractTag = (address: string, chainKey: string) => {
   if (!address || !isAddress(address)) return null
-  const chainData = (deploymentConfig as any)[chainKey]
+  const chainData = (deploymentConfig as Record<string, any>)[chainKey]
   if (!chainData?.deployedContracts) return null
 
-  const searchInObject = (obj: any): string | null => {
+  const searchInObject = (obj: Record<string, any>): string | null => {
     for (const key in obj) {
       const value = obj[key]
       if (typeof value === 'object' && value !== null) {
@@ -118,7 +88,7 @@ const getContractTag = (address: string, chainKey: string) => {
 // --- Components ---
 
 interface ArgumentFieldProps {
-  param: any
+  param: AbiInput
   value: any
   onChange: (val: any) => void
   labelPrefix?: string
@@ -184,19 +154,20 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
   }
 
   if (isTuple) {
-    const tupleValue = typeof value === 'object' && value !== null ? value : {}
+    const tupleValue =
+      typeof value === 'object' && value !== null ? (value as Record<string, any>) : {}
     return (
       <div className="space-y-4 p-4 bg-surface-variant/20 rounded-2xl border border-outline-variant/50">
         <label className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase">
           {label} (Tuple)
         </label>
         <div className="space-y-4">
-          {param.components?.map((comp: any, idx: number) => (
+          {param.components?.map((comp, idx: number) => (
             <DynamicArgumentField
               key={`${comp.name}-${idx}`}
               param={comp}
               value={tupleValue[comp.name]}
-              onChange={(val: any) => onChange({ ...tupleValue, [comp.name]: val })}
+              onChange={(val) => onChange({ ...tupleValue, [comp.name]: val })}
               labelPrefix={label}
             />
           ))}
@@ -306,7 +277,7 @@ export default function CreateProposalPage() {
         }
       }
     })
-  }, [actions.map((a) => a.target).join(','), actions.map((a) => a.chainId).join(',')])
+  }, [actions, isFetchingAbi])
 
   // --- Proposal Encoding Engine ---
 
@@ -333,10 +304,11 @@ export default function CreateProposalPage() {
       const values = groupActions.map(() => 0n)
       const calldatas = groupActions.map((a) => {
         const methodObj = a.abi.find((m) => m.name === a.method)
+        if (!methodObj || !methodObj.inputs) return '0x' as Hex
         return encodeFunctionData({
           abi: [methodObj],
           functionName: a.method,
-          args: methodObj.inputs.map((i: any) => a.args[i.name]),
+          args: methodObj.inputs.map((i) => a.args[i.name]),
         })
       })
 
@@ -670,7 +642,7 @@ export default function CreateProposalPage() {
                 </button>
               </div>
 
-              <div className="space-y-4 pb-20">
+              <div className="p-5 space-y-8">
                 {actions.map((action, index) => {
                   const methods = action.abi.filter(
                     (item) =>
@@ -808,8 +780,8 @@ export default function CreateProposalPage() {
 
                             {selectedMethodObj && (
                               <div className="space-y-4 border-t border-outline-variant/30 pt-4">
-                                {selectedMethodObj.inputs?.length > 0 ? (
-                                  selectedMethodObj.inputs.map((input: any, idx: number) => (
+                                {selectedMethodObj.inputs && selectedMethodObj.inputs.length > 0 ? (
+                                  selectedMethodObj.inputs.map((input, idx: number) => (
                                     <DynamicArgumentField
                                       key={`${input.name}-${idx}`}
                                       param={input}

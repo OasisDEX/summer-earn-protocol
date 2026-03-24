@@ -11,19 +11,15 @@ type WindowWithAppKit = typeof window & {
 
 export function ConnectButton() {
   const { address, isConnected, chain } = useAccount()
-  const { disconnectAsync } = useDisconnect()
+  const { disconnect } = useDisconnect()
 
   const onOpen = useCallback(() => {
     ;(window as WindowWithAppKit).appKit?.open?.()
   }, [])
 
-  const onDisconnect = useCallback(async () => {
-    try {
-      await disconnectAsync()
-    } catch (error) {
-      console.error('Failed to disconnect wallet', error)
-    }
-  }, [disconnectAsync])
+  const onDisconnect = useCallback(() => {
+    disconnect()
+  }, [disconnect])
 
   if (!isConnected) {
     return (
