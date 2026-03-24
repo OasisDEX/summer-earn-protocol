@@ -6,9 +6,12 @@ import {
   ProposalQueued,
   ProposalReceivedCrossChain,
   ProposalSentCrossChain,
+  SummerGovernor,
   TimelockChange,
+  VoteCast,
+  VoteCastWithParams,
 } from '../../generated/SummerGovernor/SummerGovernor'
-import { CrossChainProposalByCallId } from '../../generated/schema'
+import { CrossChainProposalByCallId, Vote } from '../../generated/schema'
 import { TimelockControllerTemplate } from '../../generated/templates'
 
 import { EventSignature } from '../constants'
@@ -36,6 +39,66 @@ export function handleProposalCreated(event: ProposalCreated): void {
   proposal.status = 'Pending'
   proposal.createdAt = event.block.timestamp
 
+  const governor = SummerGovernor.bind(event.address)
+  proposal.quorum = governor.quorum(event.params.voteStart)
+
+  proposal.save()
+}
+
+export function handleVoteCast(event: VoteCast): void {
+  if (!isHub(dataSource.network())) {
+    return
+  }
+  const proposalId = event.params.proposalId.toString()
+  const proposal = getOrCreateProposal(proposalId)
+
+  const voteId = event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
+  const vote = new Vote(voteId)
+  vote.proposal = proposal.id
+  vote.voter = event.params.voter.toHexString()
+  vote.support = event.params.support
+  vote.weight = event.params.weight
+  vote.reason = event.params.reason
+  vote.blockNumber = event.block.number
+  vote.timestamp = event.block.timestamp
+  vote.save()
+
+  if (event.params.support == 0) {
+    proposal.againstVotes = proposal.againstVotes.plus(event.params.weight)
+  } else if (event.params.support == 1) {
+    proposal.forVotes = proposal.forVotes.plus(event.params.weight)
+  } else if (event.params.support == 2) {
+    proposal.abstainVotes = proposal.abstainVotes.plus(event.params.weight)
+  }
+  proposal.save()
+}
+
+export function handleVoteCastWithParams(event: VoteCastWithParams): void {
+  if (!isHub(dataSource.network())) {
+    return
+  }
+  const proposalId = event.params.proposalId.toString()
+  const proposal = getOrCreateProposal(proposalId)
+
+  const voteId = event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
+  const vote = new Vote(voteId)
+  vote.proposal = proposal.id
+  vote.voter = event.params.voter.toHexString()
+  vote.support = event.params.support
+  vote.weight = event.params.weight
+  vote.reason = event.params.reason
+  vote.params = event.params.params
+  vote.blockNumber = event.block.number
+  vote.timestamp = event.block.timestamp
+  vote.save()
+
+  if (event.params.support == 0) {
+    proposal.againstVotes = proposal.againstVotes.plus(event.params.weight)
+  } else if (event.params.support == 1) {
+    proposal.forVotes = proposal.forVotes.plus(event.params.weight)
+  } else if (event.params.support == 2) {
+    proposal.abstainVotes = proposal.abstainVotes.plus(event.params.weight)
+  }
   proposal.save()
 }
 

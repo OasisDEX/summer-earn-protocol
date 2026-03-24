@@ -33,6 +33,10 @@ export function getOrCreateProposal(proposalId: string): Proposal {
     proposal.calldatas = []
     proposal.description = ''
     proposal.descriptionHash = Bytes.fromHexString('')
+    proposal.quorum = BigInt.fromI32(0)
+    proposal.forVotes = BigInt.fromI32(0)
+    proposal.againstVotes = BigInt.fromI32(0)
+    proposal.abstainVotes = BigInt.fromI32(0)
   }
   return proposal
 }
