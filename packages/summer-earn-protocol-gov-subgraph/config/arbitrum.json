@@ -6,5 +6,7 @@
   "summer-governor-v2-start-block": 300183921,
   "protocol-access-manager-address": "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
   "protocol-access-manager-start-block": 300183860,
-  "harbor-command-address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
+  "harbor-command-address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F",
+  "summer-governance-token-address": "0x0000000000000000000000000000000000000000",
+  "summer-governance-token-start-block": 0
 }

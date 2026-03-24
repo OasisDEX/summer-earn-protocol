@@ -58,3 +58,9 @@ enum RoleAction {
   GRANT_ROLE
   REVOKE_ROLE
 }
+
+type Delegate @entity {
+  id: ID! # address
+  votingPower: BigInt!
+  delegationsCount: Int!
+}

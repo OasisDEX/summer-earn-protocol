@@ -9,7 +9,7 @@ export const TOKEN_LISTS: Record<SupportedChainId, TokenInfo[]> = {
       decimals: 18,
       chainId: 1,
       logoURI:
-        'https://assets.smold.app/api/token/1/0x194f360D130F2393a5E9F3117A6a1B78aBEa1624/logo-128.png',
+        'https://assets.smold.app/api/token/8453/0x194f360D130F2393a5E9F3117A6a1B78aBEa1624/logo-128.png',
     },
     {
       address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
@@ -103,7 +103,7 @@ export const TOKEN_LISTS: Record<SupportedChainId, TokenInfo[]> = {
       decimals: 18,
       chainId: 42161,
       logoURI:
-        'https://assets.smold.app/api/token/42161/0x194f360D130F2393a5E9F3117A6a1B78aBEa1624/logo-128.png',
+        'https://assets.smold.app/api/token/8453/0x194f360D130F2393a5E9F3117A6a1B78aBEa1624/logo-128.png',
     },
     {
       address: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
@@ -141,7 +141,7 @@ export const TOKEN_LISTS: Record<SupportedChainId, TokenInfo[]> = {
       decimals: 18,
       chainId: 146,
       logoURI:
-        'https://assets.smold.app/api/token/146/0x4e0037f487bBb588bf1B7a83BDe6c34FeD6099e3/logo-128.png',
+        'https://assets.smold.app/api/token/8453/0x194f360D130F2393a5E9F3117A6a1B78aBEa1624/logo-128.png',
     },
     {
       address: '0x29219dd400f2Bf60E5a23d13Be72B486D4038894',
@@ -179,7 +179,7 @@ export const TOKEN_LISTS: Record<SupportedChainId, TokenInfo[]> = {
       decimals: 18,
       chainId: 999,
       logoURI:
-        'https://assets.smold.app/api/token/999/0x72c527d3efDe2169AA950EFc9573C838cf125D21/logo-128.png',
+        'https://assets.smold.app/api/token/8453/0x194f360D130F2393a5E9F3117A6a1B78aBEa1624/logo-128.png',
     },
     {
       address: '0xb88339cb7199b77e23db6e890353e22632ba630f',

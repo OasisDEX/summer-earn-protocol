@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
 
+import { convertRawUrlsToMarkdown } from '@/utils/text'
 import { calculateProposalTiming } from '@/utils/timing'
 
 import { PhaseIndicator } from './PhaseIndicator'
@@ -91,7 +92,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
               Description
             </h3>
             <div className="prose dark:prose-invert max-w-none">
-              <ReactMarkdown>{proposal.description}</ReactMarkdown>
+              <ReactMarkdown>{convertRawUrlsToMarkdown(proposal.description)}</ReactMarkdown>
             </div>
           </div>
 

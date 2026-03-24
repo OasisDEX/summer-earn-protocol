@@ -1,8 +1,25 @@
-import { fallback, http, type Transport } from 'viem'
-import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+import { createPublicClient, fallback, http, type PublicClient, type Transport } from 'viem'
+import { arbitrum, base, Chain, hyperliquid, mainnet, sonic } from 'viem/chains'
 
-// Local definition for Hyperliquid since it's not in wagmi/chains or viem/chains usually
-const hyperliquidId = 999
+const MULTICALL_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11' as const
+
+const createChainWithMulticall = (chain: Chain): Chain => ({
+  ...chain,
+  contracts: {
+    ...chain.contracts,
+    multicall3: {
+      address: MULTICALL_ADDRESS,
+    },
+  },
+})
+
+export const VIEM_CHAIN_ENTITIES: Record<number, Chain> = {
+  [mainnet.id]: createChainWithMulticall(mainnet),
+  [arbitrum.id]: createChainWithMulticall(arbitrum),
+  [base.id]: createChainWithMulticall(base),
+  [sonic.id]: createChainWithMulticall(sonic),
+  [hyperliquid.id]: createChainWithMulticall(hyperliquid),
+}
 
 export const CHAIN_RPC_URLS: Record<number, string[]> = {
   [mainnet.id]: [
@@ -93,7 +110,7 @@ export const CHAIN_RPC_URLS: Record<number, string[]> = {
     'https://sonic.api.onfinality.io/public',
     'https://rpc.ankr.com/sonic_mainnet',
   ],
-  [hyperliquidId]: ['https://rpc.hyperliquid.xyz/evm'],
+  [hyperliquid.id]: ['https://rpc.hyperliquid.xyz/evm'],
 }
 
 /**
@@ -109,4 +126,23 @@ export function createRpcTransport(rpcUrls: string[]): Transport {
   }
 
   return fallback(rpcUrls.map((url) => http(url)))
+}
+
+/**
+ * Gets a public client for a given chainId.
+ * @param chainId
+ * @returns A PublicClient instance with fallback/retry support
+ */
+export function getPublicClient(chainId: number): PublicClient {
+  const rpcUrls = CHAIN_RPC_URLS[chainId]
+  const chain = VIEM_CHAIN_ENTITIES[chainId]
+
+  if (!rpcUrls || !chain) {
+    throw new Error(`Unsupported chainId: ${chainId}`)
+  }
+
+  return createPublicClient({
+    transport: createRpcTransport(rpcUrls),
+    chain,
+  })
 }
