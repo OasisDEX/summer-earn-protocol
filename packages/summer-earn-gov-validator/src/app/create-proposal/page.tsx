@@ -319,7 +319,10 @@ export default function CreateProposalPage() {
       } else {
         // Wrap in cross-chain call
         const chainInfo = CHAINS.find((c) => c.id === chainId)
-        const eID = chainInfo?.eID || '0'
+        const eID = chainInfo?.eID
+        if (!eID) {
+          throw new Error(`Chain ${chainId} not found in CHAINS config`)
+        }
         const dstDescription = `SIP-XXX Cross-Chain Actions for ${chainInfo?.name}`
         const lzOptions = '0x0003010011030000000000000000000000000007a120' as Hex // ~500k gas
 
