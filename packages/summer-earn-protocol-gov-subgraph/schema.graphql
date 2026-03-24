@@ -11,6 +11,23 @@ type Proposal @entity {
     eta: BigInt!
     createdAt: BigInt!
     governor: String!
+    quorum: BigInt!
+    forVotes: BigInt!
+    againstVotes: BigInt!
+    abstainVotes: BigInt!
+    votes: [Vote!]! @derivedFrom(field: "proposal")
+}
+
+type Vote @entity {
+    id: ID! # hash + logIndex
+    proposal: Proposal!
+    voter: String!
+    support: Int! # 0: Against, 1: For, 2: Abstain
+    weight: BigInt!
+    reason: String!
+    params: Bytes
+    blockNumber: BigInt!
+    timestamp: BigInt!
 }
 
 type CrossChainProposal @entity {

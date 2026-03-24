@@ -1,4 +1,4 @@
-import { ByteArray, Bytes, crypto, dataSource } from '@graphprotocol/graph-ts'
+import { BigInt, ByteArray, Bytes, crypto, dataSource } from '@graphprotocol/graph-ts'
 import {
   ProposalCanceled,
   ProposalCreated,
@@ -6,15 +6,22 @@ import {
   ProposalQueued,
   ProposalReceivedCrossChain,
   ProposalSentCrossChain,
+  SummerGovernor,
   TimelockChange,
+  VoteCast,
+  VoteCastWithParams,
 } from '../../generated/SummerGovernor/SummerGovernor'
-import { CrossChainProposalByCallId } from '../../generated/schema'
+import { CrossChainProposalByCallId, Vote } from '../../generated/schema'
 import { TimelockControllerTemplate } from '../../generated/templates'
 
-import { EventSignature } from '../constants'
+import { BigIntOne, EventSignature } from '../constants'
 import { getOrCreateCrossChainProposal, getOrCreateProposal } from '../initializers'
 import { dstEidToChainIdMap, isHub } from '../utils/chain'
 import { dataToTuple, getEventLogs } from '../utils/events'
+
+function isGovernorV2(address: string): boolean {
+  return address == '0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274'
+}
 
 export function handleTimelockChange(event: TimelockChange): void {
   TimelockControllerTemplate.create(event.params.newTimelock)
@@ -24,6 +31,11 @@ export function handleProposalCreated(event: ProposalCreated): void {
   if (!isHub(dataSource.network())) {
     return
   }
+
+  if (!isGovernorV2(event.address.toHexString())) {
+    return
+  }
+
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
   proposal.governor = event.address.toHexString()
   proposal.targets = event.params.targets.map<string>((target) => target.toHexString())
@@ -36,11 +48,86 @@ export function handleProposalCreated(event: ProposalCreated): void {
   proposal.status = 'Pending'
   proposal.createdAt = event.block.timestamp
 
+  const governor = SummerGovernor.bind(event.address)
+  proposal.quorum = governor.quorum(event.block.timestamp.minus(BigIntOne))
+
+  proposal.save()
+}
+
+enum VoteType {
+  VoteAgainst = 0,
+  VoteFor = 1,
+  VoteAbstain = 2,
+}
+
+export function handleVoteCast(event: VoteCast): void {
+  if (!isHub(dataSource.network())) {
+    return
+  }
+  if (!isGovernorV2(event.address.toHexString())) {
+    return
+  }
+  const proposalId = event.params.proposalId.toString()
+  const proposal = getOrCreateProposal(proposalId)
+
+  const voteId = event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
+  const vote = new Vote(voteId)
+  vote.proposal = proposal.id
+  vote.voter = event.params.voter.toHexString()
+  vote.support = event.params.support
+  vote.weight = event.params.weight
+  vote.reason = event.params.reason
+  vote.blockNumber = event.block.number
+  vote.timestamp = event.block.timestamp
+  vote.save()
+
+  if (event.params.support == VoteType.VoteAgainst) {
+    proposal.againstVotes = proposal.againstVotes.plus(event.params.weight)
+  } else if (event.params.support == VoteType.VoteFor) {
+    proposal.forVotes = proposal.forVotes.plus(event.params.weight)
+  } else if (event.params.support == VoteType.VoteAbstain) {
+    proposal.abstainVotes = proposal.abstainVotes.plus(event.params.weight)
+  }
+  proposal.save()
+}
+
+export function handleVoteCastWithParams(event: VoteCastWithParams): void {
+  if (!isHub(dataSource.network())) {
+    return
+  }
+  if (!isGovernorV2(event.address.toHexString())) {
+    return
+  }
+  const proposalId = event.params.proposalId.toString()
+  const proposal = getOrCreateProposal(proposalId)
+
+  const voteId = event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
+  const vote = new Vote(voteId)
+  vote.proposal = proposal.id
+  vote.voter = event.params.voter.toHexString()
+  vote.support = event.params.support
+  vote.weight = event.params.weight
+  vote.reason = event.params.reason
+  vote.params = event.params.params
+  vote.blockNumber = event.block.number
+  vote.timestamp = event.block.timestamp
+  vote.save()
+
+  if (event.params.support == 0) {
+    proposal.againstVotes = proposal.againstVotes.plus(event.params.weight)
+  } else if (event.params.support == 1) {
+    proposal.forVotes = proposal.forVotes.plus(event.params.weight)
+  } else if (event.params.support == 2) {
+    proposal.abstainVotes = proposal.abstainVotes.plus(event.params.weight)
+  }
   proposal.save()
 }
 
 export function handleProposalExecuted(event: ProposalExecuted): void {
   if (!isHub(dataSource.network())) {
+    return
+  }
+  if (!isGovernorV2(event.address.toHexString())) {
     return
   }
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
@@ -50,6 +137,9 @@ export function handleProposalExecuted(event: ProposalExecuted): void {
 
 export function handleProposalQueued(event: ProposalQueued): void {
   if (!isHub(dataSource.network())) {
+    return
+  }
+  if (!isGovernorV2(event.address.toHexString())) {
     return
   }
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
@@ -62,6 +152,9 @@ export function handleProposalCanceled(event: ProposalCanceled): void {
   if (!isHub(dataSource.network())) {
     return
   }
+  if (!isGovernorV2(event.address.toHexString())) {
+    return
+  }
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
   proposal.status = 'Canceled'
   proposal.save()
@@ -69,6 +162,9 @@ export function handleProposalCanceled(event: ProposalCanceled): void {
 
 export function handleProposalSentCrossChain(event: ProposalSentCrossChain): void {
   if (!isHub(dataSource.network())) {
+    return
+  }
+  if (!isGovernorV2(event.address.toHexString())) {
     return
   }
   const logs = getEventLogs(event, EventSignature.ProposalExecuted)

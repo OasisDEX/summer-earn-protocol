@@ -8,7 +8,7 @@ dataSources:
     source:
       abi: SummerGovernor
       address: "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
-      startBlock: 25642501
+      startBlock: 38595966
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -47,7 +47,7 @@ dataSources:
     source:
       abi: SummerGovernor
       address: "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274"
-      startBlock: 25642501
+      startBlock: 38595966
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -86,7 +86,7 @@ dataSources:
     source:
       abi: ProtocolAccessManager
       address: "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694"
-      startBlock: 25642482
+      startBlock: 38595966
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
