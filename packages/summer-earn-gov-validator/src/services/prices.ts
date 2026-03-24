@@ -1,4 +1,4 @@
-const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY || 'CG-6gUw2PsT6u3VrVG6CDiTGvWq'
+const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY
 
 const COINGECKO_IDS: Record<string, string> = {
   SUMMER: 'summer-2',
