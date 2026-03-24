@@ -79,6 +79,12 @@ dataSources:
         - event: ProposalReceivedCrossChain(indexed uint256,indexed uint32)
           handler: handleProposalReceivedCrossChain
           receipt: true
+        - event: VoteCast(indexed address,uint256,uint8,uint256,string)
+          handler: handleVoteCast
+          receipt: true
+        - event: VoteCastWithParams(indexed address,uint256,uint8,uint256,string,bytes)
+          handler: handleVoteCastWithParams
+          receipt: true
       file: ./src/mappings/governance.ts
   - kind: ethereum/contract
     name: ProtocolAccessManager

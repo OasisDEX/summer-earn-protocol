@@ -19,6 +19,10 @@ interface ProposalVotingInfoProps {
     calldatas: string[]
     description: string
     eta: string
+    quorum?: number
+    forVotes?: number
+    againstVotes?: number
+    abstainVotes?: number
   }
 }
 
@@ -116,13 +120,24 @@ export function ProposalVotingInfo({
     )
   }
 
-  const forVotes = Number(votes.forVotes) / 1e18
-  const againstVotes = Number(votes.againstVotes) / 1e18
-  const abstainVotes = Number(votes.abstainVotes) / 1e18
+  const forVotes =
+    proposalData?.forVotes !== undefined ? proposalData.forVotes : Number(votes.forVotes) / 1e18
+  const againstVotes =
+    proposalData?.againstVotes !== undefined
+      ? proposalData.againstVotes
+      : Number(votes.againstVotes) / 1e18
+  const abstainVotes =
+    proposalData?.abstainVotes !== undefined
+      ? proposalData.abstainVotes
+      : Number(votes.abstainVotes) / 1e18
   const totalVotes = forVotes + againstVotes + abstainVotes
 
-  // Quorum is 15% of total supply (dynamic from token contract)
-  const QUORUM_THRESHOLD = 0.15 * (Number(totalSupply || 0) / 1e18)
+  // Quorum from subgraph or fallback to 15% of current supply
+  const QUORUM_THRESHOLD =
+    proposalData?.quorum !== undefined
+      ? proposalData.quorum
+      : 0.15 * (Number(totalSupply || 0) / 1e18)
+
   const quorumReached = forVotes >= QUORUM_THRESHOLD
   const quorumProgress =
     QUORUM_THRESHOLD > 0 ? Math.min((forVotes / QUORUM_THRESHOLD) * 100, 100) : 0

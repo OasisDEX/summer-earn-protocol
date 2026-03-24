@@ -49,7 +49,7 @@ export interface Vote {
   id: string
   voter: string
   support: number // 0: Against, 1: For, 2: Abstain
-  weight: string
+  votes: string
   reason: string
   timestamp: string
 }
@@ -123,11 +123,11 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
         forVotes
         againstVotes
         abstainVotes
-        votes(first: 10, orderBy: timestamp, orderDirection: desc) {
+        votes(first: 100, orderBy: timestamp, orderDirection: desc, where:{weight_gt:0}) {
           id
           voter
           support
-          weight
+          votes
           reason
           timestamp
         }

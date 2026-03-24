@@ -51,6 +51,8 @@ export function handleProposalCreated(event: ProposalCreated): void {
   )
   proposal.status = 'Pending'
   proposal.createdAt = event.block.timestamp
+  proposal.voteStart = event.params.voteStart
+  proposal.voteEnd = event.params.voteEnd
 
   const governor = SummerGovernor.bind(event.address)
   proposal.quorum = governor.quorum(event.block.timestamp.minus(BigIntOne))
@@ -74,25 +76,28 @@ export function handleVoteCast(event: VoteCast): void {
   const proposalId = event.params.proposalId.toString()
   const proposal = getOrCreateProposal(proposalId)
 
+  const governor = SummerGovernor.bind(event.address)
+  const votesInThePast = governor.getVotes(event.params.voter, proposal.voteStart.minus(BigIntOne))
+
+
   const voteId = event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
   const vote = new Vote(voteId)
   vote.proposal = proposal.id
   vote.voter = event.params.voter.toHexString()
   vote.support = event.params.support
-  vote.weight = event.params.weight
   vote.reason = event.params.reason
   vote.blockNumber = event.block.number
   vote.timestamp = event.block.timestamp
+  vote.votes = votesInThePast
   vote.save()
 
-  const delegate = getOrCreateDelegate(event.params.voter.toHexString())
 
   if (event.params.support == VoteType.VoteAgainst) {
-    proposal.againstVotes = proposal.againstVotes.plus(delegate.votingPower)
+    proposal.againstVotes = proposal.againstVotes.plus(votesInThePast)
   } else if (event.params.support == VoteType.VoteFor) {
-    proposal.forVotes = proposal.forVotes.plus(delegate.votingPower)
+    proposal.forVotes = proposal.forVotes.plus(votesInThePast)
   } else if (event.params.support == VoteType.VoteAbstain) {
-    proposal.abstainVotes = proposal.abstainVotes.plus(delegate.votingPower)
+    proposal.abstainVotes = proposal.abstainVotes.plus(votesInThePast)
   }
   proposal.save()
 }
@@ -107,26 +112,29 @@ export function handleVoteCastWithParams(event: VoteCastWithParams): void {
   const proposalId = event.params.proposalId.toString()
   const proposal = getOrCreateProposal(proposalId)
 
+  const governor = SummerGovernor.bind(event.address)
+  const votesInThePast = governor.getVotes(event.params.voter, proposal.voteStart.minus(BigIntOne))
+
+
   const voteId = event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
   const vote = new Vote(voteId)
   vote.proposal = proposal.id
   vote.voter = event.params.voter.toHexString()
   vote.support = event.params.support
-  vote.weight = event.params.weight
+  vote.votes = votesInThePast
   vote.reason = event.params.reason
   vote.params = event.params.params
   vote.blockNumber = event.block.number
   vote.timestamp = event.block.timestamp
   vote.save()
 
-  const delegate = getOrCreateDelegate(event.params.voter.toHexString())
 
   if (event.params.support == 0) {
-    proposal.againstVotes = proposal.againstVotes.plus(delegate.votingPower)
+    proposal.againstVotes = proposal.againstVotes.plus(votesInThePast)
   } else if (event.params.support == 1) {
-    proposal.forVotes = proposal.forVotes.plus(delegate.votingPower)
+    proposal.forVotes = proposal.forVotes.plus(votesInThePast)
   } else if (event.params.support == 2) {
-    proposal.abstainVotes = proposal.abstainVotes.plus(delegate.votingPower)
+    proposal.abstainVotes = proposal.abstainVotes.plus(votesInThePast)
   }
   proposal.save()
 }

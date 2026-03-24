@@ -95,8 +95,8 @@ function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): Tran
 }
 
 function RecentVotes({ votes }: { votes: Vote[] }) {
-  const formatWeight = (weight: string) => {
-    const value = parseFloat(weight) / 1e18
+  const formatVotes = (votes: string) => {
+    const value = parseFloat(votes) / 1e18
     if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M SUMR`
     if (value >= 1000) return `${(value / 1000).toFixed(1)}K SUMR`
     return `${value.toFixed(1)} SUMR`
@@ -126,7 +126,7 @@ function RecentVotes({ votes }: { votes: Vote[] }) {
             <tr>
               <th className="px-6 py-5 font-semibold">Voter</th>
               <th className="px-6 py-5 font-semibold">Vote</th>
-              <th className="px-6 py-5 font-semibold text-right">Weight</th>
+              <th className="px-6 py-5 font-semibold text-right">Votes</th>
               <th className="px-6 py-5 font-semibold text-right">Time</th>
             </tr>
           </thead>
@@ -181,7 +181,7 @@ function RecentVotes({ votes }: { votes: Vote[] }) {
                   )}
                 </td>
                 <td className="px-6 py-4 text-right font-mono text-on-surface">
-                  {formatWeight(vote.weight)}
+                  {formatVotes(vote.votes)}
                 </td>
                 <td className="px-6 py-4 text-right text-on-surface-variant">
                   {getTimeAgo(vote.timestamp)}
@@ -408,7 +408,7 @@ export default async function ProposalDetailPage({ params }: PageProps) {
               proposalId={proposal.id}
               displayId={proposal.displayId || proposal.id.slice(0, 8)}
               status={proposal.status}
-              proposalData={fullProposal.baseProposal}
+              proposalData={proposal}
             />
           </section>
         </div>
