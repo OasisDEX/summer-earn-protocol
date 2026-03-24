@@ -46,8 +46,59 @@ type FilterStatus =
   | 'Defeated'
   | 'Canceled'
 
+type FilterChain = 'All' | 'Mainnet' | 'Base' | 'Arbitrum' | 'Sonic' | 'Hyperliquid'
+
+const CHAIN_METADATA: Record<
+  string,
+  { icon: string; color: string; bgColor: string; borderColor: string; accentColor: string }
+> = {
+  Mainnet: {
+    icon: 'hub',
+    color: 'text-slate-400',
+    bgColor: 'bg-slate-400/10',
+    borderColor: 'border-slate-600',
+    accentColor: 'bg-slate-600',
+  },
+  Base: {
+    icon: 'change_history',
+    color: 'text-tertiary',
+    bgColor: 'bg-tertiary/10',
+    borderColor: 'border-tertiary',
+    accentColor: 'bg-tertiary',
+  },
+  Arbitrum: {
+    icon: 'token',
+    color: 'text-sky-400',
+    bgColor: 'bg-sky-400/10',
+    borderColor: 'border-sky-500',
+    accentColor: 'bg-sky-500',
+  },
+  Sonic: {
+    icon: 'waves',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary',
+    accentColor: 'bg-primary',
+  },
+  Hyperliquid: {
+    icon: 'bolt',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary',
+    accentColor: 'bg-primary',
+  },
+  'Multi-Chain': {
+    icon: 'hub',
+    color: 'text-slate-400',
+    bgColor: 'bg-slate-400/10',
+    borderColor: 'border-slate-600',
+    accentColor: 'bg-slate-600',
+  },
+}
+
 export function ProposalsList({ initialProposals }: ProposalsListProps) {
-  const [filter, setFilter] = useState<FilterStatus>('All')
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>('All')
+  const [chainFilter, setChainFilter] = useState<FilterChain>('All')
   const [visibleCount, setVisibleCount] = useState(6)
 
   const proposalIds = useMemo(() => initialProposals.map((p) => p.id), [initialProposals])
@@ -92,51 +143,77 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
     })
   }, [initialProposals, proposalData, totalSupply])
 
-  const filteredProposals = proposalsWithVotes.filter((p) => {
-    if (filter === 'All') return true
-    return p.status === filter
+  const filteredProposals = proposalsWithVotes.filter((p: ProposalData) => {
+    const statusMatches = statusFilter === 'All' || p.status === statusFilter
+    const chainMatches = chainFilter === 'All' || p.chain.includes(chainFilter)
+    return statusMatches && chainMatches
   })
 
-  const visibleProposals = filteredProposals.slice(0, visibleCount)
+  const visibleProposals = filteredProposals.slice(0, visibleCount) as ProposalData[]
   const hasMore = visibleCount < filteredProposals.length
 
   const isLoading = votesLoading && proposalIds.length > 0
 
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case 'Active':
-        return 'bg-primary/20 text-primary border-primary/30'
-      case 'Executed':
-        return 'bg-emerald-400/20 text-emerald-400 border-emerald-400/30'
-      case 'Executed on Hub':
-        return 'bg-amber-400/20 text-amber-500 border-amber-400/30'
-      case 'Queued':
-        return 'bg-tertiary/20 text-tertiary border-tertiary/30'
-      case 'Succeeded':
-        return 'bg-emerald-400/20 text-emerald-400 border-emerald-400/30'
-      case 'Defeated':
-      case 'Canceled':
-        return 'bg-error/20 text-error border-error/30'
-      default:
-        return 'bg-slate-500/20 text-slate-400 border-slate-500/30'
-    }
-  }
-  const getBarColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'bg-primary shadow-[0_0_15px_rgba(125,211,252,0.4)]'
+        return {
+          color: 'text-primary',
+          bgColor: 'bg-primary/10',
+          borderColor: 'border-primary/20',
+          glowColor: 'shadow-[0_0_30px_rgba(125,211,252,0.25)]',
+          buttonClass:
+            'bg-primary text-slate-950 shadow-[0_0_15px_rgba(125,211,252,0.4)] hover:brightness-110',
+          indicatorColor: 'bg-primary',
+        }
       case 'Executed':
       case 'Succeeded':
-        return 'bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.4)]'
+        return {
+          color: 'text-emerald-400',
+          bgColor: 'bg-emerald-400/10',
+          borderColor: 'border-emerald-400/20',
+          glowColor: 'shadow-[0_0_30px_rgba(52,211,153,0.15)]',
+          buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
+          indicatorColor: 'bg-emerald-400',
+        }
       case 'Executed on Hub':
-        return 'bg-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.4)]'
+        return {
+          color: 'text-amber-400',
+          bgColor: 'bg-amber-400/10',
+          borderColor: 'border-amber-400/20',
+          glowColor: 'shadow-[0_0_30px_rgba(251,191,36,0.15)]',
+          buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
+          indicatorColor: 'bg-amber-400',
+        }
       case 'Queued':
-        return 'bg-tertiary shadow-[0_0_15px_rgba(200,160,240,0.4)]'
+        return {
+          color: 'text-tertiary',
+          bgColor: 'bg-tertiary/10',
+          borderColor: 'border-tertiary/20',
+          glowColor: 'shadow-[0_0_30px_rgba(200,160,240,0.25)]',
+          buttonClass:
+            'border-tertiary/30 text-tertiary hover:bg-tertiary/10 shadow-[0_0_15px_rgba(200,160,240,0.2)]',
+          indicatorColor: 'bg-tertiary',
+        }
       case 'Defeated':
       case 'Canceled':
-        return 'bg-error shadow-[0_0_15px_rgba(255,107,107,0.4)]'
+        return {
+          color: 'text-error',
+          bgColor: 'bg-error/10',
+          borderColor: 'border-error/20',
+          glowColor: 'shadow-[0_0_30px_rgba(255,107,107,0.15)]',
+          buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
+          indicatorColor: 'bg-error',
+        }
       default:
-        return 'bg-slate-500 shadow-[0_0_15px_rgba(100,116,139,0.4)]'
+        return {
+          color: 'text-slate-400',
+          bgColor: 'bg-slate-400/10',
+          borderColor: 'border-slate-600/20',
+          glowColor: 'shadow-none',
+          buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
+          indicatorColor: 'bg-slate-400',
+        }
     }
   }
 
@@ -163,34 +240,59 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-8">
-        <div className="lg:col-span-12 glass-panel p-1 rounded-xl flex overflow-x-auto no-scrollbar">
-          {(
-            [
-              'All',
-              'Active',
-              'Executed',
-              'Executed on Hub',
-              'Queued',
-              'Defeated',
-              'Canceled',
-            ] as FilterStatus[]
-          ).map((status) => (
-            <button
-              key={status}
-              onClick={() => {
-                setFilter(status)
-                setVisibleCount(3)
-              }}
-              className={`px-6 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
-                filter === status
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              {status}
-            </button>
-          ))}
+      <div className="flex flex-col gap-4 mb-10">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Status Filters */}
+          <div className="bg-slate-900/50 border border-sky-400/10 p-1 rounded-xl flex items-center overflow-x-auto no-scrollbar">
+            {(
+              [
+                'All',
+                'Active',
+                'Executed',
+                'Executed on Hub',
+                'Queued',
+                'Defeated',
+                'Canceled',
+              ] as FilterStatus[]
+            ).map((status) => (
+              <button
+                key={status}
+                onClick={() => {
+                  setStatusFilter(status)
+                  setVisibleCount(6)
+                }}
+                className={`px-5 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all whitespace-nowrap ${
+                  statusFilter === status
+                    ? 'bg-sky-400 text-slate-950 px-5'
+                    : 'text-sky-300/60 hover:text-sky-300'
+                }`}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+
+          {/* Chain Filters */}
+          <div className="bg-slate-900/50 border border-sky-400/10 p-1 rounded-xl flex items-center overflow-x-auto no-scrollbar max-w-full">
+            {(['All', 'Mainnet', 'Base', 'Arbitrum', 'Sonic', 'Hyperliquid'] as FilterChain[]).map(
+              (chain) => (
+                <button
+                  key={chain}
+                  onClick={() => {
+                    setChainFilter(chain)
+                    setVisibleCount(6)
+                  }}
+                  className={`px-5 py-2 rounded-lg font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all ${
+                    chainFilter === chain
+                      ? 'bg-sky-400/10 text-sky-300 px-5'
+                      : 'text-sky-300/60 hover:text-sky-300'
+                  }`}
+                >
+                  {chain === 'All' ? 'All Chains' : chain}
+                </button>
+              ),
+            )}
+          </div>
         </div>
       </div>
 
@@ -203,108 +305,113 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
         </div>
       )}
 
-      <div className="space-y-4">
-        {visibleProposals.map((proposal) => (
-          <div
-            key={proposal.id}
-            className="glass-panel hover:glass-panel-elevated hover:scale-[1.01] transition-all duration-300 p-6 rounded-2xl flex flex-col md:flex-row gap-6 items-start md:items-center group shadow-lg relative overflow-hidden"
-          >
-            {/* Partial Frame / Status Bar */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {visibleProposals.map((proposal: ProposalData) => {
+          const chainMetadata = CHAIN_METADATA[proposal.chain] || CHAIN_METADATA['Multi-Chain']
+          const statusConfig = getStatusConfig(proposal.status)
+
+          return (
             <div
-              className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[100%] rounded-r-full transition-all duration-500 group-hover:h-[65%] ${getBarColor(
-                proposal.status,
-              )}`}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs font-bold text-primary tracking-widest uppercase">
-                  {proposal.displayId || proposal.id.slice(0, 8)}
-                </span>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusColor(proposal.status)}`}
-                >
-                  {proposal.status}
-                </span>
-                <span className="flex items-center gap-1 text-xs text-on-surface-variant">
-                  <span className="material-symbols-outlined text-sm">hub</span>
-                  {proposal.chain}
-                </span>
+              key={proposal.id}
+              className={`glass-panel hover:glass-panel-elevated transition-all p-6 rounded-2xl flex flex-col border-t-2 ${chainMetadata.borderColor} ${statusConfig.glowColor} group h-full relative overflow-hidden`}
+            >
+              {/* Status Highlight / Partial Frame */}
+              <div
+                className={`absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-[30%] rounded-r-full group-hover:h-[40%] transition-all ${statusConfig.indicatorColor}`}
+              />
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex flex-col">
+                  <span
+                    className={`text-[10px] font-black ${chainMetadata.color} tracking-widest uppercase mb-1`}
+                  >
+                    {proposal.displayId || proposal.id.slice(0, 8)}
+                  </span>
+                  <div
+                    className={`flex items-center gap-2 px-2 py-0.5 rounded-md ${statusConfig.bgColor} border ${statusConfig.borderColor}`}
+                  >
+                    {proposal.status === 'Active' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                    )}
+                    <span className={`text-[10px] font-bold uppercase ${statusConfig.color}`}>
+                      {proposal.status}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-full border border-sky-400/10">
+                  <span className={`material-symbols-outlined ${chainMetadata.color} text-sm`}>
+                    {chainMetadata.icon}
+                  </span>
+                  <span className="text-[10px] font-bold text-sky-100 uppercase tracking-tighter">
+                    {proposal.chain}
+                  </span>
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-on-surface group-hover:text-primary transition-colors mb-1 truncate">
+
+              <h3 className="text-lg font-bold text-on-surface group-hover:text-primary transition-colors leading-snug mb-3">
                 {proposal.title}
               </h3>
-              <p className="text-sm text-on-surface-variant line-clamp-1 mb-4">
+              <p className="text-xs text-on-surface-variant line-clamp-3 mb-6 leading-relaxed">
                 {proposal.description}
               </p>
-              <div className="flex flex-col gap-3 min-w-[280px]">
-                {(proposal.status === 'Active' ||
-                  proposal.status === 'Queued' ||
-                  proposal.status === 'Executed' ||
-                  proposal.status === 'Executed on Hub' ||
-                  proposal.status === 'Succeeded') && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-slate-400 text-sm">
-                          ballot
-                        </span>
-                        <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-                          Voting Results
-                        </span>
-                      </div>
-                      <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                          proposal.quorumReached
-                            ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20'
-                            : 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_8px_rgba(125,211,252,0.4)]'
-                        }`}
-                      >
-                        {proposal.quorumReached ? 'QUORUM REACHED' : 'QUORUM NOT REACHED'}
-                      </span>
-                    </div>
-                    <div className="w-full">
-                      <VoteBar
-                        for={proposal.forPercent}
-                        against={proposal.againstPercent}
-                        abstain={proposal.abstainPercent}
-                      />
-                    </div>
-                  </div>
-                )}
-                {proposal.status === 'Active' && (
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-slate-400 text-sm">
-                      schedule
-                    </span>
-                    <span className="text-xs text-on-surface-variant">
-                      Ends in{' '}
-                      <span className="text-on-surface font-semibold">
-                        {proposal.timeRemaining}
-                      </span>
-                    </span>
-                  </div>
-                )}
+
+              {/* Voting Progress */}
+              <div className="mt-auto space-y-4 mb-6">
+                <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
+                  <span className={proposal.quorumReached ? 'text-emerald-400' : 'text-sky-300'}>
+                    {proposal.quorumReached ? 'Quorum reached' : 'Quorum progress'}
+                  </span>
+                  <span className="text-on-surface">{Math.round(proposal.quorumProgress)}%</span>
+                </div>
+                <div className="w-full">
+                  <VoteBar
+                    for={proposal.forPercent}
+                    against={proposal.againstPercent}
+                    abstain={proposal.abstainPercent}
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-on-surface-variant">
+                  <span>
+                    {proposal.status === 'Active'
+                      ? `Ends in ${proposal.timeRemaining}`
+                      : proposal.status}
+                  </span>
+                  <span>{(proposal.forVotes + proposal.againstVotes).toLocaleString()} Votes</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Link
+                  href={
+                    proposal.status === 'Active'
+                      ? `/vote/${proposal.id}`
+                      : `/proposal/${proposal.id}`
+                  }
+                  className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all text-center ${statusConfig.buttonClass}`}
+                >
+                  {proposal.status === 'Active' ? 'Vote' : 'Details'}
+                </Link>
+                <Link
+                  href={`/proposal/${proposal.id}`}
+                  className="px-3 py-2 rounded-lg border border-sky-400/20 text-sky-300 hover:bg-sky-400/5 transition-all flex items-center justify-center"
+                >
+                  <span className="material-symbols-outlined text-sm">visibility</span>
+                </Link>
               </div>
             </div>
-            <div className="flex md:flex-col gap-3 w-full md:w-auto">
-              <Link
-                href={`/proposal/${proposal.id}`}
-                className="flex-1 md:w-40 py-2.5 rounded-lg border border-primary/20 text-primary text-sm font-semibold hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
-              >
-                View Details
-              </Link>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {hasMore && (
-        <div className="mt-8 text-center">
+        <div className="mt-12 flex justify-center">
           <button
-            onClick={() => setVisibleCount((prev) => prev + 3)}
-            className="px-8 py-3 rounded-lg border border-outline text-on-surface-variant hover:text-on-surface hover:border-primary/30 transition-colors font-medium"
+            onClick={() => setVisibleCount((prev) => prev + 6)}
+            className="group glass-panel-elevated px-10 py-3.5 rounded-full flex items-center gap-3 text-on-surface font-semibold hover:border-primary/50 transition-all active:scale-95 shadow-xl"
           >
-            View More
+            Load More Proposals
+            <span className="material-symbols-outlined group-hover:translate-y-0.5 transition-transform">
+              keyboard_arrow_down
+            </span>
           </button>
         </div>
       )}

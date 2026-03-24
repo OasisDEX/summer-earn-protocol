@@ -22,33 +22,76 @@ export function convertRawUrlsToMarkdown(text: string): string {
 export interface ProposalMetadata {
   title: string
   displayId: string | null
+  cleanDescription: string
 }
 
 export function extractProposalMetadata(description: string): ProposalMetadata {
-  if (!description) return { title: 'Untitled Proposal', displayId: null }
+  if (!description) return { title: 'Untitled Proposal', displayId: null, cleanDescription: '' }
 
-  const lines = description.split('\n')
-  for (const line of lines) {
-    const trimmedLine = line.trim()
+  const hasNewLineCharacters = description.includes('\n')
+  // Split by newline or ###, then trim each segment
+  const rawLines = hasNewLineCharacters ? description.split('\n') : description.split('###')
+  const lines = rawLines.map((l) => l.trim()).filter(Boolean)
+
+  let title = 'Untitled Proposal'
+  let displayId: string | null = null
+  let titleFound = false
+  let startIndex = 0
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmedLine = lines[i]
+
+    // If it's a heading, it's likely the title
     if (trimmedLine.startsWith('#')) {
       // Remove all leading # and whitespace
       const fullTitle = trimmedLine.replace(/^#+\s*/, '').trim()
       // remove all [ and ]
       const fullTitleWithoutBrackets = fullTitle.replace(/\[|\]/g, '').trim()
-      // // remove leading [ and following ]
-      // Try to extract an ID pattern like "SIP-2-57" or "123"
-      // Look for a pattern at the beginning: alphanumeric characters with optional dashes/dots followed by a colon or space
-      // Pattern: start, then 1-15 alphanumeric/dash/dot chars, then (colon OR space), then the rest
+
       const idMatch = fullTitleWithoutBrackets.match(/^([a-zA-Z0-9-.]+)(?::|\s+)(.*)$/)
       if (idMatch) {
-        return { displayId: idMatch[1], title: idMatch[2].trim() }
+        displayId = idMatch[1]
+        title = idMatch[2].trim()
+      } else {
+        title = fullTitleWithoutBrackets
       }
-
-      // If no clear ID pattern, use the whole thing as title
-      return { title: fullTitleWithoutBrackets, displayId: null }
+      titleFound = true
+      startIndex = i + 1
+      break
+    } else if (i === 0) {
+      // If the first line doesn't start with #, but is short, treat it as a potential title
+      if (trimmedLine.length < 150) {
+        const idMatch = trimmedLine.match(/^([a-zA-Z0-9-.]+)(?::|\s+)(.*)$/)
+        if (idMatch) {
+          displayId = idMatch[1]
+          title = idMatch[2].trim()
+          titleFound = true
+          startIndex = i + 1
+          break
+        }
+      }
     }
   }
 
-  // Fallback to first line if no # found
-  return { title: description.split('\n')[0].slice(0, 100), displayId: null }
+  // Fallback to first line if no clear title found
+  if (!titleFound && lines.length > 0) {
+    title = lines[0].slice(0, 100)
+    startIndex = 1
+  }
+
+  // Construct clean description from the remaining lines
+  const remainingLines = lines.slice(startIndex)
+  let cleanDescription = remainingLines
+    .join(hasNewLineCharacters ? '\n' : ' ')
+    .trim()
+    .replace(/^#+\s*/, '') // Remove redundant header from body start (e.g. ### Overview)
+    .replace(/^\*\*\*\s*/, '') // Remove horizontal rule separators
+    .trim()
+
+  // If cleanDescription is empty (e.g. description was only a title), use original truncated
+  if (!cleanDescription) {
+    cleanDescription = description.trim()
+  }
+
+  return { title, displayId, cleanDescription }
 }

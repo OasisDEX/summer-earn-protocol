@@ -29,16 +29,6 @@ export function SideNavBar() {
           </Link>
         ))}
       </nav>
-      <div className="pt-4 border-t border-sky-400/10 space-y-1">
-        <button className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-sky-400/5 transition-all text-xs w-full">
-          <span className="material-symbols-outlined text-lg">settings</span>
-          Settings
-        </button>
-        <button className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-sky-400/5 transition-all text-xs w-full">
-          <span className="material-symbols-outlined text-lg">help</span>
-          Support
-        </button>
-      </div>
     </aside>
   )
 }

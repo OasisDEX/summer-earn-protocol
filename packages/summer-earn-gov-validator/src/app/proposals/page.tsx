@@ -65,7 +65,7 @@ function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): Tran
   const chain = chains.map((chainId) => getChainNameById(chainId)).join(', ')
 
   // Extract title and displayId from description
-  const { title, displayId } = extractProposalMetadata(proposal.description || '')
+  const { title, displayId, cleanDescription } = extractProposalMetadata(proposal.description || '')
 
   // Calculate time remaining (mock for now - would need block timestamp from chain)
   const timeRemaining = proposal.status === 'Active' ? 'Active' : proposal.status
@@ -83,7 +83,7 @@ function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): Tran
     status: finalStatus,
     chain,
     title,
-    description: proposal.description || '',
+    description: cleanDescription,
     quorumProgress,
     timeRemaining,
     forVotes,

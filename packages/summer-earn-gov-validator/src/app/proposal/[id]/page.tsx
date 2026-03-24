@@ -64,7 +64,7 @@ function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): Tran
   const chain = chains.map((chainId) => getChainNameById(chainId)).join(', ')
 
   // Extract title and displayId from description
-  const { title, displayId } = extractProposalMetadata(proposal.description || '')
+  const { title, displayId, cleanDescription } = extractProposalMetadata(proposal.description || '')
 
   return {
     id: proposal.id,
@@ -72,7 +72,7 @@ function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): Tran
     status: finalStatus,
     chain,
     title,
-    description: proposal.description || '',
+    description: cleanDescription,
     quorumProgress: 0,
     timeRemaining: finalStatus === 'Active' ? 'Active' : finalStatus,
     forVotes: 0,
@@ -98,7 +98,9 @@ export default async function ProposalDetailPage({ params }: PageProps) {
   }
 
   const proposal = transformProposal(fullProposal)
-
+  {
+    console.log(proposal.description)
+  }
   // Get network from chain
   const getNetwork = (chain: string): SupportedNetworks => {
     switch (chain.toLowerCase()) {
