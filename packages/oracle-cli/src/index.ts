@@ -1,33 +1,29 @@
 import { Command } from 'commander'
+import 'dotenv/config'
 import {
-  createWalletClient,
+  BaseError,
   createPublicClient,
+  createWalletClient,
   http,
   type Address,
   type Hex,
-  parseUnits,
-  ContractFunctionRevertedError,
-  BaseError,
-  AbiErrorSignatureNotFoundError,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { base } from 'viem/chains'
-import { getRpcUrl, getChain, type DeployNetwork } from './config'
-import 'dotenv/config'
+import { getChain, getRpcUrl, type DeployNetwork } from './config'
 
-import { z } from 'zod'
 import { execSync } from 'child_process'
-import { fetchOracleData } from './fetcher'
-import { signPriceData } from './signer'
-import { deployYieldSystem } from './deploy-yield'
-import { RWA_ORACLE_ABI, ORACLE_REGISTRY_ABI } from './constants'
-import { DeploymentFileSchema } from './schemas'
-import deploymentsData from './deployments.json'
-import { encodeFunctionData } from 'viem'
-import { WisdomTreeConnect } from './fetchers/wisdomtree-connect'
-import { fetchNAV, fetchBlockchainAddresses } from './fetchers/wisdomtree-dataspan'
 import fs from 'fs'
 import path from 'path'
+import { encodeFunctionData } from 'viem'
+import { z } from 'zod'
+import { ORACLE_REGISTRY_ABI, RWA_ORACLE_ABI } from './constants'
+import { deployYieldSystem } from './deploy-yield'
+import deploymentsData from './deployments.json'
+import { fetchOracleData } from './fetcher'
+import { WisdomTreeConnect } from './fetchers/wisdomtree-connect'
+import { fetchBlockchainAddresses, fetchNAV } from './fetchers/wisdomtree-dataspan'
+import { DeploymentFileSchema } from './schemas'
+import { signPriceData } from './signer'
 
 const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11' as Address
 const MULTICALL3_ABI = [
@@ -571,17 +567,63 @@ program
     }
   })
 
+function addWalletsToFetch(
+  walletPromises: Promise<any>[],
+  blockchain: string,
+  ticker: string,
+  trade_type: 'Purchase' | 'Sale',
+  network: string,
+  oracle: {
+    ticker: string
+    assetAddress: string
+    oracleAddress: string
+    type: 'WisdomTree'
+    subtype: 'variableNav' | 'fixedNav'
+  },
+) {
+  walletPromises.push(
+    (async () => {
+      try {
+        const startTime = Date.now()
+        const wallet = await wt.getOnReceiptWallet({
+          blockchain,
+          currency: 'USDC',
+          fund: ticker,
+          trade_type: trade_type,
+        })
+        return {
+          network,
+          ticker: oracle.ticker,
+          mappedFund: ticker,
+          tradeType: trade_type,
+          wallet: wallet.wallet_address,
+          latency: `${Date.now() - startTime}ms`,
+        }
+      } catch (e) {
+        return {
+          network,
+          ticker: oracle.ticker,
+          mappedFund: ticker,
+          wallet: 'Error/Not Found',
+        }
+      }
+    })(),
+  )
+}
+
 program
   .command('wt-wallets')
   .description('Fetch On-Receipt wallets for all or a specific deployed oracle')
   .argument('[ticker]', 'Optional ticker to fetch only one')
-  .action(async (tickerArg) => {
+  .option('-t, --trade-type <trade-type>', 'Trade type to fetch (Purchase or Sale)')
+  .action(async (tickerArg, options) => {
+    const tradeTypeMsg = options.tradeType
+      ? `and ${options.tradeType} trades`
+      : `and all trade types`
+    const tickerMsg = tickerArg ? `for ${tickerArg}` : `for all deployed oracles`
+
     try {
-      console.log(
-        tickerArg
-          ? `Fetching On-Receipt wallet for ${tickerArg}...`
-          : 'Fetching On-Receipt wallets for all deployed oracles...',
-      )
+      console.log(`Fetching On-Receipt wallets ${tickerMsg} ${tradeTypeMsg}...`)
       const walletPromises: Promise<any>[] = []
 
       for (const [networkKey, data] of Object.entries(deployments)) {
@@ -602,33 +644,19 @@ program
           if (ticker === 'CRDT') ticker = 'CRDYX'
           if (ticker === 'EPXC') ticker = 'WTPIX'
 
-          walletPromises.push(
-            (async () => {
-              try {
-                const startTime = Date.now()
-                const wallet = await wt.getOnReceiptWallet({
-                  blockchain,
-                  currency: 'USDC',
-                  fund: ticker,
-                  trade_type: 'Purchase',
-                })
-                return {
-                  network,
-                  ticker: oracle.ticker,
-                  mappedFund: ticker,
-                  wallet: wallet.wallet_address,
-                  latency: `${Date.now() - startTime}ms`,
-                }
-              } catch (e) {
-                return {
-                  network,
-                  ticker: oracle.ticker,
-                  mappedFund: ticker,
-                  wallet: 'Error/Not Found',
-                }
-              }
-            })(),
-          )
+          if (!options.tradeType) {
+            addWalletsToFetch(walletPromises, blockchain, ticker, 'Purchase', network, oracle)
+            addWalletsToFetch(walletPromises, blockchain, ticker, 'Sale', network, oracle)
+          } else {
+            addWalletsToFetch(
+              walletPromises,
+              blockchain,
+              ticker,
+              options.tradeType,
+              network,
+              oracle,
+            )
+          }
         }
       }
 
