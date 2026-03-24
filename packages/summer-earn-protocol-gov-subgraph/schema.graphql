@@ -11,6 +11,8 @@ type Proposal @entity {
     eta: BigInt!
     createdAt: BigInt!
     governor: String!
+    voteStart: BigInt!
+    voteEnd: BigInt!
     quorum: BigInt!
     forVotes: BigInt!
     againstVotes: BigInt!
@@ -23,7 +25,7 @@ type Vote @entity {
     proposal: Proposal!
     voter: String!
     support: Int! # 0: Against, 1: For, 2: Abstain
-    weight: BigInt!
+    votes: BigInt!
     reason: String!
     params: Bytes
     blockNumber: BigInt!

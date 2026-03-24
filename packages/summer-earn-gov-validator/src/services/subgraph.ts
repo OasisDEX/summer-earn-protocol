@@ -29,24 +29,6 @@ const DELEGATES_QUERY = `
   }
 `
 
-const PROPOSALS_QUERY = `
-  query GetProposals {
-    proposals(first:1000, orderBy: createdAt, orderDirection: desc, where: {governor: "0x4ceee1b6289624d381383c1bb42b118d5f2c3274"}) {
-      id
-      targets
-      values
-      calldatas
-      description
-      descriptionHash
-      status
-      chains
-      dstIds
-      eta
-      createdAt
-    }
-  }
-`
-
 const CROSS_CHAIN_PROPOSALS_QUERY = `
   query GetCrossChainProposals {
     crossChainProposals(first:1000) {
@@ -63,6 +45,15 @@ const CROSS_CHAIN_PROPOSALS_QUERY = `
   }
 `
 
+export interface Vote {
+  id: string
+  voter: string
+  support: number // 0: Against, 1: For, 2: Abstain
+  votes: string
+  reason: string
+  timestamp: string
+}
+
 export interface Proposal {
   id: string
   targets: string[]
@@ -75,6 +66,11 @@ export interface Proposal {
   dstIds: string[]
   eta: string
   createdAt: string
+  quorum: string
+  forVotes: string
+  againstVotes: string
+  abstainVotes: string
+  votes: Vote[]
 }
 
 export interface CrossChainProposal {
@@ -107,7 +103,39 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
   const baseClient = new GraphQLClient(SUBGRAPH_ENDPOINTS.base, {
     fetch: (url, options) => fetch(url, { ...options, ...fetchOptions }),
   })
-  const baseProposals = await baseClient.request<ProposalsResponse>(PROPOSALS_QUERY)
+
+  // Update query to include new fields
+  const ENHANCED_PROPOSALS_QUERY = `
+    query GetProposals {
+      proposals(first:1000, orderBy: createdAt, orderDirection: desc, where: {governor: "0x4ceee1b6289624d381383c1bb42b118d5f2c3274"}) {
+        id
+        targets
+        values
+        calldatas
+        description
+        descriptionHash
+        status
+        chains
+        dstIds
+        eta
+        createdAt
+        quorum
+        forVotes
+        againstVotes
+        abstainVotes
+        votes(first: 100, orderBy: timestamp, orderDirection: desc, where:{weight_gt:0}) {
+          id
+          voter
+          support
+          votes
+          reason
+          timestamp
+        }
+      }
+    }
+  `
+
+  const baseProposals = await baseClient.request<ProposalsResponse>(ENHANCED_PROPOSALS_QUERY)
 
   const allProposals: ProposalWithCrossChain[] = []
   const allCrossChainProposals: CrossChainProposal[] = []
@@ -141,8 +169,6 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
 
     crossChainProposals.push(...matchingProposals)
 
-    // Include all proposals - even those without cross-chain proposals
-    // Cross-chain proposals are only created after the base proposal is executed
     allProposals.push({
       baseProposal: proposal,
       crossChainProposals,
