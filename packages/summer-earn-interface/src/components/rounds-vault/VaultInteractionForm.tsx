@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { formatUnits, parseUnits } from 'viem'
-import { erc20Abi } from 'viem'
+import { erc20Abi, formatUnits, parseUnits } from 'viem'
 import { useConnection, useReadContract, useWriteContract } from 'wagmi'
 
 interface VaultInteractionFormProps {
@@ -107,13 +106,14 @@ export function VaultInteractionForm({
   }
 
   const handleExchange = async () => {
-    if (!receiptId || !address) return
+    if (!receiptId || !address || !amount) return
+    const parsedAmount = parseUnits(amount, decimals)
     try {
       await (writeContractAsync as any)({
         address: vaultAddress,
         abi: vaultAbi,
         functionName: 'redeemExchangeAsset',
-        args: [BigInt(receiptId), 0n, address, address],
+        args: [BigInt(receiptId), parsedAmount, address, address],
       })
     } catch (e) {
       console.error(e)
@@ -196,9 +196,16 @@ export function VaultInteractionForm({
               onChange={(e) => setReceiptId(e.target.value)}
               className="flex-1 bg-gray-900 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
             />
+            <input
+              type="number"
+              placeholder="Amount to Exchange"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="flex-1 bg-gray-900 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+            />
             <button
               onClick={handleExchange}
-              disabled={isPending || !receiptId}
+              disabled={isPending || !receiptId || !amount}
               className="bg-indigo-500 hover:bg-indigo-400 text-white font-medium px-6 py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
             >
               Exchange
