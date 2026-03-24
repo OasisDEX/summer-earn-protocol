@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react'
-import { ethers } from 'ethers'
+import { ethers, keccak256 } from 'ethers'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { calculateProposalTiming } from '@/utils/timing'
 
 import config from '../config/index.json'
-import { useMultipleProposalVoting } from '../hooks/useProposalVoting'
+import { GOVERNOR_ABI, useMultipleProposalVoting, VoteSupport } from '../hooks/useProposalVoting'
 import { CrossChainProposal, fetchAllProposals, ProposalWithCrossChain } from '../services/subgraph'
 import { PhaseIndicator } from './PhaseIndicator'
 import { ProposalFilter, ProposalStatus } from './ProposalFilter'
+import { toBytes } from 'viem'
 
 // Timelock Controller ABI for executeBatch
 const TIMELOCK_ABI = [
@@ -27,78 +28,12 @@ const TIMELOCK_ABI = [
   },
 ] as const
 
-// Governor ABI for execute and voting functions
-const GOVERNOR_ABI = [
-  {
-    inputs: [
-      { name: 'targets', type: 'address[]' },
-      { name: 'values', type: 'uint256[]' },
-      { name: 'calldatas', type: 'bytes[]' },
-      { name: 'descriptionHash', type: 'bytes32' },
-    ],
-    name: 'execute',
-    outputs: [],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'targets', type: 'address[]' },
-      { name: 'values', type: 'uint256[]' },
-      { name: 'calldatas', type: 'bytes[]' },
-      { name: 'descriptionHash', type: 'bytes32' },
-    ],
-    name: 'queue',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'proposalId', type: 'uint256' },
-      { name: 'support', type: 'uint8' },
-    ],
-    name: 'castVote',
-    outputs: [{ name: 'balance', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'proposalId', type: 'uint256' }],
-    name: 'proposalVotes',
-    outputs: [
-      { name: 'againstVotes', type: 'uint256' },
-      { name: 'forVotes', type: 'uint256' },
-      { name: 'abstainVotes', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'proposalId', type: 'uint256' },
-      { name: 'account', type: 'address' },
-    ],
-    name: 'hasVoted',
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const
-
 // Chain ID to network name mapping
 const CHAIN_ID_TO_NETWORK: Record<string, keyof typeof config> = {
   '1': 'mainnet',
   '8453': 'base',
   '42161': 'arbitrum',
   '146': 'sonic',
-}
-
-// Vote types from OpenZeppelin GovernorCountingSimple
-enum VoteType {
-  Against = 0,
-  For = 1,
-  Abstain = 2,
 }
 
 // Helper function to calculate effective proposal status
@@ -254,7 +189,8 @@ export const CrossChainProposals: React.FC = () => {
       }
 
       // Create description hash
-      const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposal.description))
+      // const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposal.description))
+      const descriptionHash = keccak256(toBytes(proposal.description))
 
       // Execute the proposal
       await writeContract({
@@ -317,7 +253,8 @@ export const CrossChainProposals: React.FC = () => {
       }
 
       // Create description hash
-      const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposal.description))
+      // const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposal.description))
+      const descriptionHash = keccak256(toBytes(proposal.description))
 
       // Queue the proposal
 
@@ -351,13 +288,13 @@ export const CrossChainProposals: React.FC = () => {
     }
   }
 
-  const handleVote = async (proposalId: string, support: VoteType) => {
+  const handleVote = async (proposalId: string, support: VoteSupport) => {
     if (!isConnected || !address) {
       alert('Please connect your wallet first')
       return
     }
 
-    const governorAddress = config.base?.deployedContracts?.gov?.summerGovernor?.address
+    const governorAddress = config.base?.deployedContracts?.govV2?.summerGovernor?.address
     if (!governorAddress) {
       alert('Governor address not found for Base network')
       return
@@ -379,7 +316,7 @@ export const CrossChainProposals: React.FC = () => {
         args: [BigInt(proposalId), support],
       })
 
-      console.log(`Successfully voted ${VoteType[support]} on proposal ${proposalId}`)
+      console.log(`Successfully voted ${support} on proposal ${proposalId}`)
 
       // Refresh voting data after voting
       setTimeout(() => {
@@ -854,7 +791,7 @@ export const CrossChainProposals: React.FC = () => {
                             <h4 className="text-sm font-medium text-gray-700">Cast Your Vote</h4>
                             <div className="flex gap-3">
                               <button
-                                onClick={() => handleVote(baseProposal.id, VoteType.For)}
+                                onClick={() => handleVote(baseProposal.id, 1 as VoteSupport)}
                                 disabled={votingProposals.has(baseProposal.id) || isPending}
                                 className={`flex-1 py-2 px-4 rounded-lg text-white font-medium transition-colors duration-200 ${
                                   votingProposals.has(baseProposal.id) || isPending
@@ -884,7 +821,7 @@ export const CrossChainProposals: React.FC = () => {
                                 )}
                               </button>
                               <button
-                                onClick={() => handleVote(baseProposal.id, VoteType.Against)}
+                                onClick={() => handleVote(baseProposal.id, 0 as VoteSupport)}
                                 disabled={votingProposals.has(baseProposal.id) || isPending}
                                 className={`flex-1 py-2 px-4 rounded-lg text-white font-medium transition-colors duration-200 ${
                                   votingProposals.has(baseProposal.id) || isPending
@@ -914,7 +851,7 @@ export const CrossChainProposals: React.FC = () => {
                                 )}
                               </button>
                               <button
-                                onClick={() => handleVote(baseProposal.id, VoteType.Abstain)}
+                                onClick={() => handleVote(baseProposal.id, 2 as VoteSupport)}
                                 disabled={votingProposals.has(baseProposal.id) || isPending}
                                 className={`flex-1 py-2 px-4 rounded-lg text-white font-medium transition-colors duration-200 ${
                                   votingProposals.has(baseProposal.id) || isPending

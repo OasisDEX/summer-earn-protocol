@@ -1,11 +1,6 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
-features:
-  - grafting
-graft:
-  base: QmVv7kwT2tn6EU6iuPfyvZnoPNYUFLoFej3gFZ9912JXJe
-  block: 38330000
 dataSources:
   - kind: ethereum/contract
     name: SummerGovernor
@@ -111,6 +106,28 @@ dataSources:
           handler: handleRoleRevoked
           receipt: true
       file: ./src/mappings/accessManagement.ts  
+  - kind: ethereum/contract
+    name: SummerGovernanceToken
+    network: base
+    source:
+      abi: Votes
+      address: "0x7cC488F2681cFC2A5E8A00184bfA94ea6d520D1c"
+      startBlock: 38595471
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Delegate
+      abis:
+        - name: Votes
+          file: ./abis/Votes.json
+      eventHandlers:
+        - event: DelegateChanged(indexed address,indexed address,indexed address)
+          handler: handleDelegateChanged
+        - event: DelegateVotesChanged(indexed address,uint256,uint256)
+          handler: handleDelegateVotesChanged
+      file: ./src/mappings/votes.ts
 templates:
   - kind: ethereum/contract
     name: TimelockControllerTemplate

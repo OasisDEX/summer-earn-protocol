@@ -113,6 +113,28 @@ dataSources:
           handler: handleRoleRevoked
           receipt: true
       file: ./src/mappings/accessManagement.ts  
+  - kind: ethereum/contract
+    name: SummerGovernanceToken
+    network: {{network}}
+    source:
+      abi: Votes
+      address: "{{summer-governance-token-address}}"
+      startBlock: {{summer-governance-token-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Delegate
+      abis:
+        - name: Votes
+          file: ./abis/Votes.json
+      eventHandlers:
+        - event: DelegateChanged(indexed address,indexed address,indexed address)
+          handler: handleDelegateChanged
+        - event: DelegateVotesChanged(indexed address,uint256,uint256)
+          handler: handleDelegateVotesChanged
+      file: ./src/mappings/votes.ts
 templates:
   - kind: ethereum/contract
     name: TimelockControllerTemplate

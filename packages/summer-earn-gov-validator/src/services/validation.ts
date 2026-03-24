@@ -1,4 +1,13 @@
-import { ethers } from 'ethers'
+import {
+  keccak256,
+  toBytes,
+  formatUnits,
+  decodeFunctionData,
+  toFunctionSelector,
+  parseAbiItem,
+  Hex,
+  Abi,
+} from 'viem'
 
 import deployedArbitrum from '../config/deployed/arbitrum.json'
 import deployedBase from '../config/deployed/base.json'
@@ -24,10 +33,10 @@ const dstEidToChainIdMap: Record<string, string> = {
 // Define DstId type
 type DstId = '30101' | '30110' | '30184' | '30332'
 
-// Role constants (matching OpenZeppelin TimelockController)
-export const PROPOSER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('PROPOSER_ROLE'))
-export const EXECUTOR_ROLE = ethers.keccak256(ethers.toUtf8Bytes('EXECUTOR_ROLE'))
-export const CANCELLER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('CANCELLER_ROLE'))
+// Role constants
+export const PROPOSER_ROLE = keccak256(toBytes('PROPOSER_ROLE'))
+export const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
+export const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 export const DEFAULT_ADMIN_ROLE =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
@@ -37,6 +46,17 @@ const ROLE_HASH_TO_NAME: Record<string, string> = {
   [EXECUTOR_ROLE.toLowerCase()]: 'EXECUTOR_ROLE',
   [CANCELLER_ROLE.toLowerCase()]: 'CANCELLER_ROLE',
   [DEFAULT_ADMIN_ROLE.toLowerCase()]: 'DEFAULT_ADMIN_ROLE',
+}
+
+export const WAD = 1000000000000000000n
+
+const TOKEN_DECIMALS: Record<string, number> = {
+  usdc: 6,
+  usdt: 6,
+  eurc: 6,
+  weth: 18,
+  eth: 18,
+  sumr: 18,
 }
 
 // Type for role information
@@ -91,6 +111,8 @@ interface DecodedFunction {
   functionName: string
   args: any[]
   paramNames: string[]
+  internalTypes?: string[]
+  isFallbackDecimal?: boolean[]
 }
 
 export interface CrossChainData {
@@ -110,12 +132,64 @@ export interface CrossChainData {
   }>
 }
 
-// Map of known function ABIs
-const KNOWN_ABIS = {
-  // Cross-chain execution
-  sendProposalToTargetChain:
-    'function sendProposalToTargetChain(uint32 _dstEid, address[] _dstTargets, uint256[] _dstValues, bytes[] _dstCalldatas, bytes32 _dstDescriptionHash, bytes _options) external',
-  send: {
+// Separate string ABIs from Object ABIs to properly maintain internalTypes for Percentage
+const KNOWN_STRING_ABIS = [
+  'function sendProposalToTargetChain(uint32 _dstEid, address[] _dstTargets, uint256[] _dstValues, bytes[] _dstCalldatas, bytes32 _dstDescriptionHash, bytes _options) external',
+  'function grantCuratorRole(address fleetAddress, address account) external',
+  'function grantAdmiralsQuartersRole(address account) external',
+  'function revokeAdmiralsQuartersRole(address account) external',
+  'function grantCommanderRole(address arkAddress, address account) external',
+  'function addArk(address ark) external',
+  'function enlistFleetCommander(address fleetCommander) external',
+  'function grantRole(bytes32 role, address account) external',
+  'function revokeRole(bytes32 role, address account) external',
+  'function grantGovernorRole(address account) external',
+  'function revokeGovernorRole(address account) external',
+  'function grantSuperKeeperRole(address account) external',
+  'function revokeSuperKeeperRole(address account) external',
+  'function grantGuardianRole(address account) external',
+  'function revokeGuardianRole(address account) external',
+  'function setGuardianExpiration(address account, uint256 expiration) external',
+  'function grantDecayControllerRole(address account) external',
+  'function revokeDecayControllerRole(address account) external',
+  'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration) external',
+  'function setRewardsDuration(address rewardToken, uint256 _rewardsDuration) external',
+  'function setRaft(address raft) external',
+  'function sweep(address ark,address[] tokens) external',
+  'function sweep(address[] tokens) external',
+  'function approve(address spender, uint256 amount) external returns (bool)',
+  'function transfer(address to, uint256 amount) external returns (bool)',
+  'function transferFrom(address from, address to, uint256 amount) external returns (bool)',
+  'function setVotingDelay(uint48 newVotingDelay) external',
+  'function setVotingPeriod(uint32 newVotingPeriod) external',
+  'function setQuorumNumerator(uint256 newQuorumNumerator) external',
+  'function setProposalThreshold(uint256 newProposalThreshold) external',
+  'function setProposalMaxOperations(uint256 newProposalMaxOperations) external',
+  'function setProposalMaxDuration(uint256 newProposalMaxDuration) external',
+  'function updateDelay(uint256 newDelay) external',
+  'function addToWhitelist(address account) external',
+  'function setFleetTokenTransferability() external',
+  'function schedule(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt, uint256 delay) public',
+  'function scheduleBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt, uint256 delay) public',
+  'function execute(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public payable',
+  'function executeBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt) public payable',
+  'function cancel(bytes32 id) public',
+  'function hashOperation(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public pure returns (bytes32)',
+  'function hashOperationBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt) public pure returns (bytes32)',
+  'function hasRole(bytes32 role, address account) public view returns (bool)',
+  'function castVote(uint256 proposalId, uint8 support) public returns (uint256)',
+  'function propose(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) public returns (uint256)',
+  'function cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) public returns (uint256)',
+  'function createCampaign((bytes32 campaignId, address creator, address rewardToken, uint256 amount, uint32 campaignType, uint32 startTimestamp, uint32 duration, bytes campaignData)) external returns (uint256)',
+  'function setNonSweepableToken(address ark, address token, bool isNonSweepable) external',
+  'function validateTimestamp() external',
+  'function removeRoot(uint256 index) external',
+]
+
+const KNOWN_OBJECT_ABIS = [
+  {
+    type: 'function',
+    name: 'send',
     inputs: [
       {
         components: [
@@ -140,95 +214,23 @@ const KNOWN_ABIS = {
       },
       { name: '_refundAddress', type: 'address' },
     ],
-    name: 'send',
     outputs: [],
     stateMutability: 'external',
-    type: 'function',
   },
-  // Harbor Command functions
-  grantCuratorRole: 'function grantCuratorRole(address fleetAddress, address account) external',
-  grantAdmiralsQuartersRole: 'function grantAdmiralsQuartersRole(address account) external',
-  revokeAdmiralsQuartersRole: 'function revokeAdmiralsQuartersRole(address account) external',
-  grantCommanderRole: 'function grantCommanderRole(address arkAddress, address account) external',
-  addArk: 'function addArk(address ark) external',
-  enlistFleetCommander: 'function enlistFleetCommander(address fleetCommander) external',
-  grantRole: 'function grantRole(bytes32 role, address account) external',
-  revokeRole: 'function revokeRole(bytes32 role, address account) external',
-  grantGovernorRole: 'function grantGovernorRole(address account) external',
-  revokeGovernorRole: 'function revokeGovernorRole(address account) external',
-  grantSuperKeeperRole: 'function grantSuperKeeperRole(address account) external',
-  revokeSuperKeeperRole: 'function revokeSuperKeeperRole(address account) external',
-  grantGuardianRole: 'function grantGuardianRole(address account) external',
-  revokeGuardianRole: 'function revokeGuardianRole(address account) external',
-  setGuardianExpiration:
-    'function setGuardianExpiration(address account, uint256 expiration) external',
-  grantDecayControllerRole: 'function grantDecayControllerRole(address account) external',
-  revokeDecayControllerRole: 'function revokeDecayControllerRole(address account) external',
-  // Rewards functions
-  notifyRewardAmount:
-    'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration) external',
-  setRewardsDuration:
-    'function setRewardsDuration(address rewardToken, uint256 _rewardsDuration) external',
-  // configuration manager functions
-  setRaft: 'function setRaft(address raft) external',
-  // raft functions
-  sweep: 'function sweep(address ark,address[] tokens) external',
-  // ark sweep functions
-  sweepArk: 'function sweep(address[] tokens) external',
-
-  // ERC20 functions
-  approve: 'function approve(address spender, uint256 amount) external returns (bool)',
-  transfer: 'function transfer(address to, uint256 amount) external returns (bool)',
-  transferFrom:
-    'function transferFrom(address from, address to, uint256 amount) external returns (bool)',
-
-  // gov
-  setVotingDelay: 'function setVotingDelay(uint48 newVotingDelay) external',
-  setVotingPeriod: 'function setVotingPeriod(uint32 newVotingPeriod) external',
-  setQuorumNumerator: 'function setQuorumNumerator(uint256 newQuorumNumerator) external',
-  setProposalThreshold: 'function setProposalThreshold(uint256 newProposalThreshold) external',
-  setProposalMaxOperations:
-    'function setProposalMaxOperations(uint256 newProposalMaxOperations) external',
-  setProposalMaxDuration:
-    'function setProposalMaxDuration(uint256 newProposalMaxDuration) external',
-  updateDelay: 'function updateDelay(uint256 newDelay) external',
-  addToWhitelist: 'function addToWhitelist(address account) external',
-
-  // fleet commander functions
-  setFleetTokenTransferability: 'function setFleetTokenTransferability() external',
-
-  // TimelockController functions
-  timelockSchedule:
-    'function schedule(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt, uint256 delay) public',
-  timelockScheduleBatch:
-    'function scheduleBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt, uint256 delay) public',
-  timelockExecute:
-    'function execute(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public payable',
-  timelockExecuteBatch:
-    'function executeBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt) public payable',
-  timelockCancel: 'function cancel(bytes32 id) public',
-  hashOperation:
-    'function hashOperation(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public pure returns (bytes32)',
-  hashOperationBatch:
-    'function hashOperationBatch(address[] calldata targets, uint256[] calldata values, bytes[] calldata payloads, bytes32 predecessor, bytes32 salt) public pure returns (bytes32)',
-  hasRole: 'function hasRole(bytes32 role, address account) public view returns (bool)',
-
-  // Governor functions (for completeness)
-  castVote: 'function castVote(uint256 proposalId, uint8 support) public returns (uint256)',
-  governorPropose:
-    'function propose(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) public returns (uint256)',
-  governorExecute:
-    'function execute(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) public payable returns (uint256)',
-  governorCancel:
-    'function cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) public returns (uint256)',
-  createCampaign:
-    'function createCampaign((bytes32 campaignId, address creator, address rewardToken, uint256 amount, uint32 campaignType, uint32 startTimestamp, uint32 duration, bytes campaignData)) external returns (uint256)',
-  setNonSweepableToken:
-    'function setNonSweepableToken(address ark, address token, bool isNonSweepable) external',
-  validateTimestamp: 'function validateTimestamp() external',
-  removeRoot: 'function removeRoot(uint256 index) external',
-  // TipJar functions
-  addTipStream: {
+  {
+    type: 'function',
+    name: 'setTipRate',
+    inputs: [
+      {
+        name: 'newTipRate',
+        type: 'uint256',
+        internalType: 'Percentage',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
     type: 'function',
     name: 'addTipStream',
     inputs: [
@@ -246,22 +248,16 @@ const KNOWN_ABIS = {
     outputs: [{ name: 'lockedUntilEpoch', type: 'uint256', internalType: 'uint256' }],
     stateMutability: 'nonpayable',
   },
-}
+]
 
-// Create interfaces for each ABI
-const interfaces = Object.entries(KNOWN_ABIS).reduce(
-  (acc, [name, abi]) => {
-    acc[name] = new ethers.Interface([abi])
-    return acc
-  },
-  {} as Record<string, ethers.Interface>,
-)
+// Unified ABI containing both formatted objects and parsed strings
+export const COMBINED_ABI: Abi = [
+  ...KNOWN_STRING_ABIS.map((sig) => parseAbiItem(sig)),
+  ...KNOWN_OBJECT_ABIS,
+] as Abi
 
 /**
  * Gets role tags for an address based on role information
- * @param address The address to get role tags for
- * @param roleInfo Optional role information object
- * @returns Array of role tags (e.g., ['PROPOSER', 'EXECUTOR'])
  */
 export function getRoleTags(address: string, roleInfo?: RoleInfo): string[] {
   if (!roleInfo) return []
@@ -274,7 +270,6 @@ export function getRoleTags(address: string, roleInfo?: RoleInfo): string[] {
 
 // Helper function to decode an address to its contract name
 function decodeAddress(address: string, network?: SupportedNetworks): string {
-  // Default to BASE (hub chain) when network is not provided
   const targetNetwork = network ?? SupportedNetworks.BASE
   const name = addresToContractName(address, targetNetwork)
   if (name !== 'Unknown') {
@@ -286,87 +281,146 @@ function decodeAddress(address: string, network?: SupportedNetworks): string {
 // Function to decode any calldata using known ABIs
 export const decodeCalldata = (
   calldata: string,
+  targetAddress?: string,
   network?: SupportedNetworks,
 ): DecodedFunction | null => {
-  for (const [name, iface] of Object.entries(interfaces)) {
-    try {
-      const decoded = iface.parseTransaction({ data: calldata })
-      if (decoded) {
-        // Recursively get parameter names from the ABI
-        const getParamNames = (
-          inputs: readonly ethers.ParamType[],
-        ): (string | { name: string; components: any[] })[] => {
-          return inputs.map((input) => {
-            if (input.type === 'tuple') {
-              // For tuples, create an object with nested parameter names
-              const nestedNames = getParamNames(input.components || [])
-              return {
-                name: input.name,
-                components: nestedNames,
-              }
-            }
-            return input.name
-          })
-        }
+  const targetNetwork = network ?? SupportedNetworks.BASE
 
-        // Get parameter names from the ABI
-        const fragment = iface.fragments[0]
-        const paramNames = fragment.inputs ? getParamNames(fragment.inputs) : []
+  try {
+    const decoded = decodeFunctionData({
+      abi: COMBINED_ABI,
+      data: calldata as Hex,
+    })
 
-        // Recursively process arguments to handle tuples
-        const processArg = (arg: any, paramName: any): any => {
-          if (Array.isArray(arg)) {
-            // If we have component names, use them as keys
-            if (paramName?.components) {
-              const result: any = {}
-              arg.forEach((value, index) => {
-                const componentName = paramName.components[index]
-                if (typeof componentName === 'string') {
-                  result[componentName] = processArg(value, paramName.components[index])
-                } else {
-                  result[componentName.name] = processArg(value, componentName)
-                }
-              })
-              return result
-            }
-            // Otherwise, just process each array element
-            return arg.map((item, index) => processArg(item, paramName?.[index]))
-          }
-          if (typeof arg === 'object' && arg !== null) {
-            // Handle tuple types
-            const processedObj: any = {}
-            for (const [key, value] of Object.entries(arg)) {
-              const nestedParamName = paramName?.components?.[key] || key
-              processedObj[nestedParamName] = processArg(value, paramName?.components?.[key])
-            }
-            return processedObj
-          }
-          // Check if it's a bytes32 role hash
-          if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 66) {
-            const normalizedHash = arg.toLowerCase()
-            if (ROLE_HASH_TO_NAME[normalizedHash]) {
-              return `${ROLE_HASH_TO_NAME[normalizedHash]} (${arg})`
+    if (decoded) {
+      // Find the specific function ABI from COMBINED_ABI to extract rich internalTypes.
+      // We filter by name and approximate parameter match to handle overloads like sweep()
+      const abiItems = COMBINED_ABI.filter(
+        (item) => item.type === 'function' && item.name === decoded.functionName,
+      )
+      const fragment = abiItems.find(
+        (item: any) => item.inputs?.length === (decoded.args?.length || 0),
+      ) as any
+
+      if (!fragment) return null
+
+      // Recursively pull out param names and exact internal types mapped back from JSON fragments
+      const getParamInfo = (inputs: readonly any[]): any[] => {
+        return inputs.map((input) => {
+          if (input.type === 'tuple' || input.type.startsWith('tuple[')) {
+            return {
+              name: input.name,
+              internalType: input.internalType || input.type,
+              type: input.type,
+              components: getParamInfo(input.components || []),
             }
           }
-          // Check if it's an address (42 chars: 0x + 40 hex)
-          if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
-            return decodeAddress(arg, network)
+          return {
+            name: input.name,
+            internalType: input.internalType || input.type,
+            type: input.type,
           }
-          return arg
-        }
+        })
+      }
 
-        const decodedArgs = decoded.args.map((arg, index) => processArg(arg, paramNames[index]))
+      const paramInfos = fragment.inputs ? getParamInfo(fragment.inputs) : []
 
-        return {
-          functionName: name,
-          args: decodedArgs,
-          paramNames: paramNames.map((p) => (typeof p === 'string' ? p : p.name)),
+      // Determine token-specific decimals for the function if relevant
+      let fixedDecimals: number | null = null
+      let usedFallback = false
+
+      if (targetAddress) {
+        const contractName = addresToContractName(targetAddress, targetNetwork)
+        if (contractName.startsWith('token.')) {
+          const tokenName = contractName.split('.').pop()?.toLowerCase()
+          if (tokenName && TOKEN_DECIMALS[tokenName]) {
+            fixedDecimals = TOKEN_DECIMALS[tokenName]
+          }
+        } else if (contractName.startsWith('gov.summerToken')) {
+          fixedDecimals = 18
         }
       }
-    } catch (error) {
-      console.error('Error decoding calldata:', error)
-      // Continue to next interface
+
+      if (fixedDecimals === null) {
+        fixedDecimals = 18
+        usedFallback = true
+      }
+
+      // Recursively process arguments to handle tuples and special types
+      const processArg = (arg: any, paramInfo: any): any => {
+        // Viem maps tuples directly to Objects, and arrays correctly to arrays
+        if (Array.isArray(arg)) {
+          return arg.map((item) =>
+            processArg(item, { ...paramInfo, type: paramInfo?.type?.replace('[]', '') }),
+          )
+        }
+
+        if (paramInfo?.components && typeof arg === 'object' && arg !== null) {
+          const result: any = {}
+          paramInfo.components.forEach((compInfo: any) => {
+            result[compInfo.name] = processArg(arg[compInfo.name], compInfo)
+          })
+          return result
+        }
+
+        const internalType = paramInfo?.internalType || ''
+
+        // Properly catch Percentage type derived from COMBINED_ABI metadata
+        if (internalType === 'Percentage' || internalType.includes('Percentage')) {
+          try {
+            const bigVal = BigInt(arg.toString())
+            const percent = Number(bigVal * 10000n) / Number(WAD) / 100
+            return `${arg} (${percent.toFixed(2)}%)`
+          } catch (e) {
+            return arg
+          }
+        }
+
+        // Handle Token Amounts
+        if (
+          fixedDecimals !== null &&
+          (paramInfo?.name === 'amount' ||
+            paramInfo?.name === 'reward' ||
+            paramInfo?.name === 'amountLD' ||
+            paramInfo?.name === 'minAmountLD')
+        ) {
+          try {
+            const formatted = formatUnits(BigInt(arg.toString()), fixedDecimals)
+            return `${arg} [formatted:${formatted}${usedFallback ? ':fallback' : ''}]`
+          } catch (e) {
+            return arg
+          }
+        }
+
+        // Check if it's a bytes32 role hash
+        if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 66) {
+          const normalizedHash = arg.toLowerCase()
+          if (ROLE_HASH_TO_NAME[normalizedHash]) {
+            return `${ROLE_HASH_TO_NAME[normalizedHash]} (${arg})`
+          }
+        }
+
+        // Check if it's an address
+        if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
+          return decodeAddress(arg, network)
+        }
+
+        return typeof arg === 'bigint' ? arg.toString() : arg
+      }
+
+      const decodedArgs = (decoded.args || []).map((arg, index) =>
+        processArg(arg, paramInfos[index]),
+      )
+
+      return {
+        functionName: decoded.functionName,
+        args: decodedArgs,
+        paramNames: paramInfos.map((p) => p.name),
+        internalTypes: paramInfos.map((p) => p.internalType),
+      }
     }
+  } catch (error) {
+    // Continue/Return null on fail to mirror old iteration behaviour
   }
   return null
 }
@@ -374,21 +428,30 @@ export const decodeCalldata = (
 // Function to decode cross-chain calldata
 export const decodeCrossChainCalldata = (calldata: string): CrossChainData | null => {
   try {
-    const decoded = interfaces.sendProposalToTargetChain.parseTransaction({ data: calldata })
+    const decoded = decodeFunctionData({
+      abi: COMBINED_ABI,
+      data: calldata as Hex,
+    })
 
-    if (!decoded) {
-      throw new Error('Failed to decode calldata')
+    if (decoded.functionName !== 'sendProposalToTargetChain') {
+      throw new Error('Calldata is not sendProposalToTargetChain')
     }
 
-    const [dstEid, dstTargets, dstValues, dstCalldatas, dstDescriptionHash, options] = decoded.args
+    const args = decoded.args as any[]
+    const dstEid = args[0]
+    const dstTargets = args[1]
+    const dstValues = args[2]
+    const dstCalldatas = args[3]
+    const dstDescriptionHash = args[4]
+    const options = args[5]
 
     // Get the network config for the destination chain
     const dstIdAsString = dstEid.toString() as DstId
     const network = dstEidToChainIdMap[dstIdAsString] as SupportedNetworks
 
     // Decode nested calldatas
-    const decodedCalldatas = dstCalldatas.map((calldata: string) =>
-      decodeCalldata(calldata, network),
+    const decodedCalldatas = dstCalldatas.map((nestedCalldata: string, index: number) =>
+      decodeCalldata(nestedCalldata, dstTargets[index], network),
     )
 
     // Get contract names for the targets
@@ -415,8 +478,7 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
       decodedCalldatas,
       formattedProposals,
     }
-  } catch (error) {
-    console.error('Error decoding cross-chain calldata:', error)
+  } catch {
     return null
   }
 }
@@ -425,23 +487,18 @@ export function addresToContractName(address: string, network: SupportedNetworks
   const networkConfig = typedConfig[network]
   const normalizedAddress = address.toLowerCase()
 
-  // First check the main config
-  // Iterate through top-level contract categories (core, gov, buyAndBurn)
   for (const category in networkConfig.deployedContracts) {
     const contracts = networkConfig.deployedContracts[category]
 
-    // Iterate through contracts in this category
     for (const contractName in contracts) {
       const contract = contracts[contractName]
 
-      // Check if the address matches
       if (contract.address && contract.address.toLowerCase() === normalizedAddress) {
         return `${category}.${contractName}`
       }
     }
   }
 
-  // Check if it's a token address
   for (const tokenName in networkConfig.tokens) {
     const tokenAddress = networkConfig.tokens[tokenName]
     if (tokenAddress && tokenAddress.toLowerCase() === normalizedAddress) {
@@ -472,7 +529,6 @@ export const validateTargets = (
   const validAddresses = new Set<string>()
   const contractNames: string[] = []
 
-  // Collect valid addresses from the specified network only
   const networkConfig = typedConfig[network]
   const collectAddresses = (obj: any) => {
     if (typeof obj !== 'object' || obj === null) return
@@ -485,10 +541,8 @@ export const validateTargets = (
     Object.values(obj).forEach(collectAddresses)
   }
 
-  // Collect addresses from the specified network
   collectAddresses(networkConfig)
 
-  // Validate each target
   targets.forEach((target, index) => {
     if (!target) {
       errors.push(`Target at index ${index} is empty`)
@@ -503,7 +557,6 @@ export const validateTargets = (
       return
     }
 
-    // Find the contract name in the specified network
     const contractName = addresToContractName(normalizedTarget, network)
     if (contractName !== 'Unknown') {
       contractNames[index] = `${network}:${contractName}(${normalizedTarget})`
@@ -547,7 +600,7 @@ export const validateValues = (values: string[]): ValidationResult => {
   return {
     isValid: errors.length === 0,
     errors,
-    contractNames: [], // Not applicable for values, but required by the interface
+    contractNames: [],
   }
 }
 
@@ -565,27 +618,14 @@ export const validateCalldatas = (calldatas: string[]): ValidationResult => {
       return
     }
 
-    // Basic hex validation
     if (!/^0x[0-9a-fA-F]*$/.test(calldata)) {
       errors.push(`Calldata at index ${index} contains invalid hex characters`)
       return
     }
 
-    // Try to decode the calldata with known ABIs
-    let decoded = false
-    for (const iface of Object.values(interfaces)) {
-      try {
-        const parsed = iface.parseTransaction({ data: calldata })
-        if (parsed) {
-          decoded = true
-          break
-        }
-      } catch {
-        // Continue to next interface
-      }
-    }
-
-    if (!decoded) {
+    try {
+      decodeFunctionData({ abi: COMBINED_ABI, data: calldata as Hex })
+    } catch {
       errors.push(`Calldata at index ${index} could not be decoded with any known ABI`)
     }
   })
@@ -593,33 +633,28 @@ export const validateCalldatas = (calldatas: string[]): ValidationResult => {
   return {
     isValid: errors.length === 0,
     errors,
-    contractNames: [], // Not applicable for calldatas, but required by the interface
+    contractNames: [],
   }
 }
 
 // Helper function to check if a calldata is a cross-chain execution
 export const isCrossChainExecution = (target: string, calldata: string): boolean => {
   try {
-    const selector = interfaces.sendProposalToTargetChain.getFunction(
-      'sendProposalToTargetChain',
-    )?.selector
-    if (!selector) return false
+    const selector = toFunctionSelector(
+      'function sendProposalToTargetChain(uint32,address[],uint256[],bytes[],bytes32,bytes)',
+    )
 
-    // Check if calldata starts with the sendProposalToTargetChain selector
     if (!calldata.toLowerCase().startsWith(selector.toLowerCase())) {
       return false
     }
 
-    // Verify target is a known governor address from any network
     const normalizedTarget = target.toLowerCase()
     for (const network of Object.values(SupportedNetworks)) {
       const networkConfig = typedConfig[network]
-      // Check gov.summerGovernor
       const govGovernor = networkConfig.deployedContracts?.gov?.summerGovernor?.address
       if (govGovernor && govGovernor.toLowerCase() === normalizedTarget) {
         return true
       }
-      // Check govV2.summerGovernor
       const govV2Governor = networkConfig.deployedContracts?.govV2?.summerGovernor?.address
       if (govV2Governor && govV2Governor.toLowerCase() === normalizedTarget) {
         return true

@@ -91,7 +91,8 @@
       "seam": "0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85",
       "ws": "0x0000000000000000000000000000000000000000",
       "wrappedNative": "0x4200000000000000000000000000000000000006",
-      "usdt": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
+      "usdt": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "sumr": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"
     },
     "common": {
       "chainId": "8453",
@@ -368,7 +369,8 @@
       "reul": "0x0000000000000000000000000000000000000000",
       "seam": "0x0000000000000000000000000000000000000000",
       "ws": "0x0000000000000000000000000000000000000000",
-      "wrappedNative": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+      "wrappedNative": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+      "sumr": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"
     },
     "common": {
       "chainId": "42161",
@@ -627,7 +629,8 @@
       "reul": "0xf3e621395fc714b90da337aa9108771597b4e696",
       "seam": "0x0000000000000000000000000000000000000000",
       "ws": "0x0000000000000000000000000000000000000000",
-      "wrappedNative": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+      "wrappedNative": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "sumr": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"
     },
     "common": {
       "chainId": "1",
@@ -1070,7 +1073,8 @@
       "ws": "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
       "wrappedNative": "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
       "reul": "0x0000000000000000000000000000000000000000",
-      "syrup": "0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66"
+      "syrup": "0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66",
+      "sumr": "0x4e0037f487bBb588bf1B7a83BDe6c34FeD6099e3"
     },
     "common": {
       "chainId": "146",
@@ -1371,7 +1375,8 @@
       "ws": "0x0000000000000000000000000000000000000000",
       "whype": "0x5555555555555555555555555555555555555555",
       "usdt": "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
-      "wrappedNative": "0x5555555555555555555555555555555555555555"
+      "wrappedNative": "0x5555555555555555555555555555555555555555",
+      "sumr": "0x72c527d3efDe2169AA950EFc9573C838cf125D21"
     },
     "common": {
       "chainId": "999",

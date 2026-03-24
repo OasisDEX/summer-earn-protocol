@@ -19,9 +19,19 @@ const SATELLITE_SUBGRAPH_ENDPOINTS = Object.fromEntries(
   Object.entries(SUBGRAPH_ENDPOINTS).filter(([key]) => key !== 'base'),
 )
 
+const DELEGATES_QUERY = `
+  query GetDelegates {
+    delegates(first: 100, orderBy: votingPower, orderDirection: desc, where: {votingPower_gt: 0}) {
+      id
+      votingPower
+      delegationsCount
+    }
+  }
+`
+
 const PROPOSALS_QUERY = `
   query GetProposals {
-    proposals(first:1000, orderBy: createdAt, orderDirection: desc) {
+    proposals(first:1000, orderBy: createdAt, orderDirection: desc, where: {governor: "0x4ceee1b6289624d381383c1bb42b118d5f2c3274"}) {
       id
       targets
       values
@@ -93,17 +103,33 @@ interface CrossChainProposalsResponse {
 }
 
 export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
-  const baseClient = new GraphQLClient(SUBGRAPH_ENDPOINTS.base)
+  const fetchOptions = { next: { revalidate: 60 } } as RequestInit
+  const baseClient = new GraphQLClient(SUBGRAPH_ENDPOINTS.base, {
+    fetch: (url, options) => fetch(url, { ...options, ...fetchOptions }),
+  })
   const baseProposals = await baseClient.request<ProposalsResponse>(PROPOSALS_QUERY)
 
   const allProposals: ProposalWithCrossChain[] = []
   const allCrossChainProposals: CrossChainProposal[] = []
-  for (const [chain, endpoint] of Object.entries(SATELLITE_SUBGRAPH_ENDPOINTS)) {
-    console.log('chain', chain)
-    const client = new GraphQLClient(endpoint)
-    const result = await client.request<CrossChainProposalsResponse>(CROSS_CHAIN_PROPOSALS_QUERY)
-    allCrossChainProposals.push(...result.crossChainProposals)
-  }
+  const crossChainProposalsPromises = Object.entries(SATELLITE_SUBGRAPH_ENDPOINTS).map(
+    async ([chain, endpoint]) => {
+      try {
+        const client = new GraphQLClient(endpoint, {
+          fetch: (url, options) => fetch(url, { ...options, ...fetchOptions }),
+        })
+        const result = await client.request<CrossChainProposalsResponse>(
+          CROSS_CHAIN_PROPOSALS_QUERY,
+        )
+        return result.crossChainProposals
+      } catch (error) {
+        console.error(`Error fetching cross-chain proposals from ${chain}:`, error)
+        return []
+      }
+    },
+  )
+
+  const results = await Promise.all(crossChainProposalsPromises)
+  results.forEach((proposals: CrossChainProposal[]) => allCrossChainProposals.push(...proposals))
 
   for (const proposal of baseProposals.proposals) {
     const crossChainProposals: CrossChainProposal[] = []
@@ -124,4 +150,38 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
   }
 
   return allProposals
+}
+
+export async function fetchProposalWithCrossChainById(
+  id: string,
+): Promise<ProposalWithCrossChain | null> {
+  try {
+    const allProposals = await fetchAllProposals()
+    const proposal = allProposals.find((p) => p.baseProposal.id === id)
+    return proposal || null
+  } catch (error) {
+    console.error('Error fetching proposal with cross-chain data:', error)
+    return null
+  }
+}
+
+export interface SubgraphDelegate {
+  id: string
+  votingPower: string
+  delegationsCount: number
+}
+
+interface DelegatesResponse {
+  delegates: SubgraphDelegate[]
+}
+
+export async function fetchDelegates(): Promise<SubgraphDelegate[]> {
+  try {
+    const client = new GraphQLClient(SUBGRAPH_ENDPOINTS.base)
+    const result = await client.request<DelegatesResponse>(DELEGATES_QUERY)
+    return result.delegates || []
+  } catch (error) {
+    console.error('Error fetching delegates:', error)
+    return []
+  }
 }
