@@ -1,4 +1,4 @@
-import { ByteArray, Bytes, crypto, dataSource } from '@graphprotocol/graph-ts'
+import { BigInt, ByteArray, Bytes, crypto, dataSource } from '@graphprotocol/graph-ts'
 import {
   ProposalCanceled,
   ProposalCreated,
@@ -14,7 +14,7 @@ import {
 import { CrossChainProposalByCallId, Vote } from '../../generated/schema'
 import { TimelockControllerTemplate } from '../../generated/templates'
 
-import { EventSignature } from '../constants'
+import { BigIntOne, EventSignature } from '../constants'
 import { getOrCreateCrossChainProposal, getOrCreateProposal } from '../initializers'
 import { dstEidToChainIdMap, isHub } from '../utils/chain'
 import { dataToTuple, getEventLogs } from '../utils/events'
@@ -40,9 +40,15 @@ export function handleProposalCreated(event: ProposalCreated): void {
   proposal.createdAt = event.block.timestamp
 
   const governor = SummerGovernor.bind(event.address)
-  proposal.quorum = governor.quorum(event.params.voteStart)
+  proposal.quorum = governor.quorum(event.block.timestamp.minus(BigIntOne))
 
   proposal.save()
+}
+
+enum VoteType {
+  VoteAgainst = 0,
+  VoteFor = 1,
+  VoteAbstain = 2,
 }
 
 export function handleVoteCast(event: VoteCast): void {
@@ -63,11 +69,11 @@ export function handleVoteCast(event: VoteCast): void {
   vote.timestamp = event.block.timestamp
   vote.save()
 
-  if (event.params.support == 0) {
+  if (event.params.support == VoteType.VoteAgainst) {
     proposal.againstVotes = proposal.againstVotes.plus(event.params.weight)
-  } else if (event.params.support == 1) {
+  } else if (event.params.support == VoteType.VoteFor) {
     proposal.forVotes = proposal.forVotes.plus(event.params.weight)
-  } else if (event.params.support == 2) {
+  } else if (event.params.support == VoteType.VoteAbstain) {
     proposal.abstainVotes = proposal.abstainVotes.plus(event.params.weight)
   }
   proposal.save()
