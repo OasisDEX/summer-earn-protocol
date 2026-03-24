@@ -1,12 +1,12 @@
 import {
-  keccak256,
-  toBytes,
-  formatUnits,
-  decodeFunctionData,
-  toFunctionSelector,
-  parseAbiItem,
-  Hex,
   Abi,
+  decodeFunctionData,
+  formatUnits,
+  Hex,
+  keccak256,
+  parseAbiItem,
+  toBytes,
+  toFunctionSelector,
 } from 'viem'
 
 import deployedArbitrum from '../config/deployed/arbitrum.json'

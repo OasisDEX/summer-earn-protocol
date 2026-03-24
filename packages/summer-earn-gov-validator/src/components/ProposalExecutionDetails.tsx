@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useMemo,useState } from 'react'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
+import { ChainTheme,getChainTheme } from '../config/chains'
 import config from '../config/index.json'
-import { getChainTheme, ChainTheme } from '../config/chains'
 import { CrossChainProposal, Proposal } from '../services/subgraph'
 import {
   addresToContractName,

@@ -1,15 +1,15 @@
 import Markdown from 'react-markdown'
 import { notFound } from 'next/navigation'
-import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
+import remarkGfm from 'remark-gfm'
 
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ProposalExecutionDetails } from '@/components/ProposalExecutionDetails'
 import { ProposalVotingInfo } from '@/components/ProposalVotingInfo'
+import { getChainNameById, HUB_CHAIN_ID } from '@/config/chains'
 import { fetchProposalWithCrossChainById, ProposalWithCrossChain } from '@/services/subgraph'
 import { SupportedNetworks } from '@/services/validation'
 import { convertRawUrlsToMarkdown, extractProposalMetadata } from '@/utils/text'
-import { getChainNameById, HUB_CHAIN_ID } from '@/config/chains'
 
 interface PageProps {
   params: Promise<{ id: string }>

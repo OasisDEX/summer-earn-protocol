@@ -3,12 +3,12 @@
 import React, { useState } from 'react'
 import { ethers, keccak256 } from 'ethers'
 import Link from 'next/link'
+import { toBytes } from 'viem'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { VoteBar } from '@/components/VoteBar'
 import config from '@/config/index.json'
 import { GOVERNOR_ABI, useProposalVoting } from '@/hooks/useProposalVoting'
-import { toBytes } from 'viem'
 
 interface ProposalVotingInfoProps {
   proposalId: string

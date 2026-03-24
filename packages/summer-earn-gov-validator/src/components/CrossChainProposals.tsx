@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { ethers, keccak256 } from 'ethers'
+import { toBytes } from 'viem'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { calculateProposalTiming } from '@/utils/timing'
@@ -9,7 +10,6 @@ import { GOVERNOR_ABI, useMultipleProposalVoting, VoteSupport } from '../hooks/u
 import { CrossChainProposal, fetchAllProposals, ProposalWithCrossChain } from '../services/subgraph'
 import { PhaseIndicator } from './PhaseIndicator'
 import { ProposalFilter, ProposalStatus } from './ProposalFilter'
-import { toBytes } from 'viem'
 
 // Timelock Controller ABI for executeBatch
 const TIMELOCK_ABI = [
