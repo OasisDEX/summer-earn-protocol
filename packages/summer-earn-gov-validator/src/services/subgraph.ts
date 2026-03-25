@@ -123,7 +123,7 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
         forVotes
         againstVotes
         abstainVotes
-        votes(first: 100, orderBy: timestamp, orderDirection: desc, where:{weight_gt:0}) {
+        votes(first: 100, orderBy: timestamp, orderDirection: desc, where:{votes_gt:0}) {
           id
           voter
           support
