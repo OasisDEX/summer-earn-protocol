@@ -79,7 +79,6 @@ export function handleVoteCast(event: VoteCast): void {
   const governor = SummerGovernor.bind(event.address)
   const votesInThePast = governor.getVotes(event.params.voter, proposal.voteStart.minus(BigIntOne))
 
-
   const voteId = event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
   const vote = new Vote(voteId)
   vote.proposal = proposal.id
@@ -90,7 +89,6 @@ export function handleVoteCast(event: VoteCast): void {
   vote.timestamp = event.block.timestamp
   vote.votes = votesInThePast
   vote.save()
-
 
   if (event.params.support == VoteType.VoteAgainst) {
     proposal.againstVotes = proposal.againstVotes.plus(votesInThePast)
@@ -115,7 +113,6 @@ export function handleVoteCastWithParams(event: VoteCastWithParams): void {
   const governor = SummerGovernor.bind(event.address)
   const votesInThePast = governor.getVotes(event.params.voter, proposal.voteStart.minus(BigIntOne))
 
-
   const voteId = event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
   const vote = new Vote(voteId)
   vote.proposal = proposal.id
@@ -127,7 +124,6 @@ export function handleVoteCastWithParams(event: VoteCastWithParams): void {
   vote.blockNumber = event.block.number
   vote.timestamp = event.block.timestamp
   vote.save()
-
 
   if (event.params.support == 0) {
     proposal.againstVotes = proposal.againstVotes.plus(votesInThePast)
