@@ -26,7 +26,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
   const handleQueueBaseProposal = async () => {
     if (!isConnected || !address) return
 
-    const governorAddress = (config as Record<string, any>).base?.deployedContracts?.gov
+    const governorAddress = (config as Record<string, any>).base?.deployedContracts?.govV2
       ?.summerGovernor?.address
     if (!governorAddress) return
 
@@ -57,7 +57,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
   const handleExecuteBaseProposal = async () => {
     if (!isConnected || !address || !proposal) return
 
-    const governorAddress = (config as Record<string, any>).base?.deployedContracts?.gov
+    const governorAddress = (config as Record<string, any>).base?.deployedContracts?.govV2
       ?.summerGovernor?.address
     if (!governorAddress) return
 
@@ -105,7 +105,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
 
   const baseEta = Number(proposal?.eta || 0)
   const currentTimestamp = Math.floor(Date.now() / 1000)
-  const isBaseReady = status === 'Queued' && baseEta > 0 && currentTimestamp >= baseEta
+  const isBaseReady = proposal.status === 'Queued' && baseEta > 0 && currentTimestamp >= baseEta
 
   return (
     <div className="space-y-4">
@@ -170,7 +170,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
       </div>
 
       <div className="space-y-3 mt-4">
-        {status === 'Active' ? (
+        {proposal.status === 'Active' ? (
           <>
             <button
               onClick={() => setShowVotingModal(true)}
@@ -189,7 +189,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
               onClose={() => setShowVotingModal(false)}
             />
           </>
-        ) : status === 'Succeeded' ? (
+        ) : proposal.status === 'Succeeded' ? (
           <button
             onClick={handleQueueBaseProposal}
             disabled={isExecuting || isPending}
@@ -197,7 +197,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
           >
             {isExecuting ? 'Queueing...' : 'Queue Proposal'}
           </button>
-        ) : status === 'Queued' ? (
+        ) : proposal.status === 'Queued' ? (
           <button
             onClick={handleExecuteBaseProposal}
             disabled={!isBaseReady || isExecuting || isPending}
@@ -205,15 +205,15 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
           >
             {!isBaseReady ? 'In Timelock' : isExecuting ? 'Executing...' : 'Execute'}
           </button>
-        ) : status === 'Executed' || status === 'Executed on Hub' ? (
+        ) : proposal.status === 'Executed' || proposal.status === 'Executed on Hub' ? (
           <div
             className={`w-full text-center py-4 rounded-xl font-bold border ${
-              status === 'Executed on Hub'
+              proposal.status === 'Executed on Hub'
                 ? 'bg-amber-400/10 text-amber-500 border-amber-400/20'
                 : 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
             }`}
           >
-            {status}
+            {proposal.status}
           </div>
         ) : null}
       </div>
