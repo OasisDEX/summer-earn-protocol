@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useAccount, useChainId, useReadContract, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { HUB_CHAIN_ID, HUB_TOKEN_ADDRESS } from '@/config/chains'
-import { Delegate } from '@/services/mockData'
+import { Delegate } from '@/types/governance'
 
 interface DelegatesListProps {
   initialDelegates: Delegate[]
@@ -83,7 +83,7 @@ export function DelegatesList({ initialDelegates }: DelegatesListProps) {
 
   const filteredDelegates = sortedDelegates.filter(
     (d) =>
-      d.ensName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       d.address.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
@@ -113,7 +113,7 @@ export function DelegatesList({ initialDelegates }: DelegatesListProps) {
           </span>
           <input
             type="text"
-            placeholder="Search by ENS or address..."
+            placeholder="Search by name or address..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-surface-container border border-outline-variant/30 rounded-lg pl-10 pr-4 py-3 text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
@@ -122,7 +122,7 @@ export function DelegatesList({ initialDelegates }: DelegatesListProps) {
       </div>
 
       {/* Delegates Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredDelegates.map((delegate) => {
           const isCurrentDelegate =
             currentDelegate?.toString().toLowerCase() === delegate.address.toLowerCase()
@@ -130,38 +130,67 @@ export function DelegatesList({ initialDelegates }: DelegatesListProps) {
           return (
             <div
               key={delegate.address}
-              className={`glass-card hover:glass-card-elevated hover:scale-[1.02] p-6 rounded-2xl group border transition-all duration-300 shadow-lg hover:shadow-primary/5 ${
+              className={`glass-card hover:glass-card-elevated hover:scale-[1.02] p-6 rounded-2xl group border transition-all duration-300 shadow-lg hover:shadow-primary/5 flex flex-col justify-between ${
                 isCurrentDelegate
                   ? 'border-emerald-400/30 bg-emerald-400/5'
                   : 'border-sky-400/10 hover:border-primary/40'
               }`}
             >
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-primary to-tertiary p-[2px]">
-                    <div className="w-full h-full rounded-full bg-surface-container flex items-center justify-center">
-                      <span className="material-symbols-outlined text-slate-400">person</span>
+              <div>
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-primary to-tertiary p-[2px] shadow-lg shadow-primary/10">
+                      <div className="w-full h-full rounded-full bg-surface-container flex items-center justify-center overflow-hidden">
+                        {delegate.picture ? (
+                          <img
+                            src={delegate.picture}
+                            alt={delegate.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="material-symbols-outlined text-slate-400 text-2xl">
+                            person
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-on-surface">{delegate.ensName}</h3>
-                      {isCurrentDelegate && (
-                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-400/20 text-[10px] font-bold text-emerald-400 tracking-wider uppercase">
-                          Current
-                        </span>
-                      )}
-                      {!isCurrentDelegate && (
-                        <span className="px-1.5 py-0.5 rounded-md bg-sky-500/10 border border-sky-400/20 text-[10px] font-bold text-sky-400 tracking-wider uppercase">
-                          Hub
-                        </span>
-                      )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-on-surface text-lg leading-tight">
+                          {delegate.name}
+                        </h3>
+                        {isCurrentDelegate && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-400/20 text-[10px] font-bold text-emerald-400 tracking-wider uppercase">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-on-surface-variant font-mono opacity-60">
+                          {truncateAddress(delegate.address)}
+                        </p>
+                        {delegate.twitter && (
+                          <a
+                            href={`https://twitter.com/${delegate.twitter}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:text-surface-tint transition-colors"
+                          >
+                            <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                            </svg>
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs text-on-surface-variant font-mono">
-                      {truncateAddress(delegate.address)}
-                    </p>
                   </div>
                 </div>
+
+                {delegate.bio && (
+                  <p className="text-sm text-on-surface-variant line-clamp-3 mb-6 min-h-[4.5rem] italic opacity-80 leading-relaxed">
+                    &quot;{delegate.bio}&quot;
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">

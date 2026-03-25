@@ -1,40 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 
 import { VoteBar } from '@/components/VoteBar'
-import { useMultipleProposalVoting } from '@/hooks/useProposalVoting'
-interface ProposalData {
-  id: string
-  displayId?: string | null
-  status:
-    | 'Active'
-    | 'Executed'
-    | 'Queued'
-    | 'Defeated'
-    | 'Executed on Hub'
-    | 'Succeeded'
-    | 'Canceled'
-  chain: string
-  title: string
-  description: string
-  quorumProgress: number
-  timeRemaining: string
-  forVotes: number
-  againstVotes: number
-  abstainVotes: number
-  forPercent: number
-  againstPercent: number
-  abstainPercent: number
-  quorumReached: boolean
-  targets?: string[]
-  values?: string[]
-  calldatas?: string[]
-}
+import { TransformedProposal } from '@/types/governance'
 
 interface ProposalsListProps {
-  initialProposals: ProposalData[]
+  initialProposals: TransformedProposal[]
 }
 
 type FilterStatus =
@@ -101,58 +74,14 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
   const [chainFilter, setChainFilter] = useState<FilterChain>('All')
   const [visibleCount, setVisibleCount] = useState(6)
 
-  const proposalIds = useMemo(() => initialProposals.map((p) => p.id), [initialProposals])
-
-  const {
-    proposalData,
-    totalSupply,
-    isLoading: votesLoading,
-  } = useMultipleProposalVoting(proposalIds)
-
-  const proposalsWithVotes = useMemo(() => {
-    return initialProposals.map((proposal) => {
-      if (!proposalData[proposal.id] || !proposalData[proposal.id].votes) {
-        return proposal
-      }
-
-      const votes = proposalData[proposal.id].votes
-      const forVotes = Number(votes.forVotes) / 1e18
-      const againstVotes = Number(votes.againstVotes) / 1e18
-      const abstainVotes = Number(votes.abstainVotes) / 1e18
-      const totalVotes = forVotes + againstVotes + abstainVotes
-
-      const forPercent = totalVotes > 0 ? Math.round((forVotes / totalVotes) * 100) : 0
-      const againstPercent = totalVotes > 0 ? Math.round((againstVotes / totalVotes) * 100) : 0
-      const abstainPercent = totalVotes > 0 ? Math.round((abstainVotes / totalVotes) * 100) : 0
-
-      // Quorum is 15% of total supply (dynamic from token contract)
-      const QUORUM_THRESHOLD = 0.5 * (Number(totalSupply) / 1e18)
-      const quorumReached = forVotes >= QUORUM_THRESHOLD
-
-      return {
-        ...proposal,
-        forVotes,
-        againstVotes,
-        abstainVotes,
-        forPercent,
-        againstPercent,
-        abstainPercent,
-        quorumReached,
-        quorumProgress: (forVotes / QUORUM_THRESHOLD) * 100,
-      }
-    })
-  }, [initialProposals, proposalData, totalSupply])
-
-  const filteredProposals = proposalsWithVotes.filter((p: ProposalData) => {
+  const filteredProposals = initialProposals.filter((p) => {
     const statusMatches = statusFilter === 'All' || p.status === statusFilter
     const chainMatches = chainFilter === 'All' || p.chain.includes(chainFilter)
     return statusMatches && chainMatches
   })
 
-  const visibleProposals = filteredProposals.slice(0, visibleCount) as ProposalData[]
+  const visibleProposals = filteredProposals.slice(0, visibleCount)
   const hasMore = visibleCount < filteredProposals.length
-
-  const isLoading = votesLoading && proposalIds.length > 0
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -296,17 +225,8 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
         </div>
       </div>
 
-      {isLoading && (
-        <div className="flex items-center justify-center py-8 mb-4">
-          <div className="flex items-center gap-3 text-on-surface-variant">
-            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-sm font-medium">Loading vote data...</span>
-          </div>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {visibleProposals.map((proposal: ProposalData) => {
+        {visibleProposals.map((proposal) => {
           const chainMetadata = CHAIN_METADATA[proposal.chain] || CHAIN_METADATA['Multi-Chain']
           const statusConfig = getStatusConfig(proposal.status)
 

@@ -1,22 +1,11 @@
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
 
+import { Proposal } from '@/types/governance'
 import { convertRawUrlsToMarkdown } from '@/utils/text'
 import { calculateProposalTiming } from '@/utils/timing'
 
 import { PhaseIndicator } from './PhaseIndicator'
-
-interface Proposal {
-  id: string
-  targets: string[]
-  values: string[]
-  calldatas: string[]
-  description: string
-  descriptionHash: string
-  status: string
-  chains: string[]
-  createdAt?: string
-}
 
 interface ProposalModalProps {
   proposal: Proposal | null

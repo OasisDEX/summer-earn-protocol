@@ -1,0 +1,432 @@
+{
+    "data": {
+        "delegates": {
+            "nodes": [
+                {
+                    "id": "2744454876200175513",
+                    "account": {
+                        "address": "0x85B872Ce8532FA7C5B50653862757280321b94b8",
+                        "bio": "",
+                        "name": "",
+                        "picture": null,
+                        "twitter": ""
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "50018282031702049716946083",
+                    "delegatorsCount": 24,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2739351827559483123",
+                    "account": {
+                        "address": "0xeD9d0A8e0f2e588160fd219B70b846d0f32c7513",
+                        "bio": "Anode.GG is a governance firm focused on professional delegation, DAO framework design. Ex-StableLab.\n\nWe support DAO's on their journey to higher efficiency and better decentralization.",
+                        "name": "Anode.GG",
+                        "picture": "https://static.tally.xyz/5279b807-0193-4b47-b650-7aeb73e1029f_400x400.jpg",
+                        "twitter": "raphbaph"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "37302035376202169553927703",
+                    "delegatorsCount": 58,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2740078876150466534",
+                    "account": {
+                        "address": "0xC8BC108777f5b11Bf2C6Ad28fd1a7D42eFe734fF",
+                        "bio": "Breathes DeFi. Formerly with Summer.fi Product team. Bullish on the Lazy Summer Protocol.\n\nDelegate to me to focus on sustainable protocol growth, minimal governance, maximum TVL. Value creation should come first, revenue should come later.\n\nLooking forward to DeFi Summer 2.0 kicking off!",
+                        "name": "IDMW - FBrinkkemper",
+                        "picture": "https://static.tally.xyz/8d5919c9-8327-4186-9d2d-68f1cc3b2790_400x400.jpg",
+                        "twitter": "FBrinkkemper"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "23218606204624145484631741",
+                    "delegatorsCount": 21,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2743888501740143757",
+                    "account": {
+                        "address": "0x4Eb7F19D6eFcACE59EaED70220da5002709f9B71",
+                        "bio": "Logic first, then chill. Summer engineer with a \"strategically relaxed\" approach to decentralized governance. I believe in thoughtful deliberation, not rushed decisions. Let's build the Lazy Summer together, carefully and collaboratively.\n\nhttps://forum.summer.fi/t/halaprix-introduction/60?u=halaprix",
+                        "name": "halaprix",
+                        "picture": "https://static.tally.xyz/dfe8e4c2-23f5-4f24-8af5-d907b7a0d917_400x400.jpg",
+                        "twitter": "halaprix"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "22666632083373634899801905",
+                    "delegatorsCount": 43,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2800544375753409575",
+                    "account": {
+                        "address": "0x94fa8efDD58e1721ad8Bf5D4001060e0E1C4d58e",
+                        "bio": "",
+                        "name": "gunwale.eth",
+                        "picture": null,
+                        "twitter": ""
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "20000000000000000000000000",
+                    "delegatorsCount": 1,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2735637717034468924",
+                    "account": {
+                        "address": "0x0b81750655493EEe7a4c1f4E7e4FdB9536041720",
+                        "bio": "👨🏻💻 Blockchain Engineer 🚀 100% focused on Lazy Summer ☀️ As your delegate my primary focus is \"well-being of the protocol and it's users\" 🌟 Check my full statement on the forum. Cheers!",
+                        "name": "Piter",
+                        "picture": "https://static.tally.xyz/1c41d9fc-9c19-4e6d-8f80-9aeec120ce20_400x400.jpg",
+                        "twitter": "piotrekwitek"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "9313009271890689668051473",
+                    "delegatorsCount": 12,
+                    "statement": {
+                        "statementSummary": "Experienced, community-focused delegate aiming to maximize user gains, support community initiatives, and promote inclusive decision-making."
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2743784913663689854",
+                    "account": {
+                        "address": "0xb13433136e9EaD0C1e82455441A7A1A6c40b442C",
+                        "bio": "🌮 😴 🌯",
+                        "name": "Sleepy Amigo",
+                        "picture": "https://static.tally.xyz/4b7b65bb-a9fa-4a80-a8e7-56fdb86fdf97_400x400.jpg",
+                        "twitter": ""
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "9068621091892639844493529",
+                    "delegatorsCount": 2,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2735631866575980397",
+                    "account": {
+                        "address": "0x746bb7beFD31D9052BB8EbA7D5dD74C9aCf54C6d",
+                        "bio": "Literally just a green blob being delegator.",
+                        "name": "jensei (🧪,📃)",
+                        "picture": "https://static.tally.xyz/db71ac56-7add-439f-a294-2a49ee7fbdc4_400x400.jpg",
+                        "twitter": "jensei_"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "6781671918362153967931971",
+                    "delegatorsCount": 14,
+                    "statement": {
+                        "statementSummary": "Literally just a green blob being delegator."
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2743795868774696929",
+                    "account": {
+                        "address": "0x1f9e7147fBfD6334a4215f2bCCACE141F5Ff9e23",
+                        "bio": "Veteran technologist and current CTO of Summer.fi, architecting AI-powered DeFi solutions. Background spans AWS, EA, and multiple successful startups. Currently building secure AI agent networks for DeFi yield optimization, combining ML expertise with blockchain technology.\n🔥\nSolving the Coordination Paradox: AI's Role in Enhancing Blockchain Governance 🔗 https://x.com/AndreiDavid/status/1844009409225040181",
+                        "name": "✅AndreiDavid🚀",
+                        "picture": "https://static.tally.xyz/50f5afe8-43b1-4f45-9c21-f00fa71b8f07_400x400.jpg",
+                        "twitter": "AndreiDavid"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "6346377920000000000000000",
+                    "delegatorsCount": 7,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2737892306504909909",
+                    "account": {
+                        "address": "0xF68D2BfCecd7895BBa05a7451Dd09A1749026454",
+                        "bio": "Hey guys, MasterMojo here! Thanks for considering me a delegate, here is some info about me:\n\nI am a major Governance Contributor:\n\nI been in the Optimism Citizen House since Round 2 Retro Funding (voted in all votes but one \nhttps://snapshot.box/#/s:citizenshouse.eth/leaderboard )\n\nI am a Top 100 Optimism Delegate since Optimism Governance started\n\nI Served on the Optimism Grants Council Cycle 5 and Grants Council Cycle 6\n\nI was a Member of the First Feedback Commission Pilot for Optimism Governance\n\nI previously served on Lyra (now Derive) Grants Council for 3 epochs, and Kwenta Grants Council.\n\nI currently serve on the Infinex Council\n\nI been actively involved at Optimism Governance since Day 1\n\nI was formerly an elected member of the Synthetix Ambassadors Council for almost 3 years. -Synthetix Ambassadors performed BD, Marketing, and Governance\n\nDEFI Background:\n\nI have been in the trenches of crypto since 2017, and been in DEFI since 2020. I am an Optimism Superchain DEFI Power User (Base, Mode, Optimism, Inkchain, etc). I like to trade Perps and Options onchain, and love LPing at Velodrome/Aerodrome.\n\n-I am a big supporter of DEFI, and actively in the trenches on all the DEFI apps across Optimism and the Superchain\n\nPlease disclose any anticipated conflicts of interest:\n\nI was formerly an elected member of the Synthetix Ambassadors Council for almost 3 years.\n\nI am an elected member of the Infinex Council Optimism Grants Councilor/Delegate/Citizen\n\nI am an Attester for TrueMarkets\n\nI am on the Optimism Grants Council as a GrantsNERD\n\nAddress: 0xF68D2BfCecd7895BBa05a7451Dd09A1749026454",
+                        "name": "mastermojo.eth",
+                        "picture": "https://static.tally.xyz/4dcb4087-46a7-451c-9175-60eaf2856085_400x400.jpg",
+                        "twitter": "mastermojo83"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "4628819000000000000000000",
+                    "delegatorsCount": 14,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2771914285591299604",
+                    "account": {
+                        "address": "0x0d0Cdae1D71Ca16C3f48a16947154c624B162f9d",
+                        "bio": "",
+                        "name": "",
+                        "picture": null,
+                        "twitter": ""
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "1944000000000000000000000",
+                    "delegatorsCount": 1,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2782145994190489200",
+                    "account": {
+                        "address": "0x2911162e3C902537C0b2E56d04E660AF53D74Bb9",
+                        "bio": "",
+                        "name": "",
+                        "picture": null,
+                        "twitter": ""
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "964454950000000000000000",
+                    "delegatorsCount": 1,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2745081791135090019",
+                    "account": {
+                        "address": "0xFA246b498C56d340bAae3955EB7c5F751F4d1C43",
+                        "bio": "",
+                        "name": "BitChan",
+                        "picture": "https://static.tally.xyz/962774ed-95a4-4567-b25d-549083e1fdaa_400x400.jpg",
+                        "twitter": "KhanhVu6152"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "702828630000000000000000",
+                    "delegatorsCount": 3,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2745019183975630364",
+                    "account": {
+                        "address": "0x71E3cC5aF063Be18F7DA275F8Ac90387099B3D76",
+                        "bio": "",
+                        "name": "",
+                        "picture": null,
+                        "twitter": ""
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "684398281262031912272145",
+                    "delegatorsCount": 1,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2744607442833770052",
+                    "account": {
+                        "address": "0x4DD0BbA91C023a39E942533CC9DAEEf8f9F39dd6",
+                        "bio": "Smart contract dev and one of the architects behind the Lazy Summer Protocol. I'm shaping proposals, regularly active in the forums, and putting my own funds to work alongside yours. \n\nMy promise: I'll work to identify the best yield opportunities as they emerge. And, get you earning on those as rapidly as possible.\n",
+                        "name": "@0xtucks",
+                        "picture": "https://static.tally.xyz/5855f1af-7624-46a1-9452-5b1c08864ee4_400x400.jpg",
+                        "twitter": "0xtucks"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "500940430000000000000000",
+                    "delegatorsCount": 4,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2790125624222549850",
+                    "account": {
+                        "address": "0x2AD7F82d4266d47E875aE2B06322F2e008cbF5c6",
+                        "bio": "",
+                        "name": "inhibitor128.eth",
+                        "picture": null,
+                        "twitter": ""
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "465102780000000000000000",
+                    "delegatorsCount": 1,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2744376782353335720",
+                    "account": {
+                        "address": "0x11Fb0C3f017a208a96d9d0863E1F45F80d034D14",
+                        "bio": "📊 Lead Data Engineer @Summer.fi. ex-SWE @Google. \n🌍 Web3 Enthusiast,  watching DeFi turn centralized systems into 🔓 trustless,  decentralized, and 🤝 community-driven ecosystems. ",
+                        "name": "techsqrt⚡",
+                        "picture": "https://static.tally.xyz/b967ee94-4b38-4c84-a762-72e85cebb09e_400x400.jpg",
+                        "twitter": "techsqrt"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "355200260000000000000000",
+                    "delegatorsCount": 13,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2745080103254886009",
+                    "account": {
+                        "address": "0x5aBE52FE947a67a3c92953072cc676AE104C5774",
+                        "bio": "Do You Wanna Be Right, or Do You Wanna Make Money?",
+                        "name": "boykute.eth",
+                        "picture": "https://static.tally.xyz/eb2534e3-4916-49bf-a6e2-59434a7b8800_400x400.jpg",
+                        "twitter": "chien_vu1692"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "292970970000000000000000",
+                    "delegatorsCount": 3,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2780525339418297516",
+                    "account": {
+                        "address": "0x886c744E3a583e14E15f344043C35f93c6DF2f36",
+                        "bio": "",
+                        "name": "Veridex",
+                        "picture": "https://static.tally.xyz/84be8925-67c8-4d8b-b957-561900d58b2b_400x400.jpg",
+                        "twitter": ""
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "283719530000000000000000",
+                    "delegatorsCount": 2,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                },
+                {
+                    "id": "2745084261420762622",
+                    "account": {
+                        "address": "0xF3454c486E6572A77bF101355F7B528DcC595c30",
+                        "bio": "",
+                        "name": "@nhu_hoang",
+                        "picture": "https://static.tally.xyz/b3b8e8ba-5ce6-424a-a983-1b2e20c05171_400x400.jpg",
+                        "twitter": "nhu_hoang"
+                    },
+                    "isPrioritized": false,
+                    "votesCount": "257434240000000000000000",
+                    "delegatorsCount": 2,
+                    "statement": {
+                        "statementSummary": ""
+                    },
+                    "token": {
+                        "symbol": "stSUMR",
+                        "decimals": 18
+                    },
+                    "labels": []
+                }
+            ],
+            "pageInfo": {
+                "firstCursor": "50018282031702049716946083;2744454876200175513",
+                "lastCursor": "257434240000000000000000;2745084261420762622"
+            }
+        }
+    }
+}
