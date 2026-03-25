@@ -6,72 +6,69 @@ import remarkGfm from 'remark-gfm'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ProposalExecutionDetails } from '@/components/ProposalExecutionDetails'
 import { ProposalVotingInfo } from '@/components/ProposalVotingInfo'
+import { RecentVotes } from '@/components/RecentVotes'
 import { getChainNameById, HUB_CHAIN_ID } from '@/config/chains'
-import {
-  CrossChainProposal,
-  fetchProposalWithCrossChainById,
-  ProposalWithCrossChain,
-  Vote,
-} from '@/services/subgraph'
+import { resolveEnsNames } from '@/services/ens'
+import { fetchProposalWithCrossChainById } from '@/services/subgraph'
 import { SupportedNetworks } from '@/services/validation'
+import { ProposalWithCrossChain, TransformedProposal } from '@/types/governance'
 import { convertRawUrlsToMarkdown, extractProposalMetadata } from '@/utils/text'
+
+import delegatesData from '../../../../delegates.json'
+
+function resolveDelegateInfo(address: string) {
+  const nodes = delegatesData.data.delegates.nodes
+  return nodes.find((node) => node.account.address.toLowerCase() === address.toLowerCase())?.account
+}
 
 interface PageProps {
   params: Promise<{ id: string }>
 }
 
-// Transform subgraph proposal to our format
-interface TransformedProposal {
-  id: string
-  displayId: string | null
-  status: 'Active' | 'Executed' | 'Queued' | 'Defeated' | 'Succeeded' | 'Executed on Hub'
-  chain: string
-  title: string
-  description: string
-  quorumProgress: number
-  timeRemaining: string
-  forVotes: number
-  againstVotes: number
-  abstainVotes: number
-  quorum: number
-  votes: Vote[]
-  targets: string[]
-  values: string[]
-  calldatas: string[]
-  eta: string
-}
-
 function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): TransformedProposal {
   const proposal = proposalWithCrossChain.baseProposal
+  // Map subgraph status to our status format
   const statusMap: Record<string, TransformedProposal['status']> = {
     Active: 'Active',
     Executed: 'Executed',
     Queued: 'Queued',
     Defeated: 'Defeated',
-    Canceled: 'Defeated',
-    Pending: 'Active',
+    Canceled: 'Canceled',
     Succeeded: 'Succeeded',
+    Pending: 'Active',
   }
 
   let finalStatus = statusMap[proposal.status] || 'Active'
   if (finalStatus === 'Executed' && proposalWithCrossChain.crossChainProposals.length > 0) {
     const hasPendingCrossChain = proposalWithCrossChain.crossChainProposals.some(
-      (ccp: CrossChainProposal) => ccp.status !== 'Executed',
+      (ccp: any) => ccp.status !== 'Executed',
     )
     if (hasPendingCrossChain) {
       finalStatus = 'Executed on Hub'
     }
   }
 
+  // Get chain from proposal , if multiple chains get chain name by chain Id and join a string to show mutliple
+  // const chainsString = proposal.chains.map((chainId) => getChainNameById(chainId)).join(', ')
   const chains = [...proposal.chains, HUB_CHAIN_ID]
   const chain = chains.map((chainId) => getChainNameById(chainId)).join(', ')
 
   // Extract title and displayId from description
   const { title, displayId, cleanDescription } = extractProposalMetadata(proposal.description || '')
 
-  const forVotesValue = parseFloat(proposal.forVotes || '0') / 1e18
-  const againstVotesValue = parseFloat(proposal.againstVotes || '0') / 1e18
-  const quorumValue = parseFloat(proposal.quorum || '0') / 1e18
+  // Calculate time remaining (mock for now - would need block timestamp from chain)
+  const timeRemaining = proposal.status === 'Active' ? 'Active' : proposal.status
+
+  // Mock voting data (would need to query vote counts from subgraph)
+  const forVotes = Number(proposal.forVotes) / 1e18
+  const againstVotes = Number(proposal.againstVotes) / 1e18
+  const abstainVotes = Number(proposal.abstainVotes) / 1e18
+  const totalVotes = forVotes + againstVotes + abstainVotes
+  const quorum = Number(proposal.quorum) / 1e18
+  const quorumProgress = ((forVotes + againstVotes) / quorum) * 100
+  const forPercent = totalVotes > 0 ? Math.round((forVotes / totalVotes) * 100) : 0
+  const againstPercent = totalVotes > 0 ? Math.round((againstVotes / totalVotes) * 100) : 0
+  const abstainPercent = totalVotes > 0 ? Math.round((abstainVotes / totalVotes) * 100) : 0
 
   return {
     id: proposal.id,
@@ -80,124 +77,22 @@ function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): Tran
     chain,
     title,
     description: cleanDescription,
-    quorumProgress: quorumValue > 0 ? (forVotesValue / quorumValue) * 100 : 0,
-    timeRemaining: finalStatus === 'Active' ? 'Active' : finalStatus,
-    forVotes: forVotesValue,
-    againstVotes: againstVotesValue,
-    abstainVotes: parseFloat(proposal.abstainVotes || '0') / 1e18,
-    quorum: quorumValue,
-    votes: proposal.votes || [],
+    quorumProgress,
+    timeRemaining,
+    forVotes,
+    quorum,
+    againstVotes,
+    abstainVotes,
+    forPercent,
+    againstPercent,
+    abstainPercent,
+    quorumReached: false,
     targets: proposal.targets || [],
     values: proposal.values || [],
     calldatas: proposal.calldatas || [],
-    eta: proposal.eta || '0',
+    eta: proposal.eta,
+    votes: proposal.votes,
   }
-}
-
-function RecentVotes({ votes }: { votes: Vote[] }) {
-  const formatVotes = (votes: string) => {
-    const value = parseFloat(votes) / 1e18
-    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M SUMR`
-    if (value >= 1000) return `${(value / 1000).toFixed(1)}K SUMR`
-    return `${value.toFixed(1)} SUMR`
-  }
-
-  const getTimeAgo = (timestamp: string) => {
-    const seconds = Math.floor(Date.now() / 1000) - parseInt(timestamp)
-    if (seconds < 60) return 'just now'
-    const minutes = Math.floor(seconds / 60)
-    if (minutes < 60) return `${minutes}m ago`
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours}h ago`
-    return `${Math.floor(hours / 24)}d ago`
-  }
-
-  return (
-    <section className="glass-panel rounded-xl overflow-hidden shadow-2xl border border-sky-400/10">
-      <div className="p-6 border-b border-sky-400/10 flex justify-between items-center bg-slate-900/40">
-        <h3 className="text-lg font-semibold tracking-tight text-on-surface">Recent Votes</h3>
-        <span className="text-xs font-medium text-on-surface-variant uppercase tracking-widest">
-          Total: {votes.length} Addresses
-        </span>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="bg-sky-400/5 text-xs text-on-surface-variant uppercase tracking-widest">
-            <tr>
-              <th className="px-6 py-5 font-semibold">Voter</th>
-              <th className="px-6 py-5 font-semibold">Vote</th>
-              <th className="px-6 py-5 font-semibold text-right">Votes</th>
-              <th className="px-6 py-5 font-semibold text-right">Time</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-sky-400/5 text-sm">
-            {votes.map((vote) => (
-              <tr key={vote.id} className="hover:bg-sky-400/5 transition-colors group">
-                <td className="px-6 py-4 flex items-center gap-3">
-                  <div
-                    className={`w-8 h-8 rounded-full shadow-lg ${
-                      vote.support === 1
-                        ? 'bg-gradient-to-tr from-sky-400 to-tertiary shadow-sky-400/10'
-                        : vote.support === 0
-                          ? 'bg-gradient-to-tr from-red-400 to-orange-500 shadow-red-400/10'
-                          : 'bg-gradient-to-tr from-slate-400 to-slate-600'
-                    }`}
-                  ></div>
-                  <span className="font-medium group-hover:text-sky-300 transition-colors">
-                    {vote.voter}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  {vote.support === 1 ? (
-                    <span className="text-emerald-400 flex items-center gap-1.5 font-medium">
-                      <span
-                        className="material-symbols-outlined text-[18px]"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        check_circle
-                      </span>
-                      For
-                    </span>
-                  ) : vote.support === 0 ? (
-                    <span className="text-error flex items-center gap-1.5 font-medium">
-                      <span
-                        className="material-symbols-outlined text-[18px]"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        cancel
-                      </span>
-                      Against
-                    </span>
-                  ) : (
-                    <span className="text-slate-400 flex items-center gap-1.5 font-medium">
-                      <span
-                        className="material-symbols-outlined text-[18px]"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        do_not_disturb_on
-                      </span>
-                      Abstain
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-right font-mono text-on-surface">
-                  {formatVotes(vote.votes)}
-                </td>
-                <td className="px-6 py-4 text-right text-on-surface-variant">
-                  {getTimeAgo(vote.timestamp)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="p-6 text-center border-t border-sky-400/10 bg-slate-900/20">
-        <button className="px-8 py-2.5 rounded-lg border border-sky-400/30 text-sky-300 text-sm font-bold uppercase tracking-widest hover:bg-sky-400/10 hover:border-sky-400/50 transition-all active:scale-95">
-          View All Votes
-        </button>
-      </div>
-    </section>
-  )
 }
 
 async function getProposal(id: string): Promise<ProposalWithCrossChain | null> {
@@ -213,9 +108,18 @@ export default async function ProposalDetailPage({ params }: PageProps) {
   }
 
   const proposal = transformProposal(fullProposal)
-  {
-    console.log(proposal.description)
-  }
+
+  // Resolve voter names
+  const voterAddresses = proposal.votes.map((v) => v.voter)
+  const ensMap = await resolveEnsNames(voterAddresses)
+  const voterNames: Record<string, string> = {}
+
+  voterAddresses.forEach((addr) => {
+    const address = addr.toLowerCase()
+    const tallyInfo = resolveDelegateInfo(address)
+    voterNames[address] =
+      tallyInfo?.name || ensMap[address] || `${addr.slice(0, 6)}...${addr.slice(-4)}`
+  })
   // Get network from chain
   const getNetwork = (chain: string): SupportedNetworks => {
     switch (chain.toLowerCase()) {
@@ -396,7 +300,7 @@ export default async function ProposalDetailPage({ params }: PageProps) {
           </section>
 
           {/* Recent Votes Section */}
-          <RecentVotes votes={proposal.votes} />
+          <RecentVotes votes={proposal.votes} voterNames={voterNames} />
         </div>
 
         {/* Sidebar */}
@@ -405,10 +309,8 @@ export default async function ProposalDetailPage({ params }: PageProps) {
             <h3 className="text-lg font-semibold mb-6">Current Results</h3>
 
             <ProposalVotingInfo
-              proposalId={proposal.id}
+              proposal={proposal}
               displayId={proposal.displayId || proposal.id.slice(0, 8)}
-              status={proposal.status}
-              proposalData={proposal}
             />
           </section>
         </div>

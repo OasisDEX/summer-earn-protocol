@@ -1,40 +1,12 @@
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ProposalsList } from '@/components/ProposalsList'
 import { getChainNameById, HUB_CHAIN_ID } from '@/config/chains'
-import { fetchAllProposals, ProposalWithCrossChain } from '@/services/subgraph'
+import { fetchAllProposals } from '@/services/subgraph'
+import { ProposalWithCrossChain, TransformedProposal } from '@/types/governance'
 import { extractProposalMetadata } from '@/utils/text'
 
 // Revalidate every 60 seconds (ISR)
 export const revalidate = 60
-
-// Transform subgraph data to match our Proposal interface
-interface TransformedProposal {
-  id: string
-  displayId: string | null
-  status:
-    | 'Active'
-    | 'Executed'
-    | 'Queued'
-    | 'Defeated'
-    | 'Executed on Hub'
-    | 'Succeeded'
-    | 'Canceled'
-  chain: string
-  title: string
-  description: string
-  quorumProgress: number
-  timeRemaining: string
-  forVotes: number
-  againstVotes: number
-  abstainVotes: number
-  forPercent: number
-  againstPercent: number
-  abstainPercent: number
-  quorumReached: boolean
-  targets: string[]
-  values: string[]
-  calldatas: string[]
-}
 
 function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): TransformedProposal {
   const proposal = proposalWithCrossChain.baseProposal
@@ -71,11 +43,15 @@ function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): Tran
   const timeRemaining = proposal.status === 'Active' ? 'Active' : proposal.status
 
   // Mock voting data (would need to query vote counts from subgraph)
-  const forVotes = 65 // MOCK: Replace with actual vote count
-  const againstVotes = 25
-  const abstainVotes = 10
+  const forVotes = Number(proposal.forVotes) / 1e18
+  const againstVotes = Number(proposal.againstVotes) / 1e18
+  const abstainVotes = Number(proposal.abstainVotes) / 1e18
   const totalVotes = forVotes + againstVotes + abstainVotes
-  const quorumProgress = totalVotes > 0 ? Math.round((forVotes / totalVotes) * 100) : 0
+  const quorum = Number(proposal.quorum) / 1e18
+  const quorumProgress = ((forVotes + againstVotes) / quorum) * 100
+  const forPercent = totalVotes > 0 ? Math.round((forVotes / totalVotes) * 100) : 0
+  const againstPercent = totalVotes > 0 ? Math.round((againstVotes / totalVotes) * 100) : 0
+  const abstainPercent = totalVotes > 0 ? Math.round((abstainVotes / totalVotes) * 100) : 0
 
   return {
     id: proposal.id,
@@ -87,15 +63,18 @@ function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): Tran
     quorumProgress,
     timeRemaining,
     forVotes,
+    quorum,
     againstVotes,
     abstainVotes,
-    forPercent: 0,
-    againstPercent: 0,
-    abstainPercent: 0,
+    forPercent,
+    againstPercent,
+    abstainPercent,
     quorumReached: false,
     targets: proposal.targets || [],
     values: proposal.values || [],
     calldatas: proposal.calldatas || [],
+    eta: proposal.eta,
+    votes: proposal.votes,
   }
 }
 

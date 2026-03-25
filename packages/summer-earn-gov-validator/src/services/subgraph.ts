@@ -1,5 +1,12 @@
 import { GraphQLClient } from 'graphql-request'
 
+import {
+  CrossChainProposal,
+  Proposal,
+  ProposalWithCrossChain,
+  SubgraphDelegate,
+} from '@/types/governance'
+
 const SUBGRAPH_ENDPOINTS = {
   base:
     process.env.NEXT_PUBLIC_BASE_SUBGRAPH_URL ||
@@ -44,51 +51,6 @@ const CROSS_CHAIN_PROPOSALS_QUERY = `
     }
   }
 `
-
-export interface Vote {
-  id: string
-  voter: string
-  support: number // 0: Against, 1: For, 2: Abstain
-  votes: string
-  reason: string
-  timestamp: string
-}
-
-export interface Proposal {
-  id: string
-  targets: string[]
-  values: string[]
-  calldatas: string[]
-  description: string
-  descriptionHash: string
-  status: string
-  chains: string[]
-  dstIds: string[]
-  eta: string
-  createdAt: string
-  quorum: string
-  forVotes: string
-  againstVotes: string
-  abstainVotes: string
-  votes: Vote[]
-}
-
-export interface CrossChainProposal {
-  id: string
-  proposalId: string
-  chainId: string
-  status: string
-  salt: string
-  targets: string[]
-  values: string[]
-  calldatas: string[]
-  eta: string
-}
-
-export interface ProposalWithCrossChain {
-  baseProposal: Proposal
-  crossChainProposals: CrossChainProposal[]
-}
 
 interface ProposalsResponse {
   proposals: Proposal[]
@@ -164,7 +126,7 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
 
     // Filter cross-chain proposals that match the dstIds of the base proposal
     const matchingProposals = allCrossChainProposals.filter((ccp: CrossChainProposal) =>
-      proposal.dstIds.includes(ccp.id),
+      proposal.dstIds?.includes(ccp.id),
     )
 
     crossChainProposals.push(...matchingProposals)
@@ -189,12 +151,6 @@ export async function fetchProposalWithCrossChainById(
     console.error('Error fetching proposal with cross-chain data:', error)
     return null
   }
-}
-
-export interface SubgraphDelegate {
-  id: string
-  votingPower: string
-  delegationsCount: number
 }
 
 interface DelegatesResponse {
