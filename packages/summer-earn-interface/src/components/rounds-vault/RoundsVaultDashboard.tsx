@@ -9,7 +9,6 @@ import baseConfig from '@/config/deployment/deployed/base.json'
 import hyperliquidConfig from '@/config/deployment/deployed/hyperliquid.json'
 import mainnetConfig from '@/config/deployment/deployed/mainnet.json'
 import sonicConfig from '@/config/deployment/deployed/sonic.json'
-import deploymentIndex from '@/config/deployment/index.json'
 import type { ChainId } from '@/types'
 
 import { VaultInteractionForm } from './VaultInteractionForm'
@@ -39,46 +38,32 @@ interface VaultPair {
   name: string
   inputAddress: `0x${string}`
   outputAddress: `0x${string}`
-  tokenSymbol: string
-  tokenAddress: `0x${string}`
 }
 
 export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
   const config = configs[chainId]
   const chainName = chainIdToName[chainId]
 
+  // ── Discover vault pairs from deployment config ──
   const vaultPairs = useMemo(() => {
     if (!config || !chainName) return []
 
     const pairs: VaultPair[] = []
     const keys = Object.keys(config)
-
-    // Find all RoundsVaultInput contracts
     const inputRegex = /^staging_RoundsVaultInput_(.*)#RoundsVaultInput$/
 
     keys.forEach((key) => {
       const match = key.match(inputRegex)
-
       if (match) {
         const identifier = match[1]
         const outputKey = `staging_RoundsVaultOutput_${identifier}#RoundsVaultOutput`
 
         if (config[outputKey]) {
-          // Extract token symbol from identifier (e.g., extDemo_USDC_mainnet -> USDC)
-          // We can try to match against known tokens in the index
-          const tokens = (deploymentIndex as any)[chainName]?.tokens || {}
-          const tokenSymbol =
-            identifier.split('_').find((part) => tokens[part.toLowerCase()]) || 'USDC'
-
-          const tokenAddress = tokens[tokenSymbol.toLowerCase()] as `0x${string}`
-
           pairs.push({
             id: identifier,
             name: identifier.replace(/_/g, ' '),
             inputAddress: config[key] as `0x${string}`,
             outputAddress: config[outputKey] as `0x${string}`,
-            tokenSymbol: tokenSymbol.toUpperCase(),
-            tokenAddress,
           })
         }
       }
@@ -126,48 +111,21 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Input Vault Module */}
+        {/* Input Vault: deposit underlying (USDC) → receipts → exchange for Fleet shares */}
         <VaultInteractionForm
-          title="Input Vault"
-          description={`Deposit your ${selectedPair.tokenSymbol} to receive shares automatically at the end of the round.`}
+          title="Input Vault (Deposit)"
+          description="Deposit your tokens to receive shares automatically at the end of the round."
           vaultAddress={selectedPair.inputAddress}
           vaultAbi={RoundsVaultInputABI}
-          depositAsset={selectedPair.tokenAddress}
-          underlyingAsset={selectedPair.tokenAddress}
-          // The form component handles exchangeAsset internally
-          sharesAsset="0x0" // Placeholder as it's not used in body
-          receiveAsset="0x0" // Placeholder
-          decimals={
-            selectedPair.tokenSymbol === 'USDC' ||
-            selectedPair.tokenSymbol === 'USDT' ||
-            selectedPair.tokenSymbol === 'EURC'
-              ? 6
-              : 18
-          }
-          symbol={selectedPair.tokenSymbol}
-          receiptSymbol="rInput"
           showFleetURL={true}
         />
 
-        {/* Output Vault Module */}
+        {/* Output Vault: deposit Fleet shares → receipts → exchange for underlying (USDC) */}
         <VaultInteractionForm
-          title="Output Vault"
-          description={`Exchange your shares to receive ${selectedPair.tokenSymbol} automatically at the end of the round.`}
+          title="Output Vault (Withdraw)"
+          description="Deposit your Fleet shares to receive the underlying asset at the end of the round."
           vaultAddress={selectedPair.outputAddress}
           vaultAbi={RoundsVaultOutputABI}
-          depositAsset={selectedPair.tokenAddress} // This will be the shares asset in reality, but UI expects depositAsset label
-          underlyingAsset={selectedPair.tokenAddress}
-          sharesAsset={selectedPair.tokenAddress}
-          receiveAsset={selectedPair.tokenAddress}
-          decimals={
-            selectedPair.tokenSymbol === 'USDC' ||
-            selectedPair.tokenSymbol === 'USDT' ||
-            selectedPair.tokenSymbol === 'EURC'
-              ? 6
-              : 18
-          }
-          symbol={`${selectedPair.tokenSymbol} Shares`}
-          receiptSymbol="rOutput"
         />
       </div>
     </div>
