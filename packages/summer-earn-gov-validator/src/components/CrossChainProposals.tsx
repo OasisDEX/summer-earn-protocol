@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { keccak256, stringToBytes } from 'viem'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
+import { CrossChainProposal, Proposal,ProposalWithCrossChain } from '@/types/governance'
 import { calculateProposalTiming } from '@/utils/timing'
 
 import config from '../config/index.json'
 import { GOVERNOR_ABI, useMultipleProposalVoting, VoteSupport } from '../hooks/useProposalVoting'
-import { CrossChainProposal, fetchAllProposals, ProposalWithCrossChain } from '../services/subgraph'
+import { fetchAllProposals } from '../services/subgraph'
 import { PhaseIndicator } from './PhaseIndicator'
 import { ProposalFilter, ProposalStatus } from './ProposalFilter'
 
@@ -36,7 +37,7 @@ const CHAIN_ID_TO_NETWORK: Record<string, keyof typeof config> = {
 }
 
 // Helper function to calculate effective proposal status
-const getEffectiveProposalStatus = (proposal: { status: string; createdAt: string }) => {
+const getEffectiveProposalStatus = (proposal: Proposal) => {
   const baseStatus = proposal.status.toUpperCase()
   const currentTimestamp = Math.floor(Date.now() / 1000)
   const createdAt = Number(proposal.createdAt)

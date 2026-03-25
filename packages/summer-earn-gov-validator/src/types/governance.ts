@@ -18,7 +18,7 @@ export interface Proposal {
   chains: string[]
   dstIds?: string[]
   eta: string
-  createdAt?: string
+  createdAt: string
   quorum: string
   forVotes: string
   againstVotes: string
