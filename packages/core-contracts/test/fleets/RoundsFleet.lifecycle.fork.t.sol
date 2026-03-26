@@ -194,9 +194,6 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
             address(usdcRoundsVaultOutput)
         );
 
-        console.log("usdcFleetCommander", address(usdcFleetCommander));
-        console.log("usdcRoundsVaultInput", address(usdcRoundsVaultInput));
-        console.log("usdcRoundsVaultOutput", address(usdcRoundsVaultOutput));
         vm.stopPrank();
 
         uint256 usdcTotalDeposit = 1000 * 10 ** 6; // 1000 USDC
