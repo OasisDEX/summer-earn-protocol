@@ -632,8 +632,8 @@ program
         const blockchainMap: Record<string, string> = {
           base: 'Base Mainnet',
           arbitrum: 'Arbitrum Mainnet',
-          mainnet: 'Ethereum Mainnet',
-          ethereum: 'Ethereum Mainnet',
+          mainnet: 'Ethereum',
+          ethereum: 'Ethereum',
         }
         const blockchain = blockchainMap[network] || network
 
