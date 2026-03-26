@@ -69,6 +69,11 @@ interface IAccessControlErrors {
     error CallerIsNotDecayController(address caller);
 
     /**
+     * @notice Thrown when a caller is not the operator.
+     */
+    error CallerIsNotOperator(address caller);
+
+    /**
      * @notice Thrown when a caller is not authorized to board.
      */
     error CallerIsNotAuthorizedToBoard(address caller);

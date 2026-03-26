@@ -265,6 +265,25 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @notice Modifier to restrict access to operators only
+     * @dev Modifier to check that the caller has the Operator role
+     */
+    modifier onlyOperator() {
+        if (
+            !_accessManager.hasRole(
+                generateRole(
+                    ContractSpecificRoles.OPERATOR_ROLE,
+                    address(this)
+                ),
+                msg.sender
+            )
+        ) {
+            revert CallerIsNotOperator(msg.sender);
+        }
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/

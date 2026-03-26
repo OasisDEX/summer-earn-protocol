@@ -999,6 +999,17 @@
   },
   {
     "type": "error",
+    "name": "CallerIsNotOperator",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "CallerIsNotRaft",
     "inputs": [
       {

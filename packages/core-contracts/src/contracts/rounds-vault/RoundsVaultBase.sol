@@ -135,7 +135,9 @@ abstract contract RoundsVaultBase is
     /**
      * @inheritdoc IRoundsVaultBase
      */
-    function setRoundSettledBatch(uint256[] calldata roundNumbers) external onlyKeeper {
+    function setRoundSettledBatch(
+        uint256[] calldata roundNumbers
+    ) external onlyKeeper {
         for (uint256 i = 0; i < roundNumbers.length; i++) {
             _setRoundSettled(roundNumbers[i]);
         }
@@ -341,7 +343,6 @@ abstract contract RoundsVaultBase is
         @notice Retrieves the exchange rate between the underlying asset and the exchange asset for
         the current round. Whether the rate is underlying/exchange or exchange/underlying depends on
         the specific implentation of the derived contract
-        
      */
     function _getCurrentExchangeRate()
         internal
@@ -434,8 +435,8 @@ abstract contract RoundsVaultBase is
         uint256[] memory ids,
         uint256[] memory amounts
     ) private returns (uint256 exchangeAmount) {
-        if (caller != owner) {
-            isApprovedForAll(owner, caller);
+        if (caller != owner && !isApprovedForAll(owner, caller)) {
+            revert CallerCannotRedeemBatch(caller, owner, ids, amounts);
         }
 
         // If _asset is ERC777, `transfer` can trigger trigger a reentrancy AFTER the transfer happens through the
