@@ -3,7 +3,7 @@ import { Providers } from '../components/Providers'
 import '@/styles/globals.scss'
 
 export const metadata = {
-  title: 'Summer DAO - Governance Validator',
+  title: 'Lazy Summer DAO - Governance Validator',
   description: 'Governance proposals for the Summer Earn Protocol',
 }
 

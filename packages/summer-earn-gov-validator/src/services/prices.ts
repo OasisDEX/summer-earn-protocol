@@ -13,11 +13,16 @@ const COINGECKO_IDS: Record<string, string> = {
   wHYPE: 'hyperliquid',
 }
 
-export async function fetchPrices(symbols: string[]): Promise<Record<string, number>> {
+export interface PriceResponse {
+  prices: Record<string, number>
+  error?: string
+}
+
+export async function fetchPrices(symbols: string[]): Promise<PriceResponse> {
   const uniqueSymbols = [...new Set(symbols)]
   const ids = [...new Set(uniqueSymbols.map((s) => COINGECKO_IDS[s]).filter(Boolean))].join(',')
 
-  if (!ids) return {}
+  if (!ids) return { prices: {} }
 
   try {
     const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&x_cg_demo_api_key=${COINGECKO_API_KEY}`
@@ -29,6 +34,12 @@ export async function fetchPrices(symbols: string[]): Promise<Record<string, num
     })
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return {
+          prices: {},
+          error: 'CoinGecko rate limit reached. Treasury values may be inaccurate.',
+        }
+      }
       throw new Error(`CoinGecko API error: ${response.statusText}`)
     }
 
@@ -42,9 +53,12 @@ export async function fetchPrices(symbols: string[]): Promise<Record<string, num
       }
     })
 
-    return prices
+    return { prices }
   } catch (error) {
     console.error('Error fetching prices from CoinGecko:', error)
-    return {}
+    return {
+      prices: {},
+      error: 'Failed to fetch real-time prices. Using stale data.',
+    }
   }
 }

@@ -99,8 +99,8 @@ export function DelegatesList({ initialDelegates }: DelegatesListProps) {
             Community Delegates
           </h1>
           <p className="text-on-surface-variant max-w-xl text-lg">
-            Choose a representative to vote on your behalf or join the ranks to lead the Summer DAO
-            ecosystem.
+            Choose a representative to vote on your behalf or join the ranks to lead the Lazy Summer
+            DAO ecosystem.
           </p>
         </div>
       </div>

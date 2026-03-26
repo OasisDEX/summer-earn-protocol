@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { keccak256, stringToBytes } from 'viem'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
-import { CrossChainProposal, Proposal,ProposalWithCrossChain } from '@/types/governance'
+import { CrossChainProposal, Proposal, ProposalWithCrossChain } from '@/types/governance'
 import { calculateProposalTiming } from '@/utils/timing'
 
 import config from '../config/index.json'

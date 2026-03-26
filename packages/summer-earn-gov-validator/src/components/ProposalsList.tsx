@@ -154,8 +154,8 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
             Governance Proposals
           </h1>
           <p className="text-on-surface-variant max-w-xl">
-            Shape the future of Summer DAO. Cast your vote on active protocol upgrades and treasury
-            allocations.
+            Shape the future of Lazy Summer DAO. Cast your vote on active protocol upgrades and
+            treasury allocations.
           </p>
         </div>
         <div className="flex gap-3">
@@ -203,7 +203,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
 
           {/* Chain Filters */}
           <div className="bg-slate-900/50 border border-sky-400/10 p-1 rounded-xl flex items-center overflow-x-auto no-scrollbar max-w-full">
-            {(['All', 'Mainnet', 'Base', 'Arbitrum', 'Sonic', 'Hyperliquid'] as FilterChain[]).map(
+            {(['All', 'Ethereum', 'Base', 'Arbitrum', 'Sonic', 'Hyperliquid'] as FilterChain[]).map(
               (chain) => (
                 <button
                   key={chain}
@@ -299,24 +299,15 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Link
-                  href={
-                    proposal.status === 'Active'
-                      ? `/vote/${proposal.id}`
-                      : `/proposal/${proposal.id}`
-                  }
-                  className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all text-center ${statusConfig.buttonClass}`}
-                >
-                  {proposal.status === 'Active' ? 'Vote' : 'Details'}
-                </Link>
-                <Link
-                  href={`/proposal/${proposal.id}`}
-                  className="px-3 py-2 rounded-lg border border-sky-400/20 text-sky-300 hover:bg-sky-400/5 transition-all flex items-center justify-center"
-                >
-                  <span className="material-symbols-outlined text-sm">visibility</span>
-                </Link>
-              </div>
+              <Link
+                href={`/proposal/${proposal.id}`}
+                className={`w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 ${statusConfig.buttonClass}`}
+              >
+                <span className="material-symbols-outlined text-sm">
+                  {proposal.status === 'Active' ? 'how_to_vote' : 'visibility'}
+                </span>
+                {proposal.status === 'Active' ? 'Vote & Details' : 'View Details'}
+              </Link>
             </div>
           )
         })}

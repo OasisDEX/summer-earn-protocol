@@ -58,16 +58,6 @@ export function TopNavBar() {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <div className="relative hidden lg:block">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-            search
-          </span>
-          <input
-            className="bg-slate-900/50 border border-sky-400/10 rounded-full pl-10 pr-4 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-sky-300/50 w-64 transition-all focus:bg-slate-900/80"
-            placeholder="Search..."
-            type="text"
-          />
-        </div>
         <ConnectButton />
       </div>
     </nav>
