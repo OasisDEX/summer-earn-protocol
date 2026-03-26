@@ -1,15 +1,16 @@
 'use client'
 
 import React, { useState } from 'react'
+import { Twitter } from 'lucide-react'
 
-import { Vote } from '@/types/governance'
+import { Vote, VoterMetadata } from '@/types/governance'
 
 interface RecentVotesProps {
   votes: Vote[]
-  voterNames: Record<string, string>
+  voterMetadata: Record<string, VoterMetadata>
 }
 
-export function RecentVotes({ votes, voterNames }: RecentVotesProps) {
+export function RecentVotes({ votes, voterMetadata }: RecentVotesProps) {
   const [showAll, setShowAll] = useState(false)
 
   const formatVotes = (votes: string) => {
@@ -57,20 +58,65 @@ export function RecentVotes({ votes, voterNames }: RecentVotesProps) {
                 key={vote.id}
                 className="hover:bg-sky-400/5 transition-colors group animate-fade-in"
               >
-                <td className="px-6 py-4 flex items-center gap-3">
-                  <div
-                    className={`w-8 h-8 rounded-full shadow-lg ${
-                      vote.support === 1
-                        ? 'bg-gradient-to-tr from-sky-400 to-tertiary shadow-sky-400/10'
-                        : vote.support === 0
-                          ? 'bg-gradient-to-tr from-red-400 to-orange-500 shadow-red-400/10'
-                          : 'bg-gradient-to-tr from-slate-400 to-slate-600'
-                    }`}
-                  ></div>
-                  <span className="font-medium group-hover:text-sky-300 transition-colors">
-                    {voterNames[vote.voter.toLowerCase()] ||
-                      `${vote.voter.slice(0, 6)}...${vote.voter.slice(-4)}`}
-                  </span>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative group/avatar">
+                      {voterMetadata[vote.voter.toLowerCase()]?.picture ? (
+                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-sky-400/20 shadow-lg transition-transform group-hover/avatar:scale-110">
+                          <img
+                            src={voterMetadata[vote.voter.toLowerCase()].picture!}
+                            alt={voterMetadata[vote.voter.toLowerCase()].name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-[10px] font-bold text-white transition-transform group-hover/avatar:scale-110 ${
+                            vote.support === 1
+                              ? 'bg-gradient-to-tr from-sky-400 to-tertiary shadow-sky-400/10'
+                              : vote.support === 0
+                                ? 'bg-gradient-to-tr from-red-400 to-orange-500 shadow-red-400/10'
+                                : 'bg-gradient-to-tr from-slate-400 to-slate-600'
+                          }`}
+                        >
+                          {voterMetadata[vote.voter.toLowerCase()]?.name
+                            ?.slice(0, 2)
+                            .toUpperCase() || '??'}
+                        </div>
+                      )}
+                      <div
+                        className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-900 shadow-sm ${
+                          vote.support === 1
+                            ? 'bg-emerald-400'
+                            : vote.support === 0
+                              ? 'bg-error'
+                              : 'bg-slate-400'
+                        }`}
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-on-surface group-hover:text-sky-300 transition-colors">
+                          {voterMetadata[vote.voter.toLowerCase()]?.name ||
+                            `${vote.voter.slice(0, 6)}...${vote.voter.slice(-4)}`}
+                        </span>
+                        {voterMetadata[vote.voter.toLowerCase()]?.twitter && (
+                          <a
+                            href={`https://twitter.com/${voterMetadata[vote.voter.toLowerCase()].twitter}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 rounded-md hover:bg-sky-400/10 text-on-surface-variant hover:text-sky-400 transition-all opacity-0 group-hover:opacity-100"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Twitter className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-on-surface-variant font-mono opacity-60">
+                        {vote.voter.slice(0, 6)}...{vote.voter.slice(-4)}
+                      </span>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   {vote.support === 1 ? (

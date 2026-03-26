@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
-import { CrossChainProposal,Proposal } from '@/types/governance'
+import { CrossChainProposal, Proposal } from '@/types/governance'
 
 import { ChainTheme, getChainTheme } from '../config/chains'
 import config from '../config/index.json'

@@ -7,6 +7,12 @@ export interface Vote {
   timestamp: string
 }
 
+export interface VoterMetadata {
+  name: string
+  picture: string | null
+  twitter: string | null
+}
+
 export interface Proposal {
   id: string
   targets: string[]

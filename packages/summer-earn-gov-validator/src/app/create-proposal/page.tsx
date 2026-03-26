@@ -323,7 +323,7 @@ export default function CreateProposalPage() {
         if (!eID) {
           throw new Error(`Chain ${chainId} not found in CHAINS config`)
         }
-        const dstDescription = `SIP-XXX Cross-Chain Actions for ${chainInfo?.name}`
+        const dstDescription = `SIPX.Y.Z Cross-Chain Actions for ${chainInfo?.name}`
         const lzOptions = '0x0003010011030000000000000000000000000007a120' as Hex // ~500k gas
 
         hubTargets.push(HUB_GOVERNOR_ADDRESS)
@@ -425,7 +425,7 @@ export default function CreateProposalPage() {
                 Create New SIP
               </h1>
               <p className="text-on-surface-variant max-w-2xl">
-                Draft a proposal to execute actions across the Summer DAO ecosystem. SIPs can
+                Submit a proposal to execute actions across the Lazy Summer DAO ecosystem. SIPs can
                 include local Hub actions and cross-chain transactions via LayerZero.
               </p>
             </div>
@@ -502,7 +502,7 @@ export default function CreateProposalPage() {
                   </label>
                   <input
                     type="text"
-                    placeholder="SIP-XXX: Proposal Title"
+                    placeholder="SIPX.Y.Z: Proposal Title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-on-surface-variant/30"

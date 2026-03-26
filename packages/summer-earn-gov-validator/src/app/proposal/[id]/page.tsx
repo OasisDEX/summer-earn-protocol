@@ -112,13 +112,21 @@ export default async function ProposalDetailPage({ params }: PageProps) {
   // Resolve voter names
   const voterAddresses = proposal.votes.map((v) => v.voter)
   const ensMap = await resolveEnsNames(voterAddresses)
-  const voterNames: Record<string, string> = {}
+  const voterMetadata: Record<
+    string,
+    { name: string; picture: string | null; twitter: string | null }
+  > = {}
 
   voterAddresses.forEach((addr) => {
     const address = addr.toLowerCase()
     const tallyInfo = resolveDelegateInfo(address)
-    voterNames[address] =
-      tallyInfo?.name || ensMap[address] || `${addr.slice(0, 6)}...${addr.slice(-4)}`
+    const name = tallyInfo?.name || ensMap[address] || `${addr.slice(0, 6)}...${addr.slice(-4)}`
+
+    voterMetadata[address] = {
+      name,
+      picture: tallyInfo?.picture || null,
+      twitter: tallyInfo?.twitter || null,
+    }
   })
   // Get network from chain
   const getNetwork = (chain: string): SupportedNetworks => {
@@ -300,7 +308,7 @@ export default async function ProposalDetailPage({ params }: PageProps) {
           </section>
 
           {/* Recent Votes Section */}
-          <RecentVotes votes={proposal.votes} voterNames={voterNames} />
+          <RecentVotes votes={proposal.votes} voterMetadata={voterMetadata} />
         </div>
 
         {/* Sidebar */}
