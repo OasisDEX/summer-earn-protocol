@@ -6,17 +6,17 @@
 
 ## Table of Contents
 
-1. [Architecture Overview](#architecture-overview)
-2. [Contract Hierarchy](#contract-hierarchy)
-3. [Token Model: Receipts (ERC-1155 NFTs)](#token-model)
-4. [Round State Machine](#round-state-machine)
-5. [Input Vault (Deposit Flow)](#input-vault)
-6. [Output Vault (Withdrawal Flow)](#output-vault)
-7. [Exchange Rate Math](#exchange-rate-math)
-8. [WisdomTreeArk Internals](#wisdomtreeark)
-9. [Keeper Operations Playbook](#keeper-playbook)
-10. [Entry Point Analysis](#entry-points)
-11. [Systemic Risks & Operational Limitations](#systemic-risks-operational-limitations)
+1. [Architecture Overview](#1-architecture-overview)
+2. [Contract Hierarchy](#2-contract-hierarchy)
+3. [Token Model: Receipts (ERC-1155 NFTs)](#3-token-model-receipts-erc-1155-nfts)
+4. [Round State Machine](#4-round-state-machine)
+5. [Input Vault (Deposit Flow)](#5-input-vault-deposit-flow)
+6. [Output Vault (Withdrawal Flow)](#6-output-vault-withdrawal-flow)
+7. [Exchange Rate Math](#7-exchange-rate-math)
+8. [WisdomTreeArk Internals](#8-wisdomtreeark-internals)
+9. [Keeper Operations Playbook](#9-keeper-operations-playbook)
+10. [Entry Point Analysis](#10-entry-point-analysis)
+11. [Systemic Risks & Operational Limitations](#11-systemic-risks-and-operational-limitations)
 
 ---
 
@@ -403,7 +403,7 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 
 ---
 
-## 9. Keeper Operations Playbook {#keeper-playbook}
+## 9. Keeper Operations Playbook
 
 ### Deposit Round Lifecycle
 
@@ -488,7 +488,7 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 | `setWhitelistedBatch(accounts, allowed)` | FleetCommanderWhitelist | Batch Fleet whitelist management |
 
 
-## 11. Systemic Risks & Operational Limitations
+## 11. Systemic Risks and Operational Limitations
 
 #### 1. The Output Vault "Round Block" (Liquidity Deadlock)
 `RoundsVaultOutput.nextRound()` demands immediate, synchronous USDC from the FleetCommander. Because `WisdomTreeArk` returns `0` for `_withdrawableTotalAssets()`, the FleetCommander *cannot* withdraw from it synchronously.
