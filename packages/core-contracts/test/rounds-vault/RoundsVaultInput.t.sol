@@ -380,7 +380,7 @@ contract RoundsVaultInputTest is
 
         vm.startPrank(operator);
         vault.nextRound(); // 2 -> 3
-        
+
         uint256[] memory settleIds = new uint256[](2);
         settleIds[0] = 1;
         settleIds[1] = 2;
@@ -522,5 +522,44 @@ contract RoundsVaultInputTest is
             unprivilegedAccount
         );
         vm.stopPrank();
+    }
+
+    function test_RIV0014_TransferUpdatesTotalSupply() public {
+        uint256 assets = 0.2 ether;
+        address accountA = unprivilegedAccount;
+        address accountB = address(0xB);
+
+        vm.prank(admin);
+        vault.setWhitelisted(accountB, true);
+
+        // 1. Deposit to accountA
+        vm.startPrank(accountA);
+        vault.deposit(assets, accountA);
+
+        // Ensure accountA has the supply and accountB has 0
+        assertEq(vault.balanceOfAll(accountA), assets);
+        assertEq(vault.balanceOfAll(accountB), 0);
+
+        // 2. Transfer NFT from accountA to accountB
+        vault.safeTransferFrom(accountA, accountB, 0, assets, bytes(""));
+        vm.stopPrank();
+
+        // 3. Verify balanceOfAll properly tracks the transfer
+        assertEq(vault.balanceOfAll(accountA), 0);
+        assertEq(vault.balanceOfAll(accountB), assets);
+
+        // Settle the round so we can call redeemExchangeAsset
+        vm.startPrank(operator);
+        vault.nextRound(); // 0 -> InSettlement
+        vault.setRoundSettled(0); // 0 -> Settled
+        vm.stopPrank();
+
+        // 4. Redeem with target wallet
+        vm.startPrank(accountB);
+        vault.redeemExchangeAsset(0, assets, accountB, accountB);
+        vm.stopPrank();
+
+        // 5. Check that balanceOfAll() correctly reflects the burned tokens
+        assertEq(vault.balanceOfAll(accountB), 0);
     }
 }
