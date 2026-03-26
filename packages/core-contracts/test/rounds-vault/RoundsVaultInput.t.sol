@@ -186,7 +186,7 @@ contract RoundsVaultInputTest is
         emit AssetsDeposited(0, operator, assets, shares);
 
         // Price struct is (baseAmount, quoteAmount)
-        Price memory expectedPrice = Price(1e18, 1e18);
+        Price memory expectedPrice = Price(assets, shares);
 
         vm.expectEmit(true, true, true, true);
         emit NextRound(1, expectedPrice);
@@ -380,7 +380,7 @@ contract RoundsVaultInputTest is
 
         vm.startPrank(operator);
         vault.nextRound(); // 2 -> 3
-        
+
         uint256[] memory settleIds = new uint256[](2);
         settleIds[0] = 1;
         settleIds[1] = 2;
