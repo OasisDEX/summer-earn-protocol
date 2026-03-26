@@ -135,7 +135,9 @@ abstract contract RoundsVaultBase is
     /**
      * @inheritdoc IRoundsVaultBase
      */
-    function setRoundSettledBatch(uint256[] calldata roundNumbers) external onlyKeeper {
+    function setRoundSettledBatch(
+        uint256[] calldata roundNumbers
+    ) external onlyKeeper {
         for (uint256 i = 0; i < roundNumbers.length; i++) {
             _setRoundSettled(roundNumbers[i]);
         }
@@ -353,6 +355,14 @@ abstract contract RoundsVaultBase is
      * @notice Helper function to mark a round as settled
      */
     function _setRoundSettled(uint256 roundNumber) internal {
+        if (roundState[roundNumber] != RoundState.InSettlement) {
+            revert InvalidRoundState(
+                roundNumber,
+                roundState[roundNumber],
+                RoundState.InSettlement
+            );
+        }
+
         roundState[roundNumber] = RoundState.Settled;
         emit RoundSettled(roundNumber);
     }

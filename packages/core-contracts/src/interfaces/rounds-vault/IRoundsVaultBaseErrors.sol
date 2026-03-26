@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {IRoundsVaultBaseEnums} from "./IRoundsVaultBaseEnums.sol";
+
 /**
     @title IRoundsVaultBaseErrors
 
@@ -32,4 +34,11 @@ interface IRoundsVaultBaseErrors {
 
     /// Error thrown when trying to redeem an exchange asset for a round that is not settled
     error RoundNotSettled(uint256 roundNumber);
+
+    /// Error thrown when trying to set a round as settled and the round is not in settlement
+    error InvalidRoundState(
+        uint256 roundNumber,
+        IRoundsVaultBaseEnums.RoundState currentRoundState,
+        IRoundsVaultBaseEnums.RoundState expectedRoundState
+    );
 }
