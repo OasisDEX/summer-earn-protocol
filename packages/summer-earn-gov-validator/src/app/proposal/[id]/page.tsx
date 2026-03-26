@@ -306,21 +306,23 @@ export default async function ProposalDetailPage({ params }: PageProps) {
               network={network}
             />
           </section>
-
-          {/* Recent Votes Section */}
-          <RecentVotes votes={proposal.votes} voterMetadata={voterMetadata} />
         </div>
 
         {/* Sidebar */}
         <div className="lg:col-span-4 space-y-6">
-          <section className="glass-panel-elevated p-6 rounded-xl shadow-[0_0_30px_rgba(125,211,252,0.05)] sticky top-28">
-            <h3 className="text-lg font-semibold mb-6">Current Results</h3>
+          <div className="sticky top-28 space-y-6">
+            <section className="glass-panel-elevated p-6 rounded-xl shadow-[0_0_30px_rgba(125,211,252,0.05)]">
+              <h3 className="text-lg font-semibold mb-6">Current Results</h3>
 
-            <ProposalVotingInfo
-              proposal={proposal}
-              displayId={proposal.displayId || proposal.id.slice(0, 8)}
-            />
-          </section>
+              <ProposalVotingInfo
+                proposal={proposal}
+                displayId={proposal.displayId || proposal.id.slice(0, 8)}
+              />
+            </section>
+
+            {/* Recent Votes Section */}
+            <RecentVotes votes={proposal.votes} voterMetadata={voterMetadata} />
+          </div>
         </div>
       </div>
     </DashboardLayout>

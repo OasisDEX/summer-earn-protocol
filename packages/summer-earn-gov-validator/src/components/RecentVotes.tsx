@@ -35,140 +35,113 @@ export function RecentVotes({ votes, voterMetadata }: RecentVotesProps) {
   if (votes.length === 0) return null
 
   return (
-    <section className="glass-panel rounded-xl overflow-hidden shadow-2xl border border-sky-400/10 transition-all duration-300">
-      <div className="p-6 border-b border-sky-400/10 flex justify-between items-center bg-slate-900/40">
-        <h3 className="text-lg font-semibold tracking-tight text-on-surface">Recent Votes</h3>
-        <span className="text-xs font-medium text-on-surface-variant uppercase tracking-widest">
-          Total: {votes.length} Addresses
+    <section className="glass-panel-elevated rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 transition-all duration-300">
+      <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
+        <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface opacity-80">
+          Recent Votes
+        </h3>
+        <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60">
+          Total: {votes.length}
         </span>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="bg-sky-400/5 text-xs text-on-surface-variant uppercase tracking-widest">
-            <tr>
-              <th className="px-6 py-5 font-semibold">Voter</th>
-              <th className="px-6 py-5 font-semibold">Vote</th>
-              <th className="px-6 py-5 font-semibold text-right">Votes</th>
-              <th className="px-6 py-5 font-semibold text-right">Time</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-sky-400/5 text-sm">
-            {displayedVotes.map((vote) => (
-              <tr
-                key={vote.id}
-                className="hover:bg-sky-400/5 transition-colors group animate-fade-in"
-              >
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="relative group/avatar">
-                      {voterMetadata[vote.voter.toLowerCase()]?.picture ? (
-                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-sky-400/20 shadow-lg transition-transform group-hover/avatar:scale-110">
-                          <img
-                            src={voterMetadata[vote.voter.toLowerCase()].picture!}
-                            alt={voterMetadata[vote.voter.toLowerCase()].name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div
-                          className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-[10px] font-bold text-white transition-transform group-hover/avatar:scale-110 ${
-                            vote.support === 1
-                              ? 'bg-gradient-to-tr from-sky-400 to-tertiary shadow-sky-400/10'
-                              : vote.support === 0
-                                ? 'bg-gradient-to-tr from-red-400 to-orange-500 shadow-red-400/10'
-                                : 'bg-gradient-to-tr from-slate-400 to-slate-600'
-                          }`}
-                        >
-                          {voterMetadata[vote.voter.toLowerCase()]?.name
-                            ?.slice(0, 2)
-                            .toUpperCase() || '??'}
-                        </div>
-                      )}
-                      <div
-                        className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-900 shadow-sm ${
-                          vote.support === 1
-                            ? 'bg-emerald-400'
-                            : vote.support === 0
-                              ? 'bg-error'
-                              : 'bg-slate-400'
-                        }`}
-                      />
-                    </div>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-on-surface group-hover:text-sky-300 transition-colors">
-                          {voterMetadata[vote.voter.toLowerCase()]?.name ||
-                            `${vote.voter.slice(0, 6)}...${vote.voter.slice(-4)}`}
-                        </span>
-                        {voterMetadata[vote.voter.toLowerCase()]?.twitter && (
-                          <a
-                            href={`https://twitter.com/${voterMetadata[vote.voter.toLowerCase()].twitter}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1 rounded-md hover:bg-sky-400/10 text-on-surface-variant hover:text-sky-400 transition-all opacity-0 group-hover:opacity-100"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Twitter className="w-3.5 h-3.5" />
-                          </a>
-                        )}
+
+      <div className="divide-y divide-white/5">
+        {displayedVotes.map((vote) => {
+          const metadata = voterMetadata[vote.voter.toLowerCase()]
+          const isFor = vote.support === 1
+          const isAgainst = vote.support === 0
+
+          return (
+            <div
+              key={vote.id}
+              className="px-5 py-4 hover:bg-white/[0.02] transition-colors group relative animate-fade-in"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="relative isolate">
+                    {metadata?.picture ? (
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                        <img
+                          src={metadata.picture}
+                          alt={metadata.name}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <span className="text-[10px] text-on-surface-variant font-mono opacity-60">
-                        {vote.voter.slice(0, 6)}...{vote.voter.slice(-4)}
+                    ) : (
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-white/10 shadow-inner group-hover:scale-105 transition-transform duration-300 ${
+                          isFor
+                            ? 'bg-gradient-to-tr from-emerald-500/40 to-emerald-400/10'
+                            : isAgainst
+                              ? 'bg-gradient-to-tr from-error/40 to-error/10'
+                              : 'bg-gradient-to-tr from-slate-500/40 to-slate-400/10'
+                        }`}
+                      >
+                        {metadata?.name?.slice(0, 2).toUpperCase() || '??'}
+                      </div>
+                    )}
+                    {/* Tiny support dot */}
+                    <div
+                      className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-950 shadow-sm flex items-center justify-center ${
+                        isFor ? 'bg-emerald-400' : isAgainst ? 'bg-error' : 'bg-slate-400'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[10px] text-black font-bold">
+                        {isFor ? 'check' : isAgainst ? 'close' : 'remove'}
                       </span>
                     </div>
                   </div>
-                </td>
-                <td className="px-6 py-4">
-                  {vote.support === 1 ? (
-                    <span className="text-emerald-400 flex items-center gap-1.5 font-medium">
-                      <span
-                        className="material-symbols-outlined text-[18px]"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        check_circle
+
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-on-surface text-sm truncate max-w-[120px]">
+                        {metadata?.name || `${vote.voter.slice(0, 6)}...${vote.voter.slice(-4)}`}
                       </span>
-                      For
-                    </span>
-                  ) : vote.support === 0 ? (
-                    <span className="text-error flex items-center gap-1.5 font-medium">
+                      {metadata?.twitter && (
+                        <a
+                          href={`https://twitter.com/${metadata.twitter}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-white/20 hover:text-sky-400 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Twitter className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
                       <span
-                        className="material-symbols-outlined text-[18px]"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
+                        className={`text-[9px] font-black uppercase tracking-[0.2em] ${
+                          isFor ? 'text-emerald-400' : isAgainst ? 'text-error' : 'text-slate-400'
+                        }`}
                       >
-                        cancel
+                        {isFor ? 'FOR' : isAgainst ? 'AGAINST' : 'ABSTAIN'}
                       </span>
-                      Against
-                    </span>
-                  ) : (
-                    <span className="text-slate-400 flex items-center gap-1.5 font-medium">
-                      <span
-                        className="material-symbols-outlined text-[18px]"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        do_not_disturb_on
-                      </span>
-                      Abstain
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-right font-mono text-on-surface">
-                  {formatVotes(vote.votes)}
-                </td>
-                <td className="px-6 py-4 text-right text-on-surface-variant">
-                  {getTimeAgo(vote.timestamp)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right flex flex-col items-end">
+                  <span className="text-sm font-mono font-bold text-on-surface">
+                    {formatVotes(vote.votes)}
+                  </span>
+                  <span className="text-[10px] text-on-surface-variant opacity-50 uppercase tracking-tighter">
+                    {getTimeAgo(vote.timestamp)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
+
       {votes.length > 5 && (
-        <div className="p-6 text-center border-t border-sky-400/10 bg-slate-900/20">
+        <div className="p-4 bg-white/5 border-t border-white/5">
           <button
             onClick={() => setShowAll(!showAll)}
-            className="px-8 py-2.5 rounded-lg border border-sky-400/30 text-sky-300 text-sm font-bold uppercase tracking-widest hover:bg-sky-400/10 hover:border-sky-400/50 transition-all active:scale-95"
+            className="w-full py-2.5 rounded-lg border border-white/10 text-[10px] font-black uppercase tracking-[0.3em] text-on-surface-variant hover:bg-white/5 hover:text-on-surface transition-all active:scale-[0.98]"
           >
-            {showAll ? 'Show Less' : `View All ${votes.length} Votes`}
+            {showAll ? 'Collapse' : `View All ${votes.length} Votes`}
           </button>
         </div>
       )}
