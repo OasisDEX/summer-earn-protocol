@@ -227,7 +227,6 @@ function _getCurrentExchangeRate() internal view override returns (Price memory)
 }
 ```
 
-> ⚠️ **Issue**: This rate is polled at `1e6` scale, not from the actual bulk deposit result. See [audit report](./rounds_vault_audit.md) Finding #1.
 
 ---
 
