@@ -16,7 +16,6 @@
 8. [WisdomTreeArk Internals](#wisdomtreeark)
 9. [Keeper Operations Playbook](#keeper-playbook)
 10. [Entry Point Analysis](#entry-points)
-11. [Known Risks & Audit Findings](#risks)
 
 ---
 
