@@ -11,9 +11,24 @@ import {
   addresToContractName,
   decodeCalldata,
   decodeCrossChainCalldata,
+  DecodedAddress,
   isCrossChainExecution,
   SupportedNetworks,
 } from '../services/validation'
+
+const EXPLORER_URLS: Record<string, string> = {
+  mainnet: 'https://etherscan.io/address/',
+  base: 'https://basescan.org/address/',
+  arbitrum: 'https://arbiscan.io/address/',
+  sonic: 'https://sonicscan.org/address/',
+  hyperliquid: 'https://explorer.hyperliquid.xyz/address/',
+}
+
+const getExplorerUrl = (address: string, chainId: string) => {
+  const networkName = CHAIN_ID_TO_NETWORK[chainId] || 'base'
+  const baseUrl = EXPLORER_URLS[networkName as string] || EXPLORER_URLS.base
+  return `${baseUrl}${address}`
+}
 
 // Timelock Controller ABI for executeBatch
 const TIMELOCK_ABI = [
@@ -131,10 +146,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
     return proposal.status
   }
 
-  const truncateAddress = (address: string, maxLength = 20) => {
-    if (address.length <= maxLength) return address
-    return `${address.slice(0, 10)}...${address.slice(-8)}`
-  }
+  // truncateAddress removed
 
   const formatArgDisplay = (arg: any, theme: ChainTheme): React.ReactNode => {
     if (arg === null || arg === undefined)
@@ -216,6 +228,44 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
       }
     }
 
+    if (
+      typeof arg === 'object' &&
+      arg !== null &&
+      'address' in arg &&
+      'explorerUrl' in arg &&
+      'name' in arg
+    ) {
+      const decodedAddr = arg as DecodedAddress
+      const isUnknown = decodedAddr.name === 'Unknown'
+      return (
+        <div className="flex flex-col gap-0.5 mt-1">
+          {!isUnknown ? (
+            <span
+              className={`text-[10px] font-bold ${theme.bg} ${theme.text} px-2 py-0.5 rounded uppercase tracking-tighter border w-fit`}
+              style={{ borderColor: `${theme.color}30` }}
+            >
+              {decodedAddr.name}
+            </span>
+          ) : (
+            <div className="flex items-center gap-1 text-[10px] text-amber-500/80 font-bold uppercase tracking-tighter">
+              <span className="material-symbols-outlined text-xs">warning</span>
+              <span>Unrecognized</span>
+            </div>
+          )}
+          <a
+            href={decodedAddr.explorerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`font-mono text-xs select-all hover:underline ${isUnknown ? 'text-amber-200/70 italic' : ''}`}
+            style={!isUnknown ? { color: theme.color } : {}}
+            title={decodedAddr.address}
+          >
+            {decodedAddr.address}
+          </a>
+        </div>
+      )
+    }
+
     if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
       return (
         <span
@@ -223,7 +273,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
           style={{ color: theme.color }}
           title={arg}
         >
-          {truncateAddress(arg, 32)}
+          {arg}
         </span>
       )
     }
@@ -392,18 +442,42 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
                             <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold mb-1">
                               Target
                             </p>
-                            <p
-                              className={`text-sm font-mono select-all`}
-                              style={{ color: theme.color }}
-                            >
-                              {truncateAddress(action.target, 32)}
-                            </p>
-                            <p
-                              className={`text-[10px] mt-0.5 font-medium opacity-60`}
-                              style={{ color: theme.color }}
-                            >
-                              {action.contractName}
-                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <a
+                                href={getExplorerUrl(
+                                  action.target,
+                                  baseProposal.chains[0] || '8453',
+                                )}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`text-sm font-mono select-all hover:underline`}
+                                style={{ color: theme.color }}
+                              >
+                                {action.target}
+                              </a>
+                              {action.contractName !== 'Unknown' ? (
+                                <span
+                                  className={`inline-block text-[10px] font-bold ${theme.bg} ${theme.text} px-2 py-0.5 rounded uppercase tracking-tighter border`}
+                                  style={{ borderColor: `${theme.color}30` }}
+                                >
+                                  {action.contractName}
+                                </span>
+                              ) : (
+                                <div className="bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl flex items-center gap-3 mt-4 w-full">
+                                  <span className="material-symbols-outlined text-amber-500/80 text-xl">
+                                    warning
+                                  </span>
+                                  <p className="text-[11px] text-amber-500/80 font-medium">
+                                    Target address{' '}
+                                    <span className="font-mono text-amber-200">
+                                      {action.target}
+                                    </span>{' '}
+                                    not found in known contract registry. Manual verification
+                                    recommended.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
@@ -526,18 +600,39 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
                             <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold mb-1">
                               Target
                             </p>
-                            <p
-                              className={`text-sm font-mono select-all`}
-                              style={{ color: theme.color }}
-                            >
-                              {truncateAddress(action.target, 32)}
-                            </p>
-                            <p
-                              className={`text-[10px] mt-0.5 font-medium opacity-60`}
-                              style={{ color: theme.color }}
-                            >
-                              {action.targetName}
-                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <a
+                                href={getExplorerUrl(action.target, container.chain)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`text-sm font-mono select-all hover:underline`}
+                                style={{ color: theme.color }}
+                              >
+                                {action.target}
+                              </a>
+                              {action.targetName !== 'Unknown' ? (
+                                <span
+                                  className={`inline-block text-[10px] font-bold ${theme.bg} ${theme.text} px-2 py-0.5 rounded uppercase tracking-tighter border`}
+                                  style={{ borderColor: `${theme.color}30` }}
+                                >
+                                  {action.targetName}
+                                </span>
+                              ) : (
+                                <div className="bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl flex items-center gap-3 mt-4 w-full">
+                                  <span className="material-symbols-outlined text-amber-500/80 text-xl">
+                                    warning
+                                  </span>
+                                  <p className="text-[11px] text-amber-500/80 font-medium">
+                                    Target address{' '}
+                                    <span className="font-mono text-amber-200">
+                                      {action.target}
+                                    </span>{' '}
+                                    not found in known contract registry. Manual verification
+                                    recommended.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">

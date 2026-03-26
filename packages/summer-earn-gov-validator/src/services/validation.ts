@@ -175,13 +175,30 @@ export function addresToContractName(address: string, network: SupportedNetworks
   return 'Unknown'
 }
 
-function decodeAddress(address: string, network?: SupportedNetworks): string {
+export interface DecodedAddress {
+  address: string
+  name: string
+  explorerUrl: string
+}
+
+const EXPLORER_URLS: Record<string, string> = {
+  mainnet: 'https://etherscan.io/address/',
+  base: 'https://basescan.org/address/',
+  arbitrum: 'https://arbiscan.io/address/',
+  sonic: 'https://sonicscan.org/address/',
+  hyperliquid: 'https://explorer.hyperliquid.xyz/address/',
+}
+
+export function decodeAddress(address: string, network?: SupportedNetworks): DecodedAddress {
   const targetNetwork = network ?? SupportedNetworks.BASE
   const name = addresToContractName(address, targetNetwork)
-  if (name !== 'Unknown') {
-    return `${targetNetwork}:${name}(${address})`
+  const baseUrl = EXPLORER_URLS[targetNetwork] || EXPLORER_URLS.base
+
+  return {
+    address,
+    name: name !== 'Unknown' ? `${targetNetwork}:${name}` : 'Unknown',
+    explorerUrl: `${baseUrl}${address}`,
   }
-  return address
 }
 
 interface ParamInfo {
@@ -241,6 +258,7 @@ export const decodeCalldata = (
       // Determine token-specific decimals for the function if relevant
       let fixedDecimals: number | null = null
       let usedFallback = false
+      let tokenSymbol = 'Tokens'
 
       if (targetAddress) {
         const contractName = addresToContractName(targetAddress, targetNetwork)
@@ -248,9 +266,11 @@ export const decodeCalldata = (
           const tokenName = contractName.split('.').pop()?.toLowerCase()
           if (tokenName && TOKEN_DECIMALS[tokenName]) {
             fixedDecimals = TOKEN_DECIMALS[tokenName]
+            tokenSymbol = tokenName.toUpperCase()
           }
         } else if (contractName.startsWith('gov.summerToken')) {
           fixedDecimals = 18
+          tokenSymbol = 'SUMMER'
         }
       }
 
@@ -292,14 +312,13 @@ export const decodeCalldata = (
         // Handle Token Amounts
         if (
           fixedDecimals !== null &&
-          (paramInfo?.name === 'amount' ||
-            paramInfo?.name === 'reward' ||
-            paramInfo?.name === 'amountLD' ||
-            paramInfo?.name === 'minAmountLD')
+          (paramInfo?.name.toLowerCase().includes('amount') ||
+            paramInfo?.name.toLowerCase().includes('reward') ||
+            paramInfo?.name.toLowerCase().includes('value'))
         ) {
           try {
             const formatted = formatUnits(BigInt(arg.toString()), fixedDecimals)
-            return `${arg} [formatted:${formatted}${usedFallback ? ':fallback' : ''}]`
+            return `${arg} [formatted:${formatted} ${tokenSymbol}${usedFallback ? ':fallback' : ''}]`
           } catch {
             return arg
           }
