@@ -16,10 +16,11 @@
 8. [WisdomTreeArk Internals](#wisdomtreeark)
 9. [Keeper Operations Playbook](#keeper-playbook)
 10. [Entry Point Analysis](#entry-points)
+11. [Systemic Risks & Operational Limitations](#systemic-risks-operational-limitations)
 
 ---
 
-## 1. Architecture Overview {#architecture-overview}
+## 1. Architecture Overview
 
 The Rounds Vault system solves a fundamental problem: institutional tokenized funds (e.g. WisdomTree WTGXX, CRDYX, and future Benji tokens) have **locked investment periods** where deposits/withdrawals are processed in T+0 or T+1 off-chain settlement cycles. Users cannot interact directly during these periods.
 
@@ -47,7 +48,7 @@ flowchart LR
 
 ---
 
-## 2. Contract Hierarchy {#contract-hierarchy}
+## 2. Contract Hierarchy
 
 ```mermaid
 classDiagram
@@ -96,7 +97,7 @@ classDiagram
 
 ---
 
-## 3. Token Model: Receipts (ERC-1155 NFTs) {#token-model}
+## 3. Token Model: Receipts (ERC-1155 NFTs)
 
 When a user deposits into a Rounds Vault, they do **not** receive ERC-20 shares. Instead they receive **ERC-1155 receipt tokens** where:
 
@@ -134,7 +135,7 @@ stateDiagram-v2
 
 ---
 
-## 4. Round State Machine {#round-state-machine}
+## 4. Round State Machine
 
 Each round has a state tracked in `roundState[roundNumber]`:
 
@@ -161,7 +162,7 @@ stateDiagram-v2
 
 ---
 
-## 5. Input Vault (Deposit Flow) {#input-vault}
+## 5. Input Vault (Deposit Flow)
 
 | Property | Value |
 |----------|-------|
@@ -230,7 +231,7 @@ function _getCurrentExchangeRate() internal view override returns (Price memory)
 
 ---
 
-## 6. Output Vault (Withdrawal Flow) {#output-vault}
+## 6. Output Vault (Withdrawal Flow)
 
 | Property | Value |
 |----------|-------|
@@ -289,7 +290,7 @@ function _getCurrentExchangeRate() internal view override returns (Price memory)
 
 ---
 
-## 7. Exchange Rate Math {#exchange-rate-math}
+## 7. Exchange Rate Math
 
 The `Price` struct from `@summerfi/price-solidity`:
 
@@ -320,7 +321,7 @@ struct Price {
 
 ---
 
-## 8. WisdomTreeArk Internals {#wisdomtreeark}
+## 8. WisdomTreeArk Internals
 
 [WisdomTreeArk.sol](../arks/WisdomTreeArk.sol) handles the on-chain/off-chain bridge to WisdomTree funds.
 
@@ -438,7 +439,7 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 
 ---
 
-## 10. Entry Point Analysis {#entry-points}
+## 10. Entry Point Analysis
 
 ### Summary
 
@@ -487,7 +488,7 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 | `setWhitelistedBatch(accounts, allowed)` | FleetCommanderWhitelist | Batch Fleet whitelist management |
 
 
-### Systemic Risks & Operational Limitations
+## 11. Systemic Risks & Operational Limitations
 
 #### 1. The Output Vault "Round Block" (Liquidity Deadlock)
 `RoundsVaultOutput.nextRound()` demands immediate, synchronous USDC from the FleetCommander. Because `WisdomTreeArk` returns `0` for `_withdrawableTotalAssets()`, the FleetCommander *cannot* withdraw from it synchronously.
