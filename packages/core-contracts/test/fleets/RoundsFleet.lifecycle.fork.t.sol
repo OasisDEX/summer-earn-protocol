@@ -11,6 +11,7 @@ import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 
 import {FleetConfig, FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderPrivateWithTransfer} from "../../src/contracts/FleetCommanderPrivateWithTransfer.sol";
+import {IFleetCommanderPrivateWithTransfer} from "../../src/interfaces/IFleetCommanderPrivateWithTransfer.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
@@ -41,7 +42,7 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         0xda00000035fef4082F78dEF6A8903bee419FbF8E;
     uint256 constant FORK_BLOCK = 20376149;
 
-    IFleetCommander public usdcFleetCommander;
+    FleetCommanderPrivateWithTransfer public usdcFleetCommander;
 
     function setUp() public {
         console.log("Setting up RoundsFleetLifecycleTest");
@@ -111,7 +112,7 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         FleetCommanderPrivateWithTransfer f = new FleetCommanderPrivateWithTransfer(
                 fleetCommanderParams
             );
-        usdcFleetCommander = IFleetCommander(address(f));
+        usdcFleetCommander = FleetCommanderPrivateWithTransfer(address(f));
         fleetCommander = FleetCommander(address(f));
 
         bufferArkAddress = f.bufferArk();
@@ -179,6 +180,11 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         usdcRoundsVaultInput.setWhitelisted(usdcUser, true);
         usdcRoundsVaultOutput.setWhitelisted(usdcUser, true);
 
+        usdcFleetCommander.setWhitelisted(usdcUser, true);
+        usdcFleetCommander.setWhitelisted(address(usdcRoundsVaultInput), true);
+        usdcFleetCommander.setWhitelisted(address(usdcRoundsVaultOutput), true);
+        usdcFleetCommander.setFleetTokenTransferability();
+
         accessManager.grantOperatorRole(
             address(usdcFleetCommander),
             address(usdcRoundsVaultInput)
@@ -196,7 +202,11 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         uint256 usdcTotalDeposit = 1000 * 10 ** 6; // 1000 USDC
 
         // Set deposit caps and minimum buffer balances
-        setFleetParameters(usdcFleetCommander, usdcTotalDeposit, 0);
+        setFleetParameters(
+            IFleetCommander(address(usdcFleetCommander)),
+            usdcTotalDeposit,
+            0
+        );
 
         // Mint tokens for user
         deal(USDC_ADDRESS, usdcUser, usdcTotalDeposit);
@@ -213,123 +223,126 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         // Wait for the keeper to go to the next round
         vm.startPrank(keeper);
         usdcRoundsVaultInput.nextRound();
-        // usdcRoundsVaultInput.setRoundSettled(0);
-        // vm.stopPrank();
+        usdcRoundsVaultInput.setRoundSettled(0);
+        vm.stopPrank();
 
-        // // Exchange the receipt for shares
-        // vm.prank(usdcUser);
-        // usdcRoundsVaultInput.redeemExchangeAsset(
-        //     0,
-        //     usdcTotalDeposit,
-        //     usdcUser,
-        //     usdcUser
-        // );
+        // Exchange the receipt for shares
+        vm.prank(usdcUser);
+        usdcRoundsVaultInput.redeemExchangeAsset(
+            0,
+            usdcTotalDeposit,
+            usdcUser,
+            usdcUser
+        );
 
-        // // Check user has shares
-        // uint256 userShares = usdcFleetCommander.balanceOf(usdcUser);
-        // assertEq(
-        //     userShares,
-        //     usdcTotalDeposit,
-        //     "User should have received shares"
-        // );
+        // Check user has shares
+        uint256 userShares = usdcFleetCommander.balanceOf(usdcUser);
+        assertEq(
+            userShares,
+            usdcTotalDeposit,
+            "User should have received shares"
+        );
 
-        // // Rebalance funds to Ark
-        // rebalanceFleet(usdcFleetCommander, usdcTotalDeposit);
+        // Rebalance funds to Ark
+        rebalanceFleet(
+            IFleetCommander(address(usdcFleetCommander)),
+            usdcTotalDeposit
+        );
 
-        // // Advance time to simulate interest accrual
-        // vm.warp(block.timestamp + 30 days);
+        // Advance time to simulate interest accrual
+        vm.warp(block.timestamp + 30 days);
 
-        // // Check total assets
-        // assertTrue(
-        //     usdcGearboxERC4626Ark.totalAssets() > 0,
-        //     "Ark assets should have increased"
-        // );
+        // Check total assets
+        assertTrue(
+            usdcGearboxERC4626Ark.totalAssets() > 0,
+            "Ark assets should have increased"
+        );
 
-        // // Use the shares to request a withdrawal through rounds output vault
-        // vm.startPrank(usdcUser);
-        // usdcFleetCommander.approve(address(usdcRoundsVaultOutput), userShares);
-        // usdcRoundsVaultOutput.deposit(userShares, usdcUser);
-        // vm.stopPrank();
+        // Use the shares to request a withdrawal through rounds output vault
+        vm.startPrank(usdcUser);
+        usdcFleetCommander.approve(address(usdcRoundsVaultOutput), userShares);
+        usdcRoundsVaultOutput.deposit(userShares, usdcUser);
+        vm.stopPrank();
 
-        // // Rebalance funds back to buffer for OutputVault withdrawal
-        // address[] memory activeArks = usdcFleetCommander.getActiveArks();
-        // RebalanceData[] memory rebalanceData = new RebalanceData[](1);
-        // rebalanceData[0] = RebalanceData({
-        //     fromArk: activeArks[0],
-        //     toArk: address(usdcBufferArk),
-        //     // We use the full balance in the Ark + some margin or just use totalAssets if it empties it
-        //     amount: usdcFleetCommander.totalAssets(),
-        //     boardData: bytes(""),
-        //     disembarkData: bytes("")
-        // });
+        // Rebalance funds back to buffer for OutputVault withdrawal
+        address[] memory activeArks = usdcFleetCommander.getActiveArks();
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: activeArks[0],
+            toArk: address(usdcBufferArk),
+            // We use the full balance in the Ark + some margin or just use totalAssets if it empties it
+            amount: usdcFleetCommander.totalAssets(),
+            boardData: bytes(""),
+            disembarkData: bytes("")
+        });
 
-        // vm.warp(block.timestamp + 1 days);
-        // vm.prank(keeper);
-        // usdcFleetCommander.rebalance(rebalanceData);
+        vm.warp(block.timestamp + 1 days);
+        vm.prank(keeper);
+        usdcFleetCommander.rebalance(rebalanceData);
 
-        // // Wait for the keeper to go another 3 rounds to have unsettled rounds
-        // vm.startPrank(keeper);
-        // usdcRoundsVaultOutput.nextRound(); // Round 0 finishes
-        // usdcRoundsVaultOutput.nextRound(); // Round 1 finishes
-        // usdcRoundsVaultOutput.nextRound(); // Round 2 finishes
-        // vm.stopPrank();
+        // Wait for the keeper to go another 3 rounds to have unsettled rounds
+        vm.startPrank(keeper);
+        usdcRoundsVaultOutput.nextRound(); // Round 0 finishes
+        usdcRoundsVaultOutput.nextRound(); // Round 1 finishes
+        usdcRoundsVaultOutput.nextRound(); // Round 2 finishes
+        vm.stopPrank();
 
-        // // Check that not settled rounds cannot redeemExchangeAsset
-        // vm.startPrank(usdcUser);
-        // vm.expectRevert(
-        //     abi.encodeWithSelector(
-        //         IRoundsVaultBaseErrors.RoundNotSettled.selector,
-        //         0
-        //     )
-        // );
-        // usdcRoundsVaultOutput.redeemExchangeAsset(
-        //     0,
-        //     userShares,
-        //     usdcUser,
-        //     usdcUser
-        // );
-        // vm.stopPrank();
+        // Check that not settled rounds cannot redeemExchangeAsset
+        vm.startPrank(usdcUser);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRoundsVaultBaseErrors.RoundNotSettled.selector,
+                0
+            )
+        );
+        usdcRoundsVaultOutput.redeemExchangeAsset(
+            0,
+            userShares,
+            usdcUser,
+            usdcUser
+        );
+        vm.stopPrank();
 
-        // // Settle the first round
-        // vm.prank(keeper);
-        // usdcRoundsVaultOutput.setRoundSettled(0);
+        // Settle the first round
+        vm.prank(keeper);
+        usdcRoundsVaultOutput.setRoundSettled(0);
 
-        // // Verify round 1 still reverts
-        // vm.startPrank(usdcUser);
-        // vm.expectRevert(
-        //     abi.encodeWithSelector(
-        //         IRoundsVaultBaseErrors.RoundNotSettled.selector,
-        //         1
-        //     )
-        // );
-        // usdcRoundsVaultOutput.redeemExchangeAsset(
-        //     1,
-        //     userShares,
-        //     usdcUser,
-        //     usdcUser
-        // );
-        // vm.stopPrank();
+        // Verify round 1 still reverts
+        vm.startPrank(usdcUser);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRoundsVaultBaseErrors.RoundNotSettled.selector,
+                1
+            )
+        );
+        usdcRoundsVaultOutput.redeemExchangeAsset(
+            1,
+            userShares,
+            usdcUser,
+            usdcUser
+        );
+        vm.stopPrank();
 
-        // // Exchange their receipt ticket for withdrawal for the actual assets
-        // vm.prank(usdcUser);
-        // usdcRoundsVaultOutput.redeemExchangeAsset(
-        //     0,
-        //     userShares,
-        //     usdcUser,
-        //     usdcUser
-        // );
+        // Exchange their receipt ticket for withdrawal for the actual assets
+        vm.prank(usdcUser);
+        usdcRoundsVaultOutput.redeemExchangeAsset(
+            0,
+            userShares,
+            usdcUser,
+            usdcUser
+        );
 
-        // // Assert
-        // assertTrue(
-        //     usdcTokenContract.balanceOf(usdcUser) >= usdcTotalDeposit,
-        //     "User should receive at least their initial deposit"
-        // );
-        // assertApproxEqAbs(
-        //     usdcFleetCommander.totalAssets(),
-        //     0,
-        //     1000,
-        //     "USDC Fleet: Total assets should be close to 0 after withdrawals"
-        // );
+        // Assert
+        assertTrue(
+            usdcTokenContract.balanceOf(usdcUser) >= usdcTotalDeposit,
+            "User should receive at least their initial deposit"
+        );
+        assertApproxEqAbs(
+            usdcFleetCommander.totalAssets(),
+            0,
+            1000,
+            "USDC Fleet: Total assets should be close to 0 after withdrawals"
+        );
     }
 
     function setFleetParameters(
