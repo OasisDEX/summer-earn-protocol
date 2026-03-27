@@ -344,7 +344,7 @@ contract RoundsVaultOutputTest is
 
         vm.startPrank(operator);
         vault.nextRound(); // 1 -> 2
-        
+
         uint256[] memory settleIds = new uint256[](2);
         settleIds[0] = 0;
         settleIds[1] = 1;

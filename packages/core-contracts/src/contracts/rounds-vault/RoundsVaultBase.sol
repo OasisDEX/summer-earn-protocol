@@ -135,7 +135,9 @@ abstract contract RoundsVaultBase is
     /**
      * @inheritdoc IRoundsVaultBase
      */
-    function setRoundSettledBatch(uint256[] calldata roundNumbers) external onlyKeeper {
+    function setRoundSettledBatch(
+        uint256[] calldata roundNumbers
+    ) external onlyKeeper {
         for (uint256 i = 0; i < roundNumbers.length; i++) {
             _setRoundSettled(roundNumbers[i]);
         }
