@@ -479,6 +479,12 @@ contract FleetCommanderPrivateWithTransfer is
         if (!transfersEnabled) {
             revert FleetCommanderTransfersDisabled();
         }
+
+        // If operator wants to transfer, skip whitelist check
+        if (hasOperatorRole(msg.sender)) {
+            return super.transfer(to, amount);
+        }
+
         _revertIfNotWhitelisted(_msgSender());
         _revertIfNotWhitelisted(to);
 
@@ -494,6 +500,11 @@ contract FleetCommanderPrivateWithTransfer is
         if (!transfersEnabled) {
             revert FleetCommanderTransfersDisabled();
         }
+
+        if (hasOperatorRole(msg.sender)) {
+            return super.transferFrom(from, to, amount);
+        }
+
         _revertIfNotWhitelisted(_msgSender());
         _revertIfNotWhitelisted(from);
         _revertIfNotWhitelisted(to);

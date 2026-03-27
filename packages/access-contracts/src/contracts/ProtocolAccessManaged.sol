@@ -270,15 +270,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * @dev Modifier to check that the caller has the Operator role
      */
     modifier onlyOperator() {
-        if (
-            !_accessManager.hasRole(
-                generateRole(
-                    ContractSpecificRoles.OPERATOR_ROLE,
-                    address(this)
-                ),
-                msg.sender
-            )
-        ) {
+        if (!hasOperatorRole(msg.sender)) {
             revert CallerIsNotOperator(msg.sender);
         }
         _;
@@ -311,6 +303,22 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         address account
     ) public view returns (bool) {
         return _accessManager.hasRole(ADMIRALS_QUARTERS_ROLE, account);
+    }
+
+    /**
+     * @notice Checks if an account has the Operator role
+     * @param account The address to check
+     * @return bool True if the account has the Operator role
+     */
+    function hasOperatorRole(address account) public view returns (bool) {
+        return
+            _accessManager.hasRole(
+                generateRole(
+                    ContractSpecificRoles.OPERATOR_ROLE,
+                    address(this)
+                ),
+                account
+            );
     }
 
     /*//////////////////////////////////////////////////////////////
