@@ -1,11 +1,6 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
-features:
-  - grafting
-graft:
-  base: QmVv7kwT2tn6EU6iuPfyvZnoPNYUFLoFej3gFZ9912JXJe
-  block: 38330000
 dataSources:
   - kind: ethereum/contract
     name: SummerGovernor
@@ -13,7 +8,7 @@ dataSources:
     source:
       abi: SummerGovernor
       address: "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
-      startBlock: 25642501
+      startBlock: 38595966
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -52,7 +47,7 @@ dataSources:
     source:
       abi: SummerGovernor
       address: "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274"
-      startBlock: 25642501
+      startBlock: 38595966
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -84,6 +79,12 @@ dataSources:
         - event: ProposalReceivedCrossChain(indexed uint256,indexed uint32)
           handler: handleProposalReceivedCrossChain
           receipt: true
+        - event: VoteCast(indexed address,uint256,uint8,uint256,string)
+          handler: handleVoteCast
+          receipt: true
+        - event: VoteCastWithParams(indexed address,uint256,uint8,uint256,string,bytes)
+          handler: handleVoteCastWithParams
+          receipt: true
       file: ./src/mappings/governance.ts
   - kind: ethereum/contract
     name: ProtocolAccessManager
@@ -91,7 +92,7 @@ dataSources:
     source:
       abi: ProtocolAccessManager
       address: "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694"
-      startBlock: 25642482
+      startBlock: 38595966
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -111,6 +112,28 @@ dataSources:
           handler: handleRoleRevoked
           receipt: true
       file: ./src/mappings/accessManagement.ts  
+  - kind: ethereum/contract
+    name: SummerGovernanceToken
+    network: base
+    source:
+      abi: Votes
+      address: "0x7cC488F2681cFC2A5E8A00184bfA94ea6d520D1c"
+      startBlock: 38595471
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Delegate
+      abis:
+        - name: Votes
+          file: ./abis/Votes.json
+      eventHandlers:
+        - event: DelegateChanged(indexed address,indexed address,indexed address)
+          handler: handleDelegateChanged
+        - event: DelegateVotesChanged(indexed address,uint256,uint256)
+          handler: handleDelegateVotesChanged
+      file: ./src/mappings/votes.ts
 templates:
   - kind: ethereum/contract
     name: TimelockControllerTemplate

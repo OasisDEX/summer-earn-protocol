@@ -38,6 +38,16 @@ export function Header() {
               >
                 Cross-Chain Proposals
               </Link>
+              <Link
+                href="/treasury"
+                className={`text-sm font-medium transition-colors duration-200 ${
+                  pathname === '/treasury'
+                    ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 pb-1'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                }`}
+              >
+                Treasury
+              </Link>
             </nav>
           </div>
           <div className="flex items-center space-x-4">

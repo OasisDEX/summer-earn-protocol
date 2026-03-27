@@ -1120,12 +1120,18 @@ export async function createArkAdditionCrossChainProposal(
 ): Promise<void> {
   console.log(kleur.yellow('Creating cross-chain governance proposal to add arks...'))
 
+  const satelliteConfig = getConfigByNetwork(
+    network,
+    { gov: true, core: true },
+    useBummerConfig,
+  ) as BaseConfig
   const hubConfig = getConfigByNetwork(
     HUB_CHAIN_NAME,
     { gov: true, core: true },
     useBummerConfig,
   ) as BaseConfig
-  const raftAddress = hubConfig.deployedContracts.core.raft.address as Address
+
+  const raftAddress = satelliteConfig.deployedContracts.core.raft.address as Address
 
   // Set up clients for the hub chain
   console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan(HUB_CHAIN_NAME))

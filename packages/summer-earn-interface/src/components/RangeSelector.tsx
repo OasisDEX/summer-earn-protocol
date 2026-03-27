@@ -14,28 +14,23 @@ const OPTIONS: { label: string; value: RangeOption }[] = [
   { label: '30d', value: '30d' },
   { label: '90d', value: '90d' },
   { label: '180d', value: '180d' },
-  { label: '365d', value: '365d' },
+  { label: '1y', value: '365d' },
 ]
 
 export const RangeSelector: React.FC<RangeSelectorProps> = ({ value, onChange, className }) => {
   return (
     <div className={className}>
-      <div className="inline-flex rounded-md shadow-sm overflow-hidden border border-gray-700">
+      <div className="flex bg-[#121316] p-1 rounded-lg border border-white/[0.06]">
         {OPTIONS.map((option) => (
           <button
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
-            className={
-              `px-3 py-1.5 text-sm transition-colors ${
-                value === option.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }` +
-              (option.value !== OPTIONS[OPTIONS.length - 1].value
-                ? ' border-r border-gray-700'
-                : '')
-            }
+            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+              value === option.value
+                ? 'bg-[#89acff] text-[#002b6a] shadow-lg shadow-[#89acff]/20'
+                : 'text-[#ababad] hover:text-[#fdfbfe] hover:bg-white/[0.04]'
+            }`}
           >
             {option.label}
           </button>
