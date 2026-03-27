@@ -11,6 +11,7 @@ import {IProtocolAccessManager, ContractSpecificRoles} from "@summerfi/access-co
 import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
 import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
+import {IRoundsVaultBaseEnums} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
 import {UD60x18, ud} from "@prb/math/src/UD60x18.sol";
 import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
 
@@ -479,6 +480,63 @@ contract RoundsVaultOutputTest is
         vm.stopPrank();
     }
 
+    function test_ROV0013_SetRoundSettledRevertsIfInvalidState() public {
+        vm.startPrank(operator); // keeper
+
+        // Scenario 1: Round 0 is currently NotOpened (0)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidRoundState.selector,
+                0,
+                IRoundsVaultBaseEnums.RoundState.NotOpened,
+                IRoundsVaultBaseEnums.RoundState.InSettlement
+            )
+        );
+        vault.setRoundSettled(0);
+
+        // Move to next round
+        vault.nextRound(); // Round 0 -> InSettlement, Round 1 -> Opened
+
+        // Scenario 2: Round 1 is Opened (1)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidRoundState.selector,
+                1,
+                IRoundsVaultBaseEnums.RoundState.Opened,
+                IRoundsVaultBaseEnums.RoundState.InSettlement
+            )
+        );
+        vault.setRoundSettled(1);
+
+        // Success: Round 0 is InSettlement (2)
+        vault.setRoundSettled(0); // Round 0 -> Settled
+
+        // Scenario 3: Round 0 is already Settled (3)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidRoundState.selector,
+                0,
+                IRoundsVaultBaseEnums.RoundState.Settled,
+                IRoundsVaultBaseEnums.RoundState.InSettlement
+            )
+        );
+        vault.setRoundSettled(0);
+
+        // Batch test
+        uint256[] memory rounds = new uint256[](1);
+        rounds[0] = 1;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidRoundState.selector,
+                1,
+                IRoundsVaultBaseEnums.RoundState.Opened,
+                IRoundsVaultBaseEnums.RoundState.InSettlement
+            )
+        );
+        vault.setRoundSettledBatch(rounds);
+        vm.stopPrank();
+    }
+
     function test_ROV0011_RevertIfOwnerNotWhitelisted() public {
         address validCaller = address(0x4);
         address receiver = address(0x5);
@@ -497,9 +555,7 @@ contract RoundsVaultOutputTest is
 
         vm.startPrank(validCaller);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, owner)
-        );
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
         vault.redeem(0, shares, receiver, owner);
 
         uint256[] memory ids = new uint256[](1);
@@ -507,25 +563,14 @@ contract RoundsVaultOutputTest is
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = shares;
 
-        vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, owner)
-        );
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
         vault.redeemBatch(ids, amounts, receiver, owner);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, owner)
-        );
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
         vault.redeemExchangeAsset(0, shares, receiver, owner);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, owner)
-        );
-        vault.redeemExchangeAssetBatch(
-            ids,
-            amounts,
-            receiver,
-            owner
-        );
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vault.redeemExchangeAssetBatch(ids, amounts, receiver, owner);
         vm.stopPrank();
     }
 
@@ -575,12 +620,7 @@ contract RoundsVaultOutputTest is
         vm.expectRevert(
             abi.encodeWithSelector(NotWhitelisted.selector, receiver)
         );
-        vault.redeemExchangeAssetBatch(
-            ids,
-            amounts,
-            receiver,
-            owner
-        );
+        vault.redeemExchangeAssetBatch(ids, amounts, receiver, owner);
         vm.stopPrank();
     }
 }

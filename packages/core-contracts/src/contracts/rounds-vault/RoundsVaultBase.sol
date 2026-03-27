@@ -359,6 +359,14 @@ abstract contract RoundsVaultBase is
      * @notice Helper function to mark a round as settled
      */
     function _setRoundSettled(uint256 roundNumber) internal {
+        if (roundState[roundNumber] != RoundState.InSettlement) {
+            revert InvalidRoundState(
+                roundNumber,
+                roundState[roundNumber],
+                RoundState.InSettlement
+            );
+        }
+
         roundState[roundNumber] = RoundState.Settled;
         emit RoundSettled(roundNumber);
     }
