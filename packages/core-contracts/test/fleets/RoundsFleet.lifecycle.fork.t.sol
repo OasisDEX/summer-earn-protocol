@@ -25,6 +25,8 @@ import {RoundsVaultInput} from "../../src/contracts/rounds-vault/RoundsVaultInpu
 import {RoundsVaultOutput} from "../../src/contracts/rounds-vault/RoundsVaultOutput.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
+import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
+import {ProtocolAccessManagerV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagerV2.sol";
 
 contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     ERC4626Ark public usdcGearboxERC4626Ark;
@@ -48,6 +50,7 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         console.log("Setting up RoundsFleetLifecycleTest");
 
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
+        accessManager = new ProtocolAccessManagerV2(governor);
 
         uint256 initialTipRate = 0;
         setupExternalContracts();
@@ -185,11 +188,11 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         usdcFleetCommander.setWhitelisted(address(usdcRoundsVaultOutput), true);
         usdcFleetCommander.setFleetTokenTransferability();
 
-        accessManager.grantOperatorRole(
+        IProtocolAccessManagerV2(address(accessManager)).grantOperatorRole(
             address(usdcFleetCommander),
             address(usdcRoundsVaultInput)
         );
-        accessManager.grantOperatorRole(
+        IProtocolAccessManagerV2(address(accessManager)).grantOperatorRole(
             address(usdcFleetCommander),
             address(usdcRoundsVaultOutput)
         );

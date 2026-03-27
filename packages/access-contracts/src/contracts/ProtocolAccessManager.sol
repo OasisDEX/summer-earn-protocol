@@ -266,30 +266,6 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         _revokeRole(DECAY_CONTROLLER_ROLE, account);
     }
 
-    /// @inheritdoc IProtocolAccessManager
-    function grantOperatorRole(
-        address fleetCommanderAddress,
-        address account
-    ) public onlyGovernor {
-        grantContractSpecificRole(
-            ContractSpecificRoles.OPERATOR_ROLE,
-            fleetCommanderAddress,
-            account
-        );
-    }
-
-    /// @inheritdoc IProtocolAccessManager
-    function revokeOperatorRole(
-        address fleetCommanderAddress,
-        address account
-    ) public onlyGovernor {
-        revokeContractSpecificRole(
-            ContractSpecificRoles.OPERATOR_ROLE,
-            fleetCommanderAddress,
-            account
-        );
-    }
-
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
