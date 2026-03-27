@@ -11,6 +11,25 @@ type Proposal @entity {
     eta: BigInt!
     createdAt: BigInt!
     governor: String!
+    voteStart: BigInt!
+    voteEnd: BigInt!
+    quorum: BigInt!
+    forVotes: BigInt!
+    againstVotes: BigInt!
+    abstainVotes: BigInt!
+    votes: [Vote!]! @derivedFrom(field: "proposal")
+}
+
+type Vote @entity {
+    id: ID! # hash + logIndex
+    proposal: Proposal!
+    voter: String!
+    support: Int! # 0: Against, 1: For, 2: Abstain
+    votes: BigInt!
+    reason: String!
+    params: Bytes
+    blockNumber: BigInt!
+    timestamp: BigInt!
 }
 
 type CrossChainProposal @entity {
@@ -57,4 +76,10 @@ type RoleEvent @entity @transaction {
 enum RoleAction {
   GRANT_ROLE
   REVOKE_ROLE
+}
+
+type Delegate @entity {
+  id: ID! # address
+  votingPower: BigInt!
+  delegationsCount: Int!
 }

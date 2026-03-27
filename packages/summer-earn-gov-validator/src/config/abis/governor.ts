@@ -1,0 +1,100 @@
+export const GOVERNOR_ABI = [
+  {
+    type: 'function',
+    name: 'execute',
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'descriptionHash', type: 'bytes32' },
+    ],
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    name: 'queue',
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'descriptionHash', type: 'bytes32' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'castVote',
+    inputs: [
+      { name: 'proposalId', type: 'uint256' },
+      { name: 'support', type: 'uint8' },
+    ],
+    outputs: [{ name: 'balance', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'proposalVotes',
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    outputs: [
+      { name: 'againstVotes', type: 'uint256' },
+      { name: 'forVotes', type: 'uint256' },
+      { name: 'abstainVotes', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'hasVoted',
+    inputs: [
+      { name: 'proposalId', type: 'uint256' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'proposalThreshold',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getVotes',
+    inputs: [
+      { name: 'account', type: 'address' },
+      { name: 'timepoint', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'propose',
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'description', type: 'string' },
+    ],
+    outputs: [{ name: 'proposalId', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'sendProposalToTargetChain',
+    inputs: [
+      { name: '_dstEid', type: 'uint32' },
+      { name: '_dstTargets', type: 'address[]' },
+      { name: '_dstValues', type: 'uint256[]' },
+      { name: '_dstCalldatas', type: 'bytes[]' },
+      { name: '_dstDescriptionHash', type: 'bytes32' },
+      { name: '_options', type: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+] as const

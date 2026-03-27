@@ -1,12 +1,14 @@
 {
   "network": "base",
   "summer-governor-address": "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa",
-  "summer-governor-start-block": 25642501,
+  "summer-governor-start-block": 38595966,
   "summer-governor-v2-address": "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274",
-  "summer-governor-v2-start-block": 25642501,
+  "summer-governor-v2-start-block": 38595966,
   "protocol-access-manager-address": "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
-  "protocol-access-manager-start-block": 25642482,
+  "protocol-access-manager-start-block": 38595966,
   "harbor-command-address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F",
+  "summer-governance-token-address": "0x7cC488F2681cFC2A5E8A00184bfA94ea6d520D1c",
+  "summer-governance-token-start-block": 38595471,
   "enable-grafting": false,
   "grafting-base": "QmVv7kwT2tn6EU6iuPfyvZnoPNYUFLoFej3gFZ9912JXJe",
   "grafting-block": "38330000"

@@ -1,17 +1,8 @@
 import { useState } from 'react'
 
-import { ProposalList } from './ProposalList'
+import { Proposal } from '@/types/governance'
 
-interface Proposal {
-  id: string
-  targets: string[]
-  values: string[]
-  calldatas: string[]
-  description: string
-  descriptionHash: string
-  status: string
-  chains: string[]
-}
+import { ProposalList } from './ProposalList'
 
 export function Form() {
   const [targets, setTargets] = useState<string[]>([''])
