@@ -8,23 +8,35 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#ff2e8f',
+        primary: '#89acff',
+        'primary-dim': '#5a90ff',
+        'primary-container': '#739eff',
+        secondary: '#68fadd',
+        'secondary-dim': '#56ebcf',
+        tertiary: '#e0f4ff',
+        'tertiary-dim': '#bfd8e5',
+        error: '#ff716c',
+        surface: '#0d0e10',
+        'surface-dim': '#0d0e10',
+        'surface-bright': '#2b2c2f',
+        'surface-container-lowest': '#000000',
+        'surface-container-low': '#121316',
+        'surface-container': '#181a1c',
+        'surface-container-high': '#1e2022',
+        'surface-container-highest': '#242629',
+        background: '#0d0e10',
+        'on-surface': '#fdfbfe',
+        'on-surface-variant': '#ababad',
+        'on-primary': '#002b6a',
+        'on-secondary': '#005d4f',
+        outline: '#757578',
+        'outline-variant': '#47484a',
+        // Legacy colours kept for other pages
         'background-light': '#f8f5f7',
         'background-dark': '#0f070b',
-        charcoal: {
-          700: '#1b2130',
-          800: '#1a1116',
-          900: '#0f070b',
-        },
-        magenta: {
-          500: '#ff2d8f',
-          600: '#e02682',
-          700: '#c01f71',
-        },
-        violet: {
-          400: '#9b7bff',
-          500: '#7c5cff',
-        },
+        charcoal: { 700: '#1b2130', 800: '#1a1116', 900: '#0f070b' },
+        magenta: { 500: '#ff2d8f', 600: '#e02682', 700: '#c01f71' },
+        violet: { 400: '#9b7bff', 500: '#7c5cff' },
       },
       boxShadow: {
         glow: '0 0 0 2px rgba(255,45,143,0.35)',
@@ -39,6 +51,7 @@ module.exports = {
         full: '9999px',
       },
       fontFamily: {
+        headline: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
