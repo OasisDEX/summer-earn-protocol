@@ -270,6 +270,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /**
      * @notice Freezes or unfreezes deposits for this Ark.
      * @param _isArkFrozen The new frozen state
+     * @param frozenTotalAssets The total assets of the ark when it was frozen
      */
     function setArkFrozen(
         bool _isArkFrozen,
