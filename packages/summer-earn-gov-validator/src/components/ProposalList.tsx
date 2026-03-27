@@ -1,22 +1,11 @@
 import { useEffect, useState } from 'react'
 
 import { addresToContractName, SupportedNetworks } from '@/services/validation'
+import { Proposal } from '@/types/governance'
 import { calculateProposalTiming } from '@/utils/timing'
 
 import { PhaseIndicator } from './PhaseIndicator'
 import { ProposalModal } from './ProposalModal'
-
-interface Proposal {
-  id: string
-  targets: string[]
-  values: string[]
-  calldatas: string[]
-  description: string
-  descriptionHash: string
-  status: string
-  chains: string[]
-  createdAt?: string
-}
 
 interface RawProposal {
   id: string

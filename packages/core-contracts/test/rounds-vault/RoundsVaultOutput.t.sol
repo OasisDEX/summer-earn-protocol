@@ -345,7 +345,7 @@ contract RoundsVaultOutputTest is
 
         vm.startPrank(operator);
         vault.nextRound(); // 1 -> 2
-        
+
         uint256[] memory settleIds = new uint256[](2);
         settleIds[0] = 0;
         settleIds[1] = 1;
@@ -482,7 +482,7 @@ contract RoundsVaultOutputTest is
 
     function test_ROV0013_SetRoundSettledRevertsIfInvalidState() public {
         vm.startPrank(operator); // keeper
-        
+
         // Scenario 1: Round 0 is currently NotOpened (0)
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -534,7 +534,93 @@ contract RoundsVaultOutputTest is
             )
         );
         vault.setRoundSettledBatch(rounds);
+        vm.stopPrank();
+    }
 
+    function test_ROV0011_RevertIfOwnerNotWhitelisted() public {
+        address validCaller = address(0x4);
+        address receiver = address(0x5);
+        address owner = unprivilegedAccount; // not whitelisted
+
+        // Disable open whitelist
+        vm.prank(admin);
+        vault.setWhitelisted(address(0), false);
+
+        vm.startPrank(admin);
+        vault.setWhitelisted(validCaller, true);
+        vault.setWhitelisted(receiver, true);
+        vm.stopPrank();
+
+        uint256 shares = 1 ether;
+
+        vm.startPrank(validCaller);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vault.redeem(0, shares, receiver, owner);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 0;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = shares;
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vault.redeemBatch(ids, amounts, receiver, owner);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vault.redeemExchangeAsset(0, shares, receiver, owner);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vault.redeemExchangeAssetBatch(ids, amounts, receiver, owner);
+        vm.stopPrank();
+    }
+
+    function test_ROV0012_RevertIfReceiverNotWhitelisted() public {
+        address validCaller = address(0x4);
+        address receiver = address(0x5); // not whitelisted
+        address owner = address(0x6);
+
+        // Disable open whitelist
+        vm.prank(admin);
+        vault.setWhitelisted(address(0), false);
+
+        vm.startPrank(admin);
+        vault.setWhitelisted(validCaller, true);
+        vault.setWhitelisted(owner, true);
+        vm.stopPrank();
+
+        uint256 shares = 1 ether;
+
+        vm.startPrank(validCaller);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+        );
+        vault.deposit(shares, receiver);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+        );
+        vault.redeem(0, shares, receiver, owner);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 0;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = shares;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+        );
+        vault.redeemBatch(ids, amounts, receiver, owner);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+        );
+        vault.redeemExchangeAsset(0, shares, receiver, owner);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+        );
+        vault.redeemExchangeAssetBatch(ids, amounts, receiver, owner);
         vm.stopPrank();
     }
 }
