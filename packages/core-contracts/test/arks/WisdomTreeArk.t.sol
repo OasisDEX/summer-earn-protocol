@@ -695,15 +695,15 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
     function test_EmergencySweep_Success() public {
         uint256 amount = 60000 * 1e6;
         deal(USDC_ADDRESS, commander, amount);
-        
+
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        uint256 sharesMinted = 1e18; 
+        uint256 sharesMinted = 1e18;
         wtToken.mint(address(forwarder), sharesMinted);
-        
+
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
         ark.requestWithdrawal(amount);
@@ -712,7 +712,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         // Use returned Usdc far below the slippage limit
         uint256 returnedUsdc = 50000 * 1e6; // Fails slippage constraint
         deal(USDC_ADDRESS, address(forwarder), returnedUsdc);
-        
+
         vm.mockCall(
             address(commander),
             abi.encodeWithSignature("bufferArk()"),
