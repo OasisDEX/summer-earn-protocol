@@ -12,7 +12,11 @@ import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWrite
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
-contract FleetCommanderPrivateWithTransferTest is Test, TestHelpers, FleetCommanderTestBase {
+contract FleetCommanderPrivateWithTransferTest is
+    Test,
+    TestHelpers,
+    FleetCommanderTestBase
+{
     FleetCommanderPrivateWithTransfer public privateFleetCommander;
     address public operator = makeAddr("operator");
     address public nonWhitelistedUser = makeAddr("nonWhitelistedUser");
@@ -20,11 +24,11 @@ contract FleetCommanderPrivateWithTransferTest is Test, TestHelpers, FleetComman
     function setUp() public {
         // We override accessManager to use V2 before setupBaseContracts
         accessManager = new ProtocolAccessManagerV2(governor);
-        
+
         setupBaseContracts();
-        
+
         mockToken = new ERC20Mock();
-        
+
         vm.startPrank(governor);
         fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),
@@ -39,14 +43,21 @@ contract FleetCommanderPrivateWithTransferTest is Test, TestHelpers, FleetComman
             depositCap: type(uint256).max
         });
 
-        privateFleetCommander = new FleetCommanderPrivateWithTransfer(fleetCommanderParams);
+        privateFleetCommander = new FleetCommanderPrivateWithTransfer(
+            fleetCommanderParams
+        );
         fleetCommander = privateFleetCommander; // Set base variable
 
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(address(privateFleetCommander));
+        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
+            address(privateFleetCommander)
+        );
         harborCommand.enlistFleetCommander(address(privateFleetCommander));
-        
+
         // Grant Operator role to the operator address
-        IProtocolAccessManagerV2(address(accessManager)).grantOperatorRole(address(privateFleetCommander), operator);
+        IProtocolAccessManagerV2(address(accessManager)).grantOperatorRole(
+            address(privateFleetCommander),
+            operator
+        );
         vm.stopPrank();
 
         uint256 amount = 1000 * 10 ** 6;
@@ -77,35 +88,47 @@ contract FleetCommanderPrivateWithTransferTest is Test, TestHelpers, FleetComman
 
     function test_OperatorCanTransferToNonWhitelisted() public {
         uint256 amountToTransfer = 100 * 10 ** 6;
-        
+
         vm.startPrank(operator);
         // Operator transfers to a non-whitelisted user
         privateFleetCommander.transfer(nonWhitelistedUser, amountToTransfer);
         vm.stopPrank();
 
-        assertEq(privateFleetCommander.balanceOf(nonWhitelistedUser), amountToTransfer);
+        assertEq(
+            privateFleetCommander.balanceOf(nonWhitelistedUser),
+            amountToTransfer
+        );
     }
 
-    function test_OperatorCanTransferFromNonWhitelistedToNonWhitelisted() public {
+    function test_OperatorCanTransferFromNonWhitelistedToNonWhitelisted()
+        public
+    {
         uint256 amountToTransfer = 100 * 10 ** 6;
 
         // mockUser approves operator
         vm.startPrank(mockUser);
         privateFleetCommander.approve(operator, amountToTransfer);
         vm.stopPrank();
-        
+
         vm.startPrank(operator);
         // Operator transfers from mockUser (who is whitelisted) to nonWhitelistedUser (who is NOT whitelisted)
         // Since operator is doing it, it bypasses the to/from whitelist checks
-        privateFleetCommander.transferFrom(mockUser, nonWhitelistedUser, amountToTransfer);
+        privateFleetCommander.transferFrom(
+            mockUser,
+            nonWhitelistedUser,
+            amountToTransfer
+        );
         vm.stopPrank();
 
-        assertEq(privateFleetCommander.balanceOf(nonWhitelistedUser), amountToTransfer);
+        assertEq(
+            privateFleetCommander.balanceOf(nonWhitelistedUser),
+            amountToTransfer
+        );
     }
 
     function test_NonOperatorCannotTransferToNonWhitelisted() public {
         uint256 amountToTransfer = 100 * 10 ** 6;
-        
+
         vm.startPrank(mockUser);
         vm.expectRevert(); // Typically fails with a validation error
         privateFleetCommander.transfer(nonWhitelistedUser, amountToTransfer);
@@ -127,11 +150,15 @@ contract FleetCommanderPrivateWithTransferTest is Test, TestHelpers, FleetComman
         privateFleetCommander.deposit(amountToTransfer, mockUser2);
         privateFleetCommander.approve(mockUser, amountToTransfer);
         vm.stopPrank();
-        
+
         vm.startPrank(mockUser);
         vm.expectRevert();
         // Since mockUser is not an operator, transfer to nonWhitelistedUser should fail
-        privateFleetCommander.transferFrom(mockUser2, nonWhitelistedUser, amountToTransfer);
+        privateFleetCommander.transferFrom(
+            mockUser2,
+            nonWhitelistedUser,
+            amountToTransfer
+        );
         vm.stopPrank();
     }
 }

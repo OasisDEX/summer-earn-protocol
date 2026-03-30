@@ -476,13 +476,13 @@ contract FleetCommanderPrivateWithTransfer is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        if (!transfersEnabled) {
-            revert FleetCommanderTransfersDisabled();
-        }
-
-        // If operator wants to transfer, skip whitelist check
+        // If operator wants to transfer, skip whitelist and transfersEnabled check
         if (hasOperatorRole(msg.sender)) {
             return super.transfer(to, amount);
+        }
+
+        if (!transfersEnabled) {
+            revert FleetCommanderTransfersDisabled();
         }
 
         _revertIfNotWhitelisted(_msgSender());
@@ -497,12 +497,12 @@ contract FleetCommanderPrivateWithTransfer is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        if (!transfersEnabled) {
-            revert FleetCommanderTransfersDisabled();
-        }
-
         if (hasOperatorRole(msg.sender)) {
             return super.transferFrom(from, to, amount);
+        }
+
+        if (!transfersEnabled) {
+            revert FleetCommanderTransfersDisabled();
         }
 
         _revertIfNotWhitelisted(_msgSender());
