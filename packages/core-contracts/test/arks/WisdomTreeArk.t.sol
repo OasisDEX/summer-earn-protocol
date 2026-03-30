@@ -684,4 +684,53 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         ark.sweep();
         vm.stopPrank();
     }
+
+    function test_EmergencySweep_Reverts_If_Not_Governor() public {
+        vm.startPrank(keeper); // not governor
+        vm.expectRevert();
+        ark.emergencySweep();
+        vm.stopPrank();
+    }
+
+    function test_EmergencySweep_Success() public {
+        uint256 amount = 60000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(forwarder), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        // Use returned Usdc far below the slippage limit
+        uint256 returnedUsdc = 50000 * 1e6; // Fails slippage constraint
+        deal(USDC_ADDRESS, address(forwarder), returnedUsdc);
+
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        // Should work when called by governor
+        vm.startPrank(governor);
+        ark.emergencySweep();
+        vm.stopPrank();
+
+        assertEq(ark.pendingWithdrawalShares(), 0);
+        assertEq(ark.pendingWithdrawalAssets(), 0);
+        assertEq(usdc.balanceOf(address(bufferArk)), returnedUsdc);
+    }
 }

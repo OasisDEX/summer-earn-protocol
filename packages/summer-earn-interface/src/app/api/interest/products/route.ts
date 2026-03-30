@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       query: `
-        query { products { id name protocol token { id address symbol decimals precision } network pool } }
+        query { products(first:1000) { id name protocol token { id address symbol decimals precision } network pool } }
       `,
     }),
     // Helps Next avoid caching upstream post requests

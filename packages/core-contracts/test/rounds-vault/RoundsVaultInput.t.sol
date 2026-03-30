@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
 import {RoundsVaultInput} from "../../src/contracts/rounds-vault/RoundsVaultInput.sol";
-import {MockERC20} from "../mocks/MockERC20.sol";
-import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
 import {IRoundsVaultInputEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultInputEvents.sol";
+import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Test} from "forge-std/Test.sol";
 // Corrected relative path to access-contracts
-import {IProtocolAccessManager, ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
-import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
+import {IRoundsVaultBaseEnums} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
+import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
 import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 // Mock Access Manager to handle role checks
 contract MockAccessManager {
@@ -182,11 +183,12 @@ contract RoundsVaultInputTest is
 
         vm.startPrank(operator);
 
-        vm.expectEmit(true, false, false, true); // Don't match all topics if exact struct matching is tricky, but let's try matching.
+        vm.expectEmit(true, false, false, true); // Don't match all topics if exact struct matching is tricky, but let's
+        // try matching.
         emit AssetsDeposited(0, operator, assets, shares);
 
         // Price struct is (baseAmount, quoteAmount)
-        Price memory expectedPrice = Price(1e18, 1e18);
+        Price memory expectedPrice = Price(assets, shares);
 
         vm.expectEmit(true, true, true, true);
         emit NextRound(1, expectedPrice);
@@ -522,5 +524,188 @@ contract RoundsVaultInputTest is
             unprivilegedAccount
         );
         vm.stopPrank();
+    }
+
+    function test_RIV0013_SetRoundSettledRevertsIfInvalidState() public {
+        vm.startPrank(operator); // keeper
+
+        // Scenario 1: Round 0 is currently NotOpened (0)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidRoundState.selector,
+                0,
+                IRoundsVaultBaseEnums.RoundState.NotOpened,
+                IRoundsVaultBaseEnums.RoundState.InSettlement
+            )
+        );
+        vault.setRoundSettled(0);
+
+        // Move to next round
+        vault.nextRound(); // Round 0 -> InSettlement, Round 1 -> Opened
+
+        // Scenario 2: Round 1 is Opened (1)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidRoundState.selector,
+                1,
+                IRoundsVaultBaseEnums.RoundState.Opened,
+                IRoundsVaultBaseEnums.RoundState.InSettlement
+            )
+        );
+        vault.setRoundSettled(1);
+
+        // Success: Round 0 is InSettlement (2)
+        vault.setRoundSettled(0); // Round 0 -> Settled
+
+        // Scenario 3: Round 0 is already Settled (3)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidRoundState.selector,
+                0,
+                IRoundsVaultBaseEnums.RoundState.Settled,
+                IRoundsVaultBaseEnums.RoundState.InSettlement
+            )
+        );
+        vault.setRoundSettled(0);
+
+        // Batch test
+        uint256[] memory rounds = new uint256[](1);
+        rounds[0] = 1;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidRoundState.selector,
+                1,
+                IRoundsVaultBaseEnums.RoundState.Opened,
+                IRoundsVaultBaseEnums.RoundState.InSettlement
+            )
+        );
+        vault.setRoundSettledBatch(rounds);
+        vm.stopPrank();
+    }
+
+    function test_RIV0011_RevertIfOwnerNotWhitelisted() public {
+        address validCaller = address(0x4);
+        address receiver = address(0x5);
+        address owner = unprivilegedAccount; // not whitelisted
+
+        // Disable open whitelist
+        vm.prank(admin);
+        vault.setWhitelisted(address(0), false);
+
+        vm.startPrank(admin);
+        vault.setWhitelisted(validCaller, true);
+        vault.setWhitelisted(receiver, true);
+        vm.stopPrank();
+
+        uint256 assets = 0.2 ether;
+
+        vm.startPrank(validCaller);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vault.redeem(0, assets, receiver, owner);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 0;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = assets;
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vault.redeemBatch(ids, amounts, receiver, owner);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vault.redeemExchangeAsset(0, assets, receiver, owner);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vault.redeemExchangeAssetBatch(ids, amounts, receiver, owner);
+        vm.stopPrank();
+    }
+
+    function test_RIV0012_RevertIfReceiverNotWhitelisted() public {
+        address validCaller = address(0x4);
+        address receiver = address(0x5); // not whitelisted
+        address owner = address(0x6);
+
+        // Disable open whitelist
+        vm.prank(admin);
+        vault.setWhitelisted(address(0), false);
+
+        vm.startPrank(admin);
+        vault.setWhitelisted(validCaller, true);
+        vault.setWhitelisted(owner, true);
+        vm.stopPrank();
+
+        uint256 assets = 0.2 ether;
+
+        vm.startPrank(validCaller);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+        );
+        vault.deposit(assets, receiver);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+        );
+        vault.redeem(0, assets, receiver, owner);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 0;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = assets;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+        );
+        vault.redeemBatch(ids, amounts, receiver, owner);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+        );
+        vault.redeemExchangeAsset(0, assets, receiver, owner);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+        );
+        vault.redeemExchangeAssetBatch(ids, amounts, receiver, owner);
+        vm.stopPrank();
+    }
+
+    function test_RIV0014_TransferUpdatesTotalSupply() public {
+        uint256 assets = 0.2 ether;
+        address accountA = unprivilegedAccount;
+        address accountB = address(0xB);
+
+        vm.prank(admin);
+        vault.setWhitelisted(accountB, true);
+
+        // 1. Deposit to accountA
+        vm.startPrank(accountA);
+        vault.deposit(assets, accountA);
+
+        // Ensure accountA has the supply and accountB has 0
+        assertEq(vault.balanceOfAll(accountA), assets);
+        assertEq(vault.balanceOfAll(accountB), 0);
+
+        // 2. Transfer NFT from accountA to accountB
+        vault.safeTransferFrom(accountA, accountB, 0, assets, bytes(""));
+        vm.stopPrank();
+
+        // 3. Verify balanceOfAll properly tracks the transfer
+        assertEq(vault.balanceOfAll(accountA), 0);
+        assertEq(vault.balanceOfAll(accountB), assets);
+
+        // Settle the round so we can call redeemExchangeAsset
+        vm.startPrank(operator);
+        vault.nextRound(); // 0 -> InSettlement
+        vault.setRoundSettled(0); // 0 -> Settled
+        vm.stopPrank();
+
+        // 4. Redeem with target wallet
+        vm.startPrank(accountB);
+        vault.redeemExchangeAsset(0, assets, accountB, accountB);
+        vm.stopPrank();
+
+        // 5. Check that balanceOfAll() correctly reflects the burned tokens
+        assertEq(vault.balanceOfAll(accountB), 0);
     }
 }

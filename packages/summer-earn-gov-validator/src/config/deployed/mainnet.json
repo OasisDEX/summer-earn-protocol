@@ -230,5 +230,7 @@
   "staging_RoundsVaultOutput_extDemo_USDC_mainnet#RoundsVaultOutput": "0x3ca3E44F4254bcd77394Abb2B97cd10A86a5b38a",
   "staging_BummerLazyVault_USDC_OriginUSD_usdc_1_gov#OriginUSDArk": "0xA0b609c2925A9F112C7EC6f7D48Ab19650393662",
   "staging_BummerLazyVault_USDC_Upshift_Upshift_Core_USDC_usdc_1#UpshiftArk": "0xA4eD88aae7d742A61903a391FCeFdE1eeF158067",
-  "staging_BummerLazyVault_USDC_MapleInstitutional_usdc_1_gov#MapleInstitutionalArk": "0xC287004D09D0D2Dc43bEeC30A563EB8696A02477"
+  "staging_BummerLazyVault_USDC_MapleInstitutional_usdc_1_gov#MapleInstitutionalArk": "0xC287004D09D0D2Dc43bEeC30A563EB8696A02477",
+  "staging_extDemo_USDC_mainnet_WisdomTree_WTGXX_usdc_1#WisdomTreeArk": "0xccd07C6c3eCAe85b8Bd8623047C6380d304f2193",
+  "staging_extDemo_USDC_mainnet_WisdomTree_WTSIX_usdc_1#WisdomTreeArk": "0xEEc23130C702c1bDBC20743673D9E13D851e6F04"
 }

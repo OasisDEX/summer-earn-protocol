@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,8 +16,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0f070b;
-    --foreground: #ededed;
+    --background: #0d0e10;
+    --foreground: #fdfbfe;
   }
 }
 
@@ -31,7 +33,26 @@ body {
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
+  .glass-panel {
+    background: rgba(36, 38, 41, 0.3);
+    backdrop-filter: blur(24px);
+  }
   .neon-glow:hover {
     box-shadow: 0 0 15px rgba(255, 46, 143, 0.3);
   }
+}
+
+/* Custom scrollbar for dropdowns */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

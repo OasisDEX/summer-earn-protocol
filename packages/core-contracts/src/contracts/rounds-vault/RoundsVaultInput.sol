@@ -99,11 +99,15 @@ contract RoundsVaultInput is
         override
         returns (Price memory)
     {
-        IERC20Metadata asset_ = IERC20Metadata(asset());
+        uint256 assets = totalAssets();
 
-        uint256 OneAsset = 10 ** asset_.decimals();
-        uint256 shares = IERC4626(vault()).previewDeposit(OneAsset);
+        if (assets == 0) {
+            IERC20Metadata asset_ = IERC20Metadata(asset());
+            assets = 10 ** asset_.decimals();
+        }
 
-        return toPrice(shares, OneAsset);
+        uint256 shares = IERC4626(vault()).previewDeposit(assets);
+
+        return toPrice(shares, assets);
     }
 }

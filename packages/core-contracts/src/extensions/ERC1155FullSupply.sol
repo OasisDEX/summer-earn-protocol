@@ -54,27 +54,24 @@ abstract contract ERC1155FullSupply is ERC1155Supply, IERC1155FullSupply {
         // revert it means they are of the same length and we can safely iterate over them using `unsafeMemoryAccess`
         super._update(from, to, ids, values);
 
-        // Minting tokens case
-        if (from == address(0)) {
-            for (uint256 i = 0; i < values.length; ++i) {
-                _totalSupplyByAccount[to] += values.unsafeMemoryAccess(i);
-            }
+        uint256 totalTransferAmount;
+        for (uint256 i = 0; i < values.length; ++i) {
+            totalTransferAmount += values.unsafeMemoryAccess(i);
         }
 
-        // Burning tokens case
-        if (to == address(0)) {
-            uint256 totalBurnAmount;
+        // Not burning case
+        if (to != address(0)) {
+            _totalSupplyByAccount[to] += totalTransferAmount;
+        }
 
-            for (uint256 i = 0; i < values.length; ++i) {
-                totalBurnAmount += values.unsafeMemoryAccess(i);
-            }
-
+        // Not minting case
+        if (from != address(0)) {
             unchecked {
-                // Overflow not possible: the parent ERC1155Supply contract and the ERC1155 contract
+                // Underflow not possible: the parent ERC1155Supply contract and the ERC1155 contract
                 // already check that the burn amount is less than or equal to the total supply for each id
                 // and account, so if it does not revert it means the total burn amount is less than or equal
                 // to the total balance of all ids for the account.
-                _totalSupplyByAccount[from] -= totalBurnAmount;
+                _totalSupplyByAccount[from] -= totalTransferAmount;
             }
         }
     }

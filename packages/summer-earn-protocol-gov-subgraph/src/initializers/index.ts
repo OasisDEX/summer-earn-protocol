@@ -1,5 +1,5 @@
 import { BigInt, Bytes, dataSource, ethereum } from '@graphprotocol/graph-ts'
-import { CrossChainProposal, Proposal, Role, RoleEvent } from '../../generated/schema'
+import { CrossChainProposal, Delegate, Proposal, Role, RoleEvent } from '../../generated/schema'
 import { subgraphNetworkToChainIdMap } from '../utils/chain'
 import { RoleAction } from '../common/constants'
 
@@ -33,6 +33,12 @@ export function getOrCreateProposal(proposalId: string): Proposal {
     proposal.calldatas = []
     proposal.description = ''
     proposal.descriptionHash = Bytes.fromHexString('')
+    proposal.voteStart = BigInt.fromI32(0)
+    proposal.voteEnd = BigInt.fromI32(0)
+    proposal.quorum = BigInt.fromI32(0)
+    proposal.forVotes = BigInt.fromI32(0)
+    proposal.againstVotes = BigInt.fromI32(0)
+    proposal.abstainVotes = BigInt.fromI32(0)
   }
   return proposal
 }
@@ -58,4 +64,14 @@ export function createRoleEvent(event: ethereum.Event, action: string, roleId: s
   roleEvent.role = roleId
   roleEvent.save()
   return roleEvent
+}
+
+export function getOrCreateDelegate(id: string): Delegate {
+  let delegate = Delegate.load(id)
+  if (!delegate) {
+    delegate = new Delegate(id)
+    delegate.votingPower = BigInt.fromI32(0)
+    delegate.delegationsCount = 0
+  }
+  return delegate
 }

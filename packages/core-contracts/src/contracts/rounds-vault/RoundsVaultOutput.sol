@@ -98,11 +98,15 @@ contract RoundsVaultOutput is
         override
         returns (Price memory)
     {
-        IERC20Metadata asset_ = IERC20Metadata(asset());
+        uint256 shares = totalAssets();
 
-        uint256 OneAsset = 10 ** asset_.decimals();
-        uint256 shares = IERC4626(vault()).previewRedeem(OneAsset);
+        if (shares == 0) {
+            IERC20Metadata asset_ = IERC20Metadata(asset());
+            shares = 10 ** asset_.decimals();
+        }
 
-        return toPrice(shares, OneAsset);
+        uint256 assets = IERC4626(vault()).previewRedeem(shares);
+
+        return toPrice(assets, shares);
     }
 }
