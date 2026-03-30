@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
 import {RoundsVaultInput} from "../../src/contracts/rounds-vault/RoundsVaultInput.sol";
-import {MockERC20} from "../mocks/MockERC20.sol";
-import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
 import {IRoundsVaultInputEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultInputEvents.sol";
+import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Test} from "forge-std/Test.sol";
 // Corrected relative path to access-contracts
-import {IProtocolAccessManager, ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
-import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
-import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
 import {IRoundsVaultBaseEnums} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
+import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
+import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
 import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 // Mock Access Manager to handle role checks
 contract MockAccessManager {
@@ -183,7 +183,8 @@ contract RoundsVaultInputTest is
 
         vm.startPrank(operator);
 
-        vm.expectEmit(true, false, false, true); // Don't match all topics if exact struct matching is tricky, but let's try matching.
+        vm.expectEmit(true, false, false, true); // Don't match all topics if exact struct matching is tricky, but let's
+        // try matching.
         emit AssetsDeposited(0, operator, assets, shares);
 
         // Price struct is (baseAmount, quoteAmount)
@@ -667,5 +668,44 @@ contract RoundsVaultInputTest is
         );
         vault.redeemExchangeAssetBatch(ids, amounts, receiver, owner);
         vm.stopPrank();
+    }
+
+    function test_RIV0014_TransferUpdatesTotalSupply() public {
+        uint256 assets = 0.2 ether;
+        address accountA = unprivilegedAccount;
+        address accountB = address(0xB);
+
+        vm.prank(admin);
+        vault.setWhitelisted(accountB, true);
+
+        // 1. Deposit to accountA
+        vm.startPrank(accountA);
+        vault.deposit(assets, accountA);
+
+        // Ensure accountA has the supply and accountB has 0
+        assertEq(vault.balanceOfAll(accountA), assets);
+        assertEq(vault.balanceOfAll(accountB), 0);
+
+        // 2. Transfer NFT from accountA to accountB
+        vault.safeTransferFrom(accountA, accountB, 0, assets, bytes(""));
+        vm.stopPrank();
+
+        // 3. Verify balanceOfAll properly tracks the transfer
+        assertEq(vault.balanceOfAll(accountA), 0);
+        assertEq(vault.balanceOfAll(accountB), assets);
+
+        // Settle the round so we can call redeemExchangeAsset
+        vm.startPrank(operator);
+        vault.nextRound(); // 0 -> InSettlement
+        vault.setRoundSettled(0); // 0 -> Settled
+        vm.stopPrank();
+
+        // 4. Redeem with target wallet
+        vm.startPrank(accountB);
+        vault.redeemExchangeAsset(0, assets, accountB, accountB);
+        vm.stopPrank();
+
+        // 5. Check that balanceOfAll() correctly reflects the burned tokens
+        assertEq(vault.balanceOfAll(accountB), 0);
     }
 }
