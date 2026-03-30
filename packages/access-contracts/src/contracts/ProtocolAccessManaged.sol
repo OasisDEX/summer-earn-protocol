@@ -269,7 +269,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * @notice Modifier to restrict access to operators only
      * @dev Modifier to check that the caller has the Operator role.
      * Note: This works with V1 Access Managers because generating and checking roles is universally supported,
-     * but assigning this role on V1 requires using the generic `grantContractSpecificRole` function instead 
+     * but assigning this role on V1 requires using the generic `grantContractSpecificRole` function instead
      * of the dedicated V2 `grantOperatorRole` helper.
      */
     modifier onlyOperator() {
