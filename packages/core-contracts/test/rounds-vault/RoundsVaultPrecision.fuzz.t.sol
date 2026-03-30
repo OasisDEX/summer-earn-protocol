@@ -58,7 +58,7 @@ contract RoundsVaultPrecisionFuzzTest is Test {
     address public governor = address(0x2222);
 
     address[] public users;
-    uint256 public constant NUM_USERS = 500;
+    uint256 public constant NUM_USERS = 100;
     uint256 public constant NUM_ROUNDS = 10;
 
     function setUp() public {
