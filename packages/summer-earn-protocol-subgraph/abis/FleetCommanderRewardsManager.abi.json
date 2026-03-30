@@ -258,6 +258,25 @@
   },
   {
     "type": "function",
+    "name": "hasOperatorRole",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "isRewardToken",
     "inputs": [
       {
@@ -879,6 +898,17 @@
   {
     "type": "error",
     "name": "CallerIsNotKeeper",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotOperator",
     "inputs": [
       {
         "name": "caller",

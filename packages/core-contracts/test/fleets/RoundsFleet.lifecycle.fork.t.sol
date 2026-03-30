@@ -10,7 +10,8 @@ import "../../src/contracts/arks/ERC4626Ark.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 
 import {FleetConfig, FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
-import {FleetCommanderWhitelist} from "../../src/contracts/FleetCommanderWhitelist.sol";
+import {FleetCommanderPrivateWithTransfer} from "../../src/contracts/FleetCommanderPrivateWithTransfer.sol";
+import {IFleetCommanderPrivateWithTransfer} from "../../src/interfaces/IFleetCommanderPrivateWithTransfer.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
@@ -24,6 +25,8 @@ import {RoundsVaultInput} from "../../src/contracts/rounds-vault/RoundsVaultInpu
 import {RoundsVaultOutput} from "../../src/contracts/rounds-vault/RoundsVaultOutput.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
+import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
+import {ProtocolAccessManagerV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagerV2.sol";
 
 contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     ERC4626Ark public usdcGearboxERC4626Ark;
@@ -41,12 +44,13 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         0xda00000035fef4082F78dEF6A8903bee419FbF8E;
     uint256 constant FORK_BLOCK = 20376149;
 
-    IFleetCommander public usdcFleetCommander;
+    FleetCommanderPrivateWithTransfer public usdcFleetCommander;
 
     function setUp() public {
         console.log("Setting up RoundsFleetLifecycleTest");
 
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
+        accessManager = new ProtocolAccessManagerV2(governor);
 
         uint256 initialTipRate = 0;
         setupExternalContracts();
@@ -108,10 +112,10 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
             depositCap: type(uint256).max
         });
 
-        FleetCommanderWhitelist f = new FleetCommanderWhitelist(
-            fleetCommanderParams
-        );
-        usdcFleetCommander = IFleetCommander(address(f));
+        FleetCommanderPrivateWithTransfer f = new FleetCommanderPrivateWithTransfer(
+                fleetCommanderParams
+            );
+        usdcFleetCommander = FleetCommanderPrivateWithTransfer(address(f));
         fleetCommander = FleetCommander(address(f));
 
         bufferArkAddress = f.bufferArk();
@@ -158,10 +162,6 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     }
 
     function test_DepositRebalanceWithdraw_RoundsFleet() public {
-        FleetCommanderWhitelist usdcFleetCommanderWhitelisted = FleetCommanderWhitelist(
-                address(usdcFleetCommander)
-            );
-
         // Arrange
         RoundsVaultInput usdcRoundsVaultInput = new RoundsVaultInput(
             address(usdcFleetCommander),
@@ -180,26 +180,33 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         accessManager.grantKeeperRole(address(usdcRoundsVaultInput), keeper);
         accessManager.grantKeeperRole(address(usdcRoundsVaultOutput), keeper);
 
-        usdcFleetCommanderWhitelisted.setWhitelisted(
-            address(usdcRoundsVaultInput),
-            true
-        );
-        usdcFleetCommanderWhitelisted.setWhitelisted(
-            address(usdcRoundsVaultOutput),
-            true
-        );
-        usdcFleetCommanderWhitelisted.setWhitelisted(usdcUser, true);
-        usdcFleetCommanderWhitelisted.setFleetTokenTransferability();
-
         usdcRoundsVaultInput.setWhitelisted(usdcUser, true);
         usdcRoundsVaultOutput.setWhitelisted(usdcUser, true);
+
+        usdcFleetCommander.setWhitelisted(usdcUser, true);
+        usdcFleetCommander.setWhitelisted(address(usdcRoundsVaultInput), true);
+        usdcFleetCommander.setWhitelisted(address(usdcRoundsVaultOutput), true);
+        usdcFleetCommander.setFleetTokenTransferability();
+
+        IProtocolAccessManagerV2(address(accessManager)).grantOperatorRole(
+            address(usdcFleetCommander),
+            address(usdcRoundsVaultInput)
+        );
+        IProtocolAccessManagerV2(address(accessManager)).grantOperatorRole(
+            address(usdcFleetCommander),
+            address(usdcRoundsVaultOutput)
+        );
 
         vm.stopPrank();
 
         uint256 usdcTotalDeposit = 1000 * 10 ** 6; // 1000 USDC
 
         // Set deposit caps and minimum buffer balances
-        setFleetParameters(usdcFleetCommander, usdcTotalDeposit, 0);
+        setFleetParameters(
+            IFleetCommander(address(usdcFleetCommander)),
+            usdcTotalDeposit,
+            0
+        );
 
         // Mint tokens for user
         deal(USDC_ADDRESS, usdcUser, usdcTotalDeposit);
@@ -237,7 +244,10 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         );
 
         // Rebalance funds to Ark
-        rebalanceFleet(usdcFleetCommander, usdcTotalDeposit);
+        rebalanceFleet(
+            IFleetCommander(address(usdcFleetCommander)),
+            usdcTotalDeposit
+        );
 
         // Advance time to simulate interest accrual
         vm.warp(block.timestamp + 30 days);
@@ -371,7 +381,7 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         );
 
         // FleetCommander transfers are disabled by default. Enable them so the user can transfer shares to the output vault
-        FleetCommanderWhitelist(address(usdcFleetCommander))
+        FleetCommanderPrivateWithTransfer(address(usdcFleetCommander))
             .setFleetTokenTransferability();
         vm.stopPrank();
     }

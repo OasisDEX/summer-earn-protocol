@@ -65,6 +65,7 @@ export namespace RoleName {
   export const DECAY_CONTROLLER_ROLE = 'DECAY_CONTROLLER_ROLE'
   export const ADMIRALS_QUARTERS_ROLE = 'ADMIRALS_QUARTERS_ROLE'
   export const FOUNDATION_ROLE = 'FOUNDATION_ROLE'
+  export const OPERATOR_ROLE = 'OPERATOR_ROLE'
 }
 
 // enum used to compute the contract specific role name
@@ -73,6 +74,7 @@ export enum ContractSpecificRole {
   CURATOR_ROLE,
   KEEPER_ROLE,
   COMMANDER_ROLE,
+  OPERATOR_ROLE,
 }
 
 export namespace VaultFeeType {

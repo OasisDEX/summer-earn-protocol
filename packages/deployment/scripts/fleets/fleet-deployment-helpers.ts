@@ -6,7 +6,6 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { deployArk } from '../common/ark-deployment'
-import { GOVERNOR_ROLE } from '../common/constants'
 import { getGovernorClient } from '../common/governance-utils'
 
 /**
@@ -161,6 +160,34 @@ export async function grantKeeperRole(
   await publicClient.waitForTransactionReceipt({ hash })
   console.log(kleur.green('CURATOR_ROLE granted successfully!'))
 }
+
+export async function grantOperatorRole(
+  protocolAccessManagerAddress: Address,
+  fleetCommanderAddress: Address,
+  operatorAddress: Address,
+  hre: any,
+) {
+  const publicClient = await hre.viem.getPublicClient()
+  const protocolAccessManager = await hre.viem.getContractAt(
+    'ProtocolAccessManager' as string,
+    protocolAccessManagerAddress,
+  )
+
+  console.log(
+    kleur.blue('Granting OPERATOR_ROLE to'),
+    kleur.cyan(operatorAddress),
+    kleur.blue('for fleet'),
+    kleur.cyan(fleetCommanderAddress),
+  )
+
+  const hash = await protocolAccessManager.write.grantOperatorRole([
+    fleetCommanderAddress,
+    operatorAddress,
+  ])
+  await publicClient.waitForTransactionReceipt({ hash })
+  console.log(kleur.green('OPERATOR_ROLE granted successfully!'))
+}
+
 /**
  * Configures initial rewards for a fleet's reward manager
  * @param fleetCommanderRewardsManager Address of the rewards manager contract

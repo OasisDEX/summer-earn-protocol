@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
 import { Address, Address as ViemAddress } from 'viem'
-import { createFleetWhitelistModule } from '../ignition/modules/fleet-whitelist'
+import { createFleetCommanderPrivateWithTransferModule } from '../ignition/modules/fleet-private-with-transfer'
 import {
   createRoundsVaultInputModule,
   createRoundsVaultOutputModule,
@@ -23,6 +23,7 @@ import {
   deployArks,
   grantCuratorRole,
   grantKeeperRole,
+  grantOperatorRole,
 } from './fleets/fleet-deployment-helpers'
 import { getInstitutionConfigByNetwork } from './helpers/config-handler'
 import {
@@ -91,10 +92,14 @@ async function main() {
     message: 'What would you like to do?',
     choices: [
       { title: 'Deploy New Rounds Whitelisted Fleet', value: WhitelistDeploymentMode.NEW_FLEET },
+<<<<<<< Updated upstream
       {
         title: 'Add Ark to Existing Rounds Whitelisted Fleet',
         value: WhitelistDeploymentMode.ADD_ARK,
       },
+=======
+      { title: 'Add Ark to Existing Whitelisted Fleet', value: WhitelistDeploymentMode.ADD_ARK },
+>>>>>>> Stashed changes
     ],
   })
 
@@ -246,7 +251,7 @@ async function main() {
   const envLabel = useBummerConfig ? 'staging_' : ''
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
   const moduleName = `${envLabel}RoundsFleetWhitelist_${name}`
-  const fleetModule = createFleetWhitelistModule(moduleName)
+  const fleetModule = createFleetCommanderPrivateWithTransferModule(moduleName)
 
   // Use addresses directly from merged config (ensures propagation is correct)
   const deployedFleet = await hre.ignition.deploy(fleetModule, {
@@ -391,17 +396,18 @@ async function main() {
       deployedFleet.fleetCommander.address as Address,
     )
 
-    let whitelistHash = await fleetCommanderContract.write.setWhitelisted([
-      deployedInputVault.roundsVaultInput.address as Address,
-      true,
-    ])
-    await (await hre.viem.getPublicClient()).waitForTransactionReceipt({ hash: whitelistHash })
-
-    whitelistHash = await fleetCommanderContract.write.setWhitelisted([
-      deployedOutputVault.roundsVaultOutput.address as Address,
-      true,
-    ])
-    await (await hre.viem.getPublicClient()).waitForTransactionReceipt({ hash: whitelistHash })
+    await grantOperatorRole(
+      config.deployedContracts.gov.protocolAccessManager.address as Address,
+      deployedInputVault.roundsVaultInput.address,
+      fleetDefinition.keeper || (deployer.account.address as Address),
+      hre,
+    )
+    await grantOperatorRole(
+      config.deployedContracts.gov.protocolAccessManager.address as Address,
+      deployedOutputVault.roundsVaultOutput.address,
+      fleetDefinition.keeper || (deployer.account.address as Address),
+      hre,
+    )
 
     console.log(kleur.blue('Enabling Fleet Token Transferability'))
     const transferabilityHash = await fleetCommanderContract.write.setFleetTokenTransferability()

@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
 
 import "../../src/contracts/arks/MorphoVaultArk.sol";
 import "../../src/events/IArkEvents.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
-import {ArkTestBase} from "./ArkTestBase.sol";
-import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IRaft} from "../../src/interfaces/IRaft.sol";
 import {BaseAuctionParameters} from "../../src/types/CommonAuctionTypes.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 import {DecayFunctions} from "@summerfi/dutch-auction/DecayFunctions.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
@@ -202,6 +202,11 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.expectRevert(abi.encodeWithSignature("InvalidVaultAddress()"));
         new MorphoVaultArk(address(0), address(0), params);
     }
+
+    // TODO: this test has been disabled because the IProtocolAccessManaged interface changed
+    // TODO: so the check for whether thegiven access manager complies with the interface is
+    // TODO: failing for already deployed access managers. As this is a fork test the already
+    // TODO: deployed contract cannot be used as access manager
 
     function test_Harvest_MetaMorphoArk_RealData_fork() public {
         // Fork at specific block where we know there are rewards
