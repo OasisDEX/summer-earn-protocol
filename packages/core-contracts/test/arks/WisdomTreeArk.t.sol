@@ -356,7 +356,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
-        
+
         vm.expectRevert(WisdomTreeArk.ArkIsFrozen.selector);
         ark.board(amount, bytes(""));
         vm.stopPrank();
@@ -390,7 +390,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         uint256 assetsBeforeFreeze = ark.totalAssets();
-        
+
         vm.prank(keeper);
         ark.setArkFrozen(true, type(uint256).max);
 
@@ -398,13 +398,20 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         oracle.setAnswer(120000 * 1e8);
 
         uint256 assetsAfterFreeze = ark.totalAssets();
-        assertEq(assetsBeforeFreeze, assetsAfterFreeze, "Total assets should be cached if frozen");
+        assertEq(
+            assetsBeforeFreeze,
+            assetsAfterFreeze,
+            "Total assets should be cached if frozen"
+        );
 
         vm.prank(keeper);
         ark.setArkFrozen(false, 0);
 
         uint256 assetsAfterUnfreeze = ark.totalAssets();
-        assertTrue(assetsAfterUnfreeze > assetsBeforeFreeze, "Total assets should update after unfreeze");
+        assertTrue(
+            assetsAfterUnfreeze > assetsBeforeFreeze,
+            "Total assets should update after unfreeze"
+        );
     }
 
     function test_TotalAssetsIsCachedWhenFrozen_NormalValue() public {
@@ -424,7 +431,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         uint256 customFrozenValue = 1337 * 1e6;
-        
+
         vm.prank(keeper);
         ark.setArkFrozen(true, customFrozenValue);
 
@@ -432,14 +439,24 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         oracle.setAnswer(120000 * 1e8);
 
         uint256 assetsAfterFreeze = ark.totalAssets();
-        assertEq(assetsAfterFreeze, customFrozenValue, "Total assets should equal the custom frozen value");
+        assertEq(
+            assetsAfterFreeze,
+            customFrozenValue,
+            "Total assets should equal the custom frozen value"
+        );
 
         vm.prank(keeper);
         ark.setArkFrozen(false, 0);
 
         uint256 assetsAfterUnfreeze = ark.totalAssets();
-        assertTrue(assetsAfterUnfreeze > customFrozenValue, "Total assets should update after unfreeze");
-        assertTrue(assetsAfterUnfreeze > amount, "Total assets should reflect the new oracle price");
+        assertTrue(
+            assetsAfterUnfreeze > customFrozenValue,
+            "Total assets should update after unfreeze"
+        );
+        assertTrue(
+            assetsAfterUnfreeze > amount,
+            "Total assets should reflect the new oracle price"
+        );
     }
 
     function test_ClearPendingDepositAmount() public {
@@ -454,7 +471,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         assertEq(ark.pendingDepositAssets(), amount);
 
         uint256 clearAmount = 10000 * 1e6;
-        
+
         vm.startPrank(keeper);
         ark.clearPendingDeposit(clearAmount);
         vm.stopPrank();
@@ -472,7 +489,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
 
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount * 2);
-        
+
         // First board succeeds
         ark.board(amount, bytes(""));
 
@@ -592,15 +609,15 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
     function test_Sweep_Success() public {
         uint256 amount = 60000 * 1e6; // Equals 1 share worth exactly based on oracle Price
         deal(USDC_ADDRESS, commander, amount);
-        
+
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        uint256 sharesMinted = 1e18; 
+        uint256 sharesMinted = 1e18;
         wtToken.mint(address(forwarder), sharesMinted);
-        
+
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
         ark.requestWithdrawal(amount);
@@ -633,15 +650,15 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
     function test_Sweep_Reverts_InsufficientAssets() public {
         uint256 amount = 60000 * 1e6;
         deal(USDC_ADDRESS, commander, amount);
-        
+
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        uint256 sharesMinted = 1e18; 
+        uint256 sharesMinted = 1e18;
         wtToken.mint(address(forwarder), sharesMinted);
-        
+
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
         ark.requestWithdrawal(amount);
@@ -650,7 +667,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         // 59600e6 is less than 59700e6 (0.5% slippage limit)
         uint256 returnedUsdc = 59600 * 1e6; // Fails slippage constraint
         deal(USDC_ADDRESS, address(forwarder), returnedUsdc);
-        
+
         vm.mockCall(
             address(commander),
             abi.encodeWithSignature("bufferArk()"),
@@ -666,5 +683,54 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         vm.expectRevert();
         ark.sweep();
         vm.stopPrank();
+    }
+
+    function test_EmergencySweep_Reverts_If_Not_Governor() public {
+        vm.startPrank(keeper); // not governor
+        vm.expectRevert();
+        ark.emergencySweep();
+        vm.stopPrank();
+    }
+
+    function test_EmergencySweep_Success() public {
+        uint256 amount = 60000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(forwarder), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        // Use returned Usdc far below the slippage limit
+        uint256 returnedUsdc = 50000 * 1e6; // Fails slippage constraint
+        deal(USDC_ADDRESS, address(forwarder), returnedUsdc);
+
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        // Should work when called by governor
+        vm.startPrank(governor);
+        ark.emergencySweep();
+        vm.stopPrank();
+
+        assertEq(ark.pendingWithdrawalShares(), 0);
+        assertEq(ark.pendingWithdrawalAssets(), 0);
+        assertEq(usdc.balanceOf(address(bufferArk)), returnedUsdc);
     }
 }

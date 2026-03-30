@@ -2,14 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { erc20Abi, formatUnits, parseUnits } from 'viem'
-import { mainnet } from 'viem/chains'
-import {
-  useAccount,
-  useConnection,
-  useReadContract,
-  useReadContracts,
-  useWriteContract,
-} from 'wagmi'
+import { useConnection, useReadContract, useReadContracts, useWriteContract } from 'wagmi'
 
 const erc20MetadataAbi = [
   ...erc20Abi,
@@ -105,13 +98,6 @@ export function VaultInteractionForm({
     functionName: 'symbol',
     query: { enabled: !!exchangeTokenAddr },
   }) as { data: string | undefined }
-
-  const { data: exchangeDecimals } = useReadContract({
-    address: exchangeTokenAddr,
-    abi: erc20MetadataAbi,
-    functionName: 'decimals',
-    query: { enabled: !!exchangeTokenAddr },
-  }) as { data: number | undefined }
 
   // ── Multicall: receipt balances for ALL rounds (0 .. currentRound) ──
 

@@ -279,7 +279,12 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
 
         // Check that not settled rounds cannot redeemExchangeAsset
         vm.startPrank(usdcUser);
-        vm.expectRevert(abi.encodeWithSelector(IRoundsVaultBaseErrors.RoundNotSettled.selector, 0));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRoundsVaultBaseErrors.RoundNotSettled.selector,
+                0
+            )
+        );
         usdcRoundsVaultOutput.redeemExchangeAsset(
             0,
             userShares,
@@ -294,7 +299,12 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
 
         // Verify round 1 still reverts
         vm.startPrank(usdcUser);
-        vm.expectRevert(abi.encodeWithSelector(IRoundsVaultBaseErrors.RoundNotSettled.selector, 1));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRoundsVaultBaseErrors.RoundNotSettled.selector,
+                1
+            )
+        );
         usdcRoundsVaultOutput.redeemExchangeAsset(
             1,
             userShares,

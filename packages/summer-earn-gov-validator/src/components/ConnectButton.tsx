@@ -11,25 +11,21 @@ type WindowWithAppKit = typeof window & {
 
 export function ConnectButton() {
   const { address, isConnected, chain } = useAccount()
-  const { disconnectAsync } = useDisconnect()
+  const { disconnect } = useDisconnect()
 
   const onOpen = useCallback(() => {
     ;(window as WindowWithAppKit).appKit?.open?.()
   }, [])
 
-  const onDisconnect = useCallback(async () => {
-    try {
-      await disconnectAsync()
-    } catch (error) {
-      console.error('Failed to disconnect wallet', error)
-    }
-  }, [disconnectAsync])
+  const onDisconnect = useCallback(() => {
+    disconnect()
+  }, [disconnect])
 
   if (!isConnected) {
     return (
       <button
         onClick={onOpen}
-        className="px-3 py-1.5 rounded-md bg-primary-600 text-white hover:bg-primary-500 transition"
+        className="bg-sky-400/10 border border-sky-400/30 text-sky-300 px-5 py-2 rounded-full text-sm font-medium hover:bg-sky-400/20 active:scale-95 duration-200 ease-out transition-all"
       >
         Connect Wallet
       </button>
@@ -42,18 +38,19 @@ export function ConnectButton() {
     <div className="flex items-center gap-2">
       <button
         onClick={onOpen}
-        className="px-3 py-1.5 rounded-md bg-gray-700 text-white border border-white/10 hover:bg-gray-600 transition"
+        className="bg-emerald-400/10 border border-emerald-400/30 text-emerald-400 px-4 py-2 rounded-full text-sm font-medium hover:bg-emerald-400/20 active:scale-95 duration-200 ease-out transition-all flex items-center gap-2"
         title={address || ''}
       >
+        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         {short}
-        {chain ? ` · ${chain.name}` : ''}
+        {chain ? <span className="text-xs opacity-60">· {chain.name}</span> : ''}
       </button>
       <button
         onClick={onDisconnect}
-        className="px-2 py-1 rounded-md bg-red-600/80 text-white hover:bg-red-500 transition"
+        className="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-all active:scale-90"
         aria-label="Disconnect"
       >
-        Disconnect
+        <span className="material-symbols-outlined text-sm">logout</span>
       </button>
     </div>
   )

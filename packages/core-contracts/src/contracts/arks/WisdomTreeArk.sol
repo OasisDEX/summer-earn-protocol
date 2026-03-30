@@ -384,11 +384,41 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
             );
         }
 
+        return _sweep(assetsInForwarder);
+    }
+
+    /**
+     * @notice Sweeps returned USDC to buffer without slippage checks.
+     * @dev Called by governor in case of emergency or unexpected slippage.
+     */
+    function emergencySweep()
+        external
+        onlyGovernor
+        nonReentrant
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        uint256 assetsInForwarder = config.asset.balanceOf(
+            address(assetsForwarder)
+        );
+        return _sweep(assetsInForwarder);
+    }
+
+    /**
+     * @notice Internal function for sweeping assets from the forwarder
+     */
+    function _sweep(
+        uint256 amountToSweep
+    )
+        internal
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        IERC20 asset = config.asset;
+
         sweptTokens = new address[](1);
         sweptAmounts = new uint256[](1);
 
         sweptTokens[0] = address(asset);
-        sweptAmounts[0] = assetsInForwarder;
+        sweptAmounts[0] = amountToSweep;
 
         pendingWithdrawalAssets = 0;
         pendingWithdrawalShares = 0;
