@@ -139,7 +139,7 @@ function transfer(address to, uint256 amount) returns (bool) {
 
 ## 3. Rounds Integration (RoundsVaultBase)
 
-`RoundsVaultBase` is an abstract contract used for vaults that operate in discrete **rounds**. It inherits `ProtocolAccessManagedV2` (so it expects the access manager to support V2) and uses its **own** whitelist (separate from the fleet whitelist) to gate deposits and redemptions.
+`RoundsVaultBase` is an abstract contract used for vaults that operate in discrete **rounds**. It inherits `ProtocolAccessManagedV2` and uses its `Whitelist` adapter to delegate access checks to the **global** `ProtocolAccessManagerV2` whitelist.
 
 ### 3.1 Required Role Setup
 
@@ -147,38 +147,36 @@ function transfer(address to, uint256 amount) returns (bool) {
 |------|--------|------------|---------|
 | **KEEPER_ROLE** | RoundsVaultBase contract | Keeper bots | Call `nextRound()` and `setRoundSettled()` to advance rounds and finalise settlement. |
 | **SUPER_KEEPER_ROLE** | Access Manager | (Optional) | Can act as keeper for any rounds vault. |
-| **GOVERNOR_ROLE** | Access Manager | Multisig / governance | Manage whitelist (via `setWhitelisted`), grant other roles. |
+| **GOVERNOR_ROLE** | Access Manager | Multisig / governance | Manage roles and parameters. |
+| **WHITELIST_MANAGER_ROLE** | Access Manager | Governance / authorized | Manage the global whitelist that this vault depends on. |
 
-**Important:** The whitelist used here is **not** the global access manager whitelist.  
-`RoundsVaultBase` includes its own `Whitelist` contract that stores `_whitelisted` mapping and uses `onlyGovernor` to manage it.  
-The `onlyWhitelisted` modifier checks this local whitelist.
+**Important:** Unlike the `FleetCommander`, the `RoundsVaultBase` **does not** currently implement an `OPERATOR_ROLE` bypass for its deposit/redeem functions. This means that even the **Admirals Quarters (AQ)** must be whitelisted in the global access manager whitelist to interact with Rounds Vaults.
 
 ### 3.2 Deposit Flow
 
 ```plaintext
-User
+User / Admirals Quarters
   │
   ▼
 deposit(assets, receiver)   // 1. Caller deposits assets
   │
   ▼
-onlyWhitelisted(receiver) && onlyWhitelisted(caller)   // 2. Both must be whitelisted
+onlyWhitelisted(receiver) && onlyWhitelisted(caller)
   │
   ▼
-super.deposit(assets, receiver)   // 3. Mint ERC1155 receipt for current round
+super.deposit(assets, receiver)   // 2. Mint ERC1155 receipt for current round
   │
   ▼
 Underlying assets are held in the contract until nextRound()
 ```
 
 - Deposits are only allowed **during an open round** (`RoundState.Opened`).  
-- Receipts are minted as ERC‑1155 tokens (ID = current round number).  
-- After `nextRound()` is called, the current round is closed and a new round begins.
+- **Whitelisting is mandatory**: Both caller and receiver must be in the global whitelist.
 
 ### 3.3 Redemption Flow (Immediate – Current Round)
 
 ```plaintext
-User
+User / Admirals Quarters
   │
   ▼
 redeem(id, amount, receiver, owner)   // id must equal current round
@@ -193,14 +191,14 @@ _burn(owner, id, amount)              // Burn receipt
 transfer underlying asset to receiver (immediate)
 ```
 
-- Redeem only possible for the **current round** (receipts for previous rounds must use `redeemExchangeAsset`).
+- **Whitelisting is mandatory** for all participants (caller, owner, receiver).
 
 ### 3.4 Exchange Asset Redemption (Settled Rounds)
 
 After a round is **settled** (by keeper calling `setRoundSettled`), users can redeem their receipts for the **exchange asset** (shares of the target vault or the underlying asset, depending on vault type).
 
 ```plaintext
-User
+User / Admirals Quarters
   │
   ▼
 redeemExchangeAsset(id, amount, receiver, owner)
@@ -221,8 +219,7 @@ exchangeAmount = exchangeRateByRound[id].quote(amount)
 safeTransfer(exchangeAsset, receiver, exchangeAmount)
 ```
 
-- Exchange rate is captured at the end of each round (`_getCurrentExchangeRate()` in `nextRound`).  
-- This allows users to claim the value of their investment after the round has been processed by the target vault.
+- **Whitelisting is mandatory** for all participants.
 
 ### 3.5 Round Transition (Keeper)
 
@@ -258,56 +255,35 @@ roundState[newRound] = Opened
 
 ## 4. Admirals Quarters (AQ) Integration
 
-The **Admirals Quarters** is a bundler contract that allows users to unstake and withdraw assets from fleets **directly to their wallet**, reducing risk of manipulation. It relies on two roles:
-
-- **ADMIRALS_QUARTERS_ROLE** – global role assigned to the AQ contract itself.  
-- **OPERATOR_ROLE** (contract‑specific) – assigned to the AQ contract for each fleet it interacts with, to bypass gateway/whitelist restrictions.
+The **Admirals Quarters** is a bundler contract that allows users to unstake and withdraw assets from fleets and vaults.
 
 ### 4.1 Required Role Setup
 
 | Role | Target | Granted To | Purpose |
 |------|--------|------------|---------|
-| **ADMIRALS_QUARTERS_ROLE** | Access Manager | AQ contract address | Allows AQ to perform its core operations (e.g., `unstakeAndWithdraw`). |
-| **OPERATOR_ROLE** | Each FleetCommanderWhitelist | AQ contract address | Bypass gateway/whitelist when calling `withdraw`/`redeem` on behalf of users. |
-| **GOVERNOR_ROLE** | Access Manager | Multisig / governance | Grant the above roles. |
+| **ADMIRALS_QUARTERS_ROLE** | Access Manager | AQ contract address | Allows AQ to perform privileged operations globally. |
+| **OPERATOR_ROLE** | Each Target Contract | AQ contract address | **Fleet Only**: Bypasses gateway and whitelist restrictions. |
+| **WHITELISTED** | Global Whitelist | AQ contract address | **Rounds Vaults**: Mandatory for AQ to deposit/redeem on behalf of users. |
 
-### 4.2 Typical Flow (User → AQ → Fleet)
+### 4.2 Integration Differences: Fleets vs Rounds
 
-```plaintext
-User
-  │ 1. Approve AQ to spend shares (if required)
-  │
-  ▼
-AQ.unstakeAndWithdraw(fleetAddress, shares, user)
-  │
-  ▼
-AQ (has ADMIRALS_QUARTERS_ROLE) calls fleet.withdraw(redeem) with parameters:
-   - caller = AQ
-   - receiver = user
-   - owner = user (or AQ if shares were transferred)
-  │
-  ▼
-FleetCommanderWhitelist._enforceExitGateway(caller, receiver, owner)
-  ├─ AQ has OPERATOR_ROLE → allowed
-  └─ proceeds with withdrawal
-  │
-  ▼
-Fleet withdraws assets directly to user's wallet
-```
+| Feature | FleetCommanderWhitelist | RoundsVaultBase |
+|---------|-------------------------|-----------------|
+| **Operator Bypass** | Supported (via `hasOperatorRole`) | **Not Supported** |
+| **Whitelist Requirement** | Bypassed if caller is an operator | **Mandatory for all callers** |
+| **AQ Role Requirement** | Re-checks roles internally | Relies on whitelist for entry/exit |
 
-- Because AQ is **operator**, it bypasses all gateway and whitelist checks.  
-- Withdrawn assets go directly to the user (as specified by `receiver`), preventing the AQ contract from holding user funds.  
-- The `ADMIRALS_QUARTERS_ROLE` is used in other parts of the protocol (e.g., in `hasAdmiralsQuartersRole`) to gate specific functions that should only be callable by the AQ bundler.
+**Note for AQ Developers**: When integrating with a `RoundsVault`, the AQ contract address **must be manually added to the global whitelist** by a `WHITELIST_MANAGER`, otherwise all `deposit` and `redeem` calls will revert with `NotWhitelisted(AQ_ADDRESS)`.
 
 ---
 
 ## 5. Summary of Entry Points and Role Dependencies
 
-| Integration | Entry Points | Whitelist Source | Operator Role Needed | Other Roles |
-|-------------|--------------|------------------|----------------------|-------------|
-| **Fleet (Whitelist)** | `deposit`, `mint`, `withdraw`, `redeem`, `transfer` | Global (Access Manager V2) | Yes – to bypass gateway/whitelist | `KEEPER_ROLE` for rebalancing |
-| **Rounds** | `deposit`, `redeem`, `redeemExchangeAsset`, `nextRound` | Local (Vault’s own Whitelist) | No – but `KEEPER_ROLE` needed for round transitions | `SUPER_KEEPER_ROLE` optional |
-| **Admirals Quarters** | Calls to fleet functions (e.g., `withdraw`) | Global | Yes – for fleet interactions | `ADMIRALS_QUARTERS_ROLE` for AQ‑specific functions |
+| Integration | Entry Points | Whitelist Source | Operator Role Needed | Whitelist Bypass? |
+|-------------|--------------|------------------|----------------------|-------------------|
+| **Fleet (Whitelist)** | `deposit`, `mint`, `withdraw`, `redeem`, `transfer` | Global | Yes (for bypass) | **Yes**, for operators |
+| **Rounds** | `deposit`, `redeem`, `redeemExchangeAsset`, `nextRound` | Global | No (not used for bypass) | **No**, whitelisting mandatory |
+| **Admirals Quarters** | Calls to target functions | Global | Yes (for Fleets) | Depends on target |
 
 ---
 
@@ -315,39 +291,34 @@ Fleet withdraws assets directly to user's wallet
 
 ### 6.1 Direct Fleet Integration
 
-1. **Deploy `ProtocolAccessManagerV2`** with an initial governor (e.g., a multisig).  
-2. **Grant `WHITELIST_MANAGER_ROLE`** to addresses that will manage the global whitelist.  
-3. **Deploy `FleetCommanderWhitelist`** with the access manager address.  
-4. **Grant `OPERATOR_ROLE`** to any external contracts (e.g., AQ) that need to move funds without restrictions.  
-5. **Grant `KEEPER_ROLE`** to bots that will call `rebalance`.  
-6. **Use the whitelist manager** to set `address(0)` (global open) or specific accounts.  
-7. **Set configuration** via governor: deposit caps, ark parameters, gateway status, transferability, etc.
+1. **Deploy `ProtocolAccessManagerV2`** with an initial governor.  
+2. **Grant `WHITELIST_MANAGER_ROLE`** to authorized addresses.  
+3. **Deploy `FleetCommanderWhitelist`** pointing to the access manager.  
+4. **Grant `OPERATOR_ROLE`** to the AQ contract for this fleet.  
+5. **Set configuration** via governor (caps, gateway, etc.).
 
 ### 6.2 Rounds Integration
 
-1. **Deploy `ProtocolAccessManagerV2`** (or reuse existing).  
-2. **Deploy a rounds vault** (e.g., `InputRoundsVault` or `OutputRoundsVault`) inheriting from `RoundsVaultBase`, passing the access manager address.  
-3. **Grant `KEEPER_ROLE`** to the address that will call `nextRound()` and `setRoundSettled()`.  
-4. **Grant `GOVERNOR_ROLE`** to the multisig that will manage the vault’s whitelist.  
-5. **Use the vault’s own `setWhitelisted`** to add users before the first round opens.  
-6. **Set initial round state** (the constructor sets round 0 as `Opened`).  
+1. **Deploy `ProtocolAccessManagerV2`** (or reuse).  
+2. **Deploy a rounds vault** pointing to the access manager.  
+3. **Grant `KEEPER_ROLE`** to the rounds keeper.  
+4. **Whitelisting**: Ensure all users **and the AQ contract** (if used) are added to the global whitelist via the `WHITELIST_MANAGER`.  
+5. **Set initial round state** (round 0 is `Opened` by default).
 
 ### 6.3 Admirals Quarters Integration
 
-1. **Deploy the Admirals Quarters contract** (not shown in provided code).  
-2. **Grant `ADMIRALS_QUARTERS_ROLE`** to the AQ contract address in the access manager.  
-3. **For each fleet** that AQ will interact with, grant `OPERATOR_ROLE` (contract‑specific) to the AQ contract.  
-4. Ensure AQ contract is **not** itself whitelisted (since it bypasses whitelist anyway via operator role).  
+1. **Grant `ADMIRALS_QUARTERS_ROLE`** to the AQ contract.  
+2. **For Fleets**: Grant `OPERATOR_ROLE` to AQ for the specific fleet.  
+3. **For Rounds**: Add the AQ address to the **global whitelist**.  
 
 ---
 
 ## 7. Security Considerations
 
-- **Governor role** is highly privileged; it should be held by a multisig or DAO with time‑locked proposals.  
-- **Whitelist manager** can open the global gateway (`address(0)`) – this should be carefully controlled.  
-- **Operator role** allows unrestricted deposits/withdrawals for that contract. It must be assigned only to trusted, audited contracts (like AQ).  
-- **Keeper role** for rounds must be trusted to call `nextRound` at the correct time; otherwise users cannot deposit or redeem.  
-- **Guardian role** has emergency powers but with expiration to limit its window of use.  
+- **Governor role** is highly privileged; it should be held by a multisig or DAO.  
+- **Whitelist manager** can grant entry to the system; for institutional fleets, this is a critical gate.  
+- **Admirals Quarters** bypasses fleet whitelists via the operator role, but must itself be whitelisted for Rounds Vaults. This "double lock" for Rounds adds an extra layer of visibility for institutional vaults.  
+- **Keeper role** for rounds must be trusted to advance the system state correctly.  
 
 ---
 
@@ -359,11 +330,9 @@ Fleet withdraws assets directly to user's wallet
   ```  
 - **OPERATOR_ROLE** for a fleet:  
   `keccak256(abi.encodePacked(ContractSpecificRoles.OPERATOR_ROLE, fleetAddress))`  
-- **KEEPER_ROLE** for a fleet:  
-  `keccak256(abi.encodePacked(ContractSpecificRoles.KEEPER_ROLE, fleetAddress))`  
 
 All role checks in the contract use `_accessManager.hasRole(role, account)` (for global roles) or `_accessManager.hasRole(generateRole(...), account)` (for contract‑specific roles).
 
 ---
 
-This document should serve as a comprehensive guide for institutional stakeholders to understand the access control architecture and to correctly configure roles and whitelists for each integration. For any further details, refer to the actual source code comments and the deployment scripts.
+This document accurately reflects the current state of the protocol where `RoundsVaultBase` enforces global whitelisting without an operator bypass, requiring even bundled services like Admirals Quarters to be whitelisted for interaction.
