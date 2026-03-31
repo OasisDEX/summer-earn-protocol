@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import { ProtocolAccessManagerV2 } from "../src/contracts/ProtocolAccessManagerV2.sol";
-import { ContractSpecificRoles } from "../src/interfaces/IProtocolAccessManager.sol";
-import { IProtocolAccessManagerV2 } from "../src/interfaces/IProtocolAccessManagerV2.sol";
-import { Test } from "forge-std/Test.sol";
+import {ProtocolAccessManagerV2} from "../src/contracts/ProtocolAccessManagerV2.sol";
+import {ContractSpecificRoles} from "../src/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManagerV2} from "../src/interfaces/IProtocolAccessManagerV2.sol";
+import {Test} from "forge-std/Test.sol";
 
 contract ProtocolAccessManagerV2Test is Test {
-
     ProtocolAccessManagerV2 public accessManager;
     address public governor = address(0x1);
     address public manager = address(0x2);
@@ -23,7 +22,11 @@ contract ProtocolAccessManagerV2Test is Test {
     }
 
     function test_V2_SupportsInterface() public view {
-        assertTrue(accessManager.supportsInterface(type(IProtocolAccessManagerV2).interfaceId));
+        assertTrue(
+            accessManager.supportsInterface(
+                type(IProtocolAccessManagerV2).interfaceId
+            )
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -34,7 +37,10 @@ contract ProtocolAccessManagerV2Test is Test {
         vm.prank(governor);
         accessManager.grantOperatorRole(fleet, operator);
 
-        bytes32 role = accessManager.generateRole(ContractSpecificRoles.OPERATOR_ROLE, fleet);
+        bytes32 role = accessManager.generateRole(
+            ContractSpecificRoles.OPERATOR_ROLE,
+            fleet
+        );
         assertTrue(accessManager.hasRole(role, operator));
     }
 
@@ -44,7 +50,10 @@ contract ProtocolAccessManagerV2Test is Test {
         accessManager.revokeOperatorRole(fleet, operator);
         vm.stopPrank();
 
-        bytes32 role = accessManager.generateRole(ContractSpecificRoles.OPERATOR_ROLE, fleet);
+        bytes32 role = accessManager.generateRole(
+            ContractSpecificRoles.OPERATOR_ROLE,
+            fleet
+        );
         assertFalse(accessManager.hasRole(role, operator));
     }
 
@@ -53,13 +62,23 @@ contract ProtocolAccessManagerV2Test is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_InitialWhitelistManager() public view {
-        assertTrue(accessManager.hasRole(accessManager.WHITELIST_MANAGER_ROLE(), governor));
+        assertTrue(
+            accessManager.hasRole(
+                accessManager.WHITELIST_MANAGER_ROLE(),
+                governor
+            )
+        );
     }
 
     function test_GrantWhitelistManagerRole() public {
         vm.prank(governor);
         accessManager.grantWhitelistManagerRole(manager);
-        assertTrue(accessManager.hasRole(accessManager.WHITELIST_MANAGER_ROLE(), manager));
+        assertTrue(
+            accessManager.hasRole(
+                accessManager.WHITELIST_MANAGER_ROLE(),
+                manager
+            )
+        );
     }
 
     function test_SetWhitelisted_Idempotency() public {
@@ -112,5 +131,4 @@ contract ProtocolAccessManagerV2Test is Test {
         vm.expectRevert(); // Should fail due to WHITELIST_MANAGER_ROLE check
         accessManager.setWhitelisted(user, true);
     }
-
 }

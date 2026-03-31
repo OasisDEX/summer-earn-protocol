@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import { ContractSpecificRoles } from "../interfaces/IProtocolAccessManager.sol";
-import { IProtocolAccessManager } from "../interfaces/IProtocolAccessManager.sol";
-import { IProtocolAccessManagerV2 } from "../interfaces/IProtocolAccessManagerV2.sol";
-import { ProtocolAccessManager } from "./ProtocolAccessManager.sol";
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManagerV2} from "../interfaces/IProtocolAccessManagerV2.sol";
+import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title ProtocolAccessManagerV2
@@ -13,14 +13,17 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
  * @dev Replaces the original ProtocolAccessManager for new Fleet variants (Whitelist/Institution)
  *      that require restricted entry/exit gateways.
  */
-contract ProtocolAccessManagerV2 is IProtocolAccessManagerV2, ProtocolAccessManager {
-
+contract ProtocolAccessManagerV2 is
+    IProtocolAccessManagerV2,
+    ProtocolAccessManager
+{
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Role identifier for whitelist managers who can update the global whitelist status
-    bytes32 public constant WHITELIST_MANAGER_ROLE = keccak256("WHITELIST_MANAGER_ROLE");
+    bytes32 public constant WHITELIST_MANAGER_ROLE =
+        keccak256("WHITELIST_MANAGER_ROLE");
 
     /*//////////////////////////////////////////////////////////////
                                   STATE
@@ -40,18 +43,36 @@ contract ProtocolAccessManagerV2 is IProtocolAccessManagerV2, ProtocolAccessMana
     /**
      * @inheritdoc IERC165
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IProtocolAccessManagerV2).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override returns (bool) {
+        return
+            interfaceId == type(IProtocolAccessManagerV2).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /// @inheritdoc IProtocolAccessManagerV2
-    function grantOperatorRole(address fleetCommanderAddress, address account) public onlyGovernor {
-        grantContractSpecificRole(ContractSpecificRoles.OPERATOR_ROLE, fleetCommanderAddress, account);
+    function grantOperatorRole(
+        address fleetCommanderAddress,
+        address account
+    ) public onlyGovernor {
+        grantContractSpecificRole(
+            ContractSpecificRoles.OPERATOR_ROLE,
+            fleetCommanderAddress,
+            account
+        );
     }
 
     /// @inheritdoc IProtocolAccessManagerV2
-    function revokeOperatorRole(address fleetCommanderAddress, address account) public onlyGovernor {
-        revokeContractSpecificRole(ContractSpecificRoles.OPERATOR_ROLE, fleetCommanderAddress, account);
+    function revokeOperatorRole(
+        address fleetCommanderAddress,
+        address account
+    ) public onlyGovernor {
+        revokeContractSpecificRole(
+            ContractSpecificRoles.OPERATOR_ROLE,
+            fleetCommanderAddress,
+            account
+        );
     }
 
     // 3. Add Whitelist Logic
@@ -73,7 +94,10 @@ contract ProtocolAccessManagerV2 is IProtocolAccessManagerV2, ProtocolAccessMana
     }
 
     /// @inheritdoc IProtocolAccessManagerV2
-    function setWhitelisted(address account, bool allowed) external onlyRole(WHITELIST_MANAGER_ROLE) {
+    function setWhitelisted(
+        address account,
+        bool allowed
+    ) external onlyRole(WHITELIST_MANAGER_ROLE) {
         _setWhitelisted(account, allowed);
     }
 
@@ -81,10 +105,7 @@ contract ProtocolAccessManagerV2 is IProtocolAccessManagerV2, ProtocolAccessMana
     function setWhitelistedBatch(
         address[] calldata accounts,
         bool[] calldata allowed
-    )
-        external
-        onlyRole(WHITELIST_MANAGER_ROLE)
-    {
+    ) external onlyRole(WHITELIST_MANAGER_ROLE) {
         require(accounts.length == allowed.length, "Length mismatch");
         for (uint256 i = 0; i < accounts.length; i++) {
             _setWhitelisted(accounts[i], allowed[i]);
@@ -102,5 +123,4 @@ contract ProtocolAccessManagerV2 is IProtocolAccessManagerV2, ProtocolAccessMana
             emit WhitelistStatusUpdated(account, allowed);
         }
     }
-
 }

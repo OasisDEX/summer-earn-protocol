@@ -53,41 +53,44 @@ contract FleetCommanderWhitelist is
     {}
 
     /*//////////////////////////////////////////////////////////////
-                            MODIFIERS
+                            PRIVATE HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev Modifier to collect the tip before any other action is taken
-     */
-    modifier collectTip() {
+    function _collectTipPre() private {
         _setIsCollectingTip(true);
         _accrueTip(tipJar(), totalSupply());
-        _;
+    }
+
+    function _collectTipPost() private {
         _setIsCollectingTip(false);
     }
 
-    /**
-     * @dev Modifier to cache ark data for deposit operations.
-     * @notice This modifier retrieves ark data before the function execution,
-     *         allows the modified function to run, and then flushes the cache.
-     * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
-     *         those calls migh be gas expensive for some arks.
-     */
-    modifier useCache() {
+    function _useCachePre() private {
         _getArksData(config.bufferArk);
+    }
+
+    function _useWithdrawCachePre() private {
+        _getWithdrawableArksData(config.bufferArk);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier collectTip() {
+        _collectTipPre();
+        _;
+        _collectTipPost();
+    }
+
+    modifier useCache() {
+        _useCachePre();
         _;
         _flushCache();
     }
 
-    /**
-     * @dev Modifier to cache withdrawable ark data for withdraw operations.
-     * @notice This modifier retrieves withdrawable ark data before the function execution,
-     *         allows the modified function to run, and then flushes the cache.
-     * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
-     *         those calls migh be gas expensive for some arks.
-     */
     modifier useWithdrawCache() {
-        _getWithdrawableArksData(config.bufferArk);
+        _useWithdrawCachePre();
         _;
         _flushCache();
     }
