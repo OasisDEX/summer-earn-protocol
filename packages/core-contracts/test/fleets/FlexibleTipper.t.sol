@@ -253,11 +253,11 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         uint256 expectedFeeShares = (expectedFeeAssets *
             (INITIAL_DEPOSIT + feeShares)) / (INITIAL_DEPOSIT + 100_000e6);
 
-        assertApproxEqRel(
+        assertApproxEqAbs(
             feeShares,
             expectedFeeShares,
-            0.02e18, // 2% tolerance (mint dilution makes naive formula an over-estimate)
-            "Performance fee shares should be ~20% of yield in share terms"
+            1, // 1 wei tolerance for rounding
+            "Performance fee shares should be exactly correct according to dilution-aware math"
         );
     }
 
@@ -272,7 +272,13 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         vault.tip();
 
         uint256 hwmAfter = vault.highWaterMark();
-        assertGt(hwmAfter, hwmBefore, "HWM should increase after profit");
+        uint256 apsAfter = (vault.totalAssets() * 1e18) / vault.totalSupply();
+
+        assertEq(
+            hwmAfter,
+            apsAfter,
+            "HWM should exactly match post-accrual Assets Per Share"
+        );
     }
 
     function test_PerformanceOnly_NoFeeAfterLoss() public {

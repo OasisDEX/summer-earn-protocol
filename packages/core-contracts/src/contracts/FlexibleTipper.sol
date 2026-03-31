@@ -195,28 +195,33 @@ abstract contract FlexibleTipper is IFlexibleTipper, Tipper {
         if (currentAPS <= highWaterMark) return 0;
 
         /**
-         * Optimized Math:
-         * We want to mint shares such that the value of those shares equals
-         * (Performance Fee Rate) * (Growth in Assets).
+         * Dilution-Aware Math:
+         * We want to mint shares (sf) such that sf / (S + sf) = FeeAssets / TotalAssets.
          *
-         * Direct Share Calculation:
-         * feeShares = totalSupply * rate * (currentAPS - HWM) / currentAPS
+         * sf = (S * FeeAssets) / (TotalAssets - FeeAssets)
+         *
+         * In share-price terms (dividing by S/1e18):
+         * FeeAssetsPerShare = (currentAPS - HWM) * rate
+         * sf = (S * FeeAssetsPerShare) / (currentAPS - FeeAssetsPerShare)
          */
-        uint256 shareFactor = currentAPS - highWaterMark;
+        uint256 profitPerShare = currentAPS - highWaterMark;
+        uint256 feeAssetsPerShare = profitPerShare.applyPercentage(rate);
 
-        // Use PercentageUtils to apply the rate to the supply, then scale by the growth ratio
+        // Calculate fee shares using the dilution-aware formula
         feeShares =
-            (_totalSupply.applyPercentage(rate) * shareFactor) /
-            currentAPS;
+            (_totalSupply * feeAssetsPerShare) /
+            (currentAPS - feeAssetsPerShare);
 
         if (feeShares > 0) {
             _mintTip(tipJar, feeShares);
 
-            // Update state
-            highWaterMark = currentAPS;
+            // Update HWM to the post-mint APS to prevent artificial drawdown
+            highWaterMark =
+                (currentTotalAssets * 1e18) /
+                (_totalSupply + feeShares);
 
             emit PerformanceFeeAccrued(feeShares);
-            emit HighWaterMarkUpdated(currentAPS);
+            emit HighWaterMarkUpdated(newHWM);
         }
     }
 
@@ -273,10 +278,12 @@ abstract contract FlexibleTipper is IFlexibleTipper, Tipper {
 
         if (currentAPS <= highWaterMark) return 0;
 
-        uint256 shareFactor = currentAPS - highWaterMark;
+        uint256 profitPerShare = currentAPS - highWaterMark;
+        uint256 feeAssetsPerShare = profitPerShare.applyPercentage(rate);
+
         feeShares =
-            (_totalSupply.applyPercentage(rate) * shareFactor) /
-            currentAPS;
+            (_totalSupply * feeAssetsPerShare) /
+            (currentAPS - feeAssetsPerShare);
     }
 
     /*//////////////////////////////////////////////////////////////
