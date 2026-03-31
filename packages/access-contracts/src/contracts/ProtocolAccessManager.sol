@@ -124,7 +124,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
      */
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override returns (bool) {
+    ) public view virtual override returns (bool) {
         return
             interfaceId == type(IProtocolAccessManager).interfaceId ||
             super.supportsInterface(interfaceId);

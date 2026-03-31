@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {IFleetCommanderErrors} from "../errors/IFleetCommanderErrors.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+import {IFlexibleTipper} from "./IFlexibleTipper.sol";
 import {RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {IFleetCommanderConfigProviderWhitelist} from "./IFleetCommanderConfigProviderWhitelist.sol";
@@ -10,7 +11,7 @@ import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.s
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
- * @title IFleetCommanderWhitelist Interface
+ * @title IFleetCommanderWhitelist
  * @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks.
  * @dev Implementations should gate state-changing user calls using the `Whitelist` utility. When the
  *      whitelist is in open mode (i.e., `address(0)` is whitelisted), all accounts are considered
@@ -195,4 +196,16 @@ interface IFleetCommanderWhitelist is
      * @dev Only callable by the guardian or governor
      */
     function unpause() external;
+
+    /**
+     * @notice Sets the fee type for the FleetCommander
+     * @param newFeeType The new fee type to set
+     */
+    function setFeeType(IFlexibleTipper.FeeType newFeeType) external;
+
+    /**
+     * @notice Sets the performance fee rate for the FleetCommander
+     * @param newRate The new performance fee rate to set
+     */
+    function setPerformanceFeeRate(Percentage newRate) external;
 }

@@ -7,7 +7,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManagedV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedV2.sol";
 
 import {ERC4626MultiTokenWrapper} from "../../extensions/ERC4626MultiTokenWrapper.sol";
 import {IERC4626MultiToken, ERC4626MultiToken} from "../../extensions/ERC4626MultiToken.sol";
@@ -36,7 +36,7 @@ import {IRoundsVaultBaseEnums} from "../../interfaces/rounds-vault/IRoundsVaultB
     @author Roberto Cano <robercano>
  */
 abstract contract RoundsVaultBase is
-    ProtocolAccessManaged,
+    ProtocolAccessManagedV2,
     ERC4626MultiTokenWrapper,
     Whitelist,
     IRoundsVaultBase,
@@ -91,7 +91,7 @@ abstract contract RoundsVaultBase is
                 : proxiedERC4626Vault,
             receiptsURI
         )
-        ProtocolAccessManaged(accessManager)
+        ProtocolAccessManagedV2(accessManager)
     {
         if (vaultType == BaseVaultType.Input) {
             _exchangeAsset = proxiedERC4626Vault;
@@ -147,16 +147,23 @@ abstract contract RoundsVaultBase is
     function setWhitelisted(
         address account,
         bool allowed
-    ) external override onlyGovernor {
-        _setWhitelisted(account, allowed);
+    ) public override onlyGovernor {
+        super.setWhitelisted(account, allowed);
     }
 
     ///@inheritdoc Whitelist
     function setWhitelistedBatch(
         address[] memory accounts,
         bool[] memory allowed
-    ) external override onlyGovernor {
-        _setWhitelistedBatch(accounts, allowed);
+    ) public override onlyGovernor {
+        super.setWhitelistedBatch(accounts, allowed);
+    }
+
+    /**
+     * @dev Implementation of the Whitelist proxy adapter's virtual hook.
+     */
+    function _getAccessManager() internal view override returns (address) {
+        return address(_accessManager);
     }
 
     /**

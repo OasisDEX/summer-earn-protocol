@@ -48,4 +48,10 @@ interface IFleetCommanderConfigProviderEvents {
      * @param newTipJar The address of the new tip jar
      */
     event FleetCommanderTipJarUpdated(address newTipJar);
+
+    /**
+     * @notice Emitted when the operator gateway status is updated
+     * @param newStatus The new status of the operator gateway
+     */
+    event OperatorGatewayStatusUpdated(bool newStatus);
 }

@@ -12,7 +12,9 @@ import {IRoundsVaultBaseEnums} from "../../src/interfaces/rounds-vault/IRoundsVa
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
 import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
 import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
-import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
 import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 // Mock Access Manager to handle role checks
@@ -37,7 +39,20 @@ contract MockAccessManager {
     function supportsInterface(
         bytes4 interfaceId
     ) external pure returns (bool) {
-        return interfaceId == type(IProtocolAccessManager).interfaceId; // Mocking the interface ID check
+        return
+            interfaceId == type(IProtocolAccessManagerV2).interfaceId ||
+            interfaceId == type(IProtocolAccessManager).interfaceId;
+    }
+
+    mapping(address => bool) public whitelisted;
+
+    function setWhitelisted(address account, bool isWhitelisted_) external {
+        whitelisted[account] = isWhitelisted_;
+    }
+
+    function isWhitelisted(address account) external view returns (bool) {
+        // If address(0) is whitelisted, the gateway is globally open
+        return whitelisted[address(0)] || whitelisted[account];
     }
 }
 

@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
 import {AssetsForwarder} from "../../../src/utils/AssetsForwarder/AssetsForwarder.sol";
 import {IAssetsForwarderErrors} from "../../../src/utils/AssetsForwarder/IAssetsForwarderErrors.sol";
 import {IAssetsForwarderEvents} from "../../../src/utils/AssetsForwarder/IAssetsForwarderEvents.sol";
 import {NotWhitelisted} from "../../../src/utils/Whitelist/IWhitelistErrors.sol";
-import {IProtocolAccessManager, ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ProtocolAccessManagerV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagerV2.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
+import {Test} from "forge-std/Test.sol";
 
 contract MockERC20 is ERC20 {
     constructor() ERC20("Mock", "MCK") {}
@@ -26,7 +27,7 @@ contract AssetsForwarderTest is
     IAccessControlErrors
 {
     AssetsForwarder forwarder;
-    ProtocolAccessManager accessManager;
+    ProtocolAccessManagerV2 accessManager;
     MockERC20 token;
 
     address governor = makeAddr("governor");
@@ -37,14 +38,14 @@ contract AssetsForwarderTest is
     address foundation = makeAddr("foundation");
 
     function setUp() public {
-        accessManager = new ProtocolAccessManager(governor);
+        accessManager = new ProtocolAccessManagerV2(governor);
 
         vm.startPrank(governor);
         forwarder = new AssetsForwarder(address(accessManager));
 
         // Setup keeper role
         accessManager.grantKeeperRole(address(forwarder), keeper);
-
+        accessManager.grantWhitelistManagerRole(address(forwarder));
         // Setup whitelisted users
         forwarder.setWhitelisted(whitelistedUser, true);
         forwarder.setWhitelisted(target, true);

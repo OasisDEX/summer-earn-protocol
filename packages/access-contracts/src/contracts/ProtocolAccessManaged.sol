@@ -265,19 +265,6 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
-    /**
-     * @notice Modifier to restrict access to operators only
-     * @dev Modifier to check that the caller has the Operator role.
-     * Note: This works with V1 Access Managers because generating and checking roles is universally supported,
-     * but assigning this role on V1 requires using the generic `grantContractSpecificRole` function instead
-     * of the dedicated V2 `grantOperatorRole` helper.
-     */
-    modifier onlyOperator() {
-        if (!hasOperatorRole(msg.sender)) {
-            revert CallerIsNotOperator(msg.sender);
-        }
-        _;
-    }
 
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
@@ -308,21 +295,6 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         return _accessManager.hasRole(ADMIRALS_QUARTERS_ROLE, account);
     }
 
-    /**
-     * @notice Checks if an account has the Operator role
-     * @param account The address to check
-     * @return bool True if the account has the Operator role
-     */
-    function hasOperatorRole(address account) public view returns (bool) {
-        return
-            _accessManager.hasRole(
-                generateRole(
-                    ContractSpecificRoles.OPERATOR_ROLE,
-                    address(this)
-                ),
-                account
-            );
-    }
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS

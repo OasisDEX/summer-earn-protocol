@@ -3,12 +3,12 @@ pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommanderWhitelist} from "../interfaces/IFleetCommanderWhitelist.sol";
-import {ArkData, FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {ArkData, FleetCommanderWhitelistParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {FleetCommanderCache} from "./FleetCommanderCache.sol";
 import {FleetCommanderConfigProviderWhitelist} from "./FleetCommanderConfigProviderWhitelist.sol";
 
-import {Tipper} from "./Tipper.sol";
+import {FlexibleTipper} from "./FlexibleTipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -17,18 +17,18 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
- * @title FleetCommander
- * @notice Manages a fleet of Arks, coordinating deposits, withdrawals, and rebalancing operations
+ * @title FleetCommanderWhitelist
+ * @notice Manages a fleet of Arks with restricted entry/exit via a Whitelist and Operator role.
  * @dev Implements IFleetCommanderWhitelist interface and inherits from various utility contracts.
- *      State-changing user operations such as deposit, mint and ERC20 transfers are gated by
- *      via the inherited Whitelist utility and the modifier `onlyWhitelisted`. When the whitelist
- *      is open (i.e., `address(0)` is whitelisted), all callers are allowed.
+ *      Entry (deposit/mint) and exit (withdraw/redeem) operations are gated by the operator gateway.
+ *      When the gateway is closed, only accounts with the OPERATOR_ROLE can perform these actions.
+ *      When the gateway is open, all whitelisted accounts can perform these actions.
  */
 contract FleetCommanderWhitelist is
     IFleetCommanderWhitelist,
     FleetCommanderConfigProviderWhitelist,
     ERC4626,
-    Tipper,
+    FlexibleTipper,
     FleetCommanderCache
 {
     using SafeERC20 for IERC20;
@@ -44,12 +44,12 @@ contract FleetCommanderWhitelist is
      * @param params FleetCommanderParams struct containing initialization parameters
      */
     constructor(
-        FleetCommanderParams memory params
+        FleetCommanderWhitelistParams memory params
     )
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
         FleetCommanderConfigProviderWhitelist(params)
-        Tipper(params.initialTipRate)
+        FlexibleTipper(params.initialTipRate)
     {}
 
     /*//////////////////////////////////////////////////////////////
@@ -101,16 +101,8 @@ contract FleetCommanderWhitelist is
         uint256 assets,
         address receiver,
         address owner
-    )
-        public
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        whenNotPaused
-        collectTip
-        useCache
-        returns (uint256 shares)
-    {
+    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
+        _enforceExitGateway(_msgSender(), receiver, owner);
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -134,14 +126,12 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
         collectTip
         useCache
         whenNotPaused
         returns (uint256 assets)
     {
+        _enforceExitGateway(_msgSender(), receiver, owner);
         uint256 bufferBalance = config.bufferArk.totalAssets();
         uint256 bufferBalanceInShares = convertToShares(bufferBalance);
 
@@ -161,16 +151,8 @@ contract FleetCommanderWhitelist is
         uint256 shares,
         address receiver,
         address owner
-    )
-        public
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        collectTip
-        useCache
-        whenNotPaused
-        returns (uint256 assets)
-    {
+    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
+        _enforceExitGateway(_msgSender(), receiver, owner);
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -194,14 +176,12 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
         collectTip
         useCache
         whenNotPaused
         returns (uint256 shares)
     {
+        _enforceExitGateway(_msgSender(), receiver, owner);
         uint256 bufferBalance = config.bufferArk.totalAssets();
 
         if (assets == Constants.MAX_UINT256) {
@@ -224,14 +204,12 @@ contract FleetCommanderWhitelist is
     )
         public
         override(IFleetCommanderWhitelist)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
         collectTip
         useWithdrawCache
         whenNotPaused
         returns (uint256 totalSharesToRedeem)
     {
+        _enforceExitGateway(_msgSender(), receiver, owner);
         totalSharesToRedeem = previewWithdraw(assets);
 
         _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
@@ -250,14 +228,12 @@ contract FleetCommanderWhitelist is
     )
         public
         override(IFleetCommanderWhitelist)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
         collectTip
         useWithdrawCache
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
+        _enforceExitGateway(_msgSender(), receiver, owner);
         _validateRedeemFromArks(shares, owner);
 
         totalAssetsToWithdraw = previewRedeem(shares);
@@ -273,13 +249,12 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(receiver)
         collectTip
         useCache
         whenNotPaused
         returns (uint256 shares)
     {
+        _enforceEntryGateway(_msgSender(), receiver);
         _validateDeposit(assets, _msgSender());
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -302,13 +277,12 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(receiver)
         collectTip
         useCache
         whenNotPaused
         returns (uint256 assets)
     {
+        _enforceEntryGateway(_msgSender(), receiver);
         _validateMint(shares, _msgSender());
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -333,6 +307,7 @@ contract FleetCommanderWhitelist is
                         PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IERC20
     /**
      * @dev Overrides the totalSupply function to include the tip shares
      * @dev This is done to ensure that the totalSupply is always accurate, even when tips are being accrued
@@ -357,7 +332,7 @@ contract FleetCommanderWhitelist is
         return _totalSupply + previewTip(tipJar(), _totalSupply);
     }
 
-    /// @inheritdoc IFleetCommanderWhitelist
+    /// @inheritdoc ERC4626
     function totalAssets()
         public
         view
@@ -481,6 +456,20 @@ contract FleetCommanderWhitelist is
         _unpause();
     }
 
+    /// @inheritdoc IFleetCommanderWhitelist
+    function setFeeType(
+        FeeType newFeeType
+    ) external onlyGovernor whenNotPaused {
+        _setFeeType(newFeeType, totalAssets(), super.totalSupply());
+    }
+
+    /// @inheritdoc IFleetCommanderWhitelist
+    function setPerformanceFeeRate(
+        Percentage newRate
+    ) external onlyGovernor whenNotPaused {
+        _setPerformanceFeeRate(newRate);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         PUBLIC ERC20 FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -490,6 +479,10 @@ contract FleetCommanderWhitelist is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
+        if (hasOperatorRole(_msgSender())) {
+            return super.transfer(to, amount);
+        }
+
         if (!transfersEnabled) {
             revert FleetCommanderTransfersDisabled();
         }
@@ -505,6 +498,10 @@ contract FleetCommanderWhitelist is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
+        if (hasOperatorRole(_msgSender())) {
+            return super.transferFrom(from, to, amount);
+        }
+
         if (!transfersEnabled) {
             revert FleetCommanderTransfersDisabled();
         }
@@ -534,6 +531,61 @@ contract FleetCommanderWhitelist is
         uint256 amount
     ) internal virtual override {
         _mint(account, amount);
+    }
+
+    /**
+     * @notice Returns the total assets for FlexibleTipper fee calculation
+     * @dev Implements the abstract hook from FlexibleTipper.
+     *      Delegates to totalAssets() which uses the FleetCommanderCache.
+     * @return The total assets held across all arks
+     */
+    function _getTotalAssetsForFee() internal view override returns (uint256) {
+        return totalAssets();
+    }
+
+    /**
+     * @notice Enforces gateway restrictions for entry operations (deposit/mint)
+     * @param caller The address of the caller
+     * @param receiver The address of the receiver
+     */
+    function _enforceEntryGateway(
+        address caller,
+        address receiver
+    ) internal view {
+        if (hasOperatorRole(caller)) {
+            return;
+        }
+
+        if (!config.isOperatorGatewayOpen) {
+            revert FleetCommanderDirectDepositsClosed();
+        }
+
+        _revertIfNotWhitelisted(caller);
+        _revertIfNotWhitelisted(receiver);
+    }
+
+    /**
+     * @notice Enforces gateway restrictions for exit operations (withdraw/redeem)
+     * @param caller The address of the caller
+     * @param receiver The address of the receiver
+     * @param owner The address of the owner of the shares
+     */
+    function _enforceExitGateway(
+        address caller,
+        address receiver,
+        address owner
+    ) internal view {
+        if (hasOperatorRole(caller)) {
+            return;
+        }
+
+        if (!config.isOperatorGatewayOpen) {
+            revert FleetCommanderDirectWithdrawalsClosed();
+        }
+
+        _revertIfNotWhitelisted(caller);
+        _revertIfNotWhitelisted(receiver);
+        _revertIfNotWhitelisted(owner);
     }
 
     /**
