@@ -8,7 +8,7 @@ import {ArkData, FleetCommanderParams, RebalanceData} from "../types/FleetComman
 import {FleetCommanderCache} from "./FleetCommanderCache.sol";
 import {FleetCommanderConfigProviderWhitelist} from "./FleetCommanderConfigProviderWhitelist.sol";
 
-import {Tipper} from "./Tipper.sol";
+import {FlexibleTipper} from "./FlexibleTipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -28,7 +28,7 @@ contract FleetCommanderPrivateWithTransfer is
     IFleetCommanderPrivateWithTransfer,
     FleetCommanderConfigProviderWhitelist,
     ERC4626,
-    Tipper,
+    FlexibleTipper,
     FleetCommanderCache
 {
     using SafeERC20 for IERC20;
@@ -49,7 +49,7 @@ contract FleetCommanderPrivateWithTransfer is
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
         FleetCommanderConfigProviderWhitelist(params)
-        Tipper(params.initialTipRate)
+        FlexibleTipper(params.initialTipRate)
     {}
 
     /*//////////////////////////////////////////////////////////////
@@ -105,8 +105,8 @@ contract FleetCommanderPrivateWithTransfer is
         public
         onlyOperator
         whenNotPaused
-        collectTip
         useCache
+        collectTip
         returns (uint256 shares)
     {
         shares = previewWithdraw(assets);
@@ -133,8 +133,8 @@ contract FleetCommanderPrivateWithTransfer is
         public
         override(ERC4626, IFleetCommanderPrivateWithTransfer)
         onlyOperator
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
@@ -160,8 +160,8 @@ contract FleetCommanderPrivateWithTransfer is
     )
         public
         onlyOperator
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
@@ -189,8 +189,8 @@ contract FleetCommanderPrivateWithTransfer is
         public
         override(ERC4626, IFleetCommanderPrivateWithTransfer)
         onlyOperator
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 shares)
     {
@@ -217,8 +217,8 @@ contract FleetCommanderPrivateWithTransfer is
         public
         override(IFleetCommanderPrivateWithTransfer)
         onlyOperator
-        collectTip
         useWithdrawCache
+        collectTip
         whenNotPaused
         returns (uint256 totalSharesToRedeem)
     {
@@ -241,8 +241,8 @@ contract FleetCommanderPrivateWithTransfer is
         public
         override(IFleetCommanderPrivateWithTransfer)
         onlyOperator
-        collectTip
         useWithdrawCache
+        collectTip
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
@@ -262,8 +262,8 @@ contract FleetCommanderPrivateWithTransfer is
         public
         override(ERC4626, IERC4626)
         onlyOperator
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 shares)
     {
@@ -290,8 +290,8 @@ contract FleetCommanderPrivateWithTransfer is
         public
         override(ERC4626, IERC4626)
         onlyOperator
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
@@ -451,6 +451,20 @@ contract FleetCommanderPrivateWithTransfer is
     }
 
     /// @inheritdoc IFleetCommanderPrivateWithTransfer
+    function setFeeType(
+        FeeType newFeeType
+    ) external onlyGovernor whenNotPaused {
+        _setFeeType(newFeeType, totalAssets(), super.totalSupply());
+    }
+
+    /// @inheritdoc IFleetCommanderPrivateWithTransfer
+    function setPerformanceFeeRate(
+        Percentage newRate
+    ) external onlyGovernor whenNotPaused {
+        _setPerformanceFeeRate(newRate);
+    }
+
+    /// @inheritdoc IFleetCommanderPrivateWithTransfer
     function setMinimumPauseTime(
         uint256 _newMinimumPauseTime
     ) public onlyGovernor whenNotPaused {
@@ -531,6 +545,16 @@ contract FleetCommanderPrivateWithTransfer is
         uint256 amount
     ) internal virtual override {
         _mint(account, amount);
+    }
+
+    /**
+     * @notice Returns the total assets for FlexibleTipper fee calculation
+     * @dev Implements the abstract hook from FlexibleTipper.
+     *      Delegates to totalAssets() which uses the FleetCommanderCache.
+     * @return The total assets held across all arks
+     */
+    function _getTotalAssetsForFee() internal view override returns (uint256) {
+        return totalAssets();
     }
 
     /**

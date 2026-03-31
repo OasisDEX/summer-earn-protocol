@@ -6,6 +6,7 @@ import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
 import {RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {IFleetCommanderConfigProviderWhitelist} from "./IFleetCommanderConfigProviderWhitelist.sol";
+import {IFlexibleTipper} from "./IFlexibleTipper.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
@@ -173,6 +174,20 @@ interface IFleetCommanderPrivateWithTransfer is
      * @param newTipRate The new tip rate as a Percentage
      */
     function setTipRate(Percentage newTipRate) external;
+
+    /**
+     * @notice Sets the fee type for the FleetCommander
+     * @dev Only callable by the governor. Resets HWM to current assetsPerShare.
+     * @param newFeeType The new fee type (AUM, PERFORMANCE, or BOTH)
+     */
+    function setFeeType(IFlexibleTipper.FeeType newFeeType) external;
+
+    /**
+     * @notice Sets the performance fee rate for the FleetCommander
+     * @dev Only callable by the governor. Max rate is 50%.
+     * @param newRate The new performance fee rate as a Percentage
+     */
+    function setPerformanceFeeRate(Percentage newRate) external;
 
     /**
      * @notice Sets a new minimum pause time for the FleetCommander
