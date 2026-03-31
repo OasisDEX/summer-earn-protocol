@@ -18,13 +18,13 @@
 10. [Entry Point Analysis](#10-entry-point-analysis)
 11. [Systemic Risks & Operational Limitations](#11-systemic-risks-and-operational-limitations)
 
----
+-----
 
-## 1. Architecture Overview
+## 1\. Architecture Overview
 
 The Rounds Vault system solves a fundamental problem: institutional tokenized funds (e.g. WisdomTree WTGXX, CRDYX, and future Benji tokens) have **locked investment periods** where deposits/withdrawals are processed in T+0 or T+1 off-chain settlement cycles. Users cannot interact directly during these periods.
 
-The Rounds Vault acts as an **asynchronous buffering layer** between users and the FleetCommander ERC-4626 vault.
+The Rounds Vault acts as an **asynchronous buffering layer** between users and the unified FleetCommander ERC-4626 vault.
 
 ```mermaid
 flowchart LR
@@ -46,58 +46,52 @@ flowchart LR
     OV -->|exchange receipts| U4[User receives USDC]
 ```
 
----
+-----
 
-## 2. Contract Hierarchy
+## 2\. Contract Hierarchy & Access Control
+
+The protocol uses a centralized **ProtocolAccessManagerV2** to maintain a single source of truth for whitelisting and Operator roles. The `Whitelist` contract is a stateless adapter that forwards checks to the central manager.
 
 ```mermaid
 classDiagram
-    class ERC4626MultiToken {
-        +deposit(assets, receiver) uint256
-        +redeem(id, amount, receiver, owner) uint256
-        +balanceOf(account, id) uint256
-        #_getMintId() uint256
+    class ProtocolAccessManagerV2 {
+        -_whitelisted : mapping
+        +isWhitelisted(account) bool
+        +setWhitelisted(account, allowed)
+        +grantOperatorRole(target, account)
     }
 
-    class ERC4626MultiTokenWrapper {
-        -_proxiedVault : IERC4626
-        +vault() address
-        #_depositOnTarget(amount) uint256
-        #_redeemFromTarget(amount) uint256
+    class WhitelistProxy {
+        <<abstract>>
+        #_getAccessManager() address
+        +isWhitelisted(account) bool
+        +setWhitelisted(account, allowed)
     }
 
     class RoundsVaultBase {
         -_roundNumber : uint256
-        -_exchangeRateByRound : mapping
-        -_exchangeAsset : address
         +nextRound() [Keeper]
-        +setRoundSettled(roundNumber) [Keeper]
         +deposit(assets, receiver) [Whitelisted]
-        +redeem(id, amount, receiver, owner) [Whitelisted]
-        +redeemExchangeAsset(id, amount, receiver, owner) [Whitelisted]
-        #_operate() virtual
-        #_getCurrentExchangeRate() virtual
+        +redeemExchangeAsset() [Whitelisted]
+    }
+    
+    class FleetCommander {
+        +isOperatorGatewayOpen : bool
+        +transfersEnabled : bool
+        +deposit() [Gateway Enforced]
+        +withdraw() [Gateway Enforced]
     }
 
-    class RoundsVaultInput {
-        #_operate() : deposits USDC → Fleet
-        #_getCurrentExchangeRate() : previewDeposit(1)
-    }
-
-    class RoundsVaultOutput {
-        #_operate() : redeems Fleet shares → USDC
-        #_getCurrentExchangeRate() : previewRedeem(1)
-    }
-
-    ERC4626MultiToken <|-- ERC4626MultiTokenWrapper
-    ERC4626MultiTokenWrapper <|-- RoundsVaultBase
+    ProtocolAccessManagerV2 <-- WhitelistProxy : Delegates queries/state
+    WhitelistProxy <|-- RoundsVaultBase
+    WhitelistProxy <|-- FleetCommander
     RoundsVaultBase <|-- RoundsVaultInput
     RoundsVaultBase <|-- RoundsVaultOutput
 ```
 
----
+-----
 
-## 3. Token Model: Receipts (ERC-1155 NFTs)
+## 3\. Token Model: Receipts (ERC-1155 NFTs)
 
 When a user deposits into a Rounds Vault, they do **not** receive ERC-20 shares. Instead they receive **ERC-1155 receipt tokens** where:
 
@@ -130,12 +124,13 @@ stateDiagram-v2
 ```
 
 **Key rules:**
-- `redeem(id, amount, receiver, owner)` — burns receipt, returns the **deposit token** (same asset deposited). Only works for `id == currentRound`.
-- `redeemExchangeAsset(id, amount, receiver, owner)` — burns receipt, returns the **exchange asset** at the snapshotted exchange rate. Only works for `id < currentRound` AND `roundState[id] == Settled`.
 
----
+  - `redeem(id, amount, receiver, owner)` — burns receipt, returns the **deposit token** (same asset deposited). Only works for `id == currentRound`.
+  - `redeemExchangeAsset(id, amount, receiver, owner)` — burns receipt, returns the **exchange asset** at the snapshotted exchange rate. Only works for `id < currentRound` AND `roundState[id] == Settled`.
 
-## 4. Round State Machine
+-----
+
+## 4\. Round State Machine
 
 Each round has a state tracked in `roundState[roundNumber]`:
 
@@ -155,14 +150,14 @@ stateDiagram-v2
 
 ### `nextRound()` does 4 things atomically:
 
-1. **Snapshots the exchange rate** → `_exchangeRateByRound[N] = _getCurrentExchangeRate()`
-2. **Sets round N to InSettlement** → `roundState[N] = InSettlement`
-3. **Executes `_operate()`** → deposits/redeems bulk into/from the FleetCommander
-4. **Increments round** → `_roundNumber++`, sets new round to `Opened`
+1.  **Snapshots the exchange rate** → `_exchangeRateByRound[N] = _getCurrentExchangeRate()`
+2.  **Sets round N to InSettlement** → `roundState[N] = InSettlement`
+3.  **Executes `_operate()`** → deposits/redeems bulk into/from the FleetCommander
+4.  **Increments round** → `_roundNumber++`, sets new round to `Opened`
 
----
+-----
 
-## 5. Input Vault (Deposit Flow)
+## 5\. Input Vault (Deposit Flow)
 
 | Property | Value |
 |----------|-------|
@@ -289,7 +284,7 @@ function _getCurrentExchangeRate() internal view override returns (Price memory)
 
 ---
 
-## 7. Exchange Rate Math
+## 7\. Exchange Rate Math
 
 The `Price` struct from `@summerfi/price-solidity`:
 
@@ -320,7 +315,7 @@ struct Price {
 
 ---
 
-## 8. WisdomTreeArk Internals
+## 8\. WisdomTreeArk Internals
 
 [WisdomTreeArk.sol](../arks/WisdomTreeArk.sol) handles the on-chain/off-chain bridge to WisdomTree funds.
 
@@ -400,9 +395,9 @@ setArkFrozen(false, 0)                 // unfreezes, new shares recognized
 
 When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless of oracle or share balance changes.
 
----
+-----
 
-## 9. Keeper Operations Playbook
+## 9\. Keeper Operations Playbook
 
 ### Deposit Round Lifecycle
 
@@ -444,21 +439,20 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 
 | Access Level | Count | Priority |
 |-------------:|------:|----------|
-| Public (Whitelisted) | 6 | 🔴 High |
-| Keeper-restricted | 12 | 🟠 Medium |
-| Governor-restricted | 4 | 🟡 Low |
-| View/Pure | 8 | ⚪ Info |
+| Public (Whitelisted) | 11 | 🔴 High |
+| Keeper-restricted | 13 | 🟠 Medium |
+| Admin / Governor | 10 | 🟡 Low |
 
 ### Public (Whitelisted) Entry Points
 
 | Function | Contract | Restrictions | What it does |
 |----------|----------|-------------|-------------|
-| `deposit(assets, receiver)` | RoundsVaultBase | `onlyWhitelisted(sender, receiver)` | Deposits asset, mints ERC-1155 receipt for current round |
-| `redeem(id, amount, receiver, owner)` | RoundsVaultBase | `onlyWhitelisted` + `id == currentRound` | Burns current-round receipt, returns deposit token |
-| `redeemBatch(ids, amounts, receiver, owner)` | RoundsVaultBase | `onlyWhitelisted` + all `ids == currentRound` | Batch redeem for current round only |
-| `redeemExchangeAsset(id, amount, receiver, owner)` | RoundsVaultBase | `onlyWhitelisted` + `id < currentRound` + `Settled` | Burns past receipt, returns exchange asset at snapshotted rate |
-| `redeemExchangeAssetBatch(ids, amounts, receiver, owner)` | RoundsVaultBase | Same as above, batch | Batch exchange across multiple settled rounds |
-| `setWhitelisted(account, allowed)` | Whitelist | `onlyGovernor` | Manages whitelist |
+| `deposit(assets, receiver)` | RoundsVaultBase | `onlyWhitelisted` | Deposits asset, mints ERC-1155 receipt for current round |
+| `redeem(id, amount, ...)` | RoundsVaultBase | `onlyWhitelisted` + `currentRound` | Burns current-round receipt, returns deposit token |
+| `redeemExchangeAsset(...)` | RoundsVaultBase | `onlyWhitelisted` + `Settled` | Burns past receipt, returns exchange asset at snapshotted rate |
+| `deposit / mint` | FleetCommander | `_enforceEntryGateway` | Direct entry to Fleet if Gateway is OPEN |
+| `withdraw / redeem` | FleetCommander | `_enforceExitGateway` | Direct exit from Fleet if Gateway is OPEN |
+| `withdrawFromBuffer / Arks` | FleetCommander | `_enforceExitGateway` | Specialized exit functions for Fleet |
 
 ### Keeper-Restricted Entry Points
 
@@ -466,44 +460,46 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 |----------|----------|-------------|
 | `nextRound()` | RoundsVaultBase | Snapshots rate, executes settlement, advances round |
 | `setRoundSettled(roundNumber)` | RoundsVaultBase | Marks a round as settled for exchange |
-| `setRoundSettledBatch(roundNumbers)` | RoundsVaultBase | Batch settle multiple rounds |
-| `clearPendingDeposit()` | WisdomTreeArk | Clears full pending deposit, unfreezes share cache |
-| `clearPendingDeposit(amount)` | WisdomTreeArk | Partial pending deposit clear |
-| `requestWithdrawal(amount)` | WisdomTreeArk | Sends shares to custodian, records pending withdrawal |
-| `sweep()` | WisdomTreeArk | Sweeps returned USDC to buffer, clears pending withdrawal |
-| `setArkFrozen(bool, uint256)` | WisdomTreeArk | Freezes/unfreezes NAV reporting |
-| `setCustodianWallet(address)` | WisdomTreeArk | Updates the off-chain wallet address |
-| `setAssetsForwarder(address)` | WisdomTreeArk | Updates the forwarder contract |
-| `setSweepSlippage(Percentage)` | WisdomTreeArk | Adjusts slippage tolerance (max 0.5%) |
-| `claimWithdrawal()` | WisdomTreeArk | No-op (off-chain settlement) |
+| `rebalance(rebalanceData)` | FleetCommander | Moves assets between Arks and adjusts buffer |
+| `clearPendingDeposit()` | WisdomTreeArk | Clears full/partial pending deposit, updates NAV |
+| `requestWithdrawal(amount)` | WisdomTreeArk | Initiates off-chain redemption flow |
+| `sweep()` | WisdomTreeArk | Refills buffer with returned off-chain funds |
+| `setArkFrozen(bool, NAV)` | WisdomTreeArk | Freezes/unfreezes NAV reporting during settlement |
+| `setCustodianWallet(...)` | WisdomTreeArk | Updates the target for off-chain transfers |
+| `setAssetsForwarder(...)` | WisdomTreeArk | Updates the secure transfer proxy |
 
-### Governor-Restricted Entry Points
+### Admin / Governor-Restricted Entry Points
 
-| Function | Contract | What it does |
-|----------|----------|-------------|
-| `setWhitelisted(account, allowed)` | RoundsVaultBase | Add/remove from vault whitelist |
-| `setWhitelistedBatch(accounts, allowed)` | RoundsVaultBase | Batch whitelist management |
-| `setWhitelisted(account, allowed)` | FleetCommanderWhitelist | Add/remove from Fleet whitelist |
-| `setWhitelistedBatch(accounts, allowed)` | FleetCommanderWhitelist | Batch Fleet whitelist management |
+| Function | Contract | Role Required | What it does |
+|----------|----------|-------------|-------------|
+| `setWhitelisted(acc, bool)` | PAMV2 | `WHITELIST_MANAGER` | Updates global whitelist status |
+| `setWhitelistedBatch(...)` | PAMV2 | `WHITELIST_MANAGER` | Batch updates global whitelist |
+| `grantOperatorRole(...)` | PAMV2 | `GOVERNOR_ROLE` | Authorizes an vault/contract as an Operator |
+| `setOperatorGatewayStatus` | FleetCommander | `GOVERNOR_ROLE` | Toggles direct user access to Fleet |
+| `setTipRate(Percentage)` | FleetCommander | `GOVERNOR_ROLE` | Updates protocol fee rate |
+| `pause / unpause` | FleetCommander | `GOVERNOR_ROLE` | Emergency circuit breaker |
+| `emergencySweep()` | WisdomTreeArk | `GOVERNOR_ROLE` | Force-sweep funds bypassing slippage checks |
 
+-----
 
-## 11. Systemic Risks and Operational Limitations
+## 11\. Systemic Risks and Operational Limitations
 
-#### 1. The Output Vault "Round Block" (Liquidity Deadlock)
+#### 1\. The Output Vault "Round Block" (Liquidity Deadlock)
+
 `RoundsVaultOutput.nextRound()` demands immediate, synchronous USDC from the FleetCommander. Because `WisdomTreeArk` returns `0` for `_withdrawableTotalAssets()`, the FleetCommander *cannot* withdraw from it synchronously.
-- **Limitation**: If the `bufferArk` (and other liquid arks) do not have enough loose USDC to cover the total redemptions for the round, **`nextRound()` will REVERT**.
-- **Impact**: This breaks the deterministic length of Rounds. The round is stuck in `InSettlement` until the Keeper manually triggers a `requestWithdrawal` on WisdomTreeArk, waits for the T+1/T+2 off-chain wire to clear, and calls `sweep()` to refill the buffer.
 
-#### 2. Systemic Whitelist Fragmentation
-The Input vault accepts vanilla USDC (no whitelist) but distributes `FleetCommander` shares (strictly whitelisted). 
-- **The Trap**: If a user is whitelisted in `RoundsVault` but NOT in the `FleetCommander`, their deposit succeeds. However, when they attempt to redeem their exchange asset, the `SafeERC20.transfer` from the vault to the user **reverts permanently**.
-- **Mitigation**: Admins must ensure dual-whitelisting at both the Vault and Fleet layers for all users.
+  - **Limitation**: If the `bufferArk` (and other liquid arks) do not have enough loose USDC to cover the total redemptions for the round, **`nextRound()` will REVERT**.
+  - **Impact**: The round is stuck in `InSettlement` until the Keeper manually triggers a `requestWithdrawal` on WisdomTreeArk, waits for the T+1 off-chain wire to clear, and calls `sweep()` to refill the buffer.
 
-#### 3. Oracle Update & NAV Lag
+#### 2\. Resolved: Systemic Whitelist Fragmentation
+
+*Previously, Input Vaults and FleetCommanders maintained isolated whitelists, leading to permanent deadlocks if a user was approved in one but not the other.*
+
+  - **Current Architecture**: The protocol now utilizes a centralized `ProtocolAccessManagerV2`. The `Whitelist.sol` utility is a stateless proxy. If a user is approved in the RoundsVault, they are cryptographically guaranteed to be approved in the FleetCommander, eliminating the fragmentation risk entirely.
+
+#### 3\. Oracle Update & NAV Lag
+
 When the Keeper rebalances USDC from the `bufferArk` to `WisdomTreeArk`, `pendingDepositAssets > 0`.
-- **The Drag Effect**: During the off-chain transfer window, those assets are valued strictly at 1:1. They do not benefit from any share price appreciation recorded by the Oracle. If it takes 2 days to clear, users experience 2 days of "yield drag" on new deposits.
-- **The Sandwich Risk**: When `clearPendingDeposit()` is called, the Ark realizes the new shares. If the oracle updates to a higher price *right before* `clearPendingDeposit` is called, the protocol NAV jumps abruptly rather than smoothly.
 
-### Applicability to Benji-style Arks
-
-Any future Ark that follows the same pattern (cached share balance + pending deposit/withdrawal + off-chain settlement) will inherit the same architecture and the same risk profile. The documentation and keeper playbook above apply identically — only the off-chain counterparty and settlement timing differ.
+  - **The Drag Effect**: During the off-chain transfer window, those assets are valued strictly at 1:1. They do not benefit from any share price appreciation recorded by the Oracle. If it takes 2 days to clear, users experience 2 days of "yield drag" on new deposits.
+  - **The Sandwich Risk**: When `clearPendingDeposit()` is called, the Ark realizes the new shares. If the oracle updates to a higher price *right before* `clearPendingDeposit` is called, the protocol NAV jumps abruptly rather than smoothly.

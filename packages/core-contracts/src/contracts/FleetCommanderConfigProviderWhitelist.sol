@@ -224,14 +224,16 @@ contract FleetCommanderConfigProviderWhitelist is
     }
 
     ///@inheritdoc IFleetCommanderConfigProviderWhitelist
-    function setFleetTokenTransferability()
-        external
-        onlyGovernor
-        whenNotPaused
-    {
-        if (!transfersEnabled) {
-            transfersEnabled = true;
-            emit TransfersEnabled();
+    function setFleetTokenTransferability(
+        bool newStatus
+    ) external onlyGovernor whenNotPaused {
+        if (transfersEnabled != newStatus) {
+            transfersEnabled = newStatus;
+            if (newStatus) {
+                emit TransfersEnabled();
+            } else {
+                emit TransfersDisabled();
+            }
         }
     }
 

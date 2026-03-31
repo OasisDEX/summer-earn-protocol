@@ -204,7 +204,7 @@ contract InstitutionalIntegrationTest is FleetCommanderInstitutionalTestBase {
 
         // 7. Admin enables transfers.
         vm.prank(governor);
-        sys.fleet.setFleetTokenTransferability();
+        sys.fleet.setFleetTokenTransferability(true);
 
         // 8. User tries to transfer again. It MUST fail because the friend is not whitelisted.
         vm.prank(user);

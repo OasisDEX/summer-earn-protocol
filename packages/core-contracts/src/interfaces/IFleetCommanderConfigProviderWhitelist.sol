@@ -131,8 +131,9 @@ interface IFleetCommanderConfigProviderWhitelist is
     /**
      * @notice Enables or disables transfers of fleet commander shares
      * @dev Only callable by the governor when not paused
+     * @param newStatus The new status of the fleet token transferability
      */
-    function setFleetTokenTransferability() external;
+    function setFleetTokenTransferability(bool newStatus) external;
 
     /**
      * @notice Sets the operator gateway status

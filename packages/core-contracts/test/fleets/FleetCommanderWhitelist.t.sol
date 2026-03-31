@@ -143,7 +143,7 @@ contract FleetCommanderWhitelistTest is
 
         // Enable transfers for this test
         vm.prank(governor);
-        whitelistFleet.setFleetTokenTransferability();
+        whitelistFleet.setFleetTokenTransferability(true);
 
         // Ensure mockUser has enough balance (from setUp)
         vm.startPrank(mockUser);
@@ -162,7 +162,7 @@ contract FleetCommanderWhitelistTest is
         address mockUser2 = makeAddr("mockUser2");
         vm.startPrank(governor);
         whitelistFleet.setWhitelisted(mockUser2, true);
-        whitelistFleet.setFleetTokenTransferability(); // Enable transfers
+        whitelistFleet.setFleetTokenTransferability(true); // Enable transfers
         vm.stopPrank();
 
         // Operator deposits for mockUser2

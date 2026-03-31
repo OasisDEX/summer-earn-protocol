@@ -44,6 +44,11 @@ interface IFleetCommanderConfigProviderEvents {
     event TransfersEnabled();
 
     /**
+     * @notice Emitted when the transfer disabled status is updated
+     */
+    event TransfersDisabled();
+
+    /**
      * @notice Emitted when the tip jar is updated
      * @param newTipJar The address of the new tip jar
      */

@@ -195,7 +195,7 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         usdcFleetCommander.setWhitelisted(usdcUser, true);
         usdcFleetCommander.setWhitelisted(address(usdcRoundsVaultInput), true);
         usdcFleetCommander.setWhitelisted(address(usdcRoundsVaultOutput), true);
-        usdcFleetCommander.setFleetTokenTransferability();
+        usdcFleetCommander.setFleetTokenTransferability(true);
 
         IProtocolAccessManagerV2(address(accessManager)).grantOperatorRole(
             address(usdcFleetCommander),
@@ -392,7 +392,7 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         // FleetCommander transfers are disabled by default. Enable them so the user can transfer shares to the output
         // vault
         FleetCommanderWhitelist(address(usdcFleetCommander))
-            .setFleetTokenTransferability();
+            .setFleetTokenTransferability(true);
         vm.stopPrank();
     }
 
