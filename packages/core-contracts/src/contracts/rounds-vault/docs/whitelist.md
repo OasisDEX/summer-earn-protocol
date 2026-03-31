@@ -150,7 +150,10 @@ function transfer(address to, uint256 amount) returns (bool) {
 | **GOVERNOR_ROLE** | Access Manager | Multisig / governance | Manage roles and parameters. |
 | **WHITELIST_MANAGER_ROLE** | Access Manager | Governance / authorized | Manage the global whitelist that this vault depends on. |
 
-**Important:** Unlike the `FleetCommander`, the `RoundsVaultBase` **does not** currently implement an `OPERATOR_ROLE` bypass for its deposit/redeem functions. This means that even the **Admirals Quarters (AQ)** must be whitelisted in the global access manager whitelist to interact with Rounds Vaults.
+**Important:** Unlike the `FleetCommander`, the `RoundsVaultBase` **does not** implement an `OPERATOR_ROLE` bypass for its deposit/redeem functions. This means that:
+- The **Admirals Quarters (AQ)** contract address **MUST** be explicitly whitelisted in `ProtocolAccessManagerV2`.
+- Failure to whitelist AQ will cause all bundled deposits/redemptions to revert even if the user is whitelisted.
+- This applies to both the caller and the receiver of the assets.
 
 ### 3.2 Deposit Flow
 
@@ -265,7 +268,13 @@ The **Admirals Quarters** is a bundler contract that allows users to unstake and
 | **OPERATOR_ROLE** | Each Target Contract | AQ contract address | **Fleet Only**: Bypasses gateway and whitelist restrictions. |
 | **WHITELISTED** | Global Whitelist | AQ contract address | **Rounds Vaults**: Mandatory for AQ to deposit/redeem on behalf of users. |
 
-### 4.2 Integration Differences: Fleets vs Rounds
+### 4.2 Protected Multicall (Bundling)
+> [!IMPORTANT]
+> When using the **Whitelist-enabled Admirals Quarters**, the `multicall` function itself is protected by a whitelist check.
+> - **Requirement**: The `_msgSender()` (the user or relay) MUST be whitelisted in `ProtocolAccessManagerV2` to call any method via `multicall`.
+> - **Exception**: If `address(0)` is whitelisted (globally open), multicall is unrestricted.
+
+### 4.3 Integration Differences: Fleets vs Rounds
 
 | Feature | FleetCommanderWhitelist | RoundsVaultBase |
 |---------|-------------------------|-----------------|
