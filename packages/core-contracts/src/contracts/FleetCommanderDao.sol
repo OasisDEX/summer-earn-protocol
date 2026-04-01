@@ -57,6 +57,27 @@ contract FleetCommanderDao is
                             PRIVATE HELPERS
     //////////////////////////////////////////////////////////////*/
 
+    function _collectTipPre() private {
+        _setIsCollectingTip(true);
+        _accrueTip(tipJar(), totalSupply());
+    }
+
+    function _collectTipPost() private {
+        _setIsCollectingTip(false);
+    }
+
+    function _useCachePre() private {
+        _getArksData(config.bufferArk);
+    }
+
+    function _useWithdrawCachePre() private {
+        _getWithdrawableArksData(config.bufferArk);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
     /**
      * @dev Modifier to collect the tip before any other action is taken
      */
@@ -85,28 +106,6 @@ contract FleetCommanderDao is
      * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
      *         those calls migh be gas expensive for some arks.
      */
-    modifier useWithdrawCache() {
-        _useWithdrawCachePre();
-        _;
-        _flushCache();
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    modifier collectTip() {
-        _collectTipPre();
-        _;
-        _collectTipPost();
-    }
-
-    modifier useCache() {
-        _useCachePre();
-        _;
-        _flushCache();
-    }
-
     modifier useWithdrawCache() {
         _useWithdrawCachePre();
         _;
