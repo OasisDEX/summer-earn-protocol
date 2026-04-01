@@ -40,6 +40,8 @@ export const InstitutionNetworkSchema = z
     treasury: AddressSchema.optional(),
     governor: z.array(AddressSchema).optional(),
     guardian: z.array(AddressSchema).optional(),
+    superKeeper: AddressSchema.optional(),
+    whitelistManagers: z.array(AddressSchema).optional(),
   })
   .partial()
 
@@ -48,6 +50,8 @@ export const InstitutionGovernanceSchema = z.object({
   treasury: AddressSchema,
   governor: z.array(AddressSchema),
   guardian: z.array(AddressSchema),
+  superKeeper: AddressSchema,
+  whitelistManagers: z.array(AddressSchema),
 })
 
 // Top-level: record of network name -> schema
@@ -111,7 +115,8 @@ export const FleetConfigSchema = z.object({
   details: FleetDetailsSchema,
   arks: z.array(z.any()),
   curator: AddressSchema,
-  keeper: AddressSchema.optional(),
+  keeper: AddressSchema,
+  operatorType: z.enum(['admiralsQuarters', 'roundsVaults']),
   rewardTokens: z.array(AddressSchema).optional(),
   rewardAmounts: z.array(z.string()).optional(),
   rewardsDuration: z.number().optional(),

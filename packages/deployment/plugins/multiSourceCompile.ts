@@ -10,6 +10,7 @@ extendConfig((config: HardhatConfig, _userConfig: Readonly<HardhatUserConfig>) =
     resolve(__dirname, '../../config-contracts/src'),
 
     resolve(__dirname, '../../rewards-contracts/src'),
+    resolve(__dirname, '../../access-contracts/src'),
   ]
 })
 
