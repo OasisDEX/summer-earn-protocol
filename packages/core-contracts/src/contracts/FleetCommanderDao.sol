@@ -57,21 +57,38 @@ contract FleetCommanderDao is
                             PRIVATE HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    function _collectTipPre() private {
-        _setIsCollectingTip(true);
-        _accrueTip(tipJar(), totalSupply());
+    /**
+     * @dev Modifier to collect the tip before any other action is taken
+     */
+    modifier collectTip() {
+        _collectTipPre();
+        _;
+        _collectTipPost();
+    }
+    /**
+     * @dev Modifier to cache ark data for deposit operations.
+     * @notice This modifier retrieves ark data before the function execution,
+     *         allows the modified function to run, and then flushes the cache.
+     * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
+     *         those calls migh be gas expensive for some arks.
+     */
+    modifier useCache() {
+        _useCachePre();
+        _;
+        _flushCache();
     }
 
-    function _collectTipPost() private {
-        _setIsCollectingTip(false);
-    }
-
-    function _useCachePre() private {
-        _getArksData(config.bufferArk);
-    }
-
-    function _useWithdrawCachePre() private {
-        _getWithdrawableArksData(config.bufferArk);
+    /**
+     * @dev Modifier to cache withdrawable ark data for withdraw operations.
+     * @notice This modifier retrieves withdrawable ark data before the function execution,
+     *         allows the modified function to run, and then flushes the cache.
+     * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
+     *         those calls migh be gas expensive for some arks.
+     */
+    modifier useWithdrawCache() {
+        _useWithdrawCachePre();
+        _;
+        _flushCache();
     }
 
     /*//////////////////////////////////////////////////////////////
