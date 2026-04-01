@@ -265,7 +265,6 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
-
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -294,7 +293,6 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     ) public view returns (bool) {
         return _accessManager.hasRole(ADMIRALS_QUARTERS_ROLE, account);
     }
-
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS

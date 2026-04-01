@@ -1,24 +1,21 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import { ProtocolAccessManagedV2 } from "../src/contracts/ProtocolAccessManagedV2.sol";
-import { ProtocolAccessManagerV2 } from "../src/contracts/ProtocolAccessManagerV2.sol";
-import { IAccessControlErrors } from "../src/interfaces/IAccessControlErrors.sol";
-import { Test } from "forge-std/Test.sol";
+import {ProtocolAccessManagedV2} from "../src/contracts/ProtocolAccessManagedV2.sol";
+import {ProtocolAccessManagerV2} from "../src/contracts/ProtocolAccessManagerV2.sol";
+import {IAccessControlErrors} from "../src/interfaces/IAccessControlErrors.sol";
+import {Test} from "forge-std/Test.sol";
 
 // Mock consumer contract (e.g., a new FleetCommander)
 contract MockFleetV2 is ProtocolAccessManagedV2 {
-
-    constructor(address accessManager) ProtocolAccessManagedV2(accessManager) { }
+    constructor(address accessManager) ProtocolAccessManagedV2(accessManager) {}
 
     function restrictedAction() external onlyOperator returns (bool) {
         return true;
     }
-
 }
 
 contract ProtocolAccessManagedV2Test is Test {
-
     ProtocolAccessManagerV2 public accessManager;
     MockFleetV2 public fleet;
 
@@ -36,9 +33,18 @@ contract ProtocolAccessManagedV2Test is Test {
         // Assuming we have a way to deploy a standard V1 AM that doesn't support IProtocolAccessManagerV2
         // We'll mock the address to revert on the ERC165 check
         address fakeV1 = address(0x12345);
-        vm.mockCall(fakeV1, abi.encodeWithSignature("supportsInterface(bytes4)"), abi.encode(false));
+        vm.mockCall(
+            fakeV1,
+            abi.encodeWithSignature("supportsInterface(bytes4)"),
+            abi.encode(false)
+        );
 
-        vm.expectRevert(abi.encodeWithSelector(IAccessControlErrors.InvalidAccessManagerAddress.selector, fakeV1));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.InvalidAccessManagerAddress.selector,
+                fakeV1
+            )
+        );
         new MockFleetV2(fakeV1);
     }
 
@@ -53,7 +59,12 @@ contract ProtocolAccessManagedV2Test is Test {
 
         // Normal user fails
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(IAccessControlErrors.CallerIsNotOperator.selector, user));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotOperator.selector,
+                user
+            )
+        );
         fleet.restrictedAction();
     }
 
@@ -64,5 +75,4 @@ contract ProtocolAccessManagedV2Test is Test {
         assertTrue(fleet.hasOperatorRole(operator));
         assertFalse(fleet.hasOperatorRole(user));
     }
-
 }
