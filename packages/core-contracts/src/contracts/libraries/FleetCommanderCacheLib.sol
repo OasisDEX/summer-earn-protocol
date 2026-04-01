@@ -7,17 +7,39 @@ import {IArk} from "../../interfaces/IArk.sol";
 import {ArkData} from "../../types/FleetCommanderTypes.sol";
 import {StorageSlots} from "./StorageSlots.sol";
 
+/**
+ * @title FleetCommanderCacheLib - Caching Utility Library
+ * @dev This library provides the core logic for the caching mechanism used in the FleetCommander suite.
+ *      It handles asset tracking, ark data management, rebalance flow calculations, and persistent state
+ *      storage using transient-like behavior in storage slots.
+ */
 library FleetCommanderCacheLib {
     using StorageSlot for *;
 
+    /**
+     * @notice Checks if the FleetCommander is currently performing a transaction that includes a tip
+     * @return bool True if collecting tips, false otherwise
+     */
     function isCollectingTip() public view returns (bool) {
         return StorageSlots.TIP_TAKEN_STORAGE.asBoolean().tload();
     }
 
+    /**
+     * @notice Sets the isCollectingTip flag in storage
+     * @param value The value to set the flag to
+     */
     function setIsCollectingTip(bool value) public {
         StorageSlots.TIP_TAKEN_STORAGE.asBoolean().tstore(value);
     }
 
+    /**
+     * @notice Calculates the total assets across all given arks
+     * @dev Checks if total assets are already cached. If so, returns the cached value.
+     *      Otherwise, calculates the sum across all active arks and the buffer ark.
+     * @param bufferArk The buffer ark instance
+     * @param activeArks An array of addresses for all active arks
+     * @return uint256 the sum of total assets across all arks
+     */
     function totalAssets(
         IArk bufferArk,
         address[] memory activeArks
@@ -32,6 +54,14 @@ library FleetCommanderCacheLib {
         return sumTotalAssets(getAllArks(activeArks, bufferArk));
     }
 
+    /**
+     * @notice Calculates the total assets that can be withdrawn from the given arks
+     * @dev Checks if withdrawable total assets are already cached. If so, returns the cached value.
+     *      Otherwise, iterates through all arks and sums up their withdrawable assets.
+     * @param bufferArk The buffer ark instance
+     * @param activeArks An array of addresses for all active arks
+     * @return withdrawableTotalAssetsSum The sum of withdrawable assets across all arks
+     */
     function withdrawableTotalAssets(
         IArk bufferArk,
         address[] memory activeArks
@@ -57,6 +87,12 @@ library FleetCommanderCacheLib {
         }
     }
 
+    /**
+     * @notice Combines the active arks array with the buffer ark into a single IArk array
+     * @param arks Array of active ark addresses
+     * @param bufferArk The buffer ark instance
+     * @return IArk[] A combined array of IArk interfaces
+     */
     function getAllArks(
         address[] memory arks,
         IArk bufferArk
@@ -69,6 +105,11 @@ library FleetCommanderCacheLib {
         return allArks;
     }
 
+    /**
+     * @notice Sums the total assets across an array of arks
+     * @param _arks An array of IArk interfaces
+     * @return total The sum of total assets
+     */
     function sumTotalAssets(
         IArk[] memory _arks
     ) internal view returns (uint256 total) {
@@ -77,6 +118,11 @@ library FleetCommanderCacheLib {
         }
     }
 
+    /**
+     * @notice Resets all caching-related storage slots
+     * @dev This is called at the end of operations to ensure data freshness for subsequent calls.
+     *      It flushes total assets, length indicators, and cached array data.
+     */
     function flushCache() public {
         StorageSlots.IS_TOTAL_ASSETS_CACHED_STORAGE.asBoolean().tstore(false);
         StorageSlots
@@ -87,6 +133,15 @@ library FleetCommanderCacheLib {
         StorageSlots.ARKS_LENGTH_STORAGE.asUint256().tstore(0);
     }
 
+    /**
+     * @notice Retrieves and caches ArkData for all arks and the buffer ark
+     * @dev If the total assets are already cached, it returns the data from the cache.
+     *      Otherwise, it fetches total assets from each ark, populates the ArkData struct array,
+     *      caches individual ark data, and caches the total assets sum.
+     * @param bufferArk The buffer ark instance
+     * @param activeArks Array of active ark addresses
+     * @return _arksData An array of ArkData structs for all arks (buffer ark is at the end)
+     */
     function getArksData(
         IArk bufferArk,
         address[] memory activeArks
@@ -115,6 +170,12 @@ library FleetCommanderCacheLib {
         cacheAllArks(_arksData);
     }
 
+    /**
+     * @notice Calculates a storage slot key for a given prefix and index
+     * @param prefix The prefix for the storage slot range
+     * @param index The index within the range
+     * @return bytes32 The calculated storage slot key
+     */
     function getStorageSlot(
         bytes32 prefix,
         uint256 index
@@ -122,6 +183,18 @@ library FleetCommanderCacheLib {
         return keccak256(abi.encodePacked(prefix, index));
     }
 
+    /**
+     * @notice Tracks rebalance inflow and outflow for specific arks
+     * @dev Updates the total amount moved in or out of an ark during the current execution.
+     *      Also ensures that max inflow/outflow limits are cached if not already present.
+     * @param outflowArkAddress The address of the ark being disembarked from
+     * @param inflowArkAddress The address of the ark being boarded
+     * @param amount The amount moved
+     * @return newInflowBalance Updated total inflow for the destination ark
+     * @return newOutflowBalance Updated total outflow for the source ark
+     * @return maxInflow The maximum allowed inflow for the destination ark
+     * @return maxOutflow The maximum allowed outflow for the source ark
+     */
     function cacheArkFlow(
         address outflowArkAddress,
         address inflowArkAddress,
@@ -171,6 +244,10 @@ library FleetCommanderCacheLib {
         outflowSlot.asUint256().tstore(newOutflowBalance);
     }
 
+    /**
+     * @notice Retrieves cached ArkData specifically for withdrawable arks
+     * @return arksData Array of cached ArkData structs
+     */
     function getWithdrawableArksDataFromCache()
         public
         view
@@ -194,6 +271,10 @@ library FleetCommanderCacheLib {
         }
     }
 
+    /**
+     * @notice Retrieves cached ArkData for all arks
+     * @return arksData Array of cached ArkData structs
+     */
     function getAllArksDataFromCache()
         public
         view
@@ -217,6 +298,13 @@ library FleetCommanderCacheLib {
         }
     }
 
+    /**
+     * @notice Generic internal function to cache ark data into storage
+     * @param arksData The array of ArkData structs to cache
+     * @param totalAssetsPrefix Storage slot prefix for total assets
+     * @param addressPrefix Storage slot prefix for ark addresses
+     * @param lengthSlot Storage slot to store the array length
+     */
     function cacheArks(
         ArkData[] memory arksData,
         bytes32 totalAssetsPrefix,
@@ -234,6 +322,10 @@ library FleetCommanderCacheLib {
         lengthSlot.asUint256().tstore(arksData.length);
     }
 
+    /**
+     * @notice Caches data for all arks using the standard ark storage prefixes
+     * @param _arksData The array of ArkData structs to cache
+     */
     function cacheAllArks(ArkData[] memory _arksData) internal {
         cacheArks(
             _arksData,
@@ -243,6 +335,10 @@ library FleetCommanderCacheLib {
         );
     }
 
+    /**
+     * @notice Caches data for withdrawable arks using the withdrawable ark storage prefixes
+     * @param _withdrawableArksData The array of ArkData structs to cache
+     */
     function cacheWithdrawableArksTotalAssetsArray(
         ArkData[] memory _withdrawableArksData
     ) internal {
@@ -254,6 +350,13 @@ library FleetCommanderCacheLib {
         );
     }
 
+    /**
+     * @notice Identifies, filters, and caches arks that have withdrawable assets
+     * @dev Fetches all ark data, filters those with non-zero withdrawableTotalAssets,
+     *      sorts them by total assets, and caches the result.
+     * @param bufferArk The buffer ark instance
+     * @param activeArks Array of active ark addresses
+     */
     function getWithdrawableArksData(
         IArk bufferArk,
         address[] memory activeArks
@@ -294,11 +397,19 @@ library FleetCommanderCacheLib {
         cacheWithdrawableArksTotalAssetsArray(_withdrawableArksData);
     }
 
+    /**
+     * @notice Updates the cached total assets sum and sets the cache indicator flag
+     * @param totalAssetsSum The new total assets sum to cache
+     */
     function cacheAllArksTotalAssets(uint256 totalAssetsSum) internal {
         StorageSlots.TOTAL_ASSETS_STORAGE.asUint256().tstore(totalAssetsSum);
         StorageSlots.IS_TOTAL_ASSETS_CACHED_STORAGE.asBoolean().tstore(true);
     }
 
+    /**
+     * @notice Updates the cached withdrawable total assets sum and sets the cache indicator flag
+     * @param withdrawableTotalAssetsSum The new withdrawable total assets sum to cache
+     */
     function cacheWithdrawableArksTotalAssets(
         uint256 withdrawableTotalAssetsSum
     ) internal {
@@ -311,6 +422,11 @@ library FleetCommanderCacheLib {
             .tstore(true);
     }
 
+    /**
+     * @notice Sorts an ArkData array in place by total assets (ascending)
+     * @dev Uses a simple bubble sort implementation suitable for small fleet sizes.
+     * @param arkDataArray The ArkData array to sort
+     */
     function sortArkDataByTotalAssets(
         ArkData[] memory arkDataArray
     ) internal pure {

@@ -209,8 +209,7 @@ contract FleetCommanderCache {
      * @custom:security-considerations
      * - Assumes the withdrawableTotalAssets function is correctly implemented by Ark contracts
      * - Uses assembly for array resizing, which bypasses Solidity's safety checks
-     * - Relies on the correctness of _getArksData, _cacheWithdrawableArksTotalAssets,
-     *   _sortArkDataByTotalAssets, and _cacheWithdrawableArksTotalAssetsArray functions
+     * - Relies on the correctness of '_getArksData' and 'FleetCommanderCacheLib.getWithdrawableArksData' functions
      */
     function _getWithdrawableArksData(IArk bufferArk) internal {
         FleetCommanderCacheLib.getWithdrawableArksData(
@@ -218,20 +217,6 @@ contract FleetCommanderCache {
             _getActiveArksAddresses()
         );
     }
-
-    /**
-     * @dev Sorts the ArkData structs based on their total assets in ascending order
-     * @param arkDataArray An array of ArkData structs to be sorted
-     * @custom:internal-logic
-     * - Implements a simple bubble sort algorithm
-     * - Compares adjacent elements and swaps them if they are in the wrong order
-     * - Continues until no more swaps are needed
-     * @custom:effects
-     * - Modifies the input array in-place, sorting it by totalAssets
-     * @custom:security-considerations
-     * - Time complexity is O(n^2), which may be inefficient for large arrays
-     * - Assumes that the totalAssets values fit within uint256 and won't overflow during comparisons
-     */
 
     /**
      * @notice Returns an array of addresses for all currently active Arks in the fleet
