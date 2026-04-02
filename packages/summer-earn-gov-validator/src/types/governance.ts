@@ -12,12 +12,7 @@ export interface VoterMetadata {
   picture: string | null
   twitter: string | null
 }
-export type SubgraphProposalStatus =
-  | 'Pending'
-  | 'Queued'
-  | 'Executed'
-  | 'Canceled'
-  | 'Executed on Hub'
+export type SubgraphProposalStatus = 'Pending' | 'Queued' | 'Executed' | 'Canceled'
 
 export interface Proposal {
   id: string
