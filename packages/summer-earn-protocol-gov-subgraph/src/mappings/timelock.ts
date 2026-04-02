@@ -6,7 +6,7 @@ import {
   CallScheduled,
   RoleGranted,
   RoleRevoked,
-} from '../../generated/templates/TimelockControllerTemplate/SummerTimelockController'
+} from '../../generated/TimelockController/SummerTimelockController'
 import { ADDRESS_ZERO, RoleAction } from '../common/constants'
 import { ROLE_MAP } from '../common/hashHelpers'
 import { createRoleEvent, getOrCreateRole, getOrCreateCrossChainProposal } from '../initializers'
