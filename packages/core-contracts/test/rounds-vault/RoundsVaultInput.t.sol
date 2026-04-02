@@ -166,7 +166,7 @@ contract RoundsVaultInputTest is
         assertEq(vault.getCurrentRound(), 0);
         assertEq(vault.exchangeAsset(), address(targetVault));
 
-        // Initial exchange rate for round 0 is 0 because it's not set until nextRound is called
+        // Initial exchange rate for round 0 is 0 because it's not set until setRoundSettled is called
         Price memory price = vault.getExchangeRate(0);
         assertEq(price.baseAmount, 0);
         assertEq(price.quoteAmount, 0);
@@ -198,20 +198,36 @@ contract RoundsVaultInputTest is
 
         vm.startPrank(operator);
 
+        // Price struct is (baseAmount, quoteAmount)
+        Price memory expectedPrice = Price(assets, shares);
+
+        // Settle round 0 should revert because it's Opened
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidRoundState.selector,
+                0,
+                IRoundsVaultBaseEnums.RoundState.Opened,
+                IRoundsVaultBaseEnums.RoundState.InSettlement
+            )
+        );
+        vault.setRoundSettled(0);
+
+        vm.expectEmit(true, false, false, true);
+        emit RoundAdvanced(0);
+
+        vault.nextRound();
+
+        assertEq(vault.getCurrentRound(), 1);
+
         vm.expectEmit(true, false, false, true); // Don't match all topics if exact struct matching is tricky, but let's
         // try matching.
         emit AssetsDeposited(0, operator, assets, shares);
 
-        // Price struct is (baseAmount, quoteAmount)
-        Price memory expectedPrice = Price(assets, shares);
-
         vm.expectEmit(true, true, true, true);
-        emit NextRound(1, expectedPrice);
+        emit RoundSettled(0, expectedPrice);
 
-        vault.nextRound();
+        vault.setRoundSettled(0);
         vm.stopPrank();
-
-        assertEq(vault.getCurrentRound(), 1);
     }
 
     function test_RIV0004_DepositRound1() public {
@@ -398,10 +414,8 @@ contract RoundsVaultInputTest is
         vm.startPrank(operator);
         vault.nextRound(); // 2 -> 3
 
-        uint256[] memory settleIds = new uint256[](2);
-        settleIds[0] = 1;
-        settleIds[1] = 2;
-        vault.setRoundSettledBatch(settleIds);
+        vault.setRoundSettled(1);
+        vault.setRoundSettled(2);
         vm.stopPrank();
 
         vm.startPrank(unprivilegedAccount);
@@ -544,12 +558,12 @@ contract RoundsVaultInputTest is
     function test_RIV0013_SetRoundSettledRevertsIfInvalidState() public {
         vm.startPrank(operator); // keeper
 
-        // Scenario 1: Round 0 is currently NotOpened (0)
+        // Scenario 1: Round 0 is currently Opened (1)
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidRoundState.selector,
                 0,
-                IRoundsVaultBaseEnums.RoundState.NotOpened,
+                IRoundsVaultBaseEnums.RoundState.Opened,
                 IRoundsVaultBaseEnums.RoundState.InSettlement
             )
         );
@@ -584,8 +598,6 @@ contract RoundsVaultInputTest is
         vault.setRoundSettled(0);
 
         // Batch test
-        uint256[] memory rounds = new uint256[](1);
-        rounds[0] = 1;
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidRoundState.selector,
@@ -594,7 +606,7 @@ contract RoundsVaultInputTest is
                 IRoundsVaultBaseEnums.RoundState.InSettlement
             )
         );
-        vault.setRoundSettledBatch(rounds);
+        vault.setRoundSettled(1);
         vm.stopPrank();
     }
 

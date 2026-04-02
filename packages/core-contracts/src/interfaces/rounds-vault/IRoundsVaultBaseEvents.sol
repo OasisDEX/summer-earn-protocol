@@ -11,11 +11,8 @@ import "@summerfi/price-solidity/contracts/PriceUtils.sol";
     @author Roberto Cano <robercano>
  */
 interface IRoundsVaultBaseEvents {
-    /// Emitted when the next round starts and the exchange rate for the previous round is stored
-    event NextRound(
-        uint256 indexed newRoundNumber,
-        Price prevRoundExchangeRate
-    );
+    /// Emitted when the round is closed and the next one starts
+    event RoundAdvanced(uint256 indexed roundId);
 
     /// Emitted when a user redeems a receipt for the exchange asset, indicating the amount of exchange asset
     event WithdrawExchangeAsset(
@@ -38,5 +35,5 @@ interface IRoundsVaultBaseEvents {
     );
 
     /// Emitted when a round is marked as settled
-    event RoundSettled(uint256 indexed roundNumber);
+    event RoundSettled(uint256 indexed roundId, Price exchangeRate);
 }

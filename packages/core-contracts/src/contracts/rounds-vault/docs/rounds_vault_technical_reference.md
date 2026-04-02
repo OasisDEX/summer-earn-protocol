@@ -24,12 +24,12 @@
 
 The Rounds Vault system solves a fundamental problem: institutional tokenized funds (e.g. WisdomTree WTGXX, CRDYX, and future Benji tokens) have **locked investment periods** where deposits/withdrawals are processed in T+0 or T+1 off-chain settlement cycles. Users cannot interact directly during these periods.
 
-The Rounds Vault acts as an **asynchronous buffering layer** between users and the unified FleetCommander ERC-4626 vault.
+The Rounds Vault acts as an **asynchronous buffering layer** between users and the unified FleetCommander ERC-4626 vault, utilizing a **Two-Phase Settlement** model to securely isolate on-chain deposits from off-chain NAV execution.
 
 ```mermaid
 flowchart LR
     U[User] -->|deposit USDC| IV[RoundsVaultInput]
-    IV -->|"nextRound()"| FC[FleetCommander]
+    IV -->|"1. nextRound() \n2. setRoundSettled()"| FC[FleetCommander]
     FC -->|"board()"| ARK[WisdomTreeArk]
     ARK -->|USDC wire| WT[WisdomTree\nOff-Chain]
     WT -->|shares| ARK
@@ -38,7 +38,7 @@ flowchart LR
     IV -->|exchange receipts| U2[User receives\nFleet shares]
 
     U3[User] -->|deposit Fleet shares| OV[RoundsVaultOutput]
-    OV -->|"nextRound()"| FC2[FleetCommander]
+    OV -->|"1. nextRound() \n2. setRoundSettled()"| FC2[FleetCommander]
     FC2 -->|"disembark()"| ARK2[WisdomTreeArk]
     ARK2 -->|shares wire| WT2[WisdomTree\nOff-Chain]
     WT2 -->|USDC| ARK2
@@ -71,6 +71,7 @@ classDiagram
     class RoundsVaultBase {
         -_roundNumber : uint256
         +nextRound() [Keeper]
+        +setRoundSettled(roundId) [Keeper]
         +deposit(assets, receiver) [Whitelisted]
         +redeemExchangeAsset() [Whitelisted]
     }
@@ -125,21 +126,21 @@ stateDiagram-v2
 
 **Key rules:**
 
-  - `redeem(id, amount, receiver, owner)` — burns receipt, returns the **deposit token** (same asset deposited). Only works for `id == currentRound`.
-  - `redeemExchangeAsset(id, amount, receiver, owner)` — burns receipt, returns the **exchange asset** at the snapshotted exchange rate. Only works for `id < currentRound` AND `roundState[id] == Settled`.
+  * `redeem(id, amount, receiver, owner)` — burns receipt, returns the **deposit token** (same asset deposited). Only works for `id == currentRound`.
+  * `redeemExchangeAsset(id, amount, receiver, owner)` — burns receipt, returns the **exchange asset** at the snapshotted exchange rate. Only works for `id < currentRound` AND `roundState[id] == Settled`.
 
 -----
 
-## 4\. Round State Machine
+## 4\. Round State Machine (Two-Phase Settlement)
 
-Each round has a state tracked in `roundState[roundNumber]`:
+To protect the protocol from "Penny-Grief" Denial of Service attacks and to correctly absorb T+1 off-chain NAV updates, rounds are processed in two distinct phases:
 
 ```mermaid
 stateDiagram-v2
     direction LR
     [*] --> Opened: Round created
     Opened --> InSettlement: Keeper calls nextRound()
-    InSettlement --> Settled: Keeper calls setRoundSettled()
+    InSettlement --> Settled: Keeper calls setRoundSettled(N)
 ```
 
 | State | Enum value | Deposits | Redeem (current) | Exchange (past) |
@@ -148,12 +149,22 @@ stateDiagram-v2
 | `InSettlement` | 1 | ❌ No (new round opened) | ❌ No | ❌ No |
 | `Settled` | 2 | ❌ No | ❌ No | ✅ Yes |
 
-### `nextRound()` does 4 things atomically:
+### Phase 1: `nextRound()`
 
-1.  **Snapshots the exchange rate** → `_exchangeRateByRound[N] = _getCurrentExchangeRate()`
-2.  **Sets round N to InSettlement** → `roundState[N] = InSettlement`
-3.  **Executes `_operate()`** → deposits/redeems bulk into/from the FleetCommander
-4.  **Increments round** → `_roundNumber++`, sets new round to `Opened`
+Closes the round and freezes its liabilities.
+
+1.  Sets current round `N` to `InSettlement`.
+2.  Increments round to `N+1` and sets it to `Opened`.
+
+### Phase 2: `setRoundSettled(roundId)`
+
+Executes the physical trade and snapshots the real-world execution rate.
+
+1.  Retrieves the exact locked liability (`frozenAmount = totalSupply(roundId)`).
+2.  Executes `_operate(roundId, frozenAmount)`.
+3.  Records the actual `outputAmount` received from the target vault.
+4.  Snapshots the exchange rate via `toPrice(outputAmount, frozenAmount)`.
+5.  Sets round `N` to `Settled`.
 
 -----
 
@@ -179,53 +190,42 @@ sequenceDiagram
     User->>InputVault: deposit(1000 USDC, user)
     InputVault->>InputVault: mint ERC1155<br/>id=currentRound, amount=1000e6
 
-    Note over User,Ark: Phase 2: Settlement (Keeper)
-    rect rgb(255, 245, 230)
-        InputVault->>InputVault: nextRound() [Keeper only]
-        InputVault->>InputVault: snap rate = previewDeposit(1e6)
-        InputVault->>Fleet: deposit(totalAssets, self)
-        Fleet->>Fleet: mint Fleet shares to InputVault
-        Fleet->>Ark: board(USDC) via rebalance
-    end
+    Note over User,Ark: Phase 2: Advance (Lock)
+    InputVault->>InputVault: nextRound() [Keeper]
 
-    Note over User,Ark: Phase 3: Off-chain settlement
+    Note over User,Ark: Phase 3: Off-chain settlement & Rebalance
+    Fleet->>Ark: board(USDC) via rebalance
     Ark->>Ark: USDC sent to WisdomTree
     Note right of Ark: T+0/T+1 settlement
 
-    Note over User,Ark: Phase 4: Exchange
-    User->>InputVault: redeemExchangeAsset(roundId, amount, user, user)
+    Note over User,Ark: Phase 4: Execute & Settle
+    rect rgb(255, 245, 230)
+        InputVault->>InputVault: setRoundSettled(N) [Keeper]
+        InputVault->>Fleet: deposit(frozenAmount)
+        Fleet->>Fleet: mint Fleet shares to InputVault
+        InputVault->>InputVault: snapshot exact execution rate
+    end
+
+    Note over User,Ark: Phase 5: Exchange
+    User->>InputVault: redeemExchangeAsset(N)
     InputVault->>InputVault: burn ERC1155
-    InputVault->>InputVault: exchangeAmount = rate.quote(amount)
     InputVault->>User: transfer Fleet shares
 ```
 
 ### `_operate()` implementation
 
 ```solidity
-function _operate() internal override {
-    uint256 assets = totalAssets();       // all USDC sitting in the vault
-    if (assets > 0) {
-        uint256 shares = _depositOnTarget(assets);  // Fleet.deposit(assets, self)
-    }
+function _operate(uint256 roundId, uint256 amount) internal override returns (uint256) {
+    if (amount == 0) return 0;
+    uint256 shares = _depositOnTarget(amount);
+    emit AssetsDeposited(roundId, _msgSender(), amount, shares);
+    return shares;
 }
 ```
 
-### `_getCurrentExchangeRate()` (Input)
+-----
 
-```solidity
-function _getCurrentExchangeRate() internal view override returns (Price memory) {
-    uint256 OneAsset = 10 ** asset_.decimals();   // e.g. 1e6 for USDC
-    uint256 shares = IERC4626(vault()).previewDeposit(OneAsset);
-    return toPrice(shares, OneAsset);
-    // Price = { baseAmount: shares, quoteAmount: OneAsset }
-    // quote(receiptAmount) = receiptAmount * shares / OneAsset
-}
-```
-
-
----
-
-## 6. Output Vault (Withdrawal Flow)
+## 6\. Output Vault (Withdrawal Flow)
 
 | Property | Value |
 |----------|-------|
@@ -244,45 +244,40 @@ sequenceDiagram
 
     Note over User,Fleet: Phase 1: Deposit Fleet shares
     User->>OutputVault: deposit(500 shares, user)
-    OutputVault->>OutputVault: mint ERC1155<br/>id=currentRound, amount=500
+    OutputVault->>OutputVault: mint ERC1155
 
-    Note over User,Fleet: Phase 2: Settlement (Keeper)
+    Note over User,Fleet: Phase 2: Advance (Lock)
+    OutputVault->>OutputVault: nextRound() [Keeper]
+
+    Note over User,Fleet: Phase 3: Request & Off-chain settlement
+    Fleet->>Fleet: Keeper requests off-chain withdrawal
+    Note right of Fleet: T+0/T+1 settlement... USDC sweeps to Buffer
+
+    Note over User,Fleet: Phase 4: Execute & Settle
     rect rgb(230, 245, 255)
-        OutputVault->>OutputVault: nextRound() [Keeper only]
-        OutputVault->>OutputVault: snap rate = previewRedeem(1 share)
-        OutputVault->>Fleet: redeem(totalAssets, self, self)
-        Fleet->>OutputVault: transfer USDC
+        OutputVault->>OutputVault: setRoundSettled(N) [Keeper]
+        OutputVault->>Fleet: redeem(frozenAmount)
+        Fleet->>OutputVault: transfer exact USDC yield/loss
+        OutputVault->>OutputVault: snapshot exact execution rate
     end
 
-    Note over User,Fleet: Phase 3: Exchange
-    User->>OutputVault: redeemExchangeAsset(roundId, amount, user, user)
-    OutputVault->>OutputVault: burn ERC1155
-    OutputVault->>User: transfer USDC
+    Note over User,Fleet: Phase 5: Exchange
+    User->>OutputVault: redeemExchangeAsset(N)
+    OutputVault->>User: transfer exactly pro-rata USDC
 ```
 
 ### `_operate()` implementation (Output)
 
 ```solidity
-function _operate() internal override {
-    uint256 shares = totalAssets();       // all Fleet shares in the vault
-    if (shares > 0) {
-        uint256 assets = _redeemFromTarget(shares);  // Fleet.redeem(shares, self, self)
-    }
+function _operate(uint256 roundId, uint256 amount) internal override returns (uint256) {
+    if (amount == 0) return 0;
+    uint256 assets = _redeemFromTarget(amount);
+    emit SharesRedeemed(roundId, _msgSender(), amount, assets);
+    return assets;
 }
 ```
 
-### `_getCurrentExchangeRate()` (Output)
-
-```solidity
-function _getCurrentExchangeRate() internal view override returns (Price memory) {
-    uint256 OneAsset = 10 ** asset_.decimals();   // 1 full Fleet share
-    uint256 assets = IERC4626(vault()).previewRedeem(OneAsset);
-    return toPrice(assets, OneAsset);
-    // quote(receiptAmount) = receiptAmount * assets / OneAsset
-}
-```
-
----
+-----
 
 ## 7\. Exchange Rate Math
 
@@ -297,23 +292,25 @@ struct Price {
 
 **Quoting**: `price.quote(amount)` returns `amount * baseAmount / quoteAmount`
 
+Because `setRoundSettled()` generates the rate using actual output received (`toPrice(outputAmount, frozenAmount)`), the math organically perfectly absorbs off-chain slippage, NAV changes, or withdrawal fees.
+
 ### Input Vault rate interpretation
 
 | Field | Meaning |
 |-------|---------|
-| `baseAmount` | Fleet shares received for 1 full underlying token |
-| `quoteAmount` | 1 full underlying token (`10 ** decimals`) |
-| `quote(receiptAmount)` | How many Fleet shares the user gets for `receiptAmount` receipts |
+| `baseAmount` | Exact Fleet shares received from the FleetCommander trade |
+| `quoteAmount` | Exact frozen USDC deposited by users in this round |
+| `quote(receiptAmount)` | Users get exact pro-rata share of the executed trade |
 
 ### Output Vault rate interpretation
 
 | Field | Meaning |
 |-------|---------|
-| `baseAmount` | USDC received for 1 full Fleet share |
-| `quoteAmount` | 1 full Fleet share (`10 ** decimals`) |
-| `quote(receiptAmount)` | How much USDC the user gets for `receiptAmount` receipts |
+| `baseAmount` | Exact USDC received from the FleetCommander trade |
+| `quoteAmount` | Exact frozen Fleet shares deposited by users in this round |
+| `quote(receiptAmount)` | Users get exact pro-rata share of the returned USDC |
 
----
+-----
 
 ## 8\. WisdomTreeArk Internals
 
@@ -404,24 +401,22 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 | Step | Action | Contract | Function |
 |------|--------|----------|----------|
 | 1 | Users deposit during open round | RoundsVaultInput | `deposit(assets, receiver)` |
-| 2 | Advance round, dispatch USDC | RoundsVaultInput | `nextRound()` |
+| 2 | Advance round (freezes amount) | RoundsVaultInput | `nextRound()` |
 | 3 | Rebalance USDC into Ark | FleetCommander | `rebalance([{buffer→ark}])` |
 | 4 | Wait for WT settlement (T+0/T+1) | — | — |
-| 5 | WT sends shares to forwarder | WisdomTree (off-chain) | — |
-| 6 | Clear pending deposit | WisdomTreeArk | `clearPendingDeposit()` |
-| 7 | Mark round as settled | RoundsVaultInput | `setRoundSettled(N)` |
+| 5 | Clear pending deposit (NAV updates)| WisdomTreeArk | `clearPendingDeposit()` |
+| 6 | Execute trade & settle round | RoundsVaultInput | `setRoundSettled(N)` |
 
 ### Withdrawal Round Lifecycle
 
 | Step | Action | Contract | Function |
 |------|--------|----------|----------|
 | 1 | Users deposit Fleet shares | RoundsVaultOutput | `deposit(shares, receiver)` |
-| 2 | Advance round, redeem from Fleet | RoundsVaultOutput | `nextRound()` |
+| 2 | Advance round (freezes amount) | RoundsVaultOutput | `nextRound()` |
 | 3 | Request withdrawal from Ark | WisdomTreeArk | `requestWithdrawal(amount)` |
 | 4 | Wait for WT USDC return (T+0/T+1) | — | — |
-| 5 | USDC arrives in forwarder | WisdomTree (off-chain) | — |
-| 6 | Sweep USDC to buffer | WisdomTreeArk | `sweep()` |
-| 7 | Mark round as settled | RoundsVaultOutput | `setRoundSettled(N)` |
+| 5 | Sweep returning USDC to buffer | WisdomTreeArk | `sweep()` |
+| 6 | Execute trade & settle round | RoundsVaultOutput | `setRoundSettled(N)` |
 
 ### Dividend Handling (Non-MMF)
 
@@ -433,14 +428,14 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 
 ---
 
-## 10. Entry Point Analysis
+## 10\. Entry Point Analysis
 
 ### Summary
 
 | Access Level | Count | Priority |
 |-------------:|------:|----------|
 | Public (Whitelisted) | 11 | 🔴 High |
-| Keeper-restricted | 13 | 🟠 Medium |
+| Keeper-restricted | 14 | 🟠 Medium |
 | Admin / Governor | 10 | 🟡 Low |
 
 ### Public (Whitelisted) Entry Points
@@ -458,8 +453,8 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 
 | Function | Contract | What it does |
 |----------|----------|-------------|
-| `nextRound()` | RoundsVaultBase | Snapshots rate, executes settlement, advances round |
-| `setRoundSettled(roundNumber)` | RoundsVaultBase | Marks a round as settled for exchange |
+| `nextRound()` | RoundsVaultBase | Closes round, freezes liability, opens next round |
+| `setRoundSettled(roundId)` | RoundsVaultBase | Executes physical trade, snapshots rate, sets to Settled |
 | `rebalance(rebalanceData)` | FleetCommander | Moves assets between Arks and adjusts buffer |
 | `clearPendingDeposit()` | WisdomTreeArk | Clears full/partial pending deposit, updates NAV |
 | `requestWithdrawal(amount)` | WisdomTreeArk | Initiates off-chain redemption flow |
@@ -484,22 +479,16 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 
 ## 11\. Systemic Risks and Operational Limitations
 
-#### 1\. The Output Vault "Round Block" (Liquidity Deadlock)
+#### 1\. The Output Vault "Round Block" (Resolved via Two-Phase)
 
-`RoundsVaultOutput.nextRound()` demands immediate, synchronous USDC from the FleetCommander. Because `WisdomTreeArk` returns `0` for `_withdrawableTotalAssets()`, the FleetCommander *cannot* withdraw from it synchronously.
+*Previously, advancing a round demanded immediate synchronous USDC, risking reverts if the Fleet buffer was empty.*
 
-  - **Limitation**: If the `bufferArk` (and other liquid arks) do not have enough loose USDC to cover the total redemptions for the round, **`nextRound()` will REVERT**.
-  - **Impact**: The round is stuck in `InSettlement` until the Keeper manually triggers a `requestWithdrawal` on WisdomTreeArk, waits for the T+1 off-chain wire to clear, and calls `sweep()` to refill the buffer.
+  * **Resolution**: By splitting the cycle into `nextRound()` and `setRoundSettled()`, the liquidity deadlock is solved. The Keeper can advance the round (locking the liabilities), initiate the off-chain `requestWithdrawal` to WisdomTree, wait for the USDC to hit the buffer via `sweep()`, and *only then* execute `setRoundSettled()`.
 
 #### 2\. Resolved: Systemic Whitelist Fragmentation
 
-*Previously, Input Vaults and FleetCommanders maintained isolated whitelists, leading to permanent deadlocks if a user was approved in one but not the other.*
+  * **Current Architecture**: The protocol uses a centralized `ProtocolAccessManagerV2`. The `Whitelist.sol` utility is a stateless proxy. If a user is approved in the RoundsVault, they are cryptographically guaranteed to be approved in the FleetCommander, eliminating fragmentation.
 
-  - **Current Architecture**: The protocol now utilizes a centralized `ProtocolAccessManagerV2`. The `Whitelist.sol` utility is a stateless proxy. If a user is approved in the RoundsVault, they are cryptographically guaranteed to be approved in the FleetCommander, eliminating the fragmentation risk entirely.
+#### 3\. Oracle Update & NAV Lag (Perfectly Absorbed)
 
-#### 3\. Oracle Update & NAV Lag
-
-When the Keeper rebalances USDC from the `bufferArk` to `WisdomTreeArk`, `pendingDepositAssets > 0`.
-
-  - **The Drag Effect**: During the off-chain transfer window, those assets are valued strictly at 1:1. They do not benefit from any share price appreciation recorded by the Oracle. If it takes 2 days to clear, users experience 2 days of "yield drag" on new deposits.
-  - **The Sandwich Risk**: When `clearPendingDeposit()` is called, the Ark realizes the new shares. If the oracle updates to a higher price *right before* `clearPendingDeposit` is called, the protocol NAV jumps abruptly rather than smoothly.
+Because `setRoundSettled()` snapshots the exchange rate using the literal `outputAmount` received from the trade rather than a predictive oracle query, the RoundsVault is immune to systemic insolvency. If the off-chain NAV drops overnight, the `setRoundSettled()` calculation inherently passes that loss pro-rata to the users of that specific round, maintaining perfect 1:1 asset backing in the smart contract.

@@ -229,13 +229,8 @@ contract RoundsVaultOutputTest is
 
         // Execute Round
         vm.startPrank(operator);
-
-        // This should emit SharesRedeemed
-        // RoundsVaultBase -> _operate -> _redeemFromTarget
-        // _redeemFromTarget calls targetVault.redeem
-        // targetVault.redeem transfers AssetToken to OutputVault
-
         vault.nextRound();
+        vault.setRoundSettled(0);
         vm.stopPrank();
 
         // OutputVault should now hold AssetToken (Underlying)
@@ -498,12 +493,12 @@ contract RoundsVaultOutputTest is
     function test_ROV0013_SetRoundSettledRevertsIfInvalidState() public {
         vm.startPrank(operator); // keeper
 
-        // Scenario 1: Round 0 is currently NotOpened (0)
+        // Scenario 1: Round 0 is currently Opened (1)
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidRoundState.selector,
                 0,
-                IRoundsVaultBaseEnums.RoundState.NotOpened,
+                IRoundsVaultBaseEnums.RoundState.Opened,
                 IRoundsVaultBaseEnums.RoundState.InSettlement
             )
         );
@@ -537,9 +532,6 @@ contract RoundsVaultOutputTest is
         );
         vault.setRoundSettled(0);
 
-        // Batch test
-        uint256[] memory rounds = new uint256[](1);
-        rounds[0] = 1;
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidRoundState.selector,
@@ -548,7 +540,7 @@ contract RoundsVaultOutputTest is
                 IRoundsVaultBaseEnums.RoundState.InSettlement
             )
         );
-        vault.setRoundSettledBatch(rounds);
+        vault.setRoundSettled(1);
         vm.stopPrank();
     }
 

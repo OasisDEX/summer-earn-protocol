@@ -98,6 +98,8 @@ abstract contract RoundsVaultBase is
         } else {
             _exchangeAsset = IERC4626(proxiedERC4626Vault).asset();
         }
+
+        roundState[0] = RoundState.Opened;
     }
 
     /**
@@ -106,40 +108,40 @@ abstract contract RoundsVaultBase is
 
     /**
         @inheritdoc IRoundsVaultBase
-
-        @dev Only callable by the Keeper to move to the next round
      */
     function nextRound() external onlyKeeper {
-        Price memory exchangeRate = _getCurrentExchangeRate();
+        uint256 closingRound = _roundNumber;
+        if (roundState[closingRound] != RoundState.Opened) {
+            revert InvalidRoundState(
+                closingRound,
+                roundState[closingRound],
+                RoundState.Opened
+            );
+        }
 
-        _exchangeRateByRound[_roundNumber] = exchangeRate;
-
-        roundState[_roundNumber] = RoundState.InSettlement;
-
-        _operate();
+        roundState[closingRound] = RoundState.InSettlement;
 
         _roundNumber++;
-
         roundState[_roundNumber] = RoundState.Opened;
 
-        emit NextRound(_roundNumber, exchangeRate);
+        emit RoundAdvanced(closingRound);
     }
 
     /**
      * @inheritdoc IRoundsVaultBase
      */
-    function setRoundSettled(uint256 roundNumber) external onlyKeeper {
-        _setRoundSettled(roundNumber);
+    function setRoundSettled(uint256 roundId) external onlyKeeper {
+        _setRoundSettled(roundId);
     }
 
     /**
-     * @inheritdoc IRoundsVaultBase
+        @inheritdoc IRoundsVaultBase
      */
     function setRoundSettledBatch(
-        uint256[] calldata roundNumbers
+        uint256[] memory roundIds
     ) external onlyKeeper {
-        for (uint256 i = 0; i < roundNumbers.length; i++) {
-            _setRoundSettled(roundNumbers[i]);
+        for (uint256 i = 0; i < roundIds.length; i++) {
+            _setRoundSettled(roundIds[i]);
         }
     }
 
@@ -341,14 +343,19 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-        @notice Function to execute the deposit/redeem logic for the current round
-
+        @notice Function to execute the deposit/redeem logic for a frozen amount
+ 
+        @param amount The exact amount to be settled
+        @param roundId The id of the round to be settled
+        @return outputAmount The exact amount received after the trade
+ 
         @dev The child contract must implement this function to execute the deposit/redeem logic
-        for the current round. Typically it will call `_redeemFromTarget` or `_depositOnTarget`
-        from the ERC4626DeferredOperation contract, but the logic is left open for
-        other use cases
+        for the frozen amount. Typically it will call `_redeemFromTarget` or `_depositOnTarget`.
      */
-    function _operate() internal virtual;
+    function _operate(
+        uint256 amount,
+        uint256 roundId
+    ) internal virtual returns (uint256 outputAmount);
 
     /**
         @notice Retrieves the exchange rate between the underlying asset and the exchange asset for
@@ -364,17 +371,37 @@ abstract contract RoundsVaultBase is
     /**
      * @notice Helper function to mark a round as settled
      */
-    function _setRoundSettled(uint256 roundNumber) internal {
-        if (roundState[roundNumber] != RoundState.InSettlement) {
+    function _setRoundSettled(uint256 roundId) internal {
+        if (roundState[roundId] != RoundState.InSettlement) {
             revert InvalidRoundState(
-                roundNumber,
-                roundState[roundNumber],
+                roundId,
+                roundState[roundId],
                 RoundState.InSettlement
             );
         }
 
-        roundState[roundNumber] = RoundState.Settled;
-        emit RoundSettled(roundNumber);
+        // 1. Fetch exact liability using ERC-1155 total supply for this specific round
+        uint256 frozenAmount = totalSupply(roundId);
+
+        // 2. Execute the trade and get the EXACT amount returned by the off-chain reality
+        uint256 outputAmount = 0;
+        if (frozenAmount > 0) {
+            outputAmount = _operate(frozenAmount, roundId);
+        }
+
+        // 3. Construct the precise exchange rate based on the actual execution
+        Price memory finalExchangeRate;
+        if (frozenAmount > 0) {
+            finalExchangeRate = toPrice(outputAmount, frozenAmount);
+        } else {
+            // Fallback to 1:1 or preview rate if round was empty
+            finalExchangeRate = _getCurrentExchangeRate();
+        }
+
+        _exchangeRateByRound[roundId] = finalExchangeRate;
+        roundState[roundId] = RoundState.Settled;
+
+        emit RoundSettled(roundId, finalExchangeRate);
     }
 
     // PRIVATES
