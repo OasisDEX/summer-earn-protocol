@@ -2,7 +2,7 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { ProposalsList } from '@/components/ProposalsList'
 import { getChainNameById, HUB_CHAIN_ID } from '@/config/chains'
 import { fetchAllProposals } from '@/services/subgraph'
-import { ProposalWithCrossChain, TransformedProposal } from '@/types/governance'
+import { FinalStatus, ProposalWithCrossChain, TransformedProposal } from '@/types/governance'
 import { extractProposalMetadata } from '@/utils/text'
 
 // Revalidate every 60 seconds (ISR)
@@ -11,17 +11,8 @@ export const revalidate = 60
 function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): TransformedProposal {
   const proposal = proposalWithCrossChain.baseProposal
   // Map subgraph status to our status format
-  const statusMap: Record<string, TransformedProposal['status']> = {
-    Active: 'Active',
-    Executed: 'Executed',
-    Queued: 'Queued',
-    Defeated: 'Defeated',
-    Canceled: 'Canceled',
-    Succeeded: 'Succeeded',
-    Pending: 'Active',
-  }
 
-  let finalStatus = statusMap[proposal.status] || 'Active'
+  let finalStatus: FinalStatus = proposal.status
   if (finalStatus === 'Executed' && proposalWithCrossChain.crossChainProposals.length > 0) {
     const hasPendingCrossChain = proposalWithCrossChain.crossChainProposals.some(
       (ccp: any) => ccp.status !== 'Executed',
@@ -39,9 +30,18 @@ function transformProposal(proposalWithCrossChain: ProposalWithCrossChain): Tran
   // Extract title and displayId from description
   const { title, displayId, cleanDescription } = extractProposalMetadata(proposal.description || '')
 
-  // Calculate time remaining (mock for now - would need block timestamp from chain)
-  const timeRemaining = proposal.status === 'Active' ? 'Active' : proposal.status
+  const currentTimestampSeconds = Math.floor(Date.now() / 1000)
+  const voteStartSeconds = Number(proposal.voteStart)
+  const voteEndSeconds = Number(proposal.voteEnd)
 
+  const timeRemaining =
+    currentTimestampSeconds >= voteStartSeconds
+      ? voteEndSeconds - currentTimestampSeconds
+      : voteStartSeconds - currentTimestampSeconds
+
+  if (currentTimestampSeconds >= voteStartSeconds && currentTimestampSeconds <= voteEndSeconds) {
+    finalStatus = 'Active'
+  }
   // Mock voting data (would need to query vote counts from subgraph)
   const forVotes = Number(proposal.forVotes) / 1e18
   const againstVotes = Number(proposal.againstVotes) / 1e18

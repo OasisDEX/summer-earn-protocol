@@ -12,6 +12,12 @@ export interface VoterMetadata {
   picture: string | null
   twitter: string | null
 }
+export type SubgraphProposalStatus =
+  | 'Pending'
+  | 'Queued'
+  | 'Executed'
+  | 'Canceled'
+  | 'Executed on Hub'
 
 export interface Proposal {
   id: string
@@ -20,7 +26,7 @@ export interface Proposal {
   calldatas: string[]
   description: string
   descriptionHash: string
-  status: string
+  status: SubgraphProposalStatus
   chains: string[]
   dstIds?: string[]
   eta: string
@@ -30,6 +36,8 @@ export interface Proposal {
   againstVotes: string
   abstainVotes: string
   votes: Vote[]
+  voteStart: string
+  voteEnd: string
 }
 
 export interface CrossChainProposal {
@@ -65,24 +73,26 @@ export interface SubgraphDelegate {
   votingPower: string
   delegationsCount: number
 }
+export type FinalStatus =
+  | 'Active'
+  | 'Pending'
+  | 'Executed'
+  | 'Queued'
+  | 'Defeated'
+  | 'Executed on Hub'
+  | 'Succeeded'
+  | 'Canceled'
 
 // Transform subgraph proposal to our format
 export interface TransformedProposal {
   id: string
   displayId: string | null
-  status:
-    | 'Active'
-    | 'Executed'
-    | 'Queued'
-    | 'Defeated'
-    | 'Executed on Hub'
-    | 'Succeeded'
-    | 'Canceled'
+  status: FinalStatus
   chain: string
   title: string
   description: string
   quorumProgress: number
-  timeRemaining: string
+  timeRemaining: number
   quorumReached: boolean
   forVotes: number
   againstVotes: number
