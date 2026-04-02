@@ -312,7 +312,7 @@ Because `setRoundSettled()` generates the rate using actual output received (`to
 
 -----
 
-## 8. T+1 Ark Internals {#8-t1-ark-internals}
+## 8. T+1 Ark Internals
 
 The [T+1 Ark (WisdomTreeArk.sol)](../arks/WisdomTreeArk.sol) handles the on-chain/off-chain bridge to offchain RWA funds.
 
