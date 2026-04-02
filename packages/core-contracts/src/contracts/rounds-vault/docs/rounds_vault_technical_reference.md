@@ -1,6 +1,6 @@
 # Rounds Vault & Institutional Ark — Technical Reference
 
-> Complete technical documentation for the async settlement architecture used by WisdomTree (and future Benji-token-style) integrations.
+> Complete technical documentation for the async settlement architecture used by offchain RWA (and future Benji-token-style) integrations.
 
 ---
 
@@ -13,7 +13,7 @@
 5. [Input Vault (Deposit Flow)](#5-input-vault-deposit-flow)
 6. [Output Vault (Withdrawal Flow)](#6-output-vault-withdrawal-flow)
 7. [Exchange Rate Math](#7-exchange-rate-math)
-8. [WisdomTreeArk Internals](#8-wisdomtreeark-internals)
+8. [T+1 Ark Internals](#8-t1-ark-internals)
 9. [Keeper Operations Playbook](#9-keeper-operations-playbook)
 10. [Entry Point Analysis](#10-entry-point-analysis)
 11. [Systemic Risks & Operational Limitations](#11-systemic-risks-and-operational-limitations)
@@ -22,7 +22,7 @@
 
 ## 1\. Architecture Overview
 
-The Rounds Vault system solves a fundamental problem: institutional tokenized funds (e.g. WisdomTree WTGXX, CRDYX, and future Benji tokens) have **locked investment periods** where deposits/withdrawals are processed in T+0 or T+1 off-chain settlement cycles. Users cannot interact directly during these periods.
+The Rounds Vault system solves a fundamental problem: institutional tokenized funds (e.g. offchain RWA: WTGXX, CRDYX, and future Benji tokens) have **locked investment periods** where deposits/withdrawals are processed in T+0 or T+1 off-chain settlement cycles. Users cannot interact directly during these periods.
 
 The Rounds Vault acts as an **asynchronous buffering layer** between users and the unified FleetCommander ERC-4626 vault, utilizing a **Two-Phase Settlement** model to securely isolate on-chain deposits from off-chain NAV execution.
 
@@ -30,8 +30,8 @@ The Rounds Vault acts as an **asynchronous buffering layer** between users and t
 flowchart LR
     U[User] -->|deposit USDC| IV[RoundsVaultInput]
     IV -->|"1. nextRound() \n2. setRoundSettled()"| FC[FleetCommander]
-    FC -->|"board()"| ARK[WisdomTreeArk]
-    ARK -->|USDC wire| WT[WisdomTree\nOff-Chain]
+    FC -->|"board()"| ARK[T+1 Ark]
+    ARK -->|USDC wire| WT[offchain RWA\nOff-Chain]
     WT -->|shares| ARK
     ARK -.->|totalAssets ↑| FC
     FC -.->|previewDeposit| IV
@@ -39,8 +39,8 @@ flowchart LR
 
     U3[User] -->|deposit Fleet shares| OV[RoundsVaultOutput]
     OV -->|"1. nextRound() \n2. setRoundSettled()"| FC2[FleetCommander]
-    FC2 -->|"disembark()"| ARK2[WisdomTreeArk]
-    ARK2 -->|shares wire| WT2[WisdomTree\nOff-Chain]
+    FC2 -->|"disembark()"| ARK2[T+1 Ark]
+    ARK2 -->|shares wire| WT2[offchain RWA\nOff-Chain]
     WT2 -->|USDC| ARK2
     ARK2 -.->|sweep → buffer| FC2
     OV -->|exchange receipts| U4[User receives USDC]
@@ -184,7 +184,7 @@ sequenceDiagram
     participant User
     participant InputVault as RoundsVaultInput
     participant Fleet as FleetCommander
-    participant Ark as WisdomTreeArk
+    participant Ark as T+1 Ark
 
     Note over User,Ark: Phase 1: Deposit
     User->>InputVault: deposit(1000 USDC, user)
@@ -195,7 +195,7 @@ sequenceDiagram
 
     Note over User,Ark: Phase 3: Off-chain settlement & Rebalance
     Fleet->>Ark: board(USDC) via rebalance
-    Ark->>Ark: USDC sent to WisdomTree
+    Ark->>Ark: USDC sent to offchain RWA
     Note right of Ark: T+0/T+1 settlement
 
     Note over User,Ark: Phase 4: Execute & Settle
@@ -312,9 +312,9 @@ Because `setRoundSettled()` generates the rate using actual output received (`to
 
 -----
 
-## 8\. WisdomTreeArk Internals
+## 8. T+1 Ark Internals {#8-t1-ark-internals}
 
-[WisdomTreeArk.sol](../arks/WisdomTreeArk.sol) handles the on-chain/off-chain bridge to WisdomTree funds.
+The [T+1 Ark (WisdomTreeArk.sol)](../arks/WisdomTreeArk.sol) handles the on-chain/off-chain bridge to offchain RWA funds.
 
 ### NAV Calculation (`totalAssets`)
 
@@ -404,7 +404,7 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 | 2 | Advance round (freezes amount) | RoundsVaultInput | `nextRound()` |
 | 3 | Rebalance USDC into Ark | FleetCommander | `rebalance([{buffer→ark}])` |
 | 4 | Wait for WT settlement (T+0/T+1) | — | — |
-| 5 | Clear pending deposit (NAV updates)| WisdomTreeArk | `clearPendingDeposit()` |
+| 5 | Clear pending deposit (NAV updates)| T+1 Ark | `clearPendingDeposit()` |
 | 6 | Execute trade & settle round | RoundsVaultInput | `setRoundSettled(N)` |
 
 ### Withdrawal Round Lifecycle
@@ -413,9 +413,9 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 |------|--------|----------|----------|
 | 1 | Users deposit Fleet shares | RoundsVaultOutput | `deposit(shares, receiver)` |
 | 2 | Advance round (freezes amount) | RoundsVaultOutput | `nextRound()` |
-| 3 | Request withdrawal from Ark | WisdomTreeArk | `requestWithdrawal(amount)` |
+| 3 | Request withdrawal from Ark | T+1 Ark | `requestWithdrawal(amount)` |
 | 4 | Wait for WT USDC return (T+0/T+1) | — | — |
-| 5 | Sweep returning USDC to buffer | WisdomTreeArk | `sweep()` |
+| 5 | Sweep returning USDC to buffer | T+1 Ark | `sweep()` |
 | 6 | Execute trade & settle round | RoundsVaultOutput | `setRoundSettled(N)` |
 
 ### Dividend Handling (Non-MMF)
@@ -456,12 +456,12 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 | `nextRound()` | RoundsVaultBase | Closes round, freezes liability, opens next round |
 | `setRoundSettled(roundId)` | RoundsVaultBase | Executes physical trade, snapshots rate, sets to Settled |
 | `rebalance(rebalanceData)` | FleetCommander | Moves assets between Arks and adjusts buffer |
-| `clearPendingDeposit()` | WisdomTreeArk | Clears full/partial pending deposit, updates NAV |
-| `requestWithdrawal(amount)` | WisdomTreeArk | Initiates off-chain redemption flow |
-| `sweep()` | WisdomTreeArk | Refills buffer with returned off-chain funds |
-| `setArkFrozen(bool, NAV)` | WisdomTreeArk | Freezes/unfreezes NAV reporting during settlement |
-| `setCustodianWallet(...)` | WisdomTreeArk | Updates the target for off-chain transfers |
-| `setAssetsForwarder(...)` | WisdomTreeArk | Updates the secure transfer proxy |
+| `clearPendingDeposit()` | T+1 Ark | Clears full/partial pending deposit, updates NAV |
+| `requestWithdrawal(amount)` | T+1 Ark | Initiates off-chain redemption flow |
+| `sweep()` | T+1 Ark | Refills buffer with returned off-chain funds |
+| `setArkFrozen(bool, NAV)` | T+1 Ark | Freezes/unfreezes NAV reporting during settlement |
+| `setCustodianWallet(...)` | T+1 Ark | Updates the target for off-chain transfers |
+| `setAssetsForwarder(...)` | T+1 Ark | Updates the secure transfer proxy |
 
 ### Admin / Governor-Restricted Entry Points
 
@@ -473,7 +473,7 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 | `setOperatorGatewayStatus` | FleetCommander | `GOVERNOR_ROLE` | Toggles direct user access to Fleet |
 | `setTipRate(Percentage)` | FleetCommander | `GOVERNOR_ROLE` | Updates protocol fee rate |
 | `pause / unpause` | FleetCommander | `GOVERNOR_ROLE` | Emergency circuit breaker |
-| `emergencySweep()` | WisdomTreeArk | `GOVERNOR_ROLE` | Force-sweep funds bypassing slippage checks |
+| `emergencySweep()` | T+1 Ark | `GOVERNOR_ROLE` | Force-sweep funds bypassing slippage checks |
 
 -----
 
@@ -483,7 +483,7 @@ When frozen, `totalAssets()` returns the stored `_frozenTotalAssets` regardless 
 
 *Previously, advancing a round demanded immediate synchronous USDC, risking reverts if the Fleet buffer was empty.*
 
-  * **Resolution**: By splitting the cycle into `nextRound()` and `setRoundSettled()`, the liquidity deadlock is solved. The Keeper can advance the round (locking the liabilities), initiate the off-chain `requestWithdrawal` to WisdomTree, wait for the USDC to hit the buffer via `sweep()`, and *only then* execute `setRoundSettled()`.
+  * **Resolution**: By splitting the cycle into `nextRound()` and `setRoundSettled()`, the liquidity deadlock is solved. The Keeper can advance the round (locking the liabilities), initiate the off-chain `requestWithdrawal` to offchain RWA, wait for the USDC to hit the buffer via `sweep()`, and *only then* execute `setRoundSettled()`.
 
 #### 2\. Resolved: Systemic Whitelist Fragmentation
 
