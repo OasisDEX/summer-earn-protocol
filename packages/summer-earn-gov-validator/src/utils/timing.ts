@@ -204,9 +204,26 @@ export function formatTimeRemaining(seconds: number): string {
   if (days > 0) parts.push(`${days}d`)
   if (hours > 0) parts.push(`${hours}h`)
   if (minutes > 0) parts.push(`${minutes}m`)
-  if (secs > 0 && days === 0) parts.push(`${secs}s`) // Only show seconds if less than a day
+  if (secs > 0 && days === 0 && hours === 0) parts.push(`${secs}s`) // Only show seconds if less than an hour
 
-  return parts.join(' ')
+  return parts.join(' ') || 'Soon'
+}
+
+/**
+ * Format a UNIX timestamp (seconds) into a local human-readable date and time.
+ */
+export function formatTimestamp(timestamp: number | string): string {
+  if (!timestamp || timestamp === '0') return 'N/A'
+
+  const date = new Date(Number(timestamp) * 1000)
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  })
 }
 
 /**
