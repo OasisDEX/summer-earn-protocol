@@ -1,4 +1,10 @@
-import { useAccount, useReadContract, useReadContracts, useWriteContract } from 'wagmi'
+import {
+  useConnection,
+  useReadContract,
+  useReadContracts,
+  useSwitchChain,
+  useWriteContract,
+} from 'wagmi'
 
 import config from '../config/index.json'
 
@@ -91,7 +97,7 @@ export interface UserVotingInfo {
 }
 
 export function useProposalVoting(proposalId: string | undefined) {
-  const { address } = useAccount()
+  const { address } = useConnection()
 
   const governorAddress = config.base?.deployedContracts?.govV2?.summerGovernor?.address
   const tokenAddress = config.base?.deployedContracts?.govV2?.summerGovernanceToken?.address
@@ -175,7 +181,7 @@ export function useProposalVoting(proposalId: string | undefined) {
 }
 
 export function useMultipleProposalVoting(proposalIds: string[]) {
-  const { address } = useAccount()
+  const { address } = useConnection()
 
   const governorAddress = config.base?.deployedContracts?.govV2?.summerGovernor?.address
   const tokenAddress = config.base?.deployedContracts?.govV2?.summerGovernanceToken?.address
@@ -309,15 +315,19 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
 export type VoteSupport = 0 | 1 | 2
 
 export function useCastVote() {
-  const { isConnected } = useAccount()
+  const { isConnected, chainId } = useConnection()
 
-  const { writeContract, isPending: isVoting, isSuccess, error } = useWriteContract()
+  const { mutate: switchChain } = useSwitchChain()
+
+  const { mutate: writeContract, isPending: isVoting, isSuccess, error } = useWriteContract()
 
   const castVote = (proposalId: string, support: VoteSupport) => {
     if (!isConnected) {
       throw new Error('Wallet not connected')
     }
-
+    if (chainId !== 8453) {
+      switchChain({ chainId: 8453 })
+    }
     writeContract({
       address: GOVERNOR_V2_ADDRESS,
       abi: GOVERNOR_ABI,

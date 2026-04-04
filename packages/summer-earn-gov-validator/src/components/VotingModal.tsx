@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { useCastVote, VoteSupport } from '@/hooks/useProposalVoting'
 
@@ -13,7 +14,13 @@ interface VotingModalProps {
 
 export function VotingModal({ proposalId, proposalTitle, isOpen, onClose }: VotingModalProps) {
   const [selectedVote, setSelectedVote] = useState<'for' | 'against' | 'abstain' | null>(null)
+  const [mounted, setMounted] = useState(false)
   const { castVote, isVoting, isSuccess, error, isConnected } = useCastVote()
+
+  // Handle client-side mounting for Portal
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Handle successful vote
   React.useEffect(() => {
@@ -24,7 +31,7 @@ export function VotingModal({ proposalId, proposalTitle, isOpen, onClose }: Voti
     }
   }, [isSuccess, onClose])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
   const handleVote = () => {
     if (!selectedVote) return
@@ -38,8 +45,8 @@ export function VotingModal({ proposalId, proposalTitle, isOpen, onClose }: Voti
     castVote(proposalId, supportMap[selectedVote])
   }
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-background/80 backdrop-blur-md"
@@ -248,6 +255,7 @@ export function VotingModal({ proposalId, proposalTitle, isOpen, onClose }: Voti
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
