@@ -6,7 +6,6 @@ import "../ArkWithWithdrawalRequest.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
-import {IAssetsForwarder} from "../../utils/AssetsForwarder/IAssetsForwarder.sol";
 import {Percentage, PERCENTAGE_FACTOR} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
@@ -76,7 +75,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     error InvalidTargetWallet();
     error InvalidOracleAddress();
     error InvalidShareTokenAddress();
-    error InvalidForwarderAddress();
     error OraclePriceNotPositive();
     error InsufficientPendingDeposit();
     error PendingDepositActive();
@@ -96,7 +94,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     event PendingDepositCleared(uint256 amountCleared);
     event SharesSentForRedemption(uint256 shares, uint256 expectedAssets);
     event CustodianWalletUpdated(address oldWallet, address newWallet);
-    event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
     event ArkIsFrozenUpdated(bool isFrozen, uint256 frozenTotalAssets);
     event SweepSlippageUpdated(
         Percentage oldSweepSlippage,
@@ -115,9 +112,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
     /// @notice Chainlink price feed: price of 1 WisdomTree share denominated in underlying asset
     AggregatorV3Interface public immutable oracle;
-
-    /// @notice The AssetsForwarder utilized to handle external transfers securely
-    IAssetsForwarder public assetsForwarder;
 
     /// @notice Decimals reported by the Chainlink oracle
     uint8 public immutable oracleDecimals;
@@ -161,7 +155,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         address _custodianWallet,
         address _shareToken,
         address _oracle,
-        address _assetsForwarder,
         Percentage _sweepSlippage,
         WTArkType _arkType,
         ArkParams memory _params
@@ -169,12 +162,10 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         if (_custodianWallet == address(0)) revert InvalidTargetWallet();
         if (_oracle == address(0)) revert InvalidOracleAddress();
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
-        if (_assetsForwarder == address(0)) revert InvalidForwarderAddress();
 
         custodianWallet = _custodianWallet;
         shareToken = IERC20(_shareToken);
         oracle = AggregatorV3Interface(_oracle);
-        assetsForwarder = IAssetsForwarder(_assetsForwarder);
         sweepSlippage = _sweepSlippage;
         oracleDecimals = AggregatorV3Interface(_oracle).decimals();
         shareDecimals = IERC20Metadata(_shareToken).decimals();
@@ -205,7 +196,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         // This prevents double-counting shares that arrive before the keeper clears the deposit.
         uint256 currentShares = pendingDepositAssets > 0
             ? cachedShareBalance
-            : shareToken.balanceOf(address(assetsForwarder));
+            : shareToken.balanceOf(address(this));
 
         assets =
             _sharesToAssets(currentShares) +
@@ -255,16 +246,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         if (_custodianWallet == address(0)) revert InvalidTargetWallet();
         emit CustodianWalletUpdated(custodianWallet, _custodianWallet);
         custodianWallet = _custodianWallet;
-    }
-
-    /**
-     * @notice Updates the AssetsForwarder utilized to handle external transfers.
-     * @param _assetsForwarder The new assets forwarder address
-     */
-    function setAssetsForwarder(address _assetsForwarder) external onlyKeeper {
-        if (_assetsForwarder == address(0)) revert InvalidForwarderAddress();
-        emit AssetsForwarderUpdated(address(assetsForwarder), _assetsForwarder);
-        assetsForwarder = IAssetsForwarder(_assetsForwarder);
     }
 
     /**
@@ -319,12 +300,8 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
         uint256 sharesToRedeem = _assetsToShares(amount);
 
-        // Transfer the WisdomTree shares off-chain (back to the target wallet) via the assetsForwarder
-        assetsForwarder.sendAsset(
-            custodianWallet,
-            address(shareToken),
-            sharesToRedeem
-        );
+        // Transfer the WisdomTree shares off-chain (back to the target wallet)
+        shareToken.safeTransfer(custodianWallet, sharesToRedeem);
 
         // Record the expected returning USDC amount to keep totalAssets continuous
         pendingWithdrawalAssets += amount;
@@ -369,22 +346,22 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
         // Check that the amount of assets returned in shares with current oracle price
         // is not less than the amount of shares requested minus the sweep slippage
-        uint256 assetsInForwarder = asset.balanceOf(address(assetsForwarder));
-        uint256 sharesInForwarder = _assetsToShares(assetsInForwarder);
+        uint256 returnedAssets = asset.balanceOf(address(this));
+        uint256 returnedShares = _assetsToShares(returnedAssets);
 
         uint256 pendingWithdrawalSharesMinusSlippage = pendingWithdrawalShares
             .subtractPercentage(sweepSlippage);
 
-        if (sharesInForwarder < pendingWithdrawalSharesMinusSlippage) {
+        if (returnedShares < pendingWithdrawalSharesMinusSlippage) {
             revert InsufficientAssetsReturned(
                 pendingWithdrawalAssets,
-                assetsInForwarder,
+                returnedAssets,
                 pendingWithdrawalShares,
-                sharesInForwarder
+                returnedShares
             );
         }
 
-        return _sweep(assetsInForwarder);
+        return _sweep(returnedAssets);
     }
 
     /**
@@ -397,10 +374,8 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
     {
-        uint256 assetsInForwarder = config.asset.balanceOf(
-            address(assetsForwarder)
-        );
-        return _sweep(assetsInForwarder);
+        uint256 returnedAssets = config.asset.balanceOf(address(this));
+        return _sweep(returnedAssets);
     }
 
     /**
@@ -422,12 +397,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
         pendingWithdrawalAssets = 0;
         pendingWithdrawalShares = 0;
-
-        assetsForwarder.sendAsset(
-            address(this),
-            address(asset),
-            sweptAmounts[0]
-        );
 
         address bufferArk = address(
             IFleetCommander(config.commander).bufferArk()
@@ -475,17 +444,12 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         }
 
         if (pendingDepositAssets == 0) {
-            cachedShareBalance = shareToken.balanceOf(address(assetsForwarder));
+            cachedShareBalance = shareToken.balanceOf(address(this));
         }
 
         pendingDepositAssets += amount;
 
-        config.asset.forceApprove(address(assetsForwarder), amount);
-        assetsForwarder.forwardAsset(
-            custodianWallet,
-            address(config.asset),
-            amount
-        );
+        config.asset.safeTransfer(custodianWallet, amount);
     }
 
     /**

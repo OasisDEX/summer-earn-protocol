@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/WisdomTreeArk.sol";
-import {AssetsForwarder} from "../../src/utils/AssetsForwarder/AssetsForwarder.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
@@ -15,7 +14,6 @@ contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     WisdomTreeArk public ark;
-    AssetsForwarder public forwarder;
     IERC20 public usdc;
     IERC20 public wtToken;
     AggregatorV3Interface public oracle;
@@ -57,15 +55,11 @@ contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBase {
         });
 
         vm.startPrank(governor);
-        forwarder = new AssetsForwarder(address(accessManager));
-        accessManager.grantKeeperRole(address(forwarder), keeper);
-        forwarder.setWhitelisted(TARGET_WALLET, true);
         Percentage sweepSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
         ark = new WisdomTreeArk(
             TARGET_WALLET,
             SHARE_TOKEN,
             ORACLE,
-            address(forwarder),
             sweepSlippage,
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
