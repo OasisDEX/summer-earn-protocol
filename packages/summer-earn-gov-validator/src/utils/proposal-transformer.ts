@@ -86,7 +86,7 @@ export function transformProposal(
     chain,
     title,
     description: cleanDescription,
-    descriptionHash: proposal.descriptionHash,
+    descriptionHash: proposal.descriptionHash as `0x${string}`,
     quorumProgress,
     timeRemaining,
     forVotes,
