@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { keccak256, stringToBytes } from 'viem'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { VoteBar } from '@/components/VoteBar'
@@ -34,9 +33,6 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
     try {
       setIsExecuting(true)
       if (chainId !== 8453) await switchChain({ chainId: 8453 })
-
-      const descriptionHash = keccak256(stringToBytes(proposal.description))
-
       await writeContract({
         address: governorAddress as `0x${string}`,
         abi: GOVERNOR_ABI,
@@ -45,7 +41,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
           proposal.targets as `0x${string}`[],
           proposal.values.map((v) => BigInt(v)),
           proposal.calldatas as `0x${string}`[],
-          descriptionHash as `0x${string}`,
+          proposal.descriptionHash,
         ],
       })
     } catch (error) {
@@ -66,8 +62,6 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
       setIsExecuting(true)
       if (chainId !== 8453) await switchChain({ chainId: 8453 })
 
-      const descriptionHash = keccak256(stringToBytes(proposal.description))
-
       await writeContract({
         address: governorAddress as `0x${string}`,
         abi: GOVERNOR_ABI,
@@ -76,7 +70,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
           proposal.targets as `0x${string}`[],
           proposal.values.map((v) => BigInt(v)),
           proposal.calldatas as `0x${string}`[],
-          descriptionHash as `0x${string}`,
+          proposal.descriptionHash,
         ],
       })
     } catch (error) {

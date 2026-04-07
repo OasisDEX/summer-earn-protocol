@@ -1,3 +1,5 @@
+import { Hex } from 'viem'
+
 export interface Vote {
   id: string
   voter: string
@@ -86,6 +88,7 @@ export interface TransformedProposal {
   chain: string
   title: string
   description: string
+  descriptionHash: Hex
   quorumProgress: number
   timeRemaining: number
   quorumReached: boolean
