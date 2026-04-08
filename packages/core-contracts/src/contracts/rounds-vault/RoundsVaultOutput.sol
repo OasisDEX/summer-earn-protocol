@@ -61,27 +61,23 @@ contract RoundsVaultOutput is
 
     /**
         @inheritdoc RoundsVaultBase
-
-        @dev Deposits the available funds into the main vault, receiving back an amount of target vault shares
     */
     // @audit This function is protected for re-entrancy by two mechanisms: only the Operator can call
     // _nextRound which is the function that in turn calls this function, and the Operator is a trusted
     // entity. Also, even if the operator would call nextRound in a re-entrancy attack, the funds are being
     // moved from this contract to the InvestmentVault contract and no more funds would be left, leading
     // the following code to be a no-op
+    function _operate(
+        uint256 shares,
+        uint256 roundId
+    ) internal override returns (uint256) {
+        if (shares == 0) return 0;
 
-    function _operate() internal override {
-        uint256 shares = totalAssets();
-        if (shares > 0) {
-            uint256 assets = _redeemFromTarget(shares);
+        uint256 assets = _redeemFromTarget(shares);
 
-            emit SharesRedeemed(
-                getCurrentRound(),
-                _msgSender(),
-                shares,
-                assets
-            );
-        }
+        emit SharesRedeemed(roundId, _msgSender(), shares, assets);
+
+        return assets;
     }
 
     /**
@@ -91,20 +87,16 @@ contract RoundsVaultOutput is
         calculated for 1 full share
 
         @dev This function can only be called while the target vault is unlocked
+
+        @dev The fallback exchange rate is calculated for 1 full token
      */
-    function _getCurrentExchangeRate()
+    function _getFallbackExchangeRate()
         internal
         view
         override
         returns (Price memory)
     {
-        uint256 shares = totalAssets();
-
-        if (shares == 0) {
-            IERC20Metadata asset_ = IERC20Metadata(asset());
-            shares = 10 ** asset_.decimals();
-        }
-
+        uint256 shares = 10 ** IERC20Metadata(asset()).decimals();
         uint256 assets = IERC4626(vault()).previewRedeem(shares);
 
         return toPrice(assets, shares);

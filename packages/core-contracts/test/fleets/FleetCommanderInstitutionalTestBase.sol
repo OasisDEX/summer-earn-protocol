@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
-import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
-import {FleetCommanderWhitelist} from "../../src/contracts/FleetCommanderWhitelist.sol";
 import {AdmiralsQuartersWhitelist} from "../../src/contracts/AdmiralsQuartersWhitelist.sol";
-import {IInstitutionalVaultRegistry} from "../../src/interfaces/IInstitutionalVaultRegistry.sol";
+import {FleetCommanderWhitelist} from "../../src/contracts/FleetCommanderWhitelist.sol";
+import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import {InstitutionalVaultRegistry} from "../../src/contracts/InstitutionalVaultRegistry.sol";
-import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
-import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IInstitutionalVaultRegistry} from "../../src/interfaces/IInstitutionalVaultRegistry.sol";
+import {FleetCommanderParams, FleetCommanderWhitelistParams} from "../../src/types/FleetCommanderTypes.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ProtocolAccessManagerV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagerV2.sol";
+import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
+import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Test} from "forge-std/Test.sol";
 
-abstract contract FleetCommanderWhitelistInstitutionalTestBase is Test {
-    ProtocolAccessManager public accessManager;
+abstract contract FleetCommanderInstitutionalTestBase is Test {
+    ProtocolAccessManagerV2 public accessManager;
     ConfigurationManager public configurationManager;
     HarborCommand public harborCommand;
     InstitutionalVaultRegistry public registry;
@@ -25,7 +25,7 @@ abstract contract FleetCommanderWhitelistInstitutionalTestBase is Test {
 
     function _setupCore() internal {
         vm.startPrank(governor);
-        accessManager = new ProtocolAccessManager(governor);
+        accessManager = new ProtocolAccessManagerV2(governor);
         harborCommand = new HarborCommand(address(accessManager));
         configurationManager = new ConfigurationManager(address(accessManager));
         configurationManager.initializeConfiguration(
@@ -45,10 +45,11 @@ abstract contract FleetCommanderWhitelistInstitutionalTestBase is Test {
         address asset,
         string memory name_,
         string memory symbol_,
-        Percentage initialTipRate
-    ) internal view returns (FleetCommanderParams memory) {
+        Percentage initialTipRate,
+        bool isOperatorGatewayOpen
+    ) internal view returns (FleetCommanderWhitelistParams memory) {
         return
-            FleetCommanderParams({
+            FleetCommanderWhitelistParams({
                 accessManager: address(accessManager),
                 configurationManager: address(configurationManager),
                 initialMinimumBufferBalance: 0,
@@ -58,7 +59,8 @@ abstract contract FleetCommanderWhitelistInstitutionalTestBase is Test {
                 symbol: symbol_,
                 details: "institutional",
                 initialTipRate: initialTipRate,
-                depositCap: type(uint256).max
+                depositCap: type(uint256).max,
+                isOperatorGatewayOpen: isOperatorGatewayOpen
             });
     }
 

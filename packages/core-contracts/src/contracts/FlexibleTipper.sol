@@ -221,7 +221,7 @@ abstract contract FlexibleTipper is IFlexibleTipper, Tipper {
                 (_totalSupply + feeShares);
 
             emit PerformanceFeeAccrued(feeShares);
-            emit HighWaterMarkUpdated(newHWM);
+            emit HighWaterMarkUpdated(highWaterMark);
         }
     }
 

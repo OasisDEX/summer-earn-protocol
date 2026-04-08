@@ -8,6 +8,16 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
 
 /**
  * @notice Configuration parameters for the FleetCommander contract
+ * @param name The name of the fleet commander (ERC20)
+ * @param details A string containing additional information about the fleet commander
+ * @param symbol The symbol of the fleet commander share token (ERC20)
+ * @param configurationManager The address of the ConfigurationManager contract
+ * @param accessManager The address of the ProtocolAccessManager contract
+ * @param asset The address of the underlying asset for the fleet
+ * @param initialMinimumBufferBalance The initial minimum balance to be kept in the buffer ark
+ * @param initialRebalanceCooldown The initial cooldown period between rebalancing operations
+ * @param depositCap The initial total deposit cap for the fleet
+ * @param initialTipRate The initial rate for tips/fees
  */
 struct FleetCommanderParams {
     string name;
@@ -23,7 +33,49 @@ struct FleetCommanderParams {
 }
 
 /**
+ * @notice Configuration parameters for the FleetCommanderWhitelist contract
+ * @param name The name of the fleet commander (ERC20)
+ * @param details A string containing additional information about the fleet commander
+ * @param symbol The symbol of the fleet commander share token (ERC20)
+ * @param configurationManager The address of the ConfigurationManager contract
+ * @param accessManager The address of the ProtocolAccessManagerV2 contract
+ * @param asset The address of the underlying asset for the fleet
+ * @param initialMinimumBufferBalance The initial minimum balance to be kept in the buffer ark
+ * @param initialRebalanceCooldown The initial cooldown period between rebalancing operations
+ * @param depositCap The initial total deposit cap for the fleet
+ * @param initialTipRate The initial rate for tips/fees
+ * @param isOperatorGatewayOpen Initial status of the operator gateway.
+ *      Entry (deposit/mint) and exit (withdraw/redeem) operations are gated by the operator gateway.
+ *      When the gateway is closed, only accounts with the OPERATOR_ROLE can perform these actions.
+ *      When the gateway is open, all whitelisted accounts can perform these actions.
+ */
+struct FleetCommanderWhitelistParams {
+    string name;
+    string details;
+    string symbol;
+    address configurationManager;
+    address accessManager;
+    address asset;
+    uint256 initialMinimumBufferBalance;
+    uint256 initialRebalanceCooldown;
+    uint256 depositCap;
+    Percentage initialTipRate;
+    bool isOperatorGatewayOpen;
+}
+
+/**
  * @notice Configuration parameters for the FleetCommanderDao contract
+ * @param name The name of the fleet commander (ERC20)
+ * @param details A string containing additional information about the fleet commander
+ * @param symbol The symbol of the fleet commander share token (ERC20)
+ * @param configurationManager The address of the ConfigurationManager contract
+ * @param accessManager The address of the ProtocolAccessManager contract
+ * @param asset The address of the underlying asset for the fleet
+ * @param initialMinimumBufferBalance The initial minimum balance to be kept in the buffer ark
+ * @param initialRebalanceCooldown The initial cooldown period between rebalancing operations
+ * @param depositCap The initial total deposit cap for the fleet
+ * @param initialTipRate The initial rate for tips/fees
+ * @param tipJar The address of the tip jar contract
  */
 struct FleetCommanderDaoParams {
     string name;
@@ -74,6 +126,48 @@ struct FleetConfig {
      * @notice The address of the staking rewards contract
      */
     address stakingRewardsManager;
+}
+
+/**
+ * @title FleetConfigWhitelist
+ * @notice Configuration parameters for the FleetCommanderWhitelist contract
+ */
+struct FleetConfigWhitelist {
+    /**
+     * @notice The buffer Ark associated with this FleetCommanderWhitelist
+     * @dev This Ark is used as a temporary holding area for funds before they are allocated
+     *      to other Arks or when they need to be quickly accessed for withdrawals.
+     */
+    IArk bufferArk;
+    /**
+     * @notice The minimum balance that should be maintained in the buffer Ark
+     * @dev This value is used to ensure there's always a certain amount of funds readily
+     *      available for withdrawals or rebalancing operations. It's denominated in the
+     *      smallest unit of the underlying asset (e.g., wei for ETH).
+     */
+    uint256 minimumBufferBalance;
+    /**
+     * @notice The maximum total value of assets that can be deposited into the FleetCommanderWhitelist
+     * @dev This cap helps manage the total assets under management and can be used to
+     *      implement controlled growth strategies. It's denominated in the smallest unit
+     *      of the underlying asset.
+     */
+    uint256 depositCap;
+    /**
+     * @notice The maximum number of rebalance operations in a single rebalance
+     */
+    uint256 maxRebalanceOperations;
+    /**
+     * @notice The address of the staking rewards contract
+     */
+    address stakingRewardsManager;
+    /**
+     * @notice If true, the operator gateway is open to everyone (subject to whitelist)
+     * @dev Entry (deposit/mint) and exit (withdraw/redeem) operations are gated by the operator gateway.
+     *      When the gateway is closed, only accounts with the OPERATOR_ROLE can perform these actions.
+     *      When the gateway is open, all whitelisted accounts can perform these actions.
+     */
+    bool isOperatorGatewayOpen;
 }
 
 /**

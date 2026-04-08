@@ -39,6 +39,11 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
      * - Relies on the correct setup of the FleetCommander and RAFT contracts
      */
     modifier onlyAuthorizedToBoard(address commander) {
+        _revertIfNotAuthorizedToBoard(commander);
+        _;
+    }
+
+    function _revertIfNotAuthorizedToBoard(address commander) internal view {
         if (commander != _msgSender()) {
             address msgSender = _msgSender();
             bool isRaft = msgSender ==
@@ -53,7 +58,6 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
                 }
             }
         }
-        _;
     }
 
     /**
@@ -70,10 +74,14 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
      * - Relies on the correct setup of the ConfigurationManaged contract
      */
     modifier onlyRaft() {
+        _revertIfNotRaft();
+        _;
+    }
+
+    function _revertIfNotRaft() internal view {
         if (_msgSender() != IConfigurationManaged(address(this)).raft()) {
             revert CallerIsNotRaft(_msgSender());
         }
-        _;
     }
 
     /**

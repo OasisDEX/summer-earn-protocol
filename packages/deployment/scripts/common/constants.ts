@@ -17,3 +17,5 @@ export const DEFAULT_ADMIN_ROLE =
 export const HUB_CHAIN_ID = 8453
 export const HUB_CHAIN_NAME = 'base'
 export const ADMIRALS_QUARTERS_ROLE = keccak256(toBytes('ADMIRALS_QUARTERS_ROLE'))
+export const WHITELIST_MANAGER_ROLE = keccak256(toBytes('WHITELIST_MANAGER_ROLE'))
+export const SUPER_KEEPER_ROLE = keccak256(toBytes('SUPER_KEEPER_ROLE'))

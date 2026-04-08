@@ -82,18 +82,28 @@ export function readInstitutionGovernance(
   const treasury = net?.treasury
   const governor = net?.governor
   const guardian = net?.guardian
+  const superKeeper = net?.superKeeper
+  const whitelistManagers = net?.whitelistManagers
 
   // Strong validation using zod schema requiring all fields
   try {
-    const parsed = InstitutionGovernanceSchema.parse({ treasury, governor, guardian })
+    const parsed = InstitutionGovernanceSchema.parse({
+      treasury,
+      governor,
+      guardian,
+      superKeeper,
+      whitelistManagers,
+    })
     return {
       treasury: parsed.treasury as Address,
       governor: parsed.governor as Address[],
       guardian: parsed.guardian as Address[],
+      superKeeper: parsed.superKeeper as Address,
+      whitelistManagers: parsed.whitelistManagers as Address[],
     }
   } catch (e) {
     throw new Error(
-      `Institution governance is missing or invalid for network "${network}". Ensure fields { treasury, governor[], guardian[] } exist under that network in the institution index file for "${institutionId}"`,
+      `Institution governance is missing or invalid for network "${network}". Ensure fields { treasury, governor[], guardian[], superKeeper, whitelistManagers[] } exist under that network in the institution index file for "${institutionId}"`,
     )
   }
 }

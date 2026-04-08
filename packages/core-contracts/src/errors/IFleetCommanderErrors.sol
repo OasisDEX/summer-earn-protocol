@@ -143,4 +143,14 @@ interface IFleetCommanderErrors {
      * @notice Thrown when user attempts to deposit/mint or withdraw/redeem 0 units
      */
     error FleetCommanderZeroAmount();
+
+    /**
+     * @notice Thrown when direct deposits are closed
+     */
+    error FleetCommanderDirectDepositsClosed();
+
+    /**
+     * @notice Thrown when direct withdrawals are closed
+     */
+    error FleetCommanderDirectWithdrawalsClosed();
 }

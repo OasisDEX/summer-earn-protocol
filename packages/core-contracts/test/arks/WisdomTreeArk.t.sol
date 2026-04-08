@@ -3,13 +3,13 @@ pragma solidity 0.8.28;
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/WisdomTreeArk.sol";
-import {AssetsForwarder} from "../../src/utils/AssetsForwarder/AssetsForwarder.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
+import {AssetsForwarder} from "../../src/utils/AssetsForwarder/AssetsForwarder.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
-import {ArkTestBase} from "./ArkTestBase.sol";
+import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Percentage, PERCENTAGE_FACTOR, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 // Dummy mock for Chainlink Oracle
@@ -65,7 +65,7 @@ contract MockOracle is AggregatorV3Interface {
     }
 }
 
-contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
+contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     using SafeERC20 for IERC20;
 
     event CustodianWalletUpdated(address oldWallet, address newWallet);
@@ -153,6 +153,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBase {
         accessManager.grantCommanderRole(address(ark), address(commander));
         accessManager.grantKeeperRole(address(ark), keeper);
         accessManager.grantKeeperRole(address(forwarder), keeper);
+        accessManager.grantWhitelistManagerRole(address(forwarder));
 
         forwarder.setWhitelisted(address(ark), true);
         forwarder.setWhitelisted(targetWallet, true);

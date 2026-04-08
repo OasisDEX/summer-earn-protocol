@@ -6,27 +6,27 @@ import {Test, console} from "forge-std/Test.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
-import "../../src/contracts/arks/ERC4626Ark.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import "../../src/contracts/arks/ERC4626Ark.sol";
 
-import {FleetConfig, FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
-import {FleetCommanderPrivateWithTransfer} from "../../src/contracts/FleetCommanderPrivateWithTransfer.sol";
-import {IFleetCommanderPrivateWithTransfer} from "../../src/interfaces/IFleetCommanderPrivateWithTransfer.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {FleetCommanderWhitelist} from "../../src/contracts/FleetCommanderWhitelist.sol";
+import {IFleetCommanderWhitelist} from "../../src/interfaces/IFleetCommanderWhitelist.sol";
+import {FleetCommanderParams, FleetCommanderWhitelistParams, FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 
 import {RoundsVaultInput} from "../../src/contracts/rounds-vault/RoundsVaultInput.sol";
 import {RoundsVaultOutput} from "../../src/contracts/rounds-vault/RoundsVaultOutput.sol";
-import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
-import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
 import {ProtocolAccessManagerV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagerV2.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
 
 contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     ERC4626Ark public usdcGearboxERC4626Ark;
@@ -44,7 +44,7 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         0xda00000035fef4082F78dEF6A8903bee419FbF8E;
     uint256 constant FORK_BLOCK = 20376149;
 
-    FleetCommanderPrivateWithTransfer public usdcFleetCommander;
+    FleetCommanderWhitelist public usdcFleetCommander;
 
     function setUp() public {
         console.log("Setting up RoundsFleetLifecycleTest");
@@ -97,25 +97,27 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
             rewardTokens.push(new ERC20Mock());
         }
 
-        fleetCommanderParams = FleetCommanderParams({
-            accessManager: address(accessManager),
-            configurationManager: address(configurationManager),
-            initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
-            initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
-            asset: USDC_ADDRESS,
-            name: fleetName,
-            symbol: "TEST-SUM",
-            details: "TestFleet-details",
-            initialTipRate: PercentageUtils.fromIntegerPercentage(
-                initialTipRate
-            ),
-            depositCap: type(uint256).max
-        });
+        FleetCommanderWhitelistParams
+            memory whitelistParams = FleetCommanderWhitelistParams({
+                accessManager: address(accessManager),
+                configurationManager: address(configurationManager),
+                initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
+                initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
+                asset: USDC_ADDRESS,
+                name: fleetName,
+                symbol: "TEST-SUM",
+                details: "TestFleet-details",
+                initialTipRate: PercentageUtils.fromIntegerPercentage(
+                    initialTipRate
+                ),
+                depositCap: type(uint256).max,
+                isOperatorGatewayOpen: false
+            });
 
-        FleetCommanderPrivateWithTransfer f = new FleetCommanderPrivateWithTransfer(
-                fleetCommanderParams
-            );
-        usdcFleetCommander = FleetCommanderPrivateWithTransfer(address(f));
+        FleetCommanderWhitelist f = new FleetCommanderWhitelist(
+            whitelistParams
+        );
+        usdcFleetCommander = FleetCommanderWhitelist(address(f));
         fleetCommander = FleetCommander(address(f));
 
         bufferArkAddress = f.bufferArk();
@@ -180,13 +182,20 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         accessManager.grantKeeperRole(address(usdcRoundsVaultInput), keeper);
         accessManager.grantKeeperRole(address(usdcRoundsVaultOutput), keeper);
 
+        IProtocolAccessManagerV2(address(accessManager))
+            .grantWhitelistManagerRole(address(usdcRoundsVaultInput));
+        IProtocolAccessManagerV2(address(accessManager))
+            .grantWhitelistManagerRole(address(usdcRoundsVaultOutput));
+        IProtocolAccessManagerV2(address(accessManager))
+            .grantWhitelistManagerRole(address(usdcFleetCommander));
+
         usdcRoundsVaultInput.setWhitelisted(usdcUser, true);
         usdcRoundsVaultOutput.setWhitelisted(usdcUser, true);
 
         usdcFleetCommander.setWhitelisted(usdcUser, true);
         usdcFleetCommander.setWhitelisted(address(usdcRoundsVaultInput), true);
         usdcFleetCommander.setWhitelisted(address(usdcRoundsVaultOutput), true);
-        usdcFleetCommander.setFleetTokenTransferability();
+        usdcFleetCommander.setFleetTokenTransferability(true);
 
         IProtocolAccessManagerV2(address(accessManager)).grantOperatorRole(
             address(usdcFleetCommander),
@@ -220,7 +229,7 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         usdcRoundsVaultInput.deposit(usdcTotalDeposit, usdcUser);
         vm.stopPrank();
 
-        // Wait for the keeper to go to the next round
+        // Wait for the keeper to advance and settle round 0
         vm.startPrank(keeper);
         usdcRoundsVaultInput.nextRound();
         usdcRoundsVaultInput.setRoundSettled(0);
@@ -282,9 +291,9 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
 
         // Wait for the keeper to go another 3 rounds to have unsettled rounds
         vm.startPrank(keeper);
-        usdcRoundsVaultOutput.nextRound(); // Round 0 finishes
-        usdcRoundsVaultOutput.nextRound(); // Round 1 finishes
-        usdcRoundsVaultOutput.nextRound(); // Round 2 finishes
+        usdcRoundsVaultOutput.nextRound(); // Round 0 finishes, Round 1 opens
+        usdcRoundsVaultOutput.nextRound(); // Round 1 finishes, Round 2 opens
+        usdcRoundsVaultOutput.nextRound(); // Round 2 finishes, Round 3 opens
         vm.stopPrank();
 
         // Check that not settled rounds cannot redeemExchangeAsset
@@ -380,9 +389,10 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
             "User balance should be equal to deposit"
         );
 
-        // FleetCommander transfers are disabled by default. Enable them so the user can transfer shares to the output vault
-        FleetCommanderPrivateWithTransfer(address(usdcFleetCommander))
-            .setFleetTokenTransferability();
+        // FleetCommander transfers are disabled by default. Enable them so the user can transfer shares to the output
+        // vault
+        FleetCommanderWhitelist(address(usdcFleetCommander))
+            .setFleetTokenTransferability(true);
         vm.stopPrank();
     }
 

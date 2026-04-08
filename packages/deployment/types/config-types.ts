@@ -349,6 +349,7 @@ export interface ArkConfig {
     version: number
   }
 }
+export type OperatorType = 'admiralsQuarters' | 'roundsVaults'
 
 export interface FleetConfig {
   fleetName: string
@@ -360,16 +361,17 @@ export interface FleetConfig {
   depositCap: string
   initialTipRate: string
   network: string
-  rewardTokens: string[]
-  rewardAmounts: string[]
-  rewardsDuration: number[]
+  rewardTokens?: string[]
+  rewardAmounts?: string[]
+  rewardsDuration?: number
   bridgeAmount: string
   arks: ArkConfig[]
   details: FleetDetails
   curator: Address
   discourseURL?: string
   sipNumber?: string
-  keeper?: Address
+  keeper: Address
+  operatorType: OperatorType
 }
 
 export interface FleetDeployment {
@@ -386,6 +388,8 @@ export interface FleetDeployment {
   depositCap?: string
   initialTipRate?: string
   details: FleetDetails
+  inputVault?: Address
+  outputVault?: Address
 }
 
 // Extend CoreContracts to include InstitutionalVaultRegistry for networks

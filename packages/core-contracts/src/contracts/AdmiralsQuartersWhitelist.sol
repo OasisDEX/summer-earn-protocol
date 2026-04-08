@@ -14,17 +14,18 @@ import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
 import {IComet} from "../interfaces/compound-v3/IComet.sol";
 import {IWETH} from "../interfaces/misc/IWETH.sol";
 import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManagedV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedV2.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ProtectedMulticallWhitelist} from "./ProtectedMulticallWhitelist.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IWhitelist} from "../utils/Whitelist/IWhitelist.sol";
+import {Whitelist} from "../utils/Whitelist/Whitelist.sol";
 
 /**
  * @title AdmiralsQuarters
  * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
- *      with integrated swapping functionality using 1inch Router.
+ *      with integrated swapping functionality using 1inch Router.whi
  * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas
  * efficiency.
  * @notice Whitelist gating: All external functions are invoked via `multicall` in
@@ -66,7 +67,7 @@ contract AdmiralsQuartersWhitelist is
     ProtectedMulticallWhitelist,
     ReentrancyGuardTransient,
     IAdmiralsQuartersWhitelist,
-    ProtocolAccessManaged,
+    ProtocolAccessManagedV2,
     ConfigurationManaged
 {
     using SafeERC20 for IERC20;
@@ -85,7 +86,7 @@ contract AdmiralsQuartersWhitelist is
     )
         Ownable(_msgSender())
         ConfigurationManaged(_configurationManager)
-        ProtocolAccessManaged(_protocolAccessManager)
+        ProtocolAccessManagedV2(_protocolAccessManager)
     {
         if (_oneInchRouter == address(0)) revert InvalidRouterAddress();
         ONE_INCH_ROUTER = _oneInchRouter;
@@ -226,16 +227,23 @@ contract AdmiralsQuartersWhitelist is
     function setWhitelisted(
         address account,
         bool allowed
-    ) external override onlyGovernor {
-        _setWhitelisted(account, allowed);
+    ) public override onlyGovernor {
+        super.setWhitelisted(account, allowed);
     }
 
     ///@inheritdoc IWhitelist
     function setWhitelistedBatch(
         address[] memory accounts,
         bool[] memory allowed
-    ) external override onlyGovernor {
-        _setWhitelistedBatch(accounts, allowed);
+    ) public override onlyGovernor {
+        super.setWhitelistedBatch(accounts, allowed);
+    }
+
+    /**
+     * @dev Implementation of the Whitelist proxy adapter's virtual hook.
+     */
+    function _getAccessManager() internal view override returns (address) {
+        return address(_accessManager);
     }
 
     /**

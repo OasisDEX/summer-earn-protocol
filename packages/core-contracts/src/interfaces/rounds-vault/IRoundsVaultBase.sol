@@ -41,10 +41,10 @@ interface IRoundsVaultBase is IERC4626MultiTokenWrapper {
     // PUBLIC FUNCTIONS
 
     /**
-        @notice Stores the exchange rate for the last round, operates to push or pull from
-        the target vault starts a new round
+        @notice Closes the current round and starts the next one. This freezes the amount
+        of assets/shares to be settled for the current round.
      
-        @dev Only the operator can call this function
+        @dev Only the keeper can call this function
      */
     function nextRound() external;
 
@@ -98,16 +98,22 @@ interface IRoundsVaultBase is IERC4626MultiTokenWrapper {
     ) external view returns (Price memory);
 
     /**
-        @notice Function to mark a round as settled
+        @notice Executes the settlement trade for a specific round that is in the InSettlement state.
+                Snapshots the final exchange rate based on actual trade results.
      
-        @dev Only the caller can call this function
+        @param roundId The id of the round to be settled
+
+        @dev Only the keeper can call this function
      */
-    function setRoundSettled(uint256 roundNumber) external;
+    function setRoundSettled(uint256 roundId) external;
 
     /**
-        @notice Function to mark a batch of rounds as settled
+        @notice Executes the settlement trade for a batch of rounds that are in the InSettlement state.
+                Snapshots the final exchange rate based on actual trade results.
      
-        @dev Only the caller can call this function
+        @param roundIds The ids of the rounds to be settled
+
+        @dev Only the keeper can call this function
      */
-    function setRoundSettledBatch(uint256[] calldata roundNumbers) external;
+    function setRoundSettledBatch(uint256[] calldata roundIds) external;
 }

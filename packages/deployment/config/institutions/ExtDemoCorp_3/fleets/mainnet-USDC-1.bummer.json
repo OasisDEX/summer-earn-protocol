@@ -1,7 +1,7 @@
 {
-  "fleetName": "extDemo_USDC_mainnet",
+  "fleetName": "extDemo2_USDC_mainnet",
   "isBummer": true,
-  "symbol": "extDemoUSDC",
+  "symbol": "extDemo2USDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "10000000",
   "initialRebalanceCooldown": "600",
@@ -9,7 +9,7 @@
   "initialTipRate": "1000000000000000000",
   "network": "mainnet",
   "keeper": "0x0000000000000000000000000000000000000000",
-  "operatorType": "admiralsQuarters",
+  "operatorType": "roundsVaults",
   "curator": "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
   "details": {
     "type": "protocol",

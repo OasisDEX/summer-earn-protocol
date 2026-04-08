@@ -91,10 +91,9 @@ async function main() {
       },
     },
   })
-
   console.log(kleur.green().bold('Institution contracts deployed. Writing institution index...'))
 
-  // gov: only protocolAccessManager for whitelist flow
+  // gov: only protocolAccessManagerV2 for whitelist flow
   updateInstitutionDeployedContracts(institutionId, useBummerConfig, hre.network.name, 'gov', {
     protocolAccessManager: { address: deployed.protocolAccessManager.address },
   })
@@ -158,28 +157,45 @@ async function main() {
 
   // Grant governor and guardian roles to accounts from institution governance
   try {
-    const protocolAccessManager = await hre.viem.getContractAt(
-      'ProtocolAccessManager' as string,
+    const protocolAccessManagerV2 = await hre.viem.getContractAt(
+      'ProtocolAccessManagerV2' as string,
       deployed.protocolAccessManager.address,
     )
     const publicClient = await hre.viem.getPublicClient()
 
     for (const addr of governance.governor) {
-      const hash = await protocolAccessManager.write.grantGovernorRole([addr as ViemAddress])
+      const hash = await protocolAccessManagerV2.write.grantGovernorRole([addr as ViemAddress])
       await publicClient.waitForTransactionReceipt({ hash })
       console.log(kleur.green(`Granted GOVERNOR_ROLE to ${addr}`))
     }
 
     for (const addr of governance.guardian) {
-      const hash = await protocolAccessManager.write.grantGuardianRole([addr as ViemAddress])
+      const hash = await protocolAccessManagerV2.write.grantGuardianRole([addr as ViemAddress])
       await publicClient.waitForTransactionReceipt({ hash })
       console.log(kleur.green(`Granted GUARDIAN_ROLE to ${addr}`))
     }
+
+    if (
+      governance.superKeeper &&
+      governance.superKeeper !== '0x0000000000000000000000000000000000000000'
+    ) {
+      const hash = await protocolAccessManagerV2.write.grantSuperKeeperRole([
+        governance.superKeeper as ViemAddress,
+      ])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Granted SUPER_KEEPER_ROLE to ${governance.superKeeper}`))
+    }
+
+    for (const addr of governance.whitelistManagers) {
+      const hash = await protocolAccessManagerV2.write.grantWhitelistManagerRole([
+        addr as ViemAddress,
+      ])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Granted WHITELIST_MANAGER_ROLE to ${addr}`))
+    }
   } catch (e) {
     console.error(
-      kleur.red(
-        `Failed to grant governor/guardian roles: ${e instanceof Error ? e.message : String(e)}`,
-      ),
+      kleur.red(`Failed to grant governance roles: ${e instanceof Error ? e.message : String(e)}`),
     )
     throw e
   }

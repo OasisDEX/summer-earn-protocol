@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManagedV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedV2.sol";
 import {Whitelist} from "../Whitelist/Whitelist.sol";
 import {IWhitelist} from "../Whitelist/IWhitelist.sol";
 import {IAssetsForwarder} from "./IAssetsForwarder.sol";
@@ -17,7 +17,7 @@ import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Hol
 contract AssetsForwarder is
     IAssetsForwarder,
     Context,
-    ProtocolAccessManaged,
+    ProtocolAccessManagedV2,
     Whitelist,
     ERC721Holder
 {
@@ -31,7 +31,7 @@ contract AssetsForwarder is
      * @notice Initializes the AssetsForwarder contract
      * @param accessManager Address of the ProtocolAccessManager contract
      */
-    constructor(address accessManager) ProtocolAccessManaged(accessManager) {
+    constructor(address accessManager) ProtocolAccessManagedV2(accessManager) {
         // Empty on purpose
     }
 
@@ -75,20 +75,25 @@ contract AssetsForwarder is
         emit AssetSwept(_msgSender(), asset, amount);
     }
 
-    ///@inheritdoc Whitelist
     function setWhitelisted(
         address account,
         bool allowed
-    ) external override(IWhitelist, Whitelist) onlyGovernor {
-        _setWhitelisted(account, allowed);
+    ) public override(IWhitelist, Whitelist) onlyGovernor {
+        super.setWhitelisted(account, allowed);
     }
 
-    ///@inheritdoc Whitelist
     function setWhitelistedBatch(
         address[] memory accounts,
         bool[] memory allowed
-    ) external override(IWhitelist, Whitelist) onlyGovernor {
-        _setWhitelistedBatch(accounts, allowed);
+    ) public override(IWhitelist, Whitelist) onlyGovernor {
+        super.setWhitelistedBatch(accounts, allowed);
+    }
+
+    /**
+     * @dev Implementation of the Whitelist proxy adapter's virtual hook.
+     */
+    function _getAccessManager() internal view override returns (address) {
+        return address(_accessManager);
     }
 
     /*//////////////////////////////////////////////////////////////
