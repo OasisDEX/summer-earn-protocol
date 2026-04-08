@@ -54,11 +54,6 @@ export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTree
 
   validateArkDetails(arkDetails, 'WisdomTree ark details')
 
-  const assetsForwarder = config.deployedContracts.core.assetsForwarder?.address
-  if (!assetsForwarder) {
-    throw new Error('AssetsForwarder address missing from configuration')
-  }
-
   console.log(
     kleur.cyan(`      Deploying WisdomTreeArk for ${token.symbol} - ${fundName}: ${arkName}`),
   )
@@ -68,7 +63,6 @@ export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTree
         targetWallet,
         shareToken,
         oracle,
-        assetsForwarder,
         sweepSlippage: sweepSlippage ?? 0,
         arkType: arkType ?? 0,
         name: arkName,

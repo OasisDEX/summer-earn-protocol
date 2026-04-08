@@ -69,12 +69,9 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     using SafeERC20 for IERC20;
 
     event CustodianWalletUpdated(address oldWallet, address newWallet);
-    event AssetsForwarderUpdated(address oldForwarder, address newForwarder);
     event ArkIsFrozenUpdated(bool isFrozen, uint256 frozenTotalAssets);
-
     WisdomTreeArk public ark;
     BufferArk public bufferArk;
-    AssetsForwarder public forwarder;
     IERC20 public usdc;
     MockERC20 public wtToken;
     MockOracle public oracle;
@@ -121,13 +118,11 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         });
 
         vm.startPrank(governor);
-        forwarder = new AssetsForwarder(address(accessManager));
         Percentage sweepSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
         ark = new WisdomTreeArk(
             targetWallet,
             address(wtToken),
             address(oracle),
-            address(forwarder),
             sweepSlippage,
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
@@ -152,11 +147,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(governor);
         accessManager.grantCommanderRole(address(ark), address(commander));
         accessManager.grantKeeperRole(address(ark), keeper);
-        accessManager.grantKeeperRole(address(forwarder), keeper);
-        accessManager.grantWhitelistManagerRole(address(forwarder));
 
-        forwarder.setWhitelisted(address(ark), true);
-        forwarder.setWhitelisted(targetWallet, true);
         vm.stopPrank();
 
         vm.startPrank(commander);
@@ -170,7 +161,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             address(0),
             address(wtToken),
             address(oracle),
-            address(forwarder),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
@@ -181,7 +171,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             targetWallet,
             address(wtToken),
             address(0),
-            address(forwarder),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
@@ -192,18 +181,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             targetWallet,
             address(0),
             address(oracle),
-            address(forwarder),
-            Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            WisdomTreeArk.WTArkType.NonMoneyMarket,
-            params
-        );
-
-        vm.expectRevert(WisdomTreeArk.InvalidForwarderAddress.selector);
-        new WisdomTreeArk(
-            targetWallet,
-            address(wtToken),
-            address(oracle),
-            address(0),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
@@ -242,34 +219,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             ark.custodianWallet(),
             newWallet,
             "Custodian wallet should be updated"
-        );
-    }
-
-    function test_SetAssetsForwarder() public {
-        address newForwarder = makeAddr("newForwarder");
-
-        // Reverts if called by non-keeper
-        vm.prank(targetWallet);
-        vm.expectRevert();
-        ark.setAssetsForwarder(newForwarder);
-
-        vm.startPrank(keeper);
-
-        // Reverts if address(0)
-        vm.expectRevert(WisdomTreeArk.InvalidForwarderAddress.selector);
-        ark.setAssetsForwarder(address(0));
-
-        // Success
-        vm.expectEmit(false, false, false, true);
-        emit AssetsForwarderUpdated(address(forwarder), newForwarder);
-        ark.setAssetsForwarder(newForwarder);
-
-        vm.stopPrank();
-
-        assertEq(
-            address(ark.assetsForwarder()),
-            newForwarder,
-            "Assets forwarder should be updated"
         );
     }
 
@@ -315,7 +264,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         // 2. Shares arrive off-chain
         uint256 sharesMinted = 1e18; // 1 WTBTC
-        wtToken.mint(address(forwarder), sharesMinted);
+        wtToken.mint(address(ark), sharesMinted);
 
         // 3. Keep clears
         vm.startPrank(keeper);
@@ -384,7 +333,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         uint256 sharesMinted = 1e18;
-        wtToken.mint(address(forwarder), sharesMinted);
+        wtToken.mint(address(ark), sharesMinted);
 
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
@@ -425,7 +374,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         uint256 sharesMinted = 1e18;
-        wtToken.mint(address(forwarder), sharesMinted);
+        wtToken.mint(address(ark), sharesMinted);
 
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
@@ -528,7 +477,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         uint256 sharesMinted = 1e18;
-        wtToken.mint(address(forwarder), sharesMinted);
+        wtToken.mint(address(ark), sharesMinted);
 
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
@@ -549,9 +498,9 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             "Shares should be sent to target wallet"
         );
         assertEq(
-            wtToken.balanceOf(address(forwarder)),
+            wtToken.balanceOf(address(ark)),
             0,
-            "Forwarder should have 0 shares"
+            "Ark should have 0 shares"
         );
         assertEq(
             ark.pendingWithdrawalAssets(),
@@ -564,8 +513,8 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             "Total assets remains stable during withdrawal"
         );
 
-        // The swept USDC goes to the Forwarder now
-        deal(USDC_ADDRESS, address(forwarder), amount);
+        // The swept USDC goes to the Ark now
+        deal(USDC_ADDRESS, address(ark), amount);
 
         vm.mockCall(
             address(commander),
@@ -617,7 +566,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         uint256 sharesMinted = 1e18;
-        wtToken.mint(address(forwarder), sharesMinted);
+        wtToken.mint(address(ark), sharesMinted);
 
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
@@ -626,7 +575,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         // 0.5% slippage expected to work. 60000e6 * 0.995 = 59700e6
         uint256 returnedUsdc = 59700 * 1e6;
-        deal(USDC_ADDRESS, address(forwarder), returnedUsdc);
+        deal(USDC_ADDRESS, address(ark), returnedUsdc);
 
         vm.mockCall(
             address(commander),
@@ -658,7 +607,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         uint256 sharesMinted = 1e18;
-        wtToken.mint(address(forwarder), sharesMinted);
+        wtToken.mint(address(ark), sharesMinted);
 
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
@@ -667,7 +616,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         // 59600e6 is less than 59700e6 (0.5% slippage limit)
         uint256 returnedUsdc = 59600 * 1e6; // Fails slippage constraint
-        deal(USDC_ADDRESS, address(forwarder), returnedUsdc);
+        deal(USDC_ADDRESS, address(ark), returnedUsdc);
 
         vm.mockCall(
             address(commander),
@@ -703,7 +652,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         uint256 sharesMinted = 1e18;
-        wtToken.mint(address(forwarder), sharesMinted);
+        wtToken.mint(address(ark), sharesMinted);
 
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
@@ -712,7 +661,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         // Use returned Usdc far below the slippage limit
         uint256 returnedUsdc = 50000 * 1e6; // Fails slippage constraint
-        deal(USDC_ADDRESS, address(forwarder), returnedUsdc);
+        deal(USDC_ADDRESS, address(ark), returnedUsdc);
 
         vm.mockCall(
             address(commander),

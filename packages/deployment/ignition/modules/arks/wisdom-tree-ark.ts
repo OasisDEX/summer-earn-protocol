@@ -11,7 +11,6 @@ export function createWisdomTreeArkModule(moduleName: string) {
     const details = m.getParameter<string>('details')
     const configurationManager = m.getParameter<string>('configurationManager')
     const accessManager = m.getParameter<string>('accessManager')
-    const assetsForwarder = m.getParameter<string>('assetsForwarder')
     const asset = m.getParameter<string>('asset')
     const depositCap = m.getParameter<string>('depositCap')
     const maxRebalanceOutflow = m.getParameter<string>('maxRebalanceOutflow')
@@ -23,7 +22,6 @@ export function createWisdomTreeArkModule(moduleName: string) {
       custodianWallet,
       shareToken,
       oracle,
-      assetsForwarder,
       sweepSlippage,
       arkType,
       {

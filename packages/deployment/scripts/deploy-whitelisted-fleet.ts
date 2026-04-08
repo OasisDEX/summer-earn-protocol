@@ -4,13 +4,15 @@ import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
 import { Address, getAddress, Address as ViemAddress } from 'viem'
-import { createFleetWhitelistModule } from '../ignition/modules/fleet-whitelist'
+import {
+  createFleetWhitelistModule,
+  FleetWhitelistContracts,
+} from '../ignition/modules/fleet-whitelist'
 import {
   createRoundsVaultInputModule,
   createRoundsVaultOutputModule,
 } from '../ignition/modules/rounds/rounds-vault'
-import { createAssetsForwarderModule } from '../ignition/modules/utils/assets-forwarder'
-import { ArkType, BaseConfig, FleetConfig } from '../types/config-types'
+import { BaseConfig, FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { ADDRESS_ZERO, GOVERNOR_ROLE } from './common/constants'
 import {
@@ -19,7 +21,6 @@ import {
 } from './common/fleet-deployment-files-helpers'
 import { logDeploymentResults } from './fleets/fleet-contracts'
 import {
-  addFleetToHarbor,
   deployArks,
   getRewardsManagerAddress,
   grantCuratorRole,
@@ -31,17 +32,11 @@ import { getInstitutionConfigByNetwork } from './helpers/config-handler'
 import {
   getInstitutionFleetConfigDir,
   promptForInstitutionId,
-  updateInstitutionDeployedContracts,
   updateInstitutionFleetEntry,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { getAssetAddress } from './helpers/token-helpers'
-import {
-  validateAddress,
-  validateConfigAddressEntry,
-  validateString,
-  validateToken,
-} from './helpers/validation'
+import { validateAddress, validateToken } from './helpers/validation'
 import { FleetConfigSchema } from './helpers/zod-schemas'
 
 async function selectInstitutionFleetConfig(
@@ -287,36 +282,10 @@ async function main() {
     config.deployedContracts.core.configurationManager.address,
   )
 
-  let forwarderAddress: Address | undefined
   let deployedInputVault: Address | undefined
   let deployedOutputVault: Address | undefined
 
   if (fleetDefinition.operatorType === 'roundsVaults') {
-    // Deploy AssetsForwarder
-    console.log(kleur.cyan().bold(`\nDeploying AssetsForwarder...`))
-    const forwarderModuleName = `${envLabel}AssetsForwarder_${name}`
-    const forwarderModule = createAssetsForwarderModule(forwarderModuleName)
-    const deployedForwarder = await hre.ignition.deploy(forwarderModule, {
-      parameters: {
-        [forwarderModuleName]: {
-          accessManager: config.deployedContracts.gov.protocolAccessManager.address,
-        },
-      },
-    })
-    forwarderAddress = getAddress(deployedForwarder.assetsForwarder.address)
-    console.log(kleur.green(`AssetsForwarder deployed to: ${forwarderAddress}`))
-
-    // update config with forwarder
-    config.deployedContracts.core.assetsForwarder = {
-      address: forwarderAddress,
-    }
-
-    updateInstitutionDeployedContracts(institutionId, useBummerConfig, hre.network.name, 'core', {
-      assetsForwarder: {
-        address: forwarderAddress,
-      },
-    })
-
     // Deploy RoundsVaults
     const inputModuleName = `${envLabel}_${institutionId}_RoundsVaultInput_${name}`
     const outputModuleName = `${envLabel}_${institutionId}_RoundsVaultOutput_${name}`
@@ -352,7 +321,7 @@ async function main() {
   // Save initial deployment info without arks; arks will be appended by addArkToFleet calls
   saveFleetDeploymentJson(
     fleetDefinition,
-    deployedFleet,
+    deployedFleet as FleetWhitelistContracts,
     bufferArkAddress as Address,
     undefined,
     useBummerConfig,
@@ -416,58 +385,6 @@ async function main() {
         keeperToGrant,
         hre,
       )
-
-      // Whitelist Arks & Target Wallets in AssetsForwarder
-      if (forwarderAddress) {
-        console.log(kleur.blue('Whitelisting Arks & Target Wallets in AssetsForwarder'))
-        const forwarderContract = await hre.viem.getContractAt(
-          'AssetsForwarder' as string,
-          forwarderAddress,
-        )
-
-        for (const arkConfig of fleetDefinition.arks) {
-          if (arkConfig.type !== ArkType.WisdomTreeArk) {
-            continue
-          }
-          const token = validateToken(config, arkConfig.params.asset)
-          const fundName = validateString(arkConfig.params.fundName, 'fundName')
-
-          const wisdomtreeByToken = config.protocolSpecific?.wisdomtree?.[token]
-          if (!wisdomtreeByToken) {
-            throw new Error(`WisdomTree config missing for token '${token}'`)
-          }
-
-          const targetWallet = validateConfigAddressEntry(
-            wisdomtreeByToken[fundName],
-            'targetWallet',
-            `WisdomTree fund '${fundName}' targetWallet`,
-          )
-          // todo: remove the forwarder
-          if (targetWallet) {
-            console.log(
-              kleur.blue(`Whitelisting Target Wallet in Assets Forwarder: ${targetWallet}`),
-            )
-            const whitelistTargetWalletHash = await protocolAccessManager.write.setWhitelisted([
-              targetWallet,
-              true,
-            ])
-            await (
-              await hre.viem.getPublicClient()
-            ).waitForTransactionReceipt({ hash: whitelistTargetWalletHash })
-          }
-        }
-
-        // Whitelist Deployed Arks addresses
-        for (const ark of deployedArks) {
-          const whitelistArkHash = await protocolAccessManager.write.setWhitelisted([
-            ark as Address,
-            true,
-          ])
-          await (
-            await hre.viem.getPublicClient()
-          ).waitForTransactionReceipt({ hash: whitelistArkHash })
-        }
-      }
     } else {
       // operatorType === 'admiralsQuarters'
       // Grant operator role to AdmiralsQuarters contract
@@ -536,7 +453,7 @@ async function main() {
     }
   }
 
-  logDeploymentResults(deployedFleet)
+  logDeploymentResults(deployedFleet as FleetWhitelistContracts)
   console.log(kleur.green().bold('Whitelisted fleet deployed for institution.'))
 }
 

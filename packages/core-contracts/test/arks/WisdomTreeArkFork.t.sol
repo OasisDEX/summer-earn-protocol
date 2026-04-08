@@ -5,7 +5,6 @@ import "../../src/contracts/arks/WisdomTreeArk.sol";
 import "../../src/events/IArkEvents.sol";
 import {AggregatorV3Interface} from "../../src/interfaces/external/Chainlink/AggregatorV3Interface.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
-import {AssetsForwarder} from "../../src/utils/AssetsForwarder/AssetsForwarder.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -15,7 +14,6 @@ contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     using SafeERC20 for IERC20;
 
     WisdomTreeArk public ark;
-    AssetsForwarder public forwarder;
     IERC20 public usdc;
     IERC20 public wtToken;
     AggregatorV3Interface public oracle;
@@ -57,16 +55,11 @@ contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         });
 
         vm.startPrank(governor);
-        forwarder = new AssetsForwarder(address(accessManager));
-        accessManager.grantKeeperRole(address(forwarder), keeper);
-        accessManager.grantWhitelistManagerRole(address(forwarder));
-        forwarder.setWhitelisted(TARGET_WALLET, true);
         Percentage sweepSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
         ark = new WisdomTreeArk(
             TARGET_WALLET,
             SHARE_TOKEN,
             ORACLE,
-            address(forwarder),
             sweepSlippage,
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params

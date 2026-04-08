@@ -145,7 +145,6 @@ export interface BaseConfig {
       fleetCommanderRewardsManagerFactory: { address: string }
       institutionalVaultRegistry?: { address: string }
       daoTipJar?: { address: string }
-      assetsForwarder?: { address: string }
     }
     bridge?: {
       bridgeRouter: { address: string }
