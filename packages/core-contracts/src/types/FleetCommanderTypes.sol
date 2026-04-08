@@ -44,7 +44,10 @@ struct FleetCommanderParams {
  * @param initialRebalanceCooldown The initial cooldown period between rebalancing operations
  * @param depositCap The initial total deposit cap for the fleet
  * @param initialTipRate The initial rate for tips/fees
- * @param isOperatorGatewayOpen Initial status of the operator gateway
+ * @param isOperatorGatewayOpen Initial status of the operator gateway.
+ *      Entry (deposit/mint) and exit (withdraw/redeem) operations are gated by the operator gateway.
+ *      When the gateway is closed, only accounts with the OPERATOR_ROLE can perform these actions.
+ *      When the gateway is open, all whitelisted accounts can perform these actions.
  */
 struct FleetCommanderWhitelistParams {
     string name;
@@ -160,6 +163,9 @@ struct FleetConfigWhitelist {
     address stakingRewardsManager;
     /**
      * @notice If true, the operator gateway is open to everyone (subject to whitelist)
+     * @dev Entry (deposit/mint) and exit (withdraw/redeem) operations are gated by the operator gateway.
+     *      When the gateway is closed, only accounts with the OPERATOR_ROLE can perform these actions.
+     *      When the gateway is open, all whitelisted accounts can perform these actions.
      */
     bool isOperatorGatewayOpen;
 }

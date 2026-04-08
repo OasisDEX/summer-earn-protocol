@@ -137,6 +137,9 @@ interface IFleetCommanderConfigProviderWhitelist is
 
     /**
      * @notice Sets the operator gateway status
+     * @dev Entry (deposit/mint) and exit (withdraw/redeem) operations are gated by the operator gateway.
+     *      When the gateway is closed, only accounts with the OPERATOR_ROLE can perform these actions.
+     *      When the gateway is open, all whitelisted accounts can perform these actions.
      * @param newStatus The new status of the operator gateway
      */
     function setOperatorGatewayStatus(bool newStatus) external;

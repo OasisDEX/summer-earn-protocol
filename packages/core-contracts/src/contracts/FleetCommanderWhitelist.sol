@@ -21,6 +21,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * @notice Manages a fleet of Arks with restricted entry/exit via a Whitelist and Operator role.
  * @dev Implements IFleetCommanderWhitelist interface and inherits from various utility contracts.
  *      Entry (deposit/mint) and exit (withdraw/redeem) operations are gated by the operator gateway.
+ *      The gateway status is controlled by the `isOperatorGatewayOpen` flag in the config.
  *      When the gateway is closed, only accounts with the OPERATOR_ROLE can perform these actions.
  *      When the gateway is open, all whitelisted accounts can perform these actions.
  */
