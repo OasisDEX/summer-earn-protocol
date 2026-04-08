@@ -229,7 +229,7 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         usdcRoundsVaultInput.deposit(usdcTotalDeposit, usdcUser);
         vm.stopPrank();
 
-        // Wait for the keeper to go to the next round
+        // Wait for the keeper to advance and settle round 0
         vm.startPrank(keeper);
         usdcRoundsVaultInput.nextRound();
         usdcRoundsVaultInput.setRoundSettled(0);
@@ -291,9 +291,9 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
 
         // Wait for the keeper to go another 3 rounds to have unsettled rounds
         vm.startPrank(keeper);
-        usdcRoundsVaultOutput.nextRound(); // Round 0 finishes
-        usdcRoundsVaultOutput.nextRound(); // Round 1 finishes
-        usdcRoundsVaultOutput.nextRound(); // Round 2 finishes
+        usdcRoundsVaultOutput.nextRound(); // Round 0 finishes, Round 1 opens
+        usdcRoundsVaultOutput.nextRound(); // Round 1 finishes, Round 2 opens
+        usdcRoundsVaultOutput.nextRound(); // Round 2 finishes, Round 3 opens
         vm.stopPrank();
 
         // Check that not settled rounds cannot redeemExchangeAsset

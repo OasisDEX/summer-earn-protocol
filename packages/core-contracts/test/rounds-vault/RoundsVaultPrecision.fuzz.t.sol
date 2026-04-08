@@ -122,7 +122,7 @@ contract RoundsVaultPrecisionFuzzTest is Test {
                 address(roundsVault)
             );
 
-            // 2. Keeper calls nextRound to bulk execute and snapshot rate
+            // 2. Keeper calls nextRound to close the round
             vm.prank(keeper);
             roundsVault.nextRound();
 

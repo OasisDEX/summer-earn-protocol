@@ -145,7 +145,7 @@ function transfer(address to, uint256 amount) returns (bool) {
 
 | Role | Target | Granted To | Purpose |
 |------|--------|------------|---------|
-| **KEEPER_ROLE** | RoundsVaultBase contract | Keeper bots | Call `nextRound()` and `setRoundSettled()` to advance rounds and finalise settlement. |
+| **KEEPER_ROLE** | RoundsVaultBase contract | Keeper bots | Call `nextRound()` to advance rounds and `setRoundSettled()` to finalize settlement/trading. |
 | **SUPER_KEEPER_ROLE** | Access Manager | (Optional) | Can act as keeper for any rounds vault. |
 | **GOVERNOR_ROLE** | Access Manager | Multisig / governance | Manage roles and parameters. |
 | **WHITELIST_MANAGER_ROLE** | Access Manager | Governance / authorized | Manage the global whitelist that this vault depends on. |
@@ -224,7 +224,12 @@ safeTransfer(exchangeAsset, receiver, exchangeAmount)
 
 - **Whitelisting is mandatory** for all participants.
 
-### 3.5 Round Transition (Keeper)
+### 3.5 Round Lifecycle (Two-Phase Settlement)
+
+The protocol uses a two-phase mechanism to decouple round advancement from the actual trade execution and settlement. This allows the vault to accurately capture off-chain reality (NAV drift) during settlement.
+
+#### Phase 1: Advance Round (Keeper)
+This phase closes the current round to new deposits and opens a new one immediately. No funds are moved yet.
 
 ```plaintext
 Keeper
@@ -233,16 +238,7 @@ Keeper
 nextRound()
   │
   ▼
-Price exchangeRate = _getCurrentExchangeRate()
-  │
-  ▼
-_exchangeRateByRound[currentRound] = exchangeRate
-  │
-  ▼
 roundState[currentRound] = InSettlement
-  │
-  ▼
-_operate()   // Overridden by derived contract – moves funds to/from target vault
   │
   ▼
 _roundNumber++
@@ -251,8 +247,38 @@ _roundNumber++
 roundState[newRound] = Opened
 ```
 
-- After the new round is opened, deposits can start again.  
-- Keeper must later call `setRoundSettled(prevRound)` after settlement operations are complete.
+#### Phase 2: Settle Round (Keeper)
+This phase executes the actual fund movement (`_operate`) for a round that is `InSettlement`. Once complete, it finalizes the exchange rate and marks the round as `Settled`.
+
+```plaintext
+Keeper
+  │
+  ▼
+setRoundSettled(roundId)
+  │
+  ▼
+require(roundState[roundId] == InSettlement)
+  │
+  ▼
+frozenAmount = totalSupply(roundId)
+  │
+  ▼
+_operate(frozenAmount)  // Executes trade (e.g., move funds to/from target vault)
+  │
+  ▼
+Price finalRate = (outputAmount > 0) 
+  ? toPrice(outputAmount, frozenAmount) 
+  : _getFallbackExchangeRate()
+  │
+  ▼
+_exchangeRateByRound[roundId] = finalRate
+  │
+  ▼
+roundState[roundId] = Settled
+```
+
+- After **Phase 1**, the vault is ready for new deposits in the next round index.
+- After **Phase 2**, users can call `redeemExchangeAsset` for the settled round.
 
 ---
 
@@ -312,7 +338,7 @@ The **Admirals Quarters** is a bundler contract that allows users to unstake and
 2. **Deploy a rounds vault** pointing to the access manager.  
 3. **Grant `KEEPER_ROLE`** to the rounds keeper.  
 4. **Whitelisting**: Ensure all users **and the AQ contract** (if used) are added to the global whitelist via the `WHITELIST_MANAGER`.  
-5. **Set initial round state** (round 0 is `Opened` by default).
+5. **Initial State**: Round 0 is initialized as `Opened` by default. Settlement must be called for each round after it is advanced.
 
 ### 6.3 Admirals Quarters Integration
 
