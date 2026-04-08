@@ -34,10 +34,14 @@ abstract contract ProtocolAccessManagedV2 is ProtocolAccessManaged {
      * @dev Modifier to check that the caller has the Operator role.
      */
     modifier onlyOperator() {
-        if (!hasOperatorRole(msg.sender)) {
-            revert CallerIsNotOperator(msg.sender);
-        }
+        _revertIfNotOperator(msg.sender);
         _;
+    }
+
+    function _revertIfNotOperator(address account) internal view {
+        if (!hasOperatorRole(account)) {
+            revert CallerIsNotOperator(account);
+        }
     }
 
     /**

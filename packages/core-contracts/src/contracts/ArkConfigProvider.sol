@@ -179,9 +179,13 @@ abstract contract ArkConfigProvider is
     }
 
     modifier onlyCommander() {
+        _revertIfNotCommander();
+        _;
+    }
+
+    function _revertIfNotCommander() internal view {
         if (_msgSender() != config.commander) {
             revert CallerIsNotCommander(_msgSender());
         }
-        _;
     }
 }

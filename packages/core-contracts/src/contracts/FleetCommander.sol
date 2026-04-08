@@ -9,7 +9,6 @@ import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 
 import {FleetCommanderCache} from "./FleetCommanderCache.sol";
 import {FleetCommanderConfigProvider} from "./FleetCommanderConfigProvider.sol";
-
 import {Tipper} from "./Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -55,6 +54,27 @@ contract FleetCommander is
     {}
 
     /*//////////////////////////////////////////////////////////////
+                            PRIVATE HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    function _collectTipPre() private {
+        _setIsCollectingTip(true);
+        _accrueTip(tipJar(), totalSupply());
+    }
+
+    function _collectTipPost() private {
+        _setIsCollectingTip(false);
+    }
+
+    function _useCachePre() private {
+        _getArksData(config.bufferArk);
+    }
+
+    function _useWithdrawCachePre() private {
+        _getWithdrawableArksData(config.bufferArk);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
@@ -62,13 +82,10 @@ contract FleetCommander is
      * @dev Modifier to collect the tip before any other action is taken
      */
     modifier collectTip() {
-        _setIsCollectingTip(true);
-        _accrueTip(tipJar(), totalSupply());
-
+        _collectTipPre();
         _;
-        _setIsCollectingTip(false);
+        _collectTipPost();
     }
-
     /**
      * @dev Modifier to cache ark data for deposit operations.
      * @notice This modifier retrieves ark data before the function execution,
@@ -77,7 +94,7 @@ contract FleetCommander is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useCache() {
-        _getArksData(config.bufferArk);
+        _useCachePre();
         _;
         _flushCache();
     }
@@ -90,7 +107,7 @@ contract FleetCommander is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useWithdrawCache() {
-        _getWithdrawableArksData(config.bufferArk);
+        _useWithdrawCachePre();
         _;
         _flushCache();
     }

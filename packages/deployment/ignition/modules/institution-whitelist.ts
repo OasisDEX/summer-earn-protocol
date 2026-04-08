@@ -20,7 +20,7 @@ export function createInstitutionWhitelistModule(moduleName: string) {
     const treasury = m.getParameter('treasury')
 
     // Deploy institution-scoped access manager
-    const protocolAccessManager = m.contract('ProtocolAccessManager', [deployer])
+    const protocolAccessManager = m.contract('ProtocolAccessManagerV2', [deployer])
 
     // Core infra and components
     const dutchAuctionLibrary = m.contract('DutchAuctionLibrary', [])
