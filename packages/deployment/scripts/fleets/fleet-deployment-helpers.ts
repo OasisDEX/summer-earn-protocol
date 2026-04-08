@@ -169,7 +169,7 @@ export async function grantOperatorRole(
 ) {
   const publicClient = await hre.viem.getPublicClient()
   const protocolAccessManager = await hre.viem.getContractAt(
-    'ProtocolAccessManager' as string,
+    'ProtocolAccessManagerV2' as string,
     protocolAccessManagerAddress,
   )
 

@@ -3,14 +3,15 @@ pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/WisdomTreeArk.sol";
 import "../../src/events/IArkEvents.sol";
-import {ArkParams} from "../../src/types/ArkTypes.sol";
-import {ArkTestBase} from "./ArkTestBase.sol";
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Percentage, PERCENTAGE_FACTOR, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Test, console} from "forge-std/Test.sol";
 import {AggregatorV3Interface} from "../../src/interfaces/external/Chainlink/AggregatorV3Interface.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
+import {AssetsForwarder} from "../../src/utils/AssetsForwarder/AssetsForwarder.sol";
+import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBase {
+contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     using SafeERC20 for IERC20;
 
     WisdomTreeArk public ark;

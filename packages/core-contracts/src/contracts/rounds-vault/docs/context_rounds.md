@@ -45,21 +45,35 @@ The system allows users to asynchronously enter and exit complex off-chain/insti
   - *Flow Hazard*: Erroneous clearing sequence causes temporary NAV shocks, exposing the Fleet to sandwich arbitrage.
 
 ### 2.3 `RoundsVaultBase.nextRound()`
-- **Purpose**: Progresses the batched user deposits into the next logical state and executes the bulk operation against the Fleet Commander.
-- **Inputs & Assumptions**: `onlyKeeper`. Assumes `_operate()` correctly moves the capital into/out of the target vault.
+- **Purpose**: Progresses the batched user deposits into the next logical state by closing the current round and opening a new one. 
+- **Inputs & Assumptions**: `onlyKeeper`. 
 - **Block-by-Block analysis**:
-  - `Price memory exchangeRate = _getCurrentExchangeRate();`
-    - *What*: Captures the current ratio of Vault Shares to Underlying synchronously.
-  - `_exchangeRateByRound[_roundNumber] = exchangeRate;`
-    - *Why here*: Locks in the exact NAV at the moment the round closes. Asynchronous changes later do not affect Round N's exchange rate.
-  - `roundState[_roundNumber] = RoundState.InSettlement;`
-    - *What*: Changes state to prevent immediate user exits.
-  - `_operate();`
-    - *What*: For Input Vault, this deposits USDC into Fleet Commander. For Output Vault, it requests redemption from Fleet Commander.
-- **Cross-Function Dependency Risk**:
-  - **The Timing Attack**: The Keeper MUST call `nextRound()` on the `RoundsVault` ONLY when the underlying Arks (e.g. WisdomTree) are in a settled, non-frozen state. If `nextRound()` is called while WisdomTree is in an Ex-Div frozen state (`isArkFrozen`), the exchange rate captured might be artificial.
+  - `roundState[closingRound] = RoundState.InSettlement;`
+    - *What*: Marks the current round as being in settlement, preventing any further deposits or immediate redemptions for this specific round.
+  - `_roundNumber++;`
+    - *What*: Advances the system to the next round index.
+  - `roundState[_roundNumber] = RoundState.Opened;`
+    - *What*: Initializes the new round as `Opened` to accept fresh deposits.
+- **Key Change**: This function no longer captures the exchange rate or executes `_operate()`. It is strictly a round advancement mechanism.
 
-### 2.4 `RoundsVaultBase._redeemExchangeAsset(...)`
+### 2.4 `RoundsVaultBase._setRoundSettled(uint256 roundId)`
+- **Purpose**: Finalizes settlement for a round by executing the trade logic and capturing the exact exchange rate based on execution results.
+- **Inputs & Assumptions**: `onlyKeeper`. Requires `roundState[roundId] == InSettlement`.
+- **Block-by-Block analysis**:
+  - `uint256 frozenAmount = totalSupply(roundId);`
+    - *What*: Captures the exact liability (total receipts) that must be settled for this round.
+  - `uint256 outputAmount = _operate(frozenAmount, roundId);`
+    - *What*: Executes the trade (e.g., depositing into or redeeming from the Fleet Commander).
+  - `finalExchangeRate = (outputAmount > 0) ? toPrice(outputAmount, frozenAmount) : _getFallbackExchangeRate();`
+    - *Why here*: This is the critical moment where the **actual** execution reality (slippage, rounding) is captured. By calculating the rate *after* `_operate`, we ensure the vault's internal accounting perfectly reflects the off-chain/Target Vault reality.
+  - `_exchangeRateByRound[roundId] = finalExchangeRate;`
+    - *What*: Snapshots the definitive exchange rate for this round.
+  - `roundState[roundId] = RoundState.Settled;`
+    - *What*: Transitions the round state to `Settled`, allowing users to call `redeemExchangeAsset`.
+- **Cross-Function Dependency Risk**:
+  - **The Settlement Timing**: The Keeper MUST call `setRoundSettled()` on the `RoundsVault` ONLY when the underlying Arks (e.g. WisdomTree) are in a settled, non-frozen state. If settlement is triggered while WisdomTree is in an Ex-Div frozen state (`isArkFrozen`), the exchange rate captured will be based on the artificial `_frozenTotalAssets`.
+
+### 2.5 `RoundsVaultBase._redeemExchangeAsset(...)`
 - **Purpose**: Allows users to exchange their historical Round N receipts for the exact Target Vault Shares (Input) or USDC (Output) they earned, AFTER async settlement completes.
 - **Block-by-Block analysis**:
   - `if (roundState[id] != RoundState.Settled) revert RoundNotSettled(id);`
@@ -67,7 +81,7 @@ The system allows users to asynchronously enter and exit complex off-chain/insti
   - `_burn(owner, id, amount);`
     - *What*: Check-Effects-Interactions (CEI) to prevent reentrancy before the asset transfer.
   - `exchangeAmount = _exchangeRateByRound[id].quote(amount);`
-    - *What*: Calculates exact pro-rata output using the snapshot recorded during `nextRound()`.
+    - *What*: Calculates exact pro-rata output using the snapshot recorded during `setRoundSettled()`.
 
 ---
 
@@ -76,27 +90,28 @@ The system allows users to asynchronously enter and exit complex off-chain/insti
 ### 3.1 The Complete WisdomTree Subscription Workflow
 1. **User (T-1)**: Enters `RoundsVaultInput` with USDC. Receives Round N ERC1155 receipt.
 2. **Keeper (T0, Pre-4PM)**: Calls `nextRound()` on Rounds Vault.
-   - Rounds Vault locks `exchangeRate` and changes state to `InSettlement`.
-   - Deposits aggregated USDC into Fleet Commander.
-   - Fleet Commander allocates USDC (via `board`) into `WisdomTreeArk`.
-   - `WisdomTreeArk._board` snapshots `cachedShareBalance`, increments `pendingDepositAssets`, sends USDC to WT.
+   - Round N is moved to `InSettlement`.
+   - Round N+1 is opened for new deposits.
 3. **WT System (T0, Post-4PM)**:
    - NAV is struck by physical fund operators.
    - Chainlink Oracle is updated.
-   - Shares are minted and sent to Ark's off-chain custodian, then transferred to `assetsForwarder`.
 4. **Keeper (T1)**:
-   - Verifies shares physically arrived.
-   - Calls `WisdomTreeArk.clearPendingDeposit()`. Ark NAV recognition is now complete, ending the async phase.
-   - Calls `RoundsVaultBase.setRoundSettled(N)`. Round N async settlement is formally closed.
-5. **User (T1+)**: Exchanges Round N receipt for their slice of the Fleet Commander shares.
+   - Calls `RoundsVaultBase.setRoundSettled(N)`. 
+   - `_operate` triggers: USDC moves from Rounds Vault -> Fleet Commander -> `WisdomTreeArk`.
+   - `WisdomTreeArk._board` snapshots `cachedShareBalance`, increments `pendingDepositAssets`, sends USDC to WT.
+   - Rounds Vault captures the `finalExchangeRate` for Round N. Round N is now `Settled`.
+5. **Keeper (T2)**:
+   - Verifies shares physically arrived at WT/Custodian.
+   - Calls `WisdomTreeArk.clearPendingDeposit()`. Ark NAV recognition is now complete.
+6. **User (T1+)**: Exchanges Round N receipt for their slice of the Fleet Commander shares.
 
 ### 3.2 Identified Fragility Clusters & Implicit Trust Boundaries
 1. **Keeper Operational Ordering (CRITICAL)**:
    - The Keeper is the ultimate synchronizer of reality between Off-Chain (WT/Maple) and On-Chain.
    - **Hazard A (Premature Clearance)**: Clearing `WisdomTreeArk.pendingDepositAssets` before WT physical shares arrive causes a devastating temporary drop in Fleet `totalAssets()`, breaking ERC4626 equivalence logic momentarily.
-   - **Hazard B (Premature Round Execution)**: Calling `RoundsVault.nextRound()` while an underlying Ark is waiting for NAV updates or while shares are un-cleared means the `_getCurrentExchangeRate()` snapshot captured for Round N users will be based on stale or artificially frozen (`_frozenTotalAssets`) data.
+   - **Hazard B (Premature Round Settlement)**: Calling `RoundsVault.setRoundSettled()` while an underlying Ark is waiting for NAV updates or while shares are un-cleared means the exchange rate snapshot captured for Round N users will be based on stale or artificially frozen (`_frozenTotalAssets`) data.
 2. **The Output Vault Sweep Constraint**:
-   - During redemptions for Output Vaults, `RoundsVaultOutput.nextRound()` redeems Fleet Shares -> Fleet requests WT withdrawals -> WT shares sent away, `pendingWithdrawalAssets` increments.
+   - During redemptions for Output Vaults, `RoundsVaultOutput.setRoundSettled()` redeems Fleet Shares -> Fleet requests WT withdrawals -> WT shares sent away, `pendingWithdrawalAssets` increments.
    - **Assumption**: `pendingWithdrawalAssets` accurately reflects the *exact* USDC value that WT will wire back upon physical settlement. 
    - When the wire arrives, Keeper calls `sweep()`. If WT wires slightly less due to off-chain fees or slippage, `sweep()` has a `sweetSlippage` verification check. If strict slippage fails, `sweep()` reverts, permanently stalling the Fleet pipeline and leaving Rounds Vault N indefinitely `InSettlement`.
 3. **Maple Withdrawal Queue Latency**:

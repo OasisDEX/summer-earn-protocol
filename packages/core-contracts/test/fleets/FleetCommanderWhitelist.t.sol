@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {FleetCommanderPrivateWithTransfer} from "../../src/contracts/FleetCommanderPrivateWithTransfer.sol";
-import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+import {FleetCommanderWhitelist} from "../../src/contracts/FleetCommanderWhitelist.sol";
+import {FleetCommanderParams, FleetCommanderWhitelistParams} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
@@ -12,12 +12,14 @@ import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IP
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-contract FleetCommanderPrivateWithTransferTest is
+contract FleetCommanderWhitelistTest is
     Test,
     TestHelpers,
     FleetCommanderTestBase
 {
-    FleetCommanderPrivateWithTransfer public privateFleetCommander;
+    FleetCommanderWhitelist public whitelistFleet;
+    FleetCommanderWhitelistParams public whitelistFleetParams;
+    FleetCommanderStorageWriter public whitelistFleetStorageWriter;
     address public operator = makeAddr("operator");
     address public nonWhitelistedUser = makeAddr("nonWhitelistedUser");
 
@@ -30,7 +32,7 @@ contract FleetCommanderPrivateWithTransferTest is
         mockToken = new ERC20Mock();
 
         vm.startPrank(governor);
-        fleetCommanderParams = FleetCommanderParams({
+        whitelistFleetParams = FleetCommanderWhitelistParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
@@ -40,31 +42,32 @@ contract FleetCommanderPrivateWithTransferTest is
             symbol: "TEST-SUM",
             details: "TestFleet-details",
             initialTipRate: PercentageUtils.fromIntegerPercentage(0),
-            depositCap: type(uint256).max
+            depositCap: type(uint256).max,
+            isOperatorGatewayOpen: true
         });
 
-        privateFleetCommander = new FleetCommanderPrivateWithTransfer(
-            fleetCommanderParams
-        );
+        whitelistFleet = new FleetCommanderWhitelist(whitelistFleetParams);
 
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(privateFleetCommander)
+        whitelistFleetStorageWriter = new FleetCommanderStorageWriter(
+            address(whitelistFleet)
         );
-        harborCommand.enlistFleetCommander(address(privateFleetCommander));
+        harborCommand.enlistFleetCommander(address(whitelistFleet));
 
         // Grant Operator role to the operator address
         IProtocolAccessManagerV2(address(accessManager)).grantOperatorRole(
-            address(privateFleetCommander),
+            address(whitelistFleet),
             operator
         );
+        IProtocolAccessManagerV2(address(accessManager))
+            .grantWhitelistManagerRole(address(whitelistFleet));
         vm.stopPrank();
 
         uint256 amount = 1000 * 10 ** 6;
 
         // Whitelist users
         vm.startPrank(governor);
-        privateFleetCommander.setWhitelisted(mockUser, true);
-        privateFleetCommander.setWhitelisted(operator, true);
+        whitelistFleet.setWhitelisted(mockUser, true);
+        whitelistFleet.setWhitelisted(operator, true);
         // Note: setFleetTokenTransferability is NOT called here.
         // It stays FALSE (default) to test operator bypasses.
         vm.stopPrank();
@@ -72,9 +75,9 @@ contract FleetCommanderPrivateWithTransferTest is
         // Operator deposits for themselves and for mockUser
         mockToken.mint(operator, amount * 2);
         vm.startPrank(operator);
-        mockToken.approve(address(privateFleetCommander), amount * 2);
-        privateFleetCommander.deposit(amount, operator);
-        privateFleetCommander.deposit(amount, mockUser);
+        mockToken.approve(address(whitelistFleet), amount * 2);
+        whitelistFleet.deposit(amount, operator);
+        whitelistFleet.deposit(amount, mockUser);
         vm.stopPrank();
     }
 
@@ -86,15 +89,15 @@ contract FleetCommanderPrivateWithTransferTest is
         uint256 amountToTransfer = 100 * 10 ** 6;
 
         // General transfers are disabled (already set in setUp)
-        assertFalse(privateFleetCommander.transfersEnabled());
+        assertFalse(whitelistFleet.transfersEnabled());
 
         vm.startPrank(operator);
         // Operator transfers to a non-whitelisted user (bypasses transferability and whitelist)
-        privateFleetCommander.transfer(nonWhitelistedUser, amountToTransfer);
+        whitelistFleet.transfer(nonWhitelistedUser, amountToTransfer);
         vm.stopPrank();
 
         assertEq(
-            privateFleetCommander.balanceOf(nonWhitelistedUser),
+            whitelistFleet.balanceOf(nonWhitelistedUser),
             amountToTransfer
         );
     }
@@ -110,15 +113,15 @@ contract FleetCommanderPrivateWithTransferTest is
 
         // mockUser has shares from setUp. mockUser approves operator.
         vm.startPrank(mockUser);
-        privateFleetCommander.approve(operator, amountToTransfer);
+        whitelistFleet.approve(operator, amountToTransfer);
         vm.stopPrank();
 
         // General transfers are disabled (already set in setUp)
-        assertFalse(privateFleetCommander.transfersEnabled());
+        assertFalse(whitelistFleet.transfersEnabled());
 
         vm.startPrank(operator);
         // Operator transfers from whitelisted mockUser to non-whitelisted user (bypasses both)
-        privateFleetCommander.transferFrom(
+        whitelistFleet.transferFrom(
             mockUser,
             nonWhitelistedUser,
             amountToTransfer
@@ -126,7 +129,7 @@ contract FleetCommanderPrivateWithTransferTest is
         vm.stopPrank();
 
         assertEq(
-            privateFleetCommander.balanceOf(nonWhitelistedUser),
+            whitelistFleet.balanceOf(nonWhitelistedUser),
             amountToTransfer
         );
     }
@@ -140,12 +143,12 @@ contract FleetCommanderPrivateWithTransferTest is
 
         // Enable transfers for this test
         vm.prank(governor);
-        privateFleetCommander.setFleetTokenTransferability();
+        whitelistFleet.setFleetTokenTransferability(true);
 
         // Ensure mockUser has enough balance (from setUp)
         vm.startPrank(mockUser);
         vm.expectRevert(); // Validation fails because recipient is not whitelisted
-        privateFleetCommander.transfer(nonWhitelistedUser, amountToTransfer);
+        whitelistFleet.transfer(nonWhitelistedUser, amountToTransfer);
         vm.stopPrank();
     }
 
@@ -158,26 +161,26 @@ contract FleetCommanderPrivateWithTransferTest is
 
         address mockUser2 = makeAddr("mockUser2");
         vm.startPrank(governor);
-        privateFleetCommander.setWhitelisted(mockUser2, true);
-        privateFleetCommander.setFleetTokenTransferability(); // Enable transfers
+        whitelistFleet.setWhitelisted(mockUser2, true);
+        whitelistFleet.setFleetTokenTransferability(true); // Enable transfers
         vm.stopPrank();
 
         // Operator deposits for mockUser2
         mockToken.mint(operator, amountToTransfer);
         vm.startPrank(operator);
-        mockToken.approve(address(privateFleetCommander), amountToTransfer);
-        privateFleetCommander.deposit(amountToTransfer, mockUser2);
+        mockToken.approve(address(whitelistFleet), amountToTransfer);
+        whitelistFleet.deposit(amountToTransfer, mockUser2);
         vm.stopPrank();
 
         // mockUser2 approves mockUser
         vm.startPrank(mockUser2);
-        privateFleetCommander.approve(mockUser, amountToTransfer);
+        whitelistFleet.approve(mockUser, amountToTransfer);
         vm.stopPrank();
 
         vm.startPrank(mockUser);
         vm.expectRevert();
         // Fails because recipient (nonWhitelistedUser) is not whitelisted
-        privateFleetCommander.transferFrom(
+        whitelistFleet.transferFrom(
             mockUser2,
             nonWhitelistedUser,
             amountToTransfer
@@ -193,14 +196,14 @@ contract FleetCommanderPrivateWithTransferTest is
         address whitelistedRecipient = makeAddr("whitelistedRecipient");
 
         vm.prank(governor);
-        privateFleetCommander.setWhitelisted(whitelistedRecipient, true);
+        whitelistFleet.setWhitelisted(whitelistedRecipient, true);
         // Transfers stay DISABLED (default)
 
         vm.startPrank(mockUser);
         vm.expectRevert(
             abi.encodeWithSignature("FleetCommanderTransfersDisabled()")
         );
-        privateFleetCommander.transfer(whitelistedRecipient, amountToTransfer);
+        whitelistFleet.transfer(whitelistedRecipient, amountToTransfer);
         vm.stopPrank();
     }
 }

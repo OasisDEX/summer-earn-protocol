@@ -124,10 +124,14 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlyGovernor() {
+        _revertIfNotGovernor();
+        _;
+    }
+
+    function _revertIfNotGovernor() private view {
         if (!_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)) {
             revert CallerIsNotGovernor(msg.sender);
         }
-        _;
     }
 
     /**
@@ -145,6 +149,11 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Performs two role checks, which may impact gas usage
      */
     modifier onlyKeeper() {
+        _revertIfNotKeeper();
+        _;
+    }
+
+    function _revertIfNotKeeper() private view {
         if (
             !_accessManager.hasRole(
                 generateRole(ContractSpecificRoles.KEEPER_ROLE, address(this)),
@@ -153,7 +162,6 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         ) {
             revert CallerIsNotKeeper(msg.sender);
         }
-        _;
     }
 
     /**
@@ -169,10 +177,14 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlySuperKeeper() {
+        _revertIfNotSuperKeeper();
+        _;
+    }
+
+    function _revertIfNotSuperKeeper() private view {
         if (!_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)) {
             revert CallerIsNotSuperKeeper(msg.sender);
         }
-        _;
     }
 
     /**
@@ -181,6 +193,11 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * @dev Checks if the caller has the contract-specific CURATOR_ROLE
      */
     modifier onlyCurator(address fleetAddress) {
+        _revertIfNotCurator(fleetAddress);
+        _;
+    }
+
+    function _revertIfNotCurator(address fleetAddress) private view {
         if (
             fleetAddress == address(0) ||
             !_accessManager.hasRole(
@@ -190,7 +207,6 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         ) {
             revert CallerIsNotCurator(msg.sender);
         }
-        _;
     }
 
     /**
@@ -206,10 +222,14 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlyGuardian() {
+        _revertIfNotGuardian();
+        _;
+    }
+
+    function _revertIfNotGuardian() private view {
         if (!_accessManager.hasRole(GUARDIAN_ROLE, msg.sender)) {
             revert CallerIsNotGuardian(msg.sender);
         }
-        _;
     }
 
     /**
@@ -227,23 +247,31 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Performs two role checks, which may impact gas usage
      */
     modifier onlyGuardianOrGovernor() {
+        _revertIfNotGuardianOrGovernor();
+        _;
+    }
+
+    function _revertIfNotGuardianOrGovernor() private view {
         if (
             !_accessManager.hasRole(GUARDIAN_ROLE, msg.sender) &&
             !_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)
         ) {
             revert CallerIsNotGuardianOrGovernor(msg.sender);
         }
-        _;
     }
 
     /**
      * @notice Modifier to restrict access to decay controllers only
      */
     modifier onlyDecayController() {
+        _revertIfNotDecayController();
+        _;
+    }
+
+    function _revertIfNotDecayController() private view {
         if (!_accessManager.hasRole(DECAY_CONTROLLER_ROLE, msg.sender)) {
             revert CallerIsNotDecayController(msg.sender);
         }
-        _;
     }
 
     /**
@@ -254,6 +282,11 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlyFoundation() {
+        _revertIfNotFoundation();
+        _;
+    }
+
+    function _revertIfNotFoundation() private view {
         if (
             !_accessManager.hasRole(
                 _accessManager.FOUNDATION_ROLE(),
@@ -262,21 +295,6 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         ) {
             revert CallerIsNotFoundation(msg.sender);
         }
-        _;
-    }
-
-    /**
-     * @notice Modifier to restrict access to operators only
-     * @dev Modifier to check that the caller has the Operator role.
-     * Note: This works with V1 Access Managers because generating and checking roles is universally supported,
-     * but assigning this role on V1 requires using the generic `grantContractSpecificRole` function instead
-     * of the dedicated V2 `grantOperatorRole` helper.
-     */
-    modifier onlyOperator() {
-        if (!hasOperatorRole(msg.sender)) {
-            revert CallerIsNotOperator(msg.sender);
-        }
-        _;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -306,22 +324,6 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         address account
     ) public view returns (bool) {
         return _accessManager.hasRole(ADMIRALS_QUARTERS_ROLE, account);
-    }
-
-    /**
-     * @notice Checks if an account has the Operator role
-     * @param account The address to check
-     * @return bool True if the account has the Operator role
-     */
-    function hasOperatorRole(address account) public view returns (bool) {
-        return
-            _accessManager.hasRole(
-                generateRole(
-                    ContractSpecificRoles.OPERATOR_ROLE,
-                    address(this)
-                ),
-                account
-            );
     }
 
     /*//////////////////////////////////////////////////////////////

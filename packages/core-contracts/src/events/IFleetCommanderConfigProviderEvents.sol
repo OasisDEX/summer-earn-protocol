@@ -44,8 +44,19 @@ interface IFleetCommanderConfigProviderEvents {
     event TransfersEnabled();
 
     /**
+     * @notice Emitted when the transfer disabled status is updated
+     */
+    event TransfersDisabled();
+
+    /**
      * @notice Emitted when the tip jar is updated
      * @param newTipJar The address of the new tip jar
      */
     event FleetCommanderTipJarUpdated(address newTipJar);
+
+    /**
+     * @notice Emitted when the operator gateway status is updated
+     * @param newStatus The new status of the operator gateway
+     */
+    event OperatorGatewayStatusUpdated(bool newStatus);
 }

@@ -12,7 +12,7 @@ import "forge-std/Test.sol";
 import {RoundsVaultInput} from "../../src/contracts/rounds-vault/RoundsVaultInput.sol";
 import {IRoundsVaultBaseEnums} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
 
-import "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import "@summerfi/access-contracts/contracts/ProtocolAccessManagerV2.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 // Mock USDC
@@ -52,7 +52,7 @@ contract RoundsVaultPrecisionFuzzTest is Test {
     MockToken public usdc;
     MockTargetVault public targetVault;
     RoundsVaultInput public roundsVault;
-    ProtocolAccessManager public accessManager;
+    ProtocolAccessManagerV2 public accessManager;
 
     address public keeper = address(0x1111);
     address public governor = address(0x2222);
@@ -62,7 +62,7 @@ contract RoundsVaultPrecisionFuzzTest is Test {
     uint256 public constant NUM_ROUNDS = 10;
 
     function setUp() public {
-        accessManager = new ProtocolAccessManager(governor);
+        accessManager = new ProtocolAccessManagerV2(governor);
 
         usdc = new MockToken();
         targetVault = new MockTargetVault(usdc);
@@ -79,6 +79,7 @@ contract RoundsVaultPrecisionFuzzTest is Test {
 
         // Turn off whitelist for ease of testing logic
         vm.startPrank(governor);
+        accessManager.grantWhitelistManagerRole(address(roundsVault));
         roundsVault.setWhitelisted(address(0), true);
         vm.stopPrank();
 
@@ -121,7 +122,7 @@ contract RoundsVaultPrecisionFuzzTest is Test {
                 address(roundsVault)
             );
 
-            // 2. Keeper calls nextRound to bulk execute and snapshot rate
+            // 2. Keeper calls nextRound to close the round
             vm.prank(keeper);
             roundsVault.nextRound();
 

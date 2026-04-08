@@ -1,0 +1,52 @@
+{
+  "mainnet": {
+    "deployedContracts": {
+      "gov": {
+        "protocolAccessManager": {
+          "address": "0xeC2651D65431CbfE5EAC7110E383f136a78eC27b"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0x0c6365b54E2500c00E49a81aada464EC240B1004"
+        },
+        "configurationManager": {
+          "address": "0x27397DeB4Fbc2aeF29826f58eA5c649A1f9595b2"
+        },
+        "harborCommand": {
+          "address": "0xF82E6DC4D242e7C68b9a1dcFCd66a1aD64Ad8a54"
+        },
+        "admiralsQuarters": {
+          "address": "0x27d46AeA3f65Cc1D9b8a100C5C0DA1B5f159dF0A"
+        },
+        "raft": {
+          "address": "0x94a07404ab55A7Bcf3380a30E286854c2660C015"
+        }
+      }
+    },
+    "fleets": {
+      "extDemo2_USDC_mainnet": {
+        "fleetCommander": "0x0655e982a4E48E6CE991c66EDc7B2e3FAEFc7E75",
+        "bufferArk": "0x5412B9D92C98C4C227ab85F523B472E40dFB634e",
+        "arks": [
+          "0xa2a444C3122eA5Cd0600e89B9b7AFFaB93850dD8",
+          "0xde2AEE51275E758aEB9593d20611A680A5810fAd",
+          "0x3bddBEA533EE1cE93ACf7BBdeB7D6bAfF02Ebe48"
+        ]
+      }
+    },
+    "treasury": "0x0f0fA89471259433b6955827226f19999D93c568",
+    "governor": [
+      "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "guardian": [
+      "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "superKeeper": "0x0f0fA89471259433b6955827226f19999D93c568",
+    "whitelistManagers": [
+      "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA"
+    ]
+  }
+}

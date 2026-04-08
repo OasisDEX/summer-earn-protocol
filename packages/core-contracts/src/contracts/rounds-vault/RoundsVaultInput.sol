@@ -62,27 +62,24 @@ contract RoundsVaultInput is
 
     /**
         @inheritdoc RoundsVaultBase
-
-        @dev Deposits the available funds into the main vault, receiving back an amount of target vault shares
+        @dev Deposits the frozen assets into the target vault, receiving back an amount of target vault shares
     */
     // @audit This function is protected for re-entrancy by two mechanisms: only the Operator can call
     // `_nextRound` which is the function that in turn calls this function, and the Operator is a trusted
     // entity. Also, even if the operator would call `nextRound` in a re-entrancy attack, the funds are being
     // moved from this contract to the `InvestmentVault` contract and no more funds would be left, leading
     // the following code to be a no-op
+    function _operate(
+        uint256 assets,
+        uint256 roundId
+    ) internal override returns (uint256) {
+        if (assets == 0) return 0;
 
-    function _operate() internal override {
-        uint256 assets = totalAssets();
-        if (assets > 0) {
-            uint256 shares = _depositOnTarget(assets);
+        uint256 shares = _depositOnTarget(assets);
 
-            emit AssetsDeposited(
-                getCurrentRound(),
-                _msgSender(),
-                assets,
-                shares
-            );
-        }
+        emit AssetsDeposited(roundId, _msgSender(), assets, shares);
+
+        return shares;
     }
 
     /**
@@ -92,20 +89,16 @@ contract RoundsVaultInput is
         calculated for 1 full token
 
         @dev This function can only be called while the target vault is unlocked
+
+        @dev The fallback exchange rate is calculated for 1 full token
      */
-    function _getCurrentExchangeRate()
+    function _getFallbackExchangeRate()
         internal
         view
         override
         returns (Price memory)
     {
-        uint256 assets = totalAssets();
-
-        if (assets == 0) {
-            IERC20Metadata asset_ = IERC20Metadata(asset());
-            assets = 10 ** asset_.decimals();
-        }
-
+        uint256 assets = 10 ** IERC20Metadata(asset()).decimals();
         uint256 shares = IERC4626(vault()).previewDeposit(assets);
 
         return toPrice(shares, assets);

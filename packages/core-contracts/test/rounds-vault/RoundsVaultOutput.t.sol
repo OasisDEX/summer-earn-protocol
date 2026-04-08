@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
 import {RoundsVaultOutput} from "../../src/contracts/rounds-vault/RoundsVaultOutput.sol";
-import {MockERC20} from "../mocks/MockERC20.sol";
-import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
-import {IRoundsVaultOutputEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultOutputEvents.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IProtocolAccessManager, ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
-import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
-import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
 import {IRoundsVaultBaseEnums} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
-import {UD60x18, ud} from "@prb/math/src/UD60x18.sol";
+import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
+import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
+import {IRoundsVaultOutputEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultOutputEvents.sol";
 import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
+import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {UD60x18, ud} from "@prb/math/src/UD60x18.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
+import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
+import {Test} from "forge-std/Test.sol";
 
 // Mock Access Manager
 contract MockAccessManager {
@@ -35,7 +37,20 @@ contract MockAccessManager {
     function supportsInterface(
         bytes4 interfaceId
     ) external pure returns (bool) {
-        return interfaceId == type(IProtocolAccessManager).interfaceId;
+        return
+            interfaceId == type(IProtocolAccessManagerV2).interfaceId ||
+            interfaceId == type(IProtocolAccessManager).interfaceId;
+    }
+
+    mapping(address => bool) public whitelisted;
+
+    function setWhitelisted(address account, bool isWhitelisted_) external {
+        whitelisted[account] = isWhitelisted_;
+    }
+
+    function isWhitelisted(address account) external view returns (bool) {
+        // If address(0) is whitelisted, the gateway is globally open
+        return whitelisted[address(0)] || whitelisted[account];
     }
 }
 
@@ -214,13 +229,8 @@ contract RoundsVaultOutputTest is
 
         // Execute Round
         vm.startPrank(operator);
-
-        // This should emit SharesRedeemed
-        // RoundsVaultBase -> _operate -> _redeemFromTarget
-        // _redeemFromTarget calls targetVault.redeem
-        // targetVault.redeem transfers AssetToken to OutputVault
-
         vault.nextRound();
+        vault.setRoundSettled(0);
         vm.stopPrank();
 
         // OutputVault should now hold AssetToken (Underlying)
@@ -483,12 +493,12 @@ contract RoundsVaultOutputTest is
     function test_ROV0013_SetRoundSettledRevertsIfInvalidState() public {
         vm.startPrank(operator); // keeper
 
-        // Scenario 1: Round 0 is currently NotOpened (0)
+        // Scenario 1: Round 0 is currently Opened (1)
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidRoundState.selector,
                 0,
-                IRoundsVaultBaseEnums.RoundState.NotOpened,
+                IRoundsVaultBaseEnums.RoundState.Opened,
                 IRoundsVaultBaseEnums.RoundState.InSettlement
             )
         );
@@ -522,9 +532,6 @@ contract RoundsVaultOutputTest is
         );
         vault.setRoundSettled(0);
 
-        // Batch test
-        uint256[] memory rounds = new uint256[](1);
-        rounds[0] = 1;
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidRoundState.selector,
@@ -533,7 +540,7 @@ contract RoundsVaultOutputTest is
                 IRoundsVaultBaseEnums.RoundState.InSettlement
             )
         );
-        vault.setRoundSettledBatch(rounds);
+        vault.setRoundSettled(1);
         vm.stopPrank();
     }
 

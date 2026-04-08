@@ -2,24 +2,24 @@
 pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
-import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
+import {FleetCommanderWhitelistParams} from "../types/FleetCommanderTypes.sol";
 import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
 
 import {IFleetCommanderConfigProviderWhitelist} from "../interfaces/IFleetCommanderConfigProviderWhitelist.sol";
 
-import {FleetConfig} from "../types/FleetCommanderTypes.sol";
-import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
+import {FleetConfigWhitelist} from "../types/FleetCommanderTypes.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
+import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {ProtocolAccessManagedV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedV2.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-import {Whitelist} from "../utils/Whitelist/Whitelist.sol";
 import {IWhitelist} from "../utils/Whitelist/IWhitelist.sol";
+import {Whitelist} from "../utils/Whitelist/Whitelist.sol";
 
 /**
  * @title FleetCommanderConfigProviderWhitelist
@@ -28,7 +28,7 @@ import {IWhitelist} from "../utils/Whitelist/IWhitelist.sol";
  * @custom:see IFleetCommanderConfigProviderWhitelist
  */
 contract FleetCommanderConfigProviderWhitelist is
-    ProtocolAccessManaged,
+    ProtocolAccessManagedV2,
     FleetCommanderPausable,
     ConfigurationManaged,
     IFleetCommanderConfigProviderWhitelist,
@@ -36,19 +36,25 @@ contract FleetCommanderConfigProviderWhitelist is
 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    FleetConfig public config;
+    /// @notice The mutable configuration set for this Whitelist fleet
+    FleetConfigWhitelist public config;
+    /// @notice A string containing additional details about this fleet
     string public details;
+    /// @dev Internal set of active arks (excluding the buffer ark)
     EnumerableSet.AddressSet private _activeArks;
 
+    /// @notice The maximum number of rebalance operations allowed in a single call
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
+    /// @notice The default minimum pause time for governance actions
     uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
 
+    /// @notice If true, whitelist-restricted transfers are enabled for this fleet's tokens
     bool public transfersEnabled;
 
     constructor(
-        FleetCommanderParams memory params
+        FleetCommanderWhitelistParams memory params
     )
-        ProtocolAccessManaged(params.accessManager)
+        ProtocolAccessManagedV2(params.accessManager)
         FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
         ConfigurationManaged(params.configurationManager)
     {
@@ -68,13 +74,14 @@ contract FleetCommanderConfigProviderWhitelist is
             address(this)
         );
         emit ArkAdded(address(_bufferArk));
-        config = FleetConfig({
+        config = FleetConfigWhitelist({
             bufferArk: IArk(address(_bufferArk)),
             minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
             // stakingRewardsManager is set to address(0) in the constructor - not used anymore in the whitelist version
-            stakingRewardsManager: address(0)
+            stakingRewardsManager: address(0),
+            isOperatorGatewayOpen: params.isOperatorGatewayOpen
         });
         details = params.details;
     }
@@ -120,13 +127,25 @@ contract FleetCommanderConfigProviderWhitelist is
     }
 
     ///@inheritdoc IFleetCommanderConfigProviderWhitelist
-    function getConfig() external view override returns (FleetConfig memory) {
+    function getConfig()
+        external
+        view
+        override
+        returns (FleetConfigWhitelist memory)
+    {
         return config;
     }
 
     ///@inheritdoc IFleetCommanderConfigProviderWhitelist
     function bufferArk() external view returns (address) {
         return address(config.bufferArk);
+    }
+
+    /**
+     * @dev Implementation of the Whitelist proxy adapter's virtual hook.
+     */
+    function _getAccessManager() internal view override returns (address) {
+        return address(_accessManager);
     }
 
     // ARK MANAGEMENT
@@ -205,31 +224,50 @@ contract FleetCommanderConfigProviderWhitelist is
     }
 
     ///@inheritdoc IFleetCommanderConfigProviderWhitelist
-    function setFleetTokenTransferability()
-        external
-        onlyGovernor
-        whenNotPaused
-    {
-        if (!transfersEnabled) {
-            transfersEnabled = true;
-            emit TransfersEnabled();
+    function setFleetTokenTransferability(
+        bool newStatus
+    ) external onlyGovernor whenNotPaused {
+        if (transfersEnabled != newStatus) {
+            transfersEnabled = newStatus;
+            if (newStatus) {
+                emit TransfersEnabled();
+            } else {
+                emit TransfersDisabled();
+            }
         }
     }
 
-    ///@inheritdoc IWhitelist
+    /**
+     * @notice Sets the operator gateway status
+     * @dev Entry (deposit/mint) and exit (withdraw/redeem) operations are gated by the operator gateway.
+     *      When the gateway is closed, only accounts with the OPERATOR_ROLE can perform these actions.
+     *      When the gateway is open, all whitelisted accounts can perform these actions.
+     * @param newStatus The new status of the operator gateway
+     */
+    ///@inheritdoc IFleetCommanderConfigProviderWhitelist
+    function setOperatorGatewayStatus(
+        bool newStatus
+    ) external onlyGovernor whenNotPaused {
+        if (config.isOperatorGatewayOpen != newStatus) {
+            config.isOperatorGatewayOpen = newStatus;
+            emit OperatorGatewayStatusUpdated(newStatus);
+        }
+    }
+
+    /// @inheritdoc IWhitelist
     function setWhitelisted(
         address account,
         bool allowed
-    ) external override onlyGovernor whenNotPaused {
-        _setWhitelisted(account, allowed);
+    ) public override onlyGovernor whenNotPaused {
+        super.setWhitelisted(account, allowed);
     }
 
-    ///@inheritdoc IWhitelist
+    /// @inheritdoc IWhitelist
     function setWhitelistedBatch(
         address[] memory accounts,
         bool[] memory allowed
-    ) external override onlyGovernor whenNotPaused {
-        _setWhitelistedBatch(accounts, allowed);
+    ) public override onlyGovernor whenNotPaused {
+        super.setWhitelistedBatch(accounts, allowed);
     }
 
     // INTERNAL FUNCTIONS
