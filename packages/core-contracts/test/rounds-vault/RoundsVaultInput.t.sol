@@ -85,7 +85,7 @@ contract MockERC4626 is ERC4626VaultMock {
         return assets;
     }
 
-    // Minimal previewDeposit for exchange rate calculation in _getCurrentExchangeRate
+    // Minimal previewDeposit for exchange rate calculation in _getFallbackExchangeRate
     function previewDeposit(
         uint256 assets
     ) external pure override returns (uint256) {

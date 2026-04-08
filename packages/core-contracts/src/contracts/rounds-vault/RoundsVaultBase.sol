@@ -362,7 +362,7 @@ abstract contract RoundsVaultBase is
         the current round. Whether the rate is underlying/exchange or exchange/underlying depends on
         the specific implentation of the derived contract
      */
-    function _getCurrentExchangeRate()
+    function _getFallbackExchangeRate()
         internal
         view
         virtual
@@ -383,19 +383,16 @@ abstract contract RoundsVaultBase is
         // 1. Fetch exact liability using ERC-1155 total supply for this specific round
         uint256 frozenAmount = totalSupply(roundId);
 
-        // 2. Execute the trade and get the EXACT amount returned by the off-chain reality
-        uint256 outputAmount = 0;
-        if (frozenAmount > 0) {
-            outputAmount = _operate(frozenAmount, roundId);
-        }
-
-        // 3. Construct the precise exchange rate based on the actual execution
         Price memory finalExchangeRate;
+
         if (frozenAmount > 0) {
+            // 2. Execute the trade and get the EXACT amount returned by the off-chain reality
+            uint256 outputAmount = _operate(frozenAmount, roundId);
+            // 3. Construct the precise exchange rate based on the actual execution
             finalExchangeRate = toPrice(outputAmount, frozenAmount);
         } else {
             // Fallback to 1:1 or preview rate if round was empty
-            finalExchangeRate = _getCurrentExchangeRate();
+            finalExchangeRate = _getFallbackExchangeRate();
         }
 
         _exchangeRateByRound[roundId] = finalExchangeRate;

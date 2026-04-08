@@ -90,7 +90,7 @@ contract RoundsVaultOutput is
 
         @dev The fallback exchange rate is calculated for 1 full token
      */
-    function _getCurrentExchangeRate()
+    function _getFallbackExchangeRate()
         internal
         view
         override
