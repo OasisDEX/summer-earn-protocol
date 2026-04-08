@@ -3,9 +3,14 @@ import kleur from 'kleur'
 import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
-import { Address, Address as ViemAddress } from 'viem'
+import { Address, getAddress, Address as ViemAddress } from 'viem'
 import { createFleetWhitelistModule } from '../ignition/modules/fleet-whitelist'
-import { BaseConfig, FleetConfig } from '../types/config-types'
+import {
+  createRoundsVaultInputModule,
+  createRoundsVaultOutputModule,
+} from '../ignition/modules/rounds/rounds-vault'
+import { createAssetsForwarderModule } from '../ignition/modules/utils/assets-forwarder'
+import { ArkType, BaseConfig, FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { ADDRESS_ZERO, GOVERNOR_ROLE } from './common/constants'
 import {
@@ -19,17 +24,24 @@ import {
   getRewardsManagerAddress,
   grantCuratorRole,
   grantKeeperRole,
+  grantOperatorRole,
   setupFleetRewards,
 } from './fleets/fleet-deployment-helpers'
 import { getInstitutionConfigByNetwork } from './helpers/config-handler'
 import {
   getInstitutionFleetConfigDir,
   promptForInstitutionId,
+  updateInstitutionDeployedContracts,
   updateInstitutionFleetEntry,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { getAssetAddress } from './helpers/token-helpers'
-import { validateToken } from './helpers/validation'
+import {
+  validateAddress,
+  validateConfigAddressEntry,
+  validateString,
+  validateToken,
+} from './helpers/validation'
 import { FleetConfigSchema } from './helpers/zod-schemas'
 
 async function selectInstitutionFleetConfig(
@@ -53,10 +65,10 @@ async function selectInstitutionFleetConfig(
   const full = path.join(dir, file)
   const data = JSON.parse(fs.readFileSync(full, 'utf8'))
   const parsed = FleetConfigSchema.parse(data)
-  // Preserve optional curator if present in raw data (schema may not include it)
+  // Preserve optional fields and ensure specific typing for details
   return {
     ...parsed,
-    details: JSON.stringify(parsed.details),
+    details: typeof parsed.details === 'string' ? parsed.details : JSON.stringify(parsed.details),
   } as unknown as FleetConfig
 }
 
@@ -241,7 +253,7 @@ async function main() {
   // Deploy via whitelist module (FleetCommanderWhitelist)
   const envLabel = useBummerConfig ? 'staging_' : ''
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
-  const moduleName = `${envLabel}FleetWhitelist_${name}`
+  const moduleName = `${envLabel}_${institutionId}_FleetWhitelist_${name}`
   const fleetModule = createFleetWhitelistModule(moduleName)
 
   // Use addresses directly from merged config (ensures propagation is correct)
@@ -275,9 +287,68 @@ async function main() {
     config.deployedContracts.core.configurationManager.address,
   )
 
+  let forwarderAddress: Address | undefined
+  let deployedInputVault: Address | undefined
+  let deployedOutputVault: Address | undefined
+
+  if (fleetDefinition.operatorType === 'roundsVaults') {
+    // Deploy AssetsForwarder
+    console.log(kleur.cyan().bold(`\nDeploying AssetsForwarder...`))
+    const forwarderModuleName = `${envLabel}AssetsForwarder_${name}`
+    const forwarderModule = createAssetsForwarderModule(forwarderModuleName)
+    const deployedForwarder = await hre.ignition.deploy(forwarderModule, {
+      parameters: {
+        [forwarderModuleName]: {
+          accessManager: config.deployedContracts.gov.protocolAccessManager.address,
+        },
+      },
+    })
+    forwarderAddress = getAddress(deployedForwarder.assetsForwarder.address)
+    console.log(kleur.green(`AssetsForwarder deployed to: ${forwarderAddress}`))
+
+    // update config with forwarder
+    config.deployedContracts.core.assetsForwarder = {
+      address: forwarderAddress,
+    }
+
+    updateInstitutionDeployedContracts(institutionId, useBummerConfig, hre.network.name, 'core', {
+      assetsForwarder: {
+        address: forwarderAddress,
+      },
+    })
+
+    // Deploy RoundsVaults
+    const inputModuleName = `${envLabel}_${institutionId}_RoundsVaultInput_${name}`
+    const outputModuleName = `${envLabel}_${institutionId}_RoundsVaultOutput_${name}`
+
+    const inputVaultModule = createRoundsVaultInputModule(inputModuleName)
+    const outputVaultModule = createRoundsVaultOutputModule(outputModuleName)
+
+    console.log(kleur.cyan().bold(`\nDeploying RoundsVaults...`))
+    const inputVault = await hre.ignition.deploy(inputVaultModule, {
+      parameters: {
+        [inputModuleName]: {
+          targetVault: deployedFleet.fleetCommander.address,
+          accessManager: config.deployedContracts.gov.protocolAccessManager.address,
+          receiptsURI: `vaults/rounds/input/${fleetDefinition.symbol}`,
+        },
+      },
+    })
+    deployedInputVault = getAddress(inputVault.roundsVaultInput.address)
+
+    const outputVault = await hre.ignition.deploy(outputVaultModule, {
+      parameters: {
+        [outputModuleName]: {
+          targetVault: deployedFleet.fleetCommander.address,
+          accessManager: config.deployedContracts.gov.protocolAccessManager.address,
+          receiptsURI: `vaults/rounds/output/${fleetDefinition.symbol}`,
+        },
+      },
+    })
+    deployedOutputVault = getAddress(outputVault.roundsVaultOutput.address)
+  }
   const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
   const deployedArks = await deployArks(fleetDefinition, config)
-
   // Save initial deployment info without arks; arks will be appended by addArkToFleet calls
   saveFleetDeploymentJson(
     fleetDefinition,
@@ -297,7 +368,7 @@ async function main() {
 
   // Mirror post-deploy role and harbor steps from deploy-fleet.ts
   const protocolAccessManager = await hre.viem.getContractAt(
-    'ProtocolAccessManager' as string,
+    'ProtocolAccessManagerV2' as string,
     config.deployedContracts.gov.protocolAccessManager.address as Address,
   )
   const [deployer] = await hre.viem.getWalletClients()
@@ -307,12 +378,110 @@ async function main() {
   ])
 
   if (hasGovernorRole) {
-    // Enlist fleet in Harbor
-    await addFleetToHarbor(
-      deployedFleet.fleetCommander.address as Address,
-      config.deployedContracts.core.harborCommand.address as Address,
-      config.deployedContracts.gov.protocolAccessManager.address as Address,
-    )
+    // Role assignments based on operatorType
+    if (
+      fleetDefinition.operatorType === 'roundsVaults' &&
+      deployedInputVault &&
+      deployedOutputVault
+    ) {
+      // Grant operator role to Input/Output vaults
+      await grantOperatorRole(
+        config.deployedContracts.gov.protocolAccessManager.address as Address,
+        deployedFleet.fleetCommander.address as Address,
+        deployedInputVault,
+        hre,
+      )
+      await grantOperatorRole(
+        config.deployedContracts.gov.protocolAccessManager.address as Address,
+        deployedFleet.fleetCommander.address as Address,
+        deployedOutputVault,
+        hre,
+      )
+
+      // Grant keeper role to Input/Output vaults for their own operations
+      const keeperToGrant =
+        fleetDefinition.keeper && fleetDefinition.keeper !== ADDRESS_ZERO
+          ? (fleetDefinition.keeper as Address)
+          : (deployer.account.address as Address)
+
+      await grantKeeperRole(
+        config.deployedContracts.gov.protocolAccessManager.address as Address,
+        deployedInputVault,
+        keeperToGrant,
+        hre,
+      )
+      await grantKeeperRole(
+        config.deployedContracts.gov.protocolAccessManager.address as Address,
+        deployedOutputVault,
+        keeperToGrant,
+        hre,
+      )
+
+      // Whitelist Arks & Target Wallets in AssetsForwarder
+      if (forwarderAddress) {
+        console.log(kleur.blue('Whitelisting Arks & Target Wallets in AssetsForwarder'))
+        const forwarderContract = await hre.viem.getContractAt(
+          'AssetsForwarder' as string,
+          forwarderAddress,
+        )
+
+        for (const arkConfig of fleetDefinition.arks) {
+          if (arkConfig.type !== ArkType.WisdomTreeArk) {
+            continue
+          }
+          const token = validateToken(config, arkConfig.params.asset)
+          const fundName = validateString(arkConfig.params.fundName, 'fundName')
+
+          const wisdomtreeByToken = config.protocolSpecific?.wisdomtree?.[token]
+          if (!wisdomtreeByToken) {
+            throw new Error(`WisdomTree config missing for token '${token}'`)
+          }
+
+          const targetWallet = validateConfigAddressEntry(
+            wisdomtreeByToken[fundName],
+            'targetWallet',
+            `WisdomTree fund '${fundName}' targetWallet`,
+          )
+          // todo: remove the forwarder
+          if (targetWallet) {
+            console.log(
+              kleur.blue(`Whitelisting Target Wallet in Assets Forwarder: ${targetWallet}`),
+            )
+            const whitelistTargetWalletHash = await protocolAccessManager.write.setWhitelisted([
+              targetWallet,
+              true,
+            ])
+            await (
+              await hre.viem.getPublicClient()
+            ).waitForTransactionReceipt({ hash: whitelistTargetWalletHash })
+          }
+        }
+
+        // Whitelist Deployed Arks addresses
+        for (const ark of deployedArks) {
+          const whitelistArkHash = await protocolAccessManager.write.setWhitelisted([
+            ark as Address,
+            true,
+          ])
+          await (
+            await hre.viem.getPublicClient()
+          ).waitForTransactionReceipt({ hash: whitelistArkHash })
+        }
+      }
+    } else {
+      // operatorType === 'admiralsQuarters'
+      // Grant operator role to AdmiralsQuarters contract
+      const aqAddress = validateAddress(
+        config.deployedContracts.core.admiralsQuarters?.address,
+        'institution admiralsQuarters',
+      )
+      await grantOperatorRole(
+        config.deployedContracts.gov.protocolAccessManager.address as Address,
+        deployedFleet.fleetCommander.address as Address,
+        aqAddress,
+        hre,
+      )
+    }
 
     // Use unified helper to grant role, add ark to fleet, and update deployment JSON
     for (const arkAddress of deployedArks) {
@@ -320,7 +489,7 @@ async function main() {
     }
 
     // Grant curator role if curator is specified
-    if (fleetDefinition.curator) {
+    if (fleetDefinition.curator && fleetDefinition.curator !== ADDRESS_ZERO) {
       await grantCuratorRole(
         config.deployedContracts.gov.protocolAccessManager.address as Address,
         deployedFleet.fleetCommander.address as Address,
@@ -328,7 +497,7 @@ async function main() {
         hre,
       )
     }
-    if (fleetDefinition.keeper) {
+    if (fleetDefinition.keeper && fleetDefinition.keeper !== ADDRESS_ZERO) {
       await grantKeeperRole(
         config.deployedContracts.gov.protocolAccessManager.address as Address,
         deployedFleet.fleetCommander.address as Address,
