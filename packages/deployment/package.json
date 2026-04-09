@@ -91,7 +91,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --check \"**/*.ts\" --no-error-on-unmatched-pattern",
-    "format:fix": "prettier --write \"**/*.ts\" --no-error-on-unmatched-pattern"
+    "format:fix": "prettier --write \"**/*.ts\" --no-error-on-unmatched-pattern",
+    "decode-safe-tx": "hardhat run scripts/governance/decode-safe-tx.ts"
   },
   "devDependencies": {
     "@layerzerolabs/lz-v2-utilities": "2.3.39",
