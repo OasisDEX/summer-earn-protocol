@@ -110,10 +110,10 @@ abstract contract FlexibleTipper is IFlexibleTipper, Tipper {
         address tipJar,
         uint256 _totalSupply
     ) internal {
-        _accrueTip(tipJar, _totalSupply);
         if (newRate > MAX_PERFORMANCE_FEE_RATE) {
             revert PerformanceFeeRateTooHigh();
         }
+        _accrueTip(tipJar, _totalSupply);
         performanceFeeRate = newRate;
         emit PerformanceFeeRateUpdated(newRate);
     }
