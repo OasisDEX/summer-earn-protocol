@@ -121,21 +121,9 @@ contract FleetCommanderWhitelist is
         uint256 assets,
         address receiver,
         address owner
-    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
+    ) external whenNotPaused collectTip useCache returns (uint256 shares) {
         _enforceExitGateway(_msgSender(), receiver, owner);
-        shares = previewWithdraw(assets);
-        _validateBufferWithdraw(assets, shares, owner);
-
-        uint256 prevQueueBalance = config.bufferArk.totalAssets();
-
-        _disembark(address(config.bufferArk), assets);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
-
-        emit FundsBufferBalanceUpdated(
-            _msgSender(),
-            prevQueueBalance,
-            config.bufferArk.totalAssets()
-        );
+        shares = _withdrawFromBuffer(assets, receiver, owner);
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
@@ -160,9 +148,9 @@ contract FleetCommanderWhitelist is
         }
 
         if (shares <= bufferBalanceInShares) {
-            assets = redeemFromBuffer(shares, receiver, owner);
+            assets = _redeemFromBuffer(shares, receiver, owner);
         } else {
-            assets = redeemFromArks(shares, receiver, owner);
+            assets = _redeemFromArks(shares, receiver, owner);
         }
     }
 
@@ -171,21 +159,9 @@ contract FleetCommanderWhitelist is
         uint256 shares,
         address receiver,
         address owner
-    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
+    ) external collectTip useCache whenNotPaused returns (uint256 assets) {
         _enforceExitGateway(_msgSender(), receiver, owner);
-        _validateBufferRedeem(shares, owner);
-
-        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
-
-        assets = previewRedeem(shares);
-        _disembark(address(config.bufferArk), assets);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
-
-        emit FundsBufferBalanceUpdated(
-            _msgSender(),
-            previousFundsBufferBalance,
-            config.bufferArk.totalAssets()
-        );
+        assets = _redeemFromBuffer(shares, receiver, owner);
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
@@ -210,9 +186,9 @@ contract FleetCommanderWhitelist is
         }
 
         if (assets <= bufferBalance) {
-            shares = withdrawFromBuffer(assets, receiver, owner);
+            shares = _withdrawFromBuffer(assets, receiver, owner);
         } else {
-            shares = withdrawFromArks(assets, receiver, owner);
+            shares = _withdrawFromArks(assets, receiver, owner);
         }
     }
 
@@ -222,7 +198,7 @@ contract FleetCommanderWhitelist is
         address receiver,
         address owner
     )
-        public
+        external
         override(IFleetCommanderWhitelist)
         collectTip
         useWithdrawCache
@@ -230,14 +206,7 @@ contract FleetCommanderWhitelist is
         returns (uint256 totalSharesToRedeem)
     {
         _enforceExitGateway(_msgSender(), receiver, owner);
-        totalSharesToRedeem = previewWithdraw(assets);
-
-        _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
-
-        _forceDisembarkFromSortedArks(assets);
-        _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
-
-        emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
+        totalSharesToRedeem = _withdrawFromArks(assets, receiver, owner);
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
@@ -246,7 +215,7 @@ contract FleetCommanderWhitelist is
         address receiver,
         address owner
     )
-        public
+        external
         override(IFleetCommanderWhitelist)
         collectTip
         useWithdrawCache
@@ -254,12 +223,7 @@ contract FleetCommanderWhitelist is
         returns (uint256 totalAssetsToWithdraw)
     {
         _enforceExitGateway(_msgSender(), receiver, owner);
-        _validateRedeemFromArks(shares, owner);
-
-        totalAssetsToWithdraw = previewRedeem(shares);
-        _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
-        _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
-        emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
+        totalAssetsToWithdraw = _redeemFromArks(shares, receiver, owner);
     }
 
     /// @inheritdoc IERC4626
@@ -535,6 +499,108 @@ contract FleetCommanderWhitelist is
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Internal function to withdraw a specific amount of assets from the buffer ark
+     * @param assets The amount of assets to withdraw
+     * @param receiver The address to receive the withdrawn assets
+     * @param owner The address owning the shares to be burned
+     * @return shares The amount of shares burned
+     */
+    function _withdrawFromBuffer(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) internal returns (uint256 shares) {
+        shares = previewWithdraw(assets);
+        _validateBufferWithdraw(assets, shares, owner);
+
+        uint256 prevQueueBalance = config.bufferArk.totalAssets();
+
+        _disembark(address(config.bufferArk), assets);
+        _withdraw(_msgSender(), receiver, owner, assets, shares);
+
+        emit FundsBufferBalanceUpdated(
+            _msgSender(),
+            prevQueueBalance,
+            config.bufferArk.totalAssets()
+        );
+    }
+
+    /**
+     * @notice Internal function to redeem a specific amount of shares from the buffer ark
+     * @param shares The amount of shares to redeem
+     * @param receiver The address to receive the underlying assets
+     * @param owner The address owning the shares to be burned
+     * @return assets The amount of assets withdrawn
+     */
+    function _redeemFromBuffer(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) internal returns (uint256 assets) {
+        _validateBufferRedeem(shares, owner);
+
+        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
+
+        assets = previewRedeem(shares);
+        _disembark(address(config.bufferArk), assets);
+        _withdraw(_msgSender(), receiver, owner, assets, shares);
+
+        emit FundsBufferBalanceUpdated(
+            _msgSender(),
+            previousFundsBufferBalance,
+            config.bufferArk.totalAssets()
+        );
+    }
+
+    /**
+     * @notice Internal function to withdraw assets directly from deployed Arks
+     * @dev Fetches withdrawable arks data to ensure cache state before discharging assets
+     * @param assets The amount of assets to withdraw
+     * @param receiver The address to receive the underlying assets
+     * @param owner The address owning the shares to be burned
+     * @return totalSharesToRedeem The amount of shares burned
+     */
+    function _withdrawFromArks(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) internal returns (uint256 totalSharesToRedeem) {
+        _getWithdrawableArksData(config.bufferArk);
+
+        totalSharesToRedeem = previewWithdraw(assets);
+
+        _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
+
+        _forceDisembarkFromSortedArks(assets);
+        _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
+
+        emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
+    }
+
+    /**
+     * @notice Internal function to redeem shares to withdraw assets directly from deployed Arks
+     * @dev Fetches withdrawable arks data to ensure cache state before discharging assets
+     * @param shares The amount of shares to redeem
+     * @param receiver The address to receive the underlying assets
+     * @param owner The address owning the shares to be burned
+     * @return totalAssetsToWithdraw The amount of assets withdrawn
+     */
+    function _redeemFromArks(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) internal returns (uint256 totalAssetsToWithdraw) {
+        _getWithdrawableArksData(config.bufferArk);
+
+        _validateRedeemFromArks(shares, owner);
+
+        totalAssetsToWithdraw = previewRedeem(shares);
+        _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
+        _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
+        emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
+    }
 
     /**
      * @notice Mints new shares as tips to the specified account
