@@ -43,7 +43,7 @@ export async function redeployAdmiralsQuarters() {
     network,
     { common: true, core: true, gov: true },
     useBummerConfig,
-  )
+  ) as BaseConfig
 
   // Display summary and get confirmation
   if (!(await confirmDeployment(network))) {
@@ -64,7 +64,7 @@ export async function redeployAdmiralsQuarters() {
       [moduleName]: {
         swapProvider: config.common.swapProvider,
         configurationManager: config.deployedContracts.core.configurationManager.address,
-        weth: config.tokens.weth,
+        weth: config.tokens.wrappedNative,
       },
     },
     deploymentId,
@@ -84,7 +84,7 @@ export async function redeployAdmiralsQuarters() {
     network,
     { common: true, gov: true, core: true },
     useBummerConfig,
-  )
+  ) as BaseConfig
   await setupGovernanceRoles(updatedConfig)
 
   return result
