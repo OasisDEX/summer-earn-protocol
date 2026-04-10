@@ -486,8 +486,8 @@ contract FleetCommanderWhitelist is
     /// @inheritdoc IFleetCommanderWhitelist
     function setPerformanceFeeRate(
         Percentage newRate
-    ) external onlyGovernor whenNotPaused collectTip {
-        _setPerformanceFeeRate(newRate);
+    ) external onlyGovernor whenNotPaused {
+        _setPerformanceFeeRate(newRate, tipJar(), totalSupply());
     }
 
     /*//////////////////////////////////////////////////////////////
