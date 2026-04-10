@@ -66,8 +66,6 @@ export const GOVERNOR_ABI = [
   },
 ] as const
 
-const GOVERNOR_V2_ADDRESS = '0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274'
-
 const SUMMER_TOKEN_ABI = [
   {
     inputs: [{ name: 'account', type: 'address' }],
@@ -96,10 +94,9 @@ export interface UserVotingInfo {
   hasVoted: boolean
 }
 
-export function useProposalVoting(proposalId: string | undefined) {
+export function useProposalVoting(proposalId: string | undefined, governorAddress: string) {
   const { address } = useConnection()
 
-  const governorAddress = config.base?.deployedContracts?.govV2?.summerGovernor?.address
   const tokenAddress = config.base?.deployedContracts?.govV2?.summerGovernanceToken?.address
 
   // Get proposal votes
@@ -151,18 +148,18 @@ export function useProposalVoting(proposalId: string | undefined) {
 
   const votes: ProposalVotes | undefined = proposalVotes
     ? {
-        againstVotes: proposalVotes[0],
-        forVotes: proposalVotes[1],
-        abstainVotes: proposalVotes[2],
-      }
+      againstVotes: proposalVotes[0],
+      forVotes: proposalVotes[1],
+      abstainVotes: proposalVotes[2],
+    }
     : undefined
 
   const userInfo: UserVotingInfo | undefined =
     votingPower !== undefined && hasVoted !== undefined
       ? {
-          votingPower,
-          hasVoted,
-        }
+        votingPower,
+        hasVoted,
+      }
       : undefined
 
   const refetch = () => {
@@ -197,27 +194,37 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
     },
     ...(address
       ? [
-          {
-            address: governorAddress as `0x${string}`,
-            abi: GOVERNOR_ABI,
-            functionName: 'hasVoted' as const,
-            args: [BigInt(proposalId), address],
-            chainId: 8453,
-          },
-        ]
+        {
+          address: governorAddress as `0x${string}`,
+          abi: GOVERNOR_ABI,
+          functionName: 'hasVoted' as const,
+          args: [BigInt(proposalId), address],
+          chainId: 8453,
+        },
+      ]
       : []),
   ])
 
   const tokenContracts =
     address && tokenAddress
       ? [
-          {
-            address: tokenAddress as `0x${string}`,
-            abi: SUMMER_TOKEN_ABI,
-            functionName: 'getVotes' as const,
-            args: [address],
-            chainId: 8453,
-          },
+        {
+          address: tokenAddress as `0x${string}`,
+          abi: SUMMER_TOKEN_ABI,
+          functionName: 'getVotes' as const,
+          args: [address],
+          chainId: 8453,
+        },
+        {
+          address: tokenAddress as `0x${string}`,
+          abi: SUMMER_TOKEN_ABI,
+          functionName: 'totalSupply' as const,
+          args: [],
+          chainId: 8453,
+        },
+      ]
+      : tokenAddress
+        ? [
           {
             address: tokenAddress as `0x${string}`,
             abi: SUMMER_TOKEN_ABI,
@@ -226,16 +233,6 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
             chainId: 8453,
           },
         ]
-      : tokenAddress
-        ? [
-            {
-              address: tokenAddress as `0x${string}`,
-              abi: SUMMER_TOKEN_ABI,
-              functionName: 'totalSupply' as const,
-              args: [],
-              chainId: 8453,
-            },
-          ]
         : []
 
   const contracts = [...proposalContracts, ...tokenContracts]
@@ -314,7 +311,7 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
 
 export type VoteSupport = 0 | 1 | 2
 
-export function useCastVote() {
+export function useCastVote(governorAddress: string) {
   const { isConnected, chainId } = useConnection()
 
   const { mutate: switchChain } = useSwitchChain()
@@ -329,7 +326,7 @@ export function useCastVote() {
       switchChain({ chainId: 8453 })
     }
     writeContract({
-      address: GOVERNOR_V2_ADDRESS,
+      address: governorAddress as `0x${string}`,
       abi: GOVERNOR_ABI,
       functionName: 'castVote',
       args: [BigInt(proposalId), support],

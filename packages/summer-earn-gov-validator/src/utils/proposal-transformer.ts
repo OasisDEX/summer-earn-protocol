@@ -102,5 +102,6 @@ export function transformProposal(
     calldatas: proposal.calldatas || [],
     eta: proposal.eta,
     votes: proposal.votes,
+    governor: proposal.governor,
   }
 }

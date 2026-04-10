@@ -72,7 +72,7 @@ async function main() {
   const scriptIndex = process.argv.findIndex((arg) => arg.endsWith('decode-safe-tx.ts'))
   // Only look at arguments AFTER the script name
   const scriptArgs = scriptIndex !== -1 ? process.argv.slice(scriptIndex + 1) : []
-  
+
   // Try to find a JSON file in positional args
   const filePathArg = scriptArgs.find((arg) => !arg.startsWith('-') && arg.endsWith('.json'))
 
@@ -80,7 +80,7 @@ async function main() {
   const currentChainId = hre.network.config.chainId?.toString()
   const defaultFileName = currentChainId ? `${currentChainId}.json` : '42161.json'
   const filePath = filePathArg || path.join(__dirname, '.test-data', defaultFileName)
-  
+
   if (!fs.existsSync(filePath)) {
     console.error(kleur.red(`File not found: ${filePath}`))
     process.exit(1)
@@ -89,7 +89,7 @@ async function main() {
   const fileContent = fs.readFileSync(filePath, 'utf8')
   const safeTx = JSON.parse(fileContent)
   const chainId = safeTx.chainId
-  
+
   // Find network name by chainId
   const networks: Record<string, string> = {
     '1': 'mainnet',
@@ -97,9 +97,9 @@ async function main() {
     '42161': 'arbitrum',
     '146': 'sonic',
     '98865': 'hyperliquid',
-    '5000': 'mantle'
+    '5000': 'mantle',
   }
-  
+
   const networkName = networks[chainId]
   if (!networkName) {
     console.error(kleur.red(`Unsupported chainId: ${chainId}`))
@@ -111,11 +111,17 @@ async function main() {
   console.log(kleur.blue(`  Source:  `), kleur.gray(filePath))
   console.log('')
 
-  const config = getConfigByNetwork(networkName, { common: false, gov: true, core: false }) as BaseConfig
+  const config = getConfigByNetwork(networkName, {
+    common: false,
+    gov: true,
+    core: false,
+  }) as BaseConfig
   const addressBook = getAddressBook(config)
 
   const timelockAddress = getAddress(config.deployedContracts.govV2.timelock.address)
-  const accessManagerAddress = getAddress(config.deployedContracts.govV2.protocolAccessManager.address)
+  const accessManagerAddress = getAddress(
+    config.deployedContracts.govV2.protocolAccessManager.address,
+  )
 
   safeTx.transactions.forEach((tx: any, index: number) => {
     const to = getAddress(tx.to)
@@ -134,7 +140,7 @@ async function main() {
       try {
         const decoded = decodeFunctionData({
           abi: GOV_ABI,
-          data: tx.data as `0x${string}`
+          data: tx.data as `0x${string}`,
         })
         functionName = decoded.functionName
         args = decoded.args
@@ -145,7 +151,7 @@ async function main() {
 
     if (functionName) {
       console.log(kleur.blue(`  Function:`), kleur.yellow(functionName))
-      
+
       // Extract role and account
       let role = args?.role
       let account = args?.account || (Array.isArray(args) ? args[0] : undefined)
@@ -164,18 +170,28 @@ async function main() {
       if (functionName.includes('GovernorRole')) role = keccak256(toBytes('GOVERNOR_ROLE'))
       if (functionName.includes('SuperKeeperRole')) role = keccak256(toBytes('SUPER_KEEPER_ROLE'))
       if (functionName.includes('GuardianRole')) role = keccak256(toBytes('GUARDIAN_ROLE'))
-      if (functionName.includes('DecayControllerRole')) role = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
+      if (functionName.includes('DecayControllerRole'))
+        role = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
       if (functionName.includes('FoundationRole')) role = keccak256(toBytes('FOUNDATION_ROLE'))
-      if (functionName.includes('AdmiralsQuartersRole')) role = keccak256(toBytes('ADMIRALS_QUARTERS_ROLE'))
+      if (functionName.includes('AdmiralsQuartersRole'))
+        role = keccak256(toBytes('ADMIRALS_QUARTERS_ROLE'))
 
       const roleName = ROLE_NAMES[role] || role || 'Unknown Role'
-      const readableAction = functionName.includes('revoke') ? kleur.red('Revoking') : kleur.green('Granting')
-      
+      const readableAction = functionName.includes('revoke')
+        ? kleur.red('Revoking')
+        : kleur.green('Granting')
+
       const accountAddr = getAddress(account)
       const accountTag = addressBook[accountAddr]
-      const accountDisplay = accountTag ? `${kleur.cyan(accountAddr)} [${kleur.green(accountTag)}]` : kleur.cyan(accountAddr)
+      const accountDisplay = accountTag
+        ? `${kleur.cyan(accountAddr)} [${kleur.green(accountTag)}]`
+        : kleur.cyan(accountAddr)
 
-      console.log(kleur.white(`  Summary:  ${readableAction} ${kleur.magenta(roleName)} for ${accountDisplay}`))
+      console.log(
+        kleur.white(
+          `  Summary:  ${readableAction} ${kleur.magenta(roleName)} for ${accountDisplay}`,
+        ),
+      )
     } else {
       console.log(kleur.gray(`  Details:  Could not decode function name and arguments.`))
     }

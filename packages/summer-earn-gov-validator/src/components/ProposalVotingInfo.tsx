@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { VoteBar } from '@/components/VoteBar'
-import config from '@/config/index.json'
 import { GOVERNOR_ABI } from '@/hooks/useProposalVoting'
 import { TransformedProposal } from '@/types/governance'
 import { formatTimeRemaining } from '@/utils/timing'
@@ -26,8 +25,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
   const handleQueueBaseProposal = async () => {
     if (!isConnected || !address) return
 
-    const governorAddress = (config as Record<string, any>).base?.deployedContracts?.govV2
-      ?.summerGovernor?.address
+    const governorAddress = proposal.governor
     if (!governorAddress) return
 
     try {
@@ -54,8 +52,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
   const handleExecuteBaseProposal = async () => {
     if (!isConnected || !address || !proposal) return
 
-    const governorAddress = (config as Record<string, any>).base?.deployedContracts?.govV2
-      ?.summerGovernor?.address
+    const governorAddress = proposal.governor
     if (!governorAddress) return
 
     try {
@@ -197,6 +194,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
             <VotingModal
               proposalId={proposal.id}
               proposalTitle={proposal?.title || ''}
+              governor={proposal.governor}
               isOpen={showVotingModal}
               onClose={() => setShowVotingModal(false)}
             />
