@@ -68,6 +68,9 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     Percentage public constant MAX_SWEEP_SLIPPAGE =
         Percentage.wrap(PERCENTAGE_FACTOR / 2);
 
+    /// @notice Timeout for the oracle heartbeat (24 hours)
+    uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 * 60 * 60;
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -76,6 +79,8 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     error InvalidOracleAddress();
     error InvalidShareTokenAddress();
     error OraclePriceNotPositive();
+    error OracleBadRound();
+    error StaleOraclePrice();
     error InsufficientPendingDeposit();
     error PendingDepositActive();
     error ArkIsFrozen();
@@ -531,8 +536,23 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         view
         returns (Price memory)
     {
-        (, int256 answer, , , ) = oracle.latestRoundData();
+        (
+            uint80 roundId,
+            int256 answer,
+            ,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        ) = oracle.latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
+
+        if (answeredInRound < roundId) revert OracleBadRound();
+
+        if (
+            updatedAt == 0 ||
+            block.timestamp - updatedAt > ORACLE_HEARTBEAT_TIMEOUT
+        ) {
+            revert StaleOraclePrice();
+        }
 
         // The oracle returns the price of 1 share denominated in the underlying asset.
         // Therefore, the Base Asset is the WisdomTree share, and Quote Asset is the underlying asset.

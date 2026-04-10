@@ -17,13 +17,31 @@ contract MockOracle is AggregatorV3Interface {
     uint8 public _decimals;
     int256 public _answer;
 
+    uint80 public _roundId = 1;
+    uint256 public _updatedAt;
+    uint80 public _answeredInRound = 1;
+
     constructor(uint8 decimals_, int256 answer_) {
         _decimals = decimals_;
         _answer = answer_;
+        _updatedAt = block.timestamp;
     }
 
     function setAnswer(int256 newAnswer) external {
         _answer = newAnswer;
+        _updatedAt = block.timestamp;
+    }
+
+    function setRoundData(
+        uint80 roundId,
+        int256 answer,
+        uint256 updatedAt,
+        uint80 answeredInRound
+    ) external {
+        _roundId = roundId;
+        _answer = answer;
+        _updatedAt = updatedAt;
+        _answeredInRound = answeredInRound;
     }
 
     function decimals() external view override returns (uint8) {
@@ -61,7 +79,7 @@ contract MockOracle is AggregatorV3Interface {
             uint80 answeredInRound
         )
     {
-        return (1, _answer, 1, 1, 1);
+        return (_roundId, _answer, _updatedAt, _updatedAt, _answeredInRound);
     }
 }
 
@@ -682,5 +700,36 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         assertEq(ark.pendingWithdrawalShares(), 0);
         assertEq(ark.pendingWithdrawalAssets(), 0);
         assertEq(usdc.balanceOf(address(bufferArk)), returnedUsdc);
+    }
+
+    /* Oracle Validation Tests */
+
+    function test_RevertIfOraclePriceNotPositive() public {
+        oracle.setAnswer(0);
+        vm.expectRevert(WisdomTreeArk.OraclePriceNotPositive.selector);
+        ark.sharesToAssets(1e18);
+
+        oracle.setAnswer(-1);
+        vm.expectRevert(WisdomTreeArk.OraclePriceNotPositive.selector);
+        ark.sharesToAssets(1e18);
+    }
+
+    function test_RevertIfOracleBadRound() public {
+        // answeredInRound (1) < roundId (2)
+        oracle.setRoundData(2, 60000 * 1e8, block.timestamp, 1);
+        vm.expectRevert(WisdomTreeArk.OracleBadRound.selector);
+        ark.sharesToAssets(1e18);
+    }
+
+    function test_RevertIfOracleStale() public {
+        // Heartbeat is 24 hours
+        oracle.setRoundData(1, 60000 * 1e8, block.timestamp - 24 hours - 1, 1);
+        vm.expectRevert(WisdomTreeArk.StaleOraclePrice.selector);
+        ark.sharesToAssets(1e18);
+
+        // updatedAt == 0 case
+        oracle.setRoundData(1, 60000 * 1e8, 0, 1);
+        vm.expectRevert(WisdomTreeArk.StaleOraclePrice.selector);
+        ark.sharesToAssets(1e18);
     }
 }
