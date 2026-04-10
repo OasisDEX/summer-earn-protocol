@@ -27,18 +27,58 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const fetchAbi = async (url: string, key?: string) => {
-    const fullUrl = `${url}?module=contract&action=getabi&address=${address}${key ? `&apikey=${key}` : ''}`
+  const fetchAbi = async (url: string, targetAddress: string, key?: string) => {
+    const fullUrl = `${url}?module=contract&action=getabi&address=${targetAddress}${key ? `&apikey=${key}` : ''}`
     const response = await fetch(fullUrl)
     const data = await response.json()
-    if (data.status === '1') return JSON.parse(data.result)
+    if (data.status === '1') {
+      const parsedData = JSON.parse(data.result)
+      return parsedData
+    }
+
     throw new Error(data.result || 'Failed to fetch ABI')
   }
 
+  const getImplementationAddress = async (url: string, targetAddress: string, key?: string) => {
+    try {
+      const fullUrl = `${url}?module=contract&action=getsourcecode&address=${targetAddress}${key ? `&apikey=${key}` : ''}`
+      const response = await fetch(fullUrl)
+      const data = await response.json()
+      if (data.status === '1' && data.result && data.result[0]) {
+        const result = data.result[0]
+        const isProxy = result.IsProxy === 'true' || result.Proxy === '1'
+        const implementation = result.ImplementationAddress || result.Implementation
+        if (
+          isProxy &&
+          implementation &&
+          implementation !== '0x0000000000000000000000000000000000000000'
+        ) {
+          return implementation as string
+        }
+      }
+    } catch (e) {
+      console.error('Error checking proxy status:', e)
+    }
+    return null
+  }
+
   try {
+    let addressToFetch = address
+    const apiKey = process.env.BLOCKSCOUT_API_KEY
+
+    // Check if the contract is a proxy and get implementation address
+    const implementationAddress = await getImplementationAddress(apiUrl, address, apiKey)
+    if (implementationAddress) {
+      addressToFetch = implementationAddress
+    }
+
     // Exclusively use Blockscout for all supported chains
-    const abi = await fetchAbi(apiUrl, process.env.BLOCKSCOUT_API_KEY)
-    return NextResponse.json({ abi, source: 'blockscout' })
+    const abi = await fetchAbi(apiUrl, addressToFetch, apiKey)
+    return NextResponse.json({
+      abi,
+      source: 'blockscout',
+      ...(addressToFetch !== address && { implementationAddress: addressToFetch }),
+    })
   } catch (error) {
     console.error('ABI Fetch Error:', error)
     return NextResponse.json(

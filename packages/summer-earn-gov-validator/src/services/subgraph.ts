@@ -85,6 +85,8 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
         forVotes
         againstVotes
         abstainVotes
+        voteStart
+        voteEnd
         votes(first: 100, orderBy: timestamp, orderDirection: desc, where:{votes_gt:0}) {
           id
           voter
