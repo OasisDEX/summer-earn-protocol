@@ -57,9 +57,6 @@ abstract contract Whitelist is IWhitelist {
         address[] memory accounts,
         bool[] memory allowed
     ) public virtual {
-        if (accounts.length == 0 || accounts.length != allowed.length) {
-            revert IProtocolAccessManagerV2.Whitelist_LengthMismatch();
-        }
         IProtocolAccessManagerV2(_getAccessManager()).setWhitelistedBatch(
             accounts,
             allowed
