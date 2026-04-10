@@ -76,7 +76,14 @@ abstract contract ERC4626MultiToken is
         return type(uint256).max;
     }
 
-    /** @dev See {IERC4626MultiToken-maxRedeem} */
+    /**
+     * @dev See {IERC4626MultiToken-maxRedeem}
+     * @notice Returns the total balance of all receipt IDs owned by the account.
+     * @dev WARNING: Standard ERC4626 routers may expect this to return the amount withdrawable
+     *      in a single operation. In this multi-token implementation, it represents the aggregate
+     *      across all rounds/IDs. Derived contracts (like RoundsVault) may have more restrictive
+     *      per-id or per-round limits.
+     */
     function maxRedeem(
         address owner
     ) public view virtual override returns (uint256) {
