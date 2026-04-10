@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { keccak256, stringToBytes } from 'viem'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { VoteBar } from '@/components/VoteBar'
 import config from '@/config/index.json'
 import { GOVERNOR_ABI } from '@/hooks/useProposalVoting'
 import { TransformedProposal } from '@/types/governance'
+import { formatTimeRemaining } from '@/utils/timing'
 
 import { VotingModal } from './VotingModal'
 
@@ -33,9 +33,6 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
     try {
       setIsExecuting(true)
       if (chainId !== 8453) await switchChain({ chainId: 8453 })
-
-      const descriptionHash = keccak256(stringToBytes(proposal.description))
-
       await writeContract({
         address: governorAddress as `0x${string}`,
         abi: GOVERNOR_ABI,
@@ -44,7 +41,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
           proposal.targets as `0x${string}`[],
           proposal.values.map((v) => BigInt(v)),
           proposal.calldatas as `0x${string}`[],
-          descriptionHash as `0x${string}`,
+          proposal.descriptionHash,
         ],
       })
     } catch (error) {
@@ -65,8 +62,6 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
       setIsExecuting(true)
       if (chainId !== 8453) await switchChain({ chainId: 8453 })
 
-      const descriptionHash = keccak256(stringToBytes(proposal.description))
-
       await writeContract({
         address: governorAddress as `0x${string}`,
         abi: GOVERNOR_ABI,
@@ -75,7 +70,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
           proposal.targets as `0x${string}`[],
           proposal.values.map((v) => BigInt(v)),
           proposal.calldatas as `0x${string}`[],
-          descriptionHash as `0x${string}`,
+          proposal.descriptionHash,
         ],
       })
     } catch (error) {
@@ -85,7 +80,24 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
     }
   }
 
-  if (!proposal.forVotes) {
+  if (proposal.status === 'Pending') {
+    return (
+      <div className="text-center py-10 glass-panel-elevated rounded-2xl border border-sky-400/20 shadow-[0_0_50px_rgba(125,211,252,0.1)] relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <span className="material-symbols-outlined text-5xl mb-3 text-sky-300 animate-pulse block">
+          schedule
+        </span>
+        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-on-surface-variant mb-2 opacity-60">
+          Voting Starts In
+        </h3>
+        <p className="text-3xl font-mono font-black text-on-surface tracking-tighter">
+          {formatTimeRemaining(proposal.timeRemaining)}
+        </p>
+      </div>
+    )
+  }
+
+  if (!proposal.forVotes && proposal.status !== 'Active') {
     return (
       <div className="text-center py-4 text-on-surface-variant">
         <span className="material-symbols-outlined text-2xl mb-1">info</span>

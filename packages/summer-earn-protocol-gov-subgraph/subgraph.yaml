@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: SummerGovernor
-    network: base
+    network: hyperevm
     source:
       abi: SummerGovernor
-      address: "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
-      startBlock: 38595966
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 20752308
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -43,11 +43,11 @@ dataSources:
       file: ./src/mappings/governance.ts
   - kind: ethereum/contract
     name: SummerGovernorV2
-    network: base
+    network: hyperevm
     source:
       abi: SummerGovernor
-      address: "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274"
-      startBlock: 38595966
+      address: "0x0398DA19EBb8F5DEcdc2E78465c2ef4F2412233b"
+      startBlock: 20752308
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -88,11 +88,11 @@ dataSources:
       file: ./src/mappings/governance.ts
   - kind: ethereum/contract
     name: ProtocolAccessManager
-    network: base
+    network: hyperevm
     source:
       abi: ProtocolAccessManager
-      address: "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694"
-      startBlock: 38595966
+      address: "0x38fB5a7fa70103dCd9e8A969f3975A77E0fE755f"
+      startBlock: 20752308
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -114,11 +114,11 @@ dataSources:
       file: ./src/mappings/accessManagement.ts  
   - kind: ethereum/contract
     name: SummerGovernanceToken
-    network: base
+    network: hyperevm
     source:
       abi: Votes
-      address: "0x7cC488F2681cFC2A5E8A00184bfA94ea6d520D1c"
-      startBlock: 38595471
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 20752000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -134,10 +134,43 @@ dataSources:
         - event: DelegateVotesChanged(indexed address,uint256,uint256)
           handler: handleDelegateVotesChanged
       file: ./src/mappings/votes.ts
+  - kind: ethereum/contract
+    name: TimelockController
+    network: hyperevm
+    source:
+      abi: SummerTimelockController
+      address: "0x244c6EFC140b9cC4D69d3bf4d9137Dc4195Be86c"
+      startBlock: 20752000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: SummerTimelockController
+          file: ./abis/SummerTimelockController.json 
+      eventHandlers:
+        - event: CallExecuted(indexed bytes32,indexed uint256,address,uint256,bytes)
+          handler: handleCallExecuted
+          receipt: true
+        - event: CallSalt(indexed bytes32,bytes32)  
+          handler: handleCallSalt
+          receipt: true
+        - event: CallScheduled(indexed bytes32,indexed uint256,address,uint256,bytes,bytes32,uint256)
+          handler: handleCallScheduled
+          receipt: true
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleTimelockRoleGranted
+          receipt: true
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleTimelockRoleRevoked
+          receipt: true
+      file: ./src/mappings/timelock.ts
 templates:
   - kind: ethereum/contract
     name: TimelockControllerTemplate
-    network: base
+    network: hyperevm
     source:
       abi: SummerTimelockController
     mapping:
@@ -165,4 +198,4 @@ templates:
         - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
           handler: handleTimelockRoleRevoked
           receipt: true
-      file: ./src/mappings/timelock.ts
+      file: ./src/mappings/timelock.ts      

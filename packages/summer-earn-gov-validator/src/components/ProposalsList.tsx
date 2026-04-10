@@ -5,6 +5,7 @@ import Link from 'next/link'
 
 import { VoteBar } from '@/components/VoteBar'
 import { TransformedProposal } from '@/types/governance'
+import { formatTimeRemaining, formatTimestamp } from '@/utils/timing'
 
 interface ProposalsListProps {
   initialProposals: TransformedProposal[]
@@ -12,6 +13,7 @@ interface ProposalsListProps {
 
 type FilterStatus =
   | 'All'
+  | 'Pending'
   | 'Active'
   | 'Executed'
   | 'Executed on Hub'
@@ -134,6 +136,15 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
           buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
           indicatorColor: 'bg-error',
         }
+      case 'Pending':
+        return {
+          color: 'text-slate-400',
+          bgColor: 'bg-slate-400/10',
+          borderColor: 'border-slate-600/20',
+          glowColor: 'shadow-none',
+          buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
+          indicatorColor: 'bg-slate-400',
+        }
       default:
         return {
           color: 'text-slate-400',
@@ -176,6 +187,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
             {(
               [
                 'All',
+                'Pending',
                 'Active',
                 'Executed',
                 'Executed on Hub',
@@ -289,12 +301,19 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
                     abstain={proposal.abstainPercent}
                   />
                 </div>
-                <div className="flex justify-between items-center text-[10px] text-on-surface-variant">
-                  <span>
-                    {proposal.status === 'Active'
-                      ? `Ends in ${proposal.timeRemaining}`
-                      : proposal.status}
-                  </span>
+                <div className="flex justify-between items-center text-[10px] text-on-surface-variant font-bold tracking-tight">
+                  <div className="flex items-center gap-1.5 opacity-80 uppercase tracking-widest text-[9px]">
+                    <span className="material-symbols-outlined text-[14px]">schedule</span>
+                    <span>
+                      {proposal.status === 'Active'
+                        ? `Ends in ${formatTimeRemaining(proposal.timeRemaining)}`
+                        : proposal.status === 'Pending'
+                          ? `Starts in ${formatTimeRemaining(proposal.timeRemaining)}`
+                          : proposal.status === 'Queued'
+                            ? `Executable @ ${formatTimestamp(proposal.eta)}`
+                            : proposal.status}
+                    </span>
+                  </div>
                   <span>{(proposal.forVotes + proposal.againstVotes).toLocaleString()} Votes</span>
                 </div>
               </div>
