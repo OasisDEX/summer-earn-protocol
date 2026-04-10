@@ -521,9 +521,9 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             "Ark should have 0 shares"
         );
         assertEq(
-            ark.pendingWithdrawalAssets(),
-            amount,
-            "Pending withdrawal tracks USD value"
+            ark.pendingWithdrawalShares(),
+            sharesMinted,
+            "Pending withdrawal tracks shares"
         );
         assertEq(
             ark.totalAssets(),
@@ -550,7 +550,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         assertEq(
-            ark.pendingWithdrawalAssets(),
+            ark.pendingWithdrawalShares(),
             0,
             "Pending withdrawal cleared"
         );
@@ -611,7 +611,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         assertEq(ark.pendingWithdrawalShares(), 0);
-        assertEq(ark.pendingWithdrawalAssets(), 0);
         assertEq(usdc.balanceOf(address(bufferArk)), returnedUsdc);
     }
 
@@ -698,7 +697,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         assertEq(ark.pendingWithdrawalShares(), 0);
-        assertEq(ark.pendingWithdrawalAssets(), 0);
         assertEq(usdc.balanceOf(address(bufferArk)), returnedUsdc);
     }
 

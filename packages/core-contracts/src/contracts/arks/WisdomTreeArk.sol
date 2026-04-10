@@ -14,7 +14,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * @notice Ark for managing off-chain WisdomTree tokenised assets (e.g. WTBTC).
  *
  * @dev Asset tracking model:
- *   totalAssets() = (actualShares * oraclePrice) + pendingDepositAssets + pendingWithdrawalAssets
+ *   totalAssets() = (actualShares * oraclePrice) + pendingDepositAssets + (pendingWithdrawalShares * oraclePrice)
  *
  *   Lifecycle:
  *   1. Deposit (`_board`):
@@ -34,11 +34,11 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *   3. Withdrawal Request (`requestWithdrawal`):
  *      - Calculates equivalent shares and transfers them to `custodianWallet`.
  *      - Reduces `cachedShareBalance` (if frozen) to prevent artificial value propping.
- *      - Increases `pendingWithdrawalAssets`.
+ *      - Increases `pendingWithdrawalShares`.
  *
  *   4. Sweep (`sweep`):
  *      - USDC arrives from WisdomTree. Keeper calls `sweep()`.
- *      - `pendingWithdrawalAssets = 0`. USDC swept to `bufferArk`.
+ *      - `pendingWithdrawalShares = 0`. USDC swept to `bufferArk`.
  */
 contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     using SafeERC20 for IERC20;
@@ -86,7 +86,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     error ArkIsFrozen();
     error InvalidSweepSlippage(Percentage newSlippage, Percentage maxSlippage);
     error InsufficientAssetsReturned(
-        uint256 expectedAssets,
         uint256 receivedAssets,
         uint256 expectedShares,
         uint256 receivedShares
@@ -137,7 +136,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     uint256 public cachedShareBalance;
 
     /// @notice Expected returning USDC amount equivalent to redeemed shares.
-    uint256 public pendingWithdrawalAssets;
     uint256 public pendingWithdrawalShares;
 
     /// @notice Type of Ark (MoneyMarket or NonMoneyMarket)
@@ -202,18 +200,15 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         uint256 currentShares = pendingDepositAssets > 0
             ? cachedShareBalance
             : shareToken.balanceOf(address(this));
-
-        assets =
-            _sharesToAssets(currentShares) +
-            pendingWithdrawalAssets +
-            pendingDepositAssets;
+        uint256 totalShares = currentShares + pendingWithdrawalShares;
+        assets = _sharesToAssets(totalShares) + pendingDepositAssets;
     }
 
     /**
      * @inheritdoc IArkWithWithdrawalRequest
      */
     function assetsInWithdrawalQueue() public view override returns (uint256) {
-        return pendingWithdrawalAssets;
+        return _sharesToAssets(pendingWithdrawalShares);
     }
 
     /**
@@ -294,7 +289,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /**
      * @inheritdoc IArkWithWithdrawalRequest
      * @notice Calculates the equivalent shares for the requested `amount` and sends them to the `custodianWallet`.
-     * @dev Also records the expected returning USDC in `pendingWithdrawalAssets`. Reverts if deposit is pending.
+     * @dev Also records the the pending withdrawal shares. Reverts if deposit is pending.
      */
     function requestWithdrawal(uint256 amount) external override onlyKeeper {
         // Deposits and withdrawals are locked if ark is frozen
@@ -308,8 +303,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         // Transfer the WisdomTree shares off-chain (back to the target wallet)
         shareToken.safeTransfer(custodianWallet, sharesToRedeem);
 
-        // Record the expected returning USDC amount to keep totalAssets continuous
-        pendingWithdrawalAssets += amount;
+        // Record the total pending withdrawal shares for calculations
         pendingWithdrawalShares += sharesToRedeem;
 
         emit SharesSentForRedemption(sharesToRedeem, amount);
@@ -337,7 +331,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
     /**
      * @inheritdoc IArkWithWithdrawalRequest
-     * @notice Sweeps returned USDC to buffer and clears `pendingWithdrawalAssets`.
+     * @notice Sweeps returned USDC to buffer and clears `pendingWithdrawalShares`.
      * @dev Called by keeper after WisdomTree returns the USDC equivalent for the retired shares.
      */
     function sweep()
@@ -359,7 +353,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
         if (returnedShares < pendingWithdrawalSharesMinusSlippage) {
             revert InsufficientAssetsReturned(
-                pendingWithdrawalAssets,
                 returnedAssets,
                 pendingWithdrawalShares,
                 returnedShares
@@ -400,7 +393,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         sweptTokens[0] = address(asset);
         sweptAmounts[0] = amountToSweep;
 
-        pendingWithdrawalAssets = 0;
         pendingWithdrawalShares = 0;
 
         address bufferArk = address(
