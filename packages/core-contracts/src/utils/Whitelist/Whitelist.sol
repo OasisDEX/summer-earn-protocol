@@ -60,9 +60,6 @@ abstract contract Whitelist is IWhitelist {
         if (accounts.length == 0 || accounts.length != allowed.length) {
             revert IProtocolAccessManagerV2.Whitelist_LengthMismatch();
         }
-        if (accounts.length > 200) {
-            revert IProtocolAccessManagerV2.Whitelist_BatchTooLarge();
-        }
         IProtocolAccessManagerV2(_getAccessManager()).setWhitelistedBatch(
             accounts,
             allowed
