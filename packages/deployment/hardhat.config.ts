@@ -3,7 +3,7 @@ import { resolve } from 'path'
 
 import '@nomicfoundation/hardhat-verify'
 import 'hardhat-contract-sizer'
-import './plugins/multiSourceCompile'
+// import './plugins/multiSourceCompile'
 
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
