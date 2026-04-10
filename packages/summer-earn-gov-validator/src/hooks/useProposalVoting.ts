@@ -148,18 +148,18 @@ export function useProposalVoting(proposalId: string | undefined, governorAddres
 
   const votes: ProposalVotes | undefined = proposalVotes
     ? {
-      againstVotes: proposalVotes[0],
-      forVotes: proposalVotes[1],
-      abstainVotes: proposalVotes[2],
-    }
+        againstVotes: proposalVotes[0],
+        forVotes: proposalVotes[1],
+        abstainVotes: proposalVotes[2],
+      }
     : undefined
 
   const userInfo: UserVotingInfo | undefined =
     votingPower !== undefined && hasVoted !== undefined
       ? {
-        votingPower,
-        hasVoted,
-      }
+          votingPower,
+          hasVoted,
+        }
       : undefined
 
   const refetch = () => {
@@ -194,37 +194,27 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
     },
     ...(address
       ? [
-        {
-          address: governorAddress as `0x${string}`,
-          abi: GOVERNOR_ABI,
-          functionName: 'hasVoted' as const,
-          args: [BigInt(proposalId), address],
-          chainId: 8453,
-        },
-      ]
+          {
+            address: governorAddress as `0x${string}`,
+            abi: GOVERNOR_ABI,
+            functionName: 'hasVoted' as const,
+            args: [BigInt(proposalId), address],
+            chainId: 8453,
+          },
+        ]
       : []),
   ])
 
   const tokenContracts =
     address && tokenAddress
       ? [
-        {
-          address: tokenAddress as `0x${string}`,
-          abi: SUMMER_TOKEN_ABI,
-          functionName: 'getVotes' as const,
-          args: [address],
-          chainId: 8453,
-        },
-        {
-          address: tokenAddress as `0x${string}`,
-          abi: SUMMER_TOKEN_ABI,
-          functionName: 'totalSupply' as const,
-          args: [],
-          chainId: 8453,
-        },
-      ]
-      : tokenAddress
-        ? [
+          {
+            address: tokenAddress as `0x${string}`,
+            abi: SUMMER_TOKEN_ABI,
+            functionName: 'getVotes' as const,
+            args: [address],
+            chainId: 8453,
+          },
           {
             address: tokenAddress as `0x${string}`,
             abi: SUMMER_TOKEN_ABI,
@@ -233,6 +223,16 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
             chainId: 8453,
           },
         ]
+      : tokenAddress
+        ? [
+            {
+              address: tokenAddress as `0x${string}`,
+              abi: SUMMER_TOKEN_ABI,
+              functionName: 'totalSupply' as const,
+              args: [],
+              chainId: 8453,
+            },
+          ]
         : []
 
   const contracts = [...proposalContracts, ...tokenContracts]
