@@ -498,7 +498,7 @@ contract FleetCommanderWhitelist is
     function transfer(
         address to,
         uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
+    ) public override(IERC20, ERC20) whenNotPaused returns (bool) {
         if (hasOperatorRole(_msgSender())) {
             return super.transfer(to, amount);
         }
@@ -517,7 +517,7 @@ contract FleetCommanderWhitelist is
         address from,
         address to,
         uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
+    ) public override(IERC20, ERC20) whenNotPaused returns (bool) {
         if (hasOperatorRole(_msgSender())) {
             return super.transferFrom(from, to, amount);
         }
