@@ -106,7 +106,12 @@ contract ProtocolAccessManagerV2 is
         address[] calldata accounts,
         bool[] calldata allowed
     ) external onlyRole(WHITELIST_MANAGER_ROLE) {
-        require(accounts.length == allowed.length, "Length mismatch");
+        if (accounts.length == 0 || accounts.length != allowed.length) {
+            revert Whitelist_LengthMismatch();
+        }
+        if (accounts.length > 200) {
+            revert Whitelist_BatchTooLarge();
+        }
         for (uint256 i = 0; i < accounts.length; i++) {
             _setWhitelisted(accounts[i], allowed[i]);
         }

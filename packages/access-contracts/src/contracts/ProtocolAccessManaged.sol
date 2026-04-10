@@ -129,8 +129,8 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     function _revertIfNotGovernor() private view {
-        if (!_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)) {
-            revert CallerIsNotGovernor(msg.sender);
+        if (!_accessManager.hasRole(GOVERNOR_ROLE, _msgSender())) {
+            revert CallerIsNotGovernor(_msgSender());
         }
     }
 
@@ -157,10 +157,10 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         if (
             !_accessManager.hasRole(
                 generateRole(ContractSpecificRoles.KEEPER_ROLE, address(this)),
-                msg.sender
-            ) && !_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)
+                _msgSender()
+            ) && !_accessManager.hasRole(SUPER_KEEPER_ROLE, _msgSender())
         ) {
-            revert CallerIsNotKeeper(msg.sender);
+            revert CallerIsNotKeeper(_msgSender());
         }
     }
 
@@ -182,8 +182,8 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     function _revertIfNotSuperKeeper() private view {
-        if (!_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)) {
-            revert CallerIsNotSuperKeeper(msg.sender);
+        if (!_accessManager.hasRole(SUPER_KEEPER_ROLE, _msgSender())) {
+            revert CallerIsNotSuperKeeper(_msgSender());
         }
     }
 
@@ -202,10 +202,10 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
             fleetAddress == address(0) ||
             !_accessManager.hasRole(
                 generateRole(ContractSpecificRoles.CURATOR_ROLE, fleetAddress),
-                msg.sender
+                _msgSender()
             )
         ) {
-            revert CallerIsNotCurator(msg.sender);
+            revert CallerIsNotCurator(_msgSender());
         }
     }
 
@@ -227,8 +227,8 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     function _revertIfNotGuardian() private view {
-        if (!_accessManager.hasRole(GUARDIAN_ROLE, msg.sender)) {
-            revert CallerIsNotGuardian(msg.sender);
+        if (!_accessManager.hasRole(GUARDIAN_ROLE, _msgSender())) {
+            revert CallerIsNotGuardian(_msgSender());
         }
     }
 
@@ -253,10 +253,10 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
 
     function _revertIfNotGuardianOrGovernor() private view {
         if (
-            !_accessManager.hasRole(GUARDIAN_ROLE, msg.sender) &&
-            !_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)
+            !_accessManager.hasRole(GUARDIAN_ROLE, _msgSender()) &&
+            !_accessManager.hasRole(GOVERNOR_ROLE, _msgSender())
         ) {
-            revert CallerIsNotGuardianOrGovernor(msg.sender);
+            revert CallerIsNotGuardianOrGovernor(_msgSender());
         }
     }
 
@@ -269,8 +269,8 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     function _revertIfNotDecayController() private view {
-        if (!_accessManager.hasRole(DECAY_CONTROLLER_ROLE, msg.sender)) {
-            revert CallerIsNotDecayController(msg.sender);
+        if (!_accessManager.hasRole(DECAY_CONTROLLER_ROLE, _msgSender())) {
+            revert CallerIsNotDecayController(_msgSender());
         }
     }
 
@@ -290,10 +290,10 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         if (
             !_accessManager.hasRole(
                 _accessManager.FOUNDATION_ROLE(),
-                msg.sender
+                _msgSender()
             )
         ) {
-            revert CallerIsNotFoundation(msg.sender);
+            revert CallerIsNotFoundation(_msgSender());
         }
     }
 

@@ -34,7 +34,7 @@ abstract contract ProtocolAccessManagedV2 is ProtocolAccessManaged {
      * @dev Modifier to check that the caller has the Operator role.
      */
     modifier onlyOperator() {
-        _revertIfNotOperator(msg.sender);
+        _revertIfNotOperator(_msgSender());
         _;
     }
 
