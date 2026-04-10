@@ -23,20 +23,12 @@ import {
 import { dstEidToChainIdMap, isHub } from '../utils/chain'
 import { dataToTuple, getEventLogs } from '../utils/events'
 
-function isGovernorV2(address: string): boolean {
-  return address.toLowerCase() == '0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274'.toLowerCase()
-}
-
 export function handleTimelockChange(event: TimelockChange): void {
   TimelockControllerTemplate.create(event.params.newTimelock)
 }
 
 export function handleProposalCreated(event: ProposalCreated): void {
   if (!isHub(dataSource.network())) {
-    return
-  }
-
-  if (!isGovernorV2(event.address.toHexString())) {
     return
   }
 
@@ -70,9 +62,7 @@ export function handleVoteCast(event: VoteCast): void {
   if (!isHub(dataSource.network())) {
     return
   }
-  if (!isGovernorV2(event.address.toHexString())) {
-    return
-  }
+
   const proposalId = event.params.proposalId.toString()
   const proposal = getOrCreateProposal(proposalId)
 
@@ -104,9 +94,7 @@ export function handleVoteCastWithParams(event: VoteCastWithParams): void {
   if (!isHub(dataSource.network())) {
     return
   }
-  if (!isGovernorV2(event.address.toHexString())) {
-    return
-  }
+
   const proposalId = event.params.proposalId.toString()
   const proposal = getOrCreateProposal(proposalId)
 
@@ -139,9 +127,7 @@ export function handleProposalExecuted(event: ProposalExecuted): void {
   if (!isHub(dataSource.network())) {
     return
   }
-  if (!isGovernorV2(event.address.toHexString())) {
-    return
-  }
+
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
   proposal.status = 'Executed'
   proposal.save()
@@ -151,9 +137,7 @@ export function handleProposalQueued(event: ProposalQueued): void {
   if (!isHub(dataSource.network())) {
     return
   }
-  if (!isGovernorV2(event.address.toHexString())) {
-    return
-  }
+
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
   proposal.status = 'Queued'
   proposal.eta = event.params.etaSeconds
@@ -164,9 +148,7 @@ export function handleProposalCanceled(event: ProposalCanceled): void {
   if (!isHub(dataSource.network())) {
     return
   }
-  if (!isGovernorV2(event.address.toHexString())) {
-    return
-  }
+
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
   proposal.status = 'Canceled'
   proposal.save()
@@ -176,9 +158,7 @@ export function handleProposalSentCrossChain(event: ProposalSentCrossChain): voi
   if (!isHub(dataSource.network())) {
     return
   }
-  if (!isGovernorV2(event.address.toHexString())) {
-    return
-  }
+
   const logs = getEventLogs(event, EventSignature.ProposalExecuted)
   if (logs.length > 0) {
     const log = logs[0]

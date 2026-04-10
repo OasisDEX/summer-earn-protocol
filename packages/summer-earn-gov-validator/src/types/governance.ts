@@ -18,6 +18,7 @@ export type SubgraphProposalStatus = 'Pending' | 'Queued' | 'Executed' | 'Cancel
 
 export interface Proposal {
   id: string
+  governor: string
   targets: string[]
   values: string[]
   calldatas: string[]
@@ -104,4 +105,5 @@ export interface TransformedProposal {
   values: string[]
   calldatas: string[]
   eta: string
+  governor: string
 }

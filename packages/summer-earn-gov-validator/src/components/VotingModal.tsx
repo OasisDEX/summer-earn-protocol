@@ -8,14 +8,21 @@ import { useCastVote, VoteSupport } from '@/hooks/useProposalVoting'
 interface VotingModalProps {
   proposalId: string
   proposalTitle: string
+  governor: string
   isOpen: boolean
   onClose: () => void
 }
 
-export function VotingModal({ proposalId, proposalTitle, isOpen, onClose }: VotingModalProps) {
+export function VotingModal({
+  proposalId,
+  proposalTitle,
+  governor,
+  isOpen,
+  onClose,
+}: VotingModalProps) {
   const [selectedVote, setSelectedVote] = useState<'for' | 'against' | 'abstain' | null>(null)
   const [mounted, setMounted] = useState(false)
-  const { castVote, isVoting, isSuccess, error, isConnected } = useCastVote()
+  const { castVote, isVoting, isSuccess, error, isConnected } = useCastVote(governor)
 
   // Handle client-side mounting for Portal
   React.useEffect(() => {
