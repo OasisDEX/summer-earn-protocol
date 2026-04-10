@@ -380,15 +380,18 @@ abstract contract RoundsVaultBase is
             );
         }
 
-        // 1. Fetch exact liability using ERC-1155 total supply for this specific round
+        // 1. Mark as Settled early
+        roundState[roundId] = RoundState.Settled;
+
+        // 2. Fetch exact liability using ERC-1155 total supply for this specific round
         uint256 frozenAmount = totalSupply(roundId);
 
         Price memory finalExchangeRate;
 
         if (frozenAmount > 0) {
-            // 2. Execute the trade and get the EXACT amount returned by the off-chain reality
+            // 3. Execute the trade and get the EXACT amount returned by the off-chain reality
             uint256 outputAmount = _operate(frozenAmount, roundId);
-            // 3. Construct the precise exchange rate based on the actual execution
+            // 4. Construct the precise exchange rate based on the actual execution
             finalExchangeRate = toPrice(outputAmount, frozenAmount);
         } else {
             // Fallback to 1:1 or preview rate if round was empty
@@ -396,7 +399,6 @@ abstract contract RoundsVaultBase is
         }
 
         _exchangeRateByRound[roundId] = finalExchangeRate;
-        roundState[roundId] = RoundState.Settled;
 
         emit RoundSettled(roundId, finalExchangeRate);
     }
