@@ -36,4 +36,7 @@ interface IRoundsVaultBaseEvents {
 
     /// Emitted when a round is marked as settled
     event RoundSettled(uint256 indexed roundId, Price exchangeRate);
+
+    /// Emitted when the minimum position size is updated
+    event MinPositionSizeUpdated(uint256 oldMin, uint256 newMin);
 }

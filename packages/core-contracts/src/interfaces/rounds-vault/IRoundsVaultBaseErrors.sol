@@ -41,4 +41,11 @@ interface IRoundsVaultBaseErrors {
         IRoundsVaultBaseEnums.RoundState currentRoundState,
         IRoundsVaultBaseEnums.RoundState expectedRoundState
     );
+
+    /// Error thrown when the user's aggregate position size is below the minimum required
+    error RoundsVaultPositionTooSmall(
+        address account,
+        uint256 currentBalance,
+        uint256 minRequired
+    );
 }

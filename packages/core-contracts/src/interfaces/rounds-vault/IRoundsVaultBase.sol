@@ -102,7 +102,7 @@ interface IRoundsVaultBase is IERC4626MultiTokenWrapper {
                 Snapshots the final exchange rate based on actual trade results.
      
         @param roundId The id of the round to be settled
-
+ 
         @dev Only the keeper can call this function
      */
     function setRoundSettled(uint256 roundId) external;
@@ -112,8 +112,20 @@ interface IRoundsVaultBase is IERC4626MultiTokenWrapper {
                 Snapshots the final exchange rate based on actual trade results.
      
         @param roundIds The ids of the rounds to be settled
-
+ 
         @dev Only the keeper can call this function
      */
     function setRoundSettledBatch(uint256[] calldata roundIds) external;
+
+    /**
+        @notice Returns the minimum aggregate position size for a user to enter or exit
+     */
+    function minPositionSize() external view returns (uint256);
+
+    /**
+        @notice Sets the minimum aggregate position size for a user to enter or exit
+     
+        @param minSize The new minimum position size
+     */
+    function setMinPositionSize(uint256 minSize) external;
 }
