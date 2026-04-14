@@ -67,7 +67,7 @@ abstract contract RoundsVaultBase is
     /// @notice The type of the vault (Input or Output) which determines the underlying asset and the exchange asset
     /// Input: Underlying = proxiedVault.asset(), ExchangeAsset = proxiedVault (the shares)
     /// Output: Underlying = proxiedVault (the shares), ExchangeAsset = proxiedVault.asset()
-    BaseVaultType public vaultType;
+    BaseVaultType public immutable VAULT_TYPE;
 
     /**
      * CONSTRUCTOR
@@ -107,7 +107,7 @@ abstract contract RoundsVaultBase is
             _exchangeAsset = IERC4626(proxiedERC4626Vault).asset();
         }
 
-        vaultType = _vaultType;
+        VAULT_TYPE = _vaultType;
         roundState[0] = RoundState.Opened;
     }
 
@@ -363,61 +363,51 @@ abstract contract RoundsVaultBase is
         uint256[] memory values
     ) internal virtual override {
         super._update(from, to, ids, values);
+        uint256 minPositionSize = _minPositionSize;
+        if (minPositionSize == 0) return;
 
-        uint256 minPosSize = _minPositionSize;
-        if (minPosSize == 0) return;
-
-        bool isInputVault = vaultType == BaseVaultType.Input;
+        bool isInputVault = VAULT_TYPE == BaseVaultType.Input;
 
         if (to != address(0) && to != address(this)) {
             _revertIfNotWhitelisted(to);
-
-            uint256 aggregateAssets = _getSimplifiedAggregateAssets(
-                to,
-                isInputVault
-            );
-            if (aggregateAssets > 0 && aggregateAssets < minPosSize) {
-                revert RoundsVaultPositionTooSmall(
-                    to,
-                    aggregateAssets,
-                    minPosSize
-                );
-            }
+            _validateAggregateAssets(to, isInputVault, minPositionSize);
         }
 
         if (from != address(0) && from != address(this)) {
-            uint256 aggregateAssets = _getSimplifiedAggregateAssets(
-                from,
-                isInputVault
-            );
-            if (aggregateAssets > 0 && aggregateAssets < minPosSize) {
-                revert RoundsVaultPositionTooSmall(
-                    from,
-                    aggregateAssets,
-                    minPosSize
-                );
-            }
+            _revertIfNotWhitelisted(from);
+            _validateAggregateAssets(from, isInputVault, minPositionSize);
         }
     }
 
     /**
-     * @dev Simple aggregate calculation based on your "easy" logic:
+     * @dev Validates that the user has at least the minimum position size in the target vault.
      *      - Output Vault receipts (withdrawal queue) are treated as 0 (already gone).
      *      - Input Vault receipts (deposit queue) are treated as assets.
      */
-    function _getSimplifiedAggregateAssets(
+    function _validateAggregateAssets(
         address user,
-        bool isInputVault
-    ) internal view returns (uint256) {
-        uint256 targetAssets = IERC4626(vault()).convertToAssets(
-            IERC4626(vault()).balanceOf(user)
-        );
+        bool isInputVault,
+        uint256 minPositionSize
+    ) internal view {
+        uint256 targetAssets = 0;
+
         if (isInputVault) {
-            // For Input Vault, pending receipts are 1:1 with USDC
-            return targetAssets + balanceOfAll(user);
-        } else {
-            // For Output Vault, pending receipts are ignored (gone)
-            return targetAssets;
+            targetAssets = balanceOfAll(user);
+            if (targetAssets >= minPositionSize) return;
+        }
+
+        IERC4626 targetVault = IERC4626(vault());
+        uint256 shares = targetVault.balanceOf(user);
+
+        if (shares > 0) {
+            targetAssets += targetVault.convertToAssets(shares);
+        }
+        if (targetAssets > 0 && targetAssets < minPositionSize) {
+            revert RoundsVaultPositionTooSmall(
+                user,
+                targetAssets,
+                minPositionSize
+            );
         }
     }
 

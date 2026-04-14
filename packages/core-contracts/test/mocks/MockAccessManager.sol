@@ -1,5 +1,5 @@
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import{IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
+import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
 
 contract MockAccessManager {
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");

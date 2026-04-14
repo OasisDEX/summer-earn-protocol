@@ -180,7 +180,7 @@ contract RoundsVaultTwoPhaseSettlementTest is
         );
         accessManager.setWhitelisted(userA, true);
         accessManager.setWhitelisted(userB, true);
-        accessManager.setWhitelisted(userC, true);        
+        accessManager.setWhitelisted(userC, true);
 
         asset.mint(userA, 100000 ether);
         asset.mint(userB, 100000 ether);
