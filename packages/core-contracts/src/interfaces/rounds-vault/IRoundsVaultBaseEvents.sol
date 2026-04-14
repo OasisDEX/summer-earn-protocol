@@ -39,4 +39,9 @@ interface IRoundsVaultBaseEvents {
 
     /// Emitted when the minimum position size is updated
     event MinPositionSizeUpdated(uint256 oldMin, uint256 newMin);
+    /// Emitted when a stuck round in InSettlement is gracefully rolled back to Opened
+    event EmergencyRoundRolledBack(uint256 indexed roundId);
+
+    /// Emitted when a round that was in Opened state is placed back in InSettlement to attempt settlement again
+    event RoundRetried(uint256 indexed roundId);
 }

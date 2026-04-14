@@ -26,6 +26,13 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * 1. The inheriting contract MUST implement `_getTotalAssetsForFee()`
  * 2. The inheriting contract MUST be ERC20-compliant (same as Tipper)
  * 3. When fee type changes, HWM resets to current assetsPerShare
+ *
+ * The protocol utilizes a global High-Water Mark (HWM) rather than tracking individual
+ * user entry prices. The team acknowledges that this design allows users who deposit
+ * during a drawdown to accrue yield without paying performance fees until the global
+ * HWM is surpassed. This is an intentional architectural decision made to maintain
+ * strict ERC-4626 share fungibility, ensure seamless integration with secondary DeFi
+ * markets, and actively incentivize fresh liquidity during protocol drawdowns.
  */
 abstract contract FlexibleTipper is IFlexibleTipper, Tipper {
     using PercentageUtils for uint256;
@@ -105,10 +112,15 @@ abstract contract FlexibleTipper is IFlexibleTipper, Tipper {
      * @param newRate The new performance fee rate
      * @dev Reverts if the rate exceeds 50%
      */
-    function _setPerformanceFeeRate(Percentage newRate) internal {
+    function _setPerformanceFeeRate(
+        Percentage newRate,
+        address tipJar,
+        uint256 _totalSupply
+    ) internal {
         if (newRate > MAX_PERFORMANCE_FEE_RATE) {
             revert PerformanceFeeRateTooHigh();
         }
+        _accrueTip(tipJar, _totalSupply);
         performanceFeeRate = newRate;
         emit PerformanceFeeRateUpdated(newRate);
     }

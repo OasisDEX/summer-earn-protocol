@@ -60,6 +60,7 @@ contract FleetCommanderWhitelistTest is
         );
         IProtocolAccessManagerV2(address(accessManager))
             .grantWhitelistManagerRole(address(whitelistFleet));
+        accessManager.grantKeeperRole(address(whitelistFleet), keeper);
         vm.stopPrank();
 
         uint256 amount = 1000 * 10 ** 6;
@@ -205,5 +206,64 @@ contract FleetCommanderWhitelistTest is
         );
         whitelistFleet.transfer(whitelistedRecipient, amountToTransfer);
         vm.stopPrank();
+    }
+
+    /**
+     * @notice Only keeper can call tip()
+     */
+    function test_OnlyKeeperCanCallTip() public {
+        vm.startPrank(mockUser);
+        vm.expectRevert();
+        whitelistFleet.tip();
+        vm.stopPrank();
+
+        vm.startPrank(keeper);
+        whitelistFleet.tip();
+        vm.stopPrank();
+    }
+
+    /**
+     * @notice Test that a normal whitelisted user CANNOT transfer if the fleet is paused (M-05).
+     */
+    function test_RevertIfTransferPaused() public {
+        uint256 amountToTransfer = 10 * 10 ** 6;
+        address whitelistedRecipient = makeAddr("whitelistedRecipient");
+
+        vm.startPrank(governor);
+        whitelistFleet.setWhitelisted(whitelistedRecipient, true);
+        whitelistFleet.setFleetTokenTransferability(true); // Enable transfers
+        whitelistFleet.pause();
+        vm.stopPrank();
+
+        vm.startPrank(mockUser);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        whitelistFleet.transfer(whitelistedRecipient, amountToTransfer);
+        vm.stopPrank();
+    }
+
+    /**
+     * @notice Test that a normal whitelisted user CANNOT transferFrom if the fleet is paused (M-05).
+     */
+    function test_RevertIfTransferFromPaused() public {
+        uint256 amountToTransfer = 10 * 10 ** 6;
+        address whitelistedRecipient = makeAddr("whitelistedRecipient");
+
+        vm.startPrank(mockUser);
+        whitelistFleet.approve(address(this), amountToTransfer);
+        vm.stopPrank();
+
+        vm.startPrank(governor);
+        whitelistFleet.setWhitelisted(whitelistedRecipient, true);
+        whitelistFleet.setFleetTokenTransferability(true); // Enable transfers
+        whitelistFleet.setWhitelisted(address(this), true);
+        whitelistFleet.pause();
+        vm.stopPrank();
+
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        whitelistFleet.transferFrom(
+            mockUser,
+            whitelistedRecipient,
+            amountToTransfer
+        );
     }
 }

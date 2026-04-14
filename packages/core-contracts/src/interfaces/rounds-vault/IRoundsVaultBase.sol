@@ -128,4 +128,21 @@ interface IRoundsVaultBase is IERC4626MultiTokenWrapper {
         @param minSize The new minimum position size
      */
     function setMinPositionSize(uint256 minSize) external;
+
+    /**
+        @notice Forces a round that is stuck in the InSettlement state back to the Opened state.
+                This assumes that the operation to settle the round via _operate failed and liquidity needs 
+                to be categorized back to bypass the lock step.
+        @param roundId The ID of the round to be rolled back
+        @dev Only the governor can call this function.
+     */
+    function emergencyRollbackRound(uint256 roundId) external;
+
+    /**
+        @notice Retries a stuck round by putting it back into InSettlement from Opened state.
+        
+        @param roundId The ID of the round to retry.
+        @dev Only the keeper can call this function.
+     */
+    function retryRound(uint256 roundId) external;
 }
