@@ -69,7 +69,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         Percentage.wrap(PERCENTAGE_FACTOR / 2);
 
     /// @notice Timeout for the oracle heartbeat (24 hours)
-    uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 * 60 * 60;
+    uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 hours;
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -539,10 +539,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
             .latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
 
-        if (
-            updatedAt == 0 ||
-            block.timestamp - updatedAt > ORACLE_HEARTBEAT_TIMEOUT
-        ) {
+        if (block.timestamp - updatedAt > ORACLE_HEARTBEAT_TIMEOUT) {
             revert StaleOraclePrice();
         }
 
