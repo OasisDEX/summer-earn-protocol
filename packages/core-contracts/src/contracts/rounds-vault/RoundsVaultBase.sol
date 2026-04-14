@@ -62,7 +62,7 @@ abstract contract RoundsVaultBase is
     mapping(uint256 => RoundState) public roundState;
 
     /// @notice The minimum aggregate position size for a user to enter or exit
-    uint256 private _minPositionSize;
+    uint256 public minPositionSize;
 
     /// @notice The type of the vault (Input or Output) which determines the underlying asset and the exchange asset
     /// Input: Underlying = proxiedVault.asset(), ExchangeAsset = proxiedVault (the shares)
@@ -336,15 +336,11 @@ abstract contract RoundsVaultBase is
     }
 
     /** @inheritdoc IRoundsVaultBase*/
-    function minPositionSize() public view override returns (uint256) {
-        return _minPositionSize;
-    }
-
-    /** @inheritdoc IRoundsVaultBase*/
-    function setMinPositionSize(uint256 minSize) public override onlyGovernor {
-        uint256 oldMin = _minPositionSize;
-        _minPositionSize = minSize;
-        emit MinPositionSizeUpdated(oldMin, minSize);
+    function setMinPositionSize(
+        uint256 minSize
+    ) external override onlyGovernor {
+        emit MinPositionSizeUpdated(minPositionSize, minSize);
+        minPositionSize = minSize;
     }
 
     /**
@@ -363,19 +359,19 @@ abstract contract RoundsVaultBase is
         uint256[] memory values
     ) internal virtual override {
         super._update(from, to, ids, values);
-        uint256 minPositionSize = _minPositionSize;
+        uint256 _minPositionSize = minPositionSize;
         if (minPositionSize == 0) return;
 
         bool isInputVault = VAULT_TYPE == BaseVaultType.Input;
 
         if (to != address(0) && to != address(this)) {
             _revertIfNotWhitelisted(to);
-            _validateAggregateAssets(to, isInputVault, minPositionSize);
+            _validateAggregateAssets(to, isInputVault, _minPositionSize);
         }
 
         if (from != address(0) && from != address(this)) {
             _revertIfNotWhitelisted(from);
-            _validateAggregateAssets(from, isInputVault, minPositionSize);
+            _validateAggregateAssets(from, isInputVault, _minPositionSize);
         }
     }
 
