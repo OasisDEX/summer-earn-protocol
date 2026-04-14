@@ -1,5 +1,5 @@
 import { Telegraf } from 'telegraf'
-import { SupportedNetworks } from '../../summer-earn-gov-validator/src/services/validation'
+import { SupportedNetworks } from './services/validation'
 
 const EXPLORER_URLS: Record<string, string> = {
   [SupportedNetworks.MAINNET]: 'https://etherscan.io/tx/',
@@ -23,7 +23,9 @@ export class TelegramNotifier {
 
   async sendHtml(message: string, overrideChatId?: string | number) {
     try {
-      await this.bot.telegram.sendMessage(overrideChatId || this.chatId, message, { parse_mode: 'HTML' })
+      await this.bot.telegram.sendMessage(overrideChatId || this.chatId, message, {
+        parse_mode: 'HTML',
+      })
     } catch (error) {
       console.error('Error sending Telegram message:', error)
     }
@@ -34,14 +36,23 @@ export class TelegramNotifier {
     return `<a href="${baseUrl}${hash}">View Transaction</a>`
   }
 
-  async notifyProposalCreated(network: SupportedNetworks, governorName: string, proposer: string, txHash: string, actions: any[], overrideChatId?: string | number) {
-    const actionStrings = actions.map((a, i) => {
-      const decodedLine = a.decodedCall 
-        ? `Function: <code>${a.decodedCall.functionName}</code>\n   Decoded: <code>${JSON.stringify(a.decodedCall.args)}</code>`
-        : `Calldata: <code>${a.calldata.slice(0, 66)}...</code>`
-      
-      return `${i + 1}. Target: <code>${a.targetName || a.target}</code>\n   ${decodedLine}`
-    }).join('\n\n')
+  async notifyProposalCreated(
+    network: SupportedNetworks,
+    governorName: string,
+    proposer: string,
+    txHash: string,
+    actions: any[],
+    overrideChatId?: string | number,
+  ) {
+    const actionStrings = actions
+      .map((a, i) => {
+        const decodedLine = a.decodedCall
+          ? `Function: <code>${a.decodedCall.functionName}</code>\n   Decoded: <code>${JSON.stringify(a.decodedCall.args)}</code>`
+          : `Calldata: <code>${a.calldata.slice(0, 66)}...</code>`
+
+        return `${i + 1}. Target: <code>${a.targetName || a.target}</code>\n   ${decodedLine}`
+      })
+      .join('\n\n')
 
     const message = `🏛 <b>New Proposal Created [${network.toUpperCase()}]</b>
 <b>Governor:</b> ${governorName}
@@ -55,7 +66,14 @@ ${actionStrings}
     await this.sendHtml(message, overrideChatId)
   }
 
-  async notifySecurityBypass(network: SupportedNetworks, timelock: string, sender: string, target: string, txHash: string, overrideChatId?: string | number) {
+  async notifySecurityBypass(
+    network: SupportedNetworks,
+    timelock: string,
+    sender: string,
+    target: string,
+    txHash: string,
+    overrideChatId?: string | number,
+  ) {
     const message = `🚨 <b>CRITICAL ALARM: TIMELOCK BYPASS [${network.toUpperCase()}]</b> 🚨
 A transaction was scheduled directly on the Timelock without going through the Governor!
 
@@ -68,17 +86,31 @@ Investigate Immediately`
 
     await this.sendHtml(message, overrideChatId)
   }
-  
-  async notifyGenericEvent(network: SupportedNetworks, title: string, details: string, txHash: string, overrideChatId?: string | number) {
+
+  async notifyGenericEvent(
+    network: SupportedNetworks,
+    title: string,
+    details: string,
+    txHash: string,
+    overrideChatId?: string | number,
+  ) {
     const message = `ℹ️ <b>${title} [${network.toUpperCase()}]</b>
 ${details}
 
 🔗 ${this.formatTxLink(network, txHash)}`
-    
+
     await this.sendHtml(message, overrideChatId)
   }
 
-  async notifyRoleChange(network: SupportedNetworks, action: 'Granted' | 'Revoked', role: string, account: string, sender: string, txHash: string, overrideChatId?: string | number) {
+  async notifyRoleChange(
+    network: SupportedNetworks,
+    action: 'Granted' | 'Revoked',
+    role: string,
+    account: string,
+    sender: string,
+    txHash: string,
+    overrideChatId?: string | number,
+  ) {
     const actionEmoji = action === 'Granted' ? '✅' : '🚫'
     const message = `${actionEmoji} <b>Role ${action} [${network.toUpperCase()}]</b>
 <b>Role:</b> <code>${role}</code>

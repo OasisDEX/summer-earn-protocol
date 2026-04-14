@@ -1,0 +1,22 @@
+{
+    "family": "summer-earn-gov-alert-bot",
+    "containerDefinitions": [
+        {
+            "name": "summer-earn-gov-alert-bot",
+            "image": "",
+            "essential": true,
+            "memory": 512,
+            "memoryReservation": 256,
+            "environment": [
+                {
+                    "name": "TELEGRAM_BOT_TOKEN",
+                    "value": ""
+                },
+                {
+                    "name": "TELEGRAM_CHAT_ID",
+                    "value": ""
+                }
+            ]
+        }
+    ]
+}

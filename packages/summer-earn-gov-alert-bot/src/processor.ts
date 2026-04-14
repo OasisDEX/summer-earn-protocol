@@ -1,9 +1,5 @@
 import { PublicClient, Log, decodeEventLog } from 'viem'
-import { 
-  SupportedNetworks, 
-  decodeCalldata, 
-  addresToContractName 
-} from '../../summer-earn-gov-validator/src/services/validation'
+import { SupportedNetworks, decodeCalldata, addresToContractName } from './services/validation'
 import { getGovernorAddresses, getTimelockAddress } from './config'
 import { TelegramNotifier } from './telegram'
 import { GOVERNOR_EVENTS, TIMELOCK_EVENTS } from './abis'
@@ -21,7 +17,7 @@ export class EventProcessor {
     private notifier: TelegramNotifier,
     private network: SupportedNetworks,
     private client: PublicClient,
-    private targetChatId?: string | number
+    private targetChatId?: string | number,
   ) {}
 
   private decodeRoleHash(role: string): string {
@@ -34,9 +30,9 @@ export class EventProcessor {
         const decoded = decodeEventLog({
           abi: GOVERNOR_EVENTS,
           data: log.data,
-          topics: log.topics,
+          topics: (log as any).topics,
           strict: false,
-        })
+        }) as any
 
         if (!decoded) continue
 
@@ -48,7 +44,7 @@ export class EventProcessor {
             target,
             targetName: addresToContractName(target, this.network),
             calldata: calldatas[i],
-            decodedCall: decodeCalldata(calldatas[i], target, this.network)
+            decodedCall: decodeCalldata(calldatas[i], target, this.network),
           }))
 
           await this.notifier.notifyProposalCreated(
@@ -57,7 +53,7 @@ export class EventProcessor {
             proposer,
             log.transactionHash!,
             actions,
-            this.targetChatId
+            this.targetChatId,
           )
         } else if (decoded.eventName === 'RoleGranted' || decoded.eventName === 'RoleRevoked') {
           const { role, account, sender } = decoded.args as any
@@ -68,7 +64,7 @@ export class EventProcessor {
             account,
             sender,
             log.transactionHash!,
-            this.targetChatId
+            this.targetChatId,
           )
         } else {
           await this.notifier.notifyGenericEvent(
@@ -76,7 +72,7 @@ export class EventProcessor {
             `Governor: ${decoded.eventName}`,
             `Proposal ID: ${decoded.args.proposalId}\nGovernor: ${governorName}`,
             log.transactionHash!,
-            this.targetChatId
+            this.targetChatId,
           )
         }
       } catch (error) {
@@ -89,7 +85,7 @@ export class EventProcessor {
   }
 
   async processTimelockLogs(logs: Log[]) {
-    const governorAddresses = getGovernorAddresses(this.network).map(a => a.toLowerCase())
+    const governorAddresses = getGovernorAddresses(this.network).map((a) => a.toLowerCase())
     const timelockAddress = getTimelockAddress(this.network)
 
     for (const log of logs) {
@@ -97,18 +93,18 @@ export class EventProcessor {
         const decoded = decodeEventLog({
           abi: TIMELOCK_EVENTS,
           data: log.data,
-          topics: log.topics,
+          topics: (log as any).topics,
           strict: false,
-        })
+        }) as any
 
         if (!decoded) continue
 
         if (decoded.eventName === 'CallScheduled') {
           const tx = await this.client.getTransaction({ hash: log.transactionHash! })
           const sender = tx.from.toLowerCase()
-          
+
           const isGovernor = governorAddresses.includes(sender)
-          
+
           if (!isGovernor) {
             await this.notifier.notifySecurityBypass(
               this.network,
@@ -116,7 +112,7 @@ export class EventProcessor {
               sender,
               (decoded.args as any).target,
               log.transactionHash!,
-              this.targetChatId
+              this.targetChatId,
             )
           } else {
             // Normal scheduling via Governor
@@ -125,7 +121,7 @@ export class EventProcessor {
               'Timelock: Call Scheduled',
               `Target: ${addresToContractName((decoded.args as any).target, this.network)}`,
               log.transactionHash!,
-              this.targetChatId
+              this.targetChatId,
             )
           }
         } else if (decoded.eventName === 'RoleGranted' || decoded.eventName === 'RoleRevoked') {
@@ -137,7 +133,7 @@ export class EventProcessor {
             account,
             sender,
             log.transactionHash!,
-            this.targetChatId
+            this.targetChatId,
           )
         } else {
           await this.notifier.notifyGenericEvent(
@@ -145,7 +141,7 @@ export class EventProcessor {
             `Timelock: ${decoded.eventName}`,
             `Operation ID: ${decoded.args.id}`,
             log.transactionHash!,
-            this.targetChatId
+            this.targetChatId,
           )
         }
       } catch (error) {

@@ -4,7 +4,7 @@ import { loadState, saveState } from './state'
 import { Poller } from './poller'
 import { TelegramNotifier } from './telegram'
 
-dotenv.config({ path: "../../.env" })
+dotenv.config({ path: '../../.env' })
 
 const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN
 const TG_CHAT_ID = process.env.TG_CHAT_ID
@@ -72,8 +72,9 @@ cron.schedule('*/30 * * * *', () => {
 })
 
 // Start Bot Listener
-notifier.launch()
+notifier
+  .launch()
   .then(() => console.log('Telegram command listener active.'))
-  .catch(err => console.error('Failed to launch Telegram listener:', err))
+  .catch((err) => console.error('Failed to launch Telegram listener:', err))
 
 console.log('Governance Alert Bot is running...')

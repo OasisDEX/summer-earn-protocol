@@ -1,6 +1,6 @@
 import { mainnet, base, arbitrum, sonic } from 'viem/chains'
-import { SupportedNetworks } from '../../summer-earn-gov-validator/src/services/validation'
-import validatorConfig from '../../summer-earn-gov-validator/src/config/index.json'
+import { SupportedNetworks } from './services/validation'
+import validatorConfig from './config/index.json'
 
 export const viemChains = {
   [SupportedNetworks.MAINNET]: mainnet,
@@ -16,14 +16,16 @@ export const getNetworkConfig = (network: SupportedNetworks) => {
 export const getGovernorAddresses = (network: SupportedNetworks): `0x${string}`[] => {
   const cfg = getNetworkConfig(network)
   const addresses: `0x${string}`[] = []
-  
+
   if (cfg.deployedContracts?.gov?.summerGovernor?.address) {
     addresses.push(cfg.deployedContracts.gov.summerGovernor.address.toLowerCase() as `0x${string}`)
   }
   if (cfg.deployedContracts?.govV2?.summerGovernor?.address) {
-    addresses.push(cfg.deployedContracts.govV2.summerGovernor.address.toLowerCase() as `0x${string}`)
+    addresses.push(
+      cfg.deployedContracts.govV2.summerGovernor.address.toLowerCase() as `0x${string}`,
+    )
   }
-  
+
   return addresses
 }
 

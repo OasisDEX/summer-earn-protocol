@@ -19,7 +19,11 @@
     "format:fix": "turbo run format:fix",
     "coverage": "turbo run coverage --cache-dir=.turbo",
     "coverage:lcov": "turbo run coverage:lcov --cache-dir=.turbo",
-    "prepare": "husky"
+    "prepare": "husky",
+    "infra:init": "cd infrastructure && terraform init",
+    "infra:plan": "cd infrastructure && terraform plan",
+    "infra:apply": "cd infrastructure && terraform apply",
+    "infra:validate": "cd infrastructure && terraform validate"
   },
   "devDependencies": {
     "@summerfi/eslint-config": "workspace:*",
