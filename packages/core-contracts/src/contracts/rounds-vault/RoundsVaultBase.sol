@@ -111,7 +111,7 @@ abstract contract RoundsVaultBase is
      */
     function nextRound() external onlyKeeper {
         uint256 closingRound = _roundNumber;
-        
+
         _startSettlement(closingRound);
 
         _roundNumber++;
@@ -125,6 +125,10 @@ abstract contract RoundsVaultBase is
      * @inheritdoc IRoundsVaultBase
      */
     function retryRound(uint256 roundId) external onlyKeeper {
+        if (roundId >= _roundNumber) {
+            revert CannotRetryCurrentRound(roundId, _roundNumber);
+        }
+
         _startSettlement(roundId);
         emit RoundRetried(roundId);
     }
