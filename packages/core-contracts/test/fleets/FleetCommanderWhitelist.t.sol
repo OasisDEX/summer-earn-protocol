@@ -64,12 +64,22 @@ contract FleetCommanderWhitelistTest is
 
         uint256 amount = 1000 * 10 ** 6;
 
-        // Whitelist users
         vm.startPrank(governor);
-        whitelistFleet.setWhitelisted(mockUser, true);
-        whitelistFleet.setWhitelisted(operator, true);
-        // Note: setFleetTokenTransferability is NOT called here.
-        // It stays FALSE (default) to test operator bypasses.
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(whitelistFleet),
+            mockUser,
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(whitelistFleet),
+            operator,
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(whitelistFleet),
+            mockUser2,
+            true
+        );
         vm.stopPrank();
 
         // Operator deposits for themselves and for mockUser
@@ -85,7 +95,9 @@ contract FleetCommanderWhitelistTest is
      * @notice Test that an account with OPERATOR_ROLE can transfer to a non-whitelisted user,
      * even when general transfers are disabled (transfersEnabled = false).
      */
-    function test_OperatorBypass_TransferToNonWhitelisted_AndDisabled() public {
+    function test_OperatorCanBypass_TransferToNonWhitelisted_AndDisabled()
+        public
+    {
         uint256 amountToTransfer = 100 * 10 ** 6;
 
         // General transfers are disabled (already set in setUp)
@@ -106,7 +118,7 @@ contract FleetCommanderWhitelistTest is
      * @notice Test that an account with OPERATOR_ROLE can transferFrom a whitelisted user
      * to a non-whitelisted user, even when general transfers are disabled.
      */
-    function test_OperatorBypass_TransferFromToNonWhitelisted_AndDisabled()
+    function test_OperatorCanBypass_TransferFromToNonWhitelisted_AndDisabled()
         public
     {
         uint256 amountToTransfer = 100 * 10 ** 6;
@@ -161,7 +173,11 @@ contract FleetCommanderWhitelistTest is
 
         address mockUser2 = makeAddr("mockUser2");
         vm.startPrank(governor);
-        whitelistFleet.setWhitelisted(mockUser2, true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(whitelistFleet),
+            mockUser2,
+            true
+        );
         whitelistFleet.setFleetTokenTransferability(true); // Enable transfers
         vm.stopPrank();
 
@@ -196,7 +212,11 @@ contract FleetCommanderWhitelistTest is
         address whitelistedRecipient = makeAddr("whitelistedRecipient");
 
         vm.prank(governor);
-        whitelistFleet.setWhitelisted(whitelistedRecipient, true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(whitelistFleet),
+            whitelistedRecipient,
+            true
+        );
         // Transfers stay DISABLED (default)
 
         vm.startPrank(mockUser);

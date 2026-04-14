@@ -6,33 +6,24 @@ import {IWhitelistEvents} from "./IWhitelistEvents.sol";
 /**
  * @title IWhitelist
  * @notice Interface for the Whitelist contract
- * @dev This contract provides a whitelist utility with events and an optional "open" mode.
- *      Use `onlyWhitelisted(account)` to gate functions. Manage status via
- *      `setWhitelisted` or `setWhitelistedBatch`. If `address(0)` is set to
- *      allowed, the whitelist becomes open and all accounts are considered allowed.
+ * @dev This contract provides a whitelist utility that delegates to a per-context central logic.
+ *      Use `onlyWhitelisted(context, account)` to gate functions.
  */
 interface IWhitelist is IWhitelistEvents {
     /**
-     * @notice Returns true if `account` is whitelisted.
-     * @dev Returns true for any account when the whitelist is open.
+     * @notice Checks if an account is whitelisted for a specific context
+     * @param context The context for which the account status is checked
+     * @param account The account to check
+     * @return True if the account is whitelisted or if the whitelist for the context is set to open mode
      */
-    function isWhitelisted(address account) external view returns (bool);
-    /**
-     * @notice Sets the whitelist status for an account
-     * @dev Inheriting contracts must implement access control
-     * @param account The account to set the whitelist status for
-     * @param allowed The whitelist status to set
-     */
-    function setWhitelisted(address account, bool allowed) external;
+    function isWhitelisted(
+        address context,
+        address account
+    ) external view returns (bool);
 
     /**
-     * @notice Sets the whitelist status for a batch of accounts
-     * @dev Inheriting contracts must implement access control
-     * @param accounts The accounts to set the whitelist status for
-     * @param allowed The whitelist status to set
+     * @notice Returns true if the whitelist for a specific context is globally open
+     * @param context The context to check
      */
-    function setWhitelistedBatch(
-        address[] memory accounts,
-        bool[] memory allowed
-    ) external;
+    function isWhitelistOpen(address context) external view returns (bool);
 }

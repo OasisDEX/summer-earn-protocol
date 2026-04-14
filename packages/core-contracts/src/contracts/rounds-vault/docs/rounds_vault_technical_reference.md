@@ -64,16 +64,15 @@ checks to the central manager.
 classDiagram
     class ProtocolAccessManagerV2 {
         -_whitelisted : mapping
-        +isWhitelisted(account) bool
-        +setWhitelisted(account, allowed)
+        +isWhitelisted(context, account) bool
+        +setWhitelisted(context, account, allowed)
         +grantOperatorRole(target, account)
     }
 
     class WhitelistProxy {
         <<abstract>>
         #_getAccessManager() address
-        +isWhitelisted(account) bool
-        +setWhitelisted(account, allowed)
+        +isWhitelisted(context, account) bool
     }
 
     class RoundsVaultBase {
@@ -485,8 +484,8 @@ balance changes.
 
 | Function                    | Contract       | Role Required       | What it does                                |
 | --------------------------- | -------------- | ------------------- | ------------------------------------------- |
-| `setWhitelisted(acc, bool)` | PAMV2          | `WHITELIST_MANAGER` | Updates global whitelist status             |
-| `setWhitelistedBatch(...)`  | PAMV2          | `WHITELIST_MANAGER` | Batch updates global whitelist              |
+| `setWhitelisted(ctx, acc, bool)` | PAMV2          | `WHITELIST_MANAGER` | Updates global whitelist status for context |
+| `setWhitelistedBatch(...)`   | PAMV2          | `WHITELIST_MANAGER` | Batch updates context-specific whitelist     |
 | `grantOperatorRole(...)`    | PAMV2          | `GOVERNOR_ROLE`     | Authorizes an vault/contract as an Operator |
 | `setOperatorGatewayStatus`  | FleetCommander | `GOVERNOR_ROLE`     | Toggles direct user access to Fleet         |
 | `setTipRate(Percentage)`    | FleetCommander | `GOVERNOR_ROLE`     | Updates protocol fee rate                   |

@@ -145,22 +145,6 @@ abstract contract RoundsVaultBase is
         }
     }
 
-    ///@inheritdoc Whitelist
-    function setWhitelisted(
-        address account,
-        bool allowed
-    ) public override onlyGovernor {
-        super.setWhitelisted(account, allowed);
-    }
-
-    ///@inheritdoc Whitelist
-    function setWhitelistedBatch(
-        address[] memory accounts,
-        bool[] memory allowed
-    ) public override onlyGovernor {
-        super.setWhitelistedBatch(accounts, allowed);
-    }
-
     /**
      * @dev Implementation of the Whitelist proxy adapter's virtual hook.
      */
@@ -178,10 +162,13 @@ abstract contract RoundsVaultBase is
         public
         virtual
         override(IERC4626MultiToken, ERC4626MultiToken)
-        onlyWhitelisted(receiver)
-        onlyWhitelisted(_msgSender())
         returns (uint256)
     {
+        address[] memory accounts = new address[](2);
+        accounts[0] = receiver;
+        accounts[1] = _msgSender();
+        _revertIfNotWhitelisted(vault(), accounts);
+
         return super.deposit(assets, receiver);
     }
 
@@ -197,11 +184,13 @@ abstract contract RoundsVaultBase is
         public
         virtual
         override(IERC4626MultiToken, ERC4626MultiToken)
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        onlyWhitelisted(_msgSender())
         returns (uint256)
     {
+        address[] memory accounts = new address[](3);
+        accounts[0] = owner;
+        accounts[1] = receiver;
+        accounts[2] = _msgSender();
+        _revertIfNotWhitelisted(vault(), accounts);
         if (id != _roundNumber) {
             revert CanOnlyRedeemCurrentRound(id, _roundNumber);
         }
@@ -224,11 +213,13 @@ abstract contract RoundsVaultBase is
         public
         virtual
         override(IERC4626MultiToken, ERC4626MultiToken)
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        onlyWhitelisted(_msgSender())
         returns (uint256 assets)
     {
+        address[] memory accounts = new address[](3);
+        accounts[0] = owner;
+        accounts[1] = receiver;
+        accounts[2] = _msgSender();
+        _revertIfNotWhitelisted(vault(), accounts);
         for (uint256 i = 0; i < ids.length; i++) {
             if (ids[i] != _roundNumber) {
                 revert CanOnlyRedeemCurrentRound(ids[i], _roundNumber);
@@ -246,13 +237,13 @@ abstract contract RoundsVaultBase is
         uint256 amount,
         address receiver,
         address owner
-    )
-        public
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        onlyWhitelisted(_msgSender())
-        returns (uint256)
-    {
+    ) public returns (uint256) {
+        address[] memory accounts = new address[](3);
+        accounts[0] = owner;
+        accounts[1] = receiver;
+        accounts[2] = _msgSender();
+        _revertIfNotWhitelisted(vault(), accounts);
+
         if (id >= _roundNumber) {
             revert CannotRedeeemExchangeAssetCurrentRound(id, _roundNumber);
         }
@@ -277,13 +268,12 @@ abstract contract RoundsVaultBase is
         uint256[] calldata amounts,
         address receiver,
         address owner
-    )
-        public
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        onlyWhitelisted(_msgSender())
-        returns (uint256 shares)
-    {
+    ) public returns (uint256 shares) {
+        address[] memory accounts = new address[](3);
+        accounts[0] = owner;
+        accounts[1] = receiver;
+        accounts[2] = _msgSender();
+        _revertIfNotWhitelisted(vault(), accounts);
         if (ids.length != amounts.length) {
             revert BadRedeemBatchParameters(ids.length, amounts.length);
         }

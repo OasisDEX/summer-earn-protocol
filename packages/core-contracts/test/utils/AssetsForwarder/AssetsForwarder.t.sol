@@ -47,8 +47,8 @@ contract AssetsForwarderTest is
         accessManager.grantKeeperRole(address(forwarder), keeper);
         accessManager.grantWhitelistManagerRole(address(forwarder));
         // Setup whitelisted users
-        forwarder.setWhitelisted(whitelistedUser, true);
-        forwarder.setWhitelisted(target, true);
+        accessManager.setWhitelisted(address(forwarder), whitelistedUser, true);
+        accessManager.setWhitelisted(address(forwarder), target, true);
         vm.stopPrank();
 
         token = new MockERC20();
@@ -79,7 +79,11 @@ contract AssetsForwarderTest is
         token.approve(address(forwarder), amount);
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, nonWhitelistedUser)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(forwarder),
+                nonWhitelistedUser
+            )
         );
         forwarder.forwardAsset(target, address(token), amount);
         vm.stopPrank();
@@ -107,7 +111,11 @@ contract AssetsForwarderTest is
 
         vm.startPrank(nonWhitelistedUser);
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, nonWhitelistedUser)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(forwarder),
+                nonWhitelistedUser
+            )
         );
         forwarder.sendAsset(target, address(token), amount);
         vm.stopPrank();
@@ -144,41 +152,16 @@ contract AssetsForwarderTest is
         vm.stopPrank();
     }
 
-    function test_setWhitelisted_revertIfNotGovernor() public {
-        vm.startPrank(nonWhitelistedUser);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CallerIsNotGovernor.selector,
-                nonWhitelistedUser
-            )
-        );
-        forwarder.setWhitelisted(nonWhitelistedUser, true);
-        vm.stopPrank();
-    }
-
-    function test_setWhitelistedBatch_revertIfNotGovernor() public {
-        address[] memory accounts = new address[](1);
-        accounts[0] = nonWhitelistedUser;
-        bool[] memory allowed = new bool[](1);
-        allowed[0] = true;
-
-        vm.startPrank(nonWhitelistedUser);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CallerIsNotGovernor.selector,
-                nonWhitelistedUser
-            )
-        );
-        forwarder.setWhitelistedBatch(accounts, allowed);
-        vm.stopPrank();
-    }
-
     function test_validateInputs_revertZeroAddress() public {
         vm.startPrank(whitelistedUser);
 
         // address(0) is not whitelisted, so this will revert with NotWhitelisted(address(0)) first
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, address(0))
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(forwarder),
+                address(0)
+            )
         );
         forwarder.forwardAsset(address(0), address(token), 100);
 

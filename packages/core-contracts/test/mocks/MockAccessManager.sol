@@ -9,39 +9,34 @@ import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IP
  * @notice Mock implementation of AccessManager for testing
  */
 contract MockAccessManager {
-    mapping(address => bool) public governors;
+    bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
+    bytes32 public constant FOUNDATION_ROLE = keccak256("FOUNDATION_ROLE");
+
     mapping(bytes32 => mapping(address => bool)) public roles;
     mapping(address => mapping(address => bool)) public whitelisted;
     mapping(address => bool) public whitelistOpen;
-
-    constructor() {
-        governors[msg.sender] = true;
-    }
-
-    function setGovernor(address governor, bool isGovernor) external {
-        governors[governor] = isGovernor;
-    }
 
     function hasRole(
         bytes32 role,
         address account
     ) external view returns (bool) {
-        if (role == keccak256("GOVERNOR_ROLE")) {
-            return governors[account];
-        }
         return roles[role][account];
     }
 
-    function setRole(bytes32 role, address account, bool _hasRole) external {
-        roles[role][account] = _hasRole;
+    function grantRole(bytes32 role, address account) external {
+        roles[role][account] = true;
+    }
+
+    function revokeRole(bytes32 role, address account) external {
+        roles[role][account] = false;
     }
 
     function supportsInterface(
         bytes4 interfaceId
     ) external pure returns (bool) {
         return
-            interfaceId == type(IProtocolAccessManager).interfaceId ||
-            interfaceId == type(IProtocolAccessManagerV2).interfaceId;
+            interfaceId == type(IProtocolAccessManagerV2).interfaceId ||
+            interfaceId == type(IProtocolAccessManager).interfaceId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -52,17 +47,15 @@ contract MockAccessManager {
         address context,
         address account
     ) external view returns (bool) {
-        return
-            whitelistOpen[context] ||
-            whitelisted[context][account];
+        return whitelistOpen[context] || whitelisted[context][account];
     }
 
     function areWhitelisted(
         address context,
         address[] calldata accounts
     ) external view returns (bool[] memory statuses) {
-        bool isOpen = whitelistOpen[context];
         statuses = new bool[](accounts.length);
+        bool isOpen = whitelistOpen[context];
         for (uint256 i = 0; i < accounts.length; i++) {
             statuses[i] = isOpen || whitelisted[context][accounts[i]];
         }

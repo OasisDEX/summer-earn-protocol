@@ -11,28 +11,10 @@ import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
 import {IRoundsVaultBaseEnums} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {MockAccessManager} from "../mocks/MockAccessManager.sol";
+import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-// [MockAccessManager and MockTargetVault remain identical to your draft]
-contract MockAccessManager {
-    mapping(bytes32 => mapping(address => bool)) public roles;
-    function hasRole(
-        bytes32 role,
-        address account
-    ) external view returns (bool) {
-        return roles[role][account];
-    }
-    function grantRole(bytes32 role, address account) external {
-        roles[role][account] = true;
-    }
-    function supportsInterface(bytes4) external pure returns (bool) {
-        return true;
-    }
-    function isWhitelisted(address) external pure returns (bool) {
-        return true;
-    }
-}
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 contract MockTargetVault is ERC20, IERC4626 {
     address public immutable underlying;
@@ -178,6 +160,8 @@ contract RoundsVaultTwoPhaseSettlementTest is
             address(accessManager),
             ""
         );
+
+        accessManager.setWhitelistOpen(address(targetVault), true);
 
         accessManager.grantRole(
             keccak256(
