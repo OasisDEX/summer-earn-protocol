@@ -3,16 +3,16 @@ pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 
+import {FlexibleTipper} from "../../src/contracts/FlexibleTipper.sol";
 import {ITipperEvents} from "../../src/events/ITipperEvents.sol";
 import {IFlexibleTipper} from "../../src/interfaces/IFlexibleTipper.sol";
-import {FlexibleTipper} from "../../src/contracts/FlexibleTipper.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 import {Constants} from "@summerfi/constants/Constants.sol";
-import {Percentage, toPercentage, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_100, Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 // ============================================================================
@@ -120,7 +120,7 @@ contract FlexibleTipperTest is Test, ITipperEvents {
     address public tipJar = address(0xFEE);
     address public user = address(0xBEEF);
 
-    uint256 constant INITIAL_DEPOSIT = 1_000_000e6; // 1M USDC (6 decimals)
+    uint256 constant INITIAL_DEPOSIT = 1000000e6; // 1M USDC (6 decimals)
 
     function setUp() public {
         asset = new MockAsset();
@@ -189,7 +189,7 @@ contract FlexibleTipperTest is Test, ITipperEvents {
 
     function test_AUMOnly_NoPerformanceFee() public {
         // Even with profit, AUM mode should NOT charge performance fee
-        vault.simulateYield(100_000e6); // 100k yield
+        vault.simulateYield(100000e6); // 100k yield
 
         vm.warp(block.timestamp + 30 days);
 
@@ -234,7 +234,7 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         vault.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(20)); // 20%
 
         // Simulate 10% yield: 100k on 1M
-        vault.simulateYield(100_000e6);
+        vault.simulateYield(100000e6);
 
         vm.warp(block.timestamp + 1); // just advance 1 second to ensure timestamp changes
 
@@ -249,9 +249,9 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         // 20% of 100k = 20k assets
         // shares = 20k * totalSupply / totalAssets ≈ 20k * 1M / 1.1M ≈ 18181.8 shares
         // Allow 1% tolerance for rounding
-        uint256 expectedFeeAssets = 20_000e6;
+        uint256 expectedFeeAssets = 20000e6;
         uint256 expectedFeeShares = (expectedFeeAssets *
-            (INITIAL_DEPOSIT + feeShares)) / (INITIAL_DEPOSIT + 100_000e6);
+            (INITIAL_DEPOSIT + feeShares)) / (INITIAL_DEPOSIT + 100000e6);
 
         assertApproxEqAbs(
             feeShares,
@@ -267,7 +267,7 @@ contract FlexibleTipperTest is Test, ITipperEvents {
 
         uint256 hwmBefore = vault.highWaterMark();
 
-        vault.simulateYield(100_000e6);
+        vault.simulateYield(100000e6);
         vm.warp(block.timestamp + 1);
         vault.tip();
 
@@ -286,14 +286,14 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         vault.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(20));
 
         // First: gain → triggers fee and sets HWM high
-        vault.simulateYield(100_000e6);
+        vault.simulateYield(100000e6);
         vm.warp(block.timestamp + 1);
         vault.tip();
 
         uint256 hwmAfterGain = vault.highWaterMark();
 
         // Then: loss
-        vault.simulateLoss(200_000e6); // lose more than gained
+        vault.simulateLoss(200000e6); // lose more than gained
 
         vm.warp(block.timestamp + 1);
         uint256 tipBefore = IERC20(address(vault)).balanceOf(tipJar);
@@ -313,18 +313,18 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         vault.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(20));
 
         // Gain → fee accrued
-        vault.simulateYield(100_000e6);
+        vault.simulateYield(100000e6);
         vm.warp(block.timestamp + 1);
         vault.tip();
         uint256 hwm1 = vault.highWaterMark();
 
         // Loss → no fee
-        vault.simulateLoss(50_000e6);
+        vault.simulateLoss(50000e6);
         vm.warp(block.timestamp + 1);
         vault.tip();
 
         // Partial recovery: gain 30k (still below original HWM)
-        vault.simulateYield(30_000e6);
+        vault.simulateYield(30000e6);
         vm.warp(block.timestamp + 1);
 
         uint256 tipBefore = IERC20(address(vault)).balanceOf(tipJar);
@@ -358,7 +358,7 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         vault.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(20));
 
         // Simulate yield
-        vault.simulateYield(100_000e6);
+        vault.simulateYield(100000e6);
 
         // Advance time for AUM
         vm.warp(block.timestamp + 365 days);
@@ -455,13 +455,13 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         vault.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(20));
 
         // Gain -> HWM goes up
-        vault.simulateYield(200_000e6);
+        vault.simulateYield(200000e6);
         vm.warp(block.timestamp + 1);
         vault.tip();
         uint256 hwmAfterGain = vault.highWaterMark();
 
         // Loss -> APS drops below HWM
-        vault.simulateLoss(300_000e6);
+        vault.simulateLoss(300000e6);
 
         // Current APS is below HWM
         uint256 currentAPS = (vault.totalAssets() * 1e18) / vault.totalSupply();
@@ -487,7 +487,7 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         );
 
         // Now any new yield triggers a performance fee (from the new, lower HWM)
-        vault.simulateYield(50_000e6);
+        vault.simulateYield(50000e6);
         vm.warp(block.timestamp + 1);
 
         uint256 tipBefore = IERC20(address(vault)).balanceOf(tipJar);
@@ -524,12 +524,12 @@ contract FlexibleTipperTest is Test, ITipperEvents {
     /// @notice In AUM-only mode, previewTip should only return AUM shares (no perf).
     function test_PreviewTip_AUMOnly_NoPerformanceFeePreview() public {
         // yield + time
-        vault.simulateYield(100_000e6);
+        vault.simulateYield(100000e6);
         vm.warp(block.timestamp + 365 days);
 
         uint256 rawSupply = vault.totalSupply(); // view context — includes preview
         // Since we're in AUM mode, previewTip should not include performance fee
-        uint256 preview = vault.previewTip(tipJar, 1_000_000e6); // raw supply
+        uint256 preview = vault.previewTip(tipJar, 1000000e6); // raw supply
         // Should be AUM only
         assertGt(preview, 0, "AUM preview should be > 0");
     }
@@ -540,7 +540,7 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         vault.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(20));
 
         // 10% yield
-        vault.simulateYield(100_000e6);
+        vault.simulateYield(100000e6);
 
         uint256 rawSupply = ERC20(address(vault)).totalSupply(); // bypass the override
         uint256 preview = vault.previewTip(tipJar, rawSupply);
@@ -554,7 +554,7 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         vault.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(20));
 
         // 10% yield
-        vault.simulateYield(100_000e6);
+        vault.simulateYield(100000e6);
         vm.warp(block.timestamp + 1); // need at least 1s for timestamp update
 
         uint256 rawSupply = ERC20(address(vault)).totalSupply();

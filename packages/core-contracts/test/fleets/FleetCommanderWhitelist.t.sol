@@ -60,6 +60,7 @@ contract FleetCommanderWhitelistTest is
         );
         IProtocolAccessManagerV2(address(accessManager))
             .grantWhitelistManagerRole(address(whitelistFleet));
+        accessManager.grantKeeperRole(address(whitelistFleet), keeper);
         vm.stopPrank();
 
         uint256 amount = 1000 * 10 ** 6;
@@ -204,6 +205,20 @@ contract FleetCommanderWhitelistTest is
             abi.encodeWithSignature("FleetCommanderTransfersDisabled()")
         );
         whitelistFleet.transfer(whitelistedRecipient, amountToTransfer);
+        vm.stopPrank();
+    }
+
+    /**
+     * @notice Only keeper can call tip()
+     */
+    function test_OnlyKeeperCanCallTip() public {
+        vm.startPrank(mockUser);
+        vm.expectRevert();
+        whitelistFleet.tip();
+        vm.stopPrank();
+
+        vm.startPrank(keeper);
+        whitelistFleet.tip();
         vm.stopPrank();
     }
 
