@@ -21,6 +21,11 @@ contract ProtocolAccessManagerV2 is
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Maximum number of accounts that can be whitelisted in a single batch.
+     */
+    uint256 public constant MAX_WHITELIST_BATCH_SIZE = 200;
+
     /// @notice Role identifier for whitelist managers who can update the global whitelist status
     bytes32 public constant WHITELIST_MANAGER_ROLE =
         keccak256("WHITELIST_MANAGER_ROLE");
@@ -106,7 +111,12 @@ contract ProtocolAccessManagerV2 is
         address[] calldata accounts,
         bool[] calldata allowed
     ) external onlyRole(WHITELIST_MANAGER_ROLE) {
-        require(accounts.length == allowed.length, "Length mismatch");
+        if (accounts.length == 0 || accounts.length != allowed.length) {
+            revert Whitelist_LengthMismatch();
+        }
+        if (accounts.length > MAX_WHITELIST_BATCH_SIZE) {
+            revert Whitelist_BatchTooLarge();
+        }
         for (uint256 i = 0; i < accounts.length; i++) {
             _setWhitelisted(accounts[i], allowed[i]);
         }

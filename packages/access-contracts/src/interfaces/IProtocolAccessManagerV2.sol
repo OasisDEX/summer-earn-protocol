@@ -13,6 +13,16 @@ interface IProtocolAccessManagerV2 {
     event WhitelistStatusUpdated(address indexed account, bool isWhitelisted);
 
     /**
+     * @notice Thrown when the length of the accounts array and the allowed array do not match.
+     */
+    error Whitelist_LengthMismatch();
+
+    /**
+     * @notice Thrown when the batch size exceeds the maximum allowed (200).
+     */
+    error Whitelist_BatchTooLarge();
+
+    /**
      * @notice Grants the Operator role to a given account
      * @param fleetCommanderAddress The address of the fleet commander to grant the role for
      * @param account The account to which the Operator role will be granted
