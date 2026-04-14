@@ -225,7 +225,6 @@ contract FleetCommanderWhitelist is
         external
         override(IFleetCommanderWhitelist)
         flushCacheOnExit
-        useWithdrawCache
         collectTip
         whenNotPaused
         returns (uint256 totalSharesToRedeem)
@@ -243,7 +242,6 @@ contract FleetCommanderWhitelist is
         external
         override(IFleetCommanderWhitelist)
         flushCacheOnExit
-        useWithdrawCache
         collectTip
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
