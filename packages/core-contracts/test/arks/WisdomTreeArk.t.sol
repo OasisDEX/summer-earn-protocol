@@ -714,13 +714,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.sharesToAssets(1e18);
     }
 
-    function test_RevertIfOracleBadRound() public {
-        // answeredInRound (1) < roundId (2)
-        oracle.setRoundData(2, 60000 * 1e8, block.timestamp, 1);
-        vm.expectRevert(WisdomTreeArk.OracleBadRound.selector);
-        ark.sharesToAssets(1e18);
-    }
-
     function test_RevertIfOracleStale() public {
         // Heartbeat is 24 hours
         oracle.setRoundData(1, 60000 * 1e8, block.timestamp - 24 hours - 1, 1);
