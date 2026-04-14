@@ -105,10 +105,15 @@ abstract contract FlexibleTipper is IFlexibleTipper, Tipper {
      * @param newRate The new performance fee rate
      * @dev Reverts if the rate exceeds 50%
      */
-    function _setPerformanceFeeRate(Percentage newRate) internal {
+    function _setPerformanceFeeRate(
+        Percentage newRate,
+        address tipJar,
+        uint256 _totalSupply
+    ) internal {
         if (newRate > MAX_PERFORMANCE_FEE_RATE) {
             revert PerformanceFeeRateTooHigh();
         }
+        _accrueTip(tipJar, _totalSupply);
         performanceFeeRate = newRate;
         emit PerformanceFeeRateUpdated(newRate);
     }

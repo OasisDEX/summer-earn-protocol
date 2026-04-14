@@ -5,9 +5,9 @@ import {AggregatorV3Interface} from "../../interfaces/external/Chainlink/Aggrega
 import "../ArkWithWithdrawalRequest.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-import "@summerfi/price-solidity/contracts/PriceUtils.sol";
-import {Percentage, PERCENTAGE_FACTOR} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 /**
  * @title WisdomTreeArk
@@ -68,6 +68,9 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     Percentage public constant MAX_SWEEP_SLIPPAGE =
         Percentage.wrap(PERCENTAGE_FACTOR / 2);
 
+    /// @notice Timeout for the oracle heartbeat (24 hours)
+    uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 hours;
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -76,6 +79,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     error InvalidOracleAddress();
     error InvalidShareTokenAddress();
     error OraclePriceNotPositive();
+    error StaleOraclePrice();
     error InsufficientPendingDeposit();
     error PendingDepositActive();
     error ArkIsFrozen();
@@ -531,8 +535,13 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         view
         returns (Price memory)
     {
-        (, int256 answer, , , ) = oracle.latestRoundData();
+        (uint80 roundId, int256 answer, , uint256 updatedAt, ) = oracle
+            .latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
+
+        if (block.timestamp - updatedAt > ORACLE_HEARTBEAT_TIMEOUT) {
+            revert StaleOraclePrice();
+        }
 
         // The oracle returns the price of 1 share denominated in the underlying asset.
         // Therefore, the Base Asset is the WisdomTree share, and Quote Asset is the underlying asset.
