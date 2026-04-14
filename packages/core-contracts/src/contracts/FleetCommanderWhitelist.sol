@@ -487,7 +487,7 @@ contract FleetCommanderWhitelist is
     function setPerformanceFeeRate(
         Percentage newRate
     ) external onlyGovernor whenNotPaused {
-        _setPerformanceFeeRate(newRate);
+        _setPerformanceFeeRate(newRate, tipJar(), totalSupply());
     }
 
     /*//////////////////////////////////////////////////////////////
