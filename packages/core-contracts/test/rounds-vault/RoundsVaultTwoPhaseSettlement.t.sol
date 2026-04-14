@@ -13,26 +13,7 @@ import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsV
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-// [MockAccessManager and MockTargetVault remain identical to your draft]
-contract MockAccessManager {
-    mapping(bytes32 => mapping(address => bool)) public roles;
-    function hasRole(
-        bytes32 role,
-        address account
-    ) external view returns (bool) {
-        return roles[role][account];
-    }
-    function grantRole(bytes32 role, address account) external {
-        roles[role][account] = true;
-    }
-    function supportsInterface(bytes4) external pure returns (bool) {
-        return true;
-    }
-    function isWhitelisted(address) external pure returns (bool) {
-        return true;
-    }
-}
+import {MockAccessManager} from "../mocks/MockAccessManager.sol";
 
 contract MockTargetVault is ERC20, IERC4626 {
     address public immutable underlying;
@@ -197,6 +178,9 @@ contract RoundsVaultTwoPhaseSettlementTest is
             ),
             keeper
         );
+        accessManager.setWhitelisted(userA, true);
+        accessManager.setWhitelisted(userB, true);
+        accessManager.setWhitelisted(userC, true);
 
         asset.mint(userA, 100000 ether);
         asset.mint(userB, 100000 ether);

@@ -28,7 +28,7 @@ import {IRoundsVaultBaseEnums} from "../../interfaces/rounds-vault/IRoundsVaultB
     which the vault is locked.  During these locked periods, the vault does not accept deposits, so
     investors need to be on the lookout for the unlocked period to deposit their funds.
 
-    @dev See { IRoundsVaultBase } for more details.
+    @dev See { IRoundsVaultBase} for more details.
 
     @dev Here the `_operate` function is defined as a pure virtual function. This is because the
     specific logic when moving to the next round is left to the derived contracts. Typically they
@@ -63,6 +63,14 @@ abstract contract RoundsVaultBase is
     /// @dev Used to ensure users can only redeem assets for rounds that are fully `Settled`.
     mapping(uint256 => RoundState) public roundState;
 
+    /// @notice The minimum aggregate position size for a user to enter or exit
+    uint256 public minPositionSize;
+
+    /// @notice The type of the vault (Input or Output) which determines the underlying asset and the exchange asset
+    /// Input: Underlying = proxiedVault.asset(), ExchangeAsset = proxiedVault (the shares)
+    /// Output: Underlying = proxiedVault (the shares), ExchangeAsset = proxiedVault.asset()
+    BaseVaultType public immutable VAULT_TYPE;
+
     /**
      * CONSTRUCTOR
      */
@@ -70,7 +78,7 @@ abstract contract RoundsVaultBase is
     /**
         @param proxiedERC4626Vault The address of the ERC4626 vault that this vault will be accepting deposits for
                                    and will be moving funds in and out of it on each round
-        @param vaultType The type of the vault (Input or Output) which determines the underlying asset and the exchange asset
+        @param _vaultType The type of the vault (Input or Output) which determines the underlying asset and the exchange asset
                          Input: Underlying = proxiedVault.asset(), ExchangeAsset = proxiedVault (the shares)
                          Output: Underlying = proxiedVault (the shares), ExchangeAsset = proxiedVault.asset()
         @param accessManager The address of the Protocol Access Manager contract that provides information
@@ -82,25 +90,26 @@ abstract contract RoundsVaultBase is
      */
     constructor(
         address proxiedERC4626Vault,
-        BaseVaultType vaultType,
+        BaseVaultType _vaultType,
         address accessManager,
         string memory receiptsURI
     )
         ERC4626MultiTokenWrapper(
             proxiedERC4626Vault,
-            vaultType == BaseVaultType.Input
+            _vaultType == BaseVaultType.Input
                 ? IERC4626(proxiedERC4626Vault).asset()
                 : proxiedERC4626Vault,
             receiptsURI
         )
         ProtocolAccessManagedV2(accessManager)
     {
-        if (vaultType == BaseVaultType.Input) {
+        if (_vaultType == BaseVaultType.Input) {
             _exchangeAsset = proxiedERC4626Vault;
         } else {
             _exchangeAsset = IERC4626(proxiedERC4626Vault).asset();
         }
 
+        VAULT_TYPE = _vaultType;
         roundState[0] = RoundState.Opened;
     }
 
@@ -398,6 +407,14 @@ abstract contract RoundsVaultBase is
         return _exchangeAsset;
     }
 
+    /** @inheritdoc IRoundsVaultBase*/
+    function setMinPositionSize(
+        uint256 minSize
+    ) external override onlyGovernor {
+        emit MinPositionSizeUpdated(minPositionSize, minSize);
+        minPositionSize = minSize;
+    }
+
     /**
         @inheritdoc IRoundsVaultBase
      */
@@ -406,6 +423,61 @@ abstract contract RoundsVaultBase is
     }
 
     // INTERNALS
+
+    function _update(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values
+    ) internal virtual override {
+        super._update(from, to, ids, values);
+        uint256 _minPositionSize = minPositionSize;
+        if (minPositionSize == 0) return;
+
+        bool isInputVault = VAULT_TYPE == BaseVaultType.Input;
+
+        if (to != address(0) && to != address(this)) {
+            _revertIfNotWhitelisted(to);
+            _validateAggregateAssets(to, isInputVault, _minPositionSize);
+        }
+
+        if (from != address(0) && from != address(this)) {
+            _revertIfNotWhitelisted(from);
+            _validateAggregateAssets(from, isInputVault, _minPositionSize);
+        }
+    }
+
+    /**
+     * @dev Validates that the user has at least the minimum position size in the target vault.
+     *      - Output Vault receipts (withdrawal queue) are treated as 0 (already gone).
+     *      - Input Vault receipts (deposit queue) are treated as assets.
+     */
+    function _validateAggregateAssets(
+        address user,
+        bool isInputVault,
+        uint256 minPositionSize
+    ) internal view {
+        uint256 targetAssets = 0;
+
+        if (isInputVault) {
+            targetAssets = balanceOfAll(user);
+            if (targetAssets >= minPositionSize) return;
+        }
+
+        IERC4626 targetVault = IERC4626(vault());
+        uint256 shares = targetVault.balanceOf(user);
+
+        if (shares > 0) {
+            targetAssets += targetVault.convertToAssets(shares);
+        }
+        if (targetAssets > 0 && targetAssets < minPositionSize) {
+            revert RoundsVaultPositionTooSmall(
+                user,
+                targetAssets,
+                minPositionSize
+            );
+        }
+    }
 
     /**
      * @notice Helper function to mark an Opened round as InSettlement
