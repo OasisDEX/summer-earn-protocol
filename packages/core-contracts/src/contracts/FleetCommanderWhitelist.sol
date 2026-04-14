@@ -121,7 +121,7 @@ contract FleetCommanderWhitelist is
         uint256 assets,
         address receiver,
         address owner
-    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
+    ) public whenNotPaused useCache collectTip returns (uint256 shares) {
         _enforceExitGateway(_msgSender(), receiver, owner);
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
@@ -146,8 +146,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
@@ -171,7 +171,7 @@ contract FleetCommanderWhitelist is
         uint256 shares,
         address receiver,
         address owner
-    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
+    ) public useCache collectTip whenNotPaused returns (uint256 assets) {
         _enforceExitGateway(_msgSender(), receiver, owner);
         _validateBufferRedeem(shares, owner);
 
@@ -196,8 +196,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 shares)
     {
@@ -224,8 +224,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(IFleetCommanderWhitelist)
-        collectTip
         useWithdrawCache
+        collectTip
         whenNotPaused
         returns (uint256 totalSharesToRedeem)
     {
@@ -248,8 +248,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(IFleetCommanderWhitelist)
-        collectTip
         useWithdrawCache
+        collectTip
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
@@ -269,8 +269,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 shares)
     {
@@ -297,8 +297,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
@@ -319,7 +319,7 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
-    function tip() public whenNotPaused returns (uint256) {
+    function tip() public onlyKeeper whenNotPaused returns (uint256) {
         return _accrueTip(tipJar(), totalSupply());
     }
 
@@ -456,7 +456,8 @@ contract FleetCommanderWhitelist is
         // The newTipRate uses the Percentage type from @summerfi/percentage-solidity
         // Percentages have 18 decimals of precision
         // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
-        _setTipRate(newTipRate, tipJar(), totalSupply());
+        // we use the super.totalSupply() to avoid the tip shares from being included in the tip calculation
+        _setTipRate(newTipRate, tipJar(), super.totalSupply());
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
@@ -487,7 +488,7 @@ contract FleetCommanderWhitelist is
     function setPerformanceFeeRate(
         Percentage newRate
     ) external onlyGovernor whenNotPaused {
-        _setPerformanceFeeRate(newRate);
+        _setPerformanceFeeRate(newRate, tipJar(), totalSupply());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -498,7 +499,7 @@ contract FleetCommanderWhitelist is
     function transfer(
         address to,
         uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
+    ) public override(IERC20, ERC20) whenNotPaused returns (bool) {
         if (hasOperatorRole(_msgSender())) {
             return super.transfer(to, amount);
         }
@@ -517,7 +518,7 @@ contract FleetCommanderWhitelist is
         address from,
         address to,
         uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
+    ) public override(IERC20, ERC20) whenNotPaused returns (bool) {
         if (hasOperatorRole(_msgSender())) {
             return super.transferFrom(from, to, amount);
         }

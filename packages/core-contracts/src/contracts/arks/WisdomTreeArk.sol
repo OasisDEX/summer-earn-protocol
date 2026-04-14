@@ -5,9 +5,9 @@ import {AggregatorV3Interface} from "../../interfaces/external/Chainlink/Aggrega
 import "../ArkWithWithdrawalRequest.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-import "@summerfi/price-solidity/contracts/PriceUtils.sol";
-import {Percentage, PERCENTAGE_FACTOR} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 /**
  * @title WisdomTreeArk
@@ -69,7 +69,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         Percentage.wrap(PERCENTAGE_FACTOR / 2);
 
     /// @notice Timeout for the oracle heartbeat (24 hours)
-    uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 * 60 * 60;
+    uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 hours;
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -79,7 +79,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     error InvalidOracleAddress();
     error InvalidShareTokenAddress();
     error OraclePriceNotPositive();
-    error OracleBadRound();
     error StaleOraclePrice();
     error InsufficientPendingDeposit();
     error PendingDepositActive();
@@ -528,21 +527,11 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         view
         returns (Price memory)
     {
-        (
-            uint80 roundId,
-            int256 answer,
-            ,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        ) = oracle.latestRoundData();
+        (uint80 roundId, int256 answer, , uint256 updatedAt, ) = oracle
+            .latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
 
-        if (answeredInRound < roundId) revert OracleBadRound();
-
-        if (
-            updatedAt == 0 ||
-            block.timestamp - updatedAt > ORACLE_HEARTBEAT_TIMEOUT
-        ) {
+        if (block.timestamp - updatedAt > ORACLE_HEARTBEAT_TIMEOUT) {
             revert StaleOraclePrice();
         }
 
