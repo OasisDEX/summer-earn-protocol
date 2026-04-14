@@ -41,4 +41,7 @@ interface IRoundsVaultBaseErrors {
         IRoundsVaultBaseEnums.RoundState currentRoundState,
         IRoundsVaultBaseEnums.RoundState expectedRoundState
     );
+
+    /// Error thrown when trying to retry a round that is not the current round
+    error CannotRetryCurrentRound(uint256 roundId, uint256 currentRound);
 }
