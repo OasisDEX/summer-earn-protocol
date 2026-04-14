@@ -112,7 +112,7 @@ contract FleetCommanderWhitelist is
 
     /**
      * @dev Modifier to flush the cache.
-     * @notice This must be attached to the outermost external/public function 
+     * @notice This must be attached to the outermost external/public function
      *         where cache is initialized to guarantee teardown.
      */
     modifier flushCacheOnExit() {
@@ -129,7 +129,14 @@ contract FleetCommanderWhitelist is
         uint256 assets,
         address receiver,
         address owner
-    ) external flushCacheOnExit whenNotPaused collectTip useCache returns (uint256 shares) {
+    )
+        external
+        flushCacheOnExit
+        whenNotPaused
+        collectTip
+        useCache
+        returns (uint256 shares)
+    {
         _enforceExitGateway(_msgSender(), receiver, owner);
         shares = _withdrawFromBuffer(assets, receiver, owner);
     }
@@ -168,7 +175,14 @@ contract FleetCommanderWhitelist is
         uint256 shares,
         address receiver,
         address owner
-    ) external flushCacheOnExit collectTip useCache whenNotPaused returns (uint256 assets) {
+    )
+        external
+        flushCacheOnExit
+        collectTip
+        useCache
+        whenNotPaused
+        returns (uint256 assets)
+    {
         _enforceExitGateway(_msgSender(), receiver, owner);
         assets = _redeemFromBuffer(shares, receiver, owner);
     }
@@ -212,7 +226,6 @@ contract FleetCommanderWhitelist is
         override(IFleetCommanderWhitelist)
         flushCacheOnExit
         collectTip
-        useWithdrawCache
         whenNotPaused
         returns (uint256 totalSharesToRedeem)
     {
@@ -230,7 +243,6 @@ contract FleetCommanderWhitelist is
         override(IFleetCommanderWhitelist)
         flushCacheOnExit
         collectTip
-        useWithdrawCache
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
@@ -575,13 +587,16 @@ contract FleetCommanderWhitelist is
      * @param receiver The address to receive the underlying assets
      * @param owner The address owning the shares to be burned
      * @return totalSharesToRedeem The amount of shares burned
+     *
+     * @dev The function uses the cache to get the withdrawable arks data and it expects
+     *      the topmost caller to flush the cache
      */
     function _withdrawFromArks(
         uint256 assets,
         address receiver,
         address owner
     ) internal returns (uint256 totalSharesToRedeem) {
-        _getWithdrawableArksData(config.bufferArk);
+        _useWithdrawCachePre();
 
         totalSharesToRedeem = previewWithdraw(assets);
 
@@ -600,13 +615,16 @@ contract FleetCommanderWhitelist is
      * @param receiver The address to receive the underlying assets
      * @param owner The address owning the shares to be burned
      * @return totalAssetsToWithdraw The amount of assets withdrawn
+     *
+     * @dev The function uses the cache to get the withdrawable arks data and it expects
+     *      the topmost caller to flush the cache
      */
     function _redeemFromArks(
         uint256 shares,
         address receiver,
         address owner
     ) internal returns (uint256 totalAssetsToWithdraw) {
-        _getWithdrawableArksData(config.bufferArk);
+        _useWithdrawCachePre();
 
         _validateRedeemFromArks(shares, owner);
 
