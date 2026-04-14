@@ -456,7 +456,8 @@ contract FleetCommanderWhitelist is
         // The newTipRate uses the Percentage type from @summerfi/percentage-solidity
         // Percentages have 18 decimals of precision
         // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
-        _setTipRate(newTipRate, tipJar(), totalSupply());
+        // we use the super.totalSupply() to avoid the tip shares from being included in the tip calculation
+        _setTipRate(newTipRate, tipJar(), super.totalSupply());
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
