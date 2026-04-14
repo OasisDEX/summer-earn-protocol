@@ -208,32 +208,88 @@ contract FleetCommanderWhitelistTest is
     }
 
     /**
+     * @notice Test that a normal whitelisted user CANNOT transfer if the fleet is paused (M-05).
+     */
+    function test_RevertIfTransferPaused() public {
+        uint256 amountToTransfer = 10 * 10 ** 6;
+        address whitelistedRecipient = makeAddr("whitelistedRecipient");
+
+        vm.startPrank(governor);
+        whitelistFleet.setWhitelisted(whitelistedRecipient, true);
+        whitelistFleet.setFleetTokenTransferability(true); // Enable transfers
+        whitelistFleet.pause();
+        vm.stopPrank();
+
+        vm.startPrank(mockUser);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        whitelistFleet.transfer(whitelistedRecipient, amountToTransfer);
+        vm.stopPrank();
+    }
+
+    /**
+     * @notice Test that a normal whitelisted user CANNOT transferFrom if the fleet is paused (M-05).
+     */
+    function test_RevertIfTransferFromPaused() public {
+        uint256 amountToTransfer = 10 * 10 ** 6;
+        address whitelistedRecipient = makeAddr("whitelistedRecipient");
+
+        vm.startPrank(mockUser);
+        whitelistFleet.approve(address(this), amountToTransfer);
+        vm.stopPrank();
+
+        vm.startPrank(governor);
+        whitelistFleet.setWhitelisted(whitelistedRecipient, true);
+        whitelistFleet.setFleetTokenTransferability(true); // Enable transfers
+        whitelistFleet.setWhitelisted(address(this), true);
+        whitelistFleet.pause();
+        vm.stopPrank();
+
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        whitelistFleet.transferFrom(
+            mockUser,
+            whitelistedRecipient,
+            amountToTransfer
+        );
+    }
+
+    /**
      * @notice Tests that tip accrual occurs smoothly exactly once on withdrawal,
      * maintaining correct tip values and exact state calculations after our refactor
      * preventing double-invocation.
      */
     function test_Withdraw_AccruesTipExactlyOnce() public {
         uint256 amountToWithdraw = 100 * 10 ** 6;
-        
+
         vm.prank(governor);
         whitelistFleet.setTipRate(PercentageUtils.fromIntegerPercentage(5));
-        
+
         uint256 initialSupply = whitelistFleet.totalSupply();
-        
+
         vm.warp(block.timestamp + 365 days);
-        
-        uint256 initialTipJarBalance = whitelistFleet.balanceOf(whitelistFleet.tipJar());
-        uint256 expectedTip = whitelistFleet.previewTip(whitelistFleet.tipJar(), initialSupply);
-        
+
+        uint256 initialTipJarBalance = whitelistFleet.balanceOf(
+            whitelistFleet.tipJar()
+        );
+        uint256 expectedTip = whitelistFleet.previewTip(
+            whitelistFleet.tipJar(),
+            initialSupply
+        );
+
         assertGt(expectedTip, 0, "Expected tip should be greater than 0");
 
         vm.startPrank(operator);
         whitelistFleet.withdraw(amountToWithdraw, operator, operator);
         vm.stopPrank();
-        
-        uint256 finalTipJarBalance = whitelistFleet.balanceOf(whitelistFleet.tipJar());
-        
-        assertEq(finalTipJarBalance - initialTipJarBalance, expectedTip, "Tip accrued should be exactly the expected preview tip");
+
+        uint256 finalTipJarBalance = whitelistFleet.balanceOf(
+            whitelistFleet.tipJar()
+        );
+
+        assertEq(
+            finalTipJarBalance - initialTipJarBalance,
+            expectedTip,
+            "Tip accrued should be exactly the expected preview tip"
+        );
     }
 
     /**
@@ -243,25 +299,36 @@ contract FleetCommanderWhitelistTest is
      */
     function test_Redeem_AccruesTipExactlyOnce() public {
         uint256 sharesToRedeem = 100 * 10 ** 6;
-        
+
         vm.prank(governor);
         whitelistFleet.setTipRate(PercentageUtils.fromIntegerPercentage(5));
-        
+
         uint256 initialSupply = whitelistFleet.totalSupply();
-        
+
         vm.warp(block.timestamp + 365 days);
-        
-        uint256 initialTipJarBalance = whitelistFleet.balanceOf(whitelistFleet.tipJar());
-        uint256 expectedTip = whitelistFleet.previewTip(whitelistFleet.tipJar(), initialSupply);
-        
+
+        uint256 initialTipJarBalance = whitelistFleet.balanceOf(
+            whitelistFleet.tipJar()
+        );
+        uint256 expectedTip = whitelistFleet.previewTip(
+            whitelistFleet.tipJar(),
+            initialSupply
+        );
+
         assertGt(expectedTip, 0, "Expected tip should be greater than 0");
 
         vm.startPrank(operator);
         whitelistFleet.redeem(sharesToRedeem, operator, operator);
         vm.stopPrank();
-        
-        uint256 finalTipJarBalance = whitelistFleet.balanceOf(whitelistFleet.tipJar());
-        
-        assertEq(finalTipJarBalance - initialTipJarBalance, expectedTip, "Tip accrued should be exactly the expected preview tip");
+
+        uint256 finalTipJarBalance = whitelistFleet.balanceOf(
+            whitelistFleet.tipJar()
+        );
+
+        assertEq(
+            finalTipJarBalance - initialTipJarBalance,
+            expectedTip,
+            "Tip accrued should be exactly the expected preview tip"
+        );
     }
 }

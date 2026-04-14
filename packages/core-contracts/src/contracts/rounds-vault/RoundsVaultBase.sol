@@ -113,20 +113,26 @@ abstract contract RoundsVaultBase is
      */
     function nextRound() external onlyKeeper {
         uint256 closingRound = _roundNumber;
-        if (roundState[closingRound] != RoundState.Opened) {
-            revert InvalidRoundState(
-                closingRound,
-                roundState[closingRound],
-                RoundState.Opened
-            );
-        }
 
-        roundState[closingRound] = RoundState.InSettlement;
+        _startSettlement(closingRound);
 
         _roundNumber++;
+
         roundState[_roundNumber] = RoundState.Opened;
 
         emit RoundAdvanced(closingRound);
+    }
+
+    /**
+     * @inheritdoc IRoundsVaultBase
+     */
+    function retryRound(uint256 roundId) external onlyKeeper {
+        if (roundId >= _roundNumber) {
+            revert CannotRetryCurrentRound(roundId, _roundNumber);
+        }
+
+        _startSettlement(roundId);
+        emit RoundRetried(roundId);
     }
 
     /**
@@ -145,6 +151,22 @@ abstract contract RoundsVaultBase is
         for (uint256 i = 0; i < roundIds.length; i++) {
             _setRoundSettled(roundIds[i]);
         }
+    }
+
+    /**
+     * @inheritdoc IRoundsVaultBase
+     */
+    function emergencyRollbackRound(uint256 roundId) external onlyGovernor {
+        if (roundState[roundId] != RoundState.InSettlement) {
+            revert InvalidRoundState(
+                roundId,
+                roundState[roundId],
+                RoundState.InSettlement
+            );
+        }
+
+        roundState[roundId] = RoundState.Opened;
+        emit EmergencyRoundRolledBack(roundId);
     }
 
     ///@inheritdoc Whitelist
@@ -204,8 +226,8 @@ abstract contract RoundsVaultBase is
         onlyWhitelisted(_msgSender())
         returns (uint256)
     {
-        if (id != _roundNumber) {
-            revert CanOnlyRedeemCurrentRound(id, _roundNumber);
+        if (roundState[id] != RoundState.Opened) {
+            revert InvalidRoundState(id, roundState[id], RoundState.Opened);
         }
 
         return super.redeem(id, amount, receiver, owner);
@@ -232,8 +254,12 @@ abstract contract RoundsVaultBase is
         returns (uint256 assets)
     {
         for (uint256 i = 0; i < ids.length; i++) {
-            if (ids[i] != _roundNumber) {
-                revert CanOnlyRedeemCurrentRound(ids[i], _roundNumber);
+            if (roundState[ids[i]] != RoundState.Opened) {
+                revert InvalidRoundState(
+                    ids[i],
+                    roundState[ids[i]],
+                    RoundState.Opened
+                );
             }
         }
 
@@ -382,6 +408,21 @@ abstract contract RoundsVaultBase is
     // INTERNALS
 
     /**
+     * @notice Helper function to mark an Opened round as InSettlement
+     */
+    function _startSettlement(uint256 roundId) internal {
+        if (roundState[roundId] != RoundState.Opened) {
+            revert InvalidRoundState(
+                roundId,
+                roundState[roundId],
+                RoundState.Opened
+            );
+        }
+
+        roundState[roundId] = RoundState.InSettlement;
+    }
+
+    /**
         @inheritdoc ERC4626MultiToken
      */
     function _getMintId() internal view virtual override returns (uint256) {
@@ -426,15 +467,18 @@ abstract contract RoundsVaultBase is
             );
         }
 
-        // 1. Fetch exact liability using ERC-1155 total supply for this specific round
+        // 1. Mark as Settled early
+        roundState[roundId] = RoundState.Settled;
+
+        // 2. Fetch exact liability using ERC-1155 total supply for this specific round
         uint256 frozenAmount = totalSupply(roundId);
 
         Price memory finalExchangeRate;
 
         if (frozenAmount > 0) {
-            // 2. Execute the trade and get the EXACT amount returned by the off-chain reality
+            // 3. Execute the trade and get the EXACT amount returned by the off-chain reality
             uint256 outputAmount = _operate(frozenAmount, roundId);
-            // 3. Construct the precise exchange rate based on the actual execution
+            // 4. Construct the precise exchange rate based on the actual execution
             finalExchangeRate = toPrice(outputAmount, frozenAmount);
         } else {
             // Fallback to 1:1 or preview rate if round was empty
@@ -442,7 +486,6 @@ abstract contract RoundsVaultBase is
         }
 
         _exchangeRateByRound[roundId] = finalExchangeRate;
-        roundState[roundId] = RoundState.Settled;
 
         emit RoundSettled(roundId, finalExchangeRate);
     }

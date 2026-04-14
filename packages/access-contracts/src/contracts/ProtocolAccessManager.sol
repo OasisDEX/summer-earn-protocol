@@ -107,8 +107,8 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     }
 
     function _revertIfNotGovernor() private view {
-        if (!hasRole(GOVERNOR_ROLE, msg.sender)) {
-            revert CallerIsNotGovernor(msg.sender);
+        if (!hasRole(GOVERNOR_ROLE, _msgSender())) {
+            revert CallerIsNotGovernor(_msgSender());
         }
     }
 
@@ -280,10 +280,10 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         address roleTargetContract
     ) public {
         bytes32 role = generateRole(roleName, roleTargetContract);
-        if (!hasRole(role, msg.sender)) {
-            revert CallerIsNotContractSpecificRole(msg.sender, role);
+        if (!hasRole(role, _msgSender())) {
+            revert CallerIsNotContractSpecificRole(_msgSender(), role);
         }
-        _revokeRole(role, msg.sender);
+        _revokeRole(role, _msgSender());
     }
 
     /// @inheritdoc IProtocolAccessManager

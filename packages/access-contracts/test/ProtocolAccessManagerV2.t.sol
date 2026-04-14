@@ -117,6 +117,40 @@ contract ProtocolAccessManagerV2Test is Test {
         assertTrue(accessManager.isWhitelisted(users[2]));
     }
 
+    function test_SetWhitelistedBatch_Revert_LengthMismatch() public {
+        address[] memory users = new address[](2);
+        users[0] = address(0x10);
+        users[1] = address(0x11);
+
+        bool[] memory statuses = new bool[](3);
+        statuses[0] = true;
+        statuses[1] = true;
+        statuses[2] = true;
+
+        vm.prank(governor);
+        vm.expectRevert(
+            IProtocolAccessManagerV2.Whitelist_LengthMismatch.selector
+        );
+        accessManager.setWhitelistedBatch(users, statuses);
+    }
+
+    function test_SetWhitelistedBatch_Revert_BatchTooLarge() public {
+        uint256 size = accessManager.MAX_WHITELIST_BATCH_SIZE() + 1;
+        address[] memory users = new address[](size);
+        bool[] memory statuses = new bool[](size);
+
+        for (uint256 i = 0; i < size; i++) {
+            users[i] = address(uint160(i + 100));
+            statuses[i] = true;
+        }
+
+        vm.prank(governor);
+        vm.expectRevert(
+            IProtocolAccessManagerV2.Whitelist_BatchTooLarge.selector
+        );
+        accessManager.setWhitelistedBatch(users, statuses);
+    }
+
     function test_GlobalWhitelistOpen() public {
         // address(0) = true opens the whitelist for everyone
         vm.prank(governor);

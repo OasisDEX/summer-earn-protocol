@@ -73,7 +73,7 @@ contract FlexibleTipperHarness is ERC4626, FlexibleTipper {
     }
 
     function setPerformanceFeeRate(Percentage newRate) external {
-        _setPerformanceFeeRate(newRate);
+        _setPerformanceFeeRate(newRate, tipJar, totalSupply());
     }
 
     function setTipRate(Percentage newRate) external {

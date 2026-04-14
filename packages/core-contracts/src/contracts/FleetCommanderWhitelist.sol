@@ -133,8 +133,8 @@ contract FleetCommanderWhitelist is
         external
         flushCacheOnExit
         whenNotPaused
-        collectTip
         useCache
+        collectTip
         returns (uint256 shares)
     {
         _enforceExitGateway(_msgSender(), receiver, owner);
@@ -150,8 +150,8 @@ contract FleetCommanderWhitelist is
         public
         override(ERC4626, IFleetCommanderWhitelist)
         flushCacheOnExit
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
@@ -176,10 +176,10 @@ contract FleetCommanderWhitelist is
         address receiver,
         address owner
     )
-        external
+        public
         flushCacheOnExit
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
@@ -196,8 +196,8 @@ contract FleetCommanderWhitelist is
         public
         override(ERC4626, IFleetCommanderWhitelist)
         flushCacheOnExit
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 shares)
     {
@@ -225,6 +225,7 @@ contract FleetCommanderWhitelist is
         external
         override(IFleetCommanderWhitelist)
         flushCacheOnExit
+        useWithdrawCache
         collectTip
         whenNotPaused
         returns (uint256 totalSharesToRedeem)
@@ -242,6 +243,7 @@ contract FleetCommanderWhitelist is
         external
         override(IFleetCommanderWhitelist)
         flushCacheOnExit
+        useWithdrawCache
         collectTip
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
@@ -258,8 +260,8 @@ contract FleetCommanderWhitelist is
         public
         override(ERC4626, IERC4626)
         flushCacheOnExit
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 shares)
     {
@@ -287,8 +289,8 @@ contract FleetCommanderWhitelist is
         public
         override(ERC4626, IERC4626)
         flushCacheOnExit
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
@@ -477,7 +479,7 @@ contract FleetCommanderWhitelist is
     function setPerformanceFeeRate(
         Percentage newRate
     ) external onlyGovernor whenNotPaused {
-        _setPerformanceFeeRate(newRate);
+        _setPerformanceFeeRate(newRate, tipJar(), totalSupply());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -488,7 +490,7 @@ contract FleetCommanderWhitelist is
     function transfer(
         address to,
         uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
+    ) public override(IERC20, ERC20) whenNotPaused returns (bool) {
         if (hasOperatorRole(_msgSender())) {
             return super.transfer(to, amount);
         }
@@ -507,7 +509,7 @@ contract FleetCommanderWhitelist is
         address from,
         address to,
         uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
+    ) public override(IERC20, ERC20) whenNotPaused returns (bool) {
         if (hasOperatorRole(_msgSender())) {
             return super.transferFrom(from, to, amount);
         }
