@@ -635,7 +635,10 @@ contract RoundsVaultOutputTest is
         vault.nextRound(); // Round 0 -> InSettlement
         vm.stopPrank();
 
-        assertEq(uint(vault.roundState(0)), uint(IRoundsVaultBaseEnums.RoundState.InSettlement));
+        assertEq(
+            uint(vault.roundState(0)),
+            uint(IRoundsVaultBaseEnums.RoundState.InSettlement)
+        );
 
         // Negative: Non-governor cannot rollback
         vm.startPrank(unprivilegedAccount);
@@ -659,8 +662,11 @@ contract RoundsVaultOutputTest is
         vm.expectEmit(true, false, false, true);
         emit EmergencyRoundRolledBack(0);
         vault.emergencyRollbackRound(0);
-        
-        assertEq(uint(vault.roundState(0)), uint(IRoundsVaultBaseEnums.RoundState.Opened));
+
+        assertEq(
+            uint(vault.roundState(0)),
+            uint(IRoundsVaultBaseEnums.RoundState.Opened)
+        );
         vm.stopPrank();
     }
 
@@ -673,7 +679,10 @@ contract RoundsVaultOutputTest is
         vault.emergencyRollbackRound(0); // Round 0 -> Opened
         vm.stopPrank();
 
-        assertEq(uint(vault.roundState(0)), uint(IRoundsVaultBaseEnums.RoundState.Opened));
+        assertEq(
+            uint(vault.roundState(0)),
+            uint(IRoundsVaultBaseEnums.RoundState.Opened)
+        );
 
         // Negative: Non-keeper cannot retry round
         vm.startPrank(unprivilegedAccount);
@@ -700,8 +709,11 @@ contract RoundsVaultOutputTest is
         vm.expectEmit(true, false, false, true);
         emit RoundRetried(0);
         vault.retryRound(0);
-        
-        assertEq(uint(vault.roundState(0)), uint(IRoundsVaultBaseEnums.RoundState.InSettlement));
+
+        assertEq(
+            uint(vault.roundState(0)),
+            uint(IRoundsVaultBaseEnums.RoundState.InSettlement)
+        );
         vm.stopPrank();
     }
 }
