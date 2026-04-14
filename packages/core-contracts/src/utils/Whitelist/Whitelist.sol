@@ -88,13 +88,41 @@ abstract contract Whitelist is IWhitelist {
      */
     function _revertIfNotWhitelisted(
         address context,
-        address account
+        address account1
     ) internal view {
-        if (!_isWhitelisted(context, account)) {
-            revert NotWhitelisted(context, account);
+        if (!_isWhitelisted(context, account1)) {
+            revert NotWhitelisted(context, account1);
         }
     }
+    /**
+     * @notice Reverts with NotWhitelisted if `account` is not whitelisted in `context`.
+     */
+    function _revertIfNotWhitelisted(
+        address context,
+        address account1,
+        address account2
+    ) internal view {
+        address[] memory accounts = new address[](2);
+        accounts[0] = account1;
+        accounts[1] = account2;
+        _revertIfNotWhitelisted(context, accounts);
+    }
 
+    /**
+     * @notice Reverts with NotWhitelisted if `account` is not whitelisted in `context`.
+     */
+    function _revertIfNotWhitelisted(
+        address context,
+        address account1,
+        address account2,
+        address account3
+    ) internal view {
+        address[] memory accounts = new address[](3);
+        accounts[0] = account1;
+        accounts[1] = account2;
+        accounts[2] = account3;
+        _revertIfNotWhitelisted(context, accounts);
+    }
     /**
      * @notice Reverts if any of the `accounts` is not whitelisted in `context`.
      * @dev Optimized with a single external batch call relative to `context`.

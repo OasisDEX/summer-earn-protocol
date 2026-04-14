@@ -164,10 +164,7 @@ abstract contract RoundsVaultBase is
         override(IERC4626MultiToken, ERC4626MultiToken)
         returns (uint256)
     {
-        address[] memory accounts = new address[](2);
-        accounts[0] = receiver;
-        accounts[1] = _msgSender();
-        _revertIfNotWhitelisted(vault(), accounts);
+        _revertIfNotWhitelisted(vault(), receiver, _msgSender());
 
         return super.deposit(assets, receiver);
     }
@@ -186,11 +183,7 @@ abstract contract RoundsVaultBase is
         override(IERC4626MultiToken, ERC4626MultiToken)
         returns (uint256)
     {
-        address[] memory accounts = new address[](3);
-        accounts[0] = owner;
-        accounts[1] = receiver;
-        accounts[2] = _msgSender();
-        _revertIfNotWhitelisted(vault(), accounts);
+        _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
         if (id != _roundNumber) {
             revert CanOnlyRedeemCurrentRound(id, _roundNumber);
         }
@@ -215,11 +208,7 @@ abstract contract RoundsVaultBase is
         override(IERC4626MultiToken, ERC4626MultiToken)
         returns (uint256 assets)
     {
-        address[] memory accounts = new address[](3);
-        accounts[0] = owner;
-        accounts[1] = receiver;
-        accounts[2] = _msgSender();
-        _revertIfNotWhitelisted(vault(), accounts);
+        _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
         for (uint256 i = 0; i < ids.length; i++) {
             if (ids[i] != _roundNumber) {
                 revert CanOnlyRedeemCurrentRound(ids[i], _roundNumber);
@@ -238,11 +227,7 @@ abstract contract RoundsVaultBase is
         address receiver,
         address owner
     ) public returns (uint256) {
-        address[] memory accounts = new address[](3);
-        accounts[0] = owner;
-        accounts[1] = receiver;
-        accounts[2] = _msgSender();
-        _revertIfNotWhitelisted(vault(), accounts);
+        _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
 
         if (id >= _roundNumber) {
             revert CannotRedeeemExchangeAssetCurrentRound(id, _roundNumber);
@@ -269,11 +254,7 @@ abstract contract RoundsVaultBase is
         address receiver,
         address owner
     ) public returns (uint256 shares) {
-        address[] memory accounts = new address[](3);
-        accounts[0] = owner;
-        accounts[1] = receiver;
-        accounts[2] = _msgSender();
-        _revertIfNotWhitelisted(vault(), accounts);
+        _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
         if (ids.length != amounts.length) {
             revert BadRedeemBatchParameters(ids.length, amounts.length);
         }

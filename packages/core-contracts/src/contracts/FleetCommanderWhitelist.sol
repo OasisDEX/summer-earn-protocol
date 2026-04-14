@@ -506,10 +506,7 @@ contract FleetCommanderWhitelist is
         if (!transfersEnabled) {
             revert FleetCommanderTransfersDisabled();
         }
-        address[] memory accounts = new address[](2);
-        accounts[0] = _msgSender();
-        accounts[1] = to;
-        _revertIfNotWhitelisted(address(this), accounts);
+        _revertIfNotWhitelisted(address(this), _msgSender(), to);
 
         return super.transfer(to, amount);
     }
@@ -527,11 +524,7 @@ contract FleetCommanderWhitelist is
         if (!transfersEnabled) {
             revert FleetCommanderTransfersDisabled();
         }
-        address[] memory accounts = new address[](3);
-        accounts[0] = _msgSender();
-        accounts[1] = from;
-        accounts[2] = to;
-        _revertIfNotWhitelisted(address(this), accounts);
+        _revertIfNotWhitelisted(address(this), _msgSender(), from, to);
 
         return super.transferFrom(from, to, amount);
     }
@@ -586,10 +579,7 @@ contract FleetCommanderWhitelist is
             revert FleetCommanderDirectDepositsClosed();
         }
 
-        address[] memory accounts = new address[](2);
-        accounts[0] = caller;
-        accounts[1] = receiver;
-        _revertIfNotWhitelisted(address(this), accounts);
+        _revertIfNotWhitelisted(address(this), caller, receiver);
     }
 
     /**
@@ -612,12 +602,7 @@ contract FleetCommanderWhitelist is
         if (!config.isOperatorGatewayOpen) {
             revert FleetCommanderDirectWithdrawalsClosed();
         }
-        address[] memory accounts = new address[](3);
-        accounts[0] = caller;
-        accounts[1] = receiver;
-        accounts[2] = owner;
-
-        _revertIfNotWhitelisted(address(this), accounts);
+        _revertIfNotWhitelisted(address(this), caller, receiver, owner);
     }
 
     /**

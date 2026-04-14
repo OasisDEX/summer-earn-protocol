@@ -141,10 +141,7 @@ contract AdmiralsQuartersWhitelist is
         uint256 assets,
         address receiver
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
-        address[] memory accounts = new address[](2);
-        accounts[0] = receiver;
-        accounts[1] = _msgSender();
-        _revertIfNotWhitelisted(fleetCommander, accounts);
+        _revertIfNotWhitelisted(fleetCommander, receiver, _msgSender());
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
