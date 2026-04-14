@@ -1,8 +1,32 @@
+resource "aws_iam_role" "amplify_role" {
+  name = "${var.app_name}-amplify-service-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "amplify.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "amplify_role_policy" {
+  role       = aws_iam_role.amplify_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-Amplify"
+}
+
 resource "aws_amplify_app" "this" {
   name       = var.app_name
   repository = var.repository
 
-  access_token                = var.github_token
+  access_token = var.github_token
+
+  iam_service_role_arn = aws_iam_role.amplify_role.arn
 
   enable_branch_auto_build    = true
   enable_branch_auto_deletion = true
@@ -38,6 +62,8 @@ resource "aws_amplify_app" "this" {
               - .next/cache/**/*
   EOT
 }
+
+
 
 resource "aws_amplify_branch" "this" {
   app_id      = aws_amplify_app.this.id
