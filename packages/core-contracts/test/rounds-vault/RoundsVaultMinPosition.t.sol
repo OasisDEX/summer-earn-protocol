@@ -145,8 +145,7 @@ contract RoundsVaultMinPositionTest is
         vm.startPrank(user);
         inputVault.deposit(2000e6, user);
 
-        // Redemptions from Input Vault (USDC) are now GATED on the sender side
-        // because Target (0) + Remaining Receipts (500) < 1000.
+        // Redemption fails because remaining state (Target 0 + Receipts 500) < Min
         vm.expectRevert(
             abi.encodeWithSelector(
                 RoundsVaultPositionTooSmall.selector,
@@ -170,21 +169,13 @@ contract RoundsVaultMinPositionTest is
     }
 
     function test_MinPosition_Aggregate_WithTargetVault() public {
-        // User has 500 USDC in Target Vault
         vm.startPrank(user);
         targetVault.deposit(500e6, user);
 
-        // Now depositing 500 into Rounds Vault should succeed (total = 1000)
+        // Succeeds because total (Target 500 + New 500) == Min
         inputVault.deposit(500e6, user);
-
-        // Assert that the deposit actually happened
         assertEq(inputVault.balanceOf(user, 0), 500e6);
 
-        // But withdrawing even 1 USDC from Rounds Vault should fail (Target is still 500 < 1000)
-        // Note: New logic only cares about Ingoing + Target for Entry, and Target for Exit.
-        // For 'Withdrawal' (Redeeming receipts), target balance STAYS the same (or increases if redeeming to target).
-        // So actually, redeems won't fail if you already have a small position!
-        // But Deposits (Entry) will fail.
         vm.stopPrank();
     }
 
@@ -192,8 +183,7 @@ contract RoundsVaultMinPositionTest is
         vm.startPrank(user);
         inputVault.deposit(2000e6, user);
 
-        // Transfer 1500 to otherUser (who has 0) -> Fail for Receiver is fine, but also Fail for Sender
-        // Sender would be left with 500.
+        // Fails because sender would be left with sub-minimum balance (500)
         vm.expectRevert(
             abi.encodeWithSelector(
                 RoundsVaultPositionTooSmall.selector,
@@ -204,7 +194,7 @@ contract RoundsVaultMinPositionTest is
         );
         inputVault.safeTransferFrom(user, otherUser, 0, 1500e6, "");
 
-        // Transfer 1000 to otherUser -> Success (both have 1000)
+        // Succeeds when both sender and receiver are at/above minimum
         inputVault.safeTransferFrom(user, otherUser, 0, 1000e6, "");
         assertEq(inputVault.balanceOfAll(otherUser), 1000e6);
         assertEq(inputVault.balanceOfAll(user), 1000e6);
@@ -212,11 +202,8 @@ contract RoundsVaultMinPositionTest is
     }
 
     function test_Whitelist_EnforcedOnTransfer() public {
-        // Disable global whitelist for this test to verify per-user enforcement
         vm.prank(admin);
         inputVault.setWhitelisted(address(0), false);
-
-        // Specifically whitelist the user so they can deposit
         vm.prank(admin);
         inputVault.setWhitelisted(user, true);
 
@@ -224,7 +211,6 @@ contract RoundsVaultMinPositionTest is
         vm.startPrank(user);
         inputVault.deposit(2000e6, user);
 
-        // Transfer to non-whitelisted -> Revert
         vm.expectRevert(
             abi.encodeWithSelector(
                 bytes4(keccak256("NotWhitelisted(address)")),
@@ -236,16 +222,11 @@ contract RoundsVaultMinPositionTest is
     }
 
     function test_MinPosition_Normalization_OutputVault_Reverts() public {
-        // Output Vault receipts are in Shares.
-        // We set MIN_POSITION = 1000 USDC.
-
-        // User starts with 500 Shares (500 USDC val)
         vm.startPrank(user);
         targetVault.deposit(500e6, user);
         targetVault.approve(address(outputVault), 500e6);
 
-        // Deposit 100 Shares into OutputVault
-        // Resulting Target Balance = 400 < 1000. REVERT.
+        // Fails because remaining Target balance would be below minimum (400)
         vm.expectRevert(
             abi.encodeWithSelector(
                 RoundsVaultPositionTooSmall.selector,
@@ -263,8 +244,7 @@ contract RoundsVaultMinPositionTest is
         targetVault.deposit(1000e6, user);
         targetVault.approve(address(outputVault), 1000e6);
 
-        // Deposit 1000 Shares into OutputVault
-        // Resulting Target Balance = 0. OK (Full Exit).
+        // Full exit is allowed (Target balance goes to 0)
         outputVault.deposit(1000e6, user);
         assertEq(outputVault.balanceOfAll(user), 1000e6);
         assertEq(targetVault.balanceOf(user), 0);
