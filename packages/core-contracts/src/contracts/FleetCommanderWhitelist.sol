@@ -121,7 +121,7 @@ contract FleetCommanderWhitelist is
         uint256 assets,
         address receiver,
         address owner
-    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
+    ) public whenNotPaused useCache collectTip returns (uint256 shares) {
         _enforceExitGateway(_msgSender(), receiver, owner);
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
@@ -146,8 +146,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
@@ -171,7 +171,7 @@ contract FleetCommanderWhitelist is
         uint256 shares,
         address receiver,
         address owner
-    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
+    ) public useCache collectTip whenNotPaused returns (uint256 assets) {
         _enforceExitGateway(_msgSender(), receiver, owner);
         _validateBufferRedeem(shares, owner);
 
@@ -196,8 +196,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 shares)
     {
@@ -224,8 +224,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(IFleetCommanderWhitelist)
-        collectTip
         useWithdrawCache
+        collectTip
         whenNotPaused
         returns (uint256 totalSharesToRedeem)
     {
@@ -248,8 +248,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(IFleetCommanderWhitelist)
-        collectTip
         useWithdrawCache
+        collectTip
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
@@ -269,8 +269,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 shares)
     {
@@ -297,8 +297,8 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
-        collectTip
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
