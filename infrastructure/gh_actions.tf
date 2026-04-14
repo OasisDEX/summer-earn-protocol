@@ -1,5 +1,5 @@
 locals {
-  github_repo = "OasisDex/summer-earn-protocol"
+  github_repo = "OasisDEX/summer-earn-protocol"
 }
 
 data "aws_iam_openid_connect_provider" "github" {
