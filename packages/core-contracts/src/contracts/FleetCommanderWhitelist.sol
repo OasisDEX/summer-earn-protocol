@@ -96,7 +96,6 @@ contract FleetCommanderWhitelist is
     modifier useCache() {
         _useCachePre();
         _;
-        _flushCache();
     }
 
     /**
@@ -108,6 +107,15 @@ contract FleetCommanderWhitelist is
      */
     modifier useWithdrawCache() {
         _useWithdrawCachePre();
+        _;
+    }
+
+    /**
+     * @dev Modifier to flush the cache.
+     * @notice This must be attached to the outermost external/public function 
+     *         where cache is initialized to guarantee teardown.
+     */
+    modifier flushCacheOnExit() {
         _;
         _flushCache();
     }
@@ -121,7 +129,7 @@ contract FleetCommanderWhitelist is
         uint256 assets,
         address receiver,
         address owner
-    ) external whenNotPaused collectTip useCache returns (uint256 shares) {
+    ) external flushCacheOnExit whenNotPaused collectTip useCache returns (uint256 shares) {
         _enforceExitGateway(_msgSender(), receiver, owner);
         shares = _withdrawFromBuffer(assets, receiver, owner);
     }
@@ -134,6 +142,7 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
+        flushCacheOnExit
         collectTip
         useCache
         whenNotPaused
@@ -159,7 +168,7 @@ contract FleetCommanderWhitelist is
         uint256 shares,
         address receiver,
         address owner
-    ) external collectTip useCache whenNotPaused returns (uint256 assets) {
+    ) external flushCacheOnExit collectTip useCache whenNotPaused returns (uint256 assets) {
         _enforceExitGateway(_msgSender(), receiver, owner);
         assets = _redeemFromBuffer(shares, receiver, owner);
     }
@@ -172,6 +181,7 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
+        flushCacheOnExit
         collectTip
         useCache
         whenNotPaused
@@ -200,6 +210,7 @@ contract FleetCommanderWhitelist is
     )
         external
         override(IFleetCommanderWhitelist)
+        flushCacheOnExit
         collectTip
         useWithdrawCache
         whenNotPaused
@@ -217,6 +228,7 @@ contract FleetCommanderWhitelist is
     )
         external
         override(IFleetCommanderWhitelist)
+        flushCacheOnExit
         collectTip
         useWithdrawCache
         whenNotPaused
@@ -233,6 +245,7 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
+        flushCacheOnExit
         collectTip
         useCache
         whenNotPaused
@@ -261,6 +274,7 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
+        flushCacheOnExit
         collectTip
         useCache
         whenNotPaused
