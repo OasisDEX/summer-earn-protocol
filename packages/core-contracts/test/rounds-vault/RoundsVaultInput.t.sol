@@ -750,7 +750,10 @@ contract RoundsVaultInputTest is
         vault.nextRound(); // Round 0 -> InSettlement
         vm.stopPrank();
 
-        assertEq(uint(vault.roundState(0)), uint(IRoundsVaultBaseEnums.RoundState.InSettlement));
+        assertEq(
+            uint(vault.roundState(0)),
+            uint(IRoundsVaultBaseEnums.RoundState.InSettlement)
+        );
 
         // Negative: Non-governor cannot rollback
         vm.startPrank(unprivilegedAccount);
@@ -774,8 +777,11 @@ contract RoundsVaultInputTest is
         vm.expectEmit(true, false, false, true);
         emit EmergencyRoundRolledBack(0);
         vault.emergencyRollbackRound(0);
-        
-        assertEq(uint(vault.roundState(0)), uint(IRoundsVaultBaseEnums.RoundState.Opened));
+
+        assertEq(
+            uint(vault.roundState(0)),
+            uint(IRoundsVaultBaseEnums.RoundState.Opened)
+        );
         vm.stopPrank();
     }
 
@@ -788,7 +794,10 @@ contract RoundsVaultInputTest is
         vault.emergencyRollbackRound(0); // Round 0 -> Opened
         vm.stopPrank();
 
-        assertEq(uint(vault.roundState(0)), uint(IRoundsVaultBaseEnums.RoundState.Opened));
+        assertEq(
+            uint(vault.roundState(0)),
+            uint(IRoundsVaultBaseEnums.RoundState.Opened)
+        );
 
         // Negative: Non-keeper cannot retry round
         vm.startPrank(unprivilegedAccount);
@@ -815,8 +824,153 @@ contract RoundsVaultInputTest is
         vm.expectEmit(true, false, false, true);
         emit RoundRetried(0);
         vault.retryRound(0);
-        
-        assertEq(uint(vault.roundState(0)), uint(IRoundsVaultBaseEnums.RoundState.InSettlement));
+
+        assertEq(
+            uint(vault.roundState(0)),
+            uint(IRoundsVaultBaseEnums.RoundState.InSettlement)
+        );
+        vm.stopPrank();
+    }
+
+    function test_RIV0015_TransferRevertIfFromNotWhitelisted() public {
+        address validCaller = address(0x4);
+        address to = address(0x5);
+        address from = unprivilegedAccount; // not whitelisted
+
+        // Disable open whitelist
+        vm.prank(admin);
+        vault.setWhitelisted(address(0), false);
+
+        vm.startPrank(admin);
+        vault.setWhitelisted(validCaller, true);
+        vault.setWhitelisted(to, true);
+        vm.stopPrank();
+
+        uint256 id = 0;
+        uint256 value = 0.2 ether;
+
+        vm.startPrank(validCaller);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, from));
+        vault.safeTransferFrom(from, to, id, value, "");
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = id;
+        uint256[] memory values = new uint256[](1);
+        values[0] = value;
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, from));
+        vault.safeBatchTransferFrom(from, to, ids, values, "");
+
+        vm.stopPrank();
+    }
+
+    function test_RIV0016_TransferRevertIfToNotWhitelisted() public {
+        address validCaller = address(0x4);
+        address to = address(0x5); // not whitelisted
+        address from = unprivilegedAccount;
+
+        // Disable open whitelist
+        vm.prank(admin);
+        vault.setWhitelisted(address(0), false);
+
+        vm.startPrank(admin);
+        vault.setWhitelisted(validCaller, true);
+        vault.setWhitelisted(from, true);
+        vm.stopPrank();
+
+        uint256 id = 0;
+        uint256 value = 0.2 ether;
+
+        vm.startPrank(validCaller);
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, to));
+        vault.safeTransferFrom(from, to, id, value, "");
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = id;
+        uint256[] memory values = new uint256[](1);
+        values[0] = value;
+
+        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, to));
+        vault.safeBatchTransferFrom(from, to, ids, values, "");
+
+        vm.stopPrank();
+    }
+
+    function test_RIV0017_TransferRevertIfCallerNotWhitelisted() public {
+        address caller = address(0x4); // not whitelisted
+        address to = address(0x5);
+        address from = unprivilegedAccount;
+
+        // Disable open whitelist
+        vm.prank(admin);
+        vault.setWhitelisted(address(0), false);
+
+        vm.startPrank(admin);
+        vault.setWhitelisted(from, true);
+        vault.setWhitelisted(to, true);
+        vm.stopPrank();
+
+        uint256 id = 0;
+        uint256 value = 0.2 ether;
+
+        vm.startPrank(caller);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, caller)
+        );
+        vault.safeTransferFrom(from, to, id, value, "");
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = id;
+        uint256[] memory values = new uint256[](1);
+        values[0] = value;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, caller)
+        );
+        vault.safeBatchTransferFrom(from, to, ids, values, "");
+
+        vm.stopPrank();
+    }
+
+    function test_RIV0018_TransferSuccessWhenWhitelisted() public {
+        address validCaller = address(0x4);
+        address to = address(0x5);
+        address from = unprivilegedAccount;
+
+        // Disable open whitelist
+        vm.prank(admin);
+        vault.setWhitelisted(address(0), false);
+
+        // Prepare the state
+        uint256 value = 0.2 ether;
+
+        vm.startPrank(admin);
+        vault.setWhitelisted(from, true);
+        vault.setWhitelisted(to, true);
+        vault.setWhitelisted(validCaller, true);
+        vm.stopPrank();
+
+        vm.startPrank(from);
+        vault.deposit(value * 2, from);
+        vault.setApprovalForAll(validCaller, true);
+        vm.stopPrank();
+
+        vm.startPrank(validCaller);
+        vault.safeTransferFrom(from, to, 0, value, "");
+        assertEq(vault.balanceOf(to, 0), value);
+        assertEq(vault.balanceOf(from, 0), value);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 0;
+        uint256[] memory values = new uint256[](1);
+        values[0] = value;
+
+        vault.safeBatchTransferFrom(from, to, ids, values, "");
+        assertEq(vault.balanceOf(to, 0), value * 2);
+        assertEq(vault.balanceOf(from, 0), 0);
         vm.stopPrank();
     }
 }

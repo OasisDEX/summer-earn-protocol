@@ -4,6 +4,8 @@ pragma solidity 0.8.28;
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
@@ -334,6 +336,50 @@ abstract contract RoundsVaultBase is
                 ids,
                 amounts
             );
+    }
+
+    /**
+        @inheritdoc IERC1155
+
+        @dev Gate the function so only whitelisted addresses can transfer receipts
+     */
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 value,
+        bytes memory data
+    )
+        public
+        virtual
+        override(ERC1155, IERC1155)
+        onlyWhitelisted(from)
+        onlyWhitelisted(to)
+        onlyWhitelisted(_msgSender())
+    {
+        super.safeTransferFrom(from, to, id, value, data);
+    }
+
+    /**
+        @inheritdoc IERC1155
+
+        @dev Gate the function so only whitelisted addresses can transfer receipts in batch
+     */
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values,
+        bytes memory data
+    )
+        public
+        virtual
+        override(ERC1155, IERC1155)
+        onlyWhitelisted(from)
+        onlyWhitelisted(to)
+        onlyWhitelisted(_msgSender())
+    {
+        super.safeBatchTransferFrom(from, to, ids, values, data);
     }
 
     // VIEW FUNCTIONS
