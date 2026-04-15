@@ -79,32 +79,35 @@ abstract contract FlexibleTipper is IFlexibleTipper, Tipper {
 
     /**
      * @notice Sets the fee type and resets HWM to current assetsPerShare
-     * @param newFeeType The new fee type to set
+     * @param _newFeeType The new fee type to set
+     * @param _tipJar The address of the tip jar
      * @param _totalAssets The current total assets (passed to avoid re-computation)
      * @param _totalSupply The current total supply (passed to avoid re-computation)
      * @dev Resets HWM to current assetsPerShare to prevent "dead HWM" after drawdowns.
      *      The FeeTypeChanged event logs old and new HWM for on-chain auditability.
      */
     function _setFeeType(
-        FeeType newFeeType,
+        FeeType _newFeeType,
+        address _tipJar,
         uint256 _totalAssets,
         uint256 _totalSupply
     ) internal {
-        FeeType oldFeeType = feeType;
-        uint256 oldHWM = highWaterMark;
+        uint256 feeShares = _accrueTip(_tipJar, _totalSupply);
+        uint256 adjustedTotalSupply = _totalSupply + feeShares;
 
-        feeType = newFeeType;
+        uint256 oldHWM = highWaterMark;
 
         // Reset HWM to current assetsPerShare
         uint256 newHWM;
-        if (_totalSupply > 0) {
-            newHWM = (_totalAssets * 1e18) / _totalSupply;
+        if (adjustedTotalSupply > 0) {
+            newHWM = (_totalAssets * 1e18) / adjustedTotalSupply;
         } else {
             newHWM = 1e18; // Default 1:1 when no shares exist
         }
         highWaterMark = newHWM;
 
-        emit FeeTypeChanged(oldFeeType, newFeeType, oldHWM, newHWM);
+        emit FeeTypeChanged(feeType, _newFeeType, oldHWM, newHWM);
+        feeType = _newFeeType;
     }
 
     /**

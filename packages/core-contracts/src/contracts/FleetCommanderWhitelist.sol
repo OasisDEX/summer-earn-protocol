@@ -471,7 +471,7 @@ contract FleetCommanderWhitelist is
     function setFeeType(
         FeeType newFeeType
     ) external onlyGovernor whenNotPaused {
-        _setFeeType(newFeeType, totalAssets(), super.totalSupply());
+        _setFeeType(newFeeType, tipJar(), totalAssets(), super.totalSupply());
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
