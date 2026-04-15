@@ -69,7 +69,7 @@ contract FlexibleTipperHarness is ERC4626, FlexibleTipper {
 
     // ---- Exposed setters for testing ----
     function setFeeType(FeeType newFeeType) external {
-        _setFeeType(newFeeType, totalAssets(), totalSupply());
+        _setFeeType(newFeeType, tipJar, totalAssets(), totalSupply());
     }
 
     function setPerformanceFeeRate(Percentage newRate) external {
@@ -566,6 +566,55 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         uint256 actualTip = tipAfter - tipBefore;
 
         assertEq(preview, actualTip, "Preview should match actual tip minted");
+    }
+
+    function test_SetFeeType_AccruesTipAndUsesUpdatedSupplyForHWM() public {
+        // 1. Start in AUM mode (default state in setUp)
+        assertTrue(
+            vault.feeType() == IFlexibleTipper.FeeType.AUM,
+            "Should start in AUM mode"
+        );
+
+        // 2. Advance time by 1 year to build up a large pending AUM fee
+        vm.warp(block.timestamp + 365 days);
+
+        uint256 staleSupply = vault.totalSupply();
+        uint256 totalAssets = vault.totalAssets();
+
+        uint256 buggyInflatedHWM = (totalAssets * 1e18) / staleSupply;
+
+        uint256 tipJarBalanceBefore = IERC20(address(vault)).balanceOf(tipJar);
+
+        // 3. Change fee type. The fix should accrue the 1-year pending tip first.
+        vault.setFeeType(IFlexibleTipper.FeeType.BOTH);
+
+        uint256 tipJarBalanceAfter = IERC20(address(vault)).balanceOf(tipJar);
+
+        // Assert that the tip was actually minted during the state change
+        assertGt(
+            tipJarBalanceAfter,
+            tipJarBalanceBefore,
+            "Should have minted pending tips during setFeeType"
+        );
+
+        // 4. Verify the new HWM math
+        uint256 updatedSupply = vault.totalSupply();
+        uint256 expectedCorrectHWM = (totalAssets * 1e18) / updatedSupply;
+        uint256 actualHWM = vault.highWaterMark();
+
+        // Assert the HWM matches the post-accrual math
+        assertEq(
+            actualHWM,
+            expectedCorrectHWM,
+            "HWM must be calculated using the fully-diluted, post-accrual supply"
+        );
+
+        // Assert the actual HWM is strictly less than the buggy HWM
+        assertLt(
+            actualHWM,
+            buggyInflatedHWM,
+            "The fix should prevent the artificially inflated HWM"
+        );
     }
 }
 
