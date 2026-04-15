@@ -11,8 +11,8 @@ export type WisdomTreeArkParams = BaseArkParams & {
   shareToken: string
   oracle: string
   fundName: string
-  arkType?: number
-  sweepSlippage?: string
+  sweepSlippage: string
+  depositSlippage: string
 }
 
 export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTreeArkParams) {
@@ -28,8 +28,8 @@ export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTree
     shareToken,
     oracle,
     fundName,
-    arkType,
     sweepSlippage,
+    depositSlippage
   } = params
   const chainId = getChainId()
   const envLabel = isBummer ? 'staging_' : ''
@@ -64,7 +64,7 @@ export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTree
         shareToken,
         oracle,
         sweepSlippage: sweepSlippage ?? 0,
-        arkType: arkType ?? 0,
+        depositSlippage: depositSlippage ?? 0,
         name: arkName,
         details: JSON.stringify(arkDetails),
         configurationManager: config.deployedContracts.core.configurationManager.address,

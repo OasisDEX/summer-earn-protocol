@@ -143,91 +143,106 @@
             "oracle": "0x15FAf95ae42313E0CdAcb6f8076E866Eb6965961",
             "shareToken": "0x5096b85Ed11798fDdCB8b5CB27C399c04689c435",
             "targetWallet": "0x63a8bb98D70d0aC73460d22b6756528a087ecBf8",
-            "sweepSlippage": "500000000000000000"
+            "sweepSlippage": "500000000000000000",
+            "depositSlippage": "500000000000000000"
           },
           "WTSIX": {
             "oracle": "0x872E73cC259a025f089CEcF525cc657a9D521af3",
             "shareToken": "0xCf997c6A8DbdC1449e4dDE59Dbdf9cf6dA9d41c1",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0xa6fe9331eae8DFfA4A4fE93c8B8544653856E882"
+            "targetWallet": "0xa6fe9331eae8DFfA4A4fE93c8B8544653856E882",
+            "depositSlippage": "500000000000000000"
           },
           "SPXUX": {
             "oracle": "0xEbE3ffFB369bE1ae32046D9bcC6a66cAbd19f079",
             "shareToken": "0xfec440FdF48860FF6E2265BD1ef9Cae8bB2cCe8a",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0x79d83332fa4735a7B1A54728af3F578fAB97C9F1"
+            "targetWallet": "0x79d83332fa4735a7B1A54728af3F578fAB97C9F1",
+            "depositSlippage": "500000000000000000"
           },
           "TECHX": {
             "oracle": "0x64e433409041313496b6563C293Ebe466C6d3eFF",
             "shareToken": "0xF21cEDcEB91979C7877B98D4D60190215a5e6dC7",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0x6859Bb46626a6E0b00558eA00159b8C14A36882B"
+            "targetWallet": "0x6859Bb46626a6E0b00558eA00159b8C14A36882B",
+            "depositSlippage": "500000000000000000"
           },
           "CRDT": {
             "oracle": "0x27137F39D8ecA6db037370EcDedFF3DFD01A229c",
             "shareToken": "0x10fe70382576f271caeF5C152266FB458eFB53fa",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0xc24d277EEdc174b764C822a6965740f8C22CF95A"
+            "targetWallet": "0xc24d277EEdc174b764C822a6965740f8C22CF95A",
+            "depositSlippage": "500000000000000000"
           },
           "FLTTX": {
             "oracle": "0x48C1a4a76EBA4De411607C84F351F169086E786B",
             "shareToken": "0xcE6C2fDF6676e80F29D7f15B012A3a92cA3008C4",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0xB0B673a031c80e0c9917DC73eA199ebA1e689fFC"
+            "targetWallet": "0xB0B673a031c80e0c9917DC73eA199ebA1e689fFC",
+            "depositSlippage": "500000000000000000"
           },
           "EPXC": {
             "oracle": "0xbf4d24f1A611C8C0F91A83D9EE33053330e223E0",
             "shareToken": "0xF20f050321DEb97F9180150E99f0e8133Aa71051",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0xD358cE49Bc42e9e62746f584e107E989390de7AA"
+            "targetWallet": "0xD358cE49Bc42e9e62746f584e107E989390de7AA",
+            "depositSlippage": "500000000000000000"
           },
           "WTSYX": {
             "oracle": "0xe65D7c2FDECE1EcCeA471fCfe26D1cb397EBF831",
             "shareToken": "0xbb2ce6Adb794F1C9d6779DF86626bB6B4e485818",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0x4b9cC5C587fe5Dbe6BF16F33BE948B8619F2E07E"
+            "targetWallet": "0x4b9cC5C587fe5Dbe6BF16F33BE948B8619F2E07E",
+            "depositSlippage": "500000000000000000"
           },
           "WTTSX": {
             "oracle": "0xC985c807B3Af1A69CD15CEF044599083B1DAc3Fd",
             "shareToken": "0x3403292bA55fFBFc5a655c75b757b00Fd57Ee51c",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0x15A7A8a67Bc47F506a7eb30468e8533dD47299F7"
+            "targetWallet": "0x15A7A8a67Bc47F506a7eb30468e8533dD47299F7",
+            "depositSlippage": "500000000000000000"
           },
           "TIPSX": {
             "oracle": "0xb3f9A39dC589336BB5675733B54F92CEc593ABa0",
             "shareToken": "0x534A448cEb99D8Ce1bBBB556A5C13c6Fe79CA68c",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0x81ce58FD1812cac9f60b20f3B39B30C39fF00d3d"
+            "targetWallet": "0x81ce58FD1812cac9f60b20f3B39B30C39fF00d3d",
+            "depositSlippage": "500000000000000000"
           },
           "WTLGX": {
             "oracle": "0x2B029Bf53dad10969D3f14107F21C9CaD59aAf12",
             "shareToken": "0x8A4AD570238002E49f9A2681398BF9C822302eee",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0x5bC6710CcDC4074eAFac57f2e079Af761501d6fD"
+            "targetWallet": "0x5bC6710CcDC4074eAFac57f2e079Af761501d6fD",
+            "depositSlippage": "500000000000000000"
           },
           "WTSTX": {
             "oracle": "0x7f2A4bEdC1329b102AFf93bF205C7593CB103aeE",
             "shareToken": "0xE2ab0b91244c6e04bB92034849768ac9B954112c",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0x8C00b161EB8A40E833703453235897173Fd4C47D"
+            "targetWallet": "0x8C00b161EB8A40E833703453235897173Fd4C47D",
+            "depositSlippage": "500000000000000000"
           },
           "EQTYX": {
             "oracle": "0x731EbC4EbFB2062e54872F3047A07D59375A61fE",
             "shareToken": "0xf4A3d6Da7E5F8A262B731DeEE62549C2c05035F5",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0x377ED8f6980B95429Ad1720714839EDDefBE0bE6"
+            "targetWallet": "0x377ED8f6980B95429Ad1720714839EDDefBE0bE6",
+            "depositSlippage": "500000000000000000"
           },
           "MODRX": {
             "oracle": "0x0B65c6DdB6CfaeB65da422488ae493aeC5C1Ae00",
             "shareToken": "0x90A5aAD303D2170Bc846cd1237939Ac537F224A1",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0x41A29dE80572D3896D83d87F52cFEDE369Cb11d9"
+            "targetWallet": "0x41A29dE80572D3896D83d87F52cFEDE369Cb11d9",
+            "depositSlippage": "500000000000000000"
           },
           "LNGVX": {
             "oracle": "0xe830FFc7D63a03284Ffc459aB19752CBE8E4d546",
             "shareToken": "0xC290Ff6eE86454B83a31C61010cd50DD53A56F24",
             "sweepSlippage": "500000000000000000",
-            "targetWallet": "0x52824473d93aCe8a21515526856dAEfd735d855A"
+            "targetWallet": "0x52824473d93aCe8a21515526856dAEfd735d855A",
+            "depositSlippage": "500000000000000000"
           }
         }
       },
