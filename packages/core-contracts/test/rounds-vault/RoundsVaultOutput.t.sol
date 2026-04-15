@@ -8,13 +8,13 @@ import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsV
 import {IRoundsVaultOutputEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultOutputEvents.sol";
 import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
 import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
+import {MockAccessManager} from "../mocks/MockAccessManager.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {UD60x18, ud} from "@prb/math/src/UD60x18.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
-import {MockAccessManager} from "../mocks/MockAccessManager.sol";
 import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
 import {Test} from "forge-std/Test.sol";
 
@@ -707,6 +707,93 @@ contract RoundsVaultOutputTest is
             )
         );
         vault.redeemExchangeAssetBatch(ids, amounts, receiver, owner);
+        vm.stopPrank();
+    }
+
+    function test_ROV0015_EmergencyRollbackRound() public {
+        vm.startPrank(operator);
+        vault.nextRound(); // Round 0 -> InSettlement
+        vm.stopPrank();
+
+        assertEq(
+            uint256(vault.roundState(0)),
+            uint256(IRoundsVaultBaseEnums.RoundState.InSettlement)
+        );
+
+        // Negative: Non-governor cannot rollback
+        vm.startPrank(unprivilegedAccount);
+        vm.expectRevert(); // AccessControl revert
+        vault.emergencyRollbackRound(0);
+        vm.stopPrank();
+
+        // Negative: Cannot rollback a round that is not InSettlement
+        vm.startPrank(admin);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidRoundState.selector,
+                1,
+                IRoundsVaultBaseEnums.RoundState.Opened,
+                IRoundsVaultBaseEnums.RoundState.InSettlement
+            )
+        );
+        vault.emergencyRollbackRound(1); // Round 1 is Opened
+
+        // Positive: Rollback
+        vm.expectEmit(true, false, false, true);
+        emit EmergencyRoundRolledBack(0);
+        vault.emergencyRollbackRound(0);
+
+        assertEq(
+            uint256(vault.roundState(0)),
+            uint256(IRoundsVaultBaseEnums.RoundState.Opened)
+        );
+        vm.stopPrank();
+    }
+
+    function test_ROV0016_RetryRound() public {
+        vm.startPrank(operator);
+        vault.nextRound(); // Round 0 -> InSettlement
+        vm.stopPrank();
+
+        vm.startPrank(admin);
+        vault.emergencyRollbackRound(0); // Round 0 -> Opened
+        vm.stopPrank();
+
+        assertEq(
+            uint256(vault.roundState(0)),
+            uint256(IRoundsVaultBaseEnums.RoundState.Opened)
+        );
+
+        // Negative: Non-keeper cannot retry round
+        vm.startPrank(unprivilegedAccount);
+        vm.expectRevert(); // AccessControl revert
+        vault.retryRound(0);
+        vm.stopPrank();
+
+        // Negative: Cannot retry a round that is not Opened
+        vm.startPrank(operator);
+        vault.nextRound(); // Round 1 -> InSettlement
+        vault.setRoundSettled(1); // Round 1 -> Settled
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidRoundState.selector,
+                1,
+                IRoundsVaultBaseEnums.RoundState.Settled,
+                IRoundsVaultBaseEnums.RoundState.Opened
+            )
+        );
+        vault.retryRound(1); // Round 1 is Settled
+
+        // Positive: Retry Round 0
+        vm.expectEmit(true, false, false, true);
+        emit RoundRetried(0);
+        vault.retryRound(0);
+
+        assertEq(
+            uint256(vault.roundState(0)),
+            uint256(IRoundsVaultBaseEnums.RoundState.InSettlement)
+        );
         vm.stopPrank();
     }
 }

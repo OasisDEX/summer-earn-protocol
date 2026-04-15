@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ProtocolAccessManagerV2} from "../src/contracts/ProtocolAccessManagerV2.sol";
-import {ContractSpecificRoles} from "../src/interfaces/IProtocolAccessManager.sol";
-import {IProtocolAccessManagerV2} from "../src/interfaces/IProtocolAccessManagerV2.sol";
-import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
-import {IAccessControlErrors} from "../src/interfaces/IAccessControlErrors.sol";
-import {Test} from "forge-std/Test.sol";
+import { ProtocolAccessManagerV2 } from "../src/contracts/ProtocolAccessManagerV2.sol";
+import { IAccessControlErrors } from "../src/interfaces/IAccessControlErrors.sol";
+import { ContractSpecificRoles } from "../src/interfaces/IProtocolAccessManager.sol";
+import { IProtocolAccessManager } from "../src/interfaces/IProtocolAccessManager.sol";
+import { IProtocolAccessManagerV2 } from "../src/interfaces/IProtocolAccessManagerV2.sol";
+import { Test } from "forge-std/Test.sol";
 
 contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
+
     ProtocolAccessManagerV2 public accessManager;
     address public governor = address(0x1);
     address public manager = address(0x2);
@@ -19,11 +20,7 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
     address public operator = address(0x7);
 
     // Re-declare events for expectEmit
-    event WhitelistStatusUpdated(
-        address indexed context,
-        address indexed account,
-        bool isWhitelisted
-    );
+    event WhitelistStatusUpdated(address indexed context, address indexed account, bool isWhitelisted);
     event WhitelistOpenUpdated(address indexed context, bool isOpen);
 
     // Access to V2 errors
@@ -36,16 +33,8 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
     }
 
     function test_V2_SupportsInterface() public view {
-        assertTrue(
-            accessManager.supportsInterface(
-                type(IProtocolAccessManagerV2).interfaceId
-            )
-        );
-        assertTrue(
-            accessManager.supportsInterface(
-                type(IProtocolAccessManager).interfaceId
-            )
-        );
+        assertTrue(accessManager.supportsInterface(type(IProtocolAccessManagerV2).interfaceId));
+        assertTrue(accessManager.supportsInterface(type(IProtocolAccessManager).interfaceId));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -56,17 +45,11 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
         vm.prank(governor);
         accessManager.grantOperatorRole(contextA, operator);
 
-        bytes32 role = accessManager.generateRole(
-            ContractSpecificRoles.OPERATOR_ROLE,
-            contextA
-        );
+        bytes32 role = accessManager.generateRole(ContractSpecificRoles.OPERATOR_ROLE, contextA);
         assertTrue(accessManager.hasRole(role, operator));
-        
+
         // Ensure isolation
-        bytes32 roleB = accessManager.generateRole(
-            ContractSpecificRoles.OPERATOR_ROLE,
-            contextB
-        );
+        bytes32 roleB = accessManager.generateRole(ContractSpecificRoles.OPERATOR_ROLE, contextB);
         assertFalse(accessManager.hasRole(roleB, operator));
     }
 
@@ -76,10 +59,7 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
         accessManager.revokeOperatorRole(contextA, operator);
         vm.stopPrank();
 
-        bytes32 role = accessManager.generateRole(
-            ContractSpecificRoles.OPERATOR_ROLE,
-            contextA
-        );
+        bytes32 role = accessManager.generateRole(ContractSpecificRoles.OPERATOR_ROLE, contextA);
         assertFalse(accessManager.hasRole(role, operator));
     }
 
@@ -94,23 +74,13 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
     //////////////////////////////////////////////////////////////*/
 
     function test_InitialWhitelistManager() public view {
-        assertTrue(
-            accessManager.hasRole(
-                accessManager.WHITELIST_MANAGER_ROLE(),
-                governor
-            )
-        );
+        assertTrue(accessManager.hasRole(accessManager.WHITELIST_MANAGER_ROLE(), governor));
     }
 
     function test_GrantWhitelistManagerRole() public {
         vm.prank(governor);
         accessManager.grantWhitelistManagerRole(manager);
-        assertTrue(
-            accessManager.hasRole(
-                accessManager.WHITELIST_MANAGER_ROLE(),
-                manager
-            )
-        );
+        assertTrue(accessManager.hasRole(accessManager.WHITELIST_MANAGER_ROLE(), manager));
     }
 
     function test_RevokeWhitelistManagerRole() public {
@@ -118,12 +88,7 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
         accessManager.grantWhitelistManagerRole(manager);
         accessManager.revokeWhitelistManagerRole(manager);
         vm.stopPrank();
-        assertFalse(
-            accessManager.hasRole(
-                accessManager.WHITELIST_MANAGER_ROLE(),
-                manager
-            )
-        );
+        assertFalse(accessManager.hasRole(accessManager.WHITELIST_MANAGER_ROLE(), manager));
     }
 
     function test_WhitelistManagerRole_Revert_NotGovernor() public {
@@ -142,7 +107,7 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
 
         assertTrue(accessManager.isWhitelisted(contextA, user1));
         assertFalse(accessManager.isWhitelisted(contextA, user2));
-        
+
         // Context Isolation
         assertFalse(accessManager.isWhitelisted(contextB, user1));
     }
@@ -154,7 +119,7 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
         assertTrue(accessManager.isWhitelistOpen(contextA));
         assertTrue(accessManager.isWhitelisted(contextA, user1));
         assertTrue(accessManager.isWhitelisted(contextA, user2));
-        
+
         // Ensure isolation
         assertFalse(accessManager.isWhitelistOpen(contextB));
         assertFalse(accessManager.isWhitelisted(contextB, user1));
@@ -188,7 +153,7 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
 
         // Should not emit again
         accessManager.setWhitelistOpen(contextA, true);
-        
+
         vm.stopPrank();
     }
 
@@ -209,11 +174,11 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
         bool[] memory statuses = accessManager.areWhitelisted(contextA, users);
         assertTrue(statuses[0]);
         assertFalse(statuses[1]);
-        
+
         // Test Open Mode in batch
         vm.prank(governor);
         accessManager.setWhitelistOpen(contextA, true);
-        
+
         statuses = accessManager.areWhitelisted(contextA, users);
         assertTrue(statuses[0]);
         assertTrue(statuses[1]);
@@ -238,19 +203,47 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
         assertTrue(accessManager.isWhitelisted(contextA, users[2]));
     }
 
-    function test_setWhitelistedBatch_Revert_Mismatch() public {
+    function test_SetWhitelistedBatch_Revert_LengthMismatch() public {
         address[] memory users = new address[](2);
-        users[0] = user1;
-        users[1] = user2;
+        users[0] = address(0x10);
+        users[1] = address(0x11);
 
-        bool[] memory statuses = new bool[](1);
+        bool[] memory statuses = new bool[](3);
         statuses[0] = true;
+        statuses[1] = true;
+        statuses[2] = true;
 
         vm.prank(governor);
-        vm.expectRevert(Whitelist_LengthMismatch.selector);
-        accessManager.setWhitelistedBatch(contextA, users, statuses);
+        vm.expectRevert(IProtocolAccessManagerV2.Whitelist_LengthMismatch.selector);
+        accessManager.setWhitelistedBatch(users, statuses);
     }
-    
+
+    function test_SetWhitelistedBatch_Revert_BatchTooLarge() public {
+        uint256 size = accessManager.MAX_WHITELIST_BATCH_SIZE() + 1;
+        address[] memory users = new address[](size);
+        bool[] memory statuses = new bool[](size);
+
+        for (uint256 i = 0; i < size; i++) {
+            users[i] = address(uint160(i + 100));
+            statuses[i] = true;
+        }
+
+        vm.prank(governor);
+        vm.expectRevert(IProtocolAccessManagerV2.Whitelist_BatchTooLarge.selector);
+        accessManager.setWhitelistedBatch(users, statuses);
+    }
+
+    function test_GlobalWhitelistOpen() public {
+        // address(0) = true opens the whitelist for everyone
+        vm.prank(governor);
+        accessManager.setWhitelistOpen(contextA, true);
+
+        bool isRandomUserWhitelisted = accessManager.isWhitelisted(contextA, address(12345));
+        bool isWhitelistOpen = accessManager.isWhitelistOpen(contextA);
+        assertTrue(isRandomUserWhitelisted);
+        assertTrue(isWhitelistOpen);
+    }
+
     function test_setWhitelistedBatch_Revert_Empty() public {
         address[] memory users = new address[](0);
         bool[] memory statuses = new bool[](0);
@@ -276,18 +269,21 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
 
     function test_WhitelistSetters_Revert_NotManager() public {
         vm.startPrank(user1);
-        
+
         vm.expectRevert(); // WHITELIST_MANAGER_ROLE check
         accessManager.setWhitelisted(contextA, user2, true);
 
         vm.expectRevert();
         accessManager.setWhitelistOpen(contextA, true);
 
-        address[] memory u = new address[](1); u[0] = user2;
-        bool[] memory s = new bool[](1); s[0] = true;
+        address[] memory u = new address[](1);
+        u[0] = user2;
+        bool[] memory s = new bool[](1);
+        s[0] = true;
         vm.expectRevert();
         accessManager.setWhitelistedBatch(contextA, u, s);
-        
+
         vm.stopPrank();
     }
+
 }

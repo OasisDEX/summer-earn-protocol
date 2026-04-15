@@ -41,4 +41,13 @@ interface IRoundsVaultBaseErrors {
         IRoundsVaultBaseEnums.RoundState currentRoundState,
         IRoundsVaultBaseEnums.RoundState expectedRoundState
     );
+
+    /// Error thrown when the user's aggregate position size is below the minimum required
+    error RoundsVaultPositionTooSmall(
+        address account,
+        uint256 currentBalance,
+        uint256 minRequired
+    );
+    /// Error thrown when trying to retry a round that is not the current round
+    error CannotRetryCurrentRound(uint256 roundId, uint256 currentRound);
 }
