@@ -2,13 +2,17 @@ data "aws_region" "current" {}
 
 resource "aws_ecr_repository" "this" {
   name                 = var.app_name
-  image_tag_mutability = "MUTABLE"
-  force_delete         = true
+  image_tag_mutability = "IMMUTABLE"
+  force_delete         = var.force_delete
+
+  tags = var.tags
 }
 
 resource "aws_cloudwatch_log_group" "this" {
   name              = "/ecs/${var.app_name}"
   retention_in_days = 7
+
+  tags = var.tags
 }
 
 data "aws_iam_policy_document" "ecs_assume_role" {
@@ -24,6 +28,8 @@ data "aws_iam_policy_document" "ecs_assume_role" {
 resource "aws_iam_role" "task_execution" {
   name               = "${var.app_name}-execution-role"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role.json
+
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "task_execution_policy" {
@@ -34,6 +40,8 @@ resource "aws_iam_role_policy_attachment" "task_execution_policy" {
 resource "aws_iam_role" "task" {
   name               = "${var.app_name}-task-role"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role.json
+
+  tags = var.tags
 }
 
 resource "aws_ecs_task_definition" "this" {
@@ -62,6 +70,8 @@ resource "aws_ecs_task_definition" "this" {
       }
     }
   ])
+
+  tags = var.tags
 }
 
 resource "aws_security_group" "this" {
@@ -70,11 +80,14 @@ resource "aws_security_group" "this" {
   vpc_id      = var.vpc_id
 
   egress {
+    description = "Allow all outbound traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = var.tags
 }
 
 resource "aws_ecs_service" "this" {
@@ -90,7 +103,9 @@ resource "aws_ecs_service" "this" {
     assign_public_ip = true
   }
 
-  # Ignore changes to desired count and task def assuming CI/CD updates target def deployments
+  tags = var.tags
+
+  # Ignore changes to desired count and task def — CI/CD updates these
   lifecycle {
     ignore_changes = [task_definition, desired_count]
   }

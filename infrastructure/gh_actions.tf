@@ -2,6 +2,8 @@ locals {
   github_repo = "OasisDEX/summer-earn-protocol"
 }
 
+data "aws_caller_identity" "current" {}
+
 data "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"
 }
@@ -10,8 +12,7 @@ data "aws_iam_policy_document" "github_actions_trust" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
     principals {
-      type = "Federated"
-      # Notice this now references the 'data' source instead of 'resource'
+      type        = "Federated"
       identifiers = [data.aws_iam_openid_connect_provider.github.arn]
     }
     condition {
@@ -30,13 +31,22 @@ data "aws_iam_policy_document" "github_actions_trust" {
 resource "aws_iam_role" "github_actions" {
   name               = "github-actions-deploy-role"
   assume_role_policy = data.aws_iam_policy_document.github_actions_trust.json
+
+  tags = local.common_tags
 }
 
 data "aws_iam_policy_document" "github_actions_permissions" {
-  # ECR Permissions
+  # ECR: GetAuthorizationToken requires * — scoped per AWS docs
   statement {
+    sid       = "ECRAuth"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  # ECR: Push/pull scoped to the gov-alert-bot repository
+  statement {
+    sid = "ECRPushPull"
     actions = [
-      "ecr:GetAuthorizationToken",
       "ecr:BatchCheckLayerAvailability",
       "ecr:GetDownloadUrlForLayer",
       "ecr:GetRepositoryPolicy",
@@ -49,11 +59,14 @@ data "aws_iam_policy_document" "github_actions_permissions" {
       "ecr:CompleteLayerUpload",
       "ecr:PutImage"
     ]
-    resources = ["*"] # You can restrict this to just your ECR repo ARN if desired
+    resources = [
+      "arn:aws:ecr:*:${data.aws_caller_identity.current.account_id}:repository/summer-earn-*"
+    ]
   }
 
-  # ECS Permissions
+  # ECS: Scoped to the summer-earn cluster and services
   statement {
+    sid = "ECSDeployment"
     actions = [
       "ecs:DescribeTaskDefinition",
       "ecs:RegisterTaskDefinition",
@@ -61,14 +74,29 @@ data "aws_iam_policy_document" "github_actions_permissions" {
       "ecs:UpdateService"
     ]
     resources = ["*"]
-  }
-
-  # PassRole Permission (GitHub needs to pass your execution/task roles to ECS)
-  statement {
-    actions   = ["iam:PassRole"]
-    resources = ["*"]
     condition {
       test     = "StringLike"
+      variable = "ecs:cluster"
+      values = [
+        "arn:aws:ecs:*:${data.aws_caller_identity.current.account_id}:cluster/summer-earn-*"
+      ]
+    }
+  }
+
+  # ECS: RegisterTaskDefinition requires * (no resource-level restriction)
+  statement {
+    sid       = "ECSTaskDefinition"
+    actions   = ["ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition"]
+    resources = ["*"]
+  }
+
+  # PassRole: Scoped to ECS task roles only
+  statement {
+    sid       = "PassRole"
+    actions   = ["iam:PassRole"]
+    resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/summer-earn-*"]
+    condition {
+      test     = "StringEquals"
       variable = "iam:PassedToService"
       values   = ["ecs-tasks.amazonaws.com"]
     }
@@ -79,9 +107,4 @@ resource "aws_iam_role_policy" "github_actions" {
   name   = "github-actions-deploy-policy"
   role   = aws_iam_role.github_actions.id
   policy = data.aws_iam_policy_document.github_actions_permissions.json
-}
-
-output "github_actions_role_arn" {
-  description = "The ARN of the IAM role for GitHub Actions to assume"
-  value       = aws_iam_role.github_actions.arn
 }

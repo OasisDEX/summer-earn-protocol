@@ -1,14 +1,12 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.0"
-    }
-  }
-}
-
 provider "aws" {
   region = var.aws_region
+}
+
+locals {
+  common_tags = {
+    Project   = "summer-earn-protocol"
+    ManagedBy = "Terraform"
+  }
 }
 
 data "aws_vpc" "default" {
@@ -22,14 +20,16 @@ data "aws_subnets" "default" {
   }
 }
 
-resource "aws_ecs_cluster" "main" {
+resource "aws_ecs_cluster" "this" {
   name = "summer-earn-cluster"
+
   setting {
     name  = "containerInsights"
     value = "enabled"
   }
-}
 
+  tags = local.common_tags
+}
 
 module "gov_validator" {
   source       = "./modules/amplify_app"
@@ -38,6 +38,7 @@ module "gov_validator" {
   github_token = var.github_token
   package_root = "packages/summer-earn-gov-validator"
   build_filter = "@summerfi/summer-earn-gov-validator"
+  tags         = local.common_tags
 }
 
 module "auctions_frontend" {
@@ -47,6 +48,7 @@ module "auctions_frontend" {
   github_token = var.github_token
   package_root = "packages/summer-earn-auctions-frontend"
   build_filter = "@summerfi/summer-earn-auctions-frontend"
+  tags         = local.common_tags
 }
 
 module "interface" {
@@ -56,13 +58,19 @@ module "interface" {
   github_token = var.github_token
   package_root = "packages/summer-earn-interface"
   build_filter = "@summerfi/summer-earn-interface"
+  tags         = local.common_tags
 }
-
 
 module "gov_alert_bot" {
   source     = "./modules/ecs_worker"
   app_name   = "summer-earn-gov-alert-bot"
-  cluster_id = aws_ecs_cluster.main.id
+  cluster_id = aws_ecs_cluster.this.id
   vpc_id     = data.aws_vpc.default.id
   subnet_ids = data.aws_subnets.default.ids
+  tags       = local.common_tags
+}
+
+moved {
+  from = aws_ecs_cluster.main
+  to   = aws_ecs_cluster.this
 }

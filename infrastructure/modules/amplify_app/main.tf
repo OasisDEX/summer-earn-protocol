@@ -1,24 +1,99 @@
-resource "aws_iam_role" "amplify_role" {
-  name = "${var.app_name}-amplify-service-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = ["amplify.amazonaws.com",
-            "amplify.eu-central-1.amazonaws.com",
-        ] }
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
+data "aws_iam_policy_document" "amplify_trust" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type = "Service"
+      identifiers = [
+        "amplify.amazonaws.com",
+        "amplify.eu-central-1.amazonaws.com",
+      ]
+    }
+  }
 }
 
-resource "aws_iam_role_policy_attachment" "amplify_role_policy" {
-  role       = aws_iam_role.amplify_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-Amplify"
+resource "aws_iam_role" "this" {
+  name               = "${var.app_name}-amplify-service-role"
+  assume_role_policy = data.aws_iam_policy_document.amplify_trust.json
+
+  tags = var.tags
+}
+
+# Scoped Amplify permissions instead of AdministratorAccess-Amplify
+data "aws_iam_policy_document" "amplify_permissions" {
+  # Amplify service permissions
+  statement {
+    sid = "AmplifyManagement"
+    actions = [
+      "amplify:GetApp",
+      "amplify:GetBranch",
+      "amplify:CreateBranch",
+      "amplify:DeleteBranch",
+      "amplify:CreateDeployment",
+      "amplify:StartDeployment",
+      "amplify:StopDeployment",
+      "amplify:GetJob",
+      "amplify:ListJobs",
+      "amplify:StartJob",
+      "amplify:StopJob",
+    ]
+    resources = ["*"]
+  }
+
+  # CloudFront for hosting
+  statement {
+    sid = "CloudFrontHosting"
+    actions = [
+      "cloudfront:CreateInvalidation",
+      "cloudfront:GetDistribution",
+      "cloudfront:GetInvalidation",
+      "cloudfront:ListDistributions",
+      "cloudfront:ListInvalidations",
+      "cloudfront:UpdateDistribution",
+    ]
+    resources = ["*"]
+  }
+
+  # S3 for build artifacts and hosting
+  statement {
+    sid = "S3BuildArtifacts"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+    ]
+    resources = ["*"]
+  }
+
+  # CloudWatch Logs for build logs
+  statement {
+    sid = "CloudWatchLogs"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:DescribeLogGroups",
+    ]
+    resources = ["*"]
+  }
+
+  # SSM for environment variable management
+  statement {
+    sid = "SSMParameters"
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters",
+      "ssm:GetParametersByPath",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "this" {
+  name   = "${var.app_name}-amplify-policy"
+  role   = aws_iam_role.this.id
+  policy = data.aws_iam_policy_document.amplify_permissions.json
 }
 
 resource "aws_amplify_app" "this" {
@@ -27,7 +102,7 @@ resource "aws_amplify_app" "this" {
 
   access_token = var.github_token
 
-  iam_service_role_arn = aws_iam_role.amplify_role.arn
+  iam_service_role_arn = aws_iam_role.this.arn
 
   enable_branch_auto_build    = true
   enable_branch_auto_deletion = true
@@ -62,9 +137,9 @@ resource "aws_amplify_app" "this" {
               - node_modules/**/*
               - .next/cache/**/*
   EOT
+
+  tags = var.tags
 }
-
-
 
 resource "aws_amplify_branch" "this" {
   app_id      = aws_amplify_app.this.id
@@ -72,4 +147,14 @@ resource "aws_amplify_branch" "this" {
 
   framework         = "Next.js - SSR"
   enable_auto_build = true
+}
+
+moved {
+  from = aws_iam_role.amplify_role
+  to   = aws_iam_role.this
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.amplify_role_policy
+  to   = aws_iam_role_policy_attachment.this
 }
