@@ -28,8 +28,9 @@ Key roles include:
 **Whitelisting Mechanism (V2)**  
 `ProtocolAccessManagerV2` introduces a global whitelist stored in `_whitelisted`.
 
-- `isWhitelisted(account)` returns `true` if `address(0)` is whitelisted (global open) **or** the
-  specific account is whitelisted.
+- `isWhitelisted(context, account)` returns `true` if `address(0)` is whitelisted for the specific
+  `context` (global open for that context) **or** the specific account is whitelisted for that
+  context.
 - Whitelist is managed by the `WHITELIST_MANAGER_ROLE`.
 
 **Operator Role (V2)**  
@@ -57,7 +58,8 @@ the **whitelist**.
 | **SUPER_KEEPER_ROLE**      | Access Manager                   | (Optional) Emergency keepers         | Can rebalance any fleet if granted.                            |
 | **GOVERNOR_ROLE**          | Access Manager                   | Multisig / governance                | Manage all roles, set configuration parameters.                |
 
-**Note:** The fleet’s own whitelist **is the global whitelist** stored in the access manager.  
+**Note:** The fleet’s individual whitelists are stored in the central access manager, scoped by the
+fleet address.
 All deposit, mint, withdraw, redeem, and transfer operations are gated by `_enforceEntryGateway` /
 `_enforceExitGateway`.
 
@@ -73,10 +75,10 @@ User / Operator
   collectTip                        // 2. Accrue any pending performance fee
      │
      ▼
-  _enforceEntryGateway(caller, receiver)
+   _enforceEntryGateway(caller, receiver)
      ├─ if caller has OPERATOR_ROLE → allow (skip gateway)
      ├─ else if gateway closed → revert
-     └─ else require caller & receiver whitelisted
+     └─ else require caller & receiver whitelisted for this fleet (address(this))
      │
      ▼
   _validateDeposit(assets, caller) // 3. Check deposit cap & allowance
@@ -111,10 +113,10 @@ User / Operator
   collectTip
      │
      ▼
-  _enforceExitGateway(caller, receiver, owner)
+   _enforceExitGateway(caller, receiver, owner)
      ├─ if caller has OPERATOR_ROLE → allow
      ├─ else if gateway closed → revert
-     └─ else require caller, receiver, owner whitelisted
+     └─ else require caller, receiver, owner whitelisted for this fleet (address(this))
      │
      ▼
   if assets <= bufferBalance:
@@ -141,7 +143,7 @@ function transfer(address to, uint256 amount) returns (bool) {
     return super.transfer(to, amount);
   }
   require(transfersEnabled, 'FleetCommanderTransfersDisabled');
-  require(isWhitelisted(msg.sender) && isWhitelisted(to), 'not whitelisted');
+  require(isWhitelisted(address(this), msg.sender) && isWhitelisted(address(this), to), 'not whitelisted');
   return super.transfer(to, amount);
 }
 ```
@@ -156,7 +158,7 @@ function transfer(address to, uint256 amount) returns (bool) {
 
 `RoundsVaultBase` is an abstract contract used for vaults that operate in discrete **rounds**. It
 inherits `ProtocolAccessManagedV2` and uses its `Whitelist` adapter to delegate access checks to the
-**global** `ProtocolAccessManagerV2` whitelist.
+**contextual** `ProtocolAccessManagerV2` whitelist entries.
 
 ### 3.1 Required Role Setup
 
@@ -165,15 +167,15 @@ inherits `ProtocolAccessManagedV2` and uses its `Whitelist` adapter to delegate 
 | **KEEPER_ROLE**            | RoundsVaultBase contract | Keeper bots             | Call `nextRound()` to advance rounds and `setRoundSettled()` to finalize settlement/trading. |
 | **SUPER_KEEPER_ROLE**      | Access Manager           | (Optional)              | Can act as keeper for any rounds vault.                                                      |
 | **GOVERNOR_ROLE**          | Access Manager           | Multisig / governance   | Manage roles and parameters.                                                                 |
-| **WHITELIST_MANAGER_ROLE** | Access Manager           | Governance / authorized | Manage the global whitelist that this vault depends on.                                      |
+| **WHITELIST_MANAGER_ROLE** | Access Manager           | Governance / authorized | Manage the contextual whitelists that this vault depends on.                                 |
 
 **Important:** Unlike the `FleetCommander`, the `RoundsVaultBase` **does not** implement an
 `OPERATOR_ROLE` bypass for its deposit/redeem functions. This means that:
 
-- The **Admirals Quarters (AQ)** contract address **MUST** be explicitly whitelisted in
-  `ProtocolAccessManagerV2`.
-- Failure to whitelist AQ will cause all bundled deposits/redemptions to revert even if the user is
-  whitelisted.
+- The **Admirals Quarters (AQ)** contract address **MUST** be whitelisted for the specific
+  **Rounds Vault** being used (the `vault()` context).
+- Failure to whitelist AQ for the specific vault context will cause all bundled
+  deposits/redemptions to revert even if the user is whitelisted.
 - This applies to both the caller and the receiver of the assets.
 
 ### 3.2 Deposit Flow
@@ -185,7 +187,7 @@ User / Admirals Quarters
 deposit(assets, receiver)   // 1. Caller deposits assets
   │
   ▼
-onlyWhitelisted(receiver) && onlyWhitelisted(caller)
+onlyWhitelisted(vault(), receiver) && onlyWhitelisted(vault(), caller)
   │
   ▼
 super.deposit(assets, receiver)   // 2. Mint ERC1155 receipt for current round
@@ -195,7 +197,7 @@ Underlying assets are held in the contract until nextRound()
 ```
 
 - Deposits are only allowed **during an open round** (`RoundState.Opened`).
-- **Whitelisting is mandatory**: Both caller and receiver must be in the global whitelist.
+- **Whitelisting is mandatory**: Both caller and receiver must be whitelisted for the vault.
 
 ### 3.3 Redemption Flow (Immediate – Current Round)
 
@@ -206,7 +208,7 @@ User / Admirals Quarters
 redeem(id, amount, receiver, owner)   // id must equal current round
   │
   ▼
-onlyWhitelisted(owner, receiver, caller)
+onlyWhitelisted(vault(), owner, receiver, caller)
   │
   ▼
 _burn(owner, id, amount)              // Burn receipt
@@ -233,7 +235,7 @@ redeemExchangeAsset(id, amount, receiver, owner)
 require(id < currentRound && roundState[id] == Settled)
   │
   ▼
-onlyWhitelisted(owner, receiver, caller)
+onlyWhitelisted(vault(), owner, receiver, caller)
   │
   ▼
 _burn(owner, id, amount)              // Burn receipt
@@ -322,16 +324,18 @@ from fleets and vaults.
 | -------------------------- | -------------------- | ------------------- | ------------------------------------------------------------------------- |
 | **ADMIRALS_QUARTERS_ROLE** | Access Manager       | AQ contract address | Allows AQ to perform privileged operations globally.                      |
 | **OPERATOR_ROLE**          | Each Target Contract | AQ contract address | **Fleet Only**: Bypasses gateway and whitelist restrictions.              |
-| **WHITELISTED**            | Global Whitelist     | AQ contract address | **Rounds Vaults**: Mandatory for AQ to deposit/redeem on behalf of users. |
+| **WHITELISTED**            | Specific Vault Context | AQ contract address | **Rounds Vaults**: Mandatory for AQ to deposit/redeem on behalf of users. |
 
 ### 4.2 Protected Multicall (Bundling)
 
-> [!IMPORTANT] When using the **Whitelist-enabled Admirals Quarters**, the `multicall` function
-> itself is protected by a whitelist check.
->
-> - **Requirement**: The `_msgSender()` (the user or relay) MUST be whitelisted in
->   `ProtocolAccessManagerV2` to call any method via `multicall`.
-> - **Exception**: If `address(0)` is whitelisted (globally open), multicall is unrestricted.
+> [!IMPORTANT]
+> The `multicall` function itself is **not** gated by a central whitelist. Instead, it serves as a 
+> relay that allows multiple operations to be batched safely.
+
+- **Security Model**: Access control is enforced at the **destination function** level 
+  (e.g., inside `enterFleet`).
+- **Context Awareness**: `AdmiralsQuartersWhitelist` ensures that when calling sensitive functions 
+  like `enterFleet`, the user is whitelisted for the *specific fleet* they are about to join.
 
 ### 4.3 Integration Differences: Fleets vs Rounds
 
@@ -340,10 +344,11 @@ from fleets and vaults.
 | **Operator Bypass**       | Supported (via `hasOperatorRole`) | **Not Supported**                  |
 | **Whitelist Requirement** | Bypassed if caller is an operator | **Mandatory for all callers**      |
 | **AQ Role Requirement**   | Re-checks roles internally        | Relies on whitelist for entry/exit |
+| **Whitelist Context**     | Fleet Address                     | Vault Address                      |
 
 **Note for AQ Developers**: When integrating with a `RoundsVault`, the AQ contract address **must be
-manually added to the global whitelist** by a `WHITELIST_MANAGER`, otherwise all `deposit` and
-`redeem` calls will revert with `NotWhitelisted(AQ_ADDRESS)`.
+manually whitelisted for the specific vault context**, otherwise all `deposit` and
+`redeem` calls will revert with `NotWhitelisted(VAULT_ADDRESS, AQ_ADDRESS)`.
 
 ---
 

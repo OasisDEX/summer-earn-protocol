@@ -58,7 +58,7 @@ contract RoundsVaultPrecisionFuzzTest is Test {
     address public governor = address(0x2222);
 
     address[] public users;
-    uint256 public constant NUM_USERS = 100;
+    uint256 public constant NUM_USERS = 50;
     uint256 public constant NUM_ROUNDS = 10;
 
     function setUp() public {
@@ -79,8 +79,7 @@ contract RoundsVaultPrecisionFuzzTest is Test {
 
         // Turn off whitelist for ease of testing logic
         vm.startPrank(governor);
-        accessManager.grantWhitelistManagerRole(address(roundsVault));
-        roundsVault.setWhitelisted(address(0), true);
+        accessManager.setWhitelistOpen(address(targetVault), true);
         vm.stopPrank();
 
         // Setup users

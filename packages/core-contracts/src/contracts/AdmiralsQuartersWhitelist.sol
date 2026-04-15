@@ -28,10 +28,11 @@ import {Whitelist} from "../utils/Whitelist/Whitelist.sol";
  *      with integrated swapping functionality using 1inch Router.whi
  * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas
  * efficiency.
- * @notice Whitelist gating: All external functions are invoked via `multicall` in
- * `ProtectedMulticallWhitelist`, which enforces `onlyWhitelisted(_msgSender())`. If the
- * underlying whitelist is set to open mode by whitelisting `address(0)`, any caller is treated as
- * whitelisted and may use `multicall`.
+ * @notice Whitelist gating: Specific operations are gated by explicit context-aware whitelists.
+ * - Fleet operations (`enterFleet`, `exitFleet`) are gated by whitelisting against the
+ *   target `fleetCommander` address as the context.
+ * - `depositTokens` and `withdrawTokens` are currently open and do not enforce context-specific
+ *   whitelists directly, though they are still protected by reentrancy guards.
  *
  * @dev How to use this contract:
  * 1. Deposit tokens: Use `depositTokens` to deposit ERC20 tokens into the contract.
@@ -140,6 +141,7 @@ contract AdmiralsQuartersWhitelist is
         uint256 assets,
         address receiver
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _revertIfNotWhitelisted(fleetCommander, receiver, _msgSender());
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -161,6 +163,7 @@ contract AdmiralsQuartersWhitelist is
         address fleetCommander,
         uint256 assets
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _revertIfNotWhitelisted(fleetCommander, _msgSender());
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -223,22 +226,6 @@ contract AdmiralsQuartersWhitelist is
 
     /// ADMIN
 
-    ///@inheritdoc IWhitelist
-    function setWhitelisted(
-        address account,
-        bool allowed
-    ) public override onlyGovernor {
-        super.setWhitelisted(account, allowed);
-    }
-
-    ///@inheritdoc IWhitelist
-    function setWhitelistedBatch(
-        address[] memory accounts,
-        bool[] memory allowed
-    ) public override onlyGovernor {
-        super.setWhitelistedBatch(accounts, allowed);
-    }
-
     /**
      * @dev Implementation of the Whitelist proxy adapter's virtual hook.
      */
@@ -279,17 +266,17 @@ contract AdmiralsQuartersWhitelist is
     }
 
     function _validateFleetCommander(address fleetCommander) internal view {
-        if (
-            !IHarborCommand(harborCommand()).activeFleetCommanders(
-                fleetCommander
-            )
-        ) {
+        if (!_isFleetCommander(fleetCommander)) {
             revert InvalidFleetCommander();
         }
     }
+    function _isFleetCommander(address account) internal view returns (bool) {
+        return IHarborCommand(harborCommand()).activeFleetCommanders(account);
+    }
 
-    function _validateToken(IERC20 token) internal pure {
-        if (address(token) == address(0)) revert InvalidToken();
+    function _validateToken(IERC20 token) internal view {
+        if (address(token) == address(0) || _isFleetCommander(address(token)))
+            revert InvalidToken();
     }
 
     function _validateAmount(uint256 amount) internal pure {

@@ -20,9 +20,9 @@ import {Whitelist} from "../utils/Whitelist/Whitelist.sol";
  * {_msgSender} are not propagated to subcalls.
  *
  * Whitelist behavior:
- * - Calls to {multicall} are gated by `onlyWhitelisted(_msgSender())` from `Whitelist`.
- * - If `address(0)` is whitelisted in the underlying `Whitelist`, the whitelist is considered open
- *   and any caller is permitted to use `multicall`.
+ * - This contract inherits from `Whitelist` but does NOT gate `multicall` itself.
+ * - Inheriting contracts are responsible for gating individual functions or providing their own
+ *   whitelisting logic (e.g., `AdmiralsQuartersWhitelist` gates fleet entry/exit).
  */
 
 abstract contract ProtectedMulticallWhitelist is Context, Whitelist {
@@ -46,12 +46,7 @@ abstract contract ProtectedMulticallWhitelist is Context, Whitelist {
 
     function multicall(
         bytes[] calldata data
-    )
-        external
-        payable
-        onlyWhitelisted(_msgSender())
-        returns (bytes[] memory results)
-    {
+    ) external payable returns (bytes[] memory results) {
         if (_getCaller() != address(0)) {
             revert MulticallAlreadyInProgress();
         }

@@ -254,22 +254,6 @@ contract FleetCommanderConfigProviderWhitelist is
         }
     }
 
-    /// @inheritdoc IWhitelist
-    function setWhitelisted(
-        address account,
-        bool allowed
-    ) public override onlyGovernor whenNotPaused {
-        super.setWhitelisted(account, allowed);
-    }
-
-    /// @inheritdoc IWhitelist
-    function setWhitelistedBatch(
-        address[] memory accounts,
-        bool[] memory allowed
-    ) public override onlyGovernor whenNotPaused {
-        super.setWhitelistedBatch(accounts, allowed);
-    }
-
     // INTERNAL FUNCTIONS
     /**
      * @dev Internal function to add a new Ark to the fleet

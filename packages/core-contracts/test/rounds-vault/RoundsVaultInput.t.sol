@@ -12,11 +12,12 @@ import {IRoundsVaultBaseEnums} from "../../src/interfaces/rounds-vault/IRoundsVa
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
 import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
 import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
+import {MockAccessManager} from "../mocks/MockAccessManager.sol";
+import {MockAccessManager} from "../mocks/MockAccessManager.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
 import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
-import {MockAccessManager} from "../mocks/MockAccessManager.sol";
 
 // Functional MockERC4626 for testing interaction
 contract MockERC4626 is ERC4626VaultMock {
@@ -114,8 +115,12 @@ contract RoundsVaultInputTest is
 
         accessManager.grantRole(accessManager.GOVERNOR_ROLE(), admin);
 
-        vm.prank(admin);
-        vault.setWhitelisted(address(0), true);
+        vm.startPrank(admin);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelistOpen(
+            address(targetVault),
+            true
+        );
+        vm.stopPrank();
 
         // Setup accounts
         vm.startPrank(unprivilegedAccount);
@@ -425,18 +430,29 @@ contract RoundsVaultInputTest is
     function test_RIV0009_RevertIfNotWhitelisted() public {
         // Disable open whitelist
         vm.prank(admin);
-        vault.setWhitelisted(address(0), false);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelistOpen(
+            address(targetVault),
+            false
+        );
 
         uint256 assets = 0.2 ether;
 
         vm.startPrank(unprivilegedAccount);
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                unprivilegedAccount
+            )
         );
         vault.deposit(assets, unprivilegedAccount);
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                unprivilegedAccount
+            )
         );
         vault.redeem(0, assets, unprivilegedAccount, unprivilegedAccount);
 
@@ -446,7 +462,11 @@ contract RoundsVaultInputTest is
         amounts[0] = assets;
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                unprivilegedAccount
+            )
         );
         vault.redeemBatch(
             ids,
@@ -456,7 +476,11 @@ contract RoundsVaultInputTest is
         );
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                unprivilegedAccount
+            )
         );
         vault.redeemExchangeAsset(
             0,
@@ -466,7 +490,11 @@ contract RoundsVaultInputTest is
         );
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                unprivilegedAccount
+            )
         );
         vault.redeemExchangeAssetBatch(
             ids,
@@ -481,22 +509,36 @@ contract RoundsVaultInputTest is
         // We whitelist the receiver but not the caller
         address receiver = address(0x4);
 
-        vm.prank(admin);
-        vault.setWhitelisted(address(0), false);
-
-        vm.prank(admin);
-        vault.setWhitelisted(receiver, true);
+        vm.startPrank(admin);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelistOpen(
+            address(targetVault),
+            false
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            receiver,
+            true
+        );
+        vm.stopPrank();
 
         uint256 assets = 0.2 ether;
 
         vm.startPrank(unprivilegedAccount);
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                unprivilegedAccount
+            )
         );
         vault.deposit(assets, receiver);
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                unprivilegedAccount
+            )
         );
         vault.redeem(0, assets, receiver, unprivilegedAccount);
 
@@ -506,17 +548,29 @@ contract RoundsVaultInputTest is
         amounts[0] = assets;
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                unprivilegedAccount
+            )
         );
         vault.redeemBatch(ids, amounts, receiver, unprivilegedAccount);
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                unprivilegedAccount
+            )
         );
         vault.redeemExchangeAsset(0, assets, receiver, unprivilegedAccount);
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, unprivilegedAccount)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                unprivilegedAccount
+            )
         );
         vault.redeemExchangeAssetBatch(
             ids,
@@ -588,19 +642,34 @@ contract RoundsVaultInputTest is
         address owner = unprivilegedAccount; // not whitelisted
 
         // Disable open whitelist
-        vm.prank(admin);
-        vault.setWhitelisted(address(0), false);
-
         vm.startPrank(admin);
-        vault.setWhitelisted(validCaller, true);
-        vault.setWhitelisted(receiver, true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelistOpen(
+            address(targetVault),
+            false
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            validCaller,
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            receiver,
+            true
+        );
         vm.stopPrank();
 
         uint256 assets = 0.2 ether;
 
         vm.startPrank(validCaller);
 
-        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                owner
+            )
+        );
         vault.redeem(0, assets, receiver, owner);
 
         uint256[] memory ids = new uint256[](1);
@@ -608,13 +677,31 @@ contract RoundsVaultInputTest is
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = assets;
 
-        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                owner
+            )
+        );
         vault.redeemBatch(ids, amounts, receiver, owner);
 
-        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                owner
+            )
+        );
         vault.redeemExchangeAsset(0, assets, receiver, owner);
 
-        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, owner));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                owner
+            )
+        );
         vault.redeemExchangeAssetBatch(ids, amounts, receiver, owner);
         vm.stopPrank();
     }
@@ -625,12 +712,21 @@ contract RoundsVaultInputTest is
         address owner = address(0x6);
 
         // Disable open whitelist
-        vm.prank(admin);
-        vault.setWhitelisted(address(0), false);
-
         vm.startPrank(admin);
-        vault.setWhitelisted(validCaller, true);
-        vault.setWhitelisted(owner, true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelistOpen(
+            address(targetVault),
+            false
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            validCaller,
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            owner,
+            true
+        );
         vm.stopPrank();
 
         uint256 assets = 0.2 ether;
@@ -638,12 +734,20 @@ contract RoundsVaultInputTest is
         vm.startPrank(validCaller);
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                receiver
+            )
         );
         vault.deposit(assets, receiver);
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                receiver
+            )
         );
         vault.redeem(0, assets, receiver, owner);
 
@@ -653,17 +757,29 @@ contract RoundsVaultInputTest is
         amounts[0] = assets;
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                receiver
+            )
         );
         vault.redeemBatch(ids, amounts, receiver, owner);
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                receiver
+            )
         );
         vault.redeemExchangeAsset(0, assets, receiver, owner);
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, receiver)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                receiver
+            )
         );
         vault.redeemExchangeAssetBatch(ids, amounts, receiver, owner);
         vm.stopPrank();
@@ -675,7 +791,11 @@ contract RoundsVaultInputTest is
         address accountB = address(0xB);
 
         vm.prank(admin);
-        vault.setWhitelisted(accountB, true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            accountB,
+            true
+        );
 
         // 1. Deposit to accountA
         vm.startPrank(accountA);
@@ -707,14 +827,15 @@ contract RoundsVaultInputTest is
         // 5. Check that balanceOfAll() correctly reflects the burned tokens
         assertEq(vault.balanceOfAll(accountB), 0);
     }
+
     function test_RIV0015_EmergencyRollbackRound() public {
         vm.startPrank(operator);
         vault.nextRound(); // Round 0 -> InSettlement
         vm.stopPrank();
 
         assertEq(
-            uint(vault.roundState(0)),
-            uint(IRoundsVaultBaseEnums.RoundState.InSettlement)
+            uint256(vault.roundState(0)),
+            uint256(IRoundsVaultBaseEnums.RoundState.InSettlement)
         );
 
         // Negative: Non-governor cannot rollback
@@ -741,8 +862,8 @@ contract RoundsVaultInputTest is
         vault.emergencyRollbackRound(0);
 
         assertEq(
-            uint(vault.roundState(0)),
-            uint(IRoundsVaultBaseEnums.RoundState.Opened)
+            uint256(vault.roundState(0)),
+            uint256(IRoundsVaultBaseEnums.RoundState.Opened)
         );
         vm.stopPrank();
     }
@@ -757,8 +878,8 @@ contract RoundsVaultInputTest is
         vm.stopPrank();
 
         assertEq(
-            uint(vault.roundState(0)),
-            uint(IRoundsVaultBaseEnums.RoundState.Opened)
+            uint256(vault.roundState(0)),
+            uint256(IRoundsVaultBaseEnums.RoundState.Opened)
         );
 
         // Negative: Non-keeper cannot retry round
@@ -788,24 +909,35 @@ contract RoundsVaultInputTest is
         vault.retryRound(0);
 
         assertEq(
-            uint(vault.roundState(0)),
-            uint(IRoundsVaultBaseEnums.RoundState.InSettlement)
+            uint256(vault.roundState(0)),
+            uint256(IRoundsVaultBaseEnums.RoundState.InSettlement)
         );
         vm.stopPrank();
     }
 
-    function test_RIV0015_TransferRevertIfFromNotWhitelisted() public {
+    function test_RIV0017_TransferRevertIfFromNotWhitelisted() public {
         address validCaller = address(0x4);
         address to = address(0x5);
         address from = unprivilegedAccount; // not whitelisted
 
         // Disable open whitelist
         vm.prank(admin);
-        vault.setWhitelisted(address(0), false);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelistOpen(
+            address(targetVault),
+            false
+        );
 
         vm.startPrank(admin);
-        vault.setWhitelisted(validCaller, true);
-        vault.setWhitelisted(to, true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            validCaller,
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            to,
+            true
+        );
         vm.stopPrank();
 
         uint256 id = 0;
@@ -813,7 +945,13 @@ contract RoundsVaultInputTest is
 
         vm.startPrank(validCaller);
 
-        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, from));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                from
+            )
+        );
         vault.safeTransferFrom(from, to, id, value, "");
 
         uint256[] memory ids = new uint256[](1);
@@ -821,24 +959,41 @@ contract RoundsVaultInputTest is
         uint256[] memory values = new uint256[](1);
         values[0] = value;
 
-        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, from));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                from
+            )
+        );
         vault.safeBatchTransferFrom(from, to, ids, values, "");
 
         vm.stopPrank();
     }
 
-    function test_RIV0016_TransferRevertIfToNotWhitelisted() public {
+    function test_RIV0018_TransferRevertIfToNotWhitelisted() public {
         address validCaller = address(0x4);
         address to = address(0x5); // not whitelisted
         address from = unprivilegedAccount;
 
         // Disable open whitelist
         vm.prank(admin);
-        vault.setWhitelisted(address(0), false);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelistOpen(
+            address(targetVault),
+            false
+        );
 
         vm.startPrank(admin);
-        vault.setWhitelisted(validCaller, true);
-        vault.setWhitelisted(from, true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            validCaller,
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            from,
+            true
+        );
         vm.stopPrank();
 
         uint256 id = 0;
@@ -846,7 +1001,13 @@ contract RoundsVaultInputTest is
 
         vm.startPrank(validCaller);
 
-        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, to));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                to
+            )
+        );
         vault.safeTransferFrom(from, to, id, value, "");
 
         uint256[] memory ids = new uint256[](1);
@@ -854,24 +1015,41 @@ contract RoundsVaultInputTest is
         uint256[] memory values = new uint256[](1);
         values[0] = value;
 
-        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, to));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                to
+            )
+        );
         vault.safeBatchTransferFrom(from, to, ids, values, "");
 
         vm.stopPrank();
     }
 
-    function test_RIV0017_TransferRevertIfCallerNotWhitelisted() public {
+    function test_RIV0019_TransferRevertIfCallerNotWhitelisted() public {
         address caller = address(0x4); // not whitelisted
         address to = address(0x5);
         address from = unprivilegedAccount;
 
         // Disable open whitelist
         vm.prank(admin);
-        vault.setWhitelisted(address(0), false);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelistOpen(
+            address(targetVault),
+            false
+        );
 
         vm.startPrank(admin);
-        vault.setWhitelisted(from, true);
-        vault.setWhitelisted(to, true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            from,
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            to,
+            true
+        );
         vm.stopPrank();
 
         uint256 id = 0;
@@ -880,7 +1058,11 @@ contract RoundsVaultInputTest is
         vm.startPrank(caller);
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, caller)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                caller
+            )
         );
         vault.safeTransferFrom(from, to, id, value, "");
 
@@ -890,29 +1072,41 @@ contract RoundsVaultInputTest is
         values[0] = value;
 
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, caller)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(targetVault),
+                caller
+            )
         );
         vault.safeBatchTransferFrom(from, to, ids, values, "");
 
         vm.stopPrank();
     }
 
-    function test_RIV0018_TransferSuccessWhenWhitelisted() public {
+    function test_RIV0020_TransferSuccessWhenWhitelisted() public {
         address validCaller = address(0x4);
         address to = address(0x5);
         address from = unprivilegedAccount;
-
-        // Disable open whitelist
-        vm.prank(admin);
-        vault.setWhitelisted(address(0), false);
 
         // Prepare the state
         uint256 value = 0.2 ether;
 
         vm.startPrank(admin);
-        vault.setWhitelisted(from, true);
-        vault.setWhitelisted(to, true);
-        vault.setWhitelisted(validCaller, true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            from,
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            to,
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            validCaller,
+            true
+        );
         vm.stopPrank();
 
         vm.startPrank(from);

@@ -3,16 +3,17 @@ pragma solidity 0.8.28;
 
 import {RoundsVaultInput} from "../../src/contracts/rounds-vault/RoundsVaultInput.sol";
 import {RoundsVaultOutput} from "../../src/contracts/rounds-vault/RoundsVaultOutput.sol";
-import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
-import {MockERC20} from "../mocks/MockERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Test} from "forge-std/Test.sol";
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
 import {IRoundsVaultBaseEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
-import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
+import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
 import {MockAccessManager} from "../mocks/MockAccessManager.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
+import {Test} from "forge-std/Test.sol";
 
 // Mock ERC4626
 contract MockERC4626 is ERC4626VaultMock {
@@ -104,9 +105,10 @@ contract RoundsVaultMinPositionTest is
         accessManager.grantRole(accessManager.GOVERNOR_ROLE(), admin);
 
         vm.prank(admin);
-        inputVault.setWhitelisted(address(0), true);
-        vm.prank(admin);
-        outputVault.setWhitelisted(address(0), true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelistOpen(
+            address(targetVault),
+            true
+        );
 
         vm.prank(admin);
         inputVault.setMinPositionSize(MIN_POSITION);
@@ -203,17 +205,24 @@ contract RoundsVaultMinPositionTest is
 
     function test_Whitelist_EnforcedOnTransfer() public {
         vm.prank(admin);
-        inputVault.setWhitelisted(address(0), false);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelistOpen(
+            address(targetVault),
+            false
+        );
         vm.prank(admin);
-        inputVault.setWhitelisted(user, true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(targetVault),
+            user,
+            true
+        );
 
         address nonWhitelisted = address(0xDEADC0DE);
         vm.startPrank(user);
         inputVault.deposit(2000e6, user);
-
         vm.expectRevert(
             abi.encodeWithSelector(
-                bytes4(keccak256("NotWhitelisted(address)")),
+                NotWhitelisted.selector,
+                address(targetVault),
                 nonWhitelisted
             )
         );

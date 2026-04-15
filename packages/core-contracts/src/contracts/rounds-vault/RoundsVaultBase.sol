@@ -1,41 +1,41 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 import {ProtocolAccessManagedV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedV2.sol";
 
+import {ERC4626MultiToken, IERC4626MultiToken} from "../../extensions/ERC4626MultiToken.sol";
 import {ERC4626MultiTokenWrapper} from "../../extensions/ERC4626MultiTokenWrapper.sol";
-import {IERC4626MultiToken, ERC4626MultiToken} from "../../extensions/ERC4626MultiToken.sol";
-import {Whitelist} from "../../utils/Whitelist/Whitelist.sol";
 import {IWhitelist} from "../../utils/Whitelist/IWhitelist.sol";
+import {Whitelist} from "../../utils/Whitelist/Whitelist.sol";
 
 import {IRoundsVaultBase} from "../../interfaces/rounds-vault/IRoundsVaultBase.sol";
+import {IRoundsVaultBaseEnums} from "../../interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
 import {IRoundsVaultBaseErrors} from "../../interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
 import {IRoundsVaultBaseEvents} from "../../interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
-import {IRoundsVaultBaseEnums} from "../../interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
 
 /**
-    @title RoundsVaultBase
-
-    @notice Provides a way of investing in a target tokenized vault that has investment periods in 
-    which the vault is locked.  During these locked periods, the vault does not accept deposits, so
-    investors need to be on the lookout for the unlocked period to deposit their funds.
-
-    @dev See { IRoundsVaultBase} for more details.
-
-    @dev Here the `_operate` function is defined as a pure virtual function. This is because the
-    specific logic when moving to the next round is left to the derived contracts. Typically they
-    will use the `_redeemFromTarget` or `_depositOnTarget` functions to move the funds in or out
-    of this vault.
-            
-    @author Roberto Cano <robercano>
+ *     @title RoundsVaultBase
+ *
+ *     @notice Provides a way of investing in a target tokenized vault that has investment periods in
+ *     which the vault is locked.  During these locked periods, the vault does not accept deposits, so
+ *     investors need to be on the lookout for the unlocked period to deposit their funds.
+ *
+ *     @dev See { IRoundsVaultBase} for more details.
+ *
+ *     @dev Here the `_operate` function is defined as a pure virtual function. This is because the
+ *     specific logic when moving to the next round is left to the derived contracts. Typically they
+ *     will use the `_redeemFromTarget` or `_depositOnTarget` functions to move the funds in or out
+ *     of this vault.
+ *
+ *     @author Roberto Cano <robercano>
  */
 abstract contract RoundsVaultBase is
     ProtocolAccessManagedV2,
@@ -76,17 +76,18 @@ abstract contract RoundsVaultBase is
      */
 
     /**
-        @param proxiedERC4626Vault The address of the ERC4626 vault that this vault will be accepting deposits for
-                                   and will be moving funds in and out of it on each round
-        @param _vaultType The type of the vault (Input or Output) which determines the underlying asset and the exchange asset
-                         Input: Underlying = proxiedVault.asset(), ExchangeAsset = proxiedVault (the shares)
-                         Output: Underlying = proxiedVault (the shares), ExchangeAsset = proxiedVault.asset()
-        @param accessManager The address of the Protocol Access Manager contract that provides information
-                             about the different roles in the protocol, including the Keeper role that is the only
-                             one allowed to call the `nextRound` function
-        @param receiptsURI The URI of the ERC-1155 receipts that will be emitted when depositing the underlying
-
-        @dev It is assumed that the shares token is the same as the vault token as per the 4626 OZ implementation
+     *     @param proxiedERC4626Vault The address of the ERC4626 vault that this vault will be accepting deposits for
+     *                                and will be moving funds in and out of it on each round
+     *     @param _vaultType The type of the vault (Input or Output) which determines the underlying asset and the
+     * exchange asset
+     *                      Input: Underlying = proxiedVault.asset(), ExchangeAsset = proxiedVault (the shares)
+     *                      Output: Underlying = proxiedVault (the shares), ExchangeAsset = proxiedVault.asset()
+     *     @param accessManager The address of the Protocol Access Manager contract that provides information
+     *                          about the different roles in the protocol, including the Keeper role that is the only
+     *                          one allowed to call the `nextRound` function
+     *     @param receiptsURI The URI of the ERC-1155 receipts that will be emitted when depositing the underlying
+     *
+     *     @dev It is assumed that the shares token is the same as the vault token as per the 4626 OZ implementation
      */
     constructor(
         address proxiedERC4626Vault,
@@ -118,7 +119,7 @@ abstract contract RoundsVaultBase is
      */
 
     /**
-        @inheritdoc IRoundsVaultBase
+     *     @inheritdoc IRoundsVaultBase
      */
     function nextRound() external onlyKeeper {
         uint256 closingRound = _roundNumber;
@@ -152,7 +153,7 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-        @inheritdoc IRoundsVaultBase
+     *     @inheritdoc IRoundsVaultBase
      */
     function setRoundSettledBatch(
         uint256[] memory roundIds
@@ -178,22 +179,6 @@ abstract contract RoundsVaultBase is
         emit EmergencyRoundRolledBack(roundId);
     }
 
-    ///@inheritdoc Whitelist
-    function setWhitelisted(
-        address account,
-        bool allowed
-    ) public override onlyGovernor {
-        super.setWhitelisted(account, allowed);
-    }
-
-    ///@inheritdoc Whitelist
-    function setWhitelistedBatch(
-        address[] memory accounts,
-        bool[] memory allowed
-    ) public override onlyGovernor {
-        super.setWhitelistedBatch(accounts, allowed);
-    }
-
     /**
      * @dev Implementation of the Whitelist proxy adapter's virtual hook.
      */
@@ -202,7 +187,7 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-        @inheritdoc IERC4626MultiToken
+     *     @inheritdoc IERC4626MultiToken
      */
     function deposit(
         uint256 assets,
@@ -211,15 +196,15 @@ abstract contract RoundsVaultBase is
         public
         virtual
         override(IERC4626MultiToken, ERC4626MultiToken)
-        onlyWhitelisted(receiver)
-        onlyWhitelisted(_msgSender())
         returns (uint256)
     {
+        _revertIfNotWhitelisted(vault(), receiver, _msgSender());
+
         return super.deposit(assets, receiver);
     }
 
     /**
-        @inheritdoc IERC4626MultiToken
+     *     @inheritdoc IERC4626MultiToken
      */
     function redeem(
         uint256 id,
@@ -230,11 +215,9 @@ abstract contract RoundsVaultBase is
         public
         virtual
         override(IERC4626MultiToken, ERC4626MultiToken)
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        onlyWhitelisted(_msgSender())
         returns (uint256)
     {
+        _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
         if (roundState[id] != RoundState.Opened) {
             revert InvalidRoundState(id, roundState[id], RoundState.Opened);
         }
@@ -243,10 +226,10 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-        @inheritdoc IERC4626MultiToken
-
-        @dev Left for completion and compatibility with the VaultDeferredOperation contract, but it is not possible
-        to redeem receipts for different rounds here, only for the current round.
+     *     @inheritdoc IERC4626MultiToken
+     *
+     *     @dev Left for completion and compatibility with the VaultDeferredOperation contract, but it is not possible
+     *     to redeem receipts for different rounds here, only for the current round.
      */
     function redeemBatch(
         uint256[] memory ids,
@@ -257,11 +240,9 @@ abstract contract RoundsVaultBase is
         public
         virtual
         override(IERC4626MultiToken, ERC4626MultiToken)
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        onlyWhitelisted(_msgSender())
         returns (uint256 assets)
     {
+        _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
         for (uint256 i = 0; i < ids.length; i++) {
             if (roundState[ids[i]] != RoundState.Opened) {
                 revert InvalidRoundState(
@@ -276,20 +257,16 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-        @inheritdoc IRoundsVaultBase
+     *     @inheritdoc IRoundsVaultBase
      */
     function redeemExchangeAsset(
         uint256 id,
         uint256 amount,
         address receiver,
         address owner
-    )
-        public
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        onlyWhitelisted(_msgSender())
-        returns (uint256)
-    {
+    ) public returns (uint256) {
+        _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
+
         if (id >= _roundNumber) {
             revert CannotRedeeemExchangeAssetCurrentRound(id, _roundNumber);
         }
@@ -301,26 +278,23 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-        @inheritdoc IRoundsVaultBase
-
-        @dev TODO: The user must be prevented from redeeming receipts partially as this could cause a cumulative rounding error
-        in the amount of shares redeemed by the user. If for example the share price is 0.8 shares/asset and the user
-        tries to redeem exactly 1 wei asset, the user would receive 0 shares. Doing this repeatedly would burn away all
-        the receipt unit without ever getting any shares from the target vault. Forcing the user to redeem the full
-        amount ensures that the behaviour is consistent with depositing the shares directly in the target vault
+     *     @inheritdoc IRoundsVaultBase
+     *
+     *     @dev TODO: The user must be prevented from redeeming receipts partially as this could cause a cumulative
+     * rounding error
+     *     in the amount of shares redeemed by the user. If for example the share price is 0.8 shares/asset and the user
+     *     tries to redeem exactly 1 wei asset, the user would receive 0 shares. Doing this repeatedly would burn away
+     * all
+     *     the receipt unit without ever getting any shares from the target vault. Forcing the user to redeem the full
+     *     amount ensures that the behaviour is consistent with depositing the shares directly in the target vault
      */
     function redeemExchangeAssetBatch(
         uint256[] calldata ids,
         uint256[] calldata amounts,
         address receiver,
         address owner
-    )
-        public
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        onlyWhitelisted(_msgSender())
-        returns (uint256 shares)
-    {
+    ) public returns (uint256 shares) {
+        _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
         if (ids.length != amounts.length) {
             revert BadRedeemBatchParameters(ids.length, amounts.length);
         }
@@ -348,9 +322,9 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-        @inheritdoc IERC1155
-
-        @dev Gate the function so only whitelisted addresses can transfer receipts
+     *     @inheritdoc IERC1155
+     *
+     *     @dev Gate the function so only whitelisted addresses can transfer receipts
      */
     function safeTransferFrom(
         address from,
@@ -358,21 +332,15 @@ abstract contract RoundsVaultBase is
         uint256 id,
         uint256 value,
         bytes memory data
-    )
-        public
-        virtual
-        override(ERC1155, IERC1155)
-        onlyWhitelisted(from)
-        onlyWhitelisted(to)
-        onlyWhitelisted(_msgSender())
-    {
+    ) public virtual override(ERC1155, IERC1155) {
+        _revertIfNotWhitelisted(vault(), from, to, _msgSender());
         super.safeTransferFrom(from, to, id, value, data);
     }
 
     /**
-        @inheritdoc IERC1155
-
-        @dev Gate the function so only whitelisted addresses can transfer receipts in batch
+     *     @inheritdoc IERC1155
+     *
+     *     @dev Gate the function so only whitelisted addresses can transfer receipts in batch
      */
     function safeBatchTransferFrom(
         address from,
@@ -380,34 +348,30 @@ abstract contract RoundsVaultBase is
         uint256[] memory ids,
         uint256[] memory values,
         bytes memory data
-    )
-        public
-        virtual
-        override(ERC1155, IERC1155)
-        onlyWhitelisted(from)
-        onlyWhitelisted(to)
-        onlyWhitelisted(_msgSender())
-    {
+    ) public virtual override(ERC1155, IERC1155) {
+        _revertIfNotWhitelisted(vault(), from, to, _msgSender());
         super.safeBatchTransferFrom(from, to, ids, values, data);
     }
 
     // VIEW FUNCTIONS
 
     /**
-        @inheritdoc IRoundsVaultBase
+     *     @inheritdoc IRoundsVaultBase
      */
     function getCurrentRound() public view override returns (uint256) {
         return _roundNumber;
     }
 
     /**
-        @inheritdoc IRoundsVaultBase
+     *     @inheritdoc IRoundsVaultBase
      */
     function exchangeAsset() public view override returns (address) {
         return _exchangeAsset;
     }
 
-    /** @inheritdoc IRoundsVaultBase*/
+    /**
+     * @inheritdoc IRoundsVaultBase
+     */
     function setMinPositionSize(
         uint256 minSize
     ) external override onlyGovernor {
@@ -416,7 +380,7 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-        @inheritdoc IRoundsVaultBase
+     *     @inheritdoc IRoundsVaultBase
      */
     function getExchangeRate(uint256 round) public view returns (Price memory) {
         return _exchangeRateByRound[round];
@@ -435,15 +399,21 @@ abstract contract RoundsVaultBase is
         if (minPositionSize == 0) return;
 
         bool isInputVault = VAULT_TYPE == BaseVaultType.Input;
+        address vault = vault();
 
         if (to != address(0) && to != address(this)) {
-            _revertIfNotWhitelisted(to);
-            _validateAggregateAssets(to, isInputVault, _minPositionSize);
+            _revertIfNotWhitelisted(vault, to);
+            _validateAggregateAssets(to, isInputVault, _minPositionSize, vault);
         }
 
         if (from != address(0) && from != address(this)) {
-            _revertIfNotWhitelisted(from);
-            _validateAggregateAssets(from, isInputVault, _minPositionSize);
+            _revertIfNotWhitelisted(vault, from);
+            _validateAggregateAssets(
+                from,
+                isInputVault,
+                _minPositionSize,
+                vault
+            );
         }
     }
 
@@ -455,26 +425,27 @@ abstract contract RoundsVaultBase is
     function _validateAggregateAssets(
         address user,
         bool isInputVault,
-        uint256 minPositionSize
+        uint256 _minPositionSize,
+        address vault
     ) internal view {
         uint256 targetAssets = 0;
 
         if (isInputVault) {
             targetAssets = balanceOfAll(user);
-            if (targetAssets >= minPositionSize) return;
+            if (targetAssets >= _minPositionSize) return;
         }
 
-        IERC4626 targetVault = IERC4626(vault());
+        IERC4626 targetVault = IERC4626(vault);
         uint256 shares = targetVault.balanceOf(user);
 
         if (shares > 0) {
             targetAssets += targetVault.convertToAssets(shares);
         }
-        if (targetAssets > 0 && targetAssets < minPositionSize) {
+        if (targetAssets > 0 && targetAssets < _minPositionSize) {
             revert RoundsVaultPositionTooSmall(
                 user,
                 targetAssets,
-                minPositionSize
+                _minPositionSize
             );
         }
     }
@@ -495,21 +466,21 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-        @inheritdoc ERC4626MultiToken
+     *     @inheritdoc ERC4626MultiToken
      */
     function _getMintId() internal view virtual override returns (uint256) {
         return _roundNumber;
     }
 
     /**
-        @notice Function to execute the deposit/redeem logic for a frozen amount
- 
-        @param amount The exact amount to be settled
-        @param roundId The id of the round to be settled
-        @return outputAmount The exact amount received after the trade
- 
-        @dev The child contract must implement this function to execute the deposit/redeem logic
-        for the frozen amount. Typically it will call `_redeemFromTarget` or `_depositOnTarget`.
+     *     @notice Function to execute the deposit/redeem logic for a frozen amount
+     *
+     *     @param amount The exact amount to be settled
+     *     @param roundId The id of the round to be settled
+     *     @return outputAmount The exact amount received after the trade
+     *
+     *     @dev The child contract must implement this function to execute the deposit/redeem logic
+     *     for the frozen amount. Typically it will call `_redeemFromTarget` or `_depositOnTarget`.
      */
     function _operate(
         uint256 amount,
@@ -517,9 +488,9 @@ abstract contract RoundsVaultBase is
     ) internal virtual returns (uint256 outputAmount);
 
     /**
-        @notice Retrieves the exchange rate between the underlying asset and the exchange asset for
-        the current round. Whether the rate is underlying/exchange or exchange/underlying depends on
-        the specific implentation of the derived contract
+     *     @notice Retrieves the exchange rate between the underlying asset and the exchange asset for
+     *     the current round. Whether the rate is underlying/exchange or exchange/underlying depends on
+     *     the specific implentation of the derived contract
      */
     function _getFallbackExchangeRate()
         internal
@@ -565,14 +536,14 @@ abstract contract RoundsVaultBase is
     // PRIVATES
 
     /**
-        @notice Checks if the receipt corresponds to any previous round, and if so, it calculates how many shares
-                the user should receive based on the receipt's round share price and the amount of deposited tokens
-
-        @param id The id of the receipt to be redeemed
-        @param amount The amount of the receipt to be redeemed
-        @param receiver The address that will receive the underlying tokens
-        @param owner The address that owns the receipt, in case the caller is not the owner
-    */
+     *     @notice Checks if the receipt corresponds to any previous round, and if so, it calculates how many shares
+     *             the user should receive based on the receipt's round share price and the amount of deposited tokens
+     *
+     *     @param id The id of the receipt to be redeemed
+     *     @param amount The amount of the receipt to be redeemed
+     *     @param receiver The address that will receive the underlying tokens
+     *     @param owner The address that owns the receipt, in case the caller is not the owner
+     */
 
     // @audit This function follows the CEI pattern to avoid out-of-order execution. The only
     // external call is `safeTransfer` that is done at the end of the function where the state
@@ -617,14 +588,14 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-        @notice Checks if the receipt corresponds to any previous round, and if so, it calculates how many shares
-                the user should receive based on the receipt's round share price and the amount of deposited tokens
-
-        @param caller The address that is calling the function
-        @param receiver The address that will receive the exchange asset tokens
-        @param owner The address that owns the receipt, in case the caller is not the owner
-        @param ids The ids of the receipts to be redeemed
-        @param amounts The amounts of the receipts to be redeemed
+     *     @notice Checks if the receipt corresponds to any previous round, and if so, it calculates how many shares
+     *             the user should receive based on the receipt's round share price and the amount of deposited tokens
+     *
+     *     @param caller The address that is calling the function
+     *     @param receiver The address that will receive the exchange asset tokens
+     *     @param owner The address that owns the receipt, in case the caller is not the owner
+     *     @param ids The ids of the receipts to be redeemed
+     *     @param amounts The amounts of the receipts to be redeemed
      */
 
     // @audit This function follows the CEI pattern to avoid out-of-order execution. The only

@@ -497,8 +497,7 @@ contract FleetCommanderWhitelist is
         if (!transfersEnabled) {
             revert FleetCommanderTransfersDisabled();
         }
-        _revertIfNotWhitelisted(_msgSender());
-        _revertIfNotWhitelisted(to);
+        _revertIfNotWhitelisted(address(this), _msgSender(), to);
 
         return super.transfer(to, amount);
     }
@@ -516,9 +515,7 @@ contract FleetCommanderWhitelist is
         if (!transfersEnabled) {
             revert FleetCommanderTransfersDisabled();
         }
-        _revertIfNotWhitelisted(_msgSender());
-        _revertIfNotWhitelisted(from);
-        _revertIfNotWhitelisted(to);
+        _revertIfNotWhitelisted(address(this), _msgSender(), from, to);
 
         return super.transferFrom(from, to, amount);
     }
@@ -664,6 +661,8 @@ contract FleetCommanderWhitelist is
 
     /**
      * @notice Enforces gateway restrictions for entry operations (deposit/mint)
+     * @dev Checks if the caller has the OPERATOR_ROLE; if not, verifies that the gateway
+     *      is open and that both `caller` and `receiver` are whitelisted for this fleet.
      * @param caller The address of the caller
      * @param receiver The address of the receiver
      */
@@ -679,12 +678,13 @@ contract FleetCommanderWhitelist is
             revert FleetCommanderDirectDepositsClosed();
         }
 
-        _revertIfNotWhitelisted(caller);
-        _revertIfNotWhitelisted(receiver);
+        _revertIfNotWhitelisted(address(this), caller, receiver);
     }
 
     /**
      * @notice Enforces gateway restrictions for exit operations (withdraw/redeem)
+     * @dev Checks if the caller has the OPERATOR_ROLE; if not, verifies that the gateway
+     *      is open and that `caller`, `receiver`, and `owner` are whitelisted for this fleet.
      * @param caller The address of the caller
      * @param receiver The address of the receiver
      * @param owner The address of the owner of the shares
@@ -701,10 +701,7 @@ contract FleetCommanderWhitelist is
         if (!config.isOperatorGatewayOpen) {
             revert FleetCommanderDirectWithdrawalsClosed();
         }
-
-        _revertIfNotWhitelisted(caller);
-        _revertIfNotWhitelisted(receiver);
-        _revertIfNotWhitelisted(owner);
+        _revertIfNotWhitelisted(address(this), caller, receiver, owner);
     }
 
     /**

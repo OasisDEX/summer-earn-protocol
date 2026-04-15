@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
 import {RoundsVaultInput} from "../../src/contracts/rounds-vault/RoundsVaultInput.sol";
 import {RoundsVaultOutput} from "../../src/contracts/rounds-vault/RoundsVaultOutput.sol";
-import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
-import {MockERC20} from "../mocks/MockERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
 import {IRoundsVaultBaseEnums} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
 import {IRoundsVaultBaseErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultBaseErrors.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC4626VaultMock} from "../mocks/ERC4626VaultMock.sol";
 import {MockAccessManager} from "../mocks/MockAccessManager.sol";
+import {MockAccessManager} from "../mocks/MockAccessManager.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
+import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
+import {Test} from "forge-std/Test.sol";
 
 contract MockTargetVault is ERC20, IERC4626 {
     address public immutable underlying;
@@ -23,41 +25,50 @@ contract MockTargetVault is ERC20, IERC4626 {
     constructor(address asset_) ERC20("Mock Shares", "vMOCK") {
         underlying = asset_;
     }
+
     function asset() external view override returns (address) {
         return underlying;
     }
+
     function totalAssets() external view override returns (uint256) {
         return IERC20(underlying).balanceOf(address(this));
     }
+
     function convertToShares(
         uint256 assets
     ) public view override returns (uint256) {
         return (assets * navNumerator) / navDenominator;
     }
+
     function convertToAssets(
         uint256 shares
     ) public view override returns (uint256) {
         return (shares * navDenominator) / navNumerator;
     }
+
     function setNAV(uint256 numerator, uint256 denominator) external {
         navNumerator = numerator;
         navDenominator = denominator;
     }
+
     function previewDeposit(
         uint256 assets
     ) external view override returns (uint256) {
         return convertToShares(assets);
     }
+
     function previewMint(
         uint256 shares
     ) external view override returns (uint256) {
         return convertToAssets(shares);
     }
+
     function previewWithdraw(
         uint256 assets
     ) external view override returns (uint256) {
         return convertToShares(assets);
     }
+
     function previewRedeem(
         uint256 shares
     ) external view override returns (uint256) {
@@ -111,17 +122,21 @@ contract MockTargetVault is ERC20, IERC4626 {
         IERC20(underlying).transfer(receiver, assets);
         return assets;
     }
+
     function maxDeposit(address) external pure override returns (uint256) {
         return type(uint256).max;
     }
+
     function maxMint(address) external pure override returns (uint256) {
         return type(uint256).max;
     }
+
     function maxWithdraw(
         address owner
     ) external view override returns (uint256) {
         return convertToAssets(balanceOf(owner));
     }
+
     function maxRedeem(address owner) external view override returns (uint256) {
         return balanceOf(owner);
     }
@@ -160,6 +175,8 @@ contract RoundsVaultTwoPhaseSettlementTest is
             ""
         );
 
+        accessManager.setWhitelistOpen(address(targetVault), true);
+
         accessManager.grantRole(
             keccak256(
                 abi.encodePacked(
@@ -178,9 +195,9 @@ contract RoundsVaultTwoPhaseSettlementTest is
             ),
             keeper
         );
-        accessManager.setWhitelisted(userA, true);
-        accessManager.setWhitelisted(userB, true);
-        accessManager.setWhitelisted(userC, true);
+        accessManager.setWhitelisted(address(targetVault), userA, true);
+        accessManager.setWhitelisted(address(targetVault), userB, true);
+        accessManager.setWhitelisted(address(targetVault), userC, true);
 
         asset.mint(userA, 100000 ether);
         asset.mint(userB, 100000 ether);
@@ -389,7 +406,8 @@ contract RoundsVaultTwoPhaseSettlementTest is
                     keccak256(abi.encode(seed, i, "yield"))
                 ) % 50 ether);
                 asset.mint(address(targetVault), randomYield);
-                // Because MockTargetVault uses balanceOf(this) for totalAssets, minting directly inflates the share price natively!
+                // Because MockTargetVault uses balanceOf(this) for totalAssets, minting directly inflates the share
+                // price natively!
             }
         }
 

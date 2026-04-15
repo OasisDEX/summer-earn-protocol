@@ -85,9 +85,13 @@ contract InstitutionalIntegrationTest is FleetCommanderInstitutionalTestBase {
     /**
      * @dev Centralized whitelisting. Only hitting the Access Manager V2.
      */
-    function _setWhitelisted(address account, bool allowed) internal {
+    function _setWhitelisted(
+        address context,
+        address account,
+        bool allowed
+    ) internal {
         vm.prank(governor);
-        accessManager.setWhitelisted(account, allowed);
+        accessManager.setWhitelisted(context, account, allowed);
     }
 
     function _depositViaAQ(
@@ -178,12 +182,19 @@ contract InstitutionalIntegrationTest is FleetCommanderInstitutionalTestBase {
         );
 
         // Expect revert MUST be exactly here, right before the multicall
-        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, user));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(sys.fleet),
+                user
+            )
+        );
         sys.aq.multicall(calls);
         vm.stopPrank();
 
-        // 3. Admin whitelists the user globally in AccessManager
-        _setWhitelisted(user, true);
+        // 3. Admin whitelists the user for AQ and Fleet in AccessManager
+        _setWhitelisted(address(sys.aq), user, true);
+        _setWhitelisted(address(sys.fleet), user, true);
 
         // 4. User deposits via AQ. Because AQ has OPERATOR_ROLE, it bypasses the Fleet's closed gateway.
         uint256 shares = _depositViaAQ(sys, 500000);
@@ -209,12 +220,16 @@ contract InstitutionalIntegrationTest is FleetCommanderInstitutionalTestBase {
         // 8. User tries to transfer again. It MUST fail because the friend is not whitelisted.
         vm.prank(user);
         vm.expectRevert(
-            abi.encodeWithSelector(NotWhitelisted.selector, friend)
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(sys.fleet),
+                friend
+            )
         );
         sys.fleet.transfer(friend, 1000);
 
         // 9. Admin whitelists the friend.
-        _setWhitelisted(friend, true);
+        _setWhitelisted(address(sys.fleet), friend, true);
 
         // 10. Transfer finally succeeds!
         vm.prank(user);
@@ -240,7 +255,7 @@ contract InstitutionalIntegrationTest is FleetCommanderInstitutionalTestBase {
         DeployedSystem memory sys = _deploy(user, true);
 
         // Whitelist user
-        _setWhitelisted(user, true);
+        _setWhitelisted(address(sys.fleet), user, true);
 
         // Direct deposit succeeds
         uint256 shares = _depositDirectFleet(sys, 500000);
@@ -254,14 +269,20 @@ contract InstitutionalIntegrationTest is FleetCommanderInstitutionalTestBase {
         DeployedSystem memory sys = _deploy(user, true);
 
         // User is NOT whitelisted
-        _setWhitelisted(user, false);
+        _setWhitelisted(address(sys.fleet), user, false);
 
         // Direct deposit fails on the whitelist check
         deal(sys.usdc, user, 100000);
         vm.startPrank(user);
         IERC20(sys.usdc).approve(address(sys.fleet), type(uint256).max);
 
-        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, user));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(sys.fleet),
+                user
+            )
+        );
         sys.fleet.deposit(100000, user);
         vm.stopPrank();
     }
@@ -274,7 +295,8 @@ contract InstitutionalIntegrationTest is FleetCommanderInstitutionalTestBase {
         address user = address(0xBEEF);
         DeployedSystem memory sys = _deploy(user, false);
 
-        _setWhitelisted(user, true);
+        _setWhitelisted(address(sys.aq), user, true);
+        _setWhitelisted(address(sys.fleet), user, true);
         _depositViaAQ(sys, 500000);
 
         // The AQ (Operator) should be able to transfer tokens freely, even with transfers disabled globally.

@@ -13,13 +13,8 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
  * @notice Configuration management for Whitelist-enabled fleets.
  * @dev Extension of the standard fleet configuration provider to support Operator gateways and Whitelisting.
  * @dev This contract inherits `Whitelist` which provides:
- *      - `onlyWhitelisted(account)` modifier to gate functionality
- *      - Governance-facing methods to manage a central whitelist
- *      - Open mode when `address(0)` is whitelisted; all accounts are treated as whitelisted
- *
- * Governor-facing wrappers:
- * - {setWhitelisted}: set a single account's whitelist status (including `address(0)` to toggle open mode)
- * - {setWhitelistedBatch}: batch update multiple accounts (including `address(0)`)
+ *      - `onlyWhitelisted(context, account)` modifier to gate functionality
+ *      - Open mode when isWhitelistOpen(context)
  */
 
 interface IFleetCommanderConfigProviderWhitelist is

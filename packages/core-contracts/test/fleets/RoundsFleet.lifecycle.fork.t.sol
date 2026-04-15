@@ -189,12 +189,32 @@ contract RoundsFleetLifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         IProtocolAccessManagerV2(address(accessManager))
             .grantWhitelistManagerRole(address(usdcFleetCommander));
 
-        usdcRoundsVaultInput.setWhitelisted(usdcUser, true);
-        usdcRoundsVaultOutput.setWhitelisted(usdcUser, true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(usdcRoundsVaultInput),
+            usdcUser,
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(usdcRoundsVaultOutput),
+            usdcUser,
+            true
+        );
 
-        usdcFleetCommander.setWhitelisted(usdcUser, true);
-        usdcFleetCommander.setWhitelisted(address(usdcRoundsVaultInput), true);
-        usdcFleetCommander.setWhitelisted(address(usdcRoundsVaultOutput), true);
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(usdcFleetCommander),
+            usdcUser,
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(usdcFleetCommander),
+            address(usdcRoundsVaultInput),
+            true
+        );
+        IProtocolAccessManagerV2(address(accessManager)).setWhitelisted(
+            address(usdcFleetCommander),
+            address(usdcRoundsVaultOutput),
+            true
+        );
         usdcFleetCommander.setFleetTokenTransferability(true);
 
         IProtocolAccessManagerV2(address(accessManager)).grantOperatorRole(

@@ -44,7 +44,11 @@ contract AssetsForwarder is
         address targetAddress,
         address asset,
         uint256 amount
-    ) external onlyWhitelisted(_msgSender()) onlyWhitelisted(targetAddress) {
+    )
+        external
+        onlyWhitelisted(address(this), _msgSender())
+        onlyWhitelisted(address(this), targetAddress)
+    {
         _validateInputs(targetAddress, asset, amount);
 
         _transferAsset(_msgSender(), targetAddress, asset, amount);
@@ -57,7 +61,11 @@ contract AssetsForwarder is
         address targetAddress,
         address asset,
         uint256 amount
-    ) external onlyWhitelisted(_msgSender()) onlyWhitelisted(targetAddress) {
+    )
+        external
+        onlyWhitelisted(address(this), _msgSender())
+        onlyWhitelisted(address(this), targetAddress)
+    {
         _validateInputs(targetAddress, asset, amount);
 
         _transferAsset(address(this), targetAddress, asset, amount);
@@ -73,20 +81,6 @@ contract AssetsForwarder is
         _transferAsset(address(this), _msgSender(), asset, amount);
 
         emit AssetSwept(_msgSender(), asset, amount);
-    }
-
-    function setWhitelisted(
-        address account,
-        bool allowed
-    ) public override(IWhitelist, Whitelist) onlyGovernor {
-        super.setWhitelisted(account, allowed);
-    }
-
-    function setWhitelistedBatch(
-        address[] memory accounts,
-        bool[] memory allowed
-    ) public override(IWhitelist, Whitelist) onlyGovernor {
-        super.setWhitelistedBatch(accounts, allowed);
     }
 
     /**
