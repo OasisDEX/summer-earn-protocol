@@ -503,7 +503,7 @@ export async function deployArk(
         `WisdomTree fund '${fundName}' oracle`,
       )
       const sweepSlippage = wisdomtreeByToken[fundName].sweepSlippage
-      const arkType = arkConfig.params.arkType
+      const depositSlippage = wisdomtreeByToken[fundName].depositSlippage
       const ark = await deployWisdomTreeArk(config, {
         ...baseArkParams,
         fundName: fundName,
@@ -511,7 +511,7 @@ export async function deployArk(
         shareToken: shareToken,
         oracle: oracle,
         sweepSlippage: sweepSlippage,
-        arkType: arkType,
+        depositSlippage: depositSlippage,
       })
       deployedArk = ark
       break

@@ -188,6 +188,7 @@ export interface BaseConfig {
           shareToken: string
           targetWallet: string
           sweepSlippage: string
+          depositSlippage: string
         }
       }
     }
