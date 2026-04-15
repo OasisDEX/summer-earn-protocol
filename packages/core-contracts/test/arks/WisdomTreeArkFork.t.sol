@@ -63,7 +63,6 @@ contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             ORACLE,
             sweepSlippage,
             depositSlippage,
-            WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
         accessManager.grantCommanderRole(address(ark), address(commander));

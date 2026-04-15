@@ -14,31 +14,37 @@ import "@summerfi/price-solidity/contracts/PriceUtils.sol";
  * @notice Ark for managing off-chain WisdomTree tokenised assets (e.g. WTBTC).
  *
  * @dev Asset tracking model:
- *   totalAssets() = (actualShares * oraclePrice) + pendingDepositAssets + (pendingWithdrawalShares * oraclePrice)
+ * totalAssets() = (actualShares * oraclePrice) + pendingDepositAssets + (pendingWithdrawalShares * oraclePrice)
  *
- *   Lifecycle:
- *   1. Deposit (`_board`):
- *      - If it's the first deposit in the queue (`pendingDepositAssets == 0`),
- *        the Ark snapshots its live share balance into `cachedShareBalance`.
- *      - USDC is transferred to `custodianWallet`.
- *      - `pendingDepositAssets` increases by the sent amount.
+ * Lifecycle:
+ * 1. Deposit (`_board`):
+ * - If it's the first deposit in the queue (`pendingDepositAssets == 0`),
+ * the Ark snapshots its live share balance into `cachedShareBalance`.
+ * - USDC is transferred to `custodianWallet`.
+ * - `pendingDepositAssets` increases by the sent amount.
  *
- *   2. Share Delivery & Keeper Deposit Clearance (`clearPendingDeposit`):
- *      - WisdomTree mints shares and transfers them to this Ark off-chain.
- *      - While `pendingDepositAssets > 0`, `totalAssets` uses `cachedShareBalance`,
- *        so the newly arriving shares are NOT double-counted.
- *      - The Keeper observes the incoming shares and calls `clearPendingDeposit`.
- *        This resets `pendingDepositAssets` to 0 (we assume no partial fills),
- *        releases the cache, and `totalAssets` switches back to using the pure live balance.
+ * 2. Share Delivery & Deposit Clearance (`clearPendingDeposit`):
+ * - WisdomTree mints shares and transfers them to this Ark off-chain.
+ * - While `pendingDepositAssets > 0`, `totalAssets` uses `cachedShareBalance` to prevent double-counting.
+ * - The Keeper calls `clearPendingDeposit(amount)`. The contract mathematically verifies
+ * that the expected shares (minus `depositSlippage`) have actually arrived before allowing clearance.
+ * - Supports partial clearances: `pendingDepositAssets` decreases, and `cachedShareBalance` updates
+ * safely to capture the newly delivered shares.
  *
- *   3. Withdrawal Request (`requestWithdrawal`):
- *      - Calculates equivalent shares and transfers them to `custodianWallet`.
- *      - Reduces `cachedShareBalance` (if frozen) to prevent artificial value propping.
- *      - Increases `pendingWithdrawalShares`.
+ * 3. Withdrawal Request (`requestWithdrawal`):
+ * - Only allowed when `pendingDepositAssets == 0` (prevents concurrent deposit/withdrawal cycles).
+ * - Calculates equivalent shares using the oracle and transfers them to `custodianWallet`.
+ * - Increases `pendingWithdrawalShares`.
  *
- *   4. Sweep (`sweep`):
- *      - USDC arrives from WisdomTree. Keeper calls `sweep()`.
- *      - `pendingWithdrawalShares = 0`. USDC swept to `bufferArk`.
+ * 4. Sweep (`sweep`):
+ * - USDC arrives from WisdomTree. Keeper calls `sweep()`.
+ * - Verifies that returned USDC meets the expected `sweepSlippage` threshold based on current oracle price.
+ * - `pendingWithdrawalShares = 0`. USDC swept to `bufferArk`.
+ *
+ * 5. Emergency Fallbacks:
+ * - `emergencySweep()` and `emergencyClearPendingDeposit()` allow the Governor to safely bypass
+ * slippage and oracle checks in case of extreme market volatility, partial fills the Keeper cannot process, or oracle
+ * deadlocks.
  */
 contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     using SafeERC20 for IERC20;
@@ -52,14 +58,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /*//////////////////////////////////////////////////////////////
                                   ENUMS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Type of Ark (MoneyMarket or NonMoneyMarket)
-    /// @dev MoneyMarket arks can have multiple deposits at once
-    /// @dev NonMoneyMarket arks can only have one deposit at a time
-    enum WTArkType {
-        NonMoneyMarket,
-        MoneyMarket
-    }
 
     /// @notice Default slippage (0.02%)
     uint256 public constant DEFAULT_SWAP_SLIPPAGE = 2;
@@ -150,9 +148,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /// @notice Expected returning USDC amount equivalent to redeemed shares.
     uint256 public pendingWithdrawalShares;
 
-    /// @notice Type of Ark (MoneyMarket or NonMoneyMarket)
-    WTArkType public immutable arkType;
-
     /// @notice Report of shares is given from cache or not
     bool public isArkFrozen;
 
@@ -175,7 +170,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         address _oracle,
         Percentage _sweepSlippage,
         Percentage _depositSlippage,
-        WTArkType _arkType,
         ArkParams memory _params
     ) ArkWithWithdrawalRequest(_params, DEFAULT_SWAP_SLIPPAGE) {
         if (_custodianWallet == address(0)) revert InvalidTargetWallet();
@@ -200,7 +194,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         shareDecimals = IERC20Metadata(_shareToken).decimals();
         assetDecimals = IERC20Metadata(_params.asset).decimals();
         ONE_ASSET = 10 ** assetDecimals;
-        arkType = _arkType;
     }
 
     modifier onlyNotFrozen() {

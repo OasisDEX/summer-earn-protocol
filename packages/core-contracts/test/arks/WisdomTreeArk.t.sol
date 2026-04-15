@@ -144,7 +144,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             address(oracle),
             sweepSlippage,
             depositSlippage,
-            WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
         vm.stopPrank();
@@ -183,7 +182,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             address(oracle),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
 
@@ -194,7 +192,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             address(0),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
 
@@ -205,7 +202,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             address(oracle),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
 
@@ -919,7 +915,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(governor);
 
         vm.expectEmit(false, false, false, true);
-        emit PendingDepositCleared(clearanceAttempt);
+        emit WisdomTreeArk.PendingDepositCleared(clearanceAttempt);
 
         ark.emergencyClearPendingDeposit(clearanceAttempt);
         vm.stopPrank();
