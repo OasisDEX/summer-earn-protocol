@@ -137,11 +137,13 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         vm.startPrank(governor);
         Percentage sweepSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
+        Percentage depositSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
         ark = new WisdomTreeArk(
             targetWallet,
             address(wtToken),
             address(oracle),
             sweepSlippage,
+            depositSlippage,
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
@@ -180,6 +182,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             address(wtToken),
             address(oracle),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
@@ -190,6 +193,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             address(wtToken),
             address(0),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
@@ -199,6 +203,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             targetWallet,
             address(0),
             address(oracle),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
@@ -439,6 +444,8 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         assertEq(ark.pendingDepositAssets(), amount);
 
         uint256 clearAmount = 10000 * 1e6;
+        uint256 equivalentShares = (clearAmount * 1e18) / amount;
+        deal(address(wtToken), address(ark), equivalentShares);
 
         vm.startPrank(keeper);
         ark.clearPendingDeposit(clearAmount);
@@ -722,5 +729,223 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         oracle.setRoundData(1, 60000 * 1e8, 0, 1);
         vm.expectRevert(WisdomTreeArk.StaleOraclePrice.selector);
         ark.sharesToAssets(1e18);
+    }
+
+    function test_ClearPendingDeposit_RevertsIfSharesNotArrived() public {
+        // 1. Board exact price of 1 share
+        uint256 amount = 60000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // 2. NO SHARES ARE MINTED OFF-CHAIN YET.
+        // This simulates a malicious or overly fast Keeper trying to crash the NAV.
+
+        uint256 expectedShares = 1e18; // 1 WTBTC
+
+        // 3. Keeper attempts to clear. Must revert with our new custom error.
+        vm.startPrank(keeper);
+
+        // We expect SharesNotArrived(expectedShares, actualNewShares)
+        // Adjust the expected error signature to match exactly what you implemented
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                WisdomTreeArk.SharesNotArrived.selector,
+                expectedShares,
+                0 // 0 shares actually arrived
+            )
+        );
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+
+        // Ensure state remains intact
+        assertEq(
+            ark.pendingDepositAssets(),
+            amount,
+            "Pending deposit should remain untouched"
+        );
+    }
+
+    function test_ClearPendingDeposit_RevertsIfOutsideSlippage() public {
+        uint256 amount = 60000 * 1e6; // Boarding 60k USDC, expecting 1 Share
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // 2. Shares arrive, but it's significantly less than expected
+        // Outside the allowed deposit slippage (e.g., 0.5%)
+        uint256 shortSharesMinted = 0.9e18;
+        wtToken.mint(address(ark), shortSharesMinted);
+
+        uint256 expectedShares = 1e18;
+
+        vm.startPrank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                WisdomTreeArk.SharesNotArrived.selector,
+                expectedShares,
+                shortSharesMinted
+            )
+        );
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+    }
+
+    function test_ClearPendingDeposit_WithSlippage_Success() public {
+        uint256 amount = 60000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // 2. Shares arrive with a tiny bit of negative slippage (0.2% loss).
+        // 1 Share - 0.2% = 0.998 Shares.
+        // Assuming your depositSlippage is set to 0.5%, this should pass.
+        uint256 slightlyShortShares = 0.9981e18;
+        wtToken.mint(address(ark), slightlyShortShares);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit(); // Should succeed
+        vm.stopPrank();
+
+        assertEq(
+            ark.pendingDepositAssets(),
+            0,
+            "Deposit should be cleared despite slight slippage"
+        );
+
+        // Ensure the cached share balance caught the slightly short shares perfectly
+        assertEq(
+            ark.cachedShareBalance(),
+            slightlyShortShares,
+            "Cache should update to the exact actual shares"
+        );
+    }
+
+    function test_ClearPendingDeposit_PartialClearance_SafeUpdate() public {
+        // Board 120k USDC (Expect 2 Shares)
+        uint256 amount = 120000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // Only 1 Share arrives off-chain initially
+        uint256 partialSharesMinted = 1e18;
+        wtToken.mint(address(ark), partialSharesMinted);
+
+        uint256 partialClearance = 60000 * 1e6; // Clear half the USDC
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit(partialClearance); // Clear half
+        vm.stopPrank();
+
+        // Verify partial state
+        assertEq(
+            ark.pendingDepositAssets(),
+            60000 * 1e6,
+            "Half of the deposit should still be pending"
+        );
+        assertEq(
+            ark.cachedShareBalance(),
+            partialSharesMinted,
+            "Cache should safely track the partial delivery"
+        );
+
+        // Assert totalAssets is still completely stable
+        // 1 share in cache (60k) + 60k pending = 120k total
+        assertEq(
+            ark.totalAssets(),
+            amount,
+            "NAV should not shift during partial clearance"
+        );
+    }
+
+    function test_EmergencyClearPendingDeposit_RescuesDeadlock() public {
+        uint256 amount = 1200000 * 1e6; // $1.2M USDC -> 20 shares
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // WisdomTree buys shares at the old price (e.g., 10 Shares for $600k)
+        // but only partially fills the order before the market closes.
+        uint256 partialSharesDelivered = 10e18;
+        wtToken.mint(address(ark), partialSharesDelivered);
+
+        // Suddenly, the Chainlink oracle price PLUMMETS (e.g. WTBTC drops to 20k)
+        oracle.setAnswer(20000 * 1e8);
+
+        // The Keeper wakes up and tries to clear the $600k partial fill.
+        // But because the oracle price dropped, $600k *should* buy 30 shares today.
+        // Since only 10 shares arrived, the slippage guardrail brutally rejects it.
+        vm.startPrank(keeper);
+
+        uint256 clearanceAttempt = 600000 * 1e6;
+        uint256 expectedSharesAtNewPrice = ark.sharesToAssets(clearanceAttempt); // Will be ~30 shares
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                WisdomTreeArk.SharesNotArrived.selector,
+                30e18, // Contract demands 30 shares based on today's cheap price
+                partialSharesDelivered // Only 10 arrived
+            )
+        );
+        ark.clearPendingDeposit(clearanceAttempt);
+        vm.stopPrank();
+
+        // The Governor verifies off-chain that $600k was legitimately
+        // spent to buy those 10 shares before the crash.
+
+        // First, ensure a rogue Keeper cannot call the emergency function
+        vm.startPrank(keeper);
+        vm.expectRevert(); // AccessControl revert
+        ark.emergencyClearPendingDeposit(clearanceAttempt);
+        vm.stopPrank();
+
+        // Governor executes the rescue
+        vm.startPrank(governor);
+
+        vm.expectEmit(false, false, false, true);
+        emit PendingDepositCleared(clearanceAttempt);
+
+        ark.emergencyClearPendingDeposit(clearanceAttempt);
+        vm.stopPrank();
+
+        assertEq(
+            ark.pendingDepositAssets(),
+            amount - clearanceAttempt,
+            "Pending queue should retain the remaining $600k"
+        );
+
+        // 2. The cache was forcefully sync'd to reality, capturing the 10 shares
+        assertEq(
+            ark.cachedShareBalance(),
+            partialSharesDelivered,
+            "Cache must hard-reset to physical balance to restore NAV parity"
+        );
+
+        // 3. The system is un-bricked and NAV calculates cleanly
+        uint256 rescuedTotalAssets = ark.totalAssets();
+
+        // 10 shares at $20k = $200k. Plus $600k still pending = $800k total.
+        uint256 expectedRescuedAssets = (10 * 20000 * 1e6) + (600000 * 1e6);
+        assertEq(
+            rescuedTotalAssets,
+            expectedRescuedAssets,
+            "NAV should perfectly reflect the new oracle reality + remaining pending USDC"
+        );
     }
 }

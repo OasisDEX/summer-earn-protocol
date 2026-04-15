@@ -68,6 +68,10 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     Percentage public constant MAX_SWEEP_SLIPPAGE =
         Percentage.wrap(PERCENTAGE_FACTOR / 2);
 
+    /// @notice Maximum deposit slippage (0.5%)
+    Percentage public constant MAX_DEPOSIT_SLIPPAGE =
+        Percentage.wrap(PERCENTAGE_FACTOR / 2);
+
     /// @notice Timeout for the oracle heartbeat (24 hours)
     uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 hours;
 
@@ -83,12 +87,17 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     error InsufficientPendingDeposit();
     error PendingDepositActive();
     error ArkIsFrozen();
+    error InvalidDepositSlippage(
+        Percentage newSlippage,
+        Percentage maxSlippage
+    );
     error InvalidSweepSlippage(Percentage newSlippage, Percentage maxSlippage);
     error InsufficientAssetsReturned(
         uint256 receivedAssets,
         uint256 expectedShares,
         uint256 receivedShares
     );
+    error SharesNotArrived(uint256 expectedShares, uint256 actualNewShares);
 
     /*//////////////////////////////////////////////////////////////
                             EVENTS
@@ -101,6 +110,10 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     event SweepSlippageUpdated(
         Percentage oldSweepSlippage,
         Percentage newSweepSlippage
+    );
+    event DepositSlippageUpdated(
+        Percentage oldDepositSlippage,
+        Percentage newDepositSlippage
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -146,6 +159,9 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /// @notice Maximum slippage for the sweep swap
     Percentage public sweepSlippage;
 
+    /// @notice Maximum slippage for deposit clearance
+    Percentage public depositSlippage;
+
     /// @notice Total assets of the ark when it was frozen
     uint256 private _frozenTotalAssets;
 
@@ -158,6 +174,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         address _shareToken,
         address _oracle,
         Percentage _sweepSlippage,
+        Percentage _depositSlippage,
         WTArkType _arkType,
         ArkParams memory _params
     ) ArkWithWithdrawalRequest(_params, DEFAULT_SWAP_SLIPPAGE) {
@@ -168,12 +185,27 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         custodianWallet = _custodianWallet;
         shareToken = IERC20(_shareToken);
         oracle = AggregatorV3Interface(_oracle);
+        if (_sweepSlippage > MAX_SWEEP_SLIPPAGE) {
+            revert InvalidSweepSlippage(_sweepSlippage, MAX_SWEEP_SLIPPAGE);
+        }
+        if (_depositSlippage > MAX_DEPOSIT_SLIPPAGE) {
+            revert InvalidDepositSlippage(
+                _depositSlippage,
+                MAX_DEPOSIT_SLIPPAGE
+            );
+        }
         sweepSlippage = _sweepSlippage;
+        depositSlippage = _depositSlippage;
         oracleDecimals = AggregatorV3Interface(_oracle).decimals();
         shareDecimals = IERC20Metadata(_shareToken).decimals();
         assetDecimals = IERC20Metadata(_params.asset).decimals();
         ONE_ASSET = 10 ** assetDecimals;
         arkType = _arkType;
+    }
+
+    modifier onlyNotFrozen() {
+        if (isArkFrozen) revert ArkIsFrozen();
+        _;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -251,6 +283,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      * @notice Freezes or unfreezes deposits for this Ark.
      * @param _isArkFrozen The new frozen state
      * @param frozenTotalAssets The total assets of the ark when it was frozen
+     * @dev we use type(uint256).max as default trigger
      */
     function setArkFrozen(
         bool _isArkFrozen,
@@ -273,6 +306,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      *      Assumes full clearance (no partial fills).
      */
     function clearPendingDeposit() external onlyKeeper {
+        _validateReceivedShares(pendingDepositAssets);
         _clearPendingDeposit(pendingDepositAssets);
     }
 
@@ -282,6 +316,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      *      clear a partial deposit.
      */
     function clearPendingDeposit(uint256 amount) external onlyKeeper {
+        _validateReceivedShares(amount);
         _clearPendingDeposit(amount);
     }
 
@@ -290,10 +325,9 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      * @notice Calculates the equivalent shares for the requested `amount` and sends them to the `custodianWallet`.
      * @dev Also records the the pending withdrawal shares. Reverts if deposit is pending.
      */
-    function requestWithdrawal(uint256 amount) external override onlyKeeper {
-        // Deposits and withdrawals are locked if ark is frozen
-        if (isArkFrozen) revert ArkIsFrozen();
-
+    function requestWithdrawal(
+        uint256 amount
+    ) external override onlyKeeper onlyNotFrozen {
         // Prevent concurrent deposit/withdrawal cycles
         if (pendingDepositAssets > 0) revert PendingDepositActive();
 
@@ -376,7 +410,20 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     }
 
     /**
-     * @notice Internal function for sweeping assets from the forwarder
+     * @notice Accepts current share balance as valid
+     * @dev Called by governor in case of execution delays causing slippage reverts,
+     * or if WisdomTree partially fills an order in a way the Keeper cannot process.
+     * @param amount The amount of pending USDC deposit to forcefully clear.
+     */
+    function emergencyClearPendingDeposit(
+        uint256 amount
+    ) external onlyGovernor {
+        if (amount > pendingDepositAssets) revert InsufficientPendingDeposit();
+        _clearPendingDeposit(amount);
+    }
+
+    /**
+     * @notice Internal function for sweeping assets
      */
     function _sweep(
         uint256 amountToSweep
@@ -397,7 +444,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         address bufferArk = address(
             IFleetCommander(config.commander).bufferArk()
         );
-        // to keep compatibility with the subgraph
+        // to keep compatibility with the indexer
         emit Disembarked(msg.sender, address(asset), sweptAmounts[0]);
 
         if (sweptAmounts[0] > 0 && address(this) != bufferArk) {
@@ -422,6 +469,25 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         sweepSlippage = newSweepSlippage;
     }
 
+    /**
+     * @notice Sets the deposit slippage
+     * @param newDepositSlippage The new deposit slippage
+     */
+    function setDepositSlippage(
+        Percentage newDepositSlippage
+    ) external onlyKeeper {
+        if (newDepositSlippage > MAX_DEPOSIT_SLIPPAGE) {
+            revert InvalidDepositSlippage(
+                newDepositSlippage,
+                MAX_DEPOSIT_SLIPPAGE
+            );
+        }
+
+        emit DepositSlippageUpdated(depositSlippage, newDepositSlippage);
+
+        depositSlippage = newDepositSlippage;
+    }
+
     /*//////////////////////////////////////////////////////////////
                          INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -430,19 +496,14 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
      * @notice Caches placeholder deposit and sends USDC to WisdomTree target wallet.
      * @dev If this is the start of a deposit queue, snapshots the real share balance.
      */
-    function _board(uint256 amount, bytes calldata) internal override {
-        // Deposits and withdrawals are locked if ark is frozen
-        if (isArkFrozen) revert ArkIsFrozen();
-
-        // Non-money market arks cannot have concurrent deposits
-        if (arkType == WTArkType.NonMoneyMarket && pendingDepositAssets > 0) {
+    function _board(
+        uint256 amount,
+        bytes calldata
+    ) internal override onlyNotFrozen {
+        if (pendingDepositAssets > 0) {
             revert PendingDepositActive();
         }
-
-        if (pendingDepositAssets == 0) {
-            cachedShareBalance = shareToken.balanceOf(address(this));
-        }
-
+        cachedShareBalance = shareToken.balanceOf(address(this));
         pendingDepositAssets += amount;
 
         config.asset.safeTransfer(custodianWallet, amount);
@@ -451,11 +512,10 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /**
      * @dev No-op: Withdrawals are fully asynchronous via `requestWithdrawal` and `sweep`.
      */
-    function _disembark(uint256, bytes calldata) internal view override {
-        if (isArkFrozen) {
-            revert ArkIsFrozen();
-        }
-    }
+    function _disembark(
+        uint256,
+        bytes calldata
+    ) internal view override onlyNotFrozen {}
 
     /**
      * @dev Always 0: Synchronous withdrawal is not supported.
@@ -548,13 +608,26 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
     /**
      * @notice Removes a fulfilled deposit amount from `pendingDepositAssets`.
-     * @param amount The amount of deposit to clear.
+     * @param amountCleared The amount of USDC pending deposit to clear.
      */
-    function _clearPendingDeposit(uint256 amount) internal {
+    function _clearPendingDeposit(uint256 amountCleared) internal {
+        pendingDepositAssets -= amountCleared;
+        cachedShareBalance = shareToken.balanceOf(address(this));
+
+        emit PendingDepositCleared(amountCleared);
+    }
+
+    function _validateReceivedShares(uint256 amount) internal view {
         if (amount > pendingDepositAssets) revert InsufficientPendingDeposit();
+        uint256 currentShares = shareToken.balanceOf(address(this));
+        uint256 newlyArrivedShares = currentShares - cachedShareBalance;
+        uint256 expectedShares = _assetsToShares(amount);
+        uint256 expectedSharesMinusSlippage = expectedShares.subtractPercentage(
+            depositSlippage
+        );
 
-        pendingDepositAssets -= amount;
-
-        emit PendingDepositCleared(amount);
+        if (newlyArrivedShares < expectedSharesMinusSlippage) {
+            revert SharesNotArrived(expectedShares, newlyArrivedShares);
+        }
     }
 }

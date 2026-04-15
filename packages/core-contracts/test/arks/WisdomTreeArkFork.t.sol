@@ -56,11 +56,13 @@ contract WisdomTreeArkBaseForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         vm.startPrank(governor);
         Percentage sweepSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
+        Percentage depositSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
         ark = new WisdomTreeArk(
             TARGET_WALLET,
             SHARE_TOKEN,
             ORACLE,
             sweepSlippage,
+            depositSlippage,
             WisdomTreeArk.WTArkType.NonMoneyMarket,
             params
         );
