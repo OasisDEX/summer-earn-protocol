@@ -31,4 +31,16 @@ export interface Action {
   target: string
   method: string
   calldata: string
+  salt?: string
+  value?: string
+}
+// Formatted result for UI rendering
+export interface SimulationResult {
+  chainId: string
+  status: 'idle' | 'loading' | 'success' | 'fail' | 'error'
+  gasUsed?: number
+  simulationId?: string
+  shareUrl?: string
+  error?: string
+  balance?: string
 }

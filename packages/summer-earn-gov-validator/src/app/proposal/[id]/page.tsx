@@ -12,6 +12,7 @@ import { fetchProposalWithCrossChainById } from '@/services/subgraph'
 import { SupportedNetworks } from '@/services/validation'
 import { ProposalWithCrossChain } from '@/types/governance'
 import { transformProposal } from '@/utils/proposal-transformer'
+import { SimulateProposalButton } from './SimulateProposalButton'
 import { convertRawUrlsToMarkdown } from '@/utils/text'
 import { formatTimestamp } from '@/utils/timing'
 
@@ -135,6 +136,9 @@ export default async function ProposalDetailPage({ params }: PageProps) {
                 <span className="material-symbols-outlined text-sm">schedule</span>
                 Created {formatTimestamp(proposal.createdAt)}
               </span>
+              <div className="ml-auto">
+                <SimulateProposalButton fullProposal={fullProposal} status={proposal.status} />
+              </div>
             </div>
             <h1 className="text-4xl font-extrabold text-on-surface tracking-tighter mb-6">
               {proposal.title}

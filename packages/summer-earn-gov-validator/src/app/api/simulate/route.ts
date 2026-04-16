@@ -11,10 +11,46 @@ import { DeploymentConfig } from '@/types/deployment'
 
 const deploymentConfig = deploymentConfigRaw as DeploymentConfig
 
-import { Address, formatEther, toHex } from 'viem'
-
+import { Address, encodeFunctionData, formatEther, toHex } from 'viem'
 import { getPublicClient } from '@/config/rpc'
 import { Action, TenderlyChainResult } from '@/types/tenderly'
+
+const TIMELOCK_ABI = [
+  {
+    inputs: [{ name: 'newDelay', type: 'uint256' }],
+    name: 'updateDelay',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'payloads', type: 'bytes[]' },
+      { name: 'predecessor', type: 'bytes32' },
+      { name: 'salt', type: 'bytes32' },
+      { name: 'delay', type: 'uint256' },
+    ],
+    name: 'scheduleBatch',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'payloads', type: 'bytes[]' },
+      { name: 'predecessor', type: 'bytes32' },
+      { name: 'salt', type: 'bytes32' },
+    ],
+    name: 'executeBatch',
+    outputs: [],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+] as const
 
 // TODO: Successfully moved types to src/types/tenderly.ts
 
@@ -49,9 +85,10 @@ export async function POST(req: Request) {
 
       const chainData = deploymentConfig[chainConfig.key]
       const timelockAddress = chainData?.deployedContracts?.govV2?.timelock?.address
+      const governorAddress = chainId == 8543 ? chainData?.deployedContracts?.govV2?.summerGovernor?.address : chainData?.deployedContracts?.gov?.summerGovernor?.address
 
-      if (!timelockAddress) {
-        results[chainId] = { error: 'Timelock address not found for this chain' }
+      if (!timelockAddress || !governorAddress) {
+        results[chainId] = { error: 'Timelock or Governor address not found for this chain' }
         continue
       }
 
@@ -59,21 +96,65 @@ export async function POST(req: Request) {
       const balance = await publicClient.getBalance({ address: timelockAddress as Address })
       const balanceEther = formatEther(balance)
 
-      const simulations = groupActions.map((action) => ({
-        network_id: chainConfig.tenderlyId,
-        from: timelockAddress,
-        to: action.target,
-        input: action.calldata,
-        gas: 8000000,
-        save: true,
-        save_if_fails: true,
-        simulation_type: 'abi',
-        state_objects: {
-          [timelockAddress]: {
-            balance: toHex(balance),
+      const targets = groupActions.map((a) => a.target as Address)
+      const values = groupActions.map((a) => BigInt(a.value || '0'))
+      const payloads = groupActions.map((a) => a.calldata as `0x${string}`)
+      const salt = (groupActions[0].salt || '0x0000000000000000000000000000000000000000000000000000000000000000') as `0x${string}`
+      const predecessor = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
+
+      const simulations = [
+        // 1. Update min delay to 0
+        {
+          network_id: chainConfig.tenderlyId,
+          from: timelockAddress,
+          to: timelockAddress,
+          input: encodeFunctionData({
+            abi: TIMELOCK_ABI,
+            functionName: 'updateDelay',
+            args: [0n],
+          }),
+          gas: 8000000,
+          save: true,
+          save_if_fails: true,
+          simulation_type: 'abi',
+          state_objects: {
+            [timelockAddress]: {
+              balance: toHex(balance),
+            },
           },
         },
-      }))
+        // 2. Schedule the batch
+        {
+          network_id: chainConfig.tenderlyId,
+          from: governorAddress,
+          to: timelockAddress,
+          input: encodeFunctionData({
+            abi: TIMELOCK_ABI,
+            functionName: 'scheduleBatch',
+            args: [targets, values, payloads, predecessor, salt, 0n],
+          }),
+          gas: 8000000,
+          save: true,
+          save_if_fails: true,
+          simulation_type: 'abi',
+        },
+        // 3. Execute the batch
+        {
+          network_id: chainConfig.tenderlyId,
+          from: timelockAddress,
+          to: timelockAddress,
+          input: encodeFunctionData({
+            abi: TIMELOCK_ABI,
+            functionName: 'executeBatch',
+            args: [targets, values, payloads, predecessor, salt],
+          }),
+          gas: 8000000,
+          save: true,
+          save_if_fails: true,
+          simulation_type: 'abi',
+          value: values.reduce((acc, v) => acc + v, 0n).toString(),
+        },
+      ]
 
       const response = await fetch(
         `https://api.tenderly.co/api/v1/account/${ACCOUNT_SLUG}/project/${PROJECT_SLUG}/simulate-bundle`,
@@ -129,7 +210,7 @@ export async function POST(req: Request) {
       }
 
       data.shareUrls = allShareLinks
-      data.shareUrl = allShareLinks[0]
+      data.shareUrl = allShareLinks[allShareLinks.length - 1] // The EXECUTE transaction
       console.log(data)
       results[chainId] = data
       console.log(`Simulation successful for chain ${chainId}. Shared links created: ${allShareLinks.length}`)

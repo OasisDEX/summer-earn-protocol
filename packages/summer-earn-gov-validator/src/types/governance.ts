@@ -1,5 +1,37 @@
 import { Hex } from 'viem'
 
+export interface AbiOutput {
+  name: string
+  type: string
+  components?: AbiOutput[]
+  internalType?: string
+}
+
+export interface AbiInput {
+  name: string
+  type: string
+  components?: AbiInput[]
+  internalType?: string
+}
+
+export interface AbiItem {
+  name?: string
+  type: string
+  inputs?: AbiInput[]
+  outputs?: AbiOutput[]
+  stateMutability?: string
+}
+
+export interface ProposalAction {
+  id: string
+  chainId: string
+  target: string
+  abi: AbiItem[]
+  method: string
+  args: Record<string, unknown>
+  isValid: boolean
+}
+
 export interface Vote {
   id: string
   voter: string

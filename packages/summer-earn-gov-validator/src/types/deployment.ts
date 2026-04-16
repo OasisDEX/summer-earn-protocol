@@ -12,6 +12,17 @@ export interface DeploymentConfig {
         timelock?: {
           address: string
         }
+        summerGovernor?: {
+          address: string
+        }
+      }
+      gov?: {
+        timelock?: {
+          address: string
+        }
+        summerGovernor?: {
+          address: string
+        }
       }
       [key: string]: DeploymentContract | Record<string, DeploymentContract | unknown> | unknown
     }

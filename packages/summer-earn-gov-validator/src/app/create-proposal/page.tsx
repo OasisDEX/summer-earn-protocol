@@ -5,7 +5,6 @@ import ReactMarkdown from 'react-markdown'
 import {
   AlertCircle,
   Bold,
-  CheckCircle2,
   ChevronDown,
   Code,
   Eye,
@@ -26,186 +25,24 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import remarkGfm from 'remark-gfm'
-import { Address, encodeFunctionData, formatUnits, Hex, isAddress, keccak256, stringToHex } from 'viem'
-import { useBalance, useConnection, useReadContract, useWriteContract } from 'wagmi'
+import { Address, encodeFunctionData, Hex, isAddress, keccak256, stringToHex } from 'viem'
+import { useConnection, useReadContract, useWriteContract } from 'wagmi'
 
 import { SideNavBar } from '@/components/SideNavBar'
+import { SimulationCenter } from '@/components/SimulationCenter/SimulationCenter'
 import { TopNavBar } from '@/components/TopNavBar'
 import { GOVERNOR_ABI as HUB_GOVERNOR_ABI } from '@/config/abis/governor'
 import { CHAINS, HUB_CHAIN_ID, HUB_GOVERNOR_ADDRESS } from '@/config/chains'
 import deploymentConfigRaw from '@/config/index.json'
+import { useSimulation } from '@/hooks/useSimulation'
 import { DeploymentConfig } from '@/types/deployment'
-import { SimulateApiResponse } from '@/types/tenderly'
-
-// TODO: Successfully moved types to src/types/tenderly.ts
+import { AbiInput, AbiItem, ProposalAction } from '@/types/governance'
 
 // --- Types ---
 
 const deploymentConfig = deploymentConfigRaw as DeploymentConfig
 
-interface ChainConfig {
-  id: string
-  name: string
-  key: string
-  eID?: string
-  tenderlyId?: string | null
-}
 
-interface AbiOutput {
-  name: string
-  type: string
-  components?: AbiOutput[]
-  internalType?: string
-}
-
-interface AbiInput {
-  name: string
-  type: string
-  components?: AbiInput[]
-  internalType?: string
-}
-
-interface AbiItem {
-  name?: string
-  type: string
-  inputs?: AbiInput[]
-  outputs?: AbiOutput[]
-  stateMutability?: string
-}
-
-interface Action {
-  id: string
-  chainId: string
-  target: string
-  abi: AbiItem[]
-  method: string
-  args: Record<string, unknown>
-  isValid: boolean
-}
-
-interface SimulationResult {
-  chainId: string
-  status: 'success' | 'fail' | 'unsupported' | 'loading' | 'error'
-  gasUsed?: number
-  simulationId?: string
-  shareUrl?: string
-  error?: string
-  stateChanges?: string[]
-  balance?: string
-}
-
-function SimCard({
-  chain,
-  result,
-  isTargeted,
-}: {
-  chain: ChainConfig
-  result?: SimulationResult
-  isTargeted: boolean
-}) {
-  const chainColor = chain.id === HUB_CHAIN_ID ? '#7dd3fc' : '#c8a0f0'
-  const isUnsupported = !chain.tenderlyId
-
-  const timelockAddress = deploymentConfig[chain.key]?.deployedContracts?.govV2?.timelock?.address as Address | undefined
-  const { data: liveBalance } = useBalance({
-    address: timelockAddress,
-    chainId: Number(chain.id),
-    query: {
-      enabled: !!timelockAddress && !result?.balance,
-    },
-  })
-
-  const displayBalance = result?.balance || (liveBalance ? formatUnits(liveBalance.value, liveBalance.decimals) : undefined)
-
-  return (
-    <div
-      className={`p-6 rounded-2xl border bg-surface-container-lowest transition-all duration-300 ${isTargeted ? 'border-outline-variant shadow-lg' : 'opacity-40 border-transparent shadow-none'}`}
-    >
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center border text-xs font-black"
-            style={{
-              backgroundColor: `${chainColor}20`,
-              borderColor: `${chainColor}40`,
-              color: chainColor,
-            }}
-          >
-            {chain.name.charAt(0)}
-          </div>
-          <div className="flex flex-col">
-            <span className="font-bold text-sm leading-tight">{chain.name}</span>
-            {displayBalance !== undefined && (
-              <span className="text-[10px] text-primary font-bold font-mono">
-                {parseFloat(displayBalance).toFixed(4)} ETH
-              </span>
-            )}
-          </div>
-        </div>
-        {isTargeted && !isUnsupported && (
-          <div className="flex items-center">
-            {result?.status === 'loading' && (
-              <Loader2 className="animate-spin text-primary" size={14} />
-            )}
-            {result?.status === 'success' && <CheckCircle2 className="text-success" size={14} />}
-            {result?.status === 'fail' && <AlertCircle className="text-error" size={14} />}
-            {result?.status === 'error' && (
-              <AlertCircle className="text-error opacity-50" size={14} />
-            )}
-          </div>
-        )}
-      </div>
-
-      {isUnsupported && (
-        <div className="p-3 rounded-xl bg-on-surface/5 border border-outline-variant/30">
-          <p className="text-[10px] text-on-surface-variant font-bold text-center uppercase tracking-widest leading-relaxed">
-            Simulation
-            <br />
-            Not Available
-          </p>
-        </div>
-      )}
-
-      {isTargeted && !isUnsupported && (result?.status === 'success' || result?.status === 'fail' || result?.status === 'error') && (
-        <div className="space-y-3 animate-in fade-in duration-500">
-          {result.status === 'success' && result.gasUsed !== undefined && (
-            <div className="flex justify-between text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">
-              <span>Gas Used</span>
-              <span className="font-mono text-on-surface">
-                {result.gasUsed.toLocaleString()}
-              </span>
-            </div>
-          )}
-          
-          {(result.status === 'fail' || result.status === 'error') && (
-            <div className="p-3 rounded-xl bg-error/5 border border-error/20">
-              <p className="text-[10px] text-error font-bold line-clamp-2">
-                {result.error || 'Execution Reverted'}
-              </p>
-            </div>
-          )}
-
-          {(result.simulationId || result.shareUrl) && (
-            <a
-              href={result.shareUrl || `https://dashboard.tenderly.co/oazoapps/lazy-summer-governance-dashboard/simulator/${result.simulationId}`}
-              target="_blank"
-              rel="noreferrer"
-              className="block w-full text-center py-2 bg-surface-container-high rounded-xl text-[10px] font-black text-primary transition-all border border-primary/5 hover:border-primary/20 uppercase tracking-widest"
-            >
-              Execution Trace
-            </a>
-          )}
-        </div>
-      )}
-
-      {!isTargeted && (
-        <div className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest text-center py-2 opacity-50">
-          Idle
-        </div>
-      )}
-    </div>
-  )
-}
 
 // --- Helper Functions ---
 
@@ -349,15 +186,22 @@ export default function CreateProposalPage() {
   // --- Proposal State ---
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [actions, setActions] = useState<Action[]>([
-    { id: '1', chainId: '8453', target: '', abi: [], method: '', args: {}, isValid: false },
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { results, isSimulating, triggerSimulation } = useSimulation()
+  const [actions, setActions] = useState<ProposalAction[]>([
+    {
+      id: Math.random().toString(36).substr(2, 9),
+      chainId: '8453',
+      target: '',
+      abi: [],
+      method: '',
+      args: {},
+      isValid: false,
+    },
   ])
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor')
   const [isFetchingAbi, setIsFetchingAbi] = useState<Record<string, boolean>>({})
   const [failedAbiFetchIds, setFailedAbiFetchIds] = useState<Set<string>>(new Set())
-  const [isSimulating, setIsSimulating] = useState(false)
-  const [simulationResults, setSimulationResults] = useState<Record<string, SimulationResult>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const descriptionRef = React.useRef<HTMLTextAreaElement>(null)
 
   const insertMarkdown = (prefix: string, suffix: string = '') => {
@@ -451,7 +295,7 @@ export default function CreateProposalPage() {
         acc[action.chainId].push(action)
         return acc
       },
-      {} as Record<string, Action[]>,
+      {} as Record<string, ProposalAction[]>,
     )
 
     // 2. Process each chain
@@ -461,7 +305,7 @@ export default function CreateProposalPage() {
       const targets = groupActions.map((a) => a.target as Address)
       const values = groupActions.map(() => 0n)
       const calldatas = groupActions.map((a) => {
-        const methodObj = a.abi.find((m) => m.name === a.method)
+        const methodObj = a.abi.find((m: AbiItem) => m.name === a.method)
         if (!methodObj || !methodObj.inputs) return '0x' as Hex
         return encodeFunctionData({
           abi: [methodObj],
@@ -533,76 +377,32 @@ export default function CreateProposalPage() {
     }
   }
 
-  const updateAction = (id: string, updates: Partial<Action>) => {
+  const updateAction = (id: string, updates: Partial<ProposalAction>) => {
     setActions(actions.map((a) => (a.id === id ? { ...a, ...updates } : a)))
   }
 
   const handleSimulate = async () => {
-    setIsSimulating(true)
-    const initialSimStatus: Record<string, SimulationResult> = {}
-
-    // 1. Identify all target chains
-    const targetChainIds = Array.from(new Set(actions.map((a) => a.chainId)))
-    targetChainIds.forEach((cid) => {
-      initialSimStatus[cid] = { chainId: cid, status: 'loading' }
+    // 1. Encode all actions per chain for the simulation API
+    const simActions = actions.map((a) => {
+      const methodObj = a.abi.find((m) => m.name === a.method)
+      const calldata = methodObj
+        ? encodeFunctionData({
+            abi: [methodObj],
+            functionName: a.method,
+            args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
+          })
+        : '0x'
+      return { 
+        chainId: a.chainId, 
+        target: a.target, 
+        method: a.method, 
+        calldata,
+        salt: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        value: '0'
+      }
     })
-    setSimulationResults(initialSimStatus)
 
-    try {
-      // 2. Encode all actions per chain for the simulation API
-      const simActions = actions.map((a) => {
-        const methodObj = a.abi.find((m) => m.name === a.method)
-        const calldata = methodObj
-          ? encodeFunctionData({
-              abi: [methodObj],
-              functionName: a.method,
-              args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
-            })
-          : '0x'
-        return { chainId: a.chainId, target: a.target, method: a.method, calldata }
-      })
-
-      const res = await fetch('/api/simulate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ actions: simActions }),
-      })
-
-      const data = (await res.json()) as SimulateApiResponse
-
-      const updatedResults: Record<string, SimulationResult> = { ...initialSimStatus }
-
-      Object.entries(data.results || {}).forEach(([cid, result]) => {
-        if (result.error) {
-          updatedResults[cid] = { 
-            chainId: cid, 
-            status: 'error', 
-            error: result.error,
-            balance: result.balance 
-          }
-        } else {
-          const simulations = result.simulation_results || []
-          const failed = simulations.find((s) => !s.transaction.status)
-
-          updatedResults[cid] = {
-            chainId: cid,
-            status: failed ? 'fail' : 'success',
-            gasUsed: simulations.reduce((sum: number, s) => sum + (s.transaction.gas_used || 0), 0),
-            simulationId: simulations[0]?.simulation.id,
-            shareUrl: result.shareUrl,
-            error: failed ? failed.transaction.error_message : undefined,
-            balance: result.balance,
-          }
-        }
-      })
-
-      console.log('Simulation full response:', data)
-      setSimulationResults(updatedResults)
-    } catch (err) {
-      console.error('Simulation call failed:', err)
-    } finally {
-      setIsSimulating(false)
-    }
+    await triggerSimulation(simActions)
   }
 
   const handlePropose = async () => {
@@ -681,16 +481,10 @@ export default function CreateProposalPage() {
               <Network className="text-primary" size={20} />
               <h2 className="text-xl font-bold">Simulation Center</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {CHAINS.map((chain, idx) => (
-                <SimCard
-                  key={`${chain.id}-${idx}`}
-                  chain={chain}
-                  result={simulationResults[chain.id]}
-                  isTargeted={actions.some((a) => a.chainId === chain.id)}
-                />
-              ))}
-            </div>
+            <SimulationCenter
+              results={results}
+              targetChainIds={actions.map((a) => a.chainId)}
+            />
           </section>
 
           {!isEligible && isConnected && (
