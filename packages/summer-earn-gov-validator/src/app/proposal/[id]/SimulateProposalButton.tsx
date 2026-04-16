@@ -2,10 +2,11 @@
 
 import React, { useMemo, useState } from 'react'
 import { Play } from 'lucide-react'
-import { ProposalWithCrossChain, FinalStatus } from '@/types/governance'
-import { Action } from '@/types/tenderly'
-import { useSimulation } from '@/hooks/useSimulation'
+
 import { SimulationModal } from '@/components/SimulationCenter/SimulationModal'
+import { useSimulation } from '@/hooks/useSimulation'
+import { FinalStatus, ProposalWithCrossChain } from '@/types/governance'
+import { Action } from '@/types/tenderly'
 
 interface SimulateProposalButtonProps {
   fullProposal: ProposalWithCrossChain
@@ -20,22 +21,22 @@ export function SimulateProposalButton({ fullProposal, status }: SimulateProposa
 
   const actions = useMemo(() => {
     if (isTerminalState) return []
-    
+
     // 1. Hub chain actions (baseProposal)
     // We assume the hub chain ID is 8453 (Base) but should ideally get it from proposal.chain
     // However, baseProposal.targets and calldatas are definitely for the Hub.
-    const hubChainId = '8453' 
+    const hubChainId = '8453'
     const simActions: Action[] = []
-    
+
     fullProposal.baseProposal.targets.forEach((target, i) => {
       const calldata = fullProposal.baseProposal.calldatas[i]
-      
-      // We skip things that look like cross-chain initiators IF they are already represented 
+
+      // We skip things that look like cross-chain initiators IF they are already represented
       // in crossChainProposals. But simulation API wants the LOW LEVEL calls.
       // If we simulate the initiator, it might not actually 'do' the satellite work in Tenderly
       // without extra cross-chain simulation support.
       // For now, we simulate what's EXACTLY in the proposal.
-      
+
       simActions.push({
         chainId: hubChainId,
         target,
@@ -63,9 +64,9 @@ export function SimulateProposalButton({ fullProposal, status }: SimulateProposa
     return simActions
   }, [fullProposal])
 
-  const targetChainIds = useMemo(() => 
-    Array.from(new Set(actions.map(a => a.chainId))), 
-    [actions]
+  const targetChainIds = useMemo(
+    () => Array.from(new Set(actions.map((a) => a.chainId))),
+    [actions],
   )
 
   const handleSimulate = () => {

@@ -15,10 +15,10 @@ export function TopNavBar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 flex justify-between items-center w-full px-6 py-4 bg-slate-950/60 backdrop-blur-xl border-b border-sky-400/10 shadow-[0_0_30px_rgba(125,211,252,0.05)] font-sans antialiased tracking-tight">
+    <nav className="sticky top-0 z-50 flex justify-between items-center w-full px-6 py-4 bg-surface-dim/60 backdrop-blur-xl border-b border-outline/20 shadow-[0_0_30px_rgba(255,73,164,0.05)] font-sans antialiased tracking-tight">
       <div className="flex items-center gap-8">
         <Link href="/proposals" className="flex items-center gap-3 group transition-all">
-          <div className="relative w-64 h-10 overflow-hidden rounded-xl border-sky-400/20  group-hover:border-sky-400/40 group-hover:shadow-sky-500/20 transition-all bg-slate-900/40">
+          <div className="relative w-64 h-10 overflow-hidden rounded-xl border border-outline/20 group-hover:border-primary/40 group-hover:shadow-primary/20 transition-all bg-surface/40">
             <Image
               src="/images/lazy_summer_dao_logo.png"
               alt="Lazy Summer DAO"
@@ -33,25 +33,25 @@ export function TopNavBar() {
         <div className="hidden md:flex gap-6">
           <Link
             href="/proposals"
-            className={`${isActive('/proposals') ? 'text-sky-300 border-b-2 border-sky-300 pb-1' : 'text-slate-400 hover:text-sky-200 transition-colors'}`}
+            className={`${isActive('/proposals') ? 'text-primary border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary transition-colors'}`}
           >
             Proposals
           </Link>
           <Link
             href="/treasury"
-            className={`${isActive('/treasury') ? 'text-sky-300 border-b-2 border-sky-300 pb-1' : 'text-slate-400 hover:text-sky-200 transition-colors'}`}
+            className={`${isActive('/treasury') ? 'text-primary border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary transition-colors'}`}
           >
             Treasury
           </Link>
           <Link
             href="/delegates"
-            className={`${isActive('/delegates') ? 'text-sky-300 border-b-2 border-sky-300 pb-1' : 'text-slate-400 hover:text-sky-200 transition-colors'}`}
+            className={`${isActive('/delegates') ? 'text-primary border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary transition-colors'}`}
           >
             Delegates
           </Link>
           <Link
             href="/cross-chain"
-            className={`${isActive('/cross-chain') ? 'text-sky-300 border-b-2 border-sky-300 pb-1' : 'text-slate-400 hover:text-sky-200 transition-colors'}`}
+            className={`${isActive('/cross-chain') ? 'text-primary border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary transition-colors'}`}
           >
             Cross-Chain
           </Link>

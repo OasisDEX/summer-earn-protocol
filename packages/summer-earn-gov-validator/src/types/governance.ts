@@ -68,6 +68,7 @@ export interface Proposal {
   votes: Vote[]
   voteStart: string
   voteEnd: string
+  salt: string
 }
 
 export interface CrossChainProposal {

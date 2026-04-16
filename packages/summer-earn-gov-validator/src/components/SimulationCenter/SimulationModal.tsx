@@ -1,9 +1,11 @@
 'use client'
 
 import React from 'react'
-import { X, Play } from 'lucide-react'
+import { Play, X } from 'lucide-react'
+
+import { SimulationResult } from '@/types/tenderly'
+
 import { SimulationCenter } from './SimulationCenter'
-import { Action, SimulationResult } from '@/types/tenderly'
 
 interface SimulationModalProps {
   isOpen: boolean
@@ -27,11 +29,11 @@ export function SimulationModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300"
         onClick={onClose}
       />
-      
+
       {/* Modal Container */}
       <div className="relative w-full max-w-6xl max-h-[90vh] overflow-hidden bg-surface-container-lowest border border-outline-variant shadow-2xl rounded-3xl animate-in zoom-in-95 fade-in duration-300 flex flex-col">
         {/* Header */}
@@ -42,10 +44,12 @@ export function SimulationModal({
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight">Simulation Center</h2>
-              <p className="text-xs text-on-surface-variant font-medium">Verify multi-chain proposal execution before voting</p>
+              <p className="text-xs text-on-surface-variant font-medium">
+                Verify multi-chain proposal execution before voting
+              </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 hover:bg-surface-container-high rounded-full transition-colors"
           >
@@ -55,10 +59,7 @@ export function SimulationModal({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-8">
-          <SimulationCenter 
-            results={results}
-            targetChainIds={targetChainIds}
-          />
+          <SimulationCenter results={results} targetChainIds={targetChainIds} />
         </div>
 
         {/* Footer */}

@@ -12,6 +12,7 @@ import { DeploymentConfig } from '@/types/deployment'
 const deploymentConfig = deploymentConfigRaw as DeploymentConfig
 
 import { Address, encodeFunctionData, formatEther, toHex } from 'viem'
+
 import { getPublicClient } from '@/config/rpc'
 import { Action, TenderlyChainResult } from '@/types/tenderly'
 
@@ -85,7 +86,7 @@ export async function POST(req: Request) {
 
       const chainData = deploymentConfig[chainConfig.key]
       const timelockAddress = chainData?.deployedContracts?.govV2?.timelock?.address
-      const governorAddress = chainId == 8543 ? chainData?.deployedContracts?.govV2?.summerGovernor?.address : chainData?.deployedContracts?.gov?.summerGovernor?.address
+      const governorAddress = chainData?.deployedContracts?.govV2?.summerGovernor?.address
 
       if (!timelockAddress || !governorAddress) {
         results[chainId] = { error: 'Timelock or Governor address not found for this chain' }
@@ -99,8 +100,10 @@ export async function POST(req: Request) {
       const targets = groupActions.map((a) => a.target as Address)
       const values = groupActions.map((a) => BigInt(a.value || '0'))
       const payloads = groupActions.map((a) => a.calldata as `0x${string}`)
-      const salt = (groupActions[0].salt || '0x0000000000000000000000000000000000000000000000000000000000000000') as `0x${string}`
-      const predecessor = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
+      const salt = (groupActions[0].salt ||
+        '0x0000000000000000000000000000000000000000000000000000000000000000') as `0x${string}`
+      const predecessor =
+        '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
 
       const simulations = [
         // 1. Update min delay to 0
@@ -173,7 +176,7 @@ export async function POST(req: Request) {
         console.error(`Tenderly API error on chain ${chainId}:`, err)
         results[chainId] = {
           error: `Tenderly API error: ${err}`,
-          balance: balanceEther
+          balance: balanceEther,
         }
         continue
       }
@@ -198,7 +201,7 @@ export async function POST(req: Request) {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({}),
-            }
+            },
           )
 
           if (shareReq.ok) {
@@ -211,9 +214,10 @@ export async function POST(req: Request) {
 
       data.shareUrls = allShareLinks
       data.shareUrl = allShareLinks[allShareLinks.length - 1] // The EXECUTE transaction
-      console.log(data)
       results[chainId] = data
-      console.log(`Simulation successful for chain ${chainId}. Shared links created: ${allShareLinks.length}`)
+      console.log(
+        `Simulation successful for chain ${chainId}. Shared links created: ${allShareLinks.length}`,
+      )
     }
 
     return NextResponse.json({ results })

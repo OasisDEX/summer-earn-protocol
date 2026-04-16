@@ -1,8 +1,10 @@
 'use client'
 
 import React from 'react'
+
 import { CHAINS } from '@/config/chains'
 import { SimulationResult } from '@/types/tenderly'
+
 import { SimCard } from './SimCard'
 
 interface SimulationCenterProps {
@@ -10,10 +12,7 @@ interface SimulationCenterProps {
   targetChainIds: string[]
 }
 
-export function SimulationCenter({
-  results,
-  targetChainIds,
-}: SimulationCenterProps) {
+export function SimulationCenter({ results, targetChainIds }: SimulationCenterProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {CHAINS.map((chain) => (

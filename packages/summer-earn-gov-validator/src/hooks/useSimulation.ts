@@ -1,4 +1,5 @@
 import { useState } from 'react'
+
 import { Action, SimulateApiResponse, SimulationResult } from '@/types/tenderly'
 
 export function useSimulation() {
@@ -63,6 +64,6 @@ export function useSimulation() {
     results,
     isSimulating,
     triggerSimulation,
-    setResults
+    setResults,
   }
 }

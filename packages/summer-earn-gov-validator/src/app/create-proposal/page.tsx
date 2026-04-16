@@ -42,8 +42,6 @@ import { AbiInput, AbiItem, ProposalAction } from '@/types/governance'
 
 const deploymentConfig = deploymentConfigRaw as DeploymentConfig
 
-
-
 // --- Helper Functions ---
 
 const getContractTag = (address: string, chainKey: string) => {
@@ -168,7 +166,7 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
       <input
         type="text"
         placeholder={`Enter ${param.type}...`}
-        value={(typeof value === 'string' || typeof value === 'number') ? value : ''}
+        value={typeof value === 'string' || typeof value === 'number' ? value : ''}
         onChange={(e) => onChange(e.target.value)}
         className="w-full bg-surface-container-low border border-outline-variant rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/20"
       />
@@ -254,10 +252,10 @@ export default function CreateProposalPage() {
   // --- ABI Fetching Effect ---
   useEffect(() => {
     actions.forEach(async (action) => {
-      const shouldFetch = 
-        isAddress(action.target) && 
-        action.abi.length === 0 && 
-        !isFetchingAbi[action.id] && 
+      const shouldFetch =
+        isAddress(action.target) &&
+        action.abi.length === 0 &&
+        !isFetchingAbi[action.id] &&
         !failedAbiFetchIds.has(action.id) &&
         action.chainId !== '999' // HyperLiquid not supported for ABI fetching
 
@@ -269,11 +267,11 @@ export default function CreateProposalPage() {
           if (data.abi && data.abi.length > 0) {
             updateAction(action.id, { abi: data.abi })
           } else {
-            setFailedAbiFetchIds(prev => new Set(prev).add(action.id))
+            setFailedAbiFetchIds((prev) => new Set(prev).add(action.id))
           }
         } catch (err) {
           console.error('Failed to fetch ABI:', err)
-          setFailedAbiFetchIds(prev => new Set(prev).add(action.id))
+          setFailedAbiFetchIds((prev) => new Set(prev).add(action.id))
         } finally {
           setIsFetchingAbi((prev) => ({ ...prev, [action.id]: false }))
         }
@@ -317,7 +315,7 @@ export default function CreateProposalPage() {
       if (isHub) {
         hubTargets.push(...targets)
         hubValues.push(...values)
-        hubCalldatas.push(...calldatas as Hex[])
+        hubCalldatas.push(...(calldatas as Hex[]))
       } else {
         // Wrap in cross-chain call
         const chainInfo = CHAINS.find((c) => c.id === chainId)
@@ -392,13 +390,13 @@ export default function CreateProposalPage() {
             args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
           })
         : '0x'
-      return { 
-        chainId: a.chainId, 
-        target: a.target, 
-        method: a.method, 
+      return {
+        chainId: a.chainId,
+        target: a.target,
+        method: a.method,
         calldata,
         salt: '0x0000000000000000000000000000000000000000000000000000000000000000',
-        value: '0'
+        value: '0',
       }
     })
 
@@ -481,10 +479,7 @@ export default function CreateProposalPage() {
               <Network className="text-primary" size={20} />
               <h2 className="text-xl font-bold">Simulation Center</h2>
             </div>
-            <SimulationCenter
-              results={results}
-              targetChainIds={actions.map((a) => a.chainId)}
-            />
+            <SimulationCenter results={results} targetChainIds={actions.map((a) => a.chainId)} />
           </section>
 
           {!isEligible && isConnected && (

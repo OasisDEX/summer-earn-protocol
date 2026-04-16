@@ -12,11 +12,11 @@ import { fetchProposalWithCrossChainById } from '@/services/subgraph'
 import { SupportedNetworks } from '@/services/validation'
 import { ProposalWithCrossChain } from '@/types/governance'
 import { transformProposal } from '@/utils/proposal-transformer'
-import { SimulateProposalButton } from './SimulateProposalButton'
 import { convertRawUrlsToMarkdown } from '@/utils/text'
 import { formatTimestamp } from '@/utils/timing'
 
 import delegatesData from '../../../../delegates.json'
+import { SimulateProposalButton } from './SimulateProposalButton'
 
 function resolveDelegateInfo(address: string) {
   const nodes = delegatesData.data.delegates.nodes

@@ -13,20 +13,17 @@ import { SimulationResult } from '@/types/tenderly'
 const deploymentConfig = deploymentConfigRaw as DeploymentConfig
 
 interface SimCardProps {
-  chain: typeof CHAINS[0]
+  chain: (typeof CHAINS)[0]
   result?: SimulationResult
   isTargeted: boolean
 }
 
-export function SimCard({
-  chain,
-  result,
-  isTargeted,
-}: SimCardProps) {
+export function SimCard({ chain, result, isTargeted }: SimCardProps) {
   const chainColor = chain.id === HUB_CHAIN_ID ? '#7dd3fc' : '#c8a0f0'
   const isUnsupported = !chain.tenderlyId
 
-  const timelockAddress = deploymentConfig[chain.key]?.deployedContracts?.govV2?.timelock?.address as Address | undefined
+  const timelockAddress = deploymentConfig[chain.key]?.deployedContracts?.govV2?.timelock
+    ?.address as Address | undefined
   const { data: liveBalance } = useBalance({
     address: timelockAddress,
     chainId: Number(chain.id),
@@ -35,7 +32,9 @@ export function SimCard({
     },
   })
 
-  const displayBalance = result?.balance || (liveBalance ? formatUnits(liveBalance.value, liveBalance.decimals) : undefined)
+  const displayBalance =
+    result?.balance ||
+    (liveBalance ? formatUnits(liveBalance.value, liveBalance.decimals) : undefined)
 
   return (
     <div
@@ -86,37 +85,42 @@ export function SimCard({
         </div>
       )}
 
-      {isTargeted && !isUnsupported && (result?.status === 'success' || result?.status === 'fail' || result?.status === 'error') && (
-        <div className="space-y-3 animate-in fade-in duration-500">
-          {result.status === 'success' && result.gasUsed !== undefined && (
-            <div className="flex justify-between text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">
-              <span>Gas Used</span>
-              <span className="font-mono text-on-surface">
-                {result.gasUsed.toLocaleString()}
-              </span>
-            </div>
-          )}
-          
-          {(result.status === 'fail' || result.status === 'error') && (
-            <div className="p-3 rounded-xl bg-error/5 border border-error/20">
-              <p className="text-[10px] text-error font-bold line-clamp-2">
-                {result.error || 'Execution Reverted'}
-              </p>
-            </div>
-          )}
+      {isTargeted &&
+        !isUnsupported &&
+        (result?.status === 'success' ||
+          result?.status === 'fail' ||
+          result?.status === 'error') && (
+          <div className="space-y-3 animate-in fade-in duration-500">
+            {result.status === 'success' && result.gasUsed !== undefined && (
+              <div className="flex justify-between text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">
+                <span>Gas Used</span>
+                <span className="font-mono text-on-surface">{result.gasUsed.toLocaleString()}</span>
+              </div>
+            )}
 
-          {(result.simulationId || result.shareUrl) && (
-            <a
-              href={result.shareUrl || `https://dashboard.tenderly.co/oazoapps/lazy-summer-governance-dashboard/simulator/${result.simulationId}`}
-              target="_blank"
-              rel="noreferrer"
-              className="block w-full text-center py-2 bg-surface-container-high rounded-xl text-[10px] font-black text-primary transition-all border border-primary/5 hover:border-primary/20 uppercase tracking-widest"
-            >
-              Execution Trace
-            </a>
-          )}
-        </div>
-      )}
+            {(result.status === 'fail' || result.status === 'error') && (
+              <div className="p-3 rounded-xl bg-error/5 border border-error/20">
+                <p className="text-[10px] text-error font-bold line-clamp-2">
+                  {result.error || 'Execution Reverted'}
+                </p>
+              </div>
+            )}
+
+            {(result.simulationId || result.shareUrl) && (
+              <a
+                href={
+                  result.shareUrl ||
+                  `https://dashboard.tenderly.co/oazoapps/lazy-summer-governance-dashboard/simulator/${result.simulationId}`
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="block w-full text-center py-2 bg-surface-container-high rounded-xl text-[10px] font-black text-primary transition-all border border-primary/5 hover:border-primary/20 uppercase tracking-widest"
+              >
+                Execution Trace
+              </a>
+            )}
+          </div>
+        )}
 
       {!isTargeted && !isUnsupported && (
         <div className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest text-center py-2 opacity-50">

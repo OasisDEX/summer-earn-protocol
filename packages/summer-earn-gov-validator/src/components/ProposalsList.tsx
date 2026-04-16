@@ -30,45 +30,45 @@ const CHAIN_METADATA: Record<
 > = {
   Mainnet: {
     icon: 'hub',
-    color: 'text-slate-400',
-    bgColor: 'bg-slate-400/10',
-    borderColor: 'border-slate-600',
-    accentColor: 'bg-slate-600',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary/20',
+    accentColor: 'bg-primary',
   },
   Base: {
     icon: 'change_history',
-    color: 'text-tertiary',
-    bgColor: 'bg-tertiary/10',
-    borderColor: 'border-tertiary',
-    accentColor: 'bg-tertiary',
+    color: 'text-secondary',
+    bgColor: 'bg-secondary/10',
+    borderColor: 'border-secondary/20',
+    accentColor: 'bg-secondary',
   },
   Arbitrum: {
     icon: 'token',
-    color: 'text-sky-400',
-    bgColor: 'bg-sky-400/10',
-    borderColor: 'border-sky-500',
-    accentColor: 'bg-sky-500',
+    color: 'text-secondary',
+    bgColor: 'bg-secondary/10',
+    borderColor: 'border-secondary/20',
+    accentColor: 'bg-secondary',
   },
   Sonic: {
     icon: 'waves',
     color: 'text-primary',
     bgColor: 'bg-primary/10',
-    borderColor: 'border-primary',
+    borderColor: 'border-primary/20',
     accentColor: 'bg-primary',
   },
   Hyperliquid: {
     icon: 'bolt',
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    borderColor: 'border-primary',
-    accentColor: 'bg-primary',
+    color: 'text-tertiary',
+    bgColor: 'bg-tertiary/10',
+    borderColor: 'border-tertiary/20',
+    accentColor: 'bg-tertiary',
   },
   'Multi-Chain': {
     icon: 'hub',
-    color: 'text-slate-400',
-    bgColor: 'bg-slate-400/10',
-    borderColor: 'border-slate-600',
-    accentColor: 'bg-slate-600',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary/20',
+    accentColor: 'bg-primary',
   },
 }
 
@@ -96,9 +96,8 @@ export function ProposalsList({
           color: 'text-primary',
           bgColor: 'bg-primary/10',
           borderColor: 'border-primary/20',
-          glowColor: 'shadow-[0_0_15px_rgba(125,211,252,1)]',
-          buttonClass:
-            'bg-primary text-slate-950 shadow-[0_0_15px_rgba(125,211,252,0.4)] hover:brightness-110',
+          glowColor: 'shadow-[0_0_15px_rgba(255,135,185,0.4)]',
+          buttonClass: 'bg-brand-gradient text-black font-black shadow-neon hover:brightness-110',
           indicatorColor: 'bg-primary',
         }
       case 'Executed':
@@ -107,8 +106,8 @@ export function ProposalsList({
           color: 'text-emerald-400',
           bgColor: 'bg-emerald-400/10',
           borderColor: 'border-emerald-400/20',
-          glowColor: 'shadow-[0_0_15px_rgba(52,211,153,1)]',
-          buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
+          glowColor: 'shadow-[0_0_15px_rgba(52,211,153,0.3)]',
+          buttonClass: 'border-outline/20 text-on-surface-variant hover:bg-surface-bright',
           indicatorColor: 'bg-emerald-400',
         }
       case 'Executed on Hub':
@@ -116,19 +115,18 @@ export function ProposalsList({
           color: 'text-amber-400',
           bgColor: 'bg-amber-400/10',
           borderColor: 'border-amber-400/20',
-          glowColor: 'shadow-[0_0_15px_rgba(251,191,36,1)]',
-          buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
+          glowColor: 'shadow-[0_0_15px_rgba(251,191,36,0.3)]',
+          buttonClass: 'border-outline/20 text-on-surface-variant hover:bg-surface-bright',
           indicatorColor: 'bg-amber-400',
         }
       case 'Queued':
         return {
-          color: 'text-tertiary',
-          bgColor: 'bg-tertiary/10',
-          borderColor: 'border-tertiary/20',
-          glowColor: 'shadow-[0_0_15px_rgba(200,160,240,0.25)]',
-          buttonClass:
-            'border-tertiary/30 text-tertiary hover:bg-tertiary/10 shadow-[0_0_15px_rgba(200,160,240,0.2)]',
-          indicatorColor: 'bg-tertiary',
+          color: 'text-secondary',
+          bgColor: 'bg-secondary/10',
+          borderColor: 'border-secondary/20',
+          glowColor: 'shadow-[0_0_15px_rgba(184,132,255,0.3)]',
+          buttonClass: 'border-secondary/30 text-secondary hover:bg-secondary/10 shadow-neon',
+          indicatorColor: 'bg-secondary',
         }
       case 'Defeated':
       case 'Canceled':
@@ -136,8 +134,8 @@ export function ProposalsList({
           color: 'text-error',
           bgColor: 'bg-error/10',
           borderColor: 'border-error/20',
-          glowColor: 'shadow-[0_0_15px_rgba(255,107,107,1)]',
-          buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
+          glowColor: 'shadow-[0_0_15px_rgba(255,110,132,0.3)]',
+          buttonClass: 'border-outline/20 text-on-surface-variant hover:bg-surface-bright',
           indicatorColor: 'bg-error',
         }
       case 'Pending':
@@ -176,18 +174,20 @@ export function ProposalsList({
         <div className="flex gap-3">
           <Link
             href="/create-proposal"
-            className="bg-primary text-on-primary px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-[0_0_20px_rgba(125,211,252,0.3)]"
+            className="bg-brand-gradient text-black px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] flex items-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-neon-strong"
           >
-            <span className="material-symbols-outlined">add_circle</span>
+            <span className="material-symbols-outlined text-[20px]">add_circle</span>
             New Proposal
           </Link>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mb-10">
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Status Filters */}
-          <div className="bg-slate-900/50 border border-sky-400/10 p-1 rounded-xl flex items-center overflow-x-auto no-scrollbar">
+      <div className="flex flex-col gap-6 mb-12">
+        <div className="space-y-4">
+          <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] ml-1">
+            Filter status
+          </span>
+          <div className="bg-surface-container-low/50 border border-outline-variant/10 p-1.5 rounded-2xl flex items-center overflow-x-auto no-scrollbar gap-1 shadow-inner max-w-fit">
             {(
               [
                 'All',
@@ -206,19 +206,23 @@ export function ProposalsList({
                   setStatusFilter(status)
                   setVisibleCount(6)
                 }}
-                className={`px-5 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all whitespace-nowrap ${
+                className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all active:scale-95 whitespace-nowrap ${
                   statusFilter === status
-                    ? 'bg-sky-400 text-slate-950 px-5'
-                    : 'text-sky-300/60 hover:text-sky-300'
+                    ? 'bg-brand-gradient text-black shadow-neon'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-bright/50'
                 }`}
               >
                 {status}
               </button>
             ))}
           </div>
+        </div>
 
-          {/* Chain Filters */}
-          <div className="bg-slate-900/50 border border-sky-400/10 p-1 rounded-xl flex items-center overflow-x-auto no-scrollbar max-w-full">
+        <div className="space-y-4">
+          <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] ml-1">
+            Network
+          </span>
+          <div className="bg-surface-container-low/50 border border-outline-variant/10 p-1.5 rounded-2xl flex items-center overflow-x-auto no-scrollbar gap-1 shadow-inner max-w-fit">
             {(['All', 'Ethereum', 'Base', 'Arbitrum', 'Sonic', 'Hyperliquid'] as FilterChain[]).map(
               (chain) => (
                 <button
@@ -227,13 +231,13 @@ export function ProposalsList({
                     setChainFilter(chain)
                     setVisibleCount(6)
                   }}
-                  className={`px-5 py-2 rounded-lg font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all ${
+                  className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider whitespace-nowrap transition-all active:scale-95 ${
                     chainFilter === chain
-                      ? 'bg-sky-400/10 text-sky-300 px-5'
-                      : 'text-sky-300/60 hover:text-sky-300'
+                      ? 'bg-secondary text-black shadow-neon'
+                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-bright/50'
                   }`}
                 >
-                  {chain === 'All' ? 'All Chains' : chain}
+                  {chain === 'All' ? 'All Networks' : chain}
                 </button>
               ),
             )}
@@ -278,11 +282,11 @@ export function ProposalsList({
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-full border border-sky-400/10">
+                <div className="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant/20 shadow-inner">
                   <span className={`material-symbols-outlined ${chainMetadata.color} text-sm`}>
                     {chainMetadata.icon}
                   </span>
-                  <span className="text-[10px] font-bold text-sky-100 uppercase tracking-tighter">
+                  <span className="text-[10px] font-black text-on-surface uppercase tracking-tight">
                     {proposal.chain}
                   </span>
                 </div>
@@ -297,9 +301,9 @@ export function ProposalsList({
 
               {/* Voting Progress */}
               <div className="mt-auto space-y-4 mb-6">
-                <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
-                  <span className={proposal.quorumReached ? 'text-emerald-400' : 'text-sky-300'}>
-                    {proposal.quorumReached ? 'Quorum reached' : 'Quorum progress'}
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em]">
+                  <span className={proposal.quorumReached ? 'text-emerald-400' : 'text-primary'}>
+                    {proposal.quorumReached ? 'Quorum achieved' : 'Quorum goal'}
                   </span>
                   <span className="text-on-surface">{Math.round(proposal.quorumProgress)}%</span>
                 </div>
