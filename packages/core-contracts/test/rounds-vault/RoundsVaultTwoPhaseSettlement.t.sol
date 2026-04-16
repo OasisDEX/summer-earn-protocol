@@ -428,4 +428,59 @@ contract RoundsVaultTwoPhaseSettlementTest is
             );
         }
     }
+
+    /**
+     * 6. Emergency Rollback
+     */
+    function test_EmergencyRollbackRound() public {
+        uint256 depositAmt = 100 ether;
+
+        vm.prank(userA);
+        inputVault.deposit(depositAmt, userA);
+        
+        vm.prank(keeper);
+        inputVault.nextRound(); // Round 0 is now InSettlement, Round 1 is Opened
+
+        assertEq(uint256(inputVault.roundState(0)), uint256(RoundState.InSettlement));
+
+        // Use a prank with proper admin check.
+        // Governor in testing is usually the deployer or an explicit address. By default MockAccessManager needs ADMIN_ROLE or something, let's see.
+        // ProtocolAccessManagedV2 `onlyGovernor` modifier checks `IProtocolAccessManagerV2.hasRole(GOVERNOR_ROLE, msg.sender)`.
+        bytes32 GOVERNOR_ROLE = accessManager.GOVERNOR_ROLE();
+        address gov = address(0x909);
+        accessManager.grantRole(GOVERNOR_ROLE, gov);
+
+        vm.prank(gov);
+        inputVault.emergencyRollbackRound(0);
+
+        // State should be back to opened
+        assertEq(uint256(inputVault.roundState(0)), uint256(RoundState.Opened));
+    }
+
+    function test_EmergencyRollbackRound_RevertsInvalidState() public {
+        // Round 0 is currently Opened
+        assertEq(uint256(inputVault.roundState(0)), uint256(RoundState.Opened));
+
+        bytes32 GOVERNOR_ROLE = accessManager.GOVERNOR_ROLE();
+        address gov = address(0x909);
+        accessManager.grantRole(GOVERNOR_ROLE, gov);
+
+        vm.startPrank(gov);
+        vm.expectRevert(abi.encodeWithSelector(IRoundsVaultBaseErrors.InvalidRoundState.selector, 0, RoundState.Opened, RoundState.InSettlement));
+        inputVault.emergencyRollbackRound(0);
+        vm.stopPrank();
+    }
+
+    function test_EmergencyRollbackRound_RevertsNotGovernor() public {
+        vm.prank(userA);
+        inputVault.deposit(100 ether, userA);
+        
+        vm.prank(keeper);
+        inputVault.nextRound();
+
+        vm.startPrank(userA);
+        vm.expectRevert(); // Typically AccessControlUnauthorizedAccount or something similar in ProtocolAccessManagedV2
+        inputVault.emergencyRollbackRound(0);
+        vm.stopPrank();
+    }
 }

@@ -944,4 +944,148 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             "NAV should perfectly reflect the new oracle reality + remaining pending USDC"
         );
     }
+
+    /* Slippage Setter Tests */
+
+    function test_SetSweepSlippage() public {
+        vm.prank(targetWallet);
+        vm.expectRevert();
+        ark.setSweepSlippage(Percentage.wrap(PERCENTAGE_FACTOR / 4));
+
+        vm.startPrank(keeper);
+        Percentage newSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 4);
+        vm.expectEmit(false, false, false, true);
+        emit WisdomTreeArk.SweepSlippageUpdated(
+            ark.sweepSlippage(),
+            newSlippage
+        );
+        ark.setSweepSlippage(newSlippage);
+        vm.stopPrank();
+
+        assertEq(Percentage.unwrap(ark.sweepSlippage()), Percentage.unwrap(newSlippage));
+    }
+
+    function test_SetSweepSlippage_RevertsExceedsMax() public {
+        vm.startPrank(keeper);
+        Percentage invalidSlippage = Percentage.wrap(PERCENTAGE_FACTOR); // 1%, max is 0.5%
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                WisdomTreeArk.InvalidSweepSlippage.selector,
+                invalidSlippage,
+                ark.MAX_SWEEP_SLIPPAGE()
+            )
+        );
+        ark.setSweepSlippage(invalidSlippage);
+        vm.stopPrank();
+    }
+
+    function test_SetDepositSlippage() public {
+        vm.prank(targetWallet);
+        vm.expectRevert();
+        ark.setDepositSlippage(Percentage.wrap(PERCENTAGE_FACTOR / 4));
+
+        vm.startPrank(keeper);
+        Percentage newSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 4);
+        vm.expectEmit(false, false, false, true);
+        emit WisdomTreeArk.DepositSlippageUpdated(
+            ark.depositSlippage(),
+            newSlippage
+        );
+        ark.setDepositSlippage(newSlippage);
+        vm.stopPrank();
+
+        assertEq(Percentage.unwrap(ark.depositSlippage()), Percentage.unwrap(newSlippage));
+    }
+
+    function test_SetDepositSlippage_RevertsExceedsMax() public {
+        vm.startPrank(keeper);
+        Percentage invalidSlippage = Percentage.wrap(PERCENTAGE_FACTOR); // 1%, max is 0.5%
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                WisdomTreeArk.InvalidDepositSlippage.selector,
+                invalidSlippage,
+                ark.MAX_DEPOSIT_SLIPPAGE()
+            )
+        );
+        ark.setDepositSlippage(invalidSlippage);
+        vm.stopPrank();
+    }
+
+    /* Zero Amount and No-op Tests */
+
+    function test_ZeroAmountMath() public {
+        assertEq(ark.sharesToAssets(0), 0, "sharesToAssets with 0 should return 0");
+        // internal calls to _assetsToShares(0) happens if requestWithdrawal(0)
+        // Let's test requestWithdrawal(0) to hit _assetsToShares(0) since it's an internal function.
+        vm.startPrank(keeper);
+        ark.requestWithdrawal(0);
+        vm.stopPrank();
+        
+        // pendingWithdrawalShares should not have increased
+        assertEq(ark.pendingWithdrawalShares(), 0, "No shares should be requested");
+        
+        // Now test sweep when it returns 0
+        // Need to set commander dependencies correctly
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.startPrank(keeper);
+        ark.sweep(); // this will execute _sweep(0)
+        vm.stopPrank();
+        assertEq(ark.pendingWithdrawalShares(), 0);
+    }
+
+    function test_NoOps() public {
+        // Test claimWithdrawal
+        vm.prank(targetWallet);
+        vm.expectRevert();
+        ark.claimWithdrawal();
+
+        vm.startPrank(keeper);
+        ark.claimWithdrawal(); // should not revert
+
+        // Test withdrawUsingSwap
+        ark.withdrawUsingSwap(1e6, new bytes(0)); // should not revert
+        vm.stopPrank();
+
+        // Test fallback views
+        assertEq(ark.withdrawalRequestId(), 0);
+        assertFalse(ark.isWithdrawalClaimRequired());
+        assertEq(ark.assetsInWithdrawalQueue(), 0); // since pendingWithdrawalShares = 0
+
+        // Harvest logic inside Ark using `ark.harvest("")`
+        vm.startPrank(governor);
+        configurationManager.setRaft(commander);
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        ark.harvest(new bytes(0)); // _harvest() returns empty arrays, should not revert
+        vm.stopPrank();
+    }
+
+    function test_ZeroAmountTransfers() public {
+        vm.startPrank(address(commander));
+        
+        // board(0) should increase pendingDepositAssets by 0 and not revert.
+        ark.board(0, bytes(""));
+        assertEq(ark.pendingDepositAssets(), 0, "pending deposit assets");
+
+        // Request withdrawal of 0
+        vm.stopPrank();
+
+        vm.startPrank(keeper);
+        ark.requestWithdrawal(0);
+        vm.stopPrank();
+
+        // disembark(0)
+        vm.startPrank(address(commander));
+        ark.disembark(0, new bytes(0));
+        vm.stopPrank();
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit(0);
+        vm.stopPrank();
+    }
 }
