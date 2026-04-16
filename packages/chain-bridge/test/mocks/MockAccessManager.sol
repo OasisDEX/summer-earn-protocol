@@ -52,9 +52,7 @@ contract MockAccessManager {
         address context,
         address account
     ) external view returns (bool) {
-        return
-            whitelistOpen[context] ||
-            whitelisted[context][account];
+        return whitelistOpen[context] || whitelisted[context][account];
     }
 
     function areWhitelisted(

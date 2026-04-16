@@ -29,7 +29,7 @@ export async function deployWisdomTreeArk(config: BaseConfig, params: WisdomTree
     oracle,
     fundName,
     sweepSlippage,
-    depositSlippage
+    depositSlippage,
   } = params
   const chainId = getChainId()
   const envLabel = isBummer ? 'staging_' : ''

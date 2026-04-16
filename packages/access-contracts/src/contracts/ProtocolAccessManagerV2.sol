@@ -88,9 +88,7 @@ contract ProtocolAccessManagerV2 is
         address context,
         address account
     ) public view returns (bool) {
-        return
-            _isWhitelistOpen[context] ||
-            _whitelisted[context][account];
+        return _isWhitelistOpen[context] || _whitelisted[context][account];
     }
 
     /// @inheritdoc IProtocolAccessManagerV2
