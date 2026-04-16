@@ -236,7 +236,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
       'name' in arg
     ) {
       const decodedAddr = arg as DecodedAddress
-      const isUnknown = decodedAddr.name === 'Unknown'
+      const isUnknown = decodedAddr.name === 'unknown'
       return (
         <div className="flex flex-col gap-0.5 mt-1">
           {!isUnknown ? (
@@ -455,7 +455,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
                               >
                                 {action.target}
                               </a>
-                              {action.contractName !== 'Unknown' ? (
+                              {action.contractName !== 'unknown' ? (
                                 <span
                                   className={`inline-block text-[10px] font-bold ${theme.bg} ${theme.text} px-2 py-0.5 rounded uppercase tracking-tighter border`}
                                   style={{ borderColor: `${theme.color}30` }}
@@ -610,7 +610,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
                               >
                                 {action.target}
                               </a>
-                              {action.targetName !== 'Unknown' ? (
+                              {action.targetName !== 'unknown' ? (
                                 <span
                                   className={`inline-block text-[10px] font-bold ${theme.bg} ${theme.text} px-2 py-0.5 rounded uppercase tracking-tighter border`}
                                   style={{ borderColor: `${theme.color}30` }}

@@ -52,6 +52,8 @@ const KNOWN_STRING_ABIS = [
   'function setNonSweepableToken(address ark, address token, bool isNonSweepable) external',
   'function validateTimestamp() external',
   'function removeRoot(uint256 index) external',
+  'function mint(address to, uint256 amount) external',
+  'function burn(address from, uint256 amount) external',
 ]
 
 const KNOWN_OBJECT_ABIS = [
