@@ -109,7 +109,7 @@ receive **ERC-1155 receipt tokens** where:
 | Token standard                  | ERC-1155                                             |
 | Token ID                        | `_roundNumber` at time of deposit                    |
 | Amount                          | 1:1 with deposited assets (same decimals)            |
-| Transferable                    | Yes (standard ERC-1155 transfer)                     |
+| Transferable                    | Yes (Whitelisted – only between approved accounts)    |
 | Redeemable for deposit token    | Only current round via `redeem()`                    |
 | Exchangeable for exchange asset | Only past settled rounds via `redeemExchangeAsset()` |
 
@@ -126,10 +126,14 @@ stateDiagram-v2
 
     Locked --> InSettlement: Round N → InSettlement
     InSettlement --> Settled: Keeper calls setRoundSettled(N)
+    
+    InSettlement --> CurrentRound: Governor calls\nemergencyRollbackRound(N)
 
     Settled --> Exchangeable: User calls redeemExchangeAsset()\ngets exchange asset
     Exchangeable --> [*]: Receipt burned
     Redeemable --> [*]: Receipt burned
+
+    Settled --> InSettlement: Keeper calls retryRound(N)
 ```
 
 **Key rules:**
@@ -153,6 +157,8 @@ stateDiagram-v2
     [*] --> Opened: Round created
     Opened --> InSettlement: Keeper calls nextRound()
     InSettlement --> Settled: Keeper calls setRoundSettled(N)
+    InSettlement --> Opened: Governor calls\nemergencyRollbackRound(N)
+    Settled --> InSettlement: Keeper calls retryRound(N)
 ```
 
 | State          | Enum value | Deposits                 | Redeem (current) | Exchange (past) |
@@ -334,7 +340,7 @@ to offchain RWA funds.
 ### NAV Calculation (`totalAssets`)
 
 ```
-totalAssets = sharesToAssets(currentShares) + pendingDepositAssets + pendingWithdrawalAssets
+totalAssets = sharesToAssets(currentShares + pendingWithdrawalShares) + pendingDepositAssets
 ```
 
 Where `currentShares` uses either cached or live balance:
@@ -468,17 +474,21 @@ balance changes.
 
 ### Keeper-Restricted Entry Points
 
-| Function                    | Contract        | What it does                                             |
-| --------------------------- | --------------- | -------------------------------------------------------- |
-| `nextRound()`               | RoundsVaultBase | Closes round, freezes liability, opens next round        |
-| `setRoundSettled(roundId)`  | RoundsVaultBase | Executes physical trade, snapshots rate, sets to Settled |
-| `rebalance(rebalanceData)`  | FleetCommander  | Moves assets between Arks and adjusts buffer             |
-| `clearPendingDeposit()`     | T+1 Ark         | Clears full/partial pending deposit, updates NAV         |
-| `requestWithdrawal(amount)` | T+1 Ark         | Initiates off-chain redemption flow                      |
-| `sweep()`                   | T+1 Ark         | Refills buffer with returned off-chain funds             |
-| `setArkFrozen(bool, NAV)`   | T+1 Ark         | Freezes/unfreezes NAV reporting during settlement        |
-| `setCustodianWallet(...)`   | T+1 Ark         | Updates the target for off-chain transfers               |
-| `setAssetsForwarder(...)`   | T+1 Ark         | Updates the secure transfer proxy                        |
+| Function                       | Contract        | What it does                                             |
+| ------------------------------ | --------------- | -------------------------------------------------------- |
+| `nextRound()`                  | RoundsVaultBase | Closes round, freezes liability, opens next round        |
+| `retryRound(roundId)`          | RoundsVaultBase | Puts a past Settled/Opened round back into InSettlement  |
+| `setRoundSettled(roundId)`     | RoundsVaultBase | Executes physical trade, snapshots rate, sets to Settled |
+| `rebalance(rebalanceData)`     | FleetCommander  | Moves assets between Arks and adjusts buffer             |
+| `tip()`                        | FleetCommander  | Accrues performance/mgmt fees to the Tip Jar             |
+| `clearPendingDeposit()`        | T+1 Ark         | Clears full/partial pending deposit, updates NAV         |
+| `requestWithdrawal(amount)`    | T+1 Ark         | Initiates off-chain redemption flow                      |
+| `sweep()`                      | T+1 Ark         | Refills buffer with returned off-chain funds             |
+| `setArkFrozen(bool, NAV)`      | T+1 Ark         | Freezes/unfreezes NAV reporting during settlement        |
+| `setCustodianWallet(...)`      | T+1 Ark         | Updates the target for off-chain transfers               |
+| `setAssetsForwarder(...)`      | T+1 Ark         | Updates the secure transfer proxy                        |
+| `setSweepSlippage(...)`        | T+1 Ark         | Updates the allowed slippage for off-chain returns       |
+| `setDepositSlippage(...)`      | T+1 Ark         | Updates the allowed slippage for share issuance          |
 
 ### Admin / Governor-Restricted Entry Points
 
@@ -486,11 +496,19 @@ balance changes.
 | --------------------------- | -------------- | ------------------- | ------------------------------------------- |
 | `setWhitelisted(ctx, acc, bool)` | PAMV2          | `WHITELIST_MANAGER` | Updates global whitelist status for context |
 | `setWhitelistedBatch(...)`   | PAMV2          | `WHITELIST_MANAGER` | Batch updates context-specific whitelist     |
+| `setWhitelistOpen(ctx, bool)` | PAMV2          | `WHITELIST_MANAGER` | Toggles whether context is public or gated  |
+| `grantWhitelistManagerRole`  | PAMV2          | `GOVERNOR_ROLE`     | Appoints a new whitelist manager            |
 | `grantOperatorRole(...)`    | PAMV2          | `GOVERNOR_ROLE`     | Authorizes an vault/contract as an Operator |
+| `revokeOperatorRole(...)`   | PAMV2          | `GOVERNOR_ROLE`     | Revokes Operator privileges                 |
+| `setMinPositionSize(...)`   | RoundsVaultBase| `GOVERNOR_ROLE`     | Enforces global minimum entry size          |
+| `emergencyRollbackRound(id)`| RoundsVaultBase| `GOVERNOR_ROLE`     | Unfreezes an InSettlement round             |
 | `setOperatorGatewayStatus`  | FleetCommander | `GOVERNOR_ROLE`     | Toggles direct user access to Fleet         |
 | `setTipRate(Percentage)`    | FleetCommander | `GOVERNOR_ROLE`     | Updates protocol fee rate                   |
+| `setPerformanceFeeRate(...)`| FleetCommander | `GOVERNOR_ROLE`     | Updates performance-based fee rate          |
+| `setFeeType(...)`           | FleetCommander | `GOVERNOR_ROLE`     | Switches between Streaming/Harvest fees     |
 | `pause / unpause`           | FleetCommander | `GOVERNOR_ROLE`     | Emergency circuit breaker                   |
 | `emergencySweep()`          | T+1 Ark        | `GOVERNOR_ROLE`     | Force-sweep funds bypassing slippage checks |
+| `emergencyClear(...)`       | T+1 Ark        | `GOVERNOR_ROLE`     | Force-clear pending deposits                |
 
 ---
 

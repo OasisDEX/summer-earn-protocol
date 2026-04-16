@@ -42,7 +42,7 @@ failures.
       `clearPendingDeposit()`. If we used the live `balanceOf`, we would double-count the newly
       minted shares PLUS the `pendingDepositAssets` USDC value. Using `cachedShareBalance` strictly
       isolates the pre-deposit share value.
-  - `assets = _sharesToAssets(currentShares) + pendingWithdrawalAssets + pendingDepositAssets;`
+  - `assets = _sharesToAssets(currentShares + pendingWithdrawalShares) + pendingDepositAssets;`
     - _Why here_: Unifies the 3 states of WT capital (Settled Shares, In-flight Redemptions,
       In-flight Subscriptions).
 - **First Principles**: The Ark must continuously report an accurate NAV. Off-chain capital
@@ -88,6 +88,9 @@ failures.
     - _What_: Initializes the new round as `Opened` to accept fresh deposits.
 - **Key Change**: This function no longer captures the exchange rate or executes `_operate()`. It is
   strictly a round advancement mechanism.
+- **Recovery Paths**:
+  - `retryRound(id)`: Allows a Keeper to move a past round back to `InSettlement` if it needs re-processing.
+  - `emergencyRollbackRound(id)`: Allows the Governor to move an `InSettlement` round back to `Opened` if it is stuck.
 
 ### 2.4 `RoundsVaultBase._setRoundSettled(uint256 roundId)`
 
