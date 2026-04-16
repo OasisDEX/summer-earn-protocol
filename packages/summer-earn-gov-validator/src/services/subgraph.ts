@@ -60,17 +60,26 @@ interface CrossChainProposalsResponse {
   crossChainProposals: CrossChainProposal[]
 }
 
-export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
+export async function fetchAllProposals(
+  params: { isV1: boolean } = { isV1: false },
+): Promise<ProposalWithCrossChain[]> {
+  const { isV1 } = params
   const fetchOptions = { next: { revalidate: 60 } } as RequestInit
   const baseClient = new GraphQLClient(SUBGRAPH_ENDPOINTS.base, {
     fetch: (url, options) => fetch(url, { ...options, ...fetchOptions }),
   })
-
+  let where = {}
+  if (isV1) {
+    where = { governor_not: '0x4ceee1b6289624d381383c1bb42b118d5f2c3274' }
+  } else {
+    where = { governor: '0x4ceee1b6289624d381383c1bb42b118d5f2c3274' }
+  }
   // Update query to include new fields
   const ENHANCED_PROPOSALS_QUERY = `
-    query GetProposals {
-      proposals(first:1000, orderBy: createdAt, orderDirection: desc, where: {governor: "0x4ceee1b6289624d381383c1bb42b118d5f2c3274"}) {
+    query GetProposals($where: Proposal_filter) {
+      proposals(first:1000, orderBy: createdAt, orderDirection: desc, where: $where) {
         id
+        governor
         targets
         values
         calldatas
@@ -80,6 +89,7 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
         chains
         dstIds
         eta
+        governor
         createdAt
         quorum
         forVotes
@@ -99,7 +109,9 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
     }
   `
 
-  const baseProposals = await baseClient.request<ProposalsResponse>(ENHANCED_PROPOSALS_QUERY)
+  const baseProposals = await baseClient.request<ProposalsResponse>(ENHANCED_PROPOSALS_QUERY, {
+    where,
+  })
 
   const allProposals: ProposalWithCrossChain[] = []
   const allCrossChainProposals: CrossChainProposal[] = []
@@ -144,9 +156,10 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
 
 export async function fetchProposalWithCrossChainById(
   id: string,
+  isV1: boolean = false,
 ): Promise<ProposalWithCrossChain | null> {
   try {
-    const allProposals = await fetchAllProposals()
+    const allProposals = await fetchAllProposals({ isV1 })
     const proposal = allProposals.find((p) => p.baseProposal.id === id)
     return proposal || null
   } catch (error) {

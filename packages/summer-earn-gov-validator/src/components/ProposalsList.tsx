@@ -9,6 +9,7 @@ import { formatTimeRemaining, formatTimestamp } from '@/utils/timing'
 
 interface ProposalsListProps {
   initialProposals: TransformedProposal[]
+  detailPrefix?: string
 }
 
 type FilterStatus =
@@ -71,7 +72,10 @@ const CHAIN_METADATA: Record<
   },
 }
 
-export function ProposalsList({ initialProposals }: ProposalsListProps) {
+export function ProposalsList({
+  initialProposals,
+  detailPrefix = '/proposal',
+}: ProposalsListProps) {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('All')
   const [chainFilter, setChainFilter] = useState<FilterChain>('All')
   const [visibleCount, setVisibleCount] = useState(6)
@@ -319,7 +323,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
               </div>
 
               <Link
-                href={`/proposal/${proposal.id}`}
+                href={`${detailPrefix}/${proposal.id}`}
                 className={`w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 ${statusConfig.buttonClass}`}
               >
                 <span className="material-symbols-outlined text-sm">
