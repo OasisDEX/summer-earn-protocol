@@ -14,6 +14,7 @@ import {
   Link as LinkIcon,
   List,
   Loader2,
+  Network,
   Play,
   Plus,
   Quote,
@@ -25,16 +26,37 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import remarkGfm from 'remark-gfm'
-import { Address, encodeFunctionData, Hex, isAddress, keccak256, stringToHex } from 'viem'
-import { useAccount, useReadContract, useWriteContract } from 'wagmi'
+import { Address, encodeFunctionData, formatUnits, Hex, isAddress, keccak256, stringToHex } from 'viem'
+import { useBalance, useConnection, useReadContract, useWriteContract } from 'wagmi'
 
 import { SideNavBar } from '@/components/SideNavBar'
 import { TopNavBar } from '@/components/TopNavBar'
 import { GOVERNOR_ABI as HUB_GOVERNOR_ABI } from '@/config/abis/governor'
 import { CHAINS, HUB_CHAIN_ID, HUB_GOVERNOR_ADDRESS } from '@/config/chains'
-import deploymentConfig from '@/config/index.json'
+import deploymentConfigRaw from '@/config/index.json'
+import { DeploymentConfig } from '@/types/deployment'
+import { SimulateApiResponse } from '@/types/tenderly'
+
+// TODO: Successfully moved types to src/types/tenderly.ts
 
 // --- Types ---
+
+const deploymentConfig = deploymentConfigRaw as DeploymentConfig
+
+interface ChainConfig {
+  id: string
+  name: string
+  key: string
+  eID?: string
+  tenderlyId?: string | null
+}
+
+interface AbiOutput {
+  name: string
+  type: string
+  components?: AbiOutput[]
+  internalType?: string
+}
 
 interface AbiInput {
   name: string
@@ -47,7 +69,7 @@ interface AbiItem {
   name?: string
   type: string
   inputs?: AbiInput[]
-  outputs?: any[]
+  outputs?: AbiOutput[]
   stateMutability?: string
 }
 
@@ -57,40 +79,165 @@ interface Action {
   target: string
   abi: AbiItem[]
   method: string
-  args: Record<string, any>
+  args: Record<string, unknown>
   isValid: boolean
+}
+
+interface SimulationResult {
+  chainId: string
+  status: 'success' | 'fail' | 'unsupported' | 'loading' | 'error'
+  gasUsed?: number
+  simulationId?: string
+  shareUrl?: string
+  error?: string
+  stateChanges?: string[]
+  balance?: string
+}
+
+function SimCard({
+  chain,
+  result,
+  isTargeted,
+}: {
+  chain: ChainConfig
+  result?: SimulationResult
+  isTargeted: boolean
+}) {
+  const chainColor = chain.id === HUB_CHAIN_ID ? '#7dd3fc' : '#c8a0f0'
+  const isUnsupported = !chain.tenderlyId
+
+  const timelockAddress = deploymentConfig[chain.key]?.deployedContracts?.govV2?.timelock?.address as Address | undefined
+  const { data: liveBalance } = useBalance({
+    address: timelockAddress,
+    chainId: Number(chain.id),
+    query: {
+      enabled: !!timelockAddress && !result?.balance,
+    },
+  })
+
+  const displayBalance = result?.balance || (liveBalance ? formatUnits(liveBalance.value, liveBalance.decimals) : undefined)
+
+  return (
+    <div
+      className={`p-6 rounded-2xl border bg-surface-container-lowest transition-all duration-300 ${isTargeted ? 'border-outline-variant shadow-lg' : 'opacity-40 border-transparent shadow-none'}`}
+    >
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center border text-xs font-black"
+            style={{
+              backgroundColor: `${chainColor}20`,
+              borderColor: `${chainColor}40`,
+              color: chainColor,
+            }}
+          >
+            {chain.name.charAt(0)}
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-sm leading-tight">{chain.name}</span>
+            {displayBalance !== undefined && (
+              <span className="text-[10px] text-primary font-bold font-mono">
+                {parseFloat(displayBalance).toFixed(4)} ETH
+              </span>
+            )}
+          </div>
+        </div>
+        {isTargeted && !isUnsupported && (
+          <div className="flex items-center">
+            {result?.status === 'loading' && (
+              <Loader2 className="animate-spin text-primary" size={14} />
+            )}
+            {result?.status === 'success' && <CheckCircle2 className="text-success" size={14} />}
+            {result?.status === 'fail' && <AlertCircle className="text-error" size={14} />}
+            {result?.status === 'error' && (
+              <AlertCircle className="text-error opacity-50" size={14} />
+            )}
+          </div>
+        )}
+      </div>
+
+      {isUnsupported && (
+        <div className="p-3 rounded-xl bg-on-surface/5 border border-outline-variant/30">
+          <p className="text-[10px] text-on-surface-variant font-bold text-center uppercase tracking-widest leading-relaxed">
+            Simulation
+            <br />
+            Not Available
+          </p>
+        </div>
+      )}
+
+      {isTargeted && !isUnsupported && (result?.status === 'success' || result?.status === 'fail' || result?.status === 'error') && (
+        <div className="space-y-3 animate-in fade-in duration-500">
+          {result.status === 'success' && result.gasUsed !== undefined && (
+            <div className="flex justify-between text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">
+              <span>Gas Used</span>
+              <span className="font-mono text-on-surface">
+                {result.gasUsed.toLocaleString()}
+              </span>
+            </div>
+          )}
+          
+          {(result.status === 'fail' || result.status === 'error') && (
+            <div className="p-3 rounded-xl bg-error/5 border border-error/20">
+              <p className="text-[10px] text-error font-bold line-clamp-2">
+                {result.error || 'Execution Reverted'}
+              </p>
+            </div>
+          )}
+
+          {(result.simulationId || result.shareUrl) && (
+            <a
+              href={result.shareUrl || `https://dashboard.tenderly.co/oazoapps/lazy-summer-governance-dashboard/simulator/${result.simulationId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="block w-full text-center py-2 bg-surface-container-high rounded-xl text-[10px] font-black text-primary transition-all border border-primary/5 hover:border-primary/20 uppercase tracking-widest"
+            >
+              Execution Trace
+            </a>
+          )}
+        </div>
+      )}
+
+      {!isTargeted && (
+        <div className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest text-center py-2 opacity-50">
+          Idle
+        </div>
+      )}
+    </div>
+  )
 }
 
 // --- Helper Functions ---
 
 const getContractTag = (address: string, chainKey: string) => {
   if (!address || !isAddress(address)) return null
-  const chainData = (deploymentConfig as Record<string, any>)[chainKey]
+  const chainData = deploymentConfig[chainKey]
   if (!chainData?.deployedContracts) return null
 
-  const searchInObject = (obj: Record<string, any>): string | null => {
+  const searchInObject = (obj: Record<string, unknown>): string | null => {
     for (const key in obj) {
       const value = obj[key]
       if (typeof value === 'object' && value !== null) {
-        if ('address' in value && value.address?.toLowerCase() === address.toLowerCase()) {
+        const valObj = value as Record<string, unknown>
+        if ('address' in valObj && String(valObj.address).toLowerCase() === address.toLowerCase()) {
           return key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')
         }
-        const result = searchInObject(value)
+        const result = searchInObject(valObj)
         if (result) return result
       }
     }
     return null
   }
 
-  return searchInObject(chainData.deployedContracts)
+  return searchInObject(chainData.deployedContracts as Record<string, unknown>)
 }
 
 // --- Components ---
 
 interface ArgumentFieldProps {
   param: AbiInput
-  value: any
-  onChange: (val: any) => void
+  value: unknown
+  onChange: (val: unknown) => void
   labelPrefix?: string
 }
 
@@ -106,7 +253,7 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
   const isTuple = baseType.startsWith('tuple')
 
   if (isArray) {
-    const arrayValue = Array.isArray(value) ? value : []
+    const arrayValue = Array.isArray(value) ? (value as unknown[]) : []
     return (
       <div className="space-y-3 p-4 bg-surface-container-lowest/50 rounded-2xl border border-outline-variant/30">
         <div className="flex items-center justify-between">
@@ -155,7 +302,7 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
 
   if (isTuple) {
     const tupleValue =
-      typeof value === 'object' && value !== null ? (value as Record<string, any>) : {}
+      typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
     return (
       <div className="space-y-4 p-4 bg-surface-variant/20 rounded-2xl border border-outline-variant/50">
         <label className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase">
@@ -184,7 +331,7 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
       <input
         type="text"
         placeholder={`Enter ${param.type}...`}
-        value={value || ''}
+        value={(typeof value === 'string' || typeof value === 'number') ? value : ''}
         onChange={(e) => onChange(e.target.value)}
         className="w-full bg-surface-container-low border border-outline-variant rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/20"
       />
@@ -196,8 +343,8 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
 
 export default function CreateProposalPage() {
   const router = useRouter()
-  const { address: userAddress, isConnected } = useAccount()
-  const { writeContractAsync } = useWriteContract()
+  const { address: userAddress, isConnected } = useConnection()
+  const { mutateAsync: writeContractAsync } = useWriteContract()
 
   // --- Proposal State ---
   const [title, setTitle] = useState('')
@@ -207,8 +354,9 @@ export default function CreateProposalPage() {
   ])
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor')
   const [isFetchingAbi, setIsFetchingAbi] = useState<Record<string, boolean>>({})
+  const [failedAbiFetchIds, setFailedAbiFetchIds] = useState<Set<string>>(new Set())
   const [isSimulating, setIsSimulating] = useState(false)
-  const [simResult, setSimResult] = useState<'success' | 'fail' | null>(null)
+  const [simulationResults, setSimulationResults] = useState<Record<string, SimulationResult>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const descriptionRef = React.useRef<HTMLTextAreaElement>(null)
 
@@ -262,22 +410,32 @@ export default function CreateProposalPage() {
   // --- ABI Fetching Effect ---
   useEffect(() => {
     actions.forEach(async (action) => {
-      if (isAddress(action.target) && action.abi.length === 0 && !isFetchingAbi[action.id]) {
+      const shouldFetch = 
+        isAddress(action.target) && 
+        action.abi.length === 0 && 
+        !isFetchingAbi[action.id] && 
+        !failedAbiFetchIds.has(action.id) &&
+        action.chainId !== '999' // HyperLiquid not supported for ABI fetching
+
+      if (shouldFetch) {
         setIsFetchingAbi((prev) => ({ ...prev, [action.id]: true }))
         try {
           const res = await fetch(`/api/abi?address=${action.target}&chainId=${action.chainId}`)
           const data = await res.json()
-          if (data.abi) {
+          if (data.abi && data.abi.length > 0) {
             updateAction(action.id, { abi: data.abi })
+          } else {
+            setFailedAbiFetchIds(prev => new Set(prev).add(action.id))
           }
         } catch (err) {
           console.error('Failed to fetch ABI:', err)
+          setFailedAbiFetchIds(prev => new Set(prev).add(action.id))
         } finally {
           setIsFetchingAbi((prev) => ({ ...prev, [action.id]: false }))
         }
       }
     })
-  }, [actions, isFetchingAbi])
+  }, [actions, isFetchingAbi, failedAbiFetchIds])
 
   // --- Proposal Encoding Engine ---
 
@@ -315,7 +473,7 @@ export default function CreateProposalPage() {
       if (isHub) {
         hubTargets.push(...targets)
         hubValues.push(...values)
-        hubCalldatas.push(...calldatas)
+        hubCalldatas.push(...calldatas as Hex[])
       } else {
         // Wrap in cross-chain call
         const chainInfo = CHAINS.find((c) => c.id === chainId)
@@ -381,11 +539,70 @@ export default function CreateProposalPage() {
 
   const handleSimulate = async () => {
     setIsSimulating(true)
-    setSimResult(null)
-    // Mock simulation delay
-    await new Promise((r) => setTimeout(r, 2000))
-    setSimResult('success')
-    setIsSimulating(false)
+    const initialSimStatus: Record<string, SimulationResult> = {}
+
+    // 1. Identify all target chains
+    const targetChainIds = Array.from(new Set(actions.map((a) => a.chainId)))
+    targetChainIds.forEach((cid) => {
+      initialSimStatus[cid] = { chainId: cid, status: 'loading' }
+    })
+    setSimulationResults(initialSimStatus)
+
+    try {
+      // 2. Encode all actions per chain for the simulation API
+      const simActions = actions.map((a) => {
+        const methodObj = a.abi.find((m) => m.name === a.method)
+        const calldata = methodObj
+          ? encodeFunctionData({
+              abi: [methodObj],
+              functionName: a.method,
+              args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
+            })
+          : '0x'
+        return { chainId: a.chainId, target: a.target, method: a.method, calldata }
+      })
+
+      const res = await fetch('/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actions: simActions }),
+      })
+
+      const data = (await res.json()) as SimulateApiResponse
+
+      const updatedResults: Record<string, SimulationResult> = { ...initialSimStatus }
+
+      Object.entries(data.results || {}).forEach(([cid, result]) => {
+        if (result.error) {
+          updatedResults[cid] = { 
+            chainId: cid, 
+            status: 'error', 
+            error: result.error,
+            balance: result.balance 
+          }
+        } else {
+          const simulations = result.simulation_results || []
+          const failed = simulations.find((s) => !s.transaction.status)
+
+          updatedResults[cid] = {
+            chainId: cid,
+            status: failed ? 'fail' : 'success',
+            gasUsed: simulations.reduce((sum: number, s) => sum + (s.transaction.gas_used || 0), 0),
+            simulationId: simulations[0]?.simulation.id,
+            shareUrl: result.shareUrl,
+            error: failed ? failed.transaction.error_message : undefined,
+            balance: result.balance,
+          }
+        }
+      })
+
+      console.log('Simulation full response:', data)
+      setSimulationResults(updatedResults)
+    } catch (err) {
+      console.error('Simulation call failed:', err)
+    } finally {
+      setIsSimulating(false)
+    }
   }
 
   const handlePropose = async () => {
@@ -458,25 +675,23 @@ export default function CreateProposalPage() {
             </div>
           </div>
 
-          {simResult === 'success' && (
-            <div className="mb-8 p-4 glass-panel border-success/20 bg-success/5 rounded-2xl flex items-center justify-between gap-4 text-success animate-in slide-in-from-top-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 size={24} />
-                <div>
-                  <p className="font-bold">Simulation Verified</p>
-                  <p className="text-sm opacity-80">
-                    Execution simulation successful on Tenderly fork.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSimResult(null)}
-                className="text-[10px] font-bold uppercase tracking-widest px-3 py-1 bg-success/10 rounded-lg"
-              >
-                Dismiss
-              </button>
+          {/* Simulation Center */}
+          <section className="mb-10 space-y-6">
+            <div className="flex items-center gap-3">
+              <Network className="text-primary" size={20} />
+              <h2 className="text-xl font-bold">Simulation Center</h2>
             </div>
-          )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {CHAINS.map((chain, idx) => (
+                <SimCard
+                  key={`${chain.id}-${idx}`}
+                  chain={chain}
+                  result={simulationResults[chain.id]}
+                  isTargeted={actions.some((a) => a.chainId === chain.id)}
+                />
+              ))}
+            </div>
+          </section>
 
           {!isEligible && isConnected && (
             <div className="mb-8 p-4 glass-panel border-error/20 bg-error/5 rounded-2xl flex items-center gap-4 text-error">

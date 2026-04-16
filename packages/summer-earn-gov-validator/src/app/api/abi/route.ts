@@ -7,7 +7,7 @@ const BLOCKSCOUT_APIS: Record<string, string> = {
   '1': 'https://eth.blockscout.com/api',
   '10': 'https://optimism.blockscout.com/api',
   '34443': 'https://explorer.mode.network/api',
-  '146': 'https://sonicscan.org/api',
+  '146': 'https://api.sonicscan.org/api',
 }
 
 export async function GET(request: NextRequest) {

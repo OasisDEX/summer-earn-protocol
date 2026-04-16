@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Twitter } from 'lucide-react'
+import { Bird } from 'lucide-react'
 
 import { Vote, VoterMetadata } from '@/types/governance'
 
@@ -105,7 +105,7 @@ export function RecentVotes({ votes, voterMetadata }: RecentVotesProps) {
                           className="text-white/20 hover:text-sky-400 transition-colors"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Twitter className="w-3 h-3" />
+                          <Bird className="w-3 h-3" />
                         </a>
                       )}
                     </div>
