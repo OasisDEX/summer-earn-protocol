@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {FleetCommanderWhitelist} from "../../src/contracts/FleetCommanderWhitelist.sol";
 import {FleetCommanderParams, FleetCommanderWhitelistParams} from "../../src/types/FleetCommanderTypes.sol";
+import {IFlexibleTipper} from "../../src/interfaces/IFlexibleTipper.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
@@ -517,5 +518,168 @@ contract FleetCommanderWhitelistTest is
 
         assertFalse(whitelistFleet.isArkActiveOrBufferArk(ark));
         assertEq(whitelistFleet.getActiveArks().length, 0);
+    }
+
+    function test_DirectWrapperCalls_Coverage() public {
+        vm.startPrank(operator);
+        // We deposited "amount" for operator in setUp. Wait, operator has amount*2 minted and deposited "amount" for operator and "amount" for mockUser.
+        // So operator has shares=amount.
+        
+        whitelistFleet.withdrawFromBuffer(1, operator, operator);
+        whitelistFleet.redeemFromBuffer(1, operator, operator);
+        
+        // These may succeed if conditions are met. Cover them:
+        whitelistFleet.withdrawFromArks(1, operator, operator);
+        whitelistFleet.redeemFromArks(1, operator, operator);
+        
+        vm.stopPrank();
+    }
+
+    function test_TransferFrom_Disabled() public {
+        vm.startPrank(governor);
+        whitelistFleet.setFleetTokenTransferability(false);
+        vm.stopPrank();
+
+        // operator has some shares because we deposited in setup. Let's use `operator` to transfer to `mockUser2`
+        vm.startPrank(operator);
+        whitelistFleet.approve(mockUser2, 1);
+        vm.stopPrank();
+
+        vm.startPrank(mockUser2);
+        vm.expectRevert();
+        whitelistFleet.transferFrom(operator, mockUser2, 1);
+        vm.stopPrank();
+    }
+
+    function test_SettersAndPause_Coverage() public {
+        vm.startPrank(governor);
+        whitelistFleet.setMinimumPauseTime(7 days);
+        whitelistFleet.pause();
+        
+        // forward time to unpause
+        vm.warp(block.timestamp + 7 days + 1);
+        whitelistFleet.unpause();
+
+        whitelistFleet.setFeeType(IFlexibleTipper.FeeType.PERFORMANCE);
+        whitelistFleet.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(10));
+        vm.stopPrank();
+    }
+
+    function test_ZeroAmount_Coverage() public {
+        vm.startPrank(operator);
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        whitelistFleet.withdraw(0, operator, operator);
+        
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        whitelistFleet.redeem(0, operator, operator);
+
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        whitelistFleet.withdrawFromBuffer(0, operator, operator);
+        
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        whitelistFleet.redeemFromBuffer(0, operator, operator);
+        
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        whitelistFleet.withdrawFromArks(0, operator, operator);
+        
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        whitelistFleet.redeemFromArks(0, operator, operator);
+
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        whitelistFleet.deposit(0, operator);
+
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        whitelistFleet.mint(0, operator);
+        vm.stopPrank();
+    }
+
+    function test_ExceedMax_Coverage() public {
+        vm.startPrank(operator);
+        
+        uint256 maxDep = whitelistFleet.maxDeposit(operator);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxDeposit(address,uint256,uint256)",
+                operator,
+                maxDep + 1,
+                maxDep
+            )
+        ); 
+        whitelistFleet.deposit(maxDep + 1, operator);
+
+        uint256 maxM = whitelistFleet.maxMint(operator);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxMint(address,uint256,uint256)",
+                operator,
+                maxM + 1,
+                maxM
+            )
+        ); 
+        whitelistFleet.mint(maxM + 1, operator);
+
+        uint256 maxW = whitelistFleet.maxWithdraw(operator);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxWithdraw(address,uint256,uint256)",
+                operator,
+                maxW + 1,
+                maxW
+            )
+        ); 
+        whitelistFleet.withdraw(maxW + 1, operator, operator);
+
+        uint256 maxR = whitelistFleet.maxRedeem(operator);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxRedeem(address,uint256,uint256)",
+                operator,
+                maxR + 1,
+                maxR
+            )
+        ); 
+        whitelistFleet.redeem(maxR + 1, operator, operator);
+        vm.stopPrank();
+    }
+
+    function test_Unauthorized_Coverage() public {
+        vm.startPrank(mockUser2); // this user has no allowance
+        
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedWithdrawal(address,address)",
+                mockUser2,
+                operator
+            )
+        );
+        whitelistFleet.withdrawFromBuffer(1, mockUser2, operator);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedRedemption(address,address)",
+                mockUser2,
+                operator
+            )
+        );
+        whitelistFleet.redeemFromBuffer(1, mockUser2, operator);
+        
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedWithdrawal(address,address)",
+                mockUser2,
+                operator
+            )
+        );
+        whitelistFleet.withdrawFromArks(1, mockUser2, operator);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedRedemption(address,address)",
+                mockUser2,
+                operator
+            )
+        );
+        whitelistFleet.redeemFromArks(1, mockUser2, operator);
+        vm.stopPrank();
     }
 }

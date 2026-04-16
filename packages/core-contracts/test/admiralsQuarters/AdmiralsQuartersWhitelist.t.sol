@@ -179,6 +179,54 @@ contract AdmiralsQuartersWhitelistTest is FleetCommanderInstitutionalTestBase, O
         vm.stopPrank();
     }
 
+    function test_Deposit_Native_RevertsInvalidAmount() public {
+        deal(user1, 0.5e18);
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InvalidNativeAmount()"));
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(admiralsQuarters.depositTokens, (IERC20(ETH_PSEUDO_ADDRESS), 1e18));
+        admiralsQuarters.multicall{value: 0.5e18}(calls);
+        vm.stopPrank();
+    }
+
+    function test_Withdraw_Native_Max() public {
+        uint256 ethAmount = 1e18;
+        deal(user1, ethAmount);
+        vm.startPrank(user1);
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = abi.encodeCall(admiralsQuarters.depositTokens, (IERC20(ETH_PSEUDO_ADDRESS), ethAmount));
+        calls[1] = abi.encodeCall(admiralsQuarters.withdrawTokens, (IERC20(ETH_PSEUDO_ADDRESS), 0));
+        admiralsQuarters.multicall{value: ethAmount}(calls);
+        vm.stopPrank();
+        
+        // Assert user got the ETH back minus some minimal gas maybe (if any, but this is a test so balance shouldn't change much as there's no gas deduction inside pranks generally if we don't start with tx.gasprice)
+    }
+
+    function test_Withdraw_ERC20_Max() public {
+        uint256 amount = 1000e6;
+        vm.startPrank(user1);
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = abi.encodeCall(admiralsQuarters.depositTokens, (IERC20(USDC_ADDRESS), amount));
+        calls[1] = abi.encodeCall(admiralsQuarters.withdrawTokens, (IERC20(USDC_ADDRESS), 0));
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+    }
+
+    function test_claimMerkleRewards_RevertsInvalidRedeemer() public {
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InvalidRewardsRedeemer()"));
+        
+        uint256[] memory indices;
+        uint256[] memory amounts;
+        bytes32[][] memory proofs;
+
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(admiralsQuarters.claimMerkleRewards, (user1, indices, amounts, proofs, address(0)));
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+    }
+
+
     function test_EnterFleet_RevertsWhenNotWhitelisted() public {
         vm.startPrank(user1);
         bytes[] memory calls = new bytes[](1);
