@@ -162,6 +162,8 @@ export interface BaseConfig {
     initialSupply: string
     swapProvider: string
     tipRate: string
+    foundation: string
+    merklDistributor: string
     layerZero: {
       lzEndpoint: string
       eID: string
