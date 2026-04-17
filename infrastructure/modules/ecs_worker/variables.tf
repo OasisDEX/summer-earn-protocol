@@ -27,6 +27,12 @@ variable "force_delete" {
   default     = false
 }
 
+variable "assign_public_ip" {
+  description = "Whether to assign a public IP address to the ECR tasks"
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Tags to apply to all resources in this module"
   type        = map(string)

@@ -2,7 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
 
 const getConfig = () => {
-  const region = process.env.AWS_REGION || 'eu-central-1'
+  const region = process.env.REGION || process.env.AWS_REGION || 'eu-central-1'
   const tableName = process.env.DYNAMODB_TABLE_NAME || 'SummerGovernanceCache'
   return { region, tableName }
 }

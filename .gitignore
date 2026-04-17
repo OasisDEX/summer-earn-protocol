@@ -103,9 +103,9 @@ myenv
 .agents/
 .wt-token.json
 
-infrastructure/.terraform
-infrastructure/terraform.tfstate
-infrastructure/terraform.tfstate.backup
-infrastructure/.terraform.lock.hcl
-infrastructure/terraform.tfvars
+**/.terraform
+**/.terraform.lock.hcl
+**/*.tfstate
+**/*.tfstate.backup
+**/*.tfvars
 *.tfvars

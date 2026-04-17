@@ -39,3 +39,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "environment_variables" {
+  description = "Environment variables for the Amplify app"
+  type        = map(string)
+  default     = {}
+}
+
+variable "secrets" {
+  description = "Sensitive secrets to store in SSM for the Amplify app"
+  type        = map(string)
+  default     = {}
+}
