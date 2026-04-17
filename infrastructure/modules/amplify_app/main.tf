@@ -61,7 +61,9 @@ resource "aws_amplify_app" "this" {
   access_token = var.github_token
   iam_service_role_arn = aws_iam_role.this.arn
 
-  environment_variables = var.environment_variables
+  environment_variables = merge(var.environment_variables, {
+    AMPLIFY_MONOREPO_APP_ROOT = var.package_root
+  })
 
   enable_branch_auto_build    = true
   enable_branch_auto_deletion = true
@@ -93,12 +95,11 @@ resource "aws_amplify_app" "this" {
               - '**/*'
           cache:
             paths:
-              - node_modules/**/*
               - .next/cache/**/*
   EOT
 
   job_config {
-    build_compute_type = "LARGE_16GB"
+    build_compute_type = "XLARGE_72GB"
   }
 
   tags = var.tags
