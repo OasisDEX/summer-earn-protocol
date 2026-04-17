@@ -3,17 +3,14 @@ data "aws_iam_policy_document" "amplify_trust" {
     actions = ["sts:AssumeRole"]
     principals {
       type = "Service"
-      identifiers = [
-        "amplify.amazonaws.com",
-        "amplify.eu-central-1.amazonaws.com",
-      ]
+      identifiers = ["amplify.amazonaws.com"]
     }
   }
 }
 
 resource "aws_iam_role" "this" {
   # Renaming role to force a new ARN and refresh Amplify's internal association
-  name               = "${var.app_name}-amplify-role-v1"
+  name               = "${var.app_name}-amplify-role-v2"
   assume_role_policy = data.aws_iam_policy_document.amplify_trust.json
 
   tags = var.tags

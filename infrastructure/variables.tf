@@ -10,6 +10,25 @@ variable "aws_region" {
   }
 }
 
+variable "cluster_name" {
+  description = "The name of the ECS cluster"
+  type        = string
+  default     = "summer-earn-cluster"
+  nullable    = false
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9_-]+$", var.cluster_name))
+    error_message = "Cluster name must be alphanumeric with underscores or hyphens."
+  }
+}
+
+variable "governance_cache_table_name" {
+  description = "The name of the DynamoDB table for governance caching"
+  type        = string
+  default     = "SummerGovernanceCache"
+  nullable    = false
+}
+
 variable "github_repository" {
   description = "The URL to the GitHub repository for Amplify apps"
   type        = string

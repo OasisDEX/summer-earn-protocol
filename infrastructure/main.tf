@@ -21,7 +21,7 @@ data "aws_subnets" "default" {
 }
 
 resource "aws_ecs_cluster" "this" {
-  name = "summer-earn-cluster"
+  name = var.cluster_name
 
   setting {
     name  = "containerInsights"
