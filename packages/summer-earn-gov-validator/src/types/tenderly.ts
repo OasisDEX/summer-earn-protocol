@@ -21,6 +21,10 @@ export interface TenderlyChainResult {
   balance?: string
 }
 
+export interface TenderlyRawBundleResponse {
+  simulation_results?: TenderlySimResult[]
+}
+
 export interface SimulateApiResponse {
   results: Record<string, TenderlyChainResult>
 }

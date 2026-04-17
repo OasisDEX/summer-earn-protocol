@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { CHAINS } from '@/config/chains'
 import deploymentConfigRaw from '@/config/index.json'
+import { getCache, putCache } from '@/lib/dynamodb'
 
 const TENDERLY_ACCESS_KEY = process.env.TENDERLY_ACCESS_KEY
 const ACCOUNT_SLUG = 'oazoapps'
@@ -14,7 +15,7 @@ const deploymentConfig = deploymentConfigRaw as DeploymentConfig
 import { Address, encodeFunctionData, formatEther, toHex } from 'viem'
 
 import { getPublicClient } from '@/config/rpc'
-import { Action, TenderlyChainResult } from '@/types/tenderly'
+import { Action, TenderlyChainResult, TenderlyRawBundleResponse } from '@/types/tenderly'
 
 const TIMELOCK_ABI = [
   {
@@ -62,9 +63,22 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { actions } = (await req.json()) as { actions: Action[] }
+    const { actions, proposalId } = (await req.json()) as { actions: Action[]; proposalId?: string }
 
-    // 1. Group actions by chain
+    // 1. Check DynamoDB Cache if proposalId is provided
+    if (proposalId) {
+      const cacheKey = `SIM#${proposalId}`
+      const cached = await getCache<{ results: Record<string, TenderlyChainResult> }>(
+        cacheKey,
+        'RESULT',
+      )
+      if (cached) {
+        console.log(`Serving cached simulation results for proposal ${proposalId}`)
+        return NextResponse.json({ results: cached.results, source: 'cache' })
+      }
+    }
+
+    // 2. Group actions by chain
     const chainGroups = actions.reduce(
       (acc, action) => {
         acc[action.chainId] = acc[action.chainId] || []
@@ -181,9 +195,8 @@ export async function POST(req: Request) {
         continue
       }
 
-      const data = (await response.json()) as TenderlyChainResult
-      data.balance = balanceEther
-      const simResults = data.simulation_results || []
+      const rawData = (await response.json()) as TenderlyRawBundleResponse
+      const simResults = rawData.simulation_results || []
       const allShareLinks: string[] = []
 
       // 3. Make EACH simulation public and get shared links
@@ -212,12 +225,43 @@ export async function POST(req: Request) {
         }
       }
 
-      data.shareUrls = allShareLinks
-      data.shareUrl = allShareLinks[allShareLinks.length - 1] // The EXECUTE transaction
-      results[chainId] = data
+      const shareUrls = allShareLinks
+      const shareUrl = allShareLinks[allShareLinks.length - 1] // The EXECUTE transaction
+
+      // 4. Sanitize data to keep it under 400KB for DynamoDB and ensure consistency
+      const sanitizedData: TenderlyChainResult = {
+        balance: balanceEther,
+        shareUrl,
+        shareUrls,
+        simulation_results: simResults.map((res) => ({
+          transaction: {
+            hash: res.transaction?.hash,
+            status: res.transaction?.status,
+            gas_used: res.transaction?.gas_used,
+            error_message: res.transaction?.error_message,
+          },
+          simulation: {
+            id: res.simulation?.id,
+            status: res.simulation?.status,
+            gas_used: res.simulation?.gas_used,
+            error_message: res.simulation?.error_message,
+          },
+        })),
+      }
+
+      results[chainId] = sanitizedData
       console.log(
         `Simulation successful for chain ${chainId}. Shared links created: ${allShareLinks.length}`,
       )
+    }
+
+    // 5. Save to DynamoDB Cache if proposalId is provided
+    if (proposalId) {
+      const cacheKey = `SIM#${proposalId}`
+      await putCache(cacheKey, 'RESULT', {
+        results,
+        proposalId,
+      })
     }
 
     return NextResponse.json({ results })

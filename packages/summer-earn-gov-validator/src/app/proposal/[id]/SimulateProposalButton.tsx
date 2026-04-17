@@ -71,7 +71,7 @@ export function SimulateProposalButton({ fullProposal, status }: SimulateProposa
 
   const handleSimulate = () => {
     if (!isModalOpen) setIsModalOpen(true)
-    triggerSimulation(actions)
+    triggerSimulation(actions, fullProposal.baseProposal.id)
   }
 
   if (isTerminalState) return null

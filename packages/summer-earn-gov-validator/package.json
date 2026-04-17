@@ -11,9 +11,12 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
     "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
-    "sync-config": "node scripts/sync-config.js"
+    "sync-config": "node scripts/sync-config.js",
+    "cache:seed": "npx tsx src/scripts/seed-cache.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1030.0",
+    "@aws-sdk/lib-dynamodb": "^3.1030.0",
     "@reown/appkit": "1.8.19",
     "@reown/appkit-adapter-wagmi": "1.8.19",
     "@tailwindcss/typography": "^0.5.19",

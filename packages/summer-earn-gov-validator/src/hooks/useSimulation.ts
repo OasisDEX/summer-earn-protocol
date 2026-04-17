@@ -6,7 +6,7 @@ export function useSimulation() {
   const [results, setResults] = useState<Record<string, SimulationResult>>({})
   const [isSimulating, setIsSimulating] = useState(false)
 
-  const triggerSimulation = async (actions: Action[]) => {
+  const triggerSimulation = async (actions: Action[], proposalId?: string) => {
     setIsSimulating(true)
     const initialSimStatus: Record<string, SimulationResult> = {}
 
@@ -21,7 +21,7 @@ export function useSimulation() {
       const res = await fetch('/api/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ actions }),
+        body: JSON.stringify({ actions, proposalId }),
       })
 
       const data = (await res.json()) as SimulateApiResponse
