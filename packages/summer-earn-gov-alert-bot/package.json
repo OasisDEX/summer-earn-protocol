@@ -8,7 +8,6 @@
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
     "build": "esbuild",
-    "lint": "eslint .",
     "format": "prettier --check \"src/**/*.ts\"",
     "sync-config": "node scripts/sync-config.js"
   },
