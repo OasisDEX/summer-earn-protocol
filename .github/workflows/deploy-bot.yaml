@@ -3,7 +3,7 @@ name: Deploy Telegram Bot to Amazon ECS
 on:
   push:
     branches:
-      - h/tg-gov-bot
+      - main
     paths:
       - 'packages/summer-earn-gov-alert-bot/**'
   
