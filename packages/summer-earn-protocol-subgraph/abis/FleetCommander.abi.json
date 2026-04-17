@@ -650,25 +650,6 @@
   },
   {
     "type": "function",
-    "name": "hasOperatorRole",
-    "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "isArkActiveOrBufferArk",
     "inputs": [
       {
@@ -1909,6 +1890,19 @@
   },
   {
     "type": "event",
+    "name": "OperatorGatewayStatusUpdated",
+    "inputs": [
+      {
+        "name": "newStatus",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "Paused",
     "inputs": [
       {
@@ -2053,6 +2047,12 @@
         "internalType": "uint256"
       }
     ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TransfersDisabled",
+    "inputs": [],
     "anonymous": false
   },
   {
@@ -2598,6 +2598,16 @@
   {
     "type": "error",
     "name": "FleetCommanderCantUseRebalanceOnBufferArk",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderDirectDepositsClosed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderDirectWithdrawalsClosed",
     "inputs": []
   },
   {
