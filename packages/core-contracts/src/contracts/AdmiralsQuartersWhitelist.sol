@@ -9,6 +9,7 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IAToken} from "../interfaces/aave-v3/IAtoken.sol";
 import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
 import {IComet} from "../interfaces/compound-v3/IComet.sol";
@@ -160,6 +161,48 @@ contract AdmiralsQuartersWhitelist is
         shares = fleet.deposit(assets, receiver);
 
         emit FleetEntered(_msgSender(), fleetCommander, assets, shares);
+    }
+
+    /// @inheritdoc IAdmiralsQuartersWhitelist
+    function enterFleetWithPermit(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        bytes calldata referralCode,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _validateFleetCommander(fleetCommander);
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        IERC20 fleetAsset = IERC20(fleet.asset());
+
+        IERC20Permit(address(fleetAsset)).permit(
+            owner,
+            address(this),
+            assets,
+            deadline,
+            v,
+            r,
+            s
+        );
+        fleetAsset.safeTransferFrom(owner, address(this), assets);
+
+        fleetAsset.forceApprove(address(fleet), assets);
+        if (referralCode.length == 0) {
+            shares = fleet.deposit(assets, owner);
+            emit FleetEntered(owner, fleetCommander, assets, shares);
+        } else {
+            shares = fleet.deposit(assets, owner, referralCode);
+            emit FleetEnteredWithReferral(
+                owner,
+                fleetCommander,
+                assets,
+                shares,
+                referralCode
+            );
+        }
     }
 
     /// @inheritdoc IAdmiralsQuartersWhitelist

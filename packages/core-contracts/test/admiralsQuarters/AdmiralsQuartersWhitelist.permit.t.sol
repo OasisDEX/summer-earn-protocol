@@ -112,6 +112,80 @@ contract AdmiralsQuartersWhitelistPermitTest is AdmiralsQuartersWhitelistTest {
         );
     }
 
+    function test_enterFleetWithPermit() public {
+        uint256 amount = 1000e6;
+        uint256 deadline = block.timestamp + 100;
+
+        vm.startPrank(owner);
+        (uint8 v, bytes32 r, bytes32 s) = _getPermitSignature(
+            USDC_ADDRESS,
+            owner,
+            address(admiralsQuarters),
+            amount,
+            deadline,
+            ownerPrivateKey
+        );
+        vm.stopPrank();
+
+        vm.startPrank(solver);
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.enterFleetWithPermit,
+            (
+                owner,
+                address(usdcFleet),
+                amount,
+                "", // referralCode
+                deadline,
+                v,
+                r,
+                s
+            )
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit IAdmiralsQuartersEvents.FleetEntered(
+            owner,
+            address(usdcFleet),
+            amount,
+            amount // assuming 1:1 shares
+        );
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+
+        uint256 shares = usdcFleet.balanceOf(owner);
+        uint256 depositedAssets = usdcFleet.convertToAssets(shares);
+        assertApproxEqAbs(
+            depositedAssets,
+            amount,
+            2,
+            "Shares should convert to approx deposited amount"
+        );
+
+        assertEq(shares, usdcFleet.previewDeposit(amount));
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(address(admiralsQuarters)),
+            0,
+            "AdmiralsQuarters should have 0 balance"
+        );
+    }
+
+    // Helper to sign standard ERC20 Permit
+    function _getPermitSignature(
+        address token,
+        address ownerAddr,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint256 privateKey
+    ) internal view returns (uint8 v, bytes32 r, bytes32 s) {
+        uint256 nonce = _getUSDCNonce(token, ownerAddr);
+        bytes32 PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, ownerAddr, spender, value, nonce, deadline));
+        bytes32 digest = _getUSDCDigest(token, structHash);
+        (v, r, s) = vm.sign(privateKey, digest);
+    }
+
     // Helper to get USDC nonce
     function _getUSDCNonce(
         address token,

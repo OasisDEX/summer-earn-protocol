@@ -14,6 +14,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
 import {Test} from "forge-std/Test.sol";
 
@@ -157,6 +158,7 @@ contract RoundsVaultTwoPhaseSettlementTest is
     address public userA = address(0xA);
     address public userB = address(0xB);
     address public userC = address(0xC);
+    address public gov = address(0x909);
 
     function setUp() public {
         asset = new MockERC20();
@@ -215,6 +217,9 @@ contract RoundsVaultTwoPhaseSettlementTest is
         asset.approve(address(inputVault), type(uint256).max);
         asset.approve(address(targetVault), type(uint256).max);
         vm.stopPrank();
+
+        bytes32 GOVERNOR_ROLE = accessManager.GOVERNOR_ROLE();
+        accessManager.grantRole(GOVERNOR_ROLE, gov);
     }
 
     /**
@@ -446,13 +451,6 @@ contract RoundsVaultTwoPhaseSettlementTest is
             uint256(RoundState.InSettlement)
         );
 
-        // Use a prank with proper admin check.
-        // Governor in testing is usually the deployer or an explicit address. By default MockAccessManager needs ADMIN_ROLE or something, let's see.
-        // ProtocolAccessManagedV2 `onlyGovernor` modifier checks `IProtocolAccessManagerV2.hasRole(GOVERNOR_ROLE, msg.sender)`.
-        bytes32 GOVERNOR_ROLE = accessManager.GOVERNOR_ROLE();
-        address gov = address(0x909);
-        accessManager.grantRole(GOVERNOR_ROLE, gov);
-
         vm.prank(gov);
         inputVault.emergencyRollbackRound(0);
 
@@ -463,10 +461,6 @@ contract RoundsVaultTwoPhaseSettlementTest is
     function test_EmergencyRollbackRound_RevertsInvalidState() public {
         // Round 0 is currently Opened
         assertEq(uint256(inputVault.roundState(0)), uint256(RoundState.Opened));
-
-        bytes32 GOVERNOR_ROLE = accessManager.GOVERNOR_ROLE();
-        address gov = address(0x909);
-        accessManager.grantRole(GOVERNOR_ROLE, gov);
 
         vm.startPrank(gov);
         vm.expectRevert(
@@ -489,7 +483,13 @@ contract RoundsVaultTwoPhaseSettlementTest is
         inputVault.nextRound();
 
         vm.startPrank(userA);
-        vm.expectRevert(); // Typically AccessControlUnauthorizedAccount or something similar in ProtocolAccessManagedV2
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                userA
+            )
+        );
+
         inputVault.emergencyRollbackRound(0);
         vm.stopPrank();
     }

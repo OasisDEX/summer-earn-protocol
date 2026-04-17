@@ -890,12 +890,11 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(keeper);
 
         uint256 clearanceAttempt = 600000 * 1e6;
-        uint256 expectedSharesAtNewPrice = ark.sharesToAssets(clearanceAttempt); // Will be ~30 shares
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 WisdomTreeArk.SharesNotArrived.selector,
-                expectedSharesAtNewPrice, // Contract demands 30 shares based on today's cheap price
+                30e18, // Contract demands 30 shares based on today's cheap price
                 partialSharesDelivered // Only 10 arrived
             )
         );

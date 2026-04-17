@@ -15,14 +15,6 @@ contract MockFleetV2 is ProtocolAccessManagedV2 {
         return true;
     }
 
-    function getAccessManagerV2()
-        external
-        view
-        returns (IProtocolAccessManagerV2)
-    {
-        return _getAccessManagerV2();
-    }
-}
 
 contract ProtocolAccessManagedV2Test is Test {
     ProtocolAccessManagerV2 public accessManager;
@@ -83,9 +75,5 @@ contract ProtocolAccessManagedV2Test is Test {
 
         assertTrue(fleet.hasOperatorRole(operator));
         assertFalse(fleet.hasOperatorRole(user));
-    }
-
-    function test_GetAccessManagerV2() public view {
-        assertEq(address(fleet.getAccessManagerV2()), address(accessManager));
     }
 }

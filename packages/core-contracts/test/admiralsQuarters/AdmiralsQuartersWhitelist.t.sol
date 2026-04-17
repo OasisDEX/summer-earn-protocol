@@ -783,4 +783,69 @@ contract AdmiralsQuartersWhitelistTest is
         admiralsQuarters.multicall(mainCalls);
         vm.stopPrank();
     }
+
+    function test_EnterFleet_RevertsWhenOperatorRevoked() public {
+        _setWhitelisted(address(usdcFleet), user1, true);
+
+        // Revoke Operator Role from AQ on the Fleet
+        vm.startPrank(governor);
+        accessManager.revokeOperatorRole(
+            address(usdcFleet),
+            address(admiralsQuarters)
+        );
+        vm.stopPrank();
+
+        vm.startPrank(user1);
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), 1000e6)
+        );
+        calls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(usdcFleet), 1000e6, user1)
+        );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(usdcFleet),
+                address(admiralsQuarters)
+            )
+        );
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+    }
+
+    function test_EnterFleet_OperatorRevoked_ButAQWhitelisted() public {
+        // Whitelist both AQ and the actual user
+        _setWhitelisted(address(usdcFleet), address(admiralsQuarters), true);
+        _setWhitelisted(address(usdcFleet), user1, true);
+
+        // Revoke Operator Role from AQ on the Fleet
+        vm.startPrank(governor);
+        accessManager.revokeOperatorRole(
+            address(usdcFleet),
+            address(admiralsQuarters)
+        );
+        vm.stopPrank();
+
+        uint256 balanceBefore = usdcFleet.balanceOf(user1);
+
+        vm.startPrank(user1);
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), 100e6)
+        );
+        calls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(usdcFleet), 100e6, user1)
+        );
+
+        // This should SUCCEED because both AQ (the caller of fleet.deposit) and user1 (the receiver) are whitelisted
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+
+        assertGt(usdcFleet.balanceOf(user1), balanceBefore, "User should have received fleet shares");
+    }
 }

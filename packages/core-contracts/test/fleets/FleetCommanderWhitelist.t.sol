@@ -531,13 +531,10 @@ contract FleetCommanderWhitelistTest is
 
     function test_DirectWrapperCalls_Coverage() public {
         vm.startPrank(operator);
-        // We deposited "amount" for operator in setUp. Wait, operator has amount*2 minted and deposited "amount" for operator and "amount" for mockUser.
-        // So operator has shares=amount.
 
         whitelistFleet.withdrawFromBuffer(1, operator, operator);
         whitelistFleet.redeemFromBuffer(1, operator, operator);
 
-        // These may succeed if conditions are met. Cover them:
         whitelistFleet.withdrawFromArks(1, operator, operator);
         whitelistFleet.redeemFromArks(1, operator, operator);
 
@@ -549,7 +546,6 @@ contract FleetCommanderWhitelistTest is
         whitelistFleet.setFleetTokenTransferability(false);
         vm.stopPrank();
 
-        // operator has some shares because we deposited in setup. Let's use `operator` to transfer to `mockUser2`
         vm.startPrank(operator);
         whitelistFleet.approve(mockUser2, 1);
         vm.stopPrank();
