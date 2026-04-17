@@ -86,7 +86,7 @@ resource "aws_amplify_app" "this" {
                 - pnpm install
             build:
               commands:
-                - pnpm run build --filter=${var.build_filter}
+                - pnpm run build
           artifacts:
             baseDirectory: .next
             files:
