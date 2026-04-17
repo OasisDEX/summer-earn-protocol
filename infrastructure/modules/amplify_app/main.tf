@@ -3,7 +3,7 @@ data "aws_region" "current" {}
 
 data "aws_iam_policy_document" "amplify_trust" {
   statement {
-    actions = ["sts:AssumeRole"]
+    actions = ["sts:AssumeRole", "sts:TagSession"]
     principals {
       type = "Service"
       identifiers = ["amplify.amazonaws.com"]
@@ -22,6 +22,11 @@ resource "aws_iam_role" "this" {
 resource "aws_iam_role_policy_attachment" "this" {
   role       = aws_iam_role.this.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-Amplify"
+}
+
+resource "aws_iam_role_policy_attachment" "amplify_backend_deploy" {
+  role       = aws_iam_role.this.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmplifyBackendDeployFullAccess"
 }
 
 resource "aws_iam_policy" "ssm_access" {
