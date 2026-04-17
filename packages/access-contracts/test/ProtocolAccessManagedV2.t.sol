@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {ProtocolAccessManagedV2} from "../src/contracts/ProtocolAccessManagedV2.sol";
 import {ProtocolAccessManagerV2} from "../src/contracts/ProtocolAccessManagerV2.sol";
 import {IAccessControlErrors} from "../src/interfaces/IAccessControlErrors.sol";
+import {IProtocolAccessManagerV2} from "../src/interfaces/IProtocolAccessManagerV2.sol";
 import {Test} from "forge-std/Test.sol";
 
 // Mock consumer contract (e.g., a new FleetCommander)
@@ -13,7 +14,7 @@ contract MockFleetV2 is ProtocolAccessManagedV2 {
     function restrictedAction() external onlyOperator returns (bool) {
         return true;
     }
-}
+
 
 contract ProtocolAccessManagedV2Test is Test {
     ProtocolAccessManagerV2 public accessManager;

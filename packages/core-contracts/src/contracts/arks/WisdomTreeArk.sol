@@ -580,8 +580,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         view
         returns (Price memory)
     {
-        (uint80 roundId, int256 answer, , uint256 updatedAt, ) = oracle
-            .latestRoundData();
+        (, int256 answer, , uint256 updatedAt, ) = oracle.latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
 
         if (block.timestamp - updatedAt > ORACLE_HEARTBEAT_TIMEOUT) {

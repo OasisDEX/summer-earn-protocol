@@ -256,7 +256,7 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
         vm.expectRevert(
             IProtocolAccessManagerV2.Whitelist_LengthMismatch.selector
         );
-        accessManager.setWhitelistedBatch(users, statuses);
+        accessManager.setWhitelistedBatch(contextA, users, statuses);
     }
 
     function test_SetWhitelistedBatch_Revert_BatchTooLarge() public {
@@ -273,7 +273,7 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
         vm.expectRevert(
             IProtocolAccessManagerV2.Whitelist_BatchTooLarge.selector
         );
-        accessManager.setWhitelistedBatch(users, statuses);
+        accessManager.setWhitelistedBatch(contextA, users, statuses);
     }
 
     function test_GlobalWhitelistOpen() public {

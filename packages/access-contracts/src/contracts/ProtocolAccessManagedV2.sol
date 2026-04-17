@@ -59,16 +59,4 @@ abstract contract ProtocolAccessManagedV2 is ProtocolAccessManaged {
                 account
             );
     }
-
-    /**
-     * @notice Helper to get the access manager explicitly typed as V2
-     * @return IProtocolAccessManagerV2 The V2 interface of the access manager
-     */
-    function _getAccessManagerV2()
-        internal
-        view
-        returns (IProtocolAccessManagerV2)
-    {
-        return IProtocolAccessManagerV2(address(_accessManager));
-    }
 }

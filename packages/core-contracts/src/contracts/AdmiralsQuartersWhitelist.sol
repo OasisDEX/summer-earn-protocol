@@ -9,6 +9,7 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IAToken} from "../interfaces/aave-v3/IAtoken.sol";
 import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
 import {IComet} from "../interfaces/compound-v3/IComet.sol";
@@ -21,6 +22,7 @@ import {ProtectedMulticallWhitelist} from "./ProtectedMulticallWhitelist.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IWhitelist} from "../utils/Whitelist/IWhitelist.sol";
 import {Whitelist} from "../utils/Whitelist/Whitelist.sol";
+import {ISignatureTransfer} from "../interfaces/permit2/IPermit2.sol";
 
 /**
  * @title AdmiralsQuarters
@@ -78,6 +80,9 @@ contract AdmiralsQuartersWhitelist is
     address public immutable NATIVE_PSEUDO_ADDRESS =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public immutable WRAPPED_NATIVE;
+
+    address public constant PERMIT2 =
+        0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
     constructor(
         address _oneInchRouter,
@@ -156,6 +161,82 @@ contract AdmiralsQuartersWhitelist is
         shares = fleet.deposit(assets, receiver);
 
         emit FleetEntered(_msgSender(), fleetCommander, assets, shares);
+    }
+
+    /// @inheritdoc IAdmiralsQuartersWhitelist
+    function enterFleetWithPermit(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        bytes calldata referralCode,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _validateFleetCommander(fleetCommander);
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        IERC20 fleetAsset = IERC20(fleet.asset());
+
+        IERC20Permit(address(fleetAsset)).permit(
+            owner,
+            address(this),
+            assets,
+            deadline,
+            v,
+            r,
+            s
+        );
+        fleetAsset.safeTransferFrom(owner, address(this), assets);
+
+        fleetAsset.forceApprove(address(fleet), assets);
+        if (referralCode.length == 0) {
+            shares = fleet.deposit(assets, owner);
+            emit FleetEntered(owner, fleetCommander, assets, shares);
+        } else {
+            shares = fleet.deposit(assets, owner, referralCode);
+            emit FleetEnteredWithReferral(
+                owner,
+                fleetCommander,
+                assets,
+                shares,
+                referralCode
+            );
+        }
+    }
+
+    /// @inheritdoc IAdmiralsQuartersWhitelist
+    function enterFleetWithPermit2(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        address receiver,
+        ISignatureTransfer.PermitTransferFrom calldata permitData,
+        bytes calldata signature
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _revertIfNotWhitelisted(fleetCommander, receiver, owner);
+        _validateFleetCommander(fleetCommander);
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        IERC20 fleetAsset = IERC20(fleet.asset());
+        if (permitData.permitted.token != fleetAsset) revert InvalidToken();
+        if (permitData.permitted.amount != assets) revert InvalidAmount();
+        ISignatureTransfer(PERMIT2).permitTransferFrom(
+            permitData,
+            ISignatureTransfer.SignatureTransferDetails({
+                to: address(this),
+                requestedAmount: assets
+            }),
+            owner,
+            signature
+        );
+
+        assets = assets == 0 ? fleetAsset.balanceOf(address(this)) : assets;
+        receiver = receiver == address(0) ? owner : receiver;
+
+        fleetAsset.forceApprove(address(fleet), assets);
+        shares = fleet.deposit(assets, receiver);
+
+        emit FleetEntered(owner, fleetCommander, assets, shares);
     }
 
     /// @inheritdoc IAdmiralsQuartersWhitelist
