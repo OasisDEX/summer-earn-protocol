@@ -90,7 +90,7 @@ resource "aws_amplify_app" "this" {
               commands:
                 - pnpm run build
           artifacts:
-            baseDirectory: .next
+            baseDirectory: .next/standalone
             files:
               - '**/*'
           cache:
