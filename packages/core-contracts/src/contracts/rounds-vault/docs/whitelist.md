@@ -138,19 +138,23 @@ User / Operator
 ### 2.4 Transfer Flow (ERC20)
 
 ```solidity
-function transfer(address to, uint256 amount) returns (bool) {
-  if (hasOperatorRole(msg.sender)) {
+function transfer(address to, uint256 amount) public override(IERC20, ERC20) whenNotPaused returns (bool) {
+  if (hasOperatorRole(_msgSender())) {
     return super.transfer(to, amount);
   }
-  require(transfersEnabled, 'FleetCommanderTransfersDisabled');
-  require(isWhitelisted(address(this), msg.sender) && isWhitelisted(address(this), to), 'not whitelisted');
+
+  if (!transfersEnabled) {
+    revert FleetCommanderTransfersDisabled();
+  }
+  _revertIfNotWhitelisted(address(this), _msgSender(), to);
+
   return super.transfer(to, amount);
 }
 ```
 
 - **Operator** can transfer freely.
 - **Other users** can transfer only if transfers are enabled **and** both sender and receiver are
-  whitelisted.
+  whitelisted for the fleet context (`address(this)`).
 
 ---
 
@@ -187,7 +191,7 @@ User / Admirals Quarters
 deposit(assets, receiver)   // 1. Caller deposits assets
   │
   ▼
-onlyWhitelisted(vault(), receiver) && onlyWhitelisted(vault(), caller)
+_revertIfNotWhitelisted(vault(), receiver, _msgSender())
   │
   ▼
 super.deposit(assets, receiver)   // 2. Mint ERC1155 receipt for current round
@@ -208,7 +212,7 @@ User / Admirals Quarters
 redeem(id, amount, receiver, owner)   // id must equal current round
   │
   ▼
-onlyWhitelisted(vault(), owner, receiver, caller)
+_revertIfNotWhitelisted(vault(), owner, receiver, _msgSender())
   │
   ▼
 _burn(owner, id, amount)              // Burn receipt
@@ -235,7 +239,7 @@ redeemExchangeAsset(id, amount, receiver, owner)
 require(id < currentRound && roundState[id] == Settled)
   │
   ▼
-onlyWhitelisted(vault(), owner, receiver, caller)
+_revertIfNotWhitelisted(vault(), owner, receiver, _msgSender())
   │
   ▼
 _burn(owner, id, amount)              // Burn receipt
@@ -254,6 +258,10 @@ safeTransfer(exchangeAsset, receiver, exchangeAmount)
 The protocol uses a two-phase mechanism to decouple round advancement from the actual trade
 execution and settlement. This allows the vault to accurately capture off-chain reality (NAV drift)
 during settlement.
+
+#### Recovery State Machine
+- **retryRound(id)**: [Keeper] Allows re-settling a past round if `setRoundSettled` failed or used incorrect NAV.
+- **emergencyRollbackRound(id)**: [Governor] Forces an `InSettlement` round back to `Opened` to unlock user redemptions.
 
 #### Phase 1: Advance Round (Keeper)
 
@@ -345,6 +353,7 @@ from fleets and vaults.
 | **Whitelist Requirement** | Bypassed if caller is an operator | **Mandatory for all callers**      |
 | **AQ Role Requirement**   | Re-checks roles internally        | Relies on whitelist for entry/exit |
 | **Whitelist Context**     | Fleet Address                     | Vault Address                      |
+| **Transfer Restrictions** | Whitelisted                       | Whitelisted (ERC-1155 Receipts)    |
 
 **Note for AQ Developers**: When integrating with a `RoundsVault`, the AQ contract address **must be
 manually whitelisted for the specific vault context**, otherwise all `deposit` and

@@ -8,38 +8,38 @@ stateDiagram-v2
         VarNAV : Price = Oracle NAV * Shares
     }
 
-    state "Ex-Dividend Date Approached" as ExDiv
+    state "Ex-Dividend Date / Emergency" as Emergency
 
-    state "Price Freeze Defense (non MMF)" as Freeze {
-        state "Constant NAV Lock" as ConstNAV
-        ConstNAV : pricePerShare / totalAssets is artificially locked
-        ConstNAV : Ignores Oracle drops temporarily
+    state "Ark Frozen State" as Freeze {
+        state "TotalAssets Lock" as Locked
+        Locked : totalAssets() reports a fixed cached value
+        Locked : Ignores oracle fluctuations/stale data
     }
 
-    Normal --> ExDiv : WT Fund Declares Dividend
-    ExDiv --> Freeze : Keeper calls startPriceFreeze()
+    Normal --> Emergency : Dividend Declared / Market Volatility
+    Emergency --> Freeze : Keeper/Governor calls setArkFrozen(true)
 
     Note right of Freeze
-        Prevents malicious deposits
-        right after ex-dividend date and
-        before shares arrival
+        Prevents malicious activity or
+        mispricing when off-chain NAV 
+        is unreliable or T+1 delivery
+        is in progress.
     end note
 
-    state "Dividend Arrival (DRIP)" as Settle {
-        state "WT Mints Shares" as Mint
-        Mint : Dividend shares physically arrive in Ark
-        Mint : Ark ready for unfreeze ( shares * nav to be new AUM)
+    state "Recovery / Normalization" as Settle {
+        state "Data Verification" as Verify
+        Verify : Shares arrive or oracle stabilizes
+        Verify : Ark ready for unfreeze
     }
 
-    Freeze --> Settle : Funds Distributed by WT
+    Freeze --> Settle : Conditions Stabilize
 
-    Settle --> Normal : Keeper calls endPriceFreeze()
+    Settle --> Normal : Keeper/Governor calls setArkFrozen(false)
 
     Note right of Settle
-        Once unfrozen, the Ark recognizes
-        the new, larger share balance against
-        the post-dividend Oracle NAV, resulting
-        in a recognized yield increase without a dip.
+        Once unfrozen, the Ark returns to 
+        live reporting against the potentially
+        new share balance and oracle NAV.
     end note
 ```
 
@@ -84,14 +84,13 @@ sequenceDiagram
 
     Note over User, K: Time passes... Settlement completes off-chain
 
-    K->>Rounds: nextRound() (Settlement Pull)
-    Rounds->>Fleet: Request Settled Assets
-    Fleet->>Ark: Retrieve Shares
-    Ark-->>Fleet: Return Settled Shares
-    Fleet-->>Rounds: Deliver Shares to Vault
-    Note over Rounds: Rounds Vault recognizes settled shares<br/>and calculates new exchange rate.
+    K->>Rounds: setRoundSettled(N)
+    Rounds->>Fleet: deposit(frozenAmount)
+    Fleet->>Ark: board(USDC)
+    Ark->>WTSys: Forward USDC to WT Receiver Wallet
+    Note over Rounds: Round N finalized with exact output shares.<br/>Exchange rate for N is struck.
 
-    User->>Rounds: Exchange Receipts
+    User->>Rounds: redeemExchangeAsset(N)
     Rounds-->>User: Distribute WisdomTree Shares (Round Exit)
 
     %% ========================================
@@ -118,14 +117,13 @@ sequenceDiagram
 
     Note over User, K: Time passes... Settlement completes off-chain
 
-    K->>Rounds: nextRound() (Settlement Pull)
-    Rounds->>Fleet: Request Settled USDC
-    Fleet->>Ark: Retrieve USDC
-    Ark-->>Fleet: Return Settled USDC
-    Fleet-->>Rounds: Deliver USDC to Vault
-    Note over Rounds: MMF (WTGXX) returns Principal + Yield concurrently on exit.<br/>Vault calculates new exchange rate.<br/>(If late off-chain dividends arrive later, users who already fully exited miss them).
+    K->>Rounds: setRoundSettled(M)
+    Rounds->>Fleet: redeem(frozenShares)
+    Fleet->>Ark: disembark(Shares)
+    Ark->>WTSys: Forward WT Shares to WT Sender Wallet
+    Note over Rounds: Round M finalized with exact USDC received.<br/>Exchange rate for M is struck.
 
-    User->>Rounds: Exchange Receipts
+    User->>Rounds: redeemExchangeAsset(M)
     Rounds-->>User: Distribute USDC (Round Exit)
 ```
 
@@ -148,7 +146,7 @@ flowchart TD
         Order_D["Order: Deposit USDC"]:::yellowNode
         User_D1 -.-> Order_D
 
-        RndN_D["Round N: Open for Deposits"]:::purpleNode
+        RndN_D["Round N: State = Opened"]:::purpleNode
         Order_D --> RndN_D
 
         K_D1(["Keeper"]):::pinkActor
@@ -157,28 +155,19 @@ flowchart TD
 
         RndN_D --> Check_Rnd1_D
 
-        RndN1_D["Round N+1: Opens for Deposits <br/> Round N: Moves to Settlement Phase"]:::purpleNode
+        RndN1_D["Round N+1: State = Opened <br/> Round N: State = InSettlement"]:::purpleNode
         Check_Rnd1_D -->|Yes| RndN1_D
 
-        Split_Ark1_D["Ark 1 (WTGXX): <br/> Async board(USDC)"]:::purpleNode
-        Split_Ark2_D["Ark 2 (CRDYX): <br/> Async board(USDC)"]:::purpleNode
+        Settle_D["Round N: setRoundSettled() <br/> Round N: State = Settled"]:::purpleNode
+        RndN1_D -->|Wait for Off-Chain Settle| Settle_D
 
-        RndN1_D -->|Dispatch Round N USDC| Split_Ark1_D
-        RndN1_D -->|Dispatch Round N USDC| Split_Ark2_D
+        Split_Ark1_D["Ark 1 (WTGXX): <br/> Sync deposit()"]:::purpleNode
+        Split_Ark2_D["Ark 2 (CRDYX): <br/> Sync deposit()"]:::purpleNode
 
-        WT_D1["WTGXX Receiver Wallet <br/> (Off-Chain Subscription)"]:::externalNode
-        WT_D2["CRDYX Receiver Wallet <br/> (Off-Chain Subscription)"]:::externalNode
-        Split_Ark1_D --> WT_D1
-        Split_Ark2_D --> WT_D2
+        Settle_D -->|Dispatch Round N assets| Split_Ark1_D
+        Settle_D -->|Dispatch Round N assets| Split_Ark2_D
 
-        NavStrike_D{"Wait for WT Settle <br/> & NAV Strike"}:::blueDiamond
-        WT_D1 --> NavStrike_D
-        WT_D2 --> NavStrike_D
-
-        Settle_D["WT Settles -> <br/> Deposit vault mints Exact Shares for Round N"]:::purpleNode
-        NavStrike_D -->|Settled| Settle_D
-
-        Note_AsyncD["Note: Cannot fully close Round N until ALL pending Ark deposits settle<br/>because the exact NAV/Price is unknown beforehand.<br/>Any additional late shares are socialized across the entire Vault."]:::note
+        Note_AsyncD["Note: Closing Round N calculates the exact NAV/Price.<br/>Users transition from receipts to entitlements."]:::note
         Settle_D -.-> Note_AsyncD
 
         K_D2(["Keeper"]):::pinkActor
@@ -186,10 +175,10 @@ flowchart TD
         K_D2 -.-> Check_Rnd2_D
         Settle_D --> Check_Rnd2_D
 
-        RndN2_D["Round N+2: Opens for Deposits <br/> Round N+1: Moves to Settlement Phase <br/> Round N: Distributes Settled Shares"]:::purpleNode
+        RndN2_D["Round N+2: State = Opened <br/> Round N+1: State = InSettlement <br/> Round N: Available for Redemption"]:::purpleNode
         Check_Rnd2_D -->|Yes| RndN2_D
 
-        Receive_D["Users Exchange Receipts <br/> Receive Exact Settled Shares"]:::yellowNode
+        Receive_D["Users call redeemExchangeAsset(N) <br/> Receive Settled Shares"]:::yellowNode
         RndN2_D --> Receive_D
 
         User_D2(["User"]):::pinkActor
@@ -205,7 +194,7 @@ flowchart TD
         Order_W["Order: Deposit WT Shares"]:::yellowNode
         User_W1 -.-> Order_W
 
-        RndM_W["Round M: Open for Exits"]:::purpleNode
+        RndM_W["Round M: State = Opened"]:::purpleNode
         Order_W --> RndM_W
 
         K_W1(["Keeper"]):::pinkActor
@@ -214,31 +203,22 @@ flowchart TD
 
         RndM_W --> Check_Rnd1_W
 
-        RndM1_W["Round M+1: Opens for Exits <br/> Round M: Moves to Settlement Phase"]:::purpleNode
+        RndM1_W["Round M+1: State = Opened <br/> Round M: State = InSettlement"]:::purpleNode
         Check_Rnd1_W -->|Yes| RndM1_W
 
-        Split_Ark1_W["Ark 1 (WTGXX): <br/> Async disembark(Shares)"]:::purpleNode
-        Split_Ark2_W["Ark 2 (CRDYX): <br/> Async disembark(Shares)"]:::purpleNode
+        Settle_W["Round M: setRoundSettled() <br/> Round M: State = Settled"]:::purpleNode
+        RndM1_W -->|Wait for Off-Chain Settle| Settle_W
 
-        RndM1_W -->|Dispatch Round M Shares| Split_Ark1_W
-        RndM1_W -->|Dispatch Round M Shares| Split_Ark2_W
+        Split_Ark1_W["Ark 1 (WTGXX): <br/> Sync redeem()"]:::purpleNode
+        Split_Ark2_W["Ark 2 (CRDYX): <br/> Sync redeem()"]:::purpleNode
 
-        WT_W1["WTGXX Sender Wallet <br/> Receives Shares for Liquidation"]:::externalNode
-        WT_W2["CRDYX Sender Wallet <br/> Receives Shares for Liquidation"]:::externalNode
-        Split_Ark1_W --> WT_W1
-        Split_Ark2_W --> WT_W2
-
-        NavStrike_W{"Wait for WT Settle <br/> & USDC Return"}:::blueDiamond
-        WT_W1 --> NavStrike_W
-        WT_W2 --> NavStrike_W
-
-        Settle_W["WT Settles -> <br/> Arks Receive USDC for Round M"]:::purpleNode
-        NavStrike_W -->|USDC Arrives| Settle_W
+        Settle_W -->|Dispatch Round M Shares| Split_Ark1_W
+        Settle_W -->|Dispatch Round M Shares| Split_Ark2_W
 
         Note_MMF["MMF (WTGXX) settlement explicitly includes<br/>BOTH Principal + Dividends (Yield).<br/>We only distribute USDC to users AFTER this jointly arrives."]:::note
         Settle_W -.-> Note_MMF
 
-        Note_AsyncW["Note: Cannot fully close Round M until ALL pending Ark redemptions settle.<br/>Yield and exact Principal are resolved before user distribution."]:::note
+        Note_AsyncW["Note: Round M stays InSettlement until all Ark redemptions clear.<br/>Yield and exact Principal are resolved before user distribution."]:::note
         Settle_W -.-> Note_AsyncW
 
         K_W2(["Keeper"]):::pinkActor
@@ -246,10 +226,10 @@ flowchart TD
         K_W2 -.-> Check_Rnd2_W
         Settle_W --> Check_Rnd2_W
 
-        RndM2_W["Round M+2: Opens for Exits <br/> Round M+1: Moves to Settlement Phase <br/> Round M: Distributes Settled USDC"]:::purpleNode
+        RndM2_W["Round M+2: State = Opened <br/> Round M+1: State = InSettlement <br/> Round M: Available for Redemption"]:::purpleNode
         Check_Rnd2_W -->|Yes| RndM2_W
 
-        Receive_W["Users Exchange Receipts <br/> Receive Exact Settled USDC"]:::yellowNode
+        Receive_W["Users call redeemExchangeAsset(M) <br/> Receive Settled USDC"]:::yellowNode
         RndM2_W --> Receive_W
 
         User_W2(["User"]):::pinkActor
