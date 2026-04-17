@@ -846,6 +846,10 @@ contract AdmiralsQuartersWhitelistTest is
         admiralsQuarters.multicall(calls);
         vm.stopPrank();
 
-        assertGt(usdcFleet.balanceOf(user1), balanceBefore, "User should have received fleet shares");
+        assertGt(
+            usdcFleet.balanceOf(user1),
+            balanceBefore,
+            "User should have received fleet shares"
+        );
     }
 }

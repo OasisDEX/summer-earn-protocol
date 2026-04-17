@@ -180,8 +180,19 @@ contract AdmiralsQuartersWhitelistPermitTest is AdmiralsQuartersWhitelistTest {
         uint256 privateKey
     ) internal view returns (uint8 v, bytes32 r, bytes32 s) {
         uint256 nonce = _getUSDCNonce(token, ownerAddr);
-        bytes32 PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, ownerAddr, spender, value, nonce, deadline));
+        bytes32 PERMIT_TYPEHASH = keccak256(
+            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+        );
+        bytes32 structHash = keccak256(
+            abi.encode(
+                PERMIT_TYPEHASH,
+                ownerAddr,
+                spender,
+                value,
+                nonce,
+                deadline
+            )
+        );
         bytes32 digest = _getUSDCDigest(token, structHash);
         (v, r, s) = vm.sign(privateKey, digest);
     }

@@ -14,7 +14,7 @@ contract MockFleetV2 is ProtocolAccessManagedV2 {
     function restrictedAction() external onlyOperator returns (bool) {
         return true;
     }
-
+}
 
 contract ProtocolAccessManagedV2Test is Test {
     ProtocolAccessManagerV2 public accessManager;
