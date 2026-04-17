@@ -402,7 +402,10 @@ contract FleetCommanderWhitelistTest is
         whitelistFleet.setArkDepositCap(address(0), 0);
 
         vm.expectRevert();
-        whitelistFleet.setArkMaxDepositPercentageOfTVL(address(0), PercentageUtils.fromIntegerPercentage(10));
+        whitelistFleet.setArkMaxDepositPercentageOfTVL(
+            address(0),
+            PercentageUtils.fromIntegerPercentage(10)
+        );
 
         vm.expectRevert();
         whitelistFleet.setArkMaxRebalanceOutflow(address(0), 100);
@@ -443,7 +446,7 @@ contract FleetCommanderWhitelistTest is
 
     function test_RevertIf_AddInvalidArk() public {
         vm.startPrank(governor);
-        
+
         vm.expectRevert(); // FleetCommanderInvalidArkAddress
         whitelistFleet.addArk(address(0));
 
@@ -491,8 +494,14 @@ contract FleetCommanderWhitelistTest is
         whitelistFleet.setArkDepositCap(ark, 100);
         assertEq(mockArk.depositCap(), 100);
 
-        whitelistFleet.setArkMaxDepositPercentageOfTVL(ark, PercentageUtils.fromIntegerPercentage(10));
-        assertEq(Percentage.unwrap(mockArk.maxDepositPercentageOfTVL()), Percentage.unwrap(PercentageUtils.fromIntegerPercentage(10)));
+        whitelistFleet.setArkMaxDepositPercentageOfTVL(
+            ark,
+            PercentageUtils.fromIntegerPercentage(10)
+        );
+        assertEq(
+            Percentage.unwrap(mockArk.maxDepositPercentageOfTVL()),
+            Percentage.unwrap(PercentageUtils.fromIntegerPercentage(10))
+        );
 
         whitelistFleet.setArkMaxRebalanceOutflow(ark, 200);
         assertEq(mockArk.maxRebalanceOutflow(), 200);
@@ -524,14 +533,14 @@ contract FleetCommanderWhitelistTest is
         vm.startPrank(operator);
         // We deposited "amount" for operator in setUp. Wait, operator has amount*2 minted and deposited "amount" for operator and "amount" for mockUser.
         // So operator has shares=amount.
-        
+
         whitelistFleet.withdrawFromBuffer(1, operator, operator);
         whitelistFleet.redeemFromBuffer(1, operator, operator);
-        
+
         // These may succeed if conditions are met. Cover them:
         whitelistFleet.withdrawFromArks(1, operator, operator);
         whitelistFleet.redeemFromArks(1, operator, operator);
-        
+
         vm.stopPrank();
     }
 
@@ -555,13 +564,15 @@ contract FleetCommanderWhitelistTest is
         vm.startPrank(governor);
         whitelistFleet.setMinimumPauseTime(7 days);
         whitelistFleet.pause();
-        
+
         // forward time to unpause
         vm.warp(block.timestamp + 7 days + 1);
         whitelistFleet.unpause();
 
         whitelistFleet.setFeeType(IFlexibleTipper.FeeType.PERFORMANCE);
-        whitelistFleet.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(10));
+        whitelistFleet.setPerformanceFeeRate(
+            PercentageUtils.fromIntegerPercentage(10)
+        );
         vm.stopPrank();
     }
 
@@ -569,19 +580,19 @@ contract FleetCommanderWhitelistTest is
         vm.startPrank(operator);
         vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
         whitelistFleet.withdraw(0, operator, operator);
-        
+
         vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
         whitelistFleet.redeem(0, operator, operator);
 
         vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
         whitelistFleet.withdrawFromBuffer(0, operator, operator);
-        
+
         vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
         whitelistFleet.redeemFromBuffer(0, operator, operator);
-        
+
         vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
         whitelistFleet.withdrawFromArks(0, operator, operator);
-        
+
         vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
         whitelistFleet.redeemFromArks(0, operator, operator);
 
@@ -595,7 +606,7 @@ contract FleetCommanderWhitelistTest is
 
     function test_ExceedMax_Coverage() public {
         vm.startPrank(operator);
-        
+
         uint256 maxDep = whitelistFleet.maxDeposit(operator);
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -604,7 +615,7 @@ contract FleetCommanderWhitelistTest is
                 maxDep + 1,
                 maxDep
             )
-        ); 
+        );
         whitelistFleet.deposit(maxDep + 1, operator);
 
         uint256 maxM = whitelistFleet.maxMint(operator);
@@ -615,7 +626,7 @@ contract FleetCommanderWhitelistTest is
                 maxM + 1,
                 maxM
             )
-        ); 
+        );
         whitelistFleet.mint(maxM + 1, operator);
 
         uint256 maxW = whitelistFleet.maxWithdraw(operator);
@@ -626,7 +637,7 @@ contract FleetCommanderWhitelistTest is
                 maxW + 1,
                 maxW
             )
-        ); 
+        );
         whitelistFleet.withdraw(maxW + 1, operator, operator);
 
         uint256 maxR = whitelistFleet.maxRedeem(operator);
@@ -637,14 +648,14 @@ contract FleetCommanderWhitelistTest is
                 maxR + 1,
                 maxR
             )
-        ); 
+        );
         whitelistFleet.redeem(maxR + 1, operator, operator);
         vm.stopPrank();
     }
 
     function test_Unauthorized_Coverage() public {
         vm.startPrank(mockUser2); // this user has no allowance
-        
+
         vm.expectRevert(
             abi.encodeWithSignature(
                 "FleetCommanderUnauthorizedWithdrawal(address,address)",
@@ -662,7 +673,7 @@ contract FleetCommanderWhitelistTest is
             )
         );
         whitelistFleet.redeemFromBuffer(1, mockUser2, operator);
-        
+
         vm.expectRevert(
             abi.encodeWithSignature(
                 "FleetCommanderUnauthorizedWithdrawal(address,address)",

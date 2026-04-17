@@ -309,12 +309,18 @@ contract ERC4626MultiTokenTest is Test, IERC4626MultiTokenEvents {
         assertEq(vault.totalSupply(1), 0.6 ether);
     }
 
-
     function test_Negative_MaxDepositExceeded() public {
         vm.startPrank(unprivilegedAccount);
         vault.mockSetMaxDeposit(0.1 ether);
-        
-        vm.expectRevert(abi.encodeWithSelector(IERC4626MultiTokenErrors.MaxDepositExceeded.selector, unprivilegedAccount, 0.5 ether, 0.1 ether));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC4626MultiTokenErrors.MaxDepositExceeded.selector,
+                unprivilegedAccount,
+                0.5 ether,
+                0.1 ether
+            )
+        );
         vault.deposit(0.5 ether, unprivilegedAccount);
         vm.stopPrank();
     }
@@ -322,8 +328,17 @@ contract ERC4626MultiTokenTest is Test, IERC4626MultiTokenEvents {
     function test_Negative_MaxRedeemExceeded() public {
         vm.startPrank(unprivilegedAccount);
         vault.deposit(0.5 ether, unprivilegedAccount);
-        
-        vm.expectRevert(abi.encodeWithSelector(IERC4626MultiTokenErrors.MaxRedeemExceeded.selector, unprivilegedAccount, unprivilegedAccount, 0, 0.6 ether, 0.5 ether));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC4626MultiTokenErrors.MaxRedeemExceeded.selector,
+                unprivilegedAccount,
+                unprivilegedAccount,
+                0,
+                0.6 ether,
+                0.5 ether
+            )
+        );
         vault.redeem(0, 0.6 ether, unprivilegedAccount, unprivilegedAccount);
         vm.stopPrank();
     }
@@ -335,46 +350,92 @@ contract ERC4626MultiTokenTest is Test, IERC4626MultiTokenEvents {
         ids[1] = 1;
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = 0.2 ether;
-        
-        vm.expectRevert(abi.encodeWithSelector(IERC4626MultiTokenErrors.BadRedeemBatchParameters.selector, 2, 1));
-        vault.redeemBatch(ids, amounts, unprivilegedAccount, unprivilegedAccount);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC4626MultiTokenErrors.BadRedeemBatchParameters.selector,
+                2,
+                1
+            )
+        );
+        vault.redeemBatch(
+            ids,
+            amounts,
+            unprivilegedAccount,
+            unprivilegedAccount
+        );
         vm.stopPrank();
     }
 
     function test_Negative_MaxRedeemBatchExceeded() public {
         vm.startPrank(unprivilegedAccount);
         vault.deposit(0.2 ether, unprivilegedAccount);
-        
+
         uint256[] memory ids = new uint256[](1);
         ids[0] = 0;
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = 0.3 ether;
-        
-        vm.expectRevert(abi.encodeWithSelector(IERC4626MultiTokenErrors.MaxRedeemBatchExceeded.selector, unprivilegedAccount, unprivilegedAccount, ids, 0.3 ether, 0.2 ether));
-        vault.redeemBatch(ids, amounts, unprivilegedAccount, unprivilegedAccount);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC4626MultiTokenErrors.MaxRedeemBatchExceeded.selector,
+                unprivilegedAccount,
+                unprivilegedAccount,
+                ids,
+                0.3 ether,
+                0.2 ether
+            )
+        );
+        vault.redeemBatch(
+            ids,
+            amounts,
+            unprivilegedAccount,
+            unprivilegedAccount
+        );
         vm.stopPrank();
     }
 
     function test_Negative_CallerCannotRedeem() public {
         vm.prank(unprivilegedAccount);
         vault.deposit(0.5 ether, unprivilegedAccount);
-        
+
         vm.prank(unprivilegedAccount2);
-        vm.expectRevert(abi.encodeWithSelector(IERC4626MultiTokenErrors.CallerCannotRedeem.selector, unprivilegedAccount2, unprivilegedAccount, 0, 0.5 ether));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC4626MultiTokenErrors.CallerCannotRedeem.selector,
+                unprivilegedAccount2,
+                unprivilegedAccount,
+                0,
+                0.5 ether
+            )
+        );
         vault.redeem(0, 0.5 ether, unprivilegedAccount2, unprivilegedAccount);
     }
 
     function test_Negative_CallerCannotRedeemBatch() public {
         vm.prank(unprivilegedAccount);
         vault.deposit(0.5 ether, unprivilegedAccount);
-        
+
         uint256[] memory ids = new uint256[](1);
         ids[0] = 0;
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = 0.5 ether;
-        
+
         vm.prank(unprivilegedAccount2);
-        vm.expectRevert(abi.encodeWithSelector(IERC4626MultiTokenErrors.CallerCannotRedeemBatch.selector, unprivilegedAccount2, unprivilegedAccount, ids, amounts));
-        vault.redeemBatch(ids, amounts, unprivilegedAccount2, unprivilegedAccount);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC4626MultiTokenErrors.CallerCannotRedeemBatch.selector,
+                unprivilegedAccount2,
+                unprivilegedAccount,
+                ids,
+                amounts
+            )
+        );
+        vault.redeemBatch(
+            ids,
+            amounts,
+            unprivilegedAccount2,
+            unprivilegedAccount
+        );
     }
 }

@@ -895,7 +895,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.expectRevert(
             abi.encodeWithSelector(
                 WisdomTreeArk.SharesNotArrived.selector,
-                30e18, // Contract demands 30 shares based on today's cheap price
+                expectedSharesAtNewPrice, // Contract demands 30 shares based on today's cheap price
                 partialSharesDelivered // Only 10 arrived
             )
         );
@@ -962,7 +962,10 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.setSweepSlippage(newSlippage);
         vm.stopPrank();
 
-        assertEq(Percentage.unwrap(ark.sweepSlippage()), Percentage.unwrap(newSlippage));
+        assertEq(
+            Percentage.unwrap(ark.sweepSlippage()),
+            Percentage.unwrap(newSlippage)
+        );
     }
 
     function test_SetSweepSlippage_RevertsExceedsMax() public {
@@ -994,7 +997,10 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.setDepositSlippage(newSlippage);
         vm.stopPrank();
 
-        assertEq(Percentage.unwrap(ark.depositSlippage()), Percentage.unwrap(newSlippage));
+        assertEq(
+            Percentage.unwrap(ark.depositSlippage()),
+            Percentage.unwrap(newSlippage)
+        );
     }
 
     function test_SetDepositSlippage_RevertsExceedsMax() public {
@@ -1014,16 +1020,24 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     /* Zero Amount and No-op Tests */
 
     function test_ZeroAmountMath() public {
-        assertEq(ark.sharesToAssets(0), 0, "sharesToAssets with 0 should return 0");
+        assertEq(
+            ark.sharesToAssets(0),
+            0,
+            "sharesToAssets with 0 should return 0"
+        );
         // internal calls to _assetsToShares(0) happens if requestWithdrawal(0)
         // Let's test requestWithdrawal(0) to hit _assetsToShares(0) since it's an internal function.
         vm.startPrank(keeper);
         ark.requestWithdrawal(0);
         vm.stopPrank();
-        
+
         // pendingWithdrawalShares should not have increased
-        assertEq(ark.pendingWithdrawalShares(), 0, "No shares should be requested");
-        
+        assertEq(
+            ark.pendingWithdrawalShares(),
+            0,
+            "No shares should be requested"
+        );
+
         // Now test sweep when it returns 0
         // Need to set commander dependencies correctly
         vm.mockCall(
@@ -1067,7 +1081,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_ZeroAmountTransfers() public {
         vm.startPrank(address(commander));
-        
+
         // board(0) should increase pendingDepositAssets by 0 and not revert.
         ark.board(0, bytes(""));
         assertEq(ark.pendingDepositAssets(), 0, "pending deposit assets");

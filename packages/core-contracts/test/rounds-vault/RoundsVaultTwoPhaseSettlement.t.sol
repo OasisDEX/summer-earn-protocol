@@ -437,11 +437,14 @@ contract RoundsVaultTwoPhaseSettlementTest is
 
         vm.prank(userA);
         inputVault.deposit(depositAmt, userA);
-        
+
         vm.prank(keeper);
         inputVault.nextRound(); // Round 0 is now InSettlement, Round 1 is Opened
 
-        assertEq(uint256(inputVault.roundState(0)), uint256(RoundState.InSettlement));
+        assertEq(
+            uint256(inputVault.roundState(0)),
+            uint256(RoundState.InSettlement)
+        );
 
         // Use a prank with proper admin check.
         // Governor in testing is usually the deployer or an explicit address. By default MockAccessManager needs ADMIN_ROLE or something, let's see.
@@ -466,7 +469,14 @@ contract RoundsVaultTwoPhaseSettlementTest is
         accessManager.grantRole(GOVERNOR_ROLE, gov);
 
         vm.startPrank(gov);
-        vm.expectRevert(abi.encodeWithSelector(IRoundsVaultBaseErrors.InvalidRoundState.selector, 0, RoundState.Opened, RoundState.InSettlement));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRoundsVaultBaseErrors.InvalidRoundState.selector,
+                0,
+                RoundState.Opened,
+                RoundState.InSettlement
+            )
+        );
         inputVault.emergencyRollbackRound(0);
         vm.stopPrank();
     }
@@ -474,7 +484,7 @@ contract RoundsVaultTwoPhaseSettlementTest is
     function test_EmergencyRollbackRound_RevertsNotGovernor() public {
         vm.prank(userA);
         inputVault.deposit(100 ether, userA);
-        
+
         vm.prank(keeper);
         inputVault.nextRound();
 

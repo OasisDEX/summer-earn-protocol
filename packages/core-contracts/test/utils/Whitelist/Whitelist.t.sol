@@ -14,15 +14,22 @@ contract MockAccessManager {
         mockWhitelistOpen = open;
     }
 
-    function setWhitelisted(address context, address account, bool isWhitelisted) external {
-        mockWhitelisted[context][account] = isWhitelisted;
+    function setWhitelisted(
+        address context,
+        address account,
+        bool _isWhitelisted
+    ) external {
+        mockWhitelisted[context][account] = _isWhitelisted;
     }
 
     function isWhitelistOpen(address) external view returns (bool) {
         return mockWhitelistOpen;
     }
 
-    function isWhitelisted(address context, address account) external view returns (bool) {
+    function isWhitelisted(
+        address context,
+        address account
+    ) external view returns (bool) {
         return mockWhitelisted[context][account];
     }
 }
@@ -38,7 +45,10 @@ contract MockWhitelist is Whitelist {
         return accessManager;
     }
 
-    function testOnlyWhitelisted(address context, address account) external onlyWhitelisted(context, account) {}
+    function testOnlyWhitelisted(
+        address context,
+        address account
+    ) external onlyWhitelisted(context, account) {}
 }
 
 contract WhitelistTest is Test {
@@ -53,8 +63,10 @@ contract WhitelistTest is Test {
     function test_onlyWhitelisted() public {
         address context = address(this);
         address account = address(0x123);
-        
-        vm.expectRevert(abi.encodeWithSelector(NotWhitelisted.selector, context, account));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(NotWhitelisted.selector, context, account)
+        );
         whitelist.testOnlyWhitelisted(context, account);
 
         accessManager.setWhitelisted(context, account, true);

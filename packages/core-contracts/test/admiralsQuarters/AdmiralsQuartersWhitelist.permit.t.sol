@@ -36,14 +36,12 @@ contract AdmiralsQuartersWhitelistPermitTest is AdmiralsQuartersWhitelistTest {
         vm.label(owner, "Owner");
         vm.label(solver, "Solver");
 
-        // Set up the access control for the solver to be able to execute multicall if needed. 
+        // Set up the access control for the solver to be able to execute multicall if needed.
         // Wait, AdmiralsQuartersWhitelist does not require solver to be whitelisted for multicall,
         // it requires the `owner` to be whitelisted for `fleetCommander` context.
 
         // Add owner to whitelist for usdcFleet
         _setWhitelisted(address(usdcFleet), owner, true);
-
-
     }
 
     function test_enterFleetWithPermit2() public {
