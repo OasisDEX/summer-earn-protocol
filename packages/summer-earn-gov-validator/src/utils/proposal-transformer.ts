@@ -103,5 +103,6 @@ export function transformProposal(
     eta: proposal.eta,
     votes: proposal.votes,
     governor: proposal.governor,
+    createdAt: proposal.createdAt,
   }
 }

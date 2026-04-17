@@ -13,6 +13,7 @@ import { SupportedNetworks } from '@/services/validation'
 import { ProposalWithCrossChain } from '@/types/governance'
 import { transformProposal } from '@/utils/proposal-transformer'
 import { convertRawUrlsToMarkdown } from '@/utils/text'
+import { formatTimestamp } from '@/utils/timing'
 
 import delegatesData from '../../../../delegates.json'
 
@@ -129,6 +130,10 @@ export default async function ProposalDetailPage({ params }: PageProps) {
               <span className="flex items-center gap-1 text-xs text-on-surface-variant">
                 <span className="material-symbols-outlined text-sm">hub</span>
                 {proposal.chain}
+              </span>
+              <span className="flex items-center gap-1 text-xs text-on-surface-variant">
+                <span className="material-symbols-outlined text-sm">schedule</span>
+                Created {formatTimestamp(proposal.createdAt)}
               </span>
             </div>
             <h1 className="text-4xl font-extrabold text-on-surface tracking-tighter mb-6">

@@ -106,4 +106,5 @@ export interface TransformedProposal {
   calldatas: string[]
   eta: string
   governor: string
+  createdAt: string
 }
