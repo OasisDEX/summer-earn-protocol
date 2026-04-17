@@ -1,4 +1,4 @@
-import { Abi, parseAbiItem } from 'viem'
+import { Abi, parseAbi } from 'viem'
 
 // Separate string ABIs from Object ABIs to properly maintain internalTypes for Percentage
 const KNOWN_STRING_ABIS = [
@@ -52,8 +52,11 @@ const KNOWN_STRING_ABIS = [
   'function setNonSweepableToken(address ark, address token, bool isNonSweepable) external',
   'function validateTimestamp() external',
   'function removeRoot(uint256 index) external',
-  'function mint(address to, uint256 amount) external',
-  'function burn(address from, uint256 amount) external',
+  // Events
+  'event ProposalCreated(uint256 proposalId, address proposer, address[] targets, uint256[] values, string[] signatures, bytes[] calldatas, uint256 voteStart, uint256 voteEnd, string description)',
+  'event CallScheduled(bytes32 indexed id, uint256 indexed index, address target, uint256 value, bytes data, bytes32 predecessor, uint256 delay)',
+  'event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)',
+  'event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)',
 ]
 
 const KNOWN_OBJECT_ABIS = [
@@ -85,7 +88,7 @@ const KNOWN_OBJECT_ABIS = [
       { name: '_refundAddress', type: 'address' },
     ],
     outputs: [],
-    stateMutability: 'external',
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -121,7 +124,4 @@ const KNOWN_OBJECT_ABIS = [
 ] as const
 
 // Unified ABI containing both formatted objects and parsed strings
-export const COMBINED_ABI: Abi = [
-  ...KNOWN_STRING_ABIS.map((sig) => parseAbiItem(sig)),
-  ...KNOWN_OBJECT_ABIS,
-] as Abi
+export const COMBINED_ABI: Abi = [...parseAbi(KNOWN_STRING_ABIS), ...KNOWN_OBJECT_ABIS]

@@ -99,7 +99,6 @@
       "initialSupply": "1000000000",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
-      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
@@ -378,7 +377,6 @@
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
-      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "eID": "30110",
@@ -639,7 +637,6 @@
       "initialSupply": "0",
       "swapProvider": "0x111111125421cA6dc452d289314280a0f8842A65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
-      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "eID": "30101",
@@ -704,13 +701,6 @@
             "syrupAdmin": "0x0000000000000000000000000000000000000000",
             "withdrawalManager": "0x86eBDf902d800F2a82038290B6DBb2A5eE29eB8C",
             "syrupRedeemer": "0x0000000000000000000000000000000000000000"
-          }
-        }
-      },
-      "mapleInstitutional": {
-        "pools": {
-          "usdc": {
-            "pool": "0xc39a5a616f0ad1ff45077fa2de3f79ab8eb8b8b9"
           }
         }
       },
@@ -1091,7 +1081,6 @@
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
-      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
@@ -1264,7 +1253,6 @@
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
-      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
@@ -1395,7 +1383,6 @@
       "initialSupply": "0",
       "swapProvider": "0x6131b5fae19ea4f9d964eac0408e4408b66337b5",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
-      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x3A73033C0b1407574C76BdBAc67f126f6b4a9AA9",

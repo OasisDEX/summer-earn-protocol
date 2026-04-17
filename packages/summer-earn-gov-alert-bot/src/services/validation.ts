@@ -148,40 +148,31 @@ export function addresToContractName(address: string, network: SupportedNetworks
       const contract = contracts[contractName]
 
       if (contract.address && contract.address.toLowerCase() === normalizedAddress) {
-        return `${category}.${contractName}`.toLowerCase()
+        return `${category}.${contractName}`
       }
-    }
-  }
-  for (const contract in networkConfig.common) {
-    const addressCandidate = networkConfig.common[contract]
-    if (
-      typeof addressCandidate == 'string' &&
-      addressCandidate.toLowerCase() === normalizedAddress
-    ) {
-      return `${contract}`.toLowerCase()
     }
   }
 
   for (const tokenName in networkConfig.tokens) {
     const tokenAddress = networkConfig.tokens[tokenName]
     if (tokenAddress && tokenAddress.toLowerCase() === normalizedAddress) {
-      return `token.${tokenName}`.toLowerCase()
+      return `token.${tokenName}`
     }
   }
 
   const deployedAddresses = deployedAddressesByNetwork[network]
   if (!deployedAddresses) {
     console.warn(`No deployed addresses found for network ${network}`)
-    return 'unknown'
+    return 'Unknown'
   }
 
   for (const [contractName, contractAddress] of Object.entries(deployedAddresses)) {
     if (contractAddress.toLowerCase() === normalizedAddress) {
-      return contractName.toLowerCase()
+      return contractName
     }
   }
 
-  return 'unknown'
+  return 'Unknown'
 }
 
 export interface DecodedAddress {
@@ -205,7 +196,7 @@ export function decodeAddress(address: string, network?: SupportedNetworks): Dec
 
   return {
     address,
-    name: name !== 'unknown' ? `${targetNetwork}:${name}` : 'unknown',
+    name: name !== 'Unknown' ? `${targetNetwork}:${name}` : 'Unknown',
     explorerUrl: `${baseUrl}${address}`,
   }
 }
@@ -265,41 +256,27 @@ export const decodeCalldata = (
       const paramInfos = fragment.inputs ? getParamInfo(fragment.inputs) : []
 
       // Determine token-specific decimals for the function if relevant
-      let currentDecimals: number = 18
-      let currentUsedFallback = true
-      let currentTokenSymbol = 'Tokens'
+      let fixedDecimals: number | null = null
+      let usedFallback = false
+      let tokenSymbol = 'Tokens'
 
-      const updateContextFromAddress = (address: string) => {
-        const name = addresToContractName(address, targetNetwork)
-        if (name === 'unknown') return
-
-        const isFleetCommander = name.includes('fleetcommander')
-        if (name.startsWith('token.')) {
-          const tokenName = name.split(/[.#]/).pop()
-
+      if (targetAddress) {
+        const contractName = addresToContractName(targetAddress, targetNetwork)
+        if (contractName.startsWith('token.')) {
+          const tokenName = contractName.split('.').pop()?.toLowerCase()
           if (tokenName && TOKEN_DECIMALS[tokenName]) {
-            currentDecimals = TOKEN_DECIMALS[tokenName]
-            currentTokenSymbol = tokenName.toUpperCase()
-            currentUsedFallback = false
+            fixedDecimals = TOKEN_DECIMALS[tokenName]
+            tokenSymbol = tokenName.toUpperCase()
           }
-        } else if (name.startsWith('gov.summertoken')) {
-          currentDecimals = 18
-          currentTokenSymbol = 'SUMMER'
-          currentUsedFallback = false
-        } else if (isFleetCommander) {
-          for (const tokenName in TOKEN_DECIMALS) {
-            if (name.includes(tokenName)) {
-              currentDecimals = TOKEN_DECIMALS[tokenName]
-              currentTokenSymbol = name.replace(/[.#]fleetcommander/i, ' shares')
-              currentUsedFallback = false
-              break
-            }
-          }
+        } else if (contractName.startsWith('gov.summerToken')) {
+          fixedDecimals = 18
+          tokenSymbol = 'SUMMER'
         }
       }
 
-      if (targetAddress) {
-        updateContextFromAddress(targetAddress)
+      if (fixedDecimals === null) {
+        fixedDecimals = 18
+        usedFallback = true
       }
 
       // Recursively process arguments to handle tuples and special types
@@ -334,16 +311,14 @@ export const decodeCalldata = (
 
         // Handle Token Amounts
         if (
-          paramInfo?.type !== 'address' &&
+          fixedDecimals !== null &&
           (paramInfo?.name.toLowerCase().includes('amount') ||
             paramInfo?.name.toLowerCase().includes('reward') ||
             paramInfo?.name.toLowerCase().includes('value'))
         ) {
           try {
-            const formatted = formatUnits(BigInt(arg.toString()), currentDecimals)
-            return `${arg} [formatted:${formatted} ${currentTokenSymbol}${
-              currentUsedFallback ? ':fallback' : ''
-            }]`
+            const formatted = formatUnits(BigInt(arg.toString()), fixedDecimals)
+            return `${arg} [formatted:${formatted} ${tokenSymbol}${usedFallback ? ':fallback' : ''}]`
           } catch {
             return arg
           }
@@ -359,14 +334,6 @@ export const decodeCalldata = (
 
         // Check if it's an address
         if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
-          const nameLower = paramInfo?.name?.toLowerCase() || ''
-          if (
-            nameLower.includes('token') ||
-            nameLower.includes('asset') ||
-            nameLower.includes('reward')
-          ) {
-            updateContextFromAddress(arg)
-          }
           return decodeAddress(arg, network)
         }
 
@@ -472,7 +439,7 @@ export const validateTargets = (
   targets.forEach((target, index) => {
     if (!target) {
       errors.push(`Target at index ${index} is empty`)
-      contractNames[index] = 'unknown'
+      contractNames[index] = 'Unknown'
       return
     }
 
@@ -484,10 +451,10 @@ export const validateTargets = (
     }
 
     const contractName = addresToContractName(normalizedTarget, network)
-    if (contractName !== 'unknown') {
+    if (contractName !== 'Unknown') {
       contractNames[index] = `${network}:${contractName}(${normalizedTarget})`
     } else {
-      contractNames[index] = `unknown(${normalizedTarget})`
+      contractNames[index] = `Unknown(${normalizedTarget})`
       if (!validAddresses.has(normalizedTarget)) {
         errors.push(
           `Target at index ${index} (${normalizedTarget}) is not a known contract address on ${network}`,

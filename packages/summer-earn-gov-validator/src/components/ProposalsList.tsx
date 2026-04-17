@@ -257,11 +257,16 @@ export function ProposalsList({
               />
               <div className="flex justify-between items-start mb-4">
                 <div className="flex flex-col">
-                  <span
-                    className={`text-[10px] font-black ${chainMetadata.color} tracking-widest uppercase mb-1`}
-                  >
-                    {proposal.displayId || proposal.id.slice(0, 8)}
-                  </span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className={`text-[10px] font-black ${chainMetadata.color} tracking-widest uppercase`}
+                    >
+                      {proposal.displayId || proposal.id.slice(0, 8)}
+                    </span>
+                    <span className="text-[10px] text-on-surface-variant font-medium opacity-60">
+                      • {formatTimestamp(proposal.createdAt)}
+                    </span>
+                  </div>
                   <div
                     className={`flex items-center gap-2 px-2 py-0.5 rounded-md ${statusConfig.bgColor} border ${statusConfig.borderColor}`}
                   >
