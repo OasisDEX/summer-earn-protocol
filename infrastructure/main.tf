@@ -12,6 +12,7 @@ locals {
     REGION                       = var.aws_region
     DYNAMODB_TABLE_NAME          = var.governance_cache_table_name
     NEXT_PUBLIC_WALLETCONNECT_ID = var.walletconnect_id
+    NODE_OPTIONS                 = "--max-old-space-size=12000"
   }
 
   common_app_secrets = {

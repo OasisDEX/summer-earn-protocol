@@ -97,6 +97,10 @@ resource "aws_amplify_app" "this" {
               - .next/cache/**/*
   EOT
 
+  job_config {
+    build_compute_type = "LARGE_16GB"
+  }
+
   tags = var.tags
 }
 
