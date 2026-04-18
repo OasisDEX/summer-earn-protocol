@@ -4,7 +4,7 @@ import { CHAIN_CONFIG, ERC20_ABI, SupportedChainId } from '@/config/constants'
 import { getPublicClient } from '@/config/rpc'
 import { TOKEN_LISTS } from '@/config/tokenLists'
 
-import { fetchPrices } from './prices'
+import { getPrices } from './prices'
 
 export interface TreasuryHolding {
   token: string
@@ -49,7 +49,7 @@ export async function fetchTreasuryBalances(): Promise<TreasuryData> {
   })
 
   // Fetch all prices in one go
-  const { prices, error: priceError } = await fetchPrices(Array.from(allSymbols))
+  const { prices, error: priceError } = await getPrices(Array.from(allSymbols))
 
   let totalUsdValue = 0
 
