@@ -70,3 +70,10 @@ variable "walletconnect_id" {
   type        = string
   default     = "demo"
 }
+
+variable "cron_secret" {
+  description = "Secret for authorizing cron job requests"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

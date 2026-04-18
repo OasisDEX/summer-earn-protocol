@@ -5,7 +5,7 @@ data "aws_iam_policy_document" "amplify_trust" {
   statement {
     actions = ["sts:AssumeRole", "sts:TagSession"]
     principals {
-      type = "Service"
+      type        = "Service"
       identifiers = ["amplify.amazonaws.com"]
     }
   }
@@ -58,7 +58,7 @@ resource "aws_amplify_app" "this" {
   name       = var.app_name
   repository = var.repository
 
-  access_token = var.github_token
+  access_token         = var.github_token
   iam_service_role_arn = aws_iam_role.this.arn
 
   environment_variables = merge(var.environment_variables, {
@@ -111,6 +111,11 @@ resource "aws_amplify_branch" "this" {
 
   framework         = "Next.js - SSR"
   enable_auto_build = true
+
+  environment_variables = {
+    AMPLIFY_APP_ID = aws_amplify_app.this.id
+    AMPLIFY_BRANCH = var.branch_name
+  }
 }
 
 resource "aws_ssm_parameter" "secrets" {
@@ -118,7 +123,7 @@ resource "aws_ssm_parameter" "secrets" {
 
   name  = "/amplify/${aws_amplify_app.this.id}/${var.branch_name}/${each.key}"
   type  = "SecureString"
-  value = each.value
+  value = nonsensitive(each.value) == "" ? "REPLACE_ME_IN_SSM_CONSOLE" : each.value
 
   tags = var.tags
 }

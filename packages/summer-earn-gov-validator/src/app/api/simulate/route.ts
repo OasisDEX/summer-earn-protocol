@@ -4,7 +4,8 @@ import { CHAINS } from '@/config/chains'
 import deploymentConfigRaw from '@/config/index.json'
 import { getCache, putCache } from '@/lib/dynamodb'
 
-const TENDERLY_ACCESS_KEY = process.env.TENDERLY_ACCESS_KEY
+import { getSecret } from '@/lib/secrets'
+
 const ACCOUNT_SLUG = 'oazoapps'
 const PROJECT_SLUG = 'lazy-summer-governance-dashboard'
 
@@ -57,8 +58,10 @@ const TIMELOCK_ABI = [
 // TODO: Successfully moved types to src/types/tenderly.ts
 
 export async function POST(req: Request) {
-  if (!TENDERLY_ACCESS_KEY) {
-    console.error('TENDERLY_ACCESS_KEY is not defined in environment variables')
+  const tenderlyKey = await getSecret('TENDERLY_ACCESS_KEY')
+
+  if (!tenderlyKey) {
+    console.error('TENDERLY_ACCESS_KEY is not defined in environment variables or SSM')
     return NextResponse.json({ error: 'TENDERLY_ACCESS_KEY missing on server' }, { status: 500 })
   }
 
@@ -178,7 +181,7 @@ export async function POST(req: Request) {
         {
           method: 'POST',
           headers: {
-            'X-Access-Key': TENDERLY_ACCESS_KEY,
+            'X-Access-Key': tenderlyKey,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ simulations }),
@@ -210,7 +213,7 @@ export async function POST(req: Request) {
             {
               method: 'POST',
               headers: {
-                'X-Access-Key': TENDERLY_ACCESS_KEY,
+                'X-Access-Key': tenderlyKey,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({}),

@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1030.0",
+    "@aws-sdk/client-ssm": "^3.1030.0",
     "@aws-sdk/lib-dynamodb": "^3.1030.0",
     "@next/env": "^16.2.4",
     "@reown/appkit": "1.8.19",
