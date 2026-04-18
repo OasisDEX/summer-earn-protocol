@@ -43,7 +43,7 @@ resource "aws_iam_policy" "ssm_access" {
           "ssm:GetParametersByPath"
         ]
         Effect   = "Allow"
-        Resource = "arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter/amplify/${var.app_name}/*"
+        Resource = "arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter/amplify/${aws_amplify_app.this.id}/*"
       }
     ]
   })
@@ -63,7 +63,6 @@ resource "aws_amplify_app" "this" {
 
   environment_variables = merge(var.environment_variables, {
     AMPLIFY_MONOREPO_APP_ROOT = var.package_root
-    AMPLIFY_APP_NAME          = var.app_name
   })
 
   enable_branch_auto_build    = true
@@ -87,6 +86,9 @@ resource "aws_amplify_app" "this" {
               commands:
                 - npm install -g pnpm
                 - pnpm install
+                - echo "AWS_APP_ID=$AWS_APP_ID" >> .env.production
+                - echo "AWS_BRANCH=$AWS_BRANCH" >> .env.production
+                - echo "REGION=$AWS_DEFAULT_REGION" >> .env.production
             build:
               commands:
                 - pnpm run build
@@ -121,7 +123,7 @@ resource "aws_amplify_branch" "this" {
 resource "aws_ssm_parameter" "secrets" {
   for_each = var.secrets
 
-  name  = "/amplify/${var.app_name}/${var.branch_name}/${each.key}"
+  name  = "/amplify/${aws_amplify_app.this.id}/${var.branch_name}/${each.key}"
   type  = "SecureString"
   value = nonsensitive(each.value) == "" ? "REPLACE_ME_IN_SSM_CONSOLE" : each.value
 
