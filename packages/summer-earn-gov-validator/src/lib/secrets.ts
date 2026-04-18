@@ -20,7 +20,8 @@ export async function getSecret(name: string): Promise<string> {
   const region = process.env.REGION || 'eu-central-1'
 
   if (!appId || !branch) {
-    throw new Error(`Discovery failed: AWS_APP_ID or AWS_BRANCH is missing in environment.`)
+    // Locally we don't have these, so we just return from environment (or undefined)
+    return process.env[name] as string
   }
 
   if (!ssmClient) {
@@ -67,9 +68,10 @@ export async function getSecret(name: string): Promise<string> {
   }
 
   // If we reach here, both attempts failed or errored out
-  const errorMessage = lastError?.message || `Secret ${name} not found in SSM at ${branchPath} or ${mainPath}`
+  const errorMessage =
+    lastError?.message || `Secret ${name} not found in SSM at ${branchPath} or ${mainPath}`
   const errorName = lastError?.name || 'SecretNotFound'
-  
+
   const finalError = new Error(errorMessage)
   finalError.name = errorName
   throw finalError

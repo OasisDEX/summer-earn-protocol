@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-import { TreasuryData } from '@/services/treasury'
+import type { TreasuryData } from '@/services/treasury'
 
 interface TreasuryViewProps {
   initialData: TreasuryData

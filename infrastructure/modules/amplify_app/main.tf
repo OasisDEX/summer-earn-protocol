@@ -107,9 +107,67 @@ resource "aws_iam_role_policy_attachment" "ssm" {
   policy_arn = aws_iam_policy.ssm_access.arn
 }
 
+resource "aws_iam_role_policy_attachment" "deployment_ssm" {
+  role       = aws_iam_role.deployment.name
+  policy_arn = aws_iam_policy.ssm_access.arn
+}
+
+resource "aws_iam_policy" "dynamodb_access" {
+  count = var.dynamodb_arn != null ? 1 : 0
+
+  name        = "${var.app_name}-dynamodb-access"
+  description = "Allow Amplify compute to access DynamoDB cache"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:Query",
+          "dynamodb:DeleteItem"
+        ]
+        Effect   = "Allow"
+        Resource = var.dynamodb_arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "compute_dynamodb" {
+  count      = var.dynamodb_arn != null ? 1 : 0
+  role       = aws_iam_role.compute.name
+  policy_arn = aws_iam_policy.dynamodb_access[0].arn
+}
+
+resource "aws_iam_policy" "compute_logging" {
+  name        = "${var.app_name}-compute-logging"
+  description = "Allow Amplify compute to write logs to the correct Amplify namespace"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+        Resource = [
+          "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/amplify/*"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "compute_logging" {
   role       = aws_iam_role.compute.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  policy_arn = aws_iam_policy.compute_logging.arn
 }
 
 resource "aws_amplify_app" "this" {

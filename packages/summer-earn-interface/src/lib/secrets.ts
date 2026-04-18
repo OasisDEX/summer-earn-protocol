@@ -67,9 +67,10 @@ export async function getSecret(name: string): Promise<string> {
   }
 
   // If we reach here, both attempts failed or errored out
-  const errorMessage = lastError?.message || `Secret ${name} not found in SSM at ${branchPath} or ${mainPath}`
+  const errorMessage =
+    lastError?.message || `Secret ${name} not found in SSM at ${branchPath} or ${mainPath}`
   const errorName = lastError?.name || 'SecretNotFound'
-  
+
   const finalError = new Error(errorMessage)
   finalError.name = errorName
   throw finalError

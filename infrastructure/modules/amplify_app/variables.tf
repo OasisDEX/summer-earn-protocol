@@ -46,6 +46,12 @@ variable "environment_variables" {
   default     = {}
 }
 
+variable "dynamodb_arn" {
+  type        = string
+  description = "Optional ARN of a DynamoDB table the compute role can access"
+  default     = null
+}
+
 variable "secrets" {
   description = "Sensitive secrets to store in SSM for the Amplify app"
   type        = map(string)

@@ -50,6 +50,7 @@ module "gov_validator" {
   build_filter          = "@summerfi/summer-earn-gov-validator"
   environment_variables = local.common_app_env_vars
   secrets               = local.common_app_secrets
+  dynamodb_arn          = aws_dynamodb_table.governance_cache.arn
   tags                  = local.common_tags
 }
 

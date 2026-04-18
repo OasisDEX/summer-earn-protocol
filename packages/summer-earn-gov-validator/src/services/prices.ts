@@ -13,6 +13,7 @@ const SYMBOL_TO_ID: Record<string, string> = {
   CRV: 'curve-dao-token',
   LDO: 'lido-dao',
   LINK: 'chainlink',
+  USDS: 'usds',
 }
 
 export interface PriceResponse {
@@ -22,9 +23,7 @@ export interface PriceResponse {
 
 export async function getPrices(symbols: string | string[]): Promise<PriceResponse> {
   const symbolArray = Array.isArray(symbols) ? symbols : [symbols]
-  const ids = symbolArray
-    .map((s) => SYMBOL_TO_ID[s.toUpperCase()] || s.toLowerCase())
-    .join(',')
+  const ids = symbolArray.map((s) => SYMBOL_TO_ID[s.toUpperCase()] || s.toLowerCase()).join(',')
 
   let coingeckoApiKey: string
   try {
