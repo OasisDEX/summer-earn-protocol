@@ -1,32 +1,85 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-data "aws_iam_policy_document" "amplify_trust" {
+data "aws_iam_policy_document" "amplify_deployment_trust" {
   statement {
     actions = ["sts:AssumeRole", "sts:TagSession"]
     principals {
       type        = "Service"
       identifiers = ["amplify.amazonaws.com"]
     }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
   }
 }
 
-resource "aws_iam_role" "this" {
-  # Renaming role to force a new ARN and refresh Amplify's internal association
-  name               = "${var.app_name}-amplify-role-v2"
-  assume_role_policy = data.aws_iam_policy_document.amplify_trust.json
+data "aws_iam_policy_document" "amplify_compute_trust" {
+  statement {
+    actions = ["sts:AssumeRole", "sts:TagSession"]
+    principals {
+      type        = "Service"
+      identifiers = ["amplify.amazonaws.com", "lambda.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+    # Optional: Hardening with SourceArn if App ID is known, but wildcarded here to avoid circularity
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:amplify:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:apps/*"]
+    }
+  }
+}
+
+resource "aws_iam_role" "deployment" {
+  name               = "${var.app_name}-amplify-deploy-role"
+  assume_role_policy = data.aws_iam_policy_document.amplify_deployment_trust.json
 
   tags = var.tags
 }
 
-resource "aws_iam_role_policy_attachment" "this" {
-  role       = aws_iam_role.this.name
+resource "aws_iam_role" "compute" {
+  name               = "${var.app_name}-amplify-compute-role"
+  assume_role_policy = data.aws_iam_policy_document.amplify_compute_trust.json
+
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy_attachment" "deployment_admin" {
+  role       = aws_iam_role.deployment.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-Amplify"
 }
 
-resource "aws_iam_role_policy_attachment" "amplify_backend_deploy" {
-  role       = aws_iam_role.this.name
+resource "aws_iam_role_policy_attachment" "deployment_backend" {
+  role       = aws_iam_role.deployment.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmplifyBackendDeployFullAccess"
+}
+
+resource "aws_iam_policy" "deployment_pass_role" {
+  name        = "${var.app_name}-pass-role"
+  description = "Allow Amplify deployment role to pass the compute role"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action   = "iam:PassRole"
+        Effect   = "Allow"
+        Resource = aws_iam_role.compute.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "deployment_pass_role" {
+  role       = aws_iam_role.deployment.name
+  policy_arn = aws_iam_policy.deployment_pass_role.arn
 }
 
 resource "aws_iam_policy" "ssm_access" {
@@ -50,8 +103,13 @@ resource "aws_iam_policy" "ssm_access" {
 }
 
 resource "aws_iam_role_policy_attachment" "ssm" {
-  role       = aws_iam_role.this.name
+  role       = aws_iam_role.compute.name
   policy_arn = aws_iam_policy.ssm_access.arn
+}
+
+resource "aws_iam_role_policy_attachment" "compute_logging" {
+  role       = aws_iam_role.compute.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_amplify_app" "this" {
@@ -59,7 +117,8 @@ resource "aws_amplify_app" "this" {
   repository = var.repository
 
   access_token         = var.github_token
-  iam_service_role_arn = aws_iam_role.this.arn
+  iam_service_role_arn = aws_iam_role.deployment.arn
+  compute_role_arn     = aws_iam_role.compute.arn
 
   environment_variables = merge(var.environment_variables, {
     AMPLIFY_MONOREPO_APP_ROOT = var.package_root
@@ -131,11 +190,16 @@ resource "aws_ssm_parameter" "secrets" {
 }
 
 moved {
-  from = aws_iam_role.amplify_role
-  to   = aws_iam_role.this
+  from = aws_iam_role.this
+  to   = aws_iam_role.deployment
 }
 
 moved {
-  from = aws_iam_role_policy_attachment.amplify_role_policy
-  to   = aws_iam_role_policy_attachment.this
+  from = aws_iam_role_policy_attachment.this
+  to   = aws_iam_role_policy_attachment.deployment_admin
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.amplify_backend_deploy
+  to   = aws_iam_role_policy_attachment.deployment_backend
 }
