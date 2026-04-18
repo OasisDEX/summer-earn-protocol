@@ -15,12 +15,12 @@ export async function getSecret(name: string): Promise<string | undefined> {
   }
 
   // 3. Fallback to SSM if running in AWS
-  const appId = process.env.AMPLIFY_APP_ID
-  const branch = process.env.AMPLIFY_BRANCH
+  const appName = process.env.AMPLIFY_APP_NAME
+  const branch = process.env.AWS_BRANCH || process.env.AMPLIFY_BRANCH
   const region = process.env.REGION || 'eu-central-1'
 
-  if (!appId || !branch) {
-    console.warn(`Attempted to fetch secret ${name} but AMPLIFY_APP_ID or AMPLIFY_BRANCH is missing.`)
+  if (!appName || !branch) {
+    console.warn(`Attempted to fetch secret ${name} but AMPLIFY_APP_NAME or AWS_BRANCH is missing.`)
     return undefined
   }
 
@@ -28,7 +28,7 @@ export async function getSecret(name: string): Promise<string | undefined> {
     ssmClient = new SSMClient({ region })
   }
 
-  const parameterName = `/amplify/${appId}/${branch}/${name}`
+  const parameterName = `/amplify/${appName}/${branch}/${name}`
 
   try {
     const command = new GetParameterCommand({
