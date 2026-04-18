@@ -58,11 +58,19 @@ const TIMELOCK_ABI = [
 // TODO: Successfully moved types to src/types/tenderly.ts
 
 export async function POST(req: Request) {
-  const tenderlyKey = await getSecret('TENDERLY_ACCESS_KEY')
-
-  if (!tenderlyKey) {
-    console.error('TENDERLY_ACCESS_KEY is not defined in environment variables or SSM')
-    return NextResponse.json({ error: 'TENDERLY_ACCESS_KEY missing on server' }, { status: 500 })
+  let tenderlyKey: string
+  try {
+    tenderlyKey = await getSecret('TENDERLY_ACCESS_KEY')
+  } catch (e: unknown) {
+    console.error('Failed to fetch TENDERLY_ACCESS_KEY:', e)
+    return NextResponse.json(
+      {
+        error: 'TENDERLY_ACCESS_KEY fetch failed',
+        details: (e as Error).message,
+        code: (e as Error).name,
+      },
+      { status: 500 },
+    )
   }
 
   try {

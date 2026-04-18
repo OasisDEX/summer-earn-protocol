@@ -3,7 +3,7 @@ import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm'
 let ssmClient: SSMClient | null = null
 const secretCache: Record<string, string> = {}
 
-export async function getSecret(name: string): Promise<string | undefined> {
+export async function getSecret(name: string): Promise<string> {
   // 1. Check process.env first (for local dev)
   if (process.env[name]) {
     return process.env[name]
@@ -20,19 +20,22 @@ export async function getSecret(name: string): Promise<string | undefined> {
   const region = process.env.REGION || 'eu-central-1'
 
   if (!appId || !branch) {
-    console.warn(`Attempted to fetch secret ${name} but AWS_APP_ID or AWS_BRANCH is missing.`)
-    return undefined
+    throw new Error(`Discovery failed: AWS_APP_ID or AWS_BRANCH is missing in environment.`)
   }
 
   if (!ssmClient) {
     ssmClient = new SSMClient({ region })
   }
 
-  const parameterName = `/amplify/${appId}/${branch}/${name}`
+  const branchPath = `/amplify/${appId}/${branch}/${name}`
+  const mainPath = `/amplify/${appId}/main/${name}`
+
+  let lastError: any = null
 
   try {
+    // Try the branch-specific secret first
     const command = new GetParameterCommand({
-      Name: parameterName,
+      Name: branchPath,
       WithDecryption: true,
     })
     const response = await ssmClient.send(command)
@@ -42,9 +45,32 @@ export async function getSecret(name: string): Promise<string | undefined> {
       secretCache[name] = value
       return value
     }
-  } catch (error) {
-    console.error(`Error fetching secret ${name} from SSM (${parameterName}):`, error)
+  } catch (error: any) {
+    lastError = error
+    // If branch secret not found, fallback to main
+    if (error.name === 'ParameterNotFound' && branch !== 'main') {
+      try {
+        const fallbackCommand = new GetParameterCommand({
+          Name: mainPath,
+          WithDecryption: true,
+        })
+        const fallbackResponse = await ssmClient.send(fallbackCommand)
+        const fallbackValue = fallbackResponse.Parameter?.Value
+        if (fallbackValue) {
+          secretCache[name] = fallbackValue
+          return fallbackValue
+        }
+      } catch (fallbackError: any) {
+        lastError = fallbackError
+      }
+    }
   }
 
-  return undefined
+  // If we reach here, both attempts failed or errored out
+  const errorMessage = lastError?.message || `Secret ${name} not found in SSM at ${branchPath} or ${mainPath}`
+  const errorName = lastError?.name || 'SecretNotFound'
+  
+  const finalError = new Error(errorMessage)
+  finalError.name = errorName
+  throw finalError
 }
