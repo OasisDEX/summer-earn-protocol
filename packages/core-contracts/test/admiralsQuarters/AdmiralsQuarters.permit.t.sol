@@ -183,6 +183,97 @@ contract AdmiralsQuartersPermitTest is AdmiralsQuartersTest {
         );
     }
 
+    function test_exitFleetWithPermit2() public {
+        uint256 amount = 1000e6;
+        uint256 deadline = block.timestamp + 100;
+
+        // 1. Setup: Owner enters fleet to get shares
+        vm.startPrank(owner);
+        IERC20(USDC_ADDRESS).approve(address(usdcFleet), amount);
+        uint256 shares = usdcFleet.deposit(amount, owner);
+        assertEq(usdcFleet.balanceOf(owner), shares);
+
+        // Enable transfers for usdcFleet (needed for Permit2 transferFrom)
+        vm.stopPrank();
+        vm.prank(governor);
+        usdcFleet.setFleetTokenTransferability();
+        vm.startPrank(owner);
+
+        // 2. Owner approves Permit2 for shares (needed for Permit2 to work)
+        IERC20(address(usdcFleet)).approve(PERMIT2, type(uint256).max);
+        vm.stopPrank();
+
+        // 3. User signs Permit2 transfer for shares
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer
+            .PermitTransferFrom({
+                permitted: ISignatureTransfer.TokenPermissions({
+                    token: IERC20(address(usdcFleet)),
+                    amount: shares
+                }),
+                nonce: 0,
+                deadline: deadline
+            });
+
+        bytes memory signature = _getPermit2Signature(
+            permit,
+            address(admiralsQuarters),
+            ownerPrivateKey
+        );
+
+        // 4. Solver calls exitFleetWithPermit2 via multicall
+        vm.startPrank(solver);
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.exitFleetWithPermit2,
+            (
+                owner,
+                address(usdcFleet),
+                amount, // requested assets
+                permit,
+                signature
+            )
+        );
+        calls[1] = abi.encodeCall(
+            admiralsQuarters.withdrawTokens,
+            (IERC20(USDC_ADDRESS), 0) // Withdraw all to msg.sender
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit IAdmiralsQuartersEvents.FleetExited(
+            owner,
+            address(usdcFleet),
+            amount,
+            shares
+        );
+
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+
+        // 5. Verify results
+        assertEq(usdcFleet.balanceOf(owner), 0, "Shares should be burned");
+        assertApproxEqAbs(
+            IERC20(USDC_ADDRESS).balanceOf(solver),
+            amount,
+            2,
+            "Solver should have received the USDC"
+        );
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(owner),
+            9000e6, // 10000 - 1000
+            "Owner should have 9000 USDC left"
+        );
+        assertEq(
+            IERC20(address(usdcFleet)).balanceOf(address(admiralsQuarters)),
+            0,
+            "AQ should have no leftover shares"
+        );
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(address(admiralsQuarters)),
+            0,
+            "AQ should have no leftover assets"
+        );
+    }
+
     // Helper to get USDC nonce
     function _getUSDCNonce(
         address token,
