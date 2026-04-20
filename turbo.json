@@ -13,7 +13,7 @@
     "HYPERLIQUID_RPC_URL",
     "FOUNDRY_FUZZ_RUNS"
   ],
-  "pipeline": {
+  "tasks": {
     "dev": {
       "cache": false,
       "persistent": true
@@ -50,9 +50,8 @@
     },
     "test": {
       "dependsOn": [
-        "prebuild",
-        "build",
-        "^test"
+        "^prebuild", 
+        "^build"
       ],
       "inputs": [
         "src/**/*.sol",
@@ -60,10 +59,7 @@
         "foundry.toml",
         "package.json"
       ],
-      "outputs": [
-        "out/**",
-        "cache_forge/**"
-      ]
+      "outputs": []
     },
     "test:integration": {
       "dependsOn": [
@@ -74,8 +70,7 @@
     },
     "lint": {
       "dependsOn": [
-        "prebuild",
-        "^lint"
+        "prebuild"
       ]
     },
     "lint:fix": {
@@ -124,9 +119,8 @@
     },
     "coverage": {
       "dependsOn": [
-        "prebuild",
-        "build",
-        "^coverage"
+        "^prebuild",
+        "^build"
       ]
     },
     "coverage:lcov": {
@@ -146,5 +140,8 @@
         "cache_forge/**"
       ]
     }
+  },
+  "futureFlags": {
+    "errorsOnlyShowHash": true
   }
 }
