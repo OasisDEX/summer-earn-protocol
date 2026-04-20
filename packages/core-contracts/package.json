@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "forge test",
-    "build": "forge build --extra-output-files abi && bash ./abi.sh",
+    "build": "forge build --extra-output-files abi --quiet && bash ./abi.sh",
     "coverage": "forge coverage --ir-minimum",
     "coverage:lcov": "forge coverage --report lcov --ir-minimum",
     "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info",

@@ -125,8 +125,8 @@
     },
     "coverage:lcov": {
       "dependsOn": [
-        "prebuild",
-        "build"
+        "^prebuild",
+        "^build"
       ],
       "inputs": [
         "src/**/*.sol",
