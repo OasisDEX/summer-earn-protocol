@@ -67,11 +67,6 @@ jobs:
           pnpm lint
           pnpm format
 
-      - name: Setup tmate session to debug hangs
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true
-
       - name: Run Tests (PR only)
         if: github.event_name == 'pull_request'
         run: pnpm test
