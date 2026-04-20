@@ -14,7 +14,12 @@
     }
   },
   "scripts": {
+<<<<<<< HEAD
     "build": "forge build --extra-output-files abi",
+=======
+    "test": "forge test",
+    "build": "forge build --extra-output-files abi --quiet",
+>>>>>>> 4dbcccf4 (chore: update turbo.json to use caret (^) for dependency versions)
     "format": "prettier --check \"**/*.sol\" --no-error-on-unmatched-pattern",
     "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern"
   },

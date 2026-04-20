@@ -14,7 +14,11 @@
     }
   },
   "scripts": {
+<<<<<<< HEAD
     "test": "forge test --no-storage-caching",
+=======
+    "test": "forge test",
+>>>>>>> 4dbcccf4 (chore: update turbo.json to use caret (^) for dependency versions)
     "build": "forge build --extra-output-files abi --quiet && bash ./abi.sh",
     "coverage": "forge coverage --ir-minimum",
     "coverage:lcov": "forge coverage --report lcov --ir-minimum",
