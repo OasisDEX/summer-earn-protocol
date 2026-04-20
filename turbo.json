@@ -60,10 +60,7 @@
         "foundry.toml",
         "package.json"
       ],
-      "outputs": [
-        "out/**",
-        "cache_forge/**"
-      ]
+      "outputs": []
     },
     "test:integration": {
       "dependsOn": [
