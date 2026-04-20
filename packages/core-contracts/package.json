@@ -14,7 +14,7 @@
     }
   },
   "scripts": {
-    "test": "forge test",
+    "test": "forge test --no-storage-caching",
     "build": "forge build --extra-output-files abi --quiet && bash ./abi.sh",
     "coverage": "forge coverage --ir-minimum",
     "coverage:lcov": "forge coverage --report lcov --ir-minimum",
