@@ -51,8 +51,7 @@
     "test": {
       "dependsOn": [
         "prebuild",
-        "build",
-        "^test"
+        "build"
       ],
       "inputs": [
         "src/**/*.sol",
