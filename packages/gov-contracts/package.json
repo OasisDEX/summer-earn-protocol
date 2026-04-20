@@ -15,7 +15,7 @@
   },
   "scripts": {
     "start:node": "hardhat node",
-    "build": "forge build && bash ./abi.sh",
+    "build": "forge build --quiet",
     "spawn:devnet": "export $(pnpx tsx scripts/node/spawn-devnet.ts)",
     "test": "FOUNDRY_PROFILE=test forge test",
     "coverage": "forge coverage --ir-minimum --no-match-coverage '(script|test|TestBase|Mock|Test)'",
