@@ -69,7 +69,7 @@ jobs:
 
       - name: Run Tests (PR only)
         if: github.event_name == 'pull_request'
-        run: pnpm test -- --no-daemon
+        run: pnpm test
         env:
           TURBO_NO_DAEMON: true 
           CI: true
@@ -82,7 +82,7 @@ jobs:
 
       - name: Generate coverage reports (Main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: pnpm coverage:lcov -- --no-daemon
+        run: pnpm coverage:lcov
         env:
           TURBO_NO_DAEMON: true
           CI: true          
