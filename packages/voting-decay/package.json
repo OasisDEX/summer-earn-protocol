@@ -21,7 +21,7 @@
   "private": true,
   "scripts": {
     "clean": "rm -rf cache out",
-    "build": "forge build",
+    "build": "forge build --quiet",
     "format": "prettier --check \"**/*.sol\" --no-error-on-unmatched-pattern --ignore-path \".prettierignore\"",
     "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern --ignore-path \".prettierignore\"",
     "test": "forge test",
