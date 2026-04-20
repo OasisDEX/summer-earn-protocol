@@ -50,8 +50,8 @@
     },
     "test": {
       "dependsOn": [
-        "prebuild",
-        "build"
+        "^prebuild", 
+        "^build"
       ],
       "inputs": [
         "src/**/*.sol",
@@ -70,8 +70,7 @@
     },
     "lint": {
       "dependsOn": [
-        "prebuild",
-        "^lint"
+        "prebuild"
       ]
     },
     "lint:fix": {
@@ -120,8 +119,8 @@
     },
     "coverage": {
       "dependsOn": [
-        "prebuild",
-        "build",
+        "^prebuild",
+        "^build",
         "^coverage"
       ]
     },
