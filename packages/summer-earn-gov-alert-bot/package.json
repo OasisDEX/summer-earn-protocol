@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-gov-alert-bot",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "private": true,
   "main": "dist/index.js",
   "license": "BUSL-1.1",
