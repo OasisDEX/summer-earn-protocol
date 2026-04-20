@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, 'fix/**', 'feat/**']
 jobs:
   build:
     name: Build and Unit Test
