@@ -140,6 +140,48 @@ interface IAdmiralsQuarters is
     ) external payable returns (uint256 shares);
 
     /**
+     * @notice Exits a fleet using an ERC-2612 permit signature for shares approval
+     * @param owner The address providing the shares and receiving the assets
+     * @param fleetCommander The address of the fleet commander
+     * @param assets The amount of assets to withdraw (0 for max)
+     * @param sharesApproval The maximum amount of shares approved via permit
+     * @param deadline The deadline beyond which the permit signature is invalid
+     * @param v The recovery byte of the signature
+     * @param r Half of the ECDSA signature pair
+     * @param s Half of the ECDSA signature pair
+     * @return shares The amount of shares burned
+     * @dev Emits a FleetExited event
+     */
+    function exitFleetWithPermit(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        uint256 sharesApproval,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable returns (uint256 shares);
+
+    /**
+     * @notice Exits a fleet using a Uniswap Permit2 signature transfer for shares
+     * @param owner The address providing the shares and receiving the assets
+     * @param fleetCommander The address of the fleet commander
+     * @param assets The amount of assets to withdraw (0 for max)
+     * @param permitData The permit transfer from details (token, amount, nonce, deadline)
+     * @param signature The Permit2 signature from the user
+     * @return shares The amount of shares burned
+     * @dev Emits a FleetExited event
+     */
+    function exitFleetWithPermit2(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        ISignatureTransfer.PermitTransferFrom calldata permitData,
+        bytes calldata signature
+    ) external payable returns (uint256 shares);
+
+    /**
      * @notice Performs a token swap using 1inch Router
      * @param fromToken The token to swap from
      * @param toToken The token to swap to
