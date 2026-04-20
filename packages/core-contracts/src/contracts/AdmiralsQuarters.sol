@@ -285,6 +285,79 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
+    function exitFleetWithPermit(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        uint256 sharesApproval,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _validateFleetCommander(fleetCommander);
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+
+        // Approve AdmiralsQuarters to burn the exact amount of shares via EIP-2612 Permit
+        IERC20Permit(fleetCommander).permit(
+            owner,
+            address(this),
+            sharesApproval,
+            deadline,
+            v,
+            r,
+            s
+        );
+
+        assets = assets == 0 ? Constants.MAX_UINT256 : assets;
+
+        // Withdraw assets to the contract using the permit allowance from the owner
+        shares = fleet.withdraw(assets, address(this), owner);
+
+        emit FleetExited(owner, fleetCommander, assets, shares);
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function exitFleetWithPermit2(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        ISignatureTransfer.PermitTransferFrom calldata permitData,
+        bytes calldata signature
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _validateFleetCommander(fleetCommander);
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+
+        if (permitData.permitted.token != IERC20(fleetCommander))
+            revert InvalidToken();
+
+        uint256 sharesPulled = permitData.permitted.amount;
+
+        // Pull the shares from the owner to AdmiralsQuarters via Permit2
+        ISignatureTransfer(PERMIT2).permitTransferFrom(
+            permitData,
+            ISignatureTransfer.SignatureTransferDetails({
+                to: address(this),
+                requestedAmount: sharesPulled
+            }),
+            owner,
+            signature
+        );
+
+        assets = assets == 0 ? Constants.MAX_UINT256 : assets;
+
+        // Since the contract now holds the shares, burn from address(this)
+        shares = fleet.withdraw(assets, address(this), address(this));
+
+        // Refund any excess shares that were pulled but not burned (if the user requested exact assets)
+        if (sharesPulled > shares) {
+            IERC20(fleetCommander).safeTransfer(owner, sharesPulled - shares);
+        }
+
+        emit FleetExited(owner, fleetCommander, assets, shares);
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
     function stake(
         address fleetCommander,
         uint256 shares
