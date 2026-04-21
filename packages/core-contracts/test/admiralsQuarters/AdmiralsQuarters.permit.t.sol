@@ -222,28 +222,18 @@ contract AdmiralsQuartersPermitTest is AdmiralsQuartersTest {
 
         // 4. Solver calls exitFleetWithPermit2 via multicall
         vm.startPrank(solver);
-        bytes[] memory calls = new bytes[](2);
+        bytes[] memory calls = new bytes[](1);
         calls[0] = abi.encodeCall(
             admiralsQuarters.exitFleetWithPermit2,
-            (
-                owner,
-                address(usdcFleet),
-                amount, // requested assets
-                permit,
-                signature
-            )
-        );
-        calls[1] = abi.encodeCall(
-            admiralsQuarters.withdrawTokens,
-            (IERC20(USDC_ADDRESS), 0) // Withdraw all to msg.sender
+            (owner, address(usdcFleet), permit, signature)
         );
 
         vm.expectEmit(true, true, true, true);
         emit IAdmiralsQuartersEvents.FleetExited(
             owner,
             address(usdcFleet),
-            amount,
-            shares
+            shares,
+            amount
         );
 
         admiralsQuarters.multicall(calls);
@@ -252,15 +242,10 @@ contract AdmiralsQuartersPermitTest is AdmiralsQuartersTest {
         // 5. Verify results
         assertEq(usdcFleet.balanceOf(owner), 0, "Shares should be burned");
         assertApproxEqAbs(
-            IERC20(USDC_ADDRESS).balanceOf(solver),
-            amount,
-            2,
-            "Solver should have received the USDC"
-        );
-        assertEq(
             IERC20(USDC_ADDRESS).balanceOf(owner),
-            9000e6, // 10000 - 1000
-            "Owner should have 9000 USDC left"
+            10000e6,
+            2,
+            "Owner should have received the USDC back"
         );
         assertEq(
             IERC20(address(usdcFleet)).balanceOf(address(admiralsQuarters)),
@@ -271,6 +256,150 @@ contract AdmiralsQuartersPermitTest is AdmiralsQuartersTest {
             IERC20(USDC_ADDRESS).balanceOf(address(admiralsQuarters)),
             0,
             "AQ should have no leftover assets"
+        );
+    }
+
+    function test_ExitSwapEnter_Permit2() public {
+        uint256 usdcAmount = 1000e6;
+        uint256 deadline = block.timestamp + 100;
+
+        // 1. Setup: Owner enters USDC fleet to get shares
+        vm.startPrank(owner);
+        IERC20(USDC_ADDRESS).approve(address(usdcFleet), usdcAmount);
+        uint256 usdcShares = usdcFleet.deposit(usdcAmount, owner);
+        assertEq(usdcFleet.balanceOf(owner), usdcShares);
+
+        // Enable transfers for usdcFleet (needed for Permit2 transferFrom)
+        vm.stopPrank();
+        vm.prank(governor);
+        usdcFleet.setFleetTokenTransferability();
+        vm.startPrank(owner);
+
+        // 2. Setup approvals for Permit2 and AQ
+        IERC20(address(usdcFleet)).approve(PERMIT2, type(uint256).max);
+        IERC20(USDC_ADDRESS).approve(PERMIT2, type(uint256).max);
+        IERC20(DAI_ADDRESS).approve(PERMIT2, type(uint256).max);
+        // Pre-approve AQ for depositTokens call (this is the "round trip" part)
+        IERC20(USDC_ADDRESS).approve(
+            address(admiralsQuarters),
+            type(uint256).max
+        );
+        IERC20(DAI_ADDRESS).approve(
+            address(admiralsQuarters),
+            type(uint256).max
+        );
+        vm.stopPrank();
+
+        // 3. Prepare Sig 1: Exit USDC Fleet
+        ISignatureTransfer.PermitTransferFrom
+            memory exitPermit = ISignatureTransfer.PermitTransferFrom({
+                permitted: ISignatureTransfer.TokenPermissions({
+                    token: IERC20(address(usdcFleet)),
+                    amount: usdcShares
+                }),
+                nonce: 0,
+                deadline: deadline
+            });
+        bytes memory exitSig = _getPermit2Signature(
+            exitPermit,
+            address(admiralsQuarters),
+            ownerPrivateKey
+        );
+
+        // 4. Prepare Swap: USDC -> DAI
+        uint256 minDaiAmount = 990e18;
+        bytes memory usdcToDaiSwap = encodeUnoswapData(
+            USDC_ADDRESS,
+            usdcAmount,
+            minDaiAmount,
+            UNISWAP_USDC_DAI_V3_POOL,
+            Protocol.UniswapV3,
+            false,
+            false,
+            false,
+            false
+        );
+
+        // 5. Prepare Sig 2: Enter DAI Fleet
+        // We expect approx usdcAmount in DAI (since it's a stable swap)
+        // Let's use a safe amount for the permit
+        uint256 expectedDai = 995e18;
+        ISignatureTransfer.PermitTransferFrom
+            memory enterPermit = ISignatureTransfer.PermitTransferFrom({
+                permitted: ISignatureTransfer.TokenPermissions({
+                    token: IERC20(DAI_ADDRESS),
+                    amount: expectedDai
+                }),
+                nonce: 1, // Different nonce for second permit
+                deadline: deadline
+            });
+        bytes memory enterSig = _getPermit2Signature(
+            enterPermit,
+            address(admiralsQuarters),
+            ownerPrivateKey
+        );
+
+        // 6. Execute Multicall
+        vm.startPrank(owner);
+        bytes[] memory calls = new bytes[](5);
+
+        // Step A: Exit USDC Fleet -> USDC to Owner
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.exitFleetWithPermit2,
+            (owner, address(usdcFleet), exitPermit, exitSig)
+        );
+
+        // Step B: Deposit USDC to AQ for swap
+        calls[1] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), usdcAmount)
+        );
+
+        // Step C: Swap USDC to DAI
+        calls[2] = abi.encodeCall(
+            admiralsQuarters.swap,
+            (
+                IERC20(USDC_ADDRESS),
+                IERC20(DAI_ADDRESS),
+                usdcAmount,
+                minDaiAmount,
+                usdcToDaiSwap
+            )
+        );
+
+        // Step D: Withdraw DAI to Owner (so enterFleetWithPermit2 can pull it)
+        calls[3] = abi.encodeCall(
+            admiralsQuarters.withdrawTokens,
+            (IERC20(DAI_ADDRESS), expectedDai)
+        );
+
+        // Step E: Enter DAI Fleet -> pulls from Owner
+        calls[4] = abi.encodeCall(
+            admiralsQuarters.enterFleetWithPermit2,
+            (owner, address(daiFleet), expectedDai, "", enterPermit, enterSig)
+        );
+
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+
+        // 7. Verify results
+        assertEq(
+            usdcFleet.balanceOf(owner),
+            0,
+            "USDC Fleet shares should be gone"
+        );
+        uint256 daiShares = daiFleet.balanceOf(owner);
+        assertApproxEqAbs(
+            daiShares,
+            expectedDai,
+            1e18,
+            "Should have received DAI Fleet shares"
+        );
+
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(address(admiralsQuarters)),
+            0,
+            "AQ USDC balance 0"
         );
     }
 
