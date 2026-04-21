@@ -299,6 +299,7 @@ contract AdmiralsQuarters is
         }
 
         uint256 sharesPulled = permitData.permitted.amount;
+        if (sharesPulled == 0) revert ZeroAmount();
 
         // Pull the shares from the owner to AdmiralsQuarters via Permit2
         ISignatureTransfer(PERMIT2).permitTransferFrom(
@@ -314,7 +315,7 @@ contract AdmiralsQuarters is
         // Redeem the shares for assets and send them to the owner
         assets = fleet.redeem(sharesPulled, owner, address(this));
 
-        emit FleetExited(owner, fleetCommander, sharesPulled, assets);
+        emit FleetExited(owner, fleetCommander, assets, sharesPulled);
     }
 
     /// @inheritdoc IAdmiralsQuarters
