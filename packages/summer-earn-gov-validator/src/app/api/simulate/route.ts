@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 import { CHAINS } from '@/config/chains'
 import deploymentConfigRaw from '@/config/index.json'
 import { getCache, putCache } from '@/lib/dynamodb'
-
 import { getSecret } from '@/lib/secrets'
 
 const ACCOUNT_SLUG = 'oazoapps'
