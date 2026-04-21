@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { getSecret } from '@/lib/secrets'
 
 import { fetchAllVaults } from '../utils'
