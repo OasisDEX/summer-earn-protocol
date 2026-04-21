@@ -1216,6 +1216,18 @@ class ProtocolConfig {
           'Morpho',
         ),
         new ERC4626Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0xbeef009F28cCf367444a9F79096862920e025DC1'),
+          BigInt.fromI32(44994022),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0x94Af495DE1F56Aa5576dEB17986bDCeE5Dd9778D'),
+          BigInt.fromI32(44994022),
+          'Morpho_V2',
+        ),
+        new ERC4626Product(
           getOrCreateToken(addresses.WETH),
           Address.fromString('0xa0E430870c4604CcfC7B38Ca7845B1FF653D0ff1'),
           BigInt.fromI32(29043399),
