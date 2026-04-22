@@ -55,8 +55,8 @@ export async function redeployAdmiralsQuarters() {
 
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const timestampString = new Date().toISOString().replace(/[-:Z.]/g, '')
-  const moduleName = `AdmiralsQuartersModule_${timestampString}`
+  const versionString = `exitPermit2`
+  const moduleName = `AdmiralsQuartersModule_${versionString}`
   const AdmiralsQuartersModule = createAdmiralsQuartersModule(moduleName)
 
   const result = await hre.ignition.deploy(AdmiralsQuartersModule, {
