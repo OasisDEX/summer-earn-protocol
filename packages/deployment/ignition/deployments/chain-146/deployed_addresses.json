@@ -36,5 +36,6 @@
   "RaftModule_20251113T151109542#Raft": "0x2a828B0E5cB549eE568923E815D9A781b6f4F018",
   "GovModuleV2#SummerGovernorV2": "0x94F29e66fE35Ee2BC03EC9D8C3fb6d9E183f3572",
   "TimelockGuardFactoryModule#TimelockGuardFactory": "0x387a440B723b06554A58D41364EF5cB0C5b3b5B4",
-  "AdmiralsQuartersModule_20260410T142207950#AdmiralsQuarters": "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274"
+  "AdmiralsQuartersModule_20260410T142207950#AdmiralsQuarters": "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274",
+  "AdmiralsQuartersModule_20260422T081806543#AdmiralsQuarters": "0xAf755eD8D76Fdceab2B1cdC0d4C8C94f4e8eEe54"
 }
