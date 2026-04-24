@@ -604,6 +604,26 @@
           "usdt": "0xcE8CcA271Ebc0533920C83d39F417ED6A0abB7D0"
         }
       },
+      "superstate": {
+        "usdc": {
+          "USTB": {
+            "shareToken": "0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e",
+            "superstateSubscribe": "0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e",
+            "superstateRedeem": "0x4c21B7577C8FE8b0B0669165ee7C8f67fa1454Cf",
+            "oracle": "0x289B5036cd942e619E1Ee48670F98d214E745AAC",
+            "sweepSlippage": "500000000000000000",
+            "depositSlippage": "500000000000000000"
+          },
+          "USCC": {
+            "shareToken": "0x14d60e7fdc0d71d8611742720e4c50e7a974020c",
+            "superstateSubscribe": "0x14d60E7FDC0D71d8611742720E4C50E7a974020c",
+            "superstateRedeem": "0x0000000000000000000000000000000000000000",
+            "oracle": "0xAfFd8F5578E8590665de561bdE9E7BAdb99300d9",
+            "sweepSlippage": "500000000000000000",
+            "depositSlippage": "500000000000000000"
+          }
+        }
+      },
       "wisdomtree": {
         "usdc": {
           "WTGXX": {
@@ -1222,6 +1242,26 @@
             "shareToken": "0xA14669a76B12F94d6Ad09304aD15905e900a6E25",
             "sweepSlippage": "500000000000000000",
             "targetWallet": "0x377ED8f6980B95429Ad1720714839EDDefBE0bE6"
+          }
+        }
+      },
+      "superstate": {
+        "usdc": {
+          "USTB": {
+            "shareToken": "0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e",
+            "superstateSubscribe": "0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e",
+            "superstateRedeem": "0x4c21B7577C8FE8b0B0669165ee7C8f67fa1454Cf",
+            "oracle": "0x289B5036cd942e619E1Ee48670F98d214E745AAC",
+            "sweepSlippage": "500000000000000000",
+            "depositSlippage": "500000000000000000"
+          },
+          "USCC": {
+            "shareToken": "0x14d60e7fdc0d71d8611742720e4c50e7a974020c",
+            "superstateSubscribe": "0x14d60E7FDC0D71d8611742720E4C50E7a974020c",
+            "superstateRedeem": "0x0000000000000000000000000000000000000000",
+            "oracle": "0xAfFd8F5578E8590665de561bdE9E7BAdb99300d9",
+            "sweepSlippage": "500000000000000000",
+            "depositSlippage": "500000000000000000"
           }
         }
       }

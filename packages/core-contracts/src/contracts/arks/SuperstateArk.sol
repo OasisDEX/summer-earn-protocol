@@ -14,10 +14,22 @@ import "@summerfi/price-solidity/contracts/PriceUtils.sol";
  * @notice Includes standard functions required for USDC, USTB, and USCC interactions.
  */
 interface IERC20Standard is IERC20Metadata {
-    function balanceOf(address account) external view override returns (uint256);
-    function transfer(address to, uint256 value) external override returns (bool);
-    function approve(address spender, uint256 value) external override returns (bool);
-    function transferFrom(address from, address to, uint256 value) external override returns (bool);
+    function balanceOf(
+        address account
+    ) external view override returns (uint256);
+    function transfer(
+        address to,
+        uint256 value
+    ) external override returns (bool);
+    function approve(
+        address spender,
+        uint256 value
+    ) external override returns (bool);
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) external override returns (bool);
 }
 
 /**
@@ -69,18 +81,25 @@ interface ISuperstateOracle {
 /**
  * @title SuperstateArk
  * @notice Integration contract for programmatically interacting with Superstate's Tokenized Funds (USTB and USCC).
- * @dev 
+ * @dev
  * **Allowlist Requirements:**
  * Superstate funds are regulated securities. The address interacting with the Superstate Subscribe/Redeem
  * contracts (this Ark) MUST be on the Superstate on-chain Allowlist. If not, transaction calls will revert.
- * 
+ *
  * **Timing Nuances & Settlement:**
  * - USTB (Short Duration US Gov Securities): Processes nearly instantly during US market hours.
  * - USCC (Crypto Carry Fund): Operates on a T+1 NAV strike and T+2 mint/payout schedule.
- * 
+ *
  * Because of the T+1/T+2 delays with USCC (and occasionally USTB), this contract utilizes a pending deposit
  * and pending withdrawal architecture (based on WisdomTreeArk) to account for asynchronous settlement.
  * Deposits and Withdrawals are initiated, and a Keeper clears them once the actual assets/shares arrive.
+ *
+ *   USTB
+ *     Subscribe Address:  0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e
+ *     Redemption Address: 0x4c21B7577C8FE8b0B0669165ee7C8f67fa1454Cf
+ *   USCC
+ *     Subscribe Address:  0x14d60E7FDC0D71d8611742720E4C50E7a974020c
+ *     Redemption Address: 0x14d60E7FDC0D71d8611742720E4C50E7a974020c
  */
 contract SuperstateArk is ArkWithWithdrawalRequest {
     using SafeERC20 for IERC20Standard;
@@ -93,8 +112,10 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
     //////////////////////////////////////////////////////////////*/
 
     uint256 public constant DEFAULT_SWAP_SLIPPAGE = 2;
-    Percentage public constant MAX_SWEEP_SLIPPAGE = Percentage.wrap(PERCENTAGE_FACTOR / 2);
-    Percentage public constant MAX_DEPOSIT_SLIPPAGE = Percentage.wrap(PERCENTAGE_FACTOR / 2);
+    Percentage public constant MAX_SWEEP_SLIPPAGE =
+        Percentage.wrap(PERCENTAGE_FACTOR / 2);
+    Percentage public constant MAX_DEPOSIT_SLIPPAGE =
+        Percentage.wrap(PERCENTAGE_FACTOR / 2);
     uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 hours;
 
     /*//////////////////////////////////////////////////////////////
@@ -111,9 +132,16 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
     error InsufficientPendingDeposit();
     error PendingDepositActive();
     error ArkIsFrozen();
-    error InvalidDepositSlippage(Percentage newSlippage, Percentage maxSlippage);
+    error InvalidDepositSlippage(
+        Percentage newSlippage,
+        Percentage maxSlippage
+    );
     error InvalidSweepSlippage(Percentage newSlippage, Percentage maxSlippage);
-    error InsufficientAssetsReturned(uint256 receivedAssets, uint256 expectedShares, uint256 receivedShares);
+    error InsufficientAssetsReturned(
+        uint256 receivedAssets,
+        uint256 expectedShares,
+        uint256 receivedShares
+    );
     error SharesNotArrived(uint256 expectedShares, uint256 actualNewShares);
     error NotAllowlisted();
     error InsufficientYield();
@@ -126,8 +154,14 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
     event RedemptionExecuted(uint256 shareAmount, uint256 expectedUsdc);
     event PendingDepositCleared(uint256 amountCleared);
     event ArkIsFrozenUpdated(bool isFrozen, uint256 frozenTotalAssets);
-    event SweepSlippageUpdated(Percentage oldSweepSlippage, Percentage newSweepSlippage);
-    event DepositSlippageUpdated(Percentage oldDepositSlippage, Percentage newDepositSlippage);
+    event SweepSlippageUpdated(
+        Percentage oldSweepSlippage,
+        Percentage newSweepSlippage
+    );
+    event DepositSlippageUpdated(
+        Percentage oldDepositSlippage,
+        Percentage newDepositSlippage
+    );
 
     /*//////////////////////////////////////////////////////////////
                            STATE VARIABLES
@@ -178,7 +212,8 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
         ArkParams memory _params
     ) ArkWithWithdrawalRequest(_params, DEFAULT_SWAP_SLIPPAGE) {
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
-        if (_superstateSubscribe == address(0)) revert InvalidSubscribeAddress();
+        if (_superstateSubscribe == address(0))
+            revert InvalidSubscribeAddress();
         if (_superstateRedeem == address(0)) revert InvalidRedeemAddress();
         if (_oracle == address(0)) revert InvalidOracleAddress();
 
@@ -191,7 +226,10 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
             revert InvalidSweepSlippage(_sweepSlippage, MAX_SWEEP_SLIPPAGE);
         }
         if (_depositSlippage > MAX_DEPOSIT_SLIPPAGE) {
-            revert InvalidDepositSlippage(_depositSlippage, MAX_DEPOSIT_SLIPPAGE);
+            revert InvalidDepositSlippage(
+                _depositSlippage,
+                MAX_DEPOSIT_SLIPPAGE
+            );
         }
         sweepSlippage = _sweepSlippage;
         depositSlippage = _depositSlippage;
@@ -211,7 +249,12 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
                                VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function totalAssets() public view override(Ark, IArk) returns (uint256 assets) {
+    function totalAssets()
+        public
+        view
+        override(Ark, IArk)
+        returns (uint256 assets)
+    {
         if (isArkFrozen) {
             return _frozenTotalAssets;
         }
@@ -265,7 +308,9 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
      * @notice Queries the on-chain Oracle to calculate expected USDC, and burns fund tokens via Redeem function.
      *      Ensures the resulting USDC is routed back to the caller's whitelisted Payout Destination (tracked via pendingWithdrawalShares).
      */
-    function requestWithdrawal(uint256 amount) external override onlyKeeper onlyNotFrozen {
+    function requestWithdrawal(
+        uint256 amount
+    ) external override onlyKeeper onlyNotFrozen {
         if (pendingDepositAssets > 0) revert PendingDepositActive();
 
         uint256 sharesToRedeem = _assetsToShares(amount);
@@ -284,7 +329,10 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
         // No-op: Superstate asynchronous process delivers USDC directly.
     }
 
-    function withdrawUsingSwap(uint256, bytes calldata) external override onlyKeeper nonReentrant {
+    function withdrawUsingSwap(
+        uint256,
+        bytes calldata
+    ) external override onlyKeeper nonReentrant {
         // No-op
     }
 
@@ -293,47 +341,77 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
      * @notice Sweeps returned USDC to buffer and clears `pendingWithdrawalShares`.
      * @dev Called by keeper after Superstate returns the USDC equivalent for the retired shares (T+1/T+2).
      */
-    function sweep() public override onlyKeeper nonReentrant returns (address[] memory sweptTokens, uint256[] memory sweptAmounts) {
+    function sweep()
+        public
+        override
+        onlyKeeper
+        nonReentrant
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
         IERC20 asset = config.asset;
 
         uint256 returnedAssets = asset.balanceOf(address(this));
         uint256 returnedShares = _assetsToShares(returnedAssets);
 
-        uint256 pendingWithdrawalSharesMinusSlippage = pendingWithdrawalShares.subtractPercentage(sweepSlippage);
+        uint256 pendingWithdrawalSharesMinusSlippage = pendingWithdrawalShares
+            .subtractPercentage(sweepSlippage);
 
         if (returnedShares < pendingWithdrawalSharesMinusSlippage) {
-            revert InsufficientAssetsReturned(returnedAssets, pendingWithdrawalShares, returnedShares);
+            revert InsufficientAssetsReturned(
+                returnedAssets,
+                pendingWithdrawalShares,
+                returnedShares
+            );
         }
 
         return _sweep(returnedAssets);
     }
 
-    function emergencySweep() external onlyGovernor nonReentrant returns (address[] memory sweptTokens, uint256[] memory sweptAmounts) {
+    function emergencySweep()
+        external
+        onlyGovernor
+        nonReentrant
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
         uint256 returnedAssets = config.asset.balanceOf(address(this));
         return _sweep(returnedAssets);
     }
 
-    function emergencyClearPendingDeposit(uint256 amount) external onlyGovernor {
+    function emergencyClearPendingDeposit(
+        uint256 amount
+    ) external onlyGovernor {
         if (amount > pendingDepositAssets) revert InsufficientPendingDeposit();
         _clearPendingDeposit(amount);
     }
 
-    function setArkFrozen(bool _isArkFrozen, uint256 frozenTotalAssets) external onlyKeeper {
+    function setArkFrozen(
+        bool _isArkFrozen,
+        uint256 frozenTotalAssets
+    ) external onlyKeeper {
         if (_isArkFrozen) {
-            _frozenTotalAssets = frozenTotalAssets == type(uint256).max ? totalAssets() : frozenTotalAssets;
+            _frozenTotalAssets = frozenTotalAssets == type(uint256).max
+                ? totalAssets()
+                : frozenTotalAssets;
         }
         isArkFrozen = _isArkFrozen;
         emit ArkIsFrozenUpdated(_isArkFrozen, _frozenTotalAssets);
     }
 
     function setSweepSlippage(Percentage newSweepSlippage) external onlyKeeper {
-        if (newSweepSlippage > MAX_SWEEP_SLIPPAGE) revert InvalidSweepSlippage(newSweepSlippage, MAX_SWEEP_SLIPPAGE);
+        if (newSweepSlippage > MAX_SWEEP_SLIPPAGE)
+            revert InvalidSweepSlippage(newSweepSlippage, MAX_SWEEP_SLIPPAGE);
         emit SweepSlippageUpdated(sweepSlippage, newSweepSlippage);
         sweepSlippage = newSweepSlippage;
     }
 
-    function setDepositSlippage(Percentage newDepositSlippage) external onlyKeeper {
-        if (newDepositSlippage > MAX_DEPOSIT_SLIPPAGE) revert InvalidDepositSlippage(newDepositSlippage, MAX_DEPOSIT_SLIPPAGE);
+    function setDepositSlippage(
+        Percentage newDepositSlippage
+    ) external onlyKeeper {
+        if (newDepositSlippage > MAX_DEPOSIT_SLIPPAGE)
+            revert InvalidDepositSlippage(
+                newDepositSlippage,
+                MAX_DEPOSIT_SLIPPAGE
+            );
         emit DepositSlippageUpdated(depositSlippage, newDepositSlippage);
         depositSlippage = newDepositSlippage;
     }
@@ -342,7 +420,10 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
                           INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _board(uint256 amount, bytes calldata) internal override onlyNotFrozen {
+    function _board(
+        uint256 amount,
+        bytes calldata
+    ) internal override onlyNotFrozen {
         if (pendingDepositAssets > 0) {
             revert PendingDepositActive();
         }
@@ -350,19 +431,37 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
         cachedShareBalance = shareToken.balanceOf(address(this));
         pendingDepositAssets += amount;
 
-        IERC20Standard(address(config.asset)).forceApprove(address(superstateSubscribe), amount);
+        IERC20Standard(address(config.asset)).forceApprove(
+            address(superstateSubscribe),
+            amount
+        );
         superstateSubscribe.subscribe(amount, address(this));
 
         emit SubscriptionExecuted(amount, address(this));
     }
 
-    function _disembark(uint256, bytes calldata) internal view override onlyNotFrozen {}
+    function _disembark(
+        uint256,
+        bytes calldata
+    ) internal view override onlyNotFrozen {}
 
-    function _withdrawableTotalAssets() internal pure override returns (uint256) {
+    function _withdrawableTotalAssets()
+        internal
+        pure
+        override
+        returns (uint256)
+    {
         return 0;
     }
 
-    function _harvest(bytes calldata) internal pure override returns (address[] memory rewardTokens, uint256[] memory rewardAmounts) {
+    function _harvest(
+        bytes calldata
+    )
+        internal
+        pure
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
     }
@@ -370,7 +469,12 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
     function _validateBoardData(bytes calldata) internal override {}
     function _validateDisembarkData(bytes calldata) internal override {}
 
-    function _sweep(uint256 amountToSweep) internal returns (address[] memory sweptTokens, uint256[] memory sweptAmounts) {
+    function _sweep(
+        uint256 amountToSweep
+    )
+        internal
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
         IERC20 asset = config.asset;
 
         sweptTokens = new address[](1);
@@ -381,7 +485,9 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
 
         pendingWithdrawalShares = 0;
 
-        address bufferArk = address(IFleetCommander(config.commander).bufferArk());
+        address bufferArk = address(
+            IFleetCommander(config.commander).bufferArk()
+        );
         emit Disembarked(msg.sender, address(asset), sweptAmounts[0]);
 
         if (sweptAmounts[0] > 0 && address(this) != bufferArk) {
@@ -402,13 +508,19 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
         return assetPerSharePrice.invert().quote(shares);
     }
 
-    function _assetsToShares(uint256 assetAmount) internal view returns (uint256) {
+    function _assetsToShares(
+        uint256 assetAmount
+    ) internal view returns (uint256) {
         if (assetAmount == 0) return 0;
         Price memory assetPerSharePrice = _fetchOracleAssetPerSharePrice();
         return assetPerSharePrice.quote(assetAmount);
     }
 
-    function _fetchOracleAssetPerSharePrice() internal view returns (Price memory) {
+    function _fetchOracleAssetPerSharePrice()
+        internal
+        view
+        returns (Price memory)
+    {
         (, int256 answer, , uint256 updatedAt, ) = oracle.latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
 
@@ -416,12 +528,13 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
             revert StaleOraclePrice();
         }
 
-        return toPriceFromOraclePrice(
-            10 ** shareDecimals,
-            answer,
-            oracleDecimals,
-            assetDecimals
-        );
+        return
+            toPriceFromOraclePrice(
+                10 ** shareDecimals,
+                answer,
+                oracleDecimals,
+                assetDecimals
+            );
     }
 
     function _clearPendingDeposit(uint256 amountCleared) internal {
@@ -435,7 +548,9 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
         uint256 currentShares = shareToken.balanceOf(address(this));
         uint256 newlyArrivedShares = currentShares - cachedShareBalance;
         uint256 expectedShares = _assetsToShares(amount);
-        uint256 expectedSharesMinusSlippage = expectedShares.subtractPercentage(depositSlippage);
+        uint256 expectedSharesMinusSlippage = expectedShares.subtractPercentage(
+            depositSlippage
+        );
 
         if (newlyArrivedShares < expectedSharesMinusSlippage) {
             revert SharesNotArrived(expectedShares, newlyArrivedShares);
