@@ -119,12 +119,8 @@ export async function grantCuratorRole(
     protocolAccessManagerAddress,
   )
 
-
   const curatorRole = keccak256(encodePacked(['uint8', 'address'], [0, fleetCommanderAddress]))
-  const hasCuratorRole = await protocolAccessManager.read.hasRole([
-    curatorRole,
-    curatorAddress,
-  ])
+  const hasCuratorRole = await protocolAccessManager.read.hasRole([curatorRole, curatorAddress])
   if (hasCuratorRole) {
     console.log(`Skipping curator role assignment as it is already granted`)
     return
@@ -157,12 +153,8 @@ export async function grantKeeperRole(
     protocolAccessManagerAddress,
   )
 
-
   const keeperRole = keccak256(encodePacked(['uint8', 'address'], [1, fleetCommanderAddress]))
-  const hasKeeperRole = await protocolAccessManager.read.hasRole([
-    keeperRole,
-    keeperAddress,
-  ])
+  const hasKeeperRole = await protocolAccessManager.read.hasRole([keeperRole, keeperAddress])
   if (hasKeeperRole) {
     console.log(`Skipping keeper role assignment as it is already granted`)
     return
@@ -193,13 +185,8 @@ export async function grantOperatorRole(
     protocolAccessManagerAddress,
   )
 
-
-
   const operatorRole = keccak256(encodePacked(['uint8', 'address'], [3, fleetCommanderAddress]))
-  const hasOperatorRole = await protocolAccessManager.read.hasRole([
-    operatorRole,
-    operatorAddress,
-  ])
+  const hasOperatorRole = await protocolAccessManager.read.hasRole([operatorRole, operatorAddress])
   if (hasOperatorRole) {
     console.log(`Skipping operator role assignment as it is already granted`)
     return

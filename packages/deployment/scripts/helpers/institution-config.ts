@@ -120,7 +120,7 @@ export function updateInstitutionDeployedContracts(
     const net = (next[network] as any) || {}
     const deployedContracts = (net.deployedContracts as any) || {}
     deployedContracts[module] = { ...contracts }
-      ; (net as any).deployedContracts = deployedContracts
+    ;(net as any).deployedContracts = deployedContracts
     next[network] = net
     return next
   })
@@ -141,7 +141,7 @@ export function updateInstitutionFleetEntry(
     const net = (next[network] as any) || {}
     const fleets = (net.fleets as any) || {}
     fleets[fleetName] = entry
-      ; (net as any).fleets = fleets
+    ;(net as any).fleets = fleets
     next[network] = net
     return next
   })

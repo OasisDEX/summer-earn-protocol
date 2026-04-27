@@ -331,10 +331,10 @@ async function main() {
   )
   const additionalRouindsVaultsInfo =
     isRoundsVault && fleetDefinition.roundsVaultInput && fleetDefinition.roundsVaultOutput
-      ? {
-        roundsVaultInput: fleetDefinition.roundsVaultInput,
-        roundsVaultOutput: fleetDefinition.roundsVaultOutput,
-      } as const
+      ? ({
+          roundsVaultInput: fleetDefinition.roundsVaultInput,
+          roundsVaultOutput: fleetDefinition.roundsVaultOutput,
+        } as const)
       : undefined
 
   console.log(additionalRouindsVaultsInfo)
