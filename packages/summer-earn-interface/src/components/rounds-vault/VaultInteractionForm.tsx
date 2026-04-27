@@ -371,7 +371,7 @@ export function VaultInteractionForm({
             </code>
             {showFleetURL && (
               <a
-                href={`/fleet/${exchangeTokenAddr}`}
+                href={`/fleet/${chain.id}/${exchangeTokenAddr}`}
                 className="block mt-1 text-blue-400 hover:text-blue-300 underline"
               >
                 View Fleet Commander →

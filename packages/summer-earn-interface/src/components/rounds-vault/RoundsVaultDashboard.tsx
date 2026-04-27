@@ -50,14 +50,15 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
 
     const pairs: VaultPair[] = []
     const keys = Object.keys(config)
-    const inputRegex = /^staging_RoundsVaultInput_(.*)#RoundsVaultInput$/
+    const inputRegex = /^(.*?)_RoundsVaultInput_(.*)#RoundsVaultInput$/
 
     keys.forEach((key) => {
       const match = key.match(inputRegex)
       if (match) {
-        const identifier = match[1]
-        const outputKey = `staging_RoundsVaultOutput_${identifier}#RoundsVaultOutput`
+        const prefix = match[1] // e.g., "ExtDemoCorp_3" or "staging"
+        const identifier = match[2] // e.g., "extDemo_USDC_base"
 
+        const outputKey = `${prefix}_RoundsVaultOutput_${identifier}#RoundsVaultOutput`
         if (config[outputKey]) {
           pairs.push({
             id: identifier,
