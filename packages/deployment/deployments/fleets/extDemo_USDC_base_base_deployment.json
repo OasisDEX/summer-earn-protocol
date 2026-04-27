@@ -1,0 +1,20 @@
+{
+  "fleetName": "extDemo_USDC_base",
+  "isBummer": false,
+  "fleetSymbol": "extDemoUSDC",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0x8769C243D48F64595049189ef14c845281b42545",
+  "bufferArkAddress": "0x8D962371fbB6a996A71b14A4895E66A1Ee9A991a",
+  "network": "base",
+  "initialMinimumBufferBalance": "10000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "ExtDemoCorp_USDC_Base",
+    "chainId": 8453,
+    "asset": "0x833589FCD6eDbFe4654446105A46fE860114C2fD",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  }
+}

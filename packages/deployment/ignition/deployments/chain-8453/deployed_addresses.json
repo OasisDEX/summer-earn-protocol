@@ -133,5 +133,16 @@
   "staging_WisdomTree_USDC_Base_WisdomTree_WTGXX_usdc_8453#WisdomTreeArk": "0x6049dA0261232Cbb7ca189f1681F23BAd06BF54e",
   "staging_WisdomTree_USDC_Base_WisdomTree_WTSIX_usdc_8453#WisdomTreeArk": "0x573dB12030d77eEa49162F3e9C4B1D988BB2396B",
   "AssetsForwarderModule#AssetsForwarder": "0xbFd0cED8fcd053291127203Ad1cd1616077418ec",
-  "AdmiralsQuartersModule_20260410T141401284#AdmiralsQuarters": "0xfec27FAAF888Fb4C2Ce6d51547F82E5D05F5D12d"
+  "AdmiralsQuartersModule_20260410T141401284#AdmiralsQuarters": "0xfec27FAAF888Fb4C2Ce6d51547F82E5D05F5D12d",
+  "InstitutionWhitelist_ExtDemoCorp_3#DutchAuctionLibrary": "0x647F7f3ec75CfDE0257282B2540Bd2C104617005",
+  "InstitutionWhitelist_ExtDemoCorp_3#ProtocolAccessManagerV2": "0xd769Dd73eAb54329E071E5D2a92E42B8d5E4D4DE",
+  "InstitutionWhitelist_ExtDemoCorp_3#ConfigurationManagerWhitelist": "0x709f80b49524a0ff4442cC3F680A8336A11D42e2",
+  "InstitutionWhitelist_ExtDemoCorp_3#HarborCommand": "0x0d65EA35C5c6eD1d423d8ba9CCfc58aD3209647f",
+  "InstitutionWhitelist_ExtDemoCorp_3#Raft": "0x1De12e984C38ad455EDEaB9F3c2C311FC355614d",
+  "InstitutionWhitelist_ExtDemoCorp_3#AdmiralsQuartersWhitelist": "0x7Cc1D280Daa6B4D47b34Fd8a33320bE16b5cc9DD",
+  "InstitutionWhitelist_ExtDemoCorp_3#TipJar": "0x9F0B0e17a8AA4535A2C1623C7eA27f3611e59E0A",
+  "ExtDemoCorp_3_FleetWhitelist_extDemo_USDC_base#FleetCommanderCacheLib": "0x7ee1d574d5837307F54BAB5f123d712b389Be0C9",
+  "ExtDemoCorp_3_FleetWhitelist_extDemo_USDC_base#FleetCommanderWhitelist": "0x8769C243D48F64595049189ef14c845281b42545",
+  "ExtDemoCorp_3_RoundsVaultInput_extDemo_USDC_base#RoundsVaultInput": "0xCa24d4deaCD56db3c248fa596eAf5D1ecEb21113",
+  "ExtDemoCorp_3_RoundsVaultOutput_extDemo_USDC_base#RoundsVaultOutput": "0xD1c27c2AC8832E2f53dfd60e3Fe004584158fA67"
 }

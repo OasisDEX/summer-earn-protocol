@@ -3,7 +3,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
-import { Address } from 'viem'
+import { Address, encodePacked, keccak256 } from 'viem'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { deployArk } from '../common/ark-deployment'
 import { getGovernorClient } from '../common/governance-utils'
@@ -119,6 +119,16 @@ export async function grantCuratorRole(
     protocolAccessManagerAddress,
   )
 
+
+  const curatorRole = keccak256(encodePacked(['uint8', 'address'], [0, fleetCommanderAddress]))
+  const hasCuratorRole = await protocolAccessManager.read.hasRole([
+    curatorRole,
+    curatorAddress,
+  ])
+  if (hasCuratorRole) {
+    console.log(`Skipping curator role assignment as it is already granted`)
+    return
+  }
   console.log(
     kleur.blue('Granting CURATOR_ROLE to'),
     kleur.cyan(curatorAddress),
@@ -147,6 +157,16 @@ export async function grantKeeperRole(
     protocolAccessManagerAddress,
   )
 
+
+  const keeperRole = keccak256(encodePacked(['uint8', 'address'], [1, fleetCommanderAddress]))
+  const hasKeeperRole = await protocolAccessManager.read.hasRole([
+    keeperRole,
+    keeperAddress,
+  ])
+  if (hasKeeperRole) {
+    console.log(`Skipping keeper role assignment as it is already granted`)
+    return
+  }
   console.log(
     kleur.blue('Granting KEEPER_ROLE to'),
     kleur.cyan(keeperAddress),
@@ -173,13 +193,23 @@ export async function grantOperatorRole(
     protocolAccessManagerAddress,
   )
 
+
+
+  const operatorRole = keccak256(encodePacked(['uint8', 'address'], [3, fleetCommanderAddress]))
+  const hasOperatorRole = await protocolAccessManager.read.hasRole([
+    operatorRole,
+    operatorAddress,
+  ])
+  if (hasOperatorRole) {
+    console.log(`Skipping operator role assignment as it is already granted`)
+    return
+  }
   console.log(
     kleur.blue('Granting OPERATOR_ROLE to'),
     kleur.cyan(operatorAddress),
     kleur.blue('for fleet'),
     kleur.cyan(fleetCommanderAddress),
   )
-
   const hash = await protocolAccessManager.write.grantOperatorRole([
     fleetCommanderAddress,
     operatorAddress,
