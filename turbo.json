@@ -79,27 +79,9 @@
       "dependsOn": ["^prebuild", "^build"]
     },
     "coverage:lcov": {
-<<<<<<< HEAD
-      "dependsOn": ["prebuild", "build"],
+      "dependsOn": ["^prebuild", "^build"],
       "inputs": ["src/**/*.sol", "test/**/*.sol", "foundry.toml", "package.json"],
       "outputs": ["lcov.info", "out/**", "cache_forge/**"]
-=======
-      "dependsOn": [
-        "^prebuild",
-        "^build"
-      ],
-      "inputs": [
-        "src/**/*.sol",
-        "test/**/*.sol",
-        "foundry.toml",
-        "package.json"
-      ],
-      "outputs": [
-        "lcov.info",
-        "out/**",
-        "cache_forge/**"
-      ]
->>>>>>> 4dbcccf4 (chore: update turbo.json to use caret (^) for dependency versions)
     }
   },
   "futureFlags": {
