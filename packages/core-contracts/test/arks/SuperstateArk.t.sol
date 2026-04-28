@@ -206,17 +206,6 @@ contract SuperstateArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             params
         );
-        
-        vm.expectRevert(SuperstateArk.InvalidRedeemAddress.selector);
-        new SuperstateArk(
-            address(shareToken),
-            address(subscribeContract),
-            address(0),
-            address(oracle),
-            Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            params
-        );
 
         vm.expectRevert(SuperstateArk.InvalidOracleAddress.selector);
         new SuperstateArk(

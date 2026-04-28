@@ -214,7 +214,6 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
         if (_superstateSubscribe == address(0))
             revert InvalidSubscribeAddress();
-        if (_superstateRedeem == address(0)) revert InvalidRedeemAddress();
         if (_oracle == address(0)) revert InvalidOracleAddress();
 
         shareToken = IERC20Standard(_shareToken);
@@ -317,9 +316,13 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
 
         pendingWithdrawalShares += sharesToRedeem;
 
-        // Approve and execute redemption call to burn tokens and receive USDC
-        shareToken.forceApprove(address(superstateRedeem), sharesToRedeem);
-        superstateRedeem.redeem(sharesToRedeem, address(this));
+        if (address(superstateRedeem) == address(0)) {
+            shareToken.safeTransfer(address(superstateSubscribe), sharesToRedeem);
+        } else {
+            // Approve and execute redemption call to burn tokens and receive USDC
+            shareToken.forceApprove(address(superstateRedeem), sharesToRedeem);
+            superstateRedeem.redeem(sharesToRedeem, address(this));
+        }
 
         emit RedemptionExecuted(sharesToRedeem, amount);
         emit WithdrawalRequested(amount, 0);
