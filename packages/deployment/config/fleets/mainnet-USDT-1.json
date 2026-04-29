@@ -139,6 +139,14 @@
         "protocol": "Morpho_V2",
         "vaultName": "Steakhouse_Prime_Instant"
       }
+    },
+    {
+      "type": "MorphoV2VaultArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "Morpho_V2",
+        "vaultName": "Sky_USDT_Savings_V2"
+      }
     }
   ]
 }

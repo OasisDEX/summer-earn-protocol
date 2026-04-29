@@ -289,6 +289,14 @@
         "protocol": "Morpho_V2",
         "vaultName": "Hyperithm_USDC_Midcurve"
       }
+    },
+    {
+      "type": "MorphoV2VaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Morpho_V2",
+        "vaultName": "Sky_USDC_Risk_Capital_V2"
+      }
     }
   ]
 }
