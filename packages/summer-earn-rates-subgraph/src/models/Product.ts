@@ -50,7 +50,9 @@ export abstract class Product {
     this.poolAddress = poolAddress
     this.startBlock = startBlock
     this.oracle = oracle
-    this.name = `${groupName}-${token.address.toHexString()}-${poolAddress.toHexString()}-${getChainIdByNetworkName(dataSource.network()).toString().split('.')[0]}`
+    this.name = `${groupName}-${token.address.toHexString()}-${poolAddress.toHexString()}-${
+      getChainIdByNetworkName(dataSource.network()).toString().split('.')[0]
+    }`
     const product = new ProductSchema(this.name)
     product.name = this.name
     product.network = dataSource.network()

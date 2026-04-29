@@ -3,7 +3,7 @@ import { resolve } from 'path'
 
 import '@nomicfoundation/hardhat-verify'
 import 'hardhat-contract-sizer'
-import './plugins/multiSourceCompile'
+// import './plugins/multiSourceCompile'
 
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
@@ -16,6 +16,14 @@ if (!process.env.API_KEY_ETHERSCAN) {
   throw new Error(
     'Please set your process.env.API_KEY_ETHERSCAN in a .env file ( etherscan v2 api key )',
   )
+}
+
+if (!process.env.STAGING_DEPLOYER_KEY) {
+  throw new Error('Please set your process.env.STAGING_DEPLOYER_KEY in a .env file')
+}
+
+if (!process.env.DEPLOYER_PRIV_KEY) {
+  throw new Error('Please set your process.env.DEPLOYER_PRIV_KEY in a .env file')
 }
 
 const config: HardhatUserConfig = {
@@ -77,7 +85,13 @@ const config: HardhatUserConfig = {
     hardhat: {
       accounts: [
         {
-          privateKey: `0x${process.env.DEPLOYER_PRIV_KEY}`,
+          privateKey: (process.env.DEPLOYER_PRIV_KEY || '').startsWith('0x')
+            ? (process.env.DEPLOYER_PRIV_KEY as string)
+            : `0x${process.env.DEPLOYER_PRIV_KEY}`,
+          balance: '1000000000000000000000', // 1000 ETH in wei
+        },
+        {
+          privateKey: `0x${process.env.STAGING_DEPLOYER_KEY}`,
           balance: '1000000000000000000000', // 1000 ETH in wei
         },
       ],
@@ -85,61 +99,85 @@ const config: HardhatUserConfig = {
     // mainnets
     mainnet: {
       url: `${process.env.MAINNET_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
       chainId: 1,
     },
     optimism: {
       url: `${process.env.OPTIMISM_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
       chainId: 10,
     },
     unichain: {
       url: `${process.env.UNICHAIN_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
       chainId: 130,
     },
     arbitrum: {
       url: `${process.env.ARBITRUM_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
       chainId: 42161,
     },
     base: {
       url: `${process.env.BASE_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
       chainId: 8453,
     },
     sonic: {
       url: `${process.env.SONIC_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
       chainId: 146,
     },
     monad: {
       url: `${process.env.MONAD_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
       chainId: 143,
     },
     hyperliquid: {
       url: `${process.env.HYPERLIQUID_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
       chainId: 999,
     },
 
     // testnets
     sepolia_mainnet: {
       url: `${process.env.SEPOLIA_MAINNET_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
     },
     sepolia_optimism: {
       url: `${process.env.SEPOLIA_OPTIMISM_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
     },
     sepolia_arbitrum: {
       url: `${process.env.SEPOLIA_ARBITRUM_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
     },
     sepolia_base: {
       url: `${process.env.SEPOLIA_BASE_RPC_URL}`,
-      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
+        .filter((k): k is string => !!k)
+        .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
     },
   },
 }

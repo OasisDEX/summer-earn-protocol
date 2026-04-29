@@ -10,10 +10,21 @@
     "0xEbB995783F095bfB0526EAce1de50b3f80449a5e",
     "0x1dfBa3bA2A98d401f025508E47fccF5ed035522A",
     "0xCaC00FeAf6600E0Da426112315805A7796e3a27e",
-    "0x534162a2072A2929B6713065414EEdC53E1Faeb3"
+    "0x534162a2072A2929B6713065414EEdC53E1Faeb3",
+    "0x393e981A6b76A18CC5A0FB619C6a218D4E53B4B4",
+    "0xA0b609c2925A9F112C7EC6f7D48Ab19650393662",
+    "0xA4eD88aae7d742A61903a391FCeFdE1eeF158067",
+    "0xC287004D09D0D2Dc43bEeC30A563EB8696A02477"
   ],
   "initialMinimumBufferBalance": "100000000",
   "initialRebalanceCooldown": "600",
   "depositCap": "0",
-  "initialTipRate": "1000000000000000000"
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "BummerLazyVault_LowerRisk_USDC_1",
+    "chainId": 1,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  }
 }

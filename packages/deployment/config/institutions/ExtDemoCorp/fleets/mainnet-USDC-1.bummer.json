@@ -1,0 +1,51 @@
+{
+  "fleetName": "extDemo_USDC_mainnet",
+  "isBummer": true,
+  "symbol": "extDemoUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "10000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "1000000000000000000",
+  "network": "mainnet",
+  "keeper": "0x0000000000000000000000000000000000000000",
+  "operatorType": "admiralsQuarters",
+  "curator": "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
+  "details": {
+    "type": "protocol",
+    "name": "ExtDemoCorp_USDC_Mainnet",
+    "chainId": 1,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC"
+  },
+  "arks": [
+    {
+      "type": "MapleInstitutionalArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "maple",
+        "depositCap": "10000000",
+        "maxRebalanceOutflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "maxRebalanceInflow": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+      }
+    },
+    {
+      "type": "WisdomTreeArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "wisdomtree",
+        "depositCap": "100000000",
+        "fundName": "WTGXX"
+      }
+    },
+    {
+      "type": "WisdomTreeArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "wisdomtree",
+        "depositCap": "100000000",
+        "fundName": "WTSIX"
+      }
+    }
+  ]
+}

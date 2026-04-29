@@ -1,8 +1,48 @@
-import { useAccount, useReadContract, useReadContracts } from 'wagmi'
+import {
+  useConnection,
+  useReadContract,
+  useReadContracts,
+  useSwitchChain,
+  useWriteContract,
+} from 'wagmi'
 
 import config from '../config/index.json'
 
-const GOVERNOR_ABI = [
+export const GOVERNOR_ABI = [
+  {
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'descriptionHash', type: 'bytes32' },
+    ],
+    name: 'execute',
+    outputs: [],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'descriptionHash', type: 'bytes32' },
+    ],
+    name: 'queue',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'proposalId', type: 'uint256' },
+      { name: 'support', type: 'uint8' },
+    ],
+    name: 'castVote',
+    outputs: [{ name: 'balance', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
   {
     inputs: [{ name: 'proposalId', type: 'uint256' }],
     name: 'proposalVotes',
@@ -34,6 +74,13 @@ const SUMMER_TOKEN_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [],
+    name: 'totalSupply',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const
 
 export interface ProposalVotes {
@@ -47,11 +94,10 @@ export interface UserVotingInfo {
   hasVoted: boolean
 }
 
-export function useProposalVoting(proposalId: string | undefined) {
-  const { address } = useAccount()
+export function useProposalVoting(proposalId: string | undefined, governorAddress: string) {
+  const { address } = useConnection()
 
-  const governorAddress = config.base?.deployedContracts?.gov?.summerGovernor?.address
-  const tokenAddress = config.base?.deployedContracts?.gov?.summerToken?.address
+  const tokenAddress = config.base?.deployedContracts?.govV2?.summerGovernanceToken?.address
 
   // Get proposal votes
   const { data: proposalVotes, refetch: refetchVotes } = useReadContract({
@@ -89,6 +135,17 @@ export function useProposalVoting(proposalId: string | undefined) {
     },
   })
 
+  // Get total supply for quorum
+  const { data: totalSupply } = useReadContract({
+    address: tokenAddress as `0x${string}`,
+    abi: SUMMER_TOKEN_ABI,
+    functionName: 'totalSupply',
+    chainId: 8453, // Base chain
+    query: {
+      enabled: !!tokenAddress,
+    },
+  })
+
   const votes: ProposalVotes | undefined = proposalVotes
     ? {
         againstVotes: proposalVotes[0],
@@ -113,16 +170,18 @@ export function useProposalVoting(proposalId: string | undefined) {
   return {
     votes,
     userInfo,
+    totalSupply,
     refetch,
-    isLoading: !votes || !userInfo,
+    // Only wait for userInfo if an address is connected
+    isLoading: !votes || !totalSupply || (!!address && !userInfo),
   }
 }
 
 export function useMultipleProposalVoting(proposalIds: string[]) {
-  const { address } = useAccount()
+  const { address } = useConnection()
 
-  const governorAddress = config.base?.deployedContracts?.gov?.summerGovernor?.address
-  const tokenAddress = config.base?.deployedContracts?.gov?.summerToken?.address
+  const governorAddress = config.base?.deployedContracts?.govV2?.summerGovernor?.address
+  const tokenAddress = config.base?.deployedContracts?.govV2?.summerGovernanceToken?.address
 
   // Prepare contracts for batch reading
   const proposalContracts = proposalIds.flatMap((proposalId) => [
@@ -146,8 +205,7 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
       : []),
   ])
 
-  // Add voting power contract
-  const votingPowerContract =
+  const tokenContracts =
     address && tokenAddress
       ? [
           {
@@ -157,10 +215,27 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
             args: [address],
             chainId: 8453,
           },
+          {
+            address: tokenAddress as `0x${string}`,
+            abi: SUMMER_TOKEN_ABI,
+            functionName: 'totalSupply' as const,
+            args: [],
+            chainId: 8453,
+          },
         ]
-      : []
+      : tokenAddress
+        ? [
+            {
+              address: tokenAddress as `0x${string}`,
+              abi: SUMMER_TOKEN_ABI,
+              functionName: 'totalSupply' as const,
+              args: [],
+              chainId: 8453,
+            },
+          ]
+        : []
 
-  const contracts = [...proposalContracts, ...votingPowerContract]
+  const contracts = [...proposalContracts, ...tokenContracts]
 
   const { data: results, refetch } = useReadContracts({
     contracts,
@@ -172,6 +247,7 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
   // Parse results
   const proposalData: Record<string, { votes: ProposalVotes; hasVoted?: boolean }> = {}
   let votingPower: bigint = BigInt(0)
+  let totalSupply: bigint = BigInt(1000000000) * BigInt(1e18) // Default fallback to 1B
 
   if (results) {
     let resultIndex = 0
@@ -201,11 +277,25 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
       }
     }
 
-    // Get voting power (last contract call)
-    if (address && tokenAddress) {
-      const votingPowerResult = results[results.length - 1]
-      if (votingPowerResult.status === 'success') {
-        votingPower = votingPowerResult.result as bigint
+    // Get token contract results
+    if (tokenAddress) {
+      if (address) {
+        // [getVotes, totalSupply]
+        const votingPowerResult = results[results.length - 2]
+        const totalSupplyResult = results[results.length - 1]
+
+        if (votingPowerResult.status === 'success') {
+          votingPower = votingPowerResult.result as bigint
+        }
+        if (totalSupplyResult.status === 'success') {
+          totalSupply = totalSupplyResult.result as bigint
+        }
+      } else {
+        // [totalSupply]
+        const totalSupplyResult = results[results.length - 1]
+        if (totalSupplyResult.status === 'success') {
+          totalSupply = totalSupplyResult.result as bigint
+        }
       }
     }
   }
@@ -213,7 +303,42 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
   return {
     proposalData,
     votingPower,
+    totalSupply,
     refetch,
     isLoading: !results,
+  }
+}
+
+export type VoteSupport = 0 | 1 | 2
+
+export function useCastVote(governorAddress: string) {
+  const { isConnected, chainId } = useConnection()
+
+  const { mutate: switchChain } = useSwitchChain()
+
+  const { mutate: writeContract, isPending: isVoting, isSuccess, error } = useWriteContract()
+
+  const castVote = (proposalId: string, support: VoteSupport) => {
+    if (!isConnected) {
+      throw new Error('Wallet not connected')
+    }
+    if (chainId !== 8453) {
+      switchChain({ chainId: 8453 })
+    }
+    writeContract({
+      address: governorAddress as `0x${string}`,
+      abi: GOVERNOR_ABI,
+      functionName: 'castVote',
+      args: [BigInt(proposalId), support],
+      chainId: 8453,
+    })
+  }
+
+  return {
+    castVote,
+    isVoting,
+    isSuccess,
+    error,
+    isConnected,
   }
 }

@@ -1,22 +1,11 @@
 import { useEffect, useState } from 'react'
 
 import { addresToContractName, SupportedNetworks } from '@/services/validation'
+import { Proposal, SubgraphProposalStatus } from '@/types/governance'
 import { calculateProposalTiming } from '@/utils/timing'
 
 import { PhaseIndicator } from './PhaseIndicator'
 import { ProposalModal } from './ProposalModal'
-
-interface Proposal {
-  id: string
-  targets: string[]
-  values: string[]
-  calldatas: string[]
-  description: string
-  descriptionHash: string
-  status: string
-  chains: string[]
-  createdAt?: string
-}
 
 interface RawProposal {
   id: string
@@ -28,13 +17,11 @@ interface RawProposal {
   createdAt?: string
 }
 
-type StatusFilter = 'pending' | 'executed' | 'canceled' | 'queued'
-
-const STATUS_LABELS: Record<StatusFilter, string> = {
-  pending: 'Pending',
-  executed: 'Executed',
-  canceled: 'Canceled',
-  queued: 'Queued',
+const STATUS_LABELS: Record<SubgraphProposalStatus, string> = {
+  Pending: 'Pending',
+  Executed: 'Executed',
+  Canceled: 'Canceled',
+  Queued: 'Queued',
 }
 
 export function ProposalList({
@@ -45,7 +32,7 @@ export function ProposalList({
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending')
+  const [statusFilter, setStatusFilter] = useState<SubgraphProposalStatus>('Pending')
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [contractNames, setContractNames] = useState<string[]>([])
@@ -146,7 +133,7 @@ export function ProposalList({
                 ? 'bg-blue-600 dark:bg-blue-700 text-white border-blue-600 dark:border-blue-700'
                 : 'text-gray-700 dark:text-gray-300'
             }`}
-            onClick={() => setStatusFilter(status as StatusFilter)}
+            onClick={() => setStatusFilter(status as SubgraphProposalStatus)}
           >
             {label}
           </button>

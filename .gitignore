@@ -102,3 +102,14 @@ SYSTEM_PROMPT.md
 myenv
 .agents/
 .wt-token.json
+
+**/.terraform
+**/.terraform.lock.hcl
+**/*.tfstate
+**/*.tfstate.backup
+**/*.tfvars
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/.terraform.lock.hcl
+**/terraform.tfvars
+*.tfvars

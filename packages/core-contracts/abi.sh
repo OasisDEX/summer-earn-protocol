@@ -5,10 +5,6 @@ FORGE_DIR="."
 OUT_DIR="./out"
 ABI_DIR="../summer-earn-protocol-subgraph/abis"
 
-# Run the Forge build
-echo "Running Forge build..."
-forge build
-
 # Create the ABI directory if it doesn't exist
 mkdir -p "$ABI_DIR"
 

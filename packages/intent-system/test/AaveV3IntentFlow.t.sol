@@ -1,26 +1,26 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
 import {Escrow} from "../src/contracts/Escrow.sol";
-import {IntentHandler} from "../src/contracts/IntentHandler.sol";
 import {IntentBondFactory} from "../src/contracts/IntentBondFactory.sol";
+import {IntentHandler} from "../src/contracts/IntentHandler.sol";
 import {SolverBond} from "../src/contracts/SolverBond.sol";
+import {IIntentHandler} from "../src/interfaces/IIntentHandler.sol";
 import {MockIntentOracle} from "../src/mocks/MockIntentOracle.sol";
 import {MockSummerToken} from "../src/mocks/MockSummerToken.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
-import {MockERC20} from "./mocks/MockERC20.sol";
-import {ArkParams} from "@summerfi/earn-protocol-contracts/types/ArkTypes.sol";
 import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {IIntentHandler} from "../src/interfaces/IIntentHandler.sol";
+import {AaveV3Ark} from "@summerfi/earn-protocol-contracts/contracts/arks/AaveV3Ark.sol";
 import {DataTypes} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/DataTypes.sol";
 import {IPoolV3} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IPoolV3.sol";
 import {IRewardsController} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IRewardsController.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {AaveV3Ark} from "@summerfi/earn-protocol-contracts/contracts/arks/AaveV3Ark.sol";
+import {ArkParams} from "@summerfi/earn-protocol-contracts/types/ArkTypes.sol";
 import {ArkTestBase} from "@summerfi/earn-protocol-test/arks/ArkTestBase.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Test} from "forge-std/Test.sol";
 
 /**
  * @title AaveV3 Intent Flow Integration Test

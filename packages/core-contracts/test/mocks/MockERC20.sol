@@ -209,6 +209,10 @@ contract MockERC20 is IERC20 {
                         INTERNAL MINT/BURN LOGIC
     //////////////////////////////////////////////////////////////*/
 
+    function mint(address to, uint256 amount) public virtual {
+        _mint(to, amount);
+    }
+
     function _mint(address to, uint256 amount) internal virtual {
         _totalSupply = _add(_totalSupply, amount);
         _balanceOf[to] = _add(_balanceOf[to], amount);

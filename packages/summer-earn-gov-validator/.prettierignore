@@ -1,0 +1,9 @@
+node_modules
+build
+.turbo
+generated
+artifacts
+ignition
+.next
+.vercel
+next-env.d.ts

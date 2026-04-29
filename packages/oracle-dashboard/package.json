@@ -19,7 +19,7 @@
     "date-fns": "3.3.1",
     "lucide-react": "^0.563.0",
     "networks": "link:@reown/appkit/networks",
-    "next": "16.1.6",
+    "next": "16.2.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "sonner": "^2.0.7",

@@ -3,12 +3,12 @@ pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommanderWhitelist} from "../interfaces/IFleetCommanderWhitelist.sol";
-import {ArkData, FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {ArkData, FleetCommanderWhitelistParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {FleetCommanderCache} from "./FleetCommanderCache.sol";
 import {FleetCommanderConfigProviderWhitelist} from "./FleetCommanderConfigProviderWhitelist.sol";
 
-import {Tipper} from "./Tipper.sol";
+import {FlexibleTipper} from "./FlexibleTipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -17,18 +17,19 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
- * @title FleetCommander
- * @notice Manages a fleet of Arks, coordinating deposits, withdrawals, and rebalancing operations
+ * @title FleetCommanderWhitelist
+ * @notice Manages a fleet of Arks with restricted entry/exit via a Whitelist and Operator role.
  * @dev Implements IFleetCommanderWhitelist interface and inherits from various utility contracts.
- *      State-changing user operations such as deposit, mint and ERC20 transfers are gated by
- *      via the inherited Whitelist utility and the modifier `onlyWhitelisted`. When the whitelist
- *      is open (i.e., `address(0)` is whitelisted), all callers are allowed.
+ *      Entry (deposit/mint) and exit (withdraw/redeem) operations are gated by the operator gateway.
+ *      The gateway status is controlled by the `isOperatorGatewayOpen` flag in the config.
+ *      When the gateway is closed, only accounts with the OPERATOR_ROLE can perform these actions.
+ *      When the gateway is open, all whitelisted accounts can perform these actions.
  */
 contract FleetCommanderWhitelist is
     IFleetCommanderWhitelist,
     FleetCommanderConfigProviderWhitelist,
     ERC4626,
-    Tipper,
+    FlexibleTipper,
     FleetCommanderCache
 {
     using SafeERC20 for IERC20;
@@ -44,13 +45,34 @@ contract FleetCommanderWhitelist is
      * @param params FleetCommanderParams struct containing initialization parameters
      */
     constructor(
-        FleetCommanderParams memory params
+        FleetCommanderWhitelistParams memory params
     )
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
         FleetCommanderConfigProviderWhitelist(params)
-        Tipper(params.initialTipRate)
+        FlexibleTipper(params.initialTipRate)
     {}
+
+    /*//////////////////////////////////////////////////////////////
+                            PRIVATE HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    function _collectTipPre() private {
+        _setIsCollectingTip(true);
+        _accrueTip(tipJar(), totalSupply());
+    }
+
+    function _collectTipPost() private {
+        _setIsCollectingTip(false);
+    }
+
+    function _useCachePre() private {
+        _getArksData(config.bufferArk);
+    }
+
+    function _useWithdrawCachePre() private {
+        _getWithdrawableArksData(config.bufferArk);
+    }
 
     /*//////////////////////////////////////////////////////////////
                             MODIFIERS
@@ -60,12 +82,10 @@ contract FleetCommanderWhitelist is
      * @dev Modifier to collect the tip before any other action is taken
      */
     modifier collectTip() {
-        _setIsCollectingTip(true);
-        _accrueTip(tipJar(), totalSupply());
+        _collectTipPre();
         _;
-        _setIsCollectingTip(false);
+        _collectTipPost();
     }
-
     /**
      * @dev Modifier to cache ark data for deposit operations.
      * @notice This modifier retrieves ark data before the function execution,
@@ -74,9 +94,8 @@ contract FleetCommanderWhitelist is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useCache() {
-        _getArksData(config.bufferArk);
+        _useCachePre();
         _;
-        _flushCache();
     }
 
     /**
@@ -87,7 +106,16 @@ contract FleetCommanderWhitelist is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useWithdrawCache() {
-        _getWithdrawableArksData(config.bufferArk);
+        _useWithdrawCachePre();
+        _;
+    }
+
+    /**
+     * @dev Modifier to flush the cache.
+     * @notice This must be attached to the outermost external/public function
+     *         where cache is initialized to guarantee teardown.
+     */
+    modifier flushCacheOnExit() {
         _;
         _flushCache();
     }
@@ -102,28 +130,15 @@ contract FleetCommanderWhitelist is
         address receiver,
         address owner
     )
-        public
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
+        external
+        flushCacheOnExit
         whenNotPaused
-        collectTip
         useCache
+        collectTip
         returns (uint256 shares)
     {
-        shares = previewWithdraw(assets);
-        _validateBufferWithdraw(assets, shares, owner);
-
-        uint256 prevQueueBalance = config.bufferArk.totalAssets();
-
-        _disembark(address(config.bufferArk), assets);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
-
-        emit FundsBufferBalanceUpdated(
-            _msgSender(),
-            prevQueueBalance,
-            config.bufferArk.totalAssets()
-        );
+        _enforceExitGateway(_msgSender(), receiver, owner);
+        shares = _withdrawFromBuffer(assets, receiver, owner);
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
@@ -134,14 +149,13 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        collectTip
+        flushCacheOnExit
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
+        _enforceExitGateway(_msgSender(), receiver, owner);
         uint256 bufferBalance = config.bufferArk.totalAssets();
         uint256 bufferBalanceInShares = convertToShares(bufferBalance);
 
@@ -150,9 +164,9 @@ contract FleetCommanderWhitelist is
         }
 
         if (shares <= bufferBalanceInShares) {
-            assets = redeemFromBuffer(shares, receiver, owner);
+            assets = _redeemFromBuffer(shares, receiver, owner);
         } else {
-            assets = redeemFromArks(shares, receiver, owner);
+            assets = _redeemFromArks(shares, receiver, owner);
         }
     }
 
@@ -163,27 +177,14 @@ contract FleetCommanderWhitelist is
         address owner
     )
         public
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        collectTip
+        flushCacheOnExit
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
-        _validateBufferRedeem(shares, owner);
-
-        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
-
-        assets = previewRedeem(shares);
-        _disembark(address(config.bufferArk), assets);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
-
-        emit FundsBufferBalanceUpdated(
-            _msgSender(),
-            previousFundsBufferBalance,
-            config.bufferArk.totalAssets()
-        );
+        _enforceExitGateway(_msgSender(), receiver, owner);
+        assets = _redeemFromBuffer(shares, receiver, owner);
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
@@ -194,14 +195,13 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IFleetCommanderWhitelist)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
-        collectTip
+        flushCacheOnExit
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 shares)
     {
+        _enforceExitGateway(_msgSender(), receiver, owner);
         uint256 bufferBalance = config.bufferArk.totalAssets();
 
         if (assets == Constants.MAX_UINT256) {
@@ -210,9 +210,9 @@ contract FleetCommanderWhitelist is
         }
 
         if (assets <= bufferBalance) {
-            shares = withdrawFromBuffer(assets, receiver, owner);
+            shares = _withdrawFromBuffer(assets, receiver, owner);
         } else {
-            shares = withdrawFromArks(assets, receiver, owner);
+            shares = _withdrawFromArks(assets, receiver, owner);
         }
     }
 
@@ -222,24 +222,15 @@ contract FleetCommanderWhitelist is
         address receiver,
         address owner
     )
-        public
+        external
         override(IFleetCommanderWhitelist)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
+        flushCacheOnExit
         collectTip
-        useWithdrawCache
         whenNotPaused
         returns (uint256 totalSharesToRedeem)
     {
-        totalSharesToRedeem = previewWithdraw(assets);
-
-        _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
-
-        _forceDisembarkFromSortedArks(assets);
-        _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
-
-        emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
+        _enforceExitGateway(_msgSender(), receiver, owner);
+        totalSharesToRedeem = _withdrawFromArks(assets, receiver, owner);
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
@@ -248,22 +239,15 @@ contract FleetCommanderWhitelist is
         address receiver,
         address owner
     )
-        public
+        external
         override(IFleetCommanderWhitelist)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(owner)
-        onlyWhitelisted(receiver)
+        flushCacheOnExit
         collectTip
-        useWithdrawCache
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
-        _validateRedeemFromArks(shares, owner);
-
-        totalAssetsToWithdraw = previewRedeem(shares);
-        _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
-        _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
-        emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
+        _enforceExitGateway(_msgSender(), receiver, owner);
+        totalAssetsToWithdraw = _redeemFromArks(shares, receiver, owner);
     }
 
     /// @inheritdoc IERC4626
@@ -273,13 +257,13 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(receiver)
-        collectTip
+        flushCacheOnExit
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 shares)
     {
+        _enforceEntryGateway(_msgSender(), receiver);
         _validateDeposit(assets, _msgSender());
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -302,13 +286,13 @@ contract FleetCommanderWhitelist is
     )
         public
         override(ERC4626, IERC4626)
-        onlyWhitelisted(_msgSender())
-        onlyWhitelisted(receiver)
-        collectTip
+        flushCacheOnExit
         useCache
+        collectTip
         whenNotPaused
         returns (uint256 assets)
     {
+        _enforceEntryGateway(_msgSender(), receiver);
         _validateMint(shares, _msgSender());
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -325,7 +309,7 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
-    function tip() public whenNotPaused returns (uint256) {
+    function tip() public onlyKeeper whenNotPaused returns (uint256) {
         return _accrueTip(tipJar(), totalSupply());
     }
 
@@ -333,6 +317,7 @@ contract FleetCommanderWhitelist is
                         PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IERC20
     /**
      * @dev Overrides the totalSupply function to include the tip shares
      * @dev This is done to ensure that the totalSupply is always accurate, even when tips are being accrued
@@ -357,7 +342,7 @@ contract FleetCommanderWhitelist is
         return _totalSupply + previewTip(tipJar(), _totalSupply);
     }
 
-    /// @inheritdoc IFleetCommanderWhitelist
+    /// @inheritdoc ERC4626
     function totalAssets()
         public
         view
@@ -461,7 +446,8 @@ contract FleetCommanderWhitelist is
         // The newTipRate uses the Percentage type from @summerfi/percentage-solidity
         // Percentages have 18 decimals of precision
         // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
-        _setTipRate(newTipRate, tipJar(), totalSupply());
+        // we use the super.totalSupply() to avoid the tip shares from being included in the tip calculation
+        _setTipRate(newTipRate, tipJar(), super.totalSupply());
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
@@ -481,6 +467,20 @@ contract FleetCommanderWhitelist is
         _unpause();
     }
 
+    /// @inheritdoc IFleetCommanderWhitelist
+    function setFeeType(
+        FeeType newFeeType
+    ) external onlyGovernor whenNotPaused {
+        _setFeeType(newFeeType, tipJar(), totalAssets(), super.totalSupply());
+    }
+
+    /// @inheritdoc IFleetCommanderWhitelist
+    function setPerformanceFeeRate(
+        Percentage newRate
+    ) external onlyGovernor whenNotPaused {
+        _setPerformanceFeeRate(newRate, tipJar(), totalSupply());
+    }
+
     /*//////////////////////////////////////////////////////////////
                         PUBLIC ERC20 FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -489,12 +489,15 @@ contract FleetCommanderWhitelist is
     function transfer(
         address to,
         uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
+    ) public override(IERC20, ERC20) whenNotPaused returns (bool) {
+        if (hasOperatorRole(_msgSender())) {
+            return super.transfer(to, amount);
+        }
+
         if (!transfersEnabled) {
             revert FleetCommanderTransfersDisabled();
         }
-        _revertIfNotWhitelisted(_msgSender());
-        _revertIfNotWhitelisted(to);
+        _revertIfNotWhitelisted(address(this), _msgSender(), to);
 
         return super.transfer(to, amount);
     }
@@ -504,13 +507,15 @@ contract FleetCommanderWhitelist is
         address from,
         address to,
         uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
+    ) public override(IERC20, ERC20) whenNotPaused returns (bool) {
+        if (hasOperatorRole(_msgSender())) {
+            return super.transferFrom(from, to, amount);
+        }
+
         if (!transfersEnabled) {
             revert FleetCommanderTransfersDisabled();
         }
-        _revertIfNotWhitelisted(_msgSender());
-        _revertIfNotWhitelisted(from);
-        _revertIfNotWhitelisted(to);
+        _revertIfNotWhitelisted(address(this), _msgSender(), from, to);
 
         return super.transferFrom(from, to, amount);
     }
@@ -518,6 +523,114 @@ contract FleetCommanderWhitelist is
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Internal function to withdraw a specific amount of assets from the buffer ark
+     * @param assets The amount of assets to withdraw
+     * @param receiver The address to receive the withdrawn assets
+     * @param owner The address owning the shares to be burned
+     * @return shares The amount of shares burned
+     */
+    function _withdrawFromBuffer(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) internal returns (uint256 shares) {
+        shares = previewWithdraw(assets);
+        _validateBufferWithdraw(assets, shares, owner);
+
+        uint256 prevQueueBalance = config.bufferArk.totalAssets();
+
+        _disembark(address(config.bufferArk), assets);
+        _withdraw(_msgSender(), receiver, owner, assets, shares);
+
+        emit FundsBufferBalanceUpdated(
+            _msgSender(),
+            prevQueueBalance,
+            config.bufferArk.totalAssets()
+        );
+    }
+
+    /**
+     * @notice Internal function to redeem a specific amount of shares from the buffer ark
+     * @param shares The amount of shares to redeem
+     * @param receiver The address to receive the underlying assets
+     * @param owner The address owning the shares to be burned
+     * @return assets The amount of assets withdrawn
+     */
+    function _redeemFromBuffer(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) internal returns (uint256 assets) {
+        _validateBufferRedeem(shares, owner);
+
+        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
+
+        assets = previewRedeem(shares);
+        _disembark(address(config.bufferArk), assets);
+        _withdraw(_msgSender(), receiver, owner, assets, shares);
+
+        emit FundsBufferBalanceUpdated(
+            _msgSender(),
+            previousFundsBufferBalance,
+            config.bufferArk.totalAssets()
+        );
+    }
+
+    /**
+     * @notice Internal function to withdraw assets directly from deployed Arks
+     * @dev Fetches withdrawable arks data to ensure cache state before discharging assets
+     * @param assets The amount of assets to withdraw
+     * @param receiver The address to receive the underlying assets
+     * @param owner The address owning the shares to be burned
+     * @return totalSharesToRedeem The amount of shares burned
+     *
+     * @dev The function uses the cache to get the withdrawable arks data and it expects
+     *      the topmost caller to flush the cache
+     */
+    function _withdrawFromArks(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) internal returns (uint256 totalSharesToRedeem) {
+        _useWithdrawCachePre();
+
+        totalSharesToRedeem = previewWithdraw(assets);
+
+        _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
+
+        _forceDisembarkFromSortedArks(assets);
+        _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
+
+        emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
+    }
+
+    /**
+     * @notice Internal function to redeem shares to withdraw assets directly from deployed Arks
+     * @dev Fetches withdrawable arks data to ensure cache state before discharging assets
+     * @param shares The amount of shares to redeem
+     * @param receiver The address to receive the underlying assets
+     * @param owner The address owning the shares to be burned
+     * @return totalAssetsToWithdraw The amount of assets withdrawn
+     *
+     * @dev The function uses the cache to get the withdrawable arks data and it expects
+     *      the topmost caller to flush the cache
+     */
+    function _redeemFromArks(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) internal returns (uint256 totalAssetsToWithdraw) {
+        _useWithdrawCachePre();
+
+        _validateRedeemFromArks(shares, owner);
+
+        totalAssetsToWithdraw = previewRedeem(shares);
+        _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
+        _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
+        emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
+    }
 
     /**
      * @notice Mints new shares as tips to the specified account
@@ -534,6 +647,61 @@ contract FleetCommanderWhitelist is
         uint256 amount
     ) internal virtual override {
         _mint(account, amount);
+    }
+
+    /**
+     * @notice Returns the total assets for FlexibleTipper fee calculation
+     * @dev Implements the abstract hook from FlexibleTipper.
+     *      Delegates to totalAssets() which uses the FleetCommanderCache.
+     * @return The total assets held across all arks
+     */
+    function _getTotalAssetsForFee() internal view override returns (uint256) {
+        return totalAssets();
+    }
+
+    /**
+     * @notice Enforces gateway restrictions for entry operations (deposit/mint)
+     * @dev Checks if the caller has the OPERATOR_ROLE; if not, verifies that the gateway
+     *      is open and that both `caller` and `receiver` are whitelisted for this fleet.
+     * @param caller The address of the caller
+     * @param receiver The address of the receiver
+     */
+    function _enforceEntryGateway(
+        address caller,
+        address receiver
+    ) internal view {
+        if (hasOperatorRole(caller)) {
+            return;
+        }
+
+        if (!config.isOperatorGatewayOpen) {
+            revert FleetCommanderDirectDepositsClosed();
+        }
+
+        _revertIfNotWhitelisted(address(this), caller, receiver);
+    }
+
+    /**
+     * @notice Enforces gateway restrictions for exit operations (withdraw/redeem)
+     * @dev Checks if the caller has the OPERATOR_ROLE; if not, verifies that the gateway
+     *      is open and that `caller`, `receiver`, and `owner` are whitelisted for this fleet.
+     * @param caller The address of the caller
+     * @param receiver The address of the receiver
+     * @param owner The address of the owner of the shares
+     */
+    function _enforceExitGateway(
+        address caller,
+        address receiver,
+        address owner
+    ) internal view {
+        if (hasOperatorRole(caller)) {
+            return;
+        }
+
+        if (!config.isOperatorGatewayOpen) {
+            revert FleetCommanderDirectWithdrawalsClosed();
+        }
+        _revertIfNotWhitelisted(address(this), caller, receiver, owner);
     }
 
     /**

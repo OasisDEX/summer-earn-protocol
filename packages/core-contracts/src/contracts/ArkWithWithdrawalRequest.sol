@@ -8,11 +8,12 @@ import {IArkWithWithdrawalRequest} from "../interfaces/IArkWithWithdrawalRequest
 import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
 import {Ark} from "./Ark.sol";
 
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
-import {Constants} from "@summerfi/constants/Constants.sol";
-import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
+
 /**
  * @title Ark
  * @author SummerFi
@@ -42,13 +43,15 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         }
         slippage = _slippage;
     }
+
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IArkWithWithdrawalRequest
     function sweep()
-        external
+        public
+        virtual
         onlyKeeper
         nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
@@ -107,6 +110,26 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         emit SlippageSet(_slippage);
     }
 
+    /**
+     * @notice Executes a token swap through a whitelisted router.
+     * @dev SECURITY: `amountOutMin` MUST be derived from a source the keeper cannot
+     *      manipulate — typically the implementing vault's own share-to-asset conversion
+     *      (e.g. convertToExitAssets(shares)).
+     *
+     *      Implementing contracts are responsible for computing `amountOutMin` before
+     *      calling this function. The pattern should always be:
+     *
+     *          uint256 fairValue = vault.convertToAssets(sharesToSell); // or equivalent
+     *          uint256 amountOutMin = _applySlippage(fairValue);
+     *          _swap(..., amountOutMin, ...);
+     *
+     * @param sellToken  Token to sell (e.g. vault shares)
+     * @param buyToken   Token to buy (must be config.asset for harvest flows)
+     * @param router     Must be whitelisted via whitelistRouter()
+     * @param amountIn   Amount of sellToken to sell
+     * @param amountOutMin Minimum acceptable output — MUST NOT come from keeper input
+     * @param swapCalldata Calldata forwarded to the router
+     */
     function _swap(
         address sellToken,
         address buyToken,

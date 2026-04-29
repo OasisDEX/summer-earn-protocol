@@ -86,6 +86,12 @@ dataSources:
         - event: ProposalReceivedCrossChain(indexed uint256,indexed uint32)
           handler: handleProposalReceivedCrossChain
           receipt: true
+        - event: VoteCast(indexed address,uint256,uint8,uint256,string)
+          handler: handleVoteCast
+          receipt: true
+        - event: VoteCastWithParams(indexed address,uint256,uint8,uint256,string,bytes)
+          handler: handleVoteCastWithParams
+          receipt: true
       file: ./src/mappings/governance.ts
   - kind: ethereum/contract
     name: ProtocolAccessManager
@@ -113,6 +119,61 @@ dataSources:
           handler: handleRoleRevoked
           receipt: true
       file: ./src/mappings/accessManagement.ts  
+  - kind: ethereum/contract
+    name: SummerGovernanceToken
+    network: {{network}}
+    source:
+      abi: Votes
+      address: "{{summer-governance-token-address}}"
+      startBlock: {{summer-governance-token-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Delegate
+      abis:
+        - name: Votes
+          file: ./abis/Votes.json
+      eventHandlers:
+        - event: DelegateChanged(indexed address,indexed address,indexed address)
+          handler: handleDelegateChanged
+        - event: DelegateVotesChanged(indexed address,uint256,uint256)
+          handler: handleDelegateVotesChanged
+      file: ./src/mappings/votes.ts
+  - kind: ethereum/contract
+    name: TimelockController
+    network: {{network}}
+    source:
+      abi: SummerTimelockController
+      address: "{{timelock-address}}"
+      startBlock: {{timelock-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: SummerTimelockController
+          file: ./abis/SummerTimelockController.json 
+      eventHandlers:
+        - event: CallExecuted(indexed bytes32,indexed uint256,address,uint256,bytes)
+          handler: handleCallExecuted
+          receipt: true
+        - event: CallSalt(indexed bytes32,bytes32)  
+          handler: handleCallSalt
+          receipt: true
+        - event: CallScheduled(indexed bytes32,indexed uint256,address,uint256,bytes,bytes32,uint256)
+          handler: handleCallScheduled
+          receipt: true
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleTimelockRoleGranted
+          receipt: true
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleTimelockRoleRevoked
+          receipt: true
+      file: ./src/mappings/timelock.ts
 templates:
   - kind: ethereum/contract
     name: TimelockControllerTemplate
@@ -144,4 +205,4 @@ templates:
         - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
           handler: handleTimelockRoleRevoked
           receipt: true
-      file: ./src/mappings/timelock.ts
+      file: ./src/mappings/timelock.ts      

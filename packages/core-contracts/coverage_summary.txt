@@ -1,0 +1,2006 @@
+Compiling 565 files with Solc 0.8.28
+Solc 0.8.28 finished in 31.77s
+Compiler run successful with warnings:
+Warning (3420): Source file does not specify required compiler version! Consider adding "pragma solidity ^0.8.28;"
+--> test/mocks/MockAccessManager.sol
+
+Warning (8760): This declaration has the same name as another declaration.
+   --> src/contracts/arks/SyrupArk.sol:103:9:
+    |
+103 |         uint128 withdrawalRequestId = withdrawalManager.requestIds(
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Note: The other declaration is here:
+   --> src/contracts/arks/SyrupArk.sol:153:5:
+    |
+153 |     function withdrawalRequestId() external view returns (uint256) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2519): This declaration shadows an existing declaration.
+   --> src/contracts/rounds-vault/RoundsVaultBase.sol:458:9:
+    |
+458 |         uint256 minPositionSize
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+  --> src/contracts/rounds-vault/RoundsVaultBase.sol:67:5:
+   |
+67 |     uint256 public minPositionSize;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> src/contracts/arks/WisdomTreeArk.sol:530:10:
+    |
+530 |         (uint80 roundId, int256 answer, , uint256 updatedAt, ) = oracle
+    |          ^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/arks/OriginETHArk.t.sol:158:9:
+    |
+158 |         uint256 minShares = 0.9 ether; // Minimum expected shares
+    |         ^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/arks/OriginETHArk.t.sol:339:9:
+    |
+339 |         uint256 requestId = 421;
+    |         ^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/arks/OriginSuperOETHArk.t.sol:190:9:
+    |
+190 |         uint256 minShares = 0.9 ether; // Minimum expected shares
+    |         ^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/arks/OriginSuperOETHArk.t.sol:315:9:
+    |
+315 |         uint256 requestId = 155;
+    |         ^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/arks/OriginUSDArk.t.sol:164:9:
+    |
+164 |         uint256 minShares = 9e5; // Minimum expected shares
+    |         ^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/auctions/BuyAndBurn.t.sol:269:9:
+    |
+269 |         uint256 timeBeforeSecondAuction = block.timestamp;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (5667): Unused function parameter. Remove or comment out the variable name to silence this warning.
+  --> test/extensions/ERC4626MultiTokenWrapper.t.sol:30:9:
+   |
+30 |         address receiver
+   |         ^^^^^^^^^^^^^^^^
+
+Warning (5667): Unused function parameter. Remove or comment out the variable name to silence this warning.
+  --> test/extensions/ERC4626MultiTokenWrapper.t.sol:41:9:
+   |
+41 |         address owner
+   |         ^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/fleets/FlexibleTipper.t.sol:203:9:
+    |
+203 |         uint256 expectedAUM = vault.exposed_calculateTip(
+    |         ^^^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/fleets/FlexibleTipper.t.sol:268:9:
+    |
+268 |         uint256 hwmBefore = vault.highWaterMark();
+    |         ^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/fleets/FlexibleTipper.t.sol:530:9:
+    |
+530 |         uint256 rawSupply = vault.totalSupply(); // view context — includes preview
+    |         ^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+  --> test/institution/InstitutionalVaultRegistry.t.sol:51:9:
+   |
+51 |         bytes32 id2 = bytes32("inst-2");
+   |         ^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+  --> test/misc/MaxWithdrawExecutor.t.sol:21:9:
+   |
+21 |         uint256 forkId = vm.createSelectFork(arbitrum, 396490669);
+   |         ^^^^^^^^^^^^^^
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> src/contracts/arks/MapleInstitutionalArk.sol:125:5:
+    |
+125 |     function isWithdrawalClaimRequired() public view returns (bool) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> src/contracts/arks/SyrupArk.sol:146:5:
+    |
+146 |     function isWithdrawalClaimRequired() public view returns (bool) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> src/contracts/arks/SyrupArkV2.sol:139:5:
+    |
+139 |     function isWithdrawalClaimRequired() public view returns (bool) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> test/arks/FluidLiteArk.t.sol:215:5:
+    |
+215 |     function test_Disembark() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+  --> test/arks/SiUSDArk.t.sol:69:5:
+   |
+69 |     function test_Constructor_Success() public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> test/arks/SyrupArkUSDT.fork.t.sol:178:5:
+    |
+178 |     function test_WithdrawUsingSwap_Syrup() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> test/arks/SyrupArkV2USDT.fork.t.sol:182:5:
+    |
+182 |     function test_WithdrawUsingSwap_Syrup() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+   --> test/arks/UpshiftArk.t.sol:102:5:
+    |
+102 |     function test_Constructor() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+  --> test/institution/InstitutionalVaultRegistry.t.sol:77:5:
+   |
+77 |     function test_Exists_False_Initially() public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Analysing contracts...
+Running tests...
+
+Ran 3 tests for test/arks/ArkTestBase.sol:ArkTestBase
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 276)
+[PASS] testSkipper() (gas: 233)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 7.59ms (958.62µs CPU time)
+
+Ran 3 tests for test/arks/ArkTestBaseWhitelist.sol:ArkTestBaseWhitelist
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 276)
+[PASS] testSkipper() (gas: 233)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 623.93µs (108.23µs CPU time)
+
+Ran 6 tests for test/arks/BufferArk.t.sol:BufferArkTest
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 211)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board() (gas: 101466)
+[PASS] test_Constructor() (gas: 3489864)
+[PASS] test_Disembark() (gas: 82905)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 11.11ms (1.82ms CPU time)
+
+Ran 7 tests for test/arks/AaveV3Ark.t.sol:AaveV3ArkTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 298)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_Board() (gas: 128753)
+[PASS] test_Constructor() (gas: 4120393)
+[PASS] test_Disembark() (gas: 90562)
+[PASS] test_Harvest() (gas: 43477)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 12.35ms (2.81ms CPU time)
+
+Ran 6 tests for test/arks/HypurrfiArk.t.sol:HypurrfiArkTest
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 189)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_Board() (gas: 128771)
+[PASS] test_Constructor() (gas: 4122663)
+[PASS] test_Disembark() (gas: 90540)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 13.48ms (3.57ms CPU time)
+
+Ran 4 tests for test/utils/CooldownEnforcer/CooldownEnforcer.noInitialCooldown.t.sol:CooldownEnforcer_EnforceCooldown_NoInitialCooldown_Test
+[PASS] test_CooldownInTheFuture_ShouldSucceed() (gas: 31721)
+[PASS] test_CooldownInThePast_ShouldSucceed() (gas: 31764)
+[PASS] test_CooldownRightNow_ShouldSucceed() (gas: 31578)
+[PASS] test_SuccessiveEnforcings_ShouldSucceed() (gas: 40657)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 1.80ms (883.38µs CPU time)
+
+Ran 7 tests for test/extensions/ERC4626MultiToken.t.sol:ERC4626MultiTokenTest
+[PASS] test_VWR0001_DefaultValue() (gas: 25393)
+[PASS] test_VWR0002_Deposit() (gas: 178222)
+[PASS] test_VWR0003_Redeem() (gas: 144145)
+[PASS] test_VWR0004_RedeemBatch() (gas: 292337)
+[PASS] test_VWR0005_RedeemPartial() (gas: 185535)
+[PASS] test_VWR0006_RedeemPartialBatch() (gas: 330930)
+[PASS] test_VWR0007_TwoParticipants() (gas: 450514)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 14.47ms (6.18ms CPU time)
+
+Ran 1 test for test/utils/CooldownEnforcer/CooldownEnforcer.noInitialCooldown.t.sol:CooldownEnforcer_UpdateCooldown_InitialCooldown_Test
+[PASS] test_UpdateCooldown_ShouldSucceed() (gas: 11751)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 655.68µs (167.18µs CPU time)
+
+Ran 1 test for test/auctions/AuctionTestBase.sol:AuctionTestBase
+[PASS] testSkipper() (gas: 233)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 16.65ms (137.53µs CPU time)
+
+Ran 4 tests for test/extensions/ERC4626MultiTokenWrapper.t.sol:ERC4626MultiTokenWrapperTest
+[PASS] test_VDO0001_DefaultValue() (gas: 15732)
+[PASS] test_VDO0002_DepositOnTarget() (gas: 168824)
+[PASS] test_VDO0003_RedeemFromTarget() (gas: 198414)
+[PASS] test_VDO0004_FullCycle() (gas: 205162)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 3.36ms (1.95ms CPU time)
+
+Ran 16 tests for test/arks/Ark.t.sol:ArkTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 277)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_BoardByArk_ShouldSucceed() (gas: 121626)
+[PASS] test_BoardByCommander_ShouldSucceed() (gas: 114910)
+[PASS] test_BoardByNonArk_ShouldFail() (gas: 121052)
+[PASS] test_Constructor() (gas: 4952811)
+[PASS] test_DisembarkByNonCommander_ShouldFail() (gas: 82423)
+[PASS] test_Disembark_ShouldSucceed() (gas: 100467)
+[PASS] test_GrantCommanderRole_ShouldSucceed() (gas: 47333)
+[PASS] test_GrantRoleDirectly_ShouldFail() (gas: 22039)
+[PASS] test_MoveByNonCommander_ShouldFail() (gas: 85534)
+[PASS] test_Move_ShouldSucceed() (gas: 160653)
+[PASS] test_RevokeCommanderRole_ShouldSucceed() (gas: 32507)
+[PASS] test_RevokeRoleDirectly_ShouldFail() (gas: 34966)
+[PASS] test_validateCommonData() (gas: 106842)
+Suite result: ok. 16 passed; 0 failed; 0 skipped; finished in 11.73ms (8.80ms CPU time)
+
+Ran 24 tests for test/extensions/ERC1155FullSupply.t.sol:ERC1155FullSupplyTest
+[PASS] test_AfterBurn_Batch_BalanceOfAll() (gas: 135140)
+[PASS] test_AfterBurn_Batch_BurnOne_BalanceOfAll() (gas: 131105)
+[PASS] test_AfterBurn_Batch_BurnOne_Exists() (gas: 132344)
+[PASS] test_AfterBurn_Batch_BurnOne_TotalSupply() (gas: 132210)
+[PASS] test_AfterBurn_Batch_Exists() (gas: 136507)
+[PASS] test_AfterBurn_Batch_TotalSupply() (gas: 136282)
+[PASS] test_AfterBurn_Double_BurnOne_BalanceOfAll() (gas: 130362)
+[PASS] test_AfterBurn_Double_BurnOne_Exists() (gas: 131672)
+[PASS] test_AfterBurn_Double_BurnOne_TotalSupply() (gas: 131414)
+[PASS] test_AfterBurn_Single_BalanceOfAll() (gas: 87297)
+[PASS] test_AfterBurn_Single_Exists() (gas: 87162)
+[PASS] test_AfterBurn_Single_TotalSupply() (gas: 87015)
+[PASS] test_AfterMint_Batch_BalanceOfAll() (gas: 158745)
+[PASS] test_AfterMint_Batch_Exists() (gas: 160217)
+[PASS] test_AfterMint_Batch_TotalSupply() (gas: 159898)
+[PASS] test_AfterMint_SingleAgain_BalanceOfAll() (gas: 160311)
+[PASS] test_AfterMint_SingleAgain_Exists() (gas: 160042)
+[PASS] test_AfterMint_SingleAgain_TotalSupply() (gas: 159862)
+[PASS] test_AfterMint_Single_BalanceOfAll() (gas: 106341)
+[PASS] test_AfterMint_Single_Exists() (gas: 109353)
+[PASS] test_AfterMint_Single_TotalSupply() (gas: 106076)
+[PASS] test_BeforeMint_BalanceOfAll() (gas: 10785)
+[PASS] test_BeforeMint_Exists() (gas: 8551)
+[PASS] test_BeforeMint_TotalSupply() (gas: 8433)
+Suite result: ok. 24 passed; 0 failed; 0 skipped; finished in 10.03ms (9.11ms CPU time)
+
+Ran 5 tests for test/utils/CooldownEnforcer/CooldownEnforcer.initialCooldown.t.sol:CooldownEnforcer_InitialCooldown_EnforceCooldown_InitialCooldown_Test
+[PASS] test_CooldownAlmostMet_ShouldRevert() (gas: 10123)
+[PASS] test_CooldownExactlyMet_ShouldSucceed() (gas: 10008)
+[PASS] test_CooldownMoreThanMet_ShouldSucceed() (gas: 10128)
+[PASS] test_CooldownNotMet_ShouldRevert() (gas: 9597)
+[PASS] test_SuccessiveEnforcings_ShouldEventuallyRevert() (gas: 19835)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 1.91ms (1.29ms CPU time)
+
+Ran 1 test for test/utils/CooldownEnforcer/CooldownEnforcer.initialCooldown.t.sol:CooldownEnforcer_UpdateCooldown_InitialCooldown_Test
+[PASS] test_UpdateCooldown_ShouldSucceed() (gas: 11751)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 690.31µs (239.19µs CPU time)
+
+Ran 4 tests for test/auctions/BuyAndBurnDecimals.t.sol:BuyAndBurnDecimalsTest
+[PASS] testAuction18Dec() (gas: 461134)
+[PASS] testAuction6Dec() (gas: 461133)
+[PASS] testAuction8Dec() (gas: 461199)
+[PASS] testSkipper() (gas: 211)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 36.03ms (8.84ms CPU time)
+
+Ran 4 tests for test/institution/InstitutionalIntegrationWhitelist.t.sol:InstitutionalIntegrationTest
+[PASS] test_EndToEnd_NormalInstitutionalFlow() (gas: 23103675)
+[PASS] test_OpenGateway_DirectDeposit_RevertsIfNotWhitelisted() (gas: 22562394)
+[PASS] test_OpenGateway_DirectDeposit_SucceedsIfWhitelisted() (gas: 22685056)
+[PASS] test_Operator_CanAlwaysTransfer_EvenIfDisabled() (gas: 22744678)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 26.79ms (24.73ms CPU time)
+
+Ran 13 tests for test/auctions/BuyAndBurn.t.sol:BuyAndBurnTest
+[PASS] testSkipper() (gas: 255)
+[PASS] test_BuyAllTokensAndAutoSettle() (gas: 392178)
+[PASS] test_BuyTokens() (gas: 452281)
+[PASS] test_BuyTokensMultipleTimes() (gas: 474242)
+[PASS] test_CannotBuyMoreThanAvailable() (gas: 331704)
+[PASS] test_CannotFinalizeAuctionBeforeEndTime() (gas: 299882)
+[PASS] test_CannotStartDuplicateAuction() (gas: 298948)
+[PASS] test_Constructor() (gas: 4308520)
+[PASS] test_FinalizeAuction() (gas: 444140)
+[PASS] test_GetAuctionInfo() (gas: 307675)
+[PASS] test_MultipleAuctionsCycle() (gas: 783583)
+[PASS] test_StartAuction() (gas: 309404)
+[PASS] test_UpdateAuctionDefaultParameters() (gas: 159078)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 42.53ms (20.94ms CPU time)
+
+Ran 11 tests for test/institution/InstitutionalVaultRegistry.t.sol:InstitutionalVaultRegistryTest
+[PASS] test_AddInstitution_Reverts_On_Duplicate() (gas: 96268)
+[PASS] test_AddInstitution_Reverts_On_ZeroAddress() (gas: 22432)
+[PASS] test_Add_Get_Remove_Update() (gas: 95728)
+[PASS] test_Exists_False_Initially() (gas: 8538)
+[PASS] test_GetInstitution_Reverts_When_NotFound() (gas: 18114)
+[PASS] test_RemoveInstitution_Reverts_When_AlreadyRemoved() (gas: 75327)
+[PASS] test_RemoveInstitution_Reverts_When_NotFound() (gas: 16764)
+[PASS] test_UpdateAdmiralsQuarters_Reverts_When_NotFound() (gas: 17061)
+[PASS] test_UpdateAdmiralsQuarters_Reverts_When_Removed() (gas: 75653)
+[PASS] test_UpdateAdmiralsQuarters_Reverts_When_SameAddress() (gas: 95450)
+[PASS] test_UpdateAdmiralsQuarters_Reverts_When_ZeroAddress() (gas: 95295)
+Suite result: ok. 11 passed; 0 failed; 0 skipped; finished in 5.96ms (4.84ms CPU time)
+
+Ran 5 tests for test/fleets/FleetCommander.daoTipJar.integration.t.sol:DaoTipJarIntegrationTest
+[PASS] test_DaoAndNonDao_TipJarAddressesDiffer() (gas: 49680)
+[PASS] test_ShakeAll_WorksWithDaoAndNonDaoEnlisted() (gas: 1375276)
+[PASS] test_ShareTransfers_DaoEnabled_NonDaoDisabledUntilGovernorEnables() (gas: 469614)
+[PASS] test_ShareTransfers_NonDao_StakingRewardsManagerException() (gas: 340410)
+[PASS] test_TipAccrual_MintsSharesToCorrectJar() (gas: 470907)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 23.86ms (15.42ms CPU time)
+
+Ran 15 tests for test/fleets/FleetCommander.redeemWithInterest.t.sol:RedeemWithInterestTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 234)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_ConversionRateChange() (gas: 94055)
+[PASS] test_MaxRedeemUnchangedWithInterest() (gas: 129994)
+[PASS] test_RedeemAfterMultipleInterestAccruals() (gas: 333440)
+[PASS] test_RedeemAllShares() (gas: 287336)
+[PASS] test_RedeemAllWithForceRedeem() (gas: 290184)
+[PASS] test_RedeemBufferPlusOne() (gas: 492706)
+[PASS] test_RedeemExactlyBufferLimit() (gas: 305370)
+[PASS] test_RedeemExceedingBalance() (gas: 216251)
+[PASS] test_RedeemPartialWithInterest() (gas: 273866)
+[PASS] test_RedeemToOtherReceiverWithInterest() (gas: 279066)
+[PASS] test_RedeemZeroShares() (gas: 176544)
+[PASS] test_TwoUsersRedeemAllShares() (gas: 645645)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 64.53ms (42.88ms CPU time)
+
+Ran 9 tests for test/fleets/FleetCommander.erc4626.t.sol:ERC4626Test
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 256)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_MaxDeposit() (gas: 144517)
+[PASS] test_MaxMint() (gas: 180479)
+[PASS] test_MaxRedeem() (gas: 353316)
+[PASS] test_MaxWithdraw() (gas: 353664)
+[PASS] test_Mint() (gas: 316493)
+[PASS] test_Redeem() (gas: 484387)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 33.75ms (22.38ms CPU time)
+
+Ran 15 tests for test/fleets/FleetCommander.deposit.t.sol:DepositTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 212)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_Deposit() (gas: 290336)
+[PASS] test_DepositEventEmission() (gas: 293879)
+[PASS] test_DepositExceedingAllowance() (gas: 227489)
+[PASS] test_DepositExceedingBalance() (gas: 212890)
+[PASS] test_DepositExceedingDepositCap() (gas: 218124)
+[PASS] test_DepositMultipleTimes() (gas: 531085)
+[PASS] test_DepositToOtherReceiver() (gas: 295886)
+[PASS] test_DepositUpToDepositCap() (gas: 298143)
+[PASS] test_DepositUpdatesBufferBalance() (gas: 307117)
+[PASS] test_DepositWithReferral() (gas: 304486)
+[PASS] test_DepositZeroAmount() (gas: 121583)
+[PASS] test_Deposit_withTip() (gas: 485874)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 54.40ms (42.31ms CPU time)
+
+Ran 7 tests for test/arks/CompoundV3Ark.t.sol:CompoundV3ArkTest
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 233)
+[PASS] testSkipper() (gas: 188)
+[PASS] test_Board() (gas: 129406)
+[PASS] test_Constructor() (gas: 3964255)
+[PASS] test_Disembark() (gas: 91853)
+[PASS] test_Harvest() (gas: 50575)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 5.21ms (2.95ms CPU time)
+
+Ran 43 tests for test/fleets/FleetCommander.management.t.sol:ManagementTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 278)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_AddAlreadyExistingArk() (gas: 25998)
+[PASS] test_AddArkWithAddressZero() (gas: 20975)
+[PASS] test_AddArkWithExistingCommander() (gas: 3537671)
+[PASS] test_ConstructorInitialization() (gas: 13551950)
+[PASS] test_GetArks() (gas: 29093)
+[PASS] test_PauseAndUnpause() (gas: 70791)
+[PASS] test_PauseAndUnpauseBeforeTime() (gas: 77580)
+[PASS] test_PauseNonGovernor() (gas: 20682)
+[PASS] test_RebalanceToArkWithZeroMaxAllocation() (gas: 118170)
+[PASS] test_RebalanceWithInvalidArk() (gas: 93140)
+[PASS] test_RemoveArkWithNonZeroAllocation() (gas: 31563)
+[PASS] test_RemoveArkWithNonZeroAssets() (gas: 101451)
+[PASS] test_RemoveBufferArk() (gas: 27439)
+[PASS] test_RemoveNotExistingArk() (gas: 23703)
+[PASS] test_RemoveSuccessful() (gas: 100613)
+[PASS] test_SetArkDepositCapInvalidArk_ShouldFail() (gas: 22640)
+[PASS] test_SetArkMaxDepositPercentageOfTVL() (gas: 40973)
+[PASS] test_SetArkMaxDepositPercentageOfTVLInvalidArk_ShouldFail() (gas: 23281)
+[PASS] test_SetArkMoveMaxRebalanceOutflow() (gas: 40224)
+[PASS] test_SetArkMoveMaxRebalanceOutflowInvalidArk_ShouldFail() (gas: 22492)
+[PASS] test_SetArkMoveToMax() (gas: 40244)
+[PASS] test_SetArkMoveToMaxInvalidArk_ShouldFail() (gas: 22559)
+[PASS] test_SetArkMoveToMax_FailNotCurator() (gas: 22548)
+[PASS] test_SetDepositCap() (gas: 40410)
+[PASS] test_SetMaxAllocationArkNotFound() (gas: 22574)
+[PASS] test_SetMaxRebalanceOperations() (gas: 40393)
+[PASS] test_SetMinBufferBalance() (gas: 40968)
+[PASS] test_SetMinimumPauseTime() (gas: 26699)
+[PASS] test_SetMinimumPauseTimeNonGovernor() (gas: 17032)
+[PASS] test_SetTransfersEnabled() (gas: 43948)
+[PASS] test_SetTransfersEnabled_EmitsEvent() (gas: 44218)
+[PASS] test_SetTransfersEnabled_OnlyGovernor() (gas: 16479)
+[PASS] test_TransferDisabled() (gas: 14333)
+[PASS] test_TransferFromDisabled() (gas: 14672)
+[PASS] test_TransfersDisabledByDefault() (gas: 8126)
+[PASS] test_UnpauseNonGovernor() (gas: 78315)
+[PASS] test_UpdateStakingRewardsManager() (gas: 2602083)
+[PASS] test_setArkDepositCap() (gas: 40156)
+[PASS] test_setDepositCapWhenPaused() (gas: 77242)
+[PASS] test_updateRebalanceCooldown_ShouldFail() (gas: 20164)
+Suite result: ok. 43 passed; 0 failed; 0 skipped; finished in 62.45ms (52.27ms CPU time)
+
+Ran 27 tests for test/fleets/FleetCommander.withdraw.t.sol:WithdrawTest
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 300)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_ConversionRateChange() (gas: 127356)
+[PASS] test_MaxBufferWithdraw() (gas: 332232)
+[PASS] test_UserCanWithdrawAssets() (gas: 266355)
+[PASS] test_WithdrawAll() (gas: 289780)
+[PASS] test_WithdrawBufferPlusOne() (gas: 481829)
+[PASS] test_WithdrawByNonOwner() (gas: 176770)
+[PASS] test_WithdrawByNonOwnerWithInsufficientAllowance() (gas: 393155)
+[PASS] test_WithdrawByNonOwnerWithSufficientAllowance() (gas: 299373)
+[PASS] test_WithdrawEventEmission() (gas: 291056)
+[PASS] test_WithdrawExactlyBufferLimit() (gas: 311051)
+[PASS] test_WithdrawExceedingBalance() (gas: 524796)
+[PASS] test_WithdrawForce() (gas: 527318)
+[PASS] test_WithdrawForce_withNonWithdrawableArk() (gas: 709721)
+[PASS] test_WithdrawFromArks() (gas: 481795)
+[PASS] test_WithdrawFromArks_withTip() (gas: 616266)
+[PASS] test_WithdrawFromBuffer() (gas: 293294)
+[PASS] test_WithdrawFromBufferDirectly() (gas: 251977)
+[PASS] test_WithdrawFromBuffer_withTip() (gas: 432968)
+[PASS] test_WithdrawMultipleTimes() (gas: 606924)
+[PASS] test_WithdrawToOtherReceiver() (gas: 267928)
+[PASS] test_WithdrawUpdatesBufferBalance() (gas: 275528)
+[PASS] test_WithdrawWithRebalancedFunds() (gas: 566195)
+[PASS] test_WithdrawZero() (gas: 176372)
+[PASS] test_Withdraw_withTip() (gas: 474539)
+Suite result: ok. 27 passed; 0 failed; 0 skipped; finished in 116.22ms (102.01ms CPU time)
+
+Ran 15 tests for test/fleets/FleetCommander.mint.t.sol:MintTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 256)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_Mint() (gas: 331620)
+[PASS] test_MintEventEmission() (gas: 332854)
+[PASS] test_MintExceedingAllowance() (gas: 267242)
+[PASS] test_MintExceedingBalance() (gas: 251468)
+[PASS] test_MintExceedingDepositCap() (gas: 257968)
+[PASS] test_MintMultipleTimes() (gas: 580307)
+[PASS] test_MintToOtherReceiver() (gas: 335316)
+[PASS] test_MintUpToDepositCap() (gas: 337973)
+[PASS] test_MintUpdatesBufferBalance() (gas: 344809)
+[PASS] test_MintZeroShares() (gas: 121583)
+[PASS] test_Mint_withTip() (gas: 530446)
+[PASS] test_RedeemExceedingBalance() (gas: 200851)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 42.61ms (31.73ms CPU time)
+
+Ran 13 tests for test/fleets/FleetCommander.withdrawWithInterest.t.sol:WithdrawWithInterestTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 234)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_ConversionRateChange() (gas: 94142)
+[PASS] test_MaxWithdrawIncreasedWithInterest() (gas: 127852)
+[PASS] test_TwoUsersWithdrawAllAssets() (gas: 739995)
+[PASS] test_WithdrawAfterMultipleInterestAccruals() (gas: 353181)
+[PASS] test_WithdrawAllAssets() (gas: 315502)
+[PASS] test_WithdrawAllWithWithdrawFromArks() (gas: 294769)
+[PASS] test_WithdrawBufferPlusOne() (gas: 481807)
+[PASS] test_WithdrawExactlyBufferLimit() (gas: 294405)
+[PASS] test_WithdrawPartialWithInterest() (gas: 266896)
+[PASS] test_WithdrawToOtherReceiverWithInterest() (gas: 268224)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 47.16ms (35.83ms CPU time)
+
+Ran 1 test for test/helpers/FleetCommanderTestHelpers.sol:FleetCommanderTestHelpers
+[PASS] testSkipper() (gas: 121)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 244.45µs (22.89µs CPU time)
+
+Ran 13 tests for test/fleets/FleetCommanderWhitelist.t.sol:FleetCommanderWhitelistTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 256)
+[PASS] testSkipper() (gas: 233)
+[PASS] test_NonOperator_RevertIfTransferFromToNonWhitelisted() (gas: 300763)
+[PASS] test_NonOperator_RevertIfTransferToNonWhitelisted() (gas: 66943)
+[PASS] test_NonOperator_RevertIfTransfersDisabled() (gas: 64291)
+[PASS] test_OnlyKeeperCanCallTip() (gas: 60606)
+[PASS] test_OperatorBypass_TransferFromToNonWhitelisted_AndDisabled() (gas: 69688)
+[PASS] test_OperatorBypass_TransferToNonWhitelisted_AndDisabled() (gas: 58867)
+[PASS] test_Redeem_AccruesTipExactlyOnce() (gas: 261103)
+[PASS] test_RevertIfTransferFromPaused() (gas: 186761)
+[PASS] test_RevertIfTransferPaused() (gas: 131051)
+[PASS] test_Withdraw_AccruesTipExactlyOnce() (gas: 256088)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 29.99ms (19.15ms CPU time)
+
+Ran 4 tests for test/arks/AaveV3Ark.fork.t.sol:AaveV3ArkTestFork
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 276)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_Board_AaveV3_fork() (gas: 469880)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 286.80ms (15.49ms CPU time)
+
+Ran 25 tests for test/fleets/FleetCommander.rebalance.t.sol:RebalanceTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 234)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_FleetCommanderRebalanceNoOperations() (gas: 70663)
+[PASS] test_FleetCommanderRebalanceTooManyOperations() (gas: 152261)
+[PASS] test_ForceRebalance() (gas: 349645)
+[PASS] test_GetEffectiveDepositCap() (gas: 23043)
+[PASS] test_GetEffectiveDepositCap_2() (gas: 22999)
+[PASS] test_RebalanceCooldownNotElapsed() (gas: 416424)
+[PASS] test_RebalanceExceedMaxAllocation() (gas: 258928)
+[PASS] test_RebalanceExceedMaxAllocationAfterDeposit() (gas: 259309)
+[PASS] test_RebalanceExceedsMoveMaxRebalanceOutflow() (gas: 196688)
+[PASS] test_RebalanceExceedsMoveMaxRebalanceOutflow_MultipleOperations() (gas: 343112)
+[PASS] test_RebalanceExceedsMoveToMax() (gas: 196760)
+[PASS] test_RebalanceInvalidSourceArk() (gas: 100150)
+[PASS] test_RebalanceInvalidTargetArk() (gas: 95421)
+[PASS] test_RebalanceMultipleArks() (gas: 489491)
+[PASS] test_RebalanceSuccess() (gas: 374971)
+[PASS] test_RebalanceWithEffectiveDepositCap() (gas: 207026)
+[PASS] test_RebalanceWithMaxUint() (gas: 363625)
+[PASS] test_RebalanceZeroAmount() (gas: 95093)
+[PASS] test_SourceArkAddressZero() (gas: 92954)
+[PASS] test_TargetArkAddressZero() (gas: 92922)
+[PASS] test_forceRebalanceToBufferArk() (gas: 273716)
+[PASS] test_rebalanceFromBufferArk() (gas: 276908)
+Suite result: ok. 25 passed; 0 failed; 0 skipped; finished in 69.81ms (57.40ms CPU time)
+
+Ran 5 tests for test/arks/CompoundV3ArkArb.fork.t.sol:CompoundV3ArkArbitrumTest
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 211)
+[PASS] testSkipper() (gas: 188)
+[PASS] test_BoardAndHarvest_CompoundV3_Arbitrum_fork() (gas: 485476)
+[PASS] test_Board_CompoundV3_Arbitrum_fork() (gas: 382698)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 292.24ms (28.61ms CPU time)
+
+Ran 2 tests for test/admiralsQuarters/AdmiralsQuarters.merkl.t.sol:AdmiralsQuartersRewardsTest
+[PASS] testSkipper() (gas: 255)
+[PASS] test_ClaimMerklRewards() (gas: 149608)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 293.30ms (2.66ms CPU time)
+
+Ran 8 tests for test/admiralsQuarters/AdmiralsQuarters.import.t.sol:AdmiralsQuartersImportTest
+[PASS] testSkip() (gas: 298)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_ImportAll_Multicall() (gas: 840967)
+[PASS] test_ImportFromAave() (gas: 589432)
+[PASS] test_ImportFromCompound() (gas: 443675)
+[PASS] test_ImportFromERC4626() (gas: 470413)
+[PASS] test_ImportReverts() (gas: 19173)
+[PASS] test_ImportZeroAmount() (gas: 343723)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 369.54ms (52.51ms CPU time)
+
+Ran 21 tests for test/arks/ArmArk.t.sol:ArmArkTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 234)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_AssetsInWithdrawalQueue_NoRequest() (gas: 8127)
+[PASS] test_Board() (gas: 211607)
+[PASS] test_Board_InsufficientBalance() (gas: 26246)
+[PASS] test_ClaimWithdrawal() (gas: 380738)
+[PASS] test_ClaimWithdrawal_MaxAmount() (gas: 371446)
+[PASS] test_ClaimWithdrawal_MaxAmountNoLiquidity() (gas: 558458)
+[PASS] test_ClaimWithdrawal_NoRequest() (gas: 25612)
+[PASS] test_Constructor() (gas: 5347983)
+[PASS] test_Disembark() (gas: 251744)
+[PASS] test_Disembark_InsufficientBalance() (gas: 25398)
+[PASS] test_Harvest() (gas: 224989)
+[PASS] test_IsWithdrawalClaimRequired_NoRequest() (gas: 8085)
+[PASS] test_RequestWithdrawal() (gas: 351321)
+[PASS] test_RequestWithdrawal_AlreadyRequested() (gas: 359692)
+[PASS] test_RequestWithdrawal_MaxAmount() (gas: 318565)
+[PASS] test_TotalAssets() (gas: 236421)
+[PASS] test_WithdrawUsingSwap() (gas: 257064)
+[PASS] test_WithdrawableTotalAssets() (gas: 215284)
+Suite result: ok. 21 passed; 0 failed; 0 skipped; finished in 392.97ms (130.93ms CPU time)
+
+Ran 7 tests for test/arks/MapleInstitutionalArkUSDC.fork.t.sol:MapleInstitutionalArkUSDCTestFork
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 189)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_Board_MapleInstitutional_fork() (gas: 671375)
+[PASS] test_RequestFullRedeem_MapleInstitutional_fork() (gas: 832686)
+[PASS] test_RequestPartialRedeem_MapleInstitutional_fork() (gas: 1141806)
+[PASS] test_WithdrawableTotalAssets_MapleInstitutional_fork() (gas: 1504596)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 363.67ms (136.24ms CPU time)
+
+Ran 9 tests for test/utils/AssetsForwarder/AssetsForwarder.t.sol:AssetsForwarderTest
+[PASS] test_forwardAsset_revertIfNotWhitelisted() (gas: 103418)
+[PASS] test_forwardAsset_success() (gas: 132170)
+[PASS] test_sendAsset_revertIfNotWhitelisted() (gas: 76988)
+[PASS] test_sendAsset_success() (gas: 95530)
+[PASS] test_setWhitelistedBatch_revertIfNotGovernor() (gas: 22767)
+[PASS] test_setWhitelisted_revertIfNotGovernor() (gas: 20031)
+[PASS] test_sweepAsset_revertIfNotKeeper() (gas: 77742)
+[PASS] test_sweepAsset_success() (gas: 87970)
+[PASS] test_validateInputs_revertZeroAddress() (gas: 59024)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 8.47ms (5.44ms CPU time)
+
+Ran 25 tests for test/fleets/FleetCommander.redeem.t.sol:RedeemTest
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 232)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_MaxBufferRedeem() (gas: 392421)
+[PASS] test_RedeemAll() (gas: 260848)
+[PASS] test_RedeemByNonOwner() (gas: 239439)
+[PASS] test_RedeemByNonOwnerWithInsufficientAllowance() (gas: 395576)
+[PASS] test_RedeemByNonOwnerWithSufficientAllowance() (gas: 325610)
+[PASS] test_RedeemEventEmission() (gas: 301878)
+[PASS] test_RedeemExceedingBalance() (gas: 264951)
+[PASS] test_RedeemFromArks() (gas: 568504)
+[PASS] test_RedeemFromArks_withTip() (gas: 618937)
+[PASS] test_RedeemFromBuffer() (gas: 387437)
+[PASS] test_RedeemFromBufferDirectly() (gas: 335154)
+[PASS] test_RedeemFromBuffer_withTip() (gas: 425454)
+[PASS] test_RedeemMultipleTimes() (gas: 580074)
+[PASS] test_RedeemToOtherReceiver() (gas: 337680)
+[PASS] test_RedeemToOtherReceiverCalledByNonOwner() (gas: 250223)
+[PASS] test_RedeemUpdatesBufferBalance() (gas: 345243)
+[PASS] test_RedeemWithRebalancedFunds() (gas: 692457)
+[PASS] test_RedeemZero() (gas: 174446)
+[PASS] test_Redeem_withTip() (gas: 475912)
+[PASS] test_UserCanRedeemShares() (gas: 273502)
+[PASS] test_ValidateForceRedeem() (gas: 533060)
+[PASS] test_ValidateRedeemFromBuffer() (gas: 454388)
+Suite result: ok. 25 passed; 0 failed; 0 skipped; finished in 154.12ms (136.77ms CPU time)
+
+Ran 22 tests for test/arks/AeraArk.t.sol:AeraArkTestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 212)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_AssetsInWithdrawalQueue() (gas: 641389)
+[PASS] test_Board() (gas: 534417)
+[PASS] test_ClaimWithdrawal() (gas: 640067)
+[PASS] test_CompleteAsyncWithdrawalFlow() (gas: 744752)
+[PASS] test_CompleteAsyncWithdrawalFlow_MaxWithdrawal() (gas: 747491)
+[PASS] test_Constructor() (gas: 5792292)
+[PASS] test_DepositRefund_DirectRefund() (gas: 466140)
+[PASS] test_DepositRefund_ExpiredRequest() (gas: 479083)
+[PASS] test_Harvest() (gas: 517657)
+[PASS] test_MaxDeposit() (gas: 22837)
+[PASS] test_ProvisionerAddresses() (gas: 11234)
+[PASS] test_RequestWithdrawal() (gas: 641523)
+[PASS] test_TotalAssets() (gas: 524293)
+[PASS] test_TotalAssetsContinuity_MultipleScenarios() (gas: 690950)
+[PASS] test_UnitPriceManipulation() (gas: 85321)
+[PASS] test_VaultUnitsBalance() (gas: 507108)
+[PASS] test_WithdrawableTotalAssets() (gas: 522764)
+[PASS] test_WithdrawalRefund_ExpiredRequest() (gas: 694280)
+[PASS] test_YieldAccrual() (gas: 529695)
+Suite result: ok. 22 passed; 0 failed; 0 skipped; finished in 444.06ms (172.73ms CPU time)
+
+Ran 1 test for test/helpers/OneInchTestHelpers.sol:OneInchTestHelpers
+[PASS] testSkip() (gas: 143)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 358.07µs (27.93µs CPU time)
+
+Ran 16 tests for test/arks/OriginSuperOETHArk.t.sol:OriginETHArkTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 256)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board() (gas: 333325)
+[PASS] test_BoardWithMinShares() (gas: 333357)
+[PASS] test_ClaimWithdrawal_ClaimDelayNotMet() (gas: 653764)
+[PASS] test_ClaimWithdrawal_NoRequestId() (gas: 56070)
+[PASS] test_ClaimWithdrawal_WithdrawalRequestClaimed() (gas: 1021391)
+[PASS] test_Constructor() (gas: 5383639)
+[PASS] test_Disembark_OriginETH() (gas: 338853)
+[PASS] test_RequestWithdrawal() (gas: 640429)
+[PASS] test_RequestWithdrawal_MaxUint() (gas: 645012)
+[PASS] test_TotalAssets() (gas: 685852)
+[PASS] test_WithdrawUsingSwap_NonWhitelistedRouter() (gas: 358371)
+[PASS] test_WithdrawUsingSwap_SuperOETH() (gas: 571405)
+[PASS] test_WithdrawableAssets() (gas: 756004)
+Suite result: ok. 16 passed; 0 failed; 0 skipped; finished in 391.30ms (173.17ms CPU time)
+
+Ran 21 tests for test/fleets/FlexibleTipper.t.sol:FlexibleTipperTest
+[PASS] test_AUMOnly_MatchesOriginalTipper() (gas: 67789)
+[PASS] test_AUMOnly_NoPerformanceFee() (gas: 87317)
+[PASS] test_Both_AUMAndPerformanceFee() (gas: 160020)
+[PASS] test_DefaultFeeType_IsAUM() (gas: 8194)
+[PASS] test_DefaultHWM_IsOneToOne() (gas: 8108)
+[PASS] test_DefaultPerformanceFeeRate_IsZero() (gas: 8926)
+[PASS] test_PerformanceOnly_FeeOnProfit() (gas: 140806)
+[PASS] test_PerformanceOnly_FeeOnlyOnNewProfit() (gas: 166467)
+[PASS] test_PerformanceOnly_HWMUpdatesAfterFee() (gas: 139590)
+[PASS] test_PerformanceOnly_NoFeeAfterLoss() (gas: 152420)
+[PASS] test_PerformanceOnly_NoFeeWhenNoProfit() (gas: 91997)
+[PASS] test_PreviewTip_AUMOnly_NoPerformanceFeePreview() (gas: 46562)
+[PASS] test_PreviewTip_IncludesPerformanceFee() (gas: 96982)
+[PASS] test_PreviewTip_MatchesActualTip() (gas: 147594)
+[PASS] test_SetFeeType_ResetsHWMToCurrentAPS() (gas: 195331)
+[PASS] test_SetFeeType_ResetsHWMToOneToOne_WhenZeroSupply() (gas: 2670391)
+[PASS] test_SetFeeType_Success() (gas: 51257)
+[PASS] test_SetPerformanceFeeRate_RevertIfTooHigh() (gas: 14509)
+[PASS] test_SetPerformanceFeeRate_Success() (gas: 45247)
+[PASS] test_ZeroAssets_NoRevert() (gas: 132021)
+[PASS] test_ZeroSupply_NoRevert() (gas: 2714504)
+Suite result: ok. 21 passed; 0 failed; 0 skipped; finished in 13.31ms (11.70ms CPU time)
+
+Ran 10 tests for test/arks/FluidFtokenArk.t.sol:FluidFTokenArkUnitTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 276)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_Constructor_RevertOnAssetMismatch() (gas: 2853634)
+[PASS] test_Constructor_RevertOnZeroVault() (gas: 266394)
+[PASS] test_Harvest_HappyPath_MintsAndForwardsToRaft() (gas: 1482548)
+[PASS] test_Harvest_Revert_InvalidClaimer() (gas: 26943)
+[PASS] test_Harvest_Revert_InvalidRecipient() (gas: 1455275)
+[PASS] test_Harvest_Revert_ZeroRewardToken() (gas: 405047)
+[PASS] test_Harvest_ZeroMint_Ok() (gas: 1471105)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 17.33ms (13.65ms CPU time)
+
+Ran 5 tests for test/arks/CompoundV3Ark.fork.t.sol:CompoundV3ArkTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 189)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board_CompoundV3_fork() (gas: 382853)
+[PASS] test_Harvest_CompoundV3_Mainnet() (gas: 5261418)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 439.19ms (207.82ms CPU time)
+
+Ran 39 tests for test/admiralsQuarters/AdmiralsQuarters.t.sol:AdmiralsQuartersTest
+[PASS] testSkip() (gas: 212)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_ClaimGovernanceRewards_RevertInvalidRewardsManager() (gas: 19764)
+[PASS] test_ClaimGovernanceRewards_RevertInvalidToken() (gas: 21952)
+[PASS] test_ClaimMerkleRewards_RevertInvalidRewardsRedeemer() (gas: 23269)
+[PASS] test_Constructor() (gas: 5189335)
+[PASS] test_DepositBothTokens_SwapBetweenFleets_WithdrawAll() (gas: 1865533)
+[PASS] test_DepositDAI_WithdrawPartialSwapToUSDC_DepositUSDC() (gas: 964597)
+[PASS] test_DepositUSDC_WithdrawAll_SwapHalfToDAI_DepositBoth() (gas: 1040546)
+[PASS] test_DepositWithdrawSameToken() (gas: 179099)
+[PASS] test_Deposit_ETH_Swap_EnterFleet() (gas: 392863)
+[PASS] test_Deposit_Enter_Stake() (gas: 393212)
+[PASS] test_Deposit_Enter_Stake_Reverts() (gas: 296087)
+[PASS] test_Deposit_Enter_Stake_WETH() (gas: 800901)
+[PASS] test_Deposit_Enter_Stake_With_Referral() (gas: 404300)
+[PASS] test_Deposit_Reverts() (gas: 94429)
+[PASS] test_DirectUnstakeAfterStakingThroughAdmiralsQuarters() (gas: 532525)
+[PASS] test_EnterAndExitFleetsX() (gas: 971850)
+[PASS] test_EnterFleet_Reverts() (gas: 74420)
+[PASS] test_EnterWithETH_ExitToETH() (gas: 452644)
+[PASS] test_EnterWithETH_ExitToWETH() (gas: 438688)
+[PASS] test_ExitFleet_Reverts() (gas: 31958)
+[PASS] test_FailedSwap() (gas: 272363)
+[PASS] test_MoveFleetsX() (gas: 696043)
+[PASS] test_MultiUserInteraction() (gas: 1372331)
+[PASS] test_RemoveRewardToken_FailsWithTooMuchBalance() (gas: 229112)
+[PASS] test_RemoveRewardToken_SucceedsWithDust() (gas: 1157714)
+[PASS] test_RescueTokens() (gas: 249897)
+[PASS] test_RewardsExploitViaStakeOnBehalfOf() (gas: 558910)
+[PASS] test_Swap_Reverts() (gas: 298540)
+[PASS] test_UnstakeAndWithdrawAll() (gas: 586765)
+[PASS] test_Withdraw_Reverts() (gas: 20259)
+[PASS] test_unstakeAndWithdrawAssets() (gas: 568570)
+[PASS] test_unstakeAndWithdrawAssetsRevert_InvalidFleet() (gas: 31894)
+[PASS] test_unstakeAndWithdrawAssetsRevert_NotStaked() (gas: 14898)
+[PASS] test_unstakeAndWithdrawAssets_DirectUnstakeReverts() (gas: 409932)
+[PASS] test_unstakeAndWithdrawAssets_Full() (gas: 581324)
+[PASS] test_unstakeAndWithdrawAssets_Full_ClaimRewards() (gas: 679681)
+[PASS] test_unstakeAndWithdrawAssets_Full_ClaimRewards_WithDust() (gas: 4825903)
+Suite result: ok. 39 passed; 0 failed; 0 skipped; finished in 600.86ms (264.21ms CPU time)
+
+Ran 4 tests for test/fleets/FleetCommander.lifecycle.t.sol:LifecycleTest
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 212)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_DepositRebalanceWithdrawFromArks() (gas: 1160389)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 24.91ms (14.03ms CPU time)
+
+Ran 4 tests for test/arks/FluidFtokenArkFork.t.sol:FluidFTokenArkForkTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 189)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Harvest_Fork_ClaimOrNoop() (gas: 150206)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 198.30ms (6.30ms CPU time)
+
+Ran 10 tests for test/arks/StargateV2PoolArk.t.sol:StargateV2PoolArkTestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 233)
+[PASS] testSkipper() (gas: 210)
+[PASS] test_Board() (gas: 471093)
+[PASS] test_Constructor() (gas: 5799799)
+[PASS] test_Disembark() (gas: 548669)
+[PASS] test_ETHWrapping() (gas: 60386)
+[PASS] test_Harvest() (gas: 553021)
+[PASS] test_TotalAssets() (gas: 471422)
+[PASS] test_WithdrawableTotalAssets() (gas: 482461)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 186.90ms (35.05ms CPU time)
+
+Ran 16 tests for test/arks/OriginETHArk.t.sol:OriginETHArkTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 211)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board() (gas: 369967)
+[PASS] test_BoardWithMinShares() (gas: 347548)
+[PASS] test_ClaimWithdrawal_ClaimDelayNotMet() (gas: 665706)
+[PASS] test_ClaimWithdrawal_NoRequestId() (gas: 56070)
+[PASS] test_ClaimWithdrawal_WithdrawalRequestClaimed() (gas: 1038739)
+[PASS] test_Constructor() (gas: 5646920)
+[PASS] test_Disembark_OriginETH() (gas: 445039)
+[PASS] test_RequestWithdrawal() (gas: 647740)
+[PASS] test_RequestWithdrawal_MaxUint() (gas: 654480)
+[PASS] test_TotalAssets() (gas: 697727)
+[PASS] test_WithdrawUsingSwap_NonWhitelistedRouter() (gas: 395008)
+[PASS] test_WithdrawUsingSwap_OriginETH() (gas: 625216)
+[PASS] test_WithdrawableAssets() (gas: 1035156)
+Suite result: ok. 16 passed; 0 failed; 0 skipped; finished in 358.29ms (148.20ms CPU time)
+
+Ran 1 test for test/mocks/MockSummerGovernor.sol:MockSummerGovernor
+[PASS] test_() (gas: 165)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 366.99µs (35.24µs CPU time)
+
+Ran 18 tests for test/arks/SiUSDArk.t.sol:SiUSDArkUnitTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 211)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_Board() (gas: 285764)
+[PASS] test_Board_MultipleDeposits() (gas: 390136)
+[PASS] test_Board_OnlyCommander() (gas: 99319)
+[PASS] test_CompleteFlow() (gas: 599916)
+[PASS] test_Constructor_InvalidGatewayAddress() (gas: 253522)
+[PASS] test_Constructor_InvalidSiUSDAddress() (gas: 253512)
+[PASS] test_Constructor_Success() (gas: 26321)
+[PASS] test_Disembark() (gas: 461875)
+[PASS] test_Disembark_FullWithdrawal() (gas: 456526)
+[PASS] test_Disembark_OnlyCommander() (gas: 276617)
+[PASS] test_Harvest() (gas: 25728)
+[PASS] test_Harvest_OnlyRaft() (gas: 21521)
+[PASS] test_TotalAssets_AfterDeposit() (gas: 281388)
+[PASS] test_TotalAssets_EmptyArk() (gas: 11942)
+[PASS] test_TotalAssets_WithYield() (gas: 293212)
+Suite result: ok. 18 passed; 0 failed; 0 skipped; finished in 21.03ms (17.64ms CPU time)
+
+Ran 7 tests for test/arks/HyperlendArk.t.sol:HyperlendArkTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 233)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board() (gas: 128701)
+[PASS] test_Constructor() (gas: 4123303)
+[PASS] test_Disembark() (gas: 90584)
+[PASS] test_Harvest() (gas: 43499)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 9.36ms (5.18ms CPU time)
+
+Ran 14 tests for test/arks/FluidLiteArk.t.sol:FluidLiteArkTestFork
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 234)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_Board_FluidLite() (gas: 443021)
+[PASS] test_ClaimWithdrawalLido() (gas: 911640)
+[PASS] test_Constructor() (gas: 6834822)
+[PASS] test_Disembark() (gas: 3573)
+[PASS] test_Harvest() (gas: 40455)
+[PASS] test_RequestWithdrawal() (gas: 705312)
+[PASS] test_RequestWithdrawal_MaxUint() (gas: 713347)
+[PASS] test_TotalAssets() (gas: 225589)
+[PASS] test_WithdrawUsingSwap() (gas: 935950)
+[PASS] test_WithdrawUsingSwap_NonWhitelistedRouter() (gas: 528196)
+[PASS] test_claimWithdrawal_revert() (gas: 715184)
+Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 263.41ms (78.21ms CPU time)
+
+Ran 5 tests for test/fleets/FleetCommander.lifecycle.base.fork.t.sol:BaseLifecycleTest
+[PASS] test() (gas: 254)
+[PASS] testSkip() (gas: 298)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_DepositRebalanceWithMaxUintWithdraw_USDCFleet_BaseFork() (gas: 48529144)
+[PASS] test_DepositRebalanceWithdrawFromArks_USDCFleet_BaseFork() (gas: 21221004)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 1.03s (1.02s CPU time)
+
+Ran 4 tests for test/arks/HyperlendArk.fork.t.sol:HyperlendArkTestFork
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 233)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board_Hyperlend_fork() (gas: 463616)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 165.15ms (6.56ms CPU time)
+
+Ran 4 tests for test/arks/HypurrfiArk.fork.t.sol:HypurrfiArkTestFork
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 211)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_Board_Hypurrfi_fork() (gas: 462750)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 173.83ms (6.80ms CPU time)
+
+Ran 8 tests for test/arks/SiloArk.fork.t.sol:SonicArkTestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 211)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_Board() (gas: 517688)
+[PASS] test_Constructor() (gas: 4637891)
+[PASS] test_Disembark() (gas: 662928)
+[PASS] test_Harvest() (gas: 703973)
+[PASS] test_TotalAssets() (gas: 489148)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 368.28ms (220.11ms CPU time)
+
+Ran 10 tests for test/arks/PsmLiteERC4626Ark.t.sol:PsmLiteERC4626ArkTestFork
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 212)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board_SUSDS() (gas: 734380)
+[PASS] test_Board_USDS() (gas: 604069)
+[PASS] test_Constructor() (gas: 4995378)
+[PASS] test_Disembark_SUSDS() (gas: 1027376)
+[PASS] test_Disembark_USDS() (gas: 834798)
+[PASS] test_Harvest() (gas: 619340)
+[PASS] test_TotalAssets() (gas: 599828)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 300.89ms (77.96ms CPU time)
+
+Ran 1 test for test/misc/MaxWithdrawExecutor.t.sol:MaxWithdrawExecutorTest
+[PASS] test_MaxWithdrawExecutor_Fork_Arbitrum() (gas: 956086)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.18s (1.17s CPU time)
+
+Ran 7 tests for test/arks/SparkArk.t.sol:SparkArkTest
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 233)
+[PASS] testSkipper() (gas: 210)
+[PASS] test_Board() (gas: 128701)
+[PASS] test_Constructor() (gas: 4120371)
+[PASS] test_Disembark() (gas: 90584)
+[PASS] test_Harvest() (gas: 43543)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 8.31ms (5.52ms CPU time)
+
+Ran 36 tests for test/auctions/Raft.t.sol:RaftTest
+[PASS] testSkipper() (gas: 233)
+[PASS] test_BuyAllAndSettleAuction() (gas: 529826)
+[PASS] test_BuyAllAndSettleAuctionWithNoSelfTransfer() (gas: 529988)
+[PASS] test_BuyTokens() (gas: 522553)
+[PASS] test_CannotFinalizeAuctionBeforeEndTime() (gas: 388300)
+[PASS] test_CannotStartAuctionTwice() (gas: 389297)
+[PASS] test_CannotStartAuctionWithNoTokens() (gas: 71864)
+[PASS] test_Constructor() (gas: 5681972)
+[PASS] test_FinalizeAuction() (gas: 451055)
+[PASS] test_FinalizeAuctionWithNoSelfTransfer() (gas: 451118)
+[PASS] test_Harvest() (gas: 105949)
+[PASS] test_HarvestAndStartAuction() (gas: 406915)
+[PASS] test_HarvestAndStartAuctionWithNoSelfTransfer() (gas: 407085)
+[PASS] test_HarvestMultipleTokensAndStartAuction() (gas: 738178)
+[PASS] test_MultipleAuctionsCycle() (gas: 938495)
+[PASS] test_MultipleAuctionsCycleWithNoSelfTransfer() (gas: 938888)
+[PASS] test_MultipleAuctionsCycleWithUnsoldTokens() (gas: 909894)
+[PASS] test_MultipleAuctionsCycleWithUnsoldTokensAndNoSelfTransfer() (gas: 910180)
+[PASS] test_NonCuratorCannotSetSweepableToken() (gas: 28311)
+[PASS] test_NonGovernorCannotSetNonSweepableToken() (gas: 21779)
+[PASS] test_SetSweepableToken() (gas: 54508)
+[PASS] test_SocializeLosses() (gas: 2314508)
+[PASS] test_StartAuction() (gas: 405103)
+[PASS] test_Sweep() (gas: 2373664)
+[PASS] test_SweepAndStartAuction() (gas: 912424)
+[PASS] test_SweepAndStartAuction_OnlySweepableAndNonSweepableTokens() (gas: 314493)
+[PASS] test_SweepAndStartAuction_OnlySweepableTokens() (gas: 264420)
+[PASS] test_SweepMultipleTokens_MixedSweepable() (gas: 72554)
+[PASS] test_SweepNotSweepableToken() (gas: 24393)
+[PASS] test_SweepOnlyRaft() (gas: 21403)
+[PASS] test_SweepWithNoTokens() (gas: 40159)
+[PASS] test_UnsoldTokensHandling() (gas: 576100)
+[PASS] test_UnsoldTokensHandlingWithNoSelfTransfer() (gas: 576303)
+[PASS] test_UpdateAuctionConfig() (gas: 90268)
+[PASS] test_auctions() (gas: 612215)
+[PASS] test_uninitilizedRewardToken() (gas: 17683)
+Suite result: ok. 36 passed; 0 failed; 0 skipped; finished in 121.47ms (105.18ms CPU time)
+
+Ran 7 tests for test/auctions/RaftDecimals.t.sol:RaftDecimalsTest
+[PASS] testAuction18Dec18Dec() (gas: 701074)
+[PASS] testAuction18Dec6Dec() (gas: 701140)
+[PASS] testAuction6Dec18Dec() (gas: 701073)
+[PASS] testAuction6Dec6Dec() (gas: 701074)
+[PASS] testAuction8Dec18Dec() (gas: 701141)
+[PASS] testAuction8Dec8Dec() (gas: 701117)
+[PASS] testSkipper() (gas: 233)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 55.94ms (25.92ms CPU time)
+
+Ran 9 tests for test/arks/MoonwellArkTest.fork.t.sol:MoonwellArkTestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 254)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_Board_DaiMoonwellArk_fork() (gas: 523776)
+[PASS] test_Board_EurcMoonwellArk_fork() (gas: 578416)
+[PASS] test_ClaimReward_EurcMoonwellArk_fork() (gas: 900976)
+[PASS] test_Disembark_DaiMoonwellArk_fork() (gas: 668723)
+[PASS] test_Disembark_EurcMoonwellArk_fork() (gas: 751029)
+[PASS] test_HarvestRaft() (gas: 900649)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 1.41s (216.37ms CPU time)
+
+Ran 9 tests for test/rounds-vault/RoundsVaultMinPosition.t.sol:RoundsVaultMinPositionTest
+[PASS] test_MinPosition_Aggregate_WithTargetVault() (gas: 236175)
+[PASS] test_MinPosition_Deposit_AboveLimit_Succeeds() (gas: 168660)
+[PASS] test_MinPosition_Deposit_BelowLimit_Reverts() (gas: 174615)
+[PASS] test_MinPosition_Normalization_OutputVault_Reverts() (gas: 227375)
+[PASS] test_MinPosition_Normalization_OutputVault_Succeeds() (gas: 210135)
+[PASS] test_MinPosition_Redeem_BelowLimit_Reverts() (gas: 197217)
+[PASS] test_MinPosition_Redeem_ToZero_Succeeds() (gas: 159371)
+[PASS] test_MinPosition_Transfer_ChecksReceiverAndSender() (gas: 310997)
+[PASS] test_Whitelist_EnforcedOnTransfer() (gas: 213863)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 8.35ms (6.06ms CPU time)
+
+Ran 15 tests for test/rounds-vault/RoundsVaultOutput.t.sol:RoundsVaultOutputTest
+[PASS] test_ROV0001_DefaultValue() (gas: 13433)
+[PASS] test_ROV0002_DepositRound0() (gas: 164442)
+[PASS] test_ROV0003_NextRound() (gas: 296983)
+[PASS] test_ROV0004_DepositRound1() (gas: 320403)
+[PASS] test_ROV0005_DepositRedeemSameRound() (gas: 144216)
+[PASS] test_ROV0006_DepositRedeemBatchSameRound() (gas: 145053)
+[PASS] test_ROV0007_DepositRedeemPreviousRound() (gas: 285084)
+[PASS] test_ROV0008_DepositRedeemBatchPreviousRounds() (gas: 471592)
+[PASS] test_ROV0009_RevertIfNotWhitelisted() (gas: 72830)
+[PASS] test_ROV0010_RevertIfCallerNotWhitelisted() (gas: 101993)
+[PASS] test_ROV0011_RevertIfOwnerNotWhitelisted() (gas: 117423)
+[PASS] test_ROV0012_RevertIfReceiverNotWhitelisted() (gas: 132047)
+[PASS] test_ROV0013_SetRoundSettledRevertsIfInvalidState() (gas: 166487)
+[PASS] test_ROV0015_EmergencyRollbackRound() (gas: 99992)
+[PASS] test_ROV0016_RetryRound() (gas: 205152)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 14.65ms (13.04ms CPU time)
+
+Ran 16 tests for test/arks/OriginUSDArk.t.sol:OriginUSDArkTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 256)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board() (gas: 408993)
+[PASS] test_BoardWithMinShares() (gas: 385272)
+[PASS] test_ClaimWithdrawal_ClaimDelayNotMet() (gas: 1265903)
+[PASS] test_ClaimWithdrawal_NoRequestId() (gas: 56092)
+[PASS] test_ClaimWithdrawal_WithdrawalRequestClaimed() (gas: 1892926)
+[PASS] test_Constructor() (gas: 5371966)
+[PASS] test_Disembark_OriginUSD() (gas: 621747)
+[PASS] test_RequestWithdrawal() (gas: 1249706)
+[PASS] test_RequestWithdrawal_MaxUint() (gas: 1257947)
+[PASS] test_TotalAssets() (gas: 577228)
+[PASS] test_WithdrawUsingSwap_NonWhitelistedRouter() (gas: 429340)
+[PASS] test_WithdrawUsingSwap_OriginUSD() (gas: 1080808)
+[PASS] test_WithdrawableAssets() (gas: 646876)
+Suite result: ok. 16 passed; 0 failed; 0 skipped; finished in 1.36s (166.89ms CPU time)
+
+Ran 5 tests for test/rounds-vault/RoundsVaultTwoPhaseSettlement.t.sol:RoundsVaultTwoPhaseSettlementTest
+[PASS] testFuzz_TwoPhase_Chaos(uint256) (runs: 257, μ: 2114306, ~: 2107720)
+[PASS] test_TwoPhase_DOSMitigation() (gas: 476785)
+[PASS] test_TwoPhase_MultiRound_Input() (gas: 768336)
+[PASS] test_TwoPhase_MultiRound_Output() (gas: 853316)
+[PASS] test_TwoPhase_NAVDriftTolerance() (gas: 372959)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 1.26s (1.26s CPU time)
+
+Ran 21 tests for test/arks/StargateV2PoolArkOptimism.t.sol:StargateV2PoolArkOptimismTestFork
+[PASS] test() (gas: 231)
+[PASS] testFuzz_MultiDepositsWithdrawals(uint256[5],uint256[5]) (runs: 257, μ: 785336, ~: 804184)
+[PASS] testSkip() (gas: 278)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board() (gas: 270199)
+[PASS] test_CleanDeposit_NativeETH() (gas: 261722)
+[PASS] test_Constructor() (gas: 5699844)
+[PASS] test_ConvertRate() (gas: 5976)
+[PASS] test_Disembark() (gas: 361634)
+[PASS] test_DustAccumulation_PartialWithdrawals() (gas: 504138)
+[PASS] test_DustBoundary_MinimalAmounts() (gas: 439647)
+[PASS] test_DustHandling_ArkShouldCleanDustAndKeepForWithdrawal() (gas: 359600)
+[PASS] test_DustHandling_MultipleDepositsWithdrawals() (gas: 578873)
+[PASS] test_DustHandling_SingleDeposit() (gas: 273101)
+[PASS] test_ETHWrapping() (gas: 45533)
+[PASS] test_Harvest() (gas: 342296)
+[PASS] test_NativeETHHandling() (gas: 261762)
+[PASS] test_PrecisionLoss_VsExpectedAmounts() (gas: 662470)
+[PASS] test_TotalAssets() (gas: 263452)
+[PASS] test_WithdrawableTotalAssets() (gas: 273672)
+[PASS] test_WithdrawalAmountMismatch_EdgeCase() (gas: 370283)
+Suite result: ok. 21 passed; 0 failed; 0 skipped; finished in 1.94s (1.79s CPU time)
+
+Ran 13 tests for test/arks/PendleLPArk.t.sol:PendleLPArkTestFork
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 211)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board_PendleLPArk_fork() (gas: 807049)
+[PASS] test_DepositToExpiredMarket_PendleLPArk_fork() (gas: 858159)
+[PASS] test_Disembark_PendleLPArk_fork() (gas: 1024563)
+[PASS] test_Harvest_PendleLPArk_fork() (gas: 947367)
+[PASS] test_OracleDurationUpdate_PendleLPArk_fork() (gas: 26820)
+[PASS] test_RevertOnInvalidAssetForSY() (gas: 462874)
+[PASS] test_RevertWhenNoValidNextMarket() (gas: 748167)
+[PASS] test_RolloverIfNeeded_PendleLPArk_fork() (gas: 1579662)
+[PASS] test_SlippageControl_PendleLPArk_fork() (gas: 1030131)
+[PASS] test_WithdrawFromExpiredMarket_PendleLPArk_fork() (gas: 1032866)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 890.10ms (725.54ms CPU time)
+
+Ran 9 tests for test/arks/SiloManagedVaultArk.fork.t.sol:SiloManagedVaultArkTestFork
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 189)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_Board() (gas: 1488265)
+[PASS] test_Constructor() (gas: 4717489)
+[PASS] test_Disembark() (gas: 1854324)
+[PASS] test_Harvest() (gas: 1979252)
+[PASS] test_Harvest_MultipleControllers() (gas: 5432338)
+[PASS] test_TotalAssets() (gas: 1413723)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 2.50s (1.31s CPU time)
+
+Ran 7 tests for test/arks/SkyRewardsArk.t.sol:SkyRewardsArkTestFork
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 189)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_Board_SkyRewardsArk_fork() (gas: 578051)
+[PASS] test_Disembark_AfterYieldAccrual_CheckLeftovers() (gas: 800130)
+[PASS] test_Disembark_SkyRewardsArk_fork() (gas: 789901)
+[PASS] test_Harvest_SkyRewardsArk_fork() (gas: 662209)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 354.07ms (184.95ms CPU time)
+
+Ran 8 tests for test/arks/SiloArkV2.fork.t..sol:SonicArkTestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 211)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_Board() (gas: 517635)
+[PASS] test_Constructor() (gas: 4788134)
+[PASS] test_Disembark() (gas: 662804)
+[PASS] test_Harvest() (gas: 715737)
+[PASS] test_TotalAssets() (gas: 489096)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 2.43s (2.28s CPU time)
+
+Ran 3 tests for test/helpers/TestHelpers.sol:TestHelpers
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 254)
+[PASS] testSkipper() (gas: 188)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 420.21µs (76.80µs CPU time)
+
+Ran 22 tests for test/fleets/TipJar.t.sol:TipJarTest
+[PASS] test_AddAnExistingStream() (gas: 148922)
+[PASS] test_AddTipStream() (gas: 145603)
+[PASS] test_FailAddTipStreamNonGovernor() (gas: 21358)
+[PASS] test_FailAddTipStreamWithInvalidAllocation() (gas: 48131)
+[PASS] test_FailAddTipStreamWithZeroAddress() (gas: 20992)
+[PASS] test_FailExceedTotalAllocation() (gas: 155003)
+[PASS] test_FailRemoveNonexistentTipStream() (gas: 21345)
+[PASS] test_FailShakeInvalidFleetCommanderAddress() (gas: 23377)
+[PASS] test_FailUpdateTipStreamBeforeMinTerm() (gas: 149226)
+[PASS] test_GetAllTipStreams() (gas: 252558)
+[PASS] test_GetAllTipStreamsEmpty() (gas: 8909)
+[PASS] test_GetAllTipStreamsMultiple() (gas: 359264)
+[PASS] test_GetTotalAllocation() (gas: 291693)
+[PASS] test_RemoveTipStream() (gas: 118865)
+[PASS] test_Shake() (gas: 448608)
+[PASS] test_ShakeMultiple() (gas: 3607380)
+[PASS] test_ShakeWith100PercentAllocations() (gas: 424199)
+[PASS] test_ShakeWithAccruedInterest() (gas: 473570)
+[PASS] test_ShakeWithNoAssets() (gas: 79325)
+[PASS] test_ShakeWithNoShares() (gas: 48320)
+[PASS] test_UpdateTipStream() (gas: 162244)
+[PASS] test_UpdateTipStreamWithGlobalShake() (gas: 3726848)
+Suite result: ok. 22 passed; 0 failed; 0 skipped; finished in 22.14ms (19.75ms CPU time)
+
+Ran 6 tests for test/fleets/Tipper.t.sol:TipperTest
+[PASS] test_AccrueTip() (gas: 178666)
+[PASS] test_CompoundingEffect() (gas: 188022)
+[PASS] test_InitialState() (gas: 18961)
+[PASS] test_NoTipAccrualForSmallAmounts() (gas: 182361)
+[PASS] test_SetTipRate() (gas: 26790)
+[PASS] test_TipRateCannotExceedFivePercent() (gas: 14523)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 4.84ms (3.59ms CPU time)
+
+Ran 9 tests for test/arks/MorphoV2Ark.fork.t.sol:MorphoV2ArkForkTest
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 298)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board_MorphoV2_fork() (gas: 730513)
+[PASS] test_Constructor() (gas: 238893)
+[PASS] test_Disembark_MorphoV2_fork() (gas: 974341)
+[PASS] test_Harvest_MorphoV2_fork() (gas: 745600)
+[PASS] test_TotalAssets_MorphoV2_fork() (gas: 726875)
+[PASS] test_WithdrawableAssets_MorphoV2_fork() (gas: 813663)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 3.33s (65.30ms CPU time)
+
+Ran 7 tests for test/arks/SpkRewardsArk.t.sol:SpkRewardsArkTestFork
+[PASS] test() (gas: 254)
+[PASS] testSkip() (gas: 233)
+[PASS] testSkipper() (gas: 233)
+[PASS] test_Board_SpkRewardsArk_fork() (gas: 546213)
+[PASS] test_Disembark_AfterYieldAccrual_CheckLeftovers() (gas: 758850)
+[PASS] test_Disembark_SpkRewardsArk_fork() (gas: 735181)
+[PASS] test_Harvest_SpkRewardsArk_fork() (gas: 635182)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 2.44s (208.04ms CPU time)
+
+Ran 7 tests for test/harborCommand/harborCommand.t.sol:HarborCommandTest
+[PASS] test_CannotDecommissionNonExistentFleetCommander() (gas: 23635)
+[PASS] test_CannotEnlistSameFleetCommanderTwice() (gas: 93603)
+[PASS] test_Constructor() (gas: 794596)
+[PASS] test_DecommissionFleetCommander() (gas: 76443)
+[PASS] test_EnlistFleetCommander() (gas: 94521)
+[PASS] test_GetActiveFleetCommanders() (gas: 144256)
+[PASS] test_OnlyGovernorCanEnlist() (gas: 21348)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 2.00ms (1.40ms CPU time)
+
+Ran 11 tests for test/arks/SyrupArkUSDC.fork.t.sol:SyrupArkTestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 276)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board_Syrup_fork() (gas: 677121)
+[PASS] test_RequestFullRedeem_Syrup_fork() (gas: 817136)
+[PASS] test_RequestPartialRedeem_Syrup_fork() (gas: 935812)
+[PASS] test_RequestWithdrawal_MaxUint() (gas: 821359)
+[PASS] test_WithdrawUsingSwap_NonWhitelistedRouter() (gas: 718962)
+[PASS] test_WithdrawUsingSwap_Syrup() (gas: 1173357)
+[PASS] test_WithdrawableTotalAssets_Syrup_fork() (gas: 1224283)
+[PASS] test_WithdrawableTotalAssets_Syrup_maxuint_fork() (gas: 1381842)
+Suite result: ok. 11 passed; 0 failed; 0 skipped; finished in 1.32s (147.85ms CPU time)
+
+Ran 4 tests for test/arks/WisdomTreeArkFork.t.sol:WisdomTreeArkBaseForkTest
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 211)
+[PASS] testSkipper() (gas: 188)
+[PASS] test_BaseFork_OraclePrice_And_SharesToAssets() (gas: 33092)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 221.41ms (3.39ms CPU time)
+
+Ran 23 tests for test/arks/WisdomTreeArk.t.sol:WisdomTreeArkTest
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 212)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_Board_And_PendingDeposit() (gas: 344363)
+[PASS] test_ClearPendingDeposit() (gas: 402350)
+[PASS] test_ClearPendingDepositAmount() (gas: 347869)
+[PASS] test_Constructor() (gas: 841036)
+[PASS] test_Disembark_IsNoOp() (gas: 334919)
+[PASS] test_EmergencySweep_Reverts_If_Not_Governor() (gas: 21169)
+[PASS] test_EmergencySweep_Success() (gas: 727099)
+[PASS] test_RequestWithdrawal_And_Sweep() (gas: 755871)
+[PASS] test_RequestWithdrawal_RevertsIfPendingDeposit() (gas: 344850)
+[PASS] test_RevertBoardWhenFrozen() (gas: 320706)
+[PASS] test_RevertBoardWhenPendingDepositNonMoneyMarket() (gas: 360275)
+[PASS] test_RevertIfOraclePriceNotPositive() (gas: 39940)
+[PASS] test_RevertIfOracleStale() (gas: 35475)
+[PASS] test_RevertRequestWithdrawalWhenFrozen() (gas: 61731)
+[PASS] test_SetArkFrozen() (gas: 76303)
+[PASS] test_SetCustodianWallet() (gas: 57175)
+[PASS] test_Sweep_Reverts_InsufficientAssets() (gas: 663934)
+[PASS] test_Sweep_Success() (gas: 732104)
+[PASS] test_TotalAssetsIsCachedWhenFrozen_MaxUint256() (gas: 465632)
+[PASS] test_TotalAssetsIsCachedWhenFrozen_NormalValue() (gas: 452570)
+Suite result: ok. 23 passed; 0 failed; 0 skipped; finished in 227.06ms (54.46ms CPU time)
+
+Ran 11 tests for test/arks/SyrupArkUSDT.fork.t.sol:SyrupArkUSDTTestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 254)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_Board_Syrup_fork() (gas: 587408)
+[PASS] test_RequestFullRedeem_Syrup_fork() (gas: 745088)
+[PASS] test_RequestPartialRedeem_Syrup_fork() (gas: 823852)
+[PASS] test_RequestWithdrawal_MaxUint() (gas: 749364)
+[PASS] test_WithdrawUsingSwap_NonWhitelistedRouter() (gas: 619912)
+[PASS] test_WithdrawUsingSwap_Syrup() (gas: 4387)
+[PASS] test_WithdrawableTotalAssets_Syrup_fork() (gas: 1074242)
+[PASS] test_WithdrawableTotalAssets_Syrup_maxuint_fork() (gas: 1246156)
+Suite result: ok. 11 passed; 0 failed; 0 skipped; finished in 312.37ms (107.57ms CPU time)
+
+Ran 18 tests for test/arks/PendlePTArk.t.sol:PendlePTArkTestFork
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 234)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_Board_PendlePTArk_fork() (gas: 640287)
+[PASS] test_DepositToExpireMarket_PendlePTArk_fork() (gas: 733043)
+[PASS] test_Disembark_PendlePTArk_fork() (gas: 796384)
+[PASS] test_Harvest_PendlePTArk_fork() (gas: 49388)
+[PASS] test_RevertOnInvalidAssetForSY() (gas: 463736)
+[PASS] test_RevertWhenNoValidNextMarket() (gas: 604477)
+[PASS] test_RolloverIfNeeded_PendlePTArk_fork() (gas: 1207927)
+[PASS] test_SetOracleDuration() (gas: 22688)
+[PASS] test_SetOracleDuration_RevertOnInvalidValue() (gas: 19443)
+[PASS] test_SetSlippagePercentage() (gas: 27550)
+[PASS] test_SetSlippagePercentage_RevertOnInvalidValue() (gas: 23124)
+[PASS] test_SetupRouterParams() (gas: 17819)
+[PASS] test_TotalAssets() (gas: 627256)
+[PASS] test_UpdateMarketData() (gas: 11868)
+[PASS] test_WithdrawFromExpireMarket_PendlePTArk_fork() (gas: 796879)
+Suite result: ok. 18 passed; 0 failed; 0 skipped; finished in 1.80s (1.64s CPU time)
+
+Ran 20 tests for test/rounds-vault/RoundsVaultInput.t.sol:RoundsVaultInputTest
+[PASS] test_RIV0001_DefaultValue() (gas: 20335)
+[PASS] test_RIV0002_DepositRound0() (gas: 172578)
+[PASS] test_RIV0003_NextRound() (gas: 340728)
+[PASS] test_RIV0004_DepositRound1() (gas: 231457)
+[PASS] test_RIV0005_DepositRedeemSameRound() (gas: 235976)
+[PASS] test_RIV0006_DepositRedeemBatchSameRound() (gas: 246258)
+[PASS] test_RIV0007_DepositRedeemPreviousRound() (gas: 367195)
+[PASS] test_RIV0008_DepositRedeemBatchPreviousRounds() (gas: 517702)
+[PASS] test_RIV0009_RevertIfNotWhitelisted() (gas: 72831)
+[PASS] test_RIV0010_RevertIfCallerNotWhitelisted() (gas: 102038)
+[PASS] test_RIV0011_RevertIfOwnerNotWhitelisted() (gas: 117445)
+[PASS] test_RIV0012_RevertIfReceiverNotWhitelisted() (gas: 132048)
+[PASS] test_RIV0013_SetRoundSettledRevertsIfInvalidState() (gas: 171185)
+[PASS] test_RIV0014_TransferUpdatesTotalSupply() (gas: 402965)
+[PASS] test_RIV0015_EmergencyRollbackRound() (gas: 99970)
+[PASS] test_RIV0015_TransferRevertIfFromNotWhitelisted() (gas: 97385)
+[PASS] test_RIV0016_RetryRound() (gas: 209763)
+[PASS] test_RIV0016_TransferRevertIfToNotWhitelisted() (gas: 101338)
+[PASS] test_RIV0017_TransferRevertIfCallerNotWhitelisted() (gas: 105337)
+[PASS] test_RIV0018_TransferSuccessWhenWhitelisted() (gas: 331430)
+Suite result: ok. 20 passed; 0 failed; 0 skipped; finished in 22.21ms (19.34ms CPU time)
+
+Ran 13 tests for test/arks/SyrupArkV2USDC.fork.t.sol:SyrupArkV2TestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 254)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Board_Syrup_fork() (gas: 715303)
+[PASS] test_CancelWithdrawal_NoRequest_Reverts() (gas: 33913)
+[PASS] test_CancelWithdrawal_Syrup_fork() (gas: 1182495)
+[PASS] test_RequestFullRedeem_Syrup_fork() (gas: 884236)
+[PASS] test_RequestPartialRedeem_Syrup_fork() (gas: 1183386)
+[PASS] test_RequestWithdrawal_MaxUint() (gas: 888440)
+[PASS] test_TotalAssetsConsistency_FullLifecycle() (gas: 1926116)
+[PASS] test_WithdrawUsingSwap_NonWhitelistedRouter() (gas: 800203)
+[PASS] test_WithdrawableTotalAssets_Syrup_fork() (gas: 1360326)
+[PASS] test_WithdrawableTotalAssets_Syrup_maxuint_fork() (gas: 1467848)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 364.20ms (190.17ms CPU time)
+
+Ran 8 tests for test/arks/PsmLiteERC4626Ark.fork.t.sol:PsmLiteERC4626ArkTestFork_Mainnet
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 189)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_Board() (gas: 591366)
+[PASS] test_Constructor() (gas: 5129179)
+[PASS] test_Disembark() (gas: 856119)
+[PASS] test_Harvest() (gas: 606443)
+[PASS] test_TotalAssets() (gas: 586838)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 214.64ms (41.76ms CPU time)
+
+Ran 11 tests for test/arks/SyrupArkV2USDT.fork.t.sol:SyrupArkV2USDTTestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 254)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_Board_Syrup_fork() (gas: 619084)
+[PASS] test_RequestFullRedeem_Syrup_fork() (gas: 816404)
+[PASS] test_RequestPartialRedeem_Syrup_fork() (gas: 990341)
+[PASS] test_RequestWithdrawal_MaxUint() (gas: 820681)
+[PASS] test_WithdrawUsingSwap_NonWhitelistedRouter() (gas: 667463)
+[PASS] test_WithdrawUsingSwap_Syrup() (gas: 4387)
+[PASS] test_WithdrawableTotalAssets_Syrup_fork() (gas: 1186186)
+[PASS] test_WithdrawableTotalAssets_Syrup_maxuint_fork() (gas: 1326747)
+Suite result: ok. 11 passed; 0 failed; 0 skipped; finished in 217.89ms (107.73ms CPU time)
+
+Ran 8 tests for test/arks/UpshiftArk.t.sol:UpshiftArkTestFork
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 276)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_Board() (gas: 366256)
+[PASS] test_Constructor() (gas: 18568)
+[PASS] test_RequestWithdrawalAndClaim() (gas: 707510)
+[PASS] test_RequestWithdrawalAndClaim_Lag() (gas: 662446)
+[PASS] test_RequestWithdrawalAndClaim_Lag_AutoProcessed() (gas: 934888)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 1.20s (26.84ms CPU time)
+
+Ran 6 tests for test/arks/SiUSDArk.fork.t.sol:SiUSDArkTestFork
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 298)
+[PASS] testSkipper() (gas: 277)
+[PASS] test_Constructor() (gas: 4401505)
+[PASS] test_Integration_Board() (gas: 843389)
+[PASS] test_Integration_BoardAndDisembark() (gas: 2460219)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 2.49s (2.32s CPU time)
+
+Ran 10 tests for test/arks/Psm3ERC4626Ark.fork.t.sol:Psm3ERC4626ArkTestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 256)
+[PASS] testSkipper() (gas: 233)
+[PASS] test_Board_SUSDS() (gas: 625545)
+[PASS] test_Board_USDS() (gas: 496272)
+[PASS] test_Constructor() (gas: 4615763)
+[PASS] test_Disembark_SUSDS() (gas: 824753)
+[PASS] test_Disembark_USDS() (gas: 657433)
+[PASS] test_Harvest() (gas: 641512)
+[PASS] test_TotalAssets() (gas: 621825)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 1.25s (46.25ms CPU time)
+
+Ran 6 tests for test/arks/SkyUsdsPsm3Ark.t.sol:USDSPsm3ArkTestFork
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 189)
+[PASS] testSkipper() (gas: 188)
+[PASS] test_Board_USDSPsm3Ark_fork() (gas: 398957)
+[PASS] test_Disembark_AfterYieldAccrual_CheckLeftovers() (gas: 478972)
+[PASS] test_Disembark_USDSPsm3Ark_fork() (gas: 481110)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 5.49s (487.81ms CPU time)
+
+Ran 6 tests for test/arks/SkyUsdsArk.t.sol:USDSArkTestFork
+[PASS] test() (gas: 254)
+[PASS] testSkip() (gas: 189)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_Board_USDSArk_fork() (gas: 608150)
+[PASS] test_Disembark_AfterYieldAccrual_CheckLeftovers() (gas: 865599)
+[PASS] test_Disembark_USDSArk_fork() (gas: 834605)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 3.47s (237.06ms CPU time)
+
+Ran 6 tests for test/arks/SparkArk.fork.t.sol:SparkArkForkTest
+[PASS] test() (gas: 253)
+[PASS] testSkip() (gas: 298)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_Fork_Board() (gas: 434544)
+[PASS] test_Fork_DisembarkS() (gas: 517309)
+[PASS] test_Fork_Harvest() (gas: 462608)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 7.35s (23.96ms CPU time)
+
+Ran 7 tests for test/arks/MorphoArk.fork.t.sol:MorphoArkTestFork
+[PASS] test() (gas: 231)
+[PASS] testHarvest() (gas: 131550)
+[PASS] testSkip() (gas: 233)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_Board_MorphoArk_fork() (gas: 431392)
+[PASS] test_Constructor_MorphoArk_fork() (gas: 5424266)
+[PASS] test_Disembark_MorphoArk_fork() (gas: 507654)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 11.33s (76.64ms CPU time)
+
+Ran 3 tests for test/helpers/OneInchHelpers.t.sol:OneInchHelpersTest
+[PASS] testSkip() (gas: 254)
+[PASS] test_DecodeUnoswapData() (gas: 19653)
+[PASS] test_SwapUSDCToDAI() (gas: 110860)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 11.03s (8.28ms CPU time)
+
+Ran 5 tests for test/fleets/FlexibleTipper.t.sol:FlexibleTipperFuzzTest
+[PASS] testFuzz_AUM_MatchesTipperForAnyTime(uint256,uint256) (runs: 257, μ: 190205, ~: 189597)
+[PASS] testFuzz_FeeSharesDilution_ConservesAssets(uint256,uint256,uint256) (runs: 257, μ: 252824, ~: 253251)
+[PASS] testFuzz_HWM_NeverDecreasesDuringAccrual(uint256,uint256,uint256,uint256) (runs: 257, μ: 279251, ~: 280678)
+[PASS] testFuzz_NoFeeWhenBelowHWM(uint256,uint256,uint256) (runs: 257, μ: 263922, ~: 264681)
+[PASS] testFuzz_PerformanceFee_NeverExceedsProfit(uint256,uint256,uint256) (runs: 257, μ: 248354, ~: 248844)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 11.52s (781.16ms CPU time)
+
+Ran 6 tests for test/admiralsQuarters/AdmiralsQuarters.rewards.t.sol:AdmiralsQuartersRewardsTest
+[PASS] testSkipper() (gas: 255)
+[PASS] test_ClaimAllRewardsViaBundledMulticall() (gas: 1176487)
+[PASS] test_ClaimFleetRewards() (gas: 615513)
+[PASS] test_ClaimFleetRewards_InvalidFleetCommander() (gas: 37133)
+[PASS] test_ClaimGovernanceRewards() (gas: 388056)
+[PASS] test_ClaimMerkleRewards() (gas: 268678)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 11.51s (30.29ms CPU time)
+
+Ran 4 tests for test/fleets/RoundsFleet.lifecycle.fork.t.sol:RoundsFleetLifecycleTest
+[PASS] test() (gas: 209)
+[PASS] testSkip() (gas: 276)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_DepositRebalanceWithdraw_RoundsFleet() (gas: 13820481)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 10.36s (30.12ms CPU time)
+
+Ran 5 tests for test/fleets/FleetCommander.lifecycle.fork.t.sol:LifecycleTest
+[PASS] test() (gas: 276)
+[PASS] testSkip() (gas: 212)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_DepositRebalanceWithMaxUintWithdraw_BothFleets_Fork() (gas: 11074245)
+[PASS] test_DepositRebalanceWithdrawFromArks_BothFleets_Fork() (gas: 9922870)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 11.65s (249.41ms CPU time)
+
+Ran 22 tests for test/fleets/FleetCommander.buffer.t.sol:BufferTest
+[PASS] test() (gas: 298)
+[PASS] testSkip() (gas: 212)
+[PASS] testSkipper() (gas: 255)
+[PASS] test_AdjustBufferAndRebalance() (gas: 438069)
+[PASS] test_AdjustBufferAsNonKeeper() (gas: 89830)
+[PASS] test_AdjustBufferAtMinimumBalance() (gas: 149546)
+[PASS] test_AdjustBufferEventEmission() (gas: 314793)
+[PASS] test_AdjustBufferFromBufferWithMaxUint_ShouldFail() (gas: 176883)
+[PASS] test_AdjustBufferFromMultipleArksToBufferWithMaxUint() (gas: 449214)
+[PASS] test_AdjustBufferInvalidTargetArk() (gas: 453793)
+[PASS] test_AdjustBufferMoveToArkAndBackToBuffer() (gas: 416198)
+[PASS] test_AdjustBufferMovingMoreThanAllowed() (gas: 156199)
+[PASS] test_AdjustBufferNoExcessFunds() (gas: 101700)
+[PASS] test_AdjustBufferPartialMove() (gas: 149822)
+[PASS] test_AdjustBufferSuccess() (gas: 643935)
+[PASS] test_AdjustBufferToBufferWithMaxUint_ShouldFail() (gas: 296460)
+[PASS] test_AdjustBufferWithAmountExceedingMaxAllocation() (gas: 265345)
+[PASS] test_AdjustBufferWithArkAtMaxAllocation() (gas: 265007)
+[PASS] test_AdjustBufferWithMaximumAllowedAmount() (gas: 325963)
+[PASS] test_AdjustBufferWithMultipleArks() (gas: 564513)
+[PASS] test_AdjustBufferWithZeroAmount() (gas: 152580)
+[PASS] test_TotalAssetsConsistencyAfterBufferAdjustment() (gas: 361072)
+Suite result: ok. 22 passed; 0 failed; 0 skipped; finished in 11.92s (51.67ms CPU time)
+
+Ran 8 tests for test/arks/MorphoVaultArk.fork.t.sol:MetaMorphoArkTestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 255)
+[PASS] testSkipper() (gas: 233)
+[PASS] test_Board_MetaMorphoArk_fork() (gas: 646371)
+[PASS] test_Constructor_MetaMorphoArk_AddressZero_fork() (gas: 251920)
+[PASS] test_Disembark_MetaMorphoArk_fork() (gas: 932001)
+[PASS] test_Harvest_MetaMorphoArk_RealData_fork() (gas: 5433904)
+[PASS] test_TotalAssets_MetaMorphoArk_fork() (gas: 765733)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 11.72s (517.05ms CPU time)
+
+Ran 41 tests for test/admiralsQuarters/AdmiralsQuarters.permit.t.sol:AdmiralsQuartersPermitTest
+[PASS] testSkip() (gas: 212)
+[PASS] testSkipper() (gas: 211)
+[PASS] test_ClaimGovernanceRewards_RevertInvalidRewardsManager() (gas: 19742)
+[PASS] test_ClaimGovernanceRewards_RevertInvalidToken() (gas: 21975)
+[PASS] test_ClaimMerkleRewards_RevertInvalidRewardsRedeemer() (gas: 23269)
+[PASS] test_Constructor() (gas: 5189335)
+[PASS] test_DepositBothTokens_SwapBetweenFleets_WithdrawAll() (gas: 1865516)
+[PASS] test_DepositDAI_WithdrawPartialSwapToUSDC_DepositUSDC() (gas: 964597)
+[PASS] test_DepositUSDC_WithdrawAll_SwapHalfToDAI_DepositBoth() (gas: 1040546)
+[PASS] test_DepositWithdrawSameToken() (gas: 179099)
+[PASS] test_Deposit_ETH_Swap_EnterFleet() (gas: 392845)
+[PASS] test_Deposit_Enter_Stake() (gas: 393195)
+[PASS] test_Deposit_Enter_Stake_Reverts() (gas: 296110)
+[PASS] test_Deposit_Enter_Stake_WETH() (gas: 800901)
+[PASS] test_Deposit_Enter_Stake_With_Referral() (gas: 404300)
+[PASS] test_Deposit_Reverts() (gas: 94429)
+[PASS] test_DirectUnstakeAfterStakingThroughAdmiralsQuarters() (gas: 532525)
+[PASS] test_EnterAndExitFleetsX() (gas: 971850)
+[PASS] test_EnterFleet_Reverts() (gas: 74420)
+[PASS] test_EnterWithETH_ExitToETH() (gas: 452663)
+[PASS] test_EnterWithETH_ExitToWETH() (gas: 438688)
+[PASS] test_ExitFleet_Reverts() (gas: 31958)
+[PASS] test_FailedSwap() (gas: 272433)
+[PASS] test_MoveFleetsX() (gas: 696061)
+[PASS] test_MultiUserInteraction() (gas: 1372296)
+[PASS] test_RemoveRewardToken_FailsWithTooMuchBalance() (gas: 229095)
+[PASS] test_RemoveRewardToken_SucceedsWithDust() (gas: 1157714)
+[PASS] test_RescueTokens() (gas: 249897)
+[PASS] test_RewardsExploitViaStakeOnBehalfOf() (gas: 558910)
+[PASS] test_Swap_Reverts() (gas: 298540)
+[PASS] test_UnstakeAndWithdrawAll() (gas: 586765)
+[PASS] test_Withdraw_Reverts() (gas: 20259)
+[PASS] test_enterFleetWithPermit() (gas: 340090)
+[PASS] test_enterFleetWithPermit2() (gas: 361145)
+[PASS] test_unstakeAndWithdrawAssets() (gas: 568548)
+[PASS] test_unstakeAndWithdrawAssetsRevert_InvalidFleet() (gas: 31894)
+[PASS] test_unstakeAndWithdrawAssetsRevert_NotStaked() (gas: 14898)
+[PASS] test_unstakeAndWithdrawAssets_DirectUnstakeReverts() (gas: 409915)
+[PASS] test_unstakeAndWithdrawAssets_Full() (gas: 581324)
+[PASS] test_unstakeAndWithdrawAssets_Full_ClaimRewards() (gas: 679681)
+[PASS] test_unstakeAndWithdrawAssets_Full_ClaimRewards_WithDust() (gas: 4825903)
+Suite result: ok. 41 passed; 0 failed; 0 skipped; finished in 12.05s (284.43ms CPU time)
+
+Ran 8 tests for test/arks/ERC4626Ark.t.sol:ERC4626ArkTestFork
+[PASS] test() (gas: 231)
+[PASS] testSkip() (gas: 189)
+[PASS] testSkipper() (gas: 299)
+[PASS] test_Board() (gas: 359525)
+[PASS] test_Constructor() (gas: 4325094)
+[PASS] test_Disembark() (gas: 428584)
+[PASS] test_Harvest() (gas: 372657)
+[PASS] test_TotalAssets() (gas: 357611)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 12.13s (57.52ms CPU time)
+
+Ran 1 test for test/rounds-vault/RoundsVaultPrecision.fuzz.t.sol:RoundsVaultPrecisionFuzzTest
+[PASS] testFuzz_MassRedemptionPrecision(uint256) (runs: 257, μ: 82396457, ~: 82395944)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 82.47s (82.46s CPU time)
+
+Ran 104 test suites in 82.54s (250.90s CPU time): 1096 tests passed, 0 failed, 0 skipped (1096 total tests)
+
+╭---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------╮
+| File                                                                                                                | % Lines             | % Statements        | % Branches        | % Funcs            |
++==========================================================================================================================================================================================================+
+| node_modules/@summerfi/access-contracts/src/contracts/LimitedAccessControl.sol                                      | 100.00% (4/4)       | 100.00% (2/2)       | 100.00% (0/0)     | 100.00% (2/2)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/access-contracts/src/contracts/ProtocolAccessManaged.sol                                     | 56.92% (37/65)      | 62.22% (28/45)      | 50.00% (5/10)     | 50.00% (11/22)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/access-contracts/src/contracts/ProtocolAccessManagedV2.sol                                   | 28.57% (4/14)       | 37.50% (3/8)        | 0.00% (0/2)       | 20.00% (1/5)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/access-contracts/src/contracts/ProtocolAccessManager.sol                                     | 40.00% (32/80)      | 43.10% (25/58)      | 0.00% (0/5)       | 43.33% (13/30)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/access-contracts/src/contracts/ProtocolAccessManagerV2.sol                                   | 62.07% (18/29)      | 52.00% (13/25)      | 33.33% (1/3)      | 70.00% (7/10)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/config-contracts/src/contracts/ConfigurationManaged.sol                                      | 85.71% (12/14)      | 100.00% (13/13)     | 100.00% (1/1)     | 66.67% (4/6)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/config-contracts/src/contracts/ConfigurationManager.sol                                      | 45.65% (21/46)      | 54.76% (23/42)      | 0.00% (0/7)       | 33.33% (2/6)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/StdAssertions.sol                                             | 13.98% (46/329)     | 10.73% (22/205)     | 0.00% (0/50)      | 18.05% (24/133)    |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/StdChains.sol                                                 | 0.00% (0/112)       | 0.00% (0/107)       | 0.00% (0/22)      | 0.00% (0/9)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/StdCheats.sol                                                 | 4.47% (14/313)      | 3.61% (11/305)      | 0.00% (0/44)      | 7.94% (5/63)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/StdInvariant.sol                                              | 0.00% (0/40)        | 0.00% (0/20)        | 100.00% (0/0)     | 0.00% (0/20)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/StdJson.sol                                                   | 0.00% (0/94)        | 0.00% (0/92)        | 100.00% (0/0)     | 0.00% (0/47)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/StdMath.sol                                                   | 0.00% (0/19)        | 0.00% (0/27)        | 0.00% (0/6)       | 0.00% (0/5)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/StdStorage.sol                                                | 44.44% (104/234)    | 47.30% (114/241)    | 34.78% (8/23)     | 36.36% (20/55)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/StdStyle.sol                                                  | 0.00% (0/156)       | 0.00% (0/155)       | 100.00% (0/0)     | 0.00% (0/78)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/StdToml.sol                                                   | 0.00% (0/94)        | 0.00% (0/92)        | 100.00% (0/0)     | 0.00% (0/47)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/StdUtils.sol                                                  | 24.32% (18/74)      | 35.29% (30/85)      | 36.36% (4/11)     | 10.53% (2/19)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/console.sol                                                   | 2.99% (23/769)      | 3.12% (12/385)      | 100.00% (0/0)     | 2.86% (11/384)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/forge-std/src/safeconsole.sol                                               | 0.00% (0/10604)     | 0.00% (0/10920)     | 0.00% (0/222)     | 0.00% (0/565)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/metamorpho-local/src/libraries/PendingLib.sol                               | 0.00% (0/6)         | 0.00% (0/4)         | 100.00% (0/0)     | 0.00% (0/2)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/morpho-blue-local/src/libraries/MarketParamsLib.sol                         | 0.00% (0/2)         | 0.00% (0/1)         | 100.00% (0/0)     | 0.00% (0/1)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/morpho-blue-local/src/libraries/MathLib.sol                                 | 13.33% (2/15)       | 10.53% (2/19)       | 100.00% (0/0)     | 16.67% (1/6)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/morpho-blue-local/src/libraries/SharesMathLib.sol                           | 25.00% (2/8)        | 25.00% (2/8)        | 100.00% (0/0)     | 25.00% (1/4)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/morpho-blue-local/src/libraries/UtilsLib.sol                                | 0.00% (0/9)         | 0.00% (0/5)         | 0.00% (0/2)       | 0.00% (0/4)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/morpho-blue-local/src/libraries/periphery/MorphoBalancesLib.sol             | 0.00% (0/31)        | 0.00% (0/43)        | 0.00% (0/2)       | 0.00% (0/6)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/morpho-blue-local/src/libraries/periphery/MorphoLib.sol                     | 0.00% (0/31)        | 0.00% (0/31)        | 100.00% (0/0)     | 0.00% (0/10)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/morpho-blue-local/src/libraries/periphery/MorphoStorageLib.sol              | 0.00% (0/32)        | 0.00% (0/20)        | 100.00% (0/0)     | 0.00% (0/16)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/access/AccessControl.sol                   | 45.95% (17/37)      | 40.00% (12/30)      | 50.00% (3/6)      | 41.67% (5/12)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/access/Ownable.sol                         | 66.67% (14/21)      | 68.75% (11/16)      | 33.33% (1/3)      | 71.43% (5/7)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/governance/Governor.sol                    | 0.00% (0/201)       | 0.00% (0/226)       | 0.00% (0/34)      | 0.00% (0/47)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/governance/TimelockController.sol          | 0.00% (0/107)       | 0.00% (0/119)       | 0.00% (0/19)      | 0.00% (0/23)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotes.sol    | 0.00% (0/16)        | 0.00% (0/11)        | 0.00% (0/4)       | 0.00% (0/5)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol                  | 100.00% (4/4)       | 100.00% (2/2)       | 100.00% (0/0)     | 100.00% (2/2)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/mocks/token/ERC4626Mock.sol                | 0.00% (0/4)         | 0.00% (0/2)         | 100.00% (0/0)     | 0.00% (0/2)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol                  | 73.58% (78/106)     | 73.64% (81/110)     | 33.33% (7/21)     | 80.00% (16/20)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/token/ERC1155/extensions/ERC1155Supply.sol | 90.91% (20/22)      | 96.15% (25/26)      | 100.00% (2/2)     | 75.00% (3/4)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Holder.sol      | 0.00% (0/6)         | 0.00% (0/6)         | 100.00% (0/0)     | 0.00% (0/3)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Utils.sol       | 22.22% (4/18)       | 14.29% (2/14)       | 0.00% (0/12)      | 100.00% (2/2)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol                      | 84.06% (58/69)      | 83.64% (46/55)      | 50.00% (7/14)     | 88.24% (15/17)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Burnable.sol   | 40.00% (2/5)        | 33.33% (1/3)        | 100.00% (0/0)     | 50.00% (1/2)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Wrapper.sol    | 0.00% (0/30)        | 0.00% (0/28)        | 0.00% (0/6)       | 0.00% (0/6)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC4626.sol         | 70.37% (57/81)      | 70.73% (58/82)      | 42.86% (3/7)      | 70.83% (17/24)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol            | 46.43% (26/56)      | 46.00% (23/50)      | 7.69% (1/13)      | 41.67% (5/12)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol        | 0.00% (0/2)         | 0.00% (0/1)         | 100.00% (0/0)     | 0.00% (0/1)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/Address.sol                          | 51.52% (17/33)      | 54.29% (19/35)      | 30.00% (3/10)     | 62.50% (5/8)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/Arrays.sol                           | 1.38% (2/145)       | 0.75% (1/133)       | 0.00% (0/18)      | 2.86% (1/35)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/Bytes.sol                            | 0.00% (0/27)        | 0.00% (0/30)        | 0.00% (0/2)       | 0.00% (0/7)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/Comparators.sol                      | 0.00% (0/4)         | 0.00% (0/4)         | 100.00% (0/0)     | 0.00% (0/2)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/Context.sol                          | 33.33% (2/6)        | 33.33% (1/3)        | 100.00% (0/0)     | 33.33% (1/3)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/Multicall.sol                        | 0.00% (0/6)         | 0.00% (0/8)         | 100.00% (0/0)     | 0.00% (0/1)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/Nonces.sol                           | 0.00% (0/8)         | 0.00% (0/7)         | 0.00% (0/1)       | 0.00% (0/3)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/Panic.sol                            | 0.00% (0/4)         | 0.00% (0/3)         | 100.00% (0/0)     | 0.00% (0/1)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/Pausable.sol                         | 94.44% (17/18)      | 90.91% (10/11)      | 50.00% (1/2)      | 100.00% (7/7)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/ReentrancyGuardTransient.sol         | 90.91% (10/11)      | 87.50% (7/8)        | 0.00% (0/1)       | 100.00% (4/4)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/ShortStrings.sol                     | 0.00% (0/29)        | 0.00% (0/33)        | 0.00% (0/8)       | 0.00% (0/6)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/SlotDerivation.sol                   | 0.00% (0/44)        | 0.00% (0/34)        | 100.00% (0/0)     | 0.00% (0/10)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/StorageSlot.sol                      | 0.00% (0/18)        | 0.00% (0/9)         | 100.00% (0/0)     | 0.00% (0/9)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/Strings.sol                          | 6.76% (10/148)      | 5.71% (12/210)      | 0.00% (0/33)      | 3.45% (1/29)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/TransientSlot.sol                    | 20.00% (6/30)       | 20.00% (4/20)       | 100.00% (0/0)     | 20.00% (3/15)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol               | 50.00% (21/42)      | 47.62% (20/42)      | 18.18% (2/11)     | 57.14% (4/7)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol              | 0.00% (0/22)        | 0.00% (0/22)        | 0.00% (0/2)       | 0.00% (0/7)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/cryptography/MessageHashUtils.sol    | 0.00% (0/20)        | 0.00% (0/16)        | 100.00% (0/0)     | 0.00% (0/5)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol    | 0.00% (0/27)        | 0.00% (0/37)        | 0.00% (0/8)       | 0.00% (0/4)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol             | 0.00% (0/2)         | 0.00% (0/2)         | 100.00% (0/0)     | 0.00% (0/1)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/math/Math.sol                        | 12.80% (27/211)     | 15.19% (36/237)     | 9.09% (2/22)      | 20.00% (7/35)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol                    | 0.78% (2/258)       | 0.52% (1/193)       | 0.00% (0/64)      | 1.54% (1/65)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/math/SignedMath.sol                  | 0.00% (0/12)        | 0.00% (0/13)        | 100.00% (0/0)     | 0.00% (0/5)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol              | 0.00% (0/195)       | 0.00% (0/201)       | 0.00% (0/42)      | 0.00% (0/36)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/structs/DoubleEndedQueue.sol         | 0.00% (0/39)        | 0.00% (0/40)        | 0.00% (0/7)       | 0.00% (0/10)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol            | 22.58% (42/186)     | 20.32% (38/187)     | 33.33% (5/15)     | 25.00% (12/48)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/utils/types/Time.sol                       | 0.00% (0/27)        | 0.00% (0/27)        | 100.00% (0/0)     | 0.00% (0/9)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol  | 0.00% (0/40)        | 0.00% (0/41)        | 0.00% (0/7)       | 0.00% (0/8)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/openzeppelin-next/StorageSlot.sol                                           | 37.50% (18/48)      | 41.38% (12/29)      | 100.00% (0/0)     | 37.50% (9/24)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/core/Market/MarketMathCore.sol              | 0.00% (0/119)       | 0.00% (0/152)       | 0.00% (0/23)      | 0.00% (0/17)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/core/StandardizedYield/PYIndex.sol          | 0.00% (0/20)        | 0.00% (0/27)        | 100.00% (0/0)     | 0.00% (0/8)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/core/StandardizedYield/SYUtils.sol          | 0.00% (0/8)         | 0.00% (0/8)         | 100.00% (0/0)     | 0.00% (0/4)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/core/libraries/BoringOwnableUpgradeable.sol | 0.00% (0/17)        | 0.00% (0/12)        | 0.00% (0/8)       | 0.00% (0/4)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/core/libraries/MiniHelpers.sol              | 0.00% (0/6)         | 0.00% (0/3)         | 100.00% (0/0)     | 0.00% (0/3)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/core/libraries/math/LogExpMath.sol          | 0.00% (0/166)       | 0.00% (0/178)       | 0.00% (0/42)      | 0.00% (0/5)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/core/libraries/math/PMath.sol               | 0.00% (0/87)        | 0.00% (0/88)        | 0.00% (0/23)      | 0.00% (0/33)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/oracles/PendleLpOracleLib.sol               | 0.00% (0/29)        | 0.00% (0/40)        | 0.00% (0/6)       | 0.00% (0/4)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/oracles/PendlePYLpOracle.sol                | 0.00% (0/37)        | 0.00% (0/35)        | 0.00% (0/3)       | 0.00% (0/12)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/oracles/PendlePYOracleLib.sol               | 0.00% (0/42)        | 0.00% (0/61)        | 0.00% (0/12)      | 0.00% (0/8)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/router/base/MarketApproxLib.sol             | 0.00% (0/187)       | 0.00% (0/248)       | 0.00% (0/43)      | 0.00% (0/18)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/lib/solmate/src/utils/FixedPointMathLib.sol                                     | 9.09% (7/77)        | 7.89% (6/76)        | 0.00% (0/12)      | 27.27% (3/11)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/node_modules/@layerzerolabs/oapp-evm/contracts/oapp/OAppCore.sol                | 0.00% (0/15)        | 0.00% (0/12)        | 0.00% (0/2)       | 0.00% (0/5)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dependencies/node_modules/@layerzerolabs/oapp-evm/contracts/oapp/OAppSender.sol              | 0.00% (0/17)        | 0.00% (0/17)        | 0.00% (0/3)       | 0.00% (0/5)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dutch-auction/src/DecayFunctions.sol                                                         | 60.00% (6/10)       | 55.56% (5/9)        | 40.00% (2/5)      | 100.00% (1/1)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dutch-auction/src/DutchAuctionLibrary.sol                                                    | 80.95% (51/63)      | 83.87% (52/62)      | 37.50% (6/16)     | 100.00% (6/6)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dutch-auction/src/DutchAuctionMath.sol                                                       | 56.00% (14/25)      | 54.35% (25/46)      | 100.00% (0/0)     | 66.67% (2/3)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/dutch-auction/src/lib/TokenLibrary.sol                                                       | 44.44% (8/18)       | 38.10% (8/21)       | 33.33% (1/3)      | 75.00% (3/4)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/earn-gov-contracts/src/contracts/SummerTimelockController.sol                                | 0.00% (0/36)        | 0.00% (0/33)        | 0.00% (0/7)       | 0.00% (0/7)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/percentage-solidity/contracts/PercentageUtils.sol                                            | 93.33% (14/15)      | 92.31% (12/13)      | 100.00% (0/0)     | 100.00% (6/6)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/price-solidity/contracts/Utils.sol                                                           | 50.00% (4/8)        | 50.00% (4/8)        | 100.00% (0/0)     | 50.00% (2/4)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/rewards-contracts/src/contracts/StakingRewardsManagerBase.sol                                | 58.57% (82/140)     | 57.93% (84/145)     | 27.59% (8/29)     | 44.44% (12/27)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/voting-decay/src/VotingDecayLibrary.sol                                                      | 0.00% (0/116)       | 0.00% (0/115)       | 0.00% (0/23)      | 0.00% (0/20)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| node_modules/@summerfi/voting-decay/src/VotingDecayMath.sol                                                         | 0.00% (0/39)        | 0.00% (0/49)        | 0.00% (0/10)      | 0.00% (0/3)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/AdmiralsQuarters.sol                                                                                  | 95.43% (167/175)    | 90.53% (153/169)    | 66.67% (20/30)    | 100.00% (27/27)    |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/AdmiralsQuartersWhitelist.sol                                                                         | 39.45% (43/109)     | 33.98% (35/103)     | 9.52% (2/21)      | 45.00% (9/20)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/Ark.sol                                                                                               | 91.07% (51/56)      | 94.44% (51/54)      | 100.00% (5/5)     | 75.00% (9/12)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/ArkAccessManaged.sol                                                                                  | 100.00% (19/19)     | 100.00% (20/20)     | 100.00% (4/4)     | 100.00% (5/5)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/ArkConfigProvider.sol                                                                                 | 84.13% (53/63)      | 86.67% (39/45)      | 55.56% (5/9)      | 89.47% (17/19)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/ArkWithWithdrawalRequest.sol                                                                          | 85.37% (35/41)      | 87.18% (34/39)      | 60.00% (3/5)      | 85.71% (6/7)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/AuctionManagerBase.sol                                                                                | 100.00% (5/5)       | 100.00% (5/5)       | 100.00% (0/0)     | 100.00% (2/2)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/BuyAndBurn.sol                                                                                        | 95.24% (40/42)      | 94.44% (34/36)      | 50.00% (2/4)      | 100.00% (8/8)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/FleetCommander.sol                                                                                    | 98.19% (271/276)    | 98.92% (276/279)    | 95.92% (47/49)    | 96.30% (52/54)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/FleetCommanderCache.sol                                                                               | 95.65% (22/23)      | 100.00% (15/15)     | 100.00% (0/0)     | 90.00% (9/10)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/FleetCommanderConfigProvider.sol                                                                      | 97.22% (70/72)      | 96.55% (56/58)      | 75.00% (6/8)      | 100.00% (21/21)    |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/FleetCommanderConfigProviderDao.sol                                                                   | 13.92% (11/79)      | 15.87% (10/63)      | 0.00% (0/9)       | 13.04% (3/23)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/FleetCommanderConfigProviderWhitelist.sol                                                             | 40.74% (33/81)      | 41.27% (26/63)      | 18.18% (2/11)     | 41.67% (10/24)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/FleetCommanderDao.sol                                                                                 | 21.32% (58/272)     | 23.25% (63/271)     | 6.38% (3/47)      | 24.07% (13/54)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/FleetCommanderPausable.sol                                                                            | 88.24% (15/17)      | 85.71% (12/14)      | 33.33% (1/3)      | 100.00% (4/4)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/FleetCommanderRewardsManager.sol                                                                      | 94.74% (18/19)      | 95.24% (20/21)      | 66.67% (2/3)      | 100.00% (4/4)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/FleetCommanderRewardsManagerFactory.sol                                                               | 100.00% (4/4)       | 100.00% (4/4)       | 100.00% (0/0)     | 100.00% (1/1)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/FleetCommanderWhitelist.sol                                                                           | 62.30% (195/313)    | 66.78% (205/307)    | 30.91% (17/55)    | 59.02% (36/61)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/FlexibleTipper.sol                                                                                    | 100.00% (60/60)     | 100.00% (73/73)     | 100.00% (9/9)     | 100.00% (7/7)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/HarborCommand.sol                                                                                     | 100.00% (14/14)     | 100.00% (12/12)     | 100.00% (2/2)     | 100.00% (5/5)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/InstitutionalVaultRegistry.sol                                                                        | 86.27% (44/51)      | 84.00% (42/50)      | 100.00% (7/7)     | 81.82% (9/11)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/ProtectedMulticall.sol                                                                                | 89.47% (17/19)      | 90.48% (19/21)      | 0.00% (0/2)       | 100.00% (5/5)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/ProtectedMulticallWhitelist.sol                                                                       | 89.47% (17/19)      | 90.48% (19/21)      | 0.00% (0/2)       | 100.00% (5/5)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/Raft.sol                                                                                              | 94.25% (82/87)      | 95.40% (83/87)      | 75.00% (6/8)      | 94.74% (18/19)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/TipJar.sol                                                                                            | 90.65% (97/107)     | 94.17% (97/103)     | 88.24% (15/17)    | 86.67% (13/15)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/Tipper.sol                                                                                            | 96.77% (30/31)      | 96.88% (31/32)      | 75.00% (3/4)      | 100.00% (5/5)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/AaveV3Ark.sol                                                                                    | 96.88% (31/32)      | 96.88% (31/32)      | 50.00% (1/2)      | 100.00% (10/10)    |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/AeraArk.sol                                                                                      | 84.62% (55/65)      | 82.46% (47/57)      | 75.00% (6/8)      | 81.25% (13/16)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/ArmArk.sol                                                                                       | 95.74% (45/47)      | 94.87% (37/39)      | 100.00% (6/6)     | 100.00% (13/13)    |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/BasePendleArk.sol                                                                                | 100.00% (72/72)     | 100.00% (70/70)     | 85.71% (6/7)      | 100.00% (15/15)    |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/BufferArk.sol                                                                                    | 90.91% (10/11)      | 100.00% (5/5)       | 100.00% (0/0)     | 87.50% (7/8)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/CompoundV3Ark.sol                                                                                | 100.00% (26/26)     | 100.00% (22/22)     | 100.00% (1/1)     | 100.00% (8/8)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/ERC4626Ark.sol                                                                                   | 100.00% (28/28)     | 100.00% (23/23)     | 100.00% (6/6)     | 100.00% (8/8)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/FluidFTokenArk.sol                                                                               | 100.00% (17/17)     | 100.00% (22/22)     | 100.00% (4/4)     | 100.00% (1/1)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/FluidLiteArk.sol                                                                                 | 92.21% (71/77)      | 93.10% (81/87)      | 64.29% (9/14)     | 76.92% (10/13)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/HyperlendArk.sol                                                                                 | 59.38% (19/32)      | 43.75% (14/32)      | 0.00% (0/2)       | 70.00% (7/10)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/HypurrfiArk.sol                                                                                  | 43.75% (14/32)      | 28.12% (9/32)       | 0.00% (0/2)       | 60.00% (6/10)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/MapleInstitutionalArk.sol                                                                        | 57.14% (36/63)      | 56.67% (34/60)      | 40.00% (4/10)     | 52.94% (9/17)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/MoonwellArk.sol                                                                                  | 83.53% (71/85)      | 86.21% (100/116)    | 37.50% (6/16)     | 83.33% (10/12)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/MorphoArk.sol                                                                                    | 95.35% (41/43)      | 95.56% (43/45)      | 66.67% (4/6)      | 100.00% (8/8)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/MorphoV2VaultArk.sol                                                                             | 90.91% (20/22)      | 96.00% (24/25)      | 80.00% (4/5)      | 100.00% (1/1)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/MorphoVaultArk.sol                                                                               | 94.44% (34/36)      | 94.29% (33/35)      | 71.43% (5/7)      | 100.00% (8/8)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/OriginETHArk.sol                                                                                 | 87.69% (57/65)      | 88.71% (55/62)      | 60.00% (6/10)     | 92.31% (12/13)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/OriginSuperOETHArk.sol                                                                           | 90.00% (45/50)      | 90.48% (38/42)      | 66.67% (4/6)      | 92.31% (12/13)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/OriginUSDArk.sol                                                                                 | 91.07% (51/56)      | 91.84% (45/49)      | 71.43% (5/7)      | 93.33% (14/15)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/PendleLPArk.sol                                                                                  | 93.94% (31/33)      | 92.86% (26/28)      | 100.00% (2/2)     | 90.91% (10/11)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/PendlePTArk.sol                                                                                  | 93.94% (31/33)      | 92.00% (23/25)      | 100.00% (2/2)     | 91.67% (11/12)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/PendlePtOracleArk.sol                                                                            | 0.00% (0/174)       | 0.00% (0/180)       | 0.00% (0/29)      | 0.00% (0/36)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/Psm3ERC4626Ark.sol                                                                               | 98.00% (49/50)      | 92.16% (47/51)      | 50.00% (4/8)      | 100.00% (12/12)    |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/PsmLiteERC4626Ark.sol                                                                            | 98.67% (74/75)      | 94.37% (67/71)      | 75.00% (12/16)    | 100.00% (17/17)    |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/SiUSDArk.sol                                                                                     | 86.84% (33/38)      | 83.78% (31/37)      | 75.00% (3/4)      | 90.00% (9/10)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/SiloManagedVaultArk.sol                                                                          | 88.46% (46/52)      | 89.83% (53/59)      | 66.67% (6/9)      | 88.89% (8/9)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/SiloVaultArk.sol                                                                                 | 87.50% (42/48)      | 88.89% (48/54)      | 70.00% (7/10)     | 87.50% (7/8)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/SiloVaultArkV2.sol                                                                               | 87.50% (42/48)      | 88.89% (48/54)      | 70.00% (7/10)     | 87.50% (7/8)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/SkyRewardsArk.sol                                                                                | 90.48% (38/42)      | 90.24% (37/41)      | 20.00% (1/5)      | 100.00% (8/8)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/SkyUsdsArk.sol                                                                                   | 70.00% (21/30)      | 69.23% (18/26)      | 50.00% (1/2)      | 75.00% (6/8)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/SkyUsdsPsm3Ark.sol                                                                               | 62.96% (17/27)      | 58.33% (14/24)      | 50.00% (1/2)      | 75.00% (6/8)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/SparkArk.sol                                                                                     | 59.38% (19/32)      | 43.75% (14/32)      | 0.00% (0/2)       | 70.00% (7/10)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/StargateV2PoolArk.sol                                                                            | 91.78% (67/73)      | 91.03% (71/78)      | 80.00% (12/15)    | 100.00% (8/8)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/SyrupArk.sol                                                                                     | 81.82% (45/55)      | 84.31% (43/51)      | 50.00% (4/8)      | 64.29% (9/14)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/SyrupArkV2.sol                                                                                   | 78.79% (52/66)      | 81.25% (52/64)      | 45.45% (5/11)     | 70.59% (12/17)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/UpshiftArk.sol                                                                                   | 78.43% (40/51)      | 85.11% (40/47)      | 40.00% (2/5)      | 66.67% (10/15)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/arks/WisdomTreeArk.sol                                                                                | 81.03% (94/116)     | 88.60% (101/114)    | 83.33% (15/18)    | 62.96% (17/27)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/libraries/FleetCommanderCacheLib.sol                                                                  | 99.15% (117/118)    | 100.00% (142/142)   | 100.00% (9/9)     | 94.74% (18/19)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/misc/MaxWithdrawExecutor.sol                                                                          | 62.50% (10/16)      | 47.06% (8/17)       | 0.00% (0/3)       | 60.00% (3/5)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/periphery/RoundsVaultExchanger.sol                                                                    | 0.00% (0/8)         | 0.00% (0/10)        | 100.00% (0/0)     | 0.00% (0/2)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/rounds-vault/RoundsVaultBase.sol                                                                      | 92.97% (119/128)    | 92.06% (116/126)    | 68.18% (15/22)    | 96.30% (26/27)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/rounds-vault/RoundsVaultInput.sol                                                                     | 100.00% (9/9)       | 100.00% (12/12)     | 100.00% (0/0)     | 100.00% (2/2)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/contracts/rounds-vault/RoundsVaultOutput.sol                                                                    | 100.00% (9/9)       | 100.00% (12/12)     | 100.00% (0/0)     | 100.00% (2/2)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/extensions/ERC1155FullSupply.sol                                                                                | 100.00% (11/11)     | 100.00% (11/11)     | 100.00% (2/2)     | 100.00% (2/2)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/extensions/ERC4626MultiToken.sol                                                                                | 86.96% (40/46)      | 82.61% (38/46)      | 0.00% (0/6)       | 100.00% (11/11)    |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/extensions/ERC4626MultiTokenWrapper.sol                                                                         | 100.00% (9/9)       | 100.00% (7/7)       | 100.00% (0/0)     | 100.00% (4/4)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/utils/AssetsForwarder/AssetsForwarder.sol                                                                       | 96.30% (26/27)      | 83.33% (20/24)      | 50.00% (3/6)      | 100.00% (8/8)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/utils/CooldownEnforcer/CooldownEnforcer.sol                                                                     | 84.00% (21/25)      | 78.95% (15/19)      | 33.33% (2/6)      | 100.00% (6/6)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/utils/Whitelist/Whitelist.sol                                                                                   | 71.43% (10/14)      | 66.67% (6/9)        | 100.00% (1/1)     | 66.67% (4/6)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/utils/exchangeRateProvider/CurveExchangeRateProvider.sol                                                        | 0.00% (0/34)        | 0.00% (0/34)        | 0.00% (0/8)       | 0.00% (0/7)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| src/utils/exchangeRateProvider/ExchangeRateProviderBase.sol                                                         | 0.00% (0/21)        | 0.00% (0/18)        | 0.00% (0/3)       | 0.00% (0/5)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/admiralsQuarters/AdmiralsQuarters.rewards.t.sol                                                                | 72.09% (31/43)      | 87.10% (27/31)      | 66.67% (4/6)      | 42.86% (6/14)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/arks/ArkTestBase.sol                                                                                           | 80.77% (21/26)      | 79.31% (23/29)      | 100.00% (5/5)     | 66.67% (2/3)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/arks/ArkTestBaseWhitelist.sol                                                                                  | 61.54% (16/26)      | 58.62% (17/29)      | 100.00% (5/5)     | 33.33% (1/3)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/arks/OriginUSDArk.t.sol                                                                                        | 100.00% (3/3)       | 100.00% (2/2)       | 100.00% (0/0)     | 100.00% (1/1)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/arks/SiUSDArk.t.sol                                                                                            | 80.77% (21/26)      | 78.57% (22/28)      | 100.00% (0/0)     | 80.00% (4/5)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/arks/WisdomTreeArk.t.sol                                                                                       | 72.73% (16/22)      | 78.57% (11/14)      | 100.00% (0/0)     | 62.50% (5/8)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/auctions/AuctionTestBase.sol                                                                                   | 100.00% (25/25)     | 100.00% (25/25)     | 100.00% (0/0)     | 100.00% (5/5)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/extensions/ERC4626MultiTokenWrapper.t.sol                                                                      | 60.00% (6/10)       | 66.67% (4/6)        | 100.00% (0/0)     | 50.00% (2/4)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/fleets/FleetCommanderInstitutionalTestBase.sol                                                                 | 71.43% (10/14)      | 72.73% (8/11)       | 100.00% (0/0)     | 66.67% (2/3)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/fleets/FleetCommanderTestBase.sol                                                                              | 100.00% (76/76)     | 100.00% (77/77)     | 100.00% (5/5)     | 100.00% (8/8)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/fleets/FlexibleTipper.t.sol                                                                                    | 100.00% (4/4)       | 100.00% (2/2)       | 100.00% (0/0)     | 100.00% (2/2)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/helpers/ArkTestHelpers.sol                                                                                     | 85.71% (12/14)      | 100.00% (7/7)       | 100.00% (0/0)     | 71.43% (5/7)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/ArkMock.sol                                                                                              | 100.00% (14/14)     | 100.00% (12/12)     | 100.00% (0/0)     | 100.00% (7/7)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/ConfigurationManagerMock.sol                                                                             | 58.33% (7/12)       | 100.00% (5/5)       | 100.00% (0/0)     | 28.57% (2/7)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/CooldownEnforcerMock.sol                                                                                 | 100.00% (3/3)       | 100.00% (1/1)       | 100.00% (0/0)     | 100.00% (2/2)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/ERC1155FullSupplyMock.sol                                                                                | 50.00% (8/16)       | 50.00% (4/8)        | 100.00% (0/0)     | 50.00% (4/8)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/ERC1155Mock.sol                                                                                          | 0.00% (0/16)        | 0.00% (0/8)         | 100.00% (0/0)     | 0.00% (0/8)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/ERC1155SupplyMock.sol                                                                                    | 0.00% (0/16)        | 0.00% (0/8)         | 100.00% (0/0)     | 0.00% (0/8)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/ERC4626MultiTokenMock.sol                                                                                | 100.00% (4/4)       | 100.00% (2/2)       | 100.00% (0/0)     | 100.00% (2/2)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/ERC4626MultiTokenWrapperMock.sol                                                                         | 75.00% (6/8)        | 83.33% (5/6)        | 100.00% (0/0)     | 75.00% (3/4)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/ERC4626VaultMock.sol                                                                                     | 15.38% (8/52)       | 15.38% (4/26)       | 100.00% (0/0)     | 15.38% (4/26)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/FleetCommanderTestMock.sol                                                                               | 0.00% (0/19)        | 0.00% (0/10)        | 0.00% (0/2)       | 0.00% (0/7)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/MockAccessManager.sol                                                                                    | 100.00% (12/12)     | 100.00% (9/9)       | 100.00% (0/0)     | 100.00% (5/5)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/MockERC20.sol                                                                                            | 71.23% (52/73)      | 73.68% (42/57)      | 36.36% (4/11)     | 65.00% (13/20)     |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/MockFluidMerkleDistributor.sol                                                                           | 100.00% (7/7)       | 100.00% (4/4)       | 100.00% (1/1)     | 100.00% (3/3)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/MockHarborCommand.sol                                                                                    | 0.00% (0/2)         | 0.00% (0/1)         | 100.00% (0/0)     | 0.00% (0/1)        |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/MockUniversalRewardsDistributor.sol                                                                      | 100.00% (12/12)     | 100.00% (9/9)       | 50.00% (3/6)      | 100.00% (3/3)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/mocks/TokenWithNoSelfTransfer.sol                                                                              | 100.00% (4/4)       | 100.00% (3/3)       | 50.00% (2/4)      | 100.00% (1/1)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/rounds-vault/RoundsVaultInput.t.sol                                                                            | 66.67% (12/18)      | 72.73% (8/11)       | 100.00% (0/0)     | 57.14% (4/7)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/rounds-vault/RoundsVaultMinPosition.t.sol                                                                      | 66.67% (12/18)      | 66.67% (8/12)       | 100.00% (0/0)     | 66.67% (4/6)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/rounds-vault/RoundsVaultOutput.t.sol                                                                           | 80.00% (24/30)      | 85.71% (18/21)      | 50.00% (4/8)      | 66.67% (6/9)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/rounds-vault/RoundsVaultPrecision.fuzz.t.sol                                                                   | 75.00% (6/8)        | 75.00% (3/4)        | 100.00% (0/0)     | 75.00% (3/4)       |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/rounds-vault/RoundsVaultTwoPhaseSettlement.t.sol                                                               | 41.51% (22/53)      | 43.75% (21/48)      | 0.00% (0/2)       | 33.33% (6/18)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/utils/AssetsForwarder/AssetsForwarder.t.sol                                                                    | 100.00% (2/2)       | 100.00% (1/1)       | 100.00% (0/0)     | 100.00% (1/1)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/utils/CooldownEnforcer/CooldownEnforcer.initialCooldown.t.sol                                                  | 100.00% (2/2)       | 100.00% (1/1)       | 100.00% (0/0)     | 100.00% (1/1)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/utils/CooldownEnforcer/CooldownEnforcer.noInitialCooldown.t.sol                                                | 100.00% (2/2)       | 100.00% (1/1)       | 100.00% (0/0)     | 100.00% (1/1)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| test/utils/CooldownEnforcer/CooldownEnforcerTestBase.sol                                                            | 100.00% (4/4)       | 100.00% (3/3)       | 100.00% (0/0)     | 100.00% (1/1)      |
+|---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------|
+| Total                                                                                                               | 21.62% (4777/22093) | 21.16% (4594/21707) | 25.76% (460/1786) | 31.15% (1109/3560) |
+╰---------------------------------------------------------------------------------------------------------------------+---------------------+---------------------+-------------------+--------------------╯

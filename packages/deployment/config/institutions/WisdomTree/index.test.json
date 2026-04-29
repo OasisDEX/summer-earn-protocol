@@ -1,0 +1,41 @@
+{
+  "base": {
+    "deployedContracts": {
+      "gov": {
+        "protocolAccessManager": {
+          "address": "0x8B3d875e363dd260b533039de7ed813348cf9ba8"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0xd60B012c24F36bB72d2E50B01c38A490187690c1"
+        },
+        "configurationManager": {
+          "address": "0xdDd8769D24E303e2f9648B35ea9f37285E6e6850"
+        },
+        "harborCommand": {
+          "address": "0x8B88Eb316205426672578EB012827668547De032"
+        },
+        "admiralsQuarters": {
+          "address": "0xA6216397787Abab354AC941Aa76a5f8659556D85"
+        },
+        "raft": {
+          "address": "0x4f769Eb9B19936A54B735Ce8B804976A5Cf59899"
+        }
+      }
+    },
+    "fleets": {
+      "WisdomTree_USDC_Base": {
+        "fleetCommander": "0x9FD22516FF2EBeaF1fcA9bcace1F25cf13Ae9cEC",
+        "bufferArk": "0x986dCA321BB6f136635Bb790d0bB3CE6291B7A5a",
+        "arks": [
+          "0x6049dA0261232Cbb7ca189f1681F23BAd06BF54e",
+          "0x573dB12030d77eEa49162F3e9C4B1D988BB2396B"
+        ]
+      }
+    },
+    "treasury": "0xA0d7E9F71597623355e407C0D55047306045cca0",
+    "governor": [],
+    "guardian": []
+  }
+}

@@ -42,8 +42,11 @@ export enum ArkType {
   Psm3ERC4626Ark = 'Psm3ERC4626Ark',
   HyperlendArk = 'HyperlendArk',
   HypurrArk = 'HypurrArk',
+  WisdomTreeArk = 'WisdomTreeArk',
   MorphoV2VaultArk = 'MorphoV2VaultArk',
   MapleInstitutionalArk = 'MapleInstitutionalArk',
+  UpshiftArk = 'UpshiftArk',
+  OriginUSDArk = 'OriginUSDArk',
 }
 
 export const arkTypes = [
@@ -75,7 +78,10 @@ export const arkTypes = [
   { title: 'Psm3ERC4626Ark', value: ArkType.Psm3ERC4626Ark },
   { title: 'HyperlendArk', value: ArkType.HyperlendArk },
   { title: 'HypurrArk', value: ArkType.HypurrArk },
+  { title: 'WisdomTreeArk', value: ArkType.WisdomTreeArk },
   { title: 'MapleInstitutionalArk', value: ArkType.MapleInstitutionalArk },
+  { title: 'UpshiftArk', value: ArkType.UpshiftArk },
+  { title: 'OriginUSDArk', value: ArkType.OriginUSDArk },
 ]
 
 export interface Config {
@@ -158,6 +164,8 @@ export interface BaseConfig {
     initialSupply: string
     swapProvider: string
     tipRate: string
+    foundation: string
+    merklDistributor: string
     layerZero: {
       lzEndpoint: string
       eID: string
@@ -175,6 +183,17 @@ export interface BaseConfig {
     }
   }
   protocolSpecific: {
+    wisdomtree: {
+      [key in Token]: {
+        [key: string]: {
+          oracle: string
+          shareToken: string
+          targetWallet: string
+          sweepSlippage: string
+          depositSlippage: string
+        }
+      }
+    }
     aaveV3: {
       pool: string
       rewards: string
@@ -254,6 +273,9 @@ export interface BaseConfig {
         }
       }
     }
+    originUSD: {
+      originUSD: Address
+    }
     originETH: {
       originETH: Address
       arm: Address
@@ -304,6 +326,7 @@ export interface BaseConfig {
       pool: Address
       rewards: Address
     }
+    upshift: Record<Token, Record<string, string>>
   }
   bridge?: DeployedBridge
 }
@@ -314,6 +337,7 @@ export interface ArkConfig {
     asset: string
     protocol: string
     vaultName?: string // For ERC4626Ark
+    fundName?: string // For WisdomTreeArk (lookup key in protocolSpecific.wisdomtree[asset])
     rewardToken?: string // For SkyRewardsArk (e.g. 'sky' | 'spk')
     depositCap?: string // For FluidLiteArk
     maxRebalanceOutflow?: string // For FluidLiteArk
@@ -322,9 +346,12 @@ export interface ArkConfig {
     targetChainId?: string // For CrossChainArk
     fleetName?: string // For CrossChainArk
     vaultToken?: string // for arks with underlying token different than fleet asset
+    arkType?: number // 0 for NonMoneyMarket, 1 for MoneyMarket
+    sweepSlippage?: string // For WisdomTreeArk
     version: number
   }
 }
+export type OperatorType = 'admiralsQuarters' | 'roundsVaults'
 
 export interface FleetConfig {
   fleetName: string
@@ -336,16 +363,17 @@ export interface FleetConfig {
   depositCap: string
   initialTipRate: string
   network: string
-  rewardTokens: string[]
-  rewardAmounts: string[]
-  rewardsDuration: number[]
+  rewardTokens?: string[]
+  rewardAmounts?: string[]
+  rewardsDuration?: number
   bridgeAmount: string
   arks: ArkConfig[]
   details: FleetDetails
   curator: Address
   discourseURL?: string
   sipNumber?: string
-  keeper?: Address
+  keeper: Address
+  operatorType: OperatorType
 }
 
 export interface FleetDeployment {
@@ -362,6 +390,8 @@ export interface FleetDeployment {
   depositCap?: string
   initialTipRate?: string
   details: FleetDetails
+  inputVault?: Address
+  outputVault?: Address
 }
 
 // Extend CoreContracts to include InstitutionalVaultRegistry for networks

@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import { useMemo, useState } from 'react'
 
 import { RoundsVaultInputABI } from '@/abis/RoundsVaultInput'
 import { RoundsVaultOutputABI } from '@/abis/RoundsVaultOutput'
@@ -25,64 +25,109 @@ const configs: Record<string, any> = {
   '999': hyperliquidConfig,
 }
 
+const chainIdToName: Record<string, string> = {
+  '1': 'mainnet',
+  '8453': 'base',
+  '42161': 'arbitrum',
+  '146': 'sonic',
+  '999': 'hyperliquid',
+}
+
+interface VaultPair {
+  id: string
+  name: string
+  inputAddress: `0x${string}`
+  outputAddress: `0x${string}`
+}
+
 export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
-  const config = configs[chainId] || baseConfig
+  const config = configs[chainId]
+  const chainName = chainIdToName[chainId]
 
-  // Addresses configuration mapped from deployment files
-  const ROUNDS_VAULT_INPUT = config[
-    'staging_RoundsVaultInput_WisdomTree_USDC_Base#RoundsVaultInput'
-  ] as `0x${string}`
-  const ROUNDS_VAULT_OUTPUT = config[
-    'staging_RoundsVaultOutput_WisdomTree_USDC_Base#RoundsVaultOutput'
-  ] as `0x${string}`
-  // USDC Base mock / standard address.
-  // TODO: Make this dynamic based on the vault's asset() call or from config
-  const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-  const WT_ARK_ADDRESS = config[
-    'staging_WisdomTreeArk_WisdomTree_USDC_Base#WisdomTreeArk'
-  ] as `0x${string}`
+  // ── Discover vault pairs from deployment config ──
+  const vaultPairs = useMemo(() => {
+    if (!config || !chainName) return []
 
-  if (!ROUNDS_VAULT_INPUT || !ROUNDS_VAULT_OUTPUT) {
+    const pairs: VaultPair[] = []
+    const keys = Object.keys(config)
+    const inputRegex = /^staging_RoundsVaultInput_(.*)#RoundsVaultInput$/
+
+    keys.forEach((key) => {
+      const match = key.match(inputRegex)
+      if (match) {
+        const identifier = match[1]
+        const outputKey = `staging_RoundsVaultOutput_${identifier}#RoundsVaultOutput`
+
+        if (config[outputKey]) {
+          pairs.push({
+            id: identifier,
+            name: identifier.replace(/_/g, ' '),
+            inputAddress: config[key] as `0x${string}`,
+            outputAddress: config[outputKey] as `0x${string}`,
+          })
+        }
+      }
+    })
+
+    return pairs
+  }, [config, chainName])
+
+  const [selectedPairId, setSelectedPairId] = useState<string | null>(
+    vaultPairs.length > 0 ? vaultPairs[0].id : null,
+  )
+
+  const selectedPair = useMemo(
+    () => vaultPairs.find((p) => p.id === selectedPairId) || vaultPairs[0],
+    [vaultPairs, selectedPairId],
+  )
+
+  if (vaultPairs.length === 0) {
     return (
       <div className="bg-charcoal-800/60 p-6 rounded-2xl border border-white/5 backdrop-blur-xl">
         <p className="text-white text-center">
-          Rounds Vault not deployed on this chain ({chainId}).
+          No Rounds Vault pairs found on this chain ({chainId}).
         </p>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Input Vault Module */}
-      <VaultInteractionForm
-        title="Input Vault"
-        description="Deposit your USDC to receive WisdomTree Shares automatically at the end of the round."
-        vaultAddress={ROUNDS_VAULT_INPUT}
-        vaultAbi={RoundsVaultInputABI}
-        depositAsset={USDC_ADDRESS}
-        receiveAsset={WT_ARK_ADDRESS}
-        underlyingAsset={USDC_ADDRESS}
-        sharesAsset={WT_ARK_ADDRESS}
-        decimals={6}
-        symbol="USDC"
-        receiptSymbol="rInput"
-      />
+    <div className="space-y-8">
+      {vaultPairs.length > 1 && (
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-gray-900/40 p-4 rounded-xl border border-white/5">
+          <label className="text-gray-400 text-sm font-medium">Select Vault Pair:</label>
+          <select
+            value={selectedPairId || ''}
+            onChange={(e) => setSelectedPairId(e.target.value)}
+            className="bg-gray-800 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-w-[200px]"
+          >
+            {vaultPairs.map((pair) => (
+              <option key={pair.id} value={pair.id}>
+                {pair.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
-      {/* Output Vault Module */}
-      <VaultInteractionForm
-        title="Output Vault"
-        description="Deposit your WisdomTree Shares to receive USDC automatically at the end of the round."
-        vaultAddress={ROUNDS_VAULT_OUTPUT}
-        vaultAbi={RoundsVaultOutputABI}
-        depositAsset={WT_ARK_ADDRESS}
-        receiveAsset={USDC_ADDRESS}
-        underlyingAsset={WT_ARK_ADDRESS}
-        sharesAsset={USDC_ADDRESS}
-        decimals={6}
-        symbol="WT-Shares"
-        receiptSymbol="rOutput"
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Input Vault: deposit underlying (USDC) → receipts → exchange for Fleet shares */}
+        <VaultInteractionForm
+          title="Input Vault (Deposit)"
+          description="Deposit your tokens to receive shares automatically at the end of the round."
+          vaultAddress={selectedPair.inputAddress}
+          vaultAbi={RoundsVaultInputABI}
+          showFleetURL={true}
+        />
+
+        {/* Output Vault: deposit Fleet shares → receipts → exchange for underlying (USDC) */}
+        <VaultInteractionForm
+          title="Output Vault (Withdraw)"
+          description="Deposit your Fleet shares to receive the underlying asset at the end of the round."
+          vaultAddress={selectedPair.outputAddress}
+          vaultAbi={RoundsVaultOutputABI}
+        />
+      </div>
     </div>
   )
 }

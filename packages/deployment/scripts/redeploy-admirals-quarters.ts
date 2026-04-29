@@ -43,7 +43,7 @@ export async function redeployAdmiralsQuarters() {
     network,
     { common: true, core: true, gov: true },
     useBummerConfig,
-  )
+  ) as BaseConfig
 
   // Display summary and get confirmation
   if (!(await confirmDeployment(network))) {
@@ -55,8 +55,8 @@ export async function redeployAdmiralsQuarters() {
 
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const timestampString = new Date().toISOString().replace(/[-:Z.]/g, '')
-  const moduleName = `AdmiralsQuartersModule_${timestampString}`
+  const versionString = `exitPermit2`
+  const moduleName = `AdmiralsQuartersModule_${versionString}`
   const AdmiralsQuartersModule = createAdmiralsQuartersModule(moduleName)
 
   const result = await hre.ignition.deploy(AdmiralsQuartersModule, {
@@ -64,7 +64,7 @@ export async function redeployAdmiralsQuarters() {
       [moduleName]: {
         swapProvider: config.common.swapProvider,
         configurationManager: config.deployedContracts.core.configurationManager.address,
-        weth: config.tokens.weth,
+        weth: config.tokens.wrappedNative,
       },
     },
     deploymentId,
@@ -84,7 +84,7 @@ export async function redeployAdmiralsQuarters() {
     network,
     { common: true, gov: true, core: true },
     useBummerConfig,
-  )
+  ) as BaseConfig
   await setupGovernanceRoles(updatedConfig)
 
   return result

@@ -1,13 +1,10 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-// prompts removed: treasury now read from institution index
+
 import { Address as ViemAddress } from 'viem'
-import {
-  InstitutionWhitelistContracts,
-  createInstitutionWhitelistModule,
-} from '../ignition/modules/institution-whitelist'
+import { createInstitutionWhitelistModule } from '../ignition/modules/institution-whitelist'
 import { BaseConfig } from '../types/config-types'
-import { getConfigByNetwork } from './helpers/config-handler'
+import { getConfigByNetwork, getInstitutionConfigByNetwork } from './helpers/config-handler'
 import {
   promptForInstitutionId,
   readInstitutionGovernance,
@@ -20,7 +17,7 @@ async function main() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
 
   const useBummerConfig = await promptForConfigType()
-
+  const publicClient = await hre.viem.getPublicClient()
   // Choose institution from existing folders or manual entry (shared helper)
   const institutionId = await promptForInstitutionId()
 
@@ -34,7 +31,12 @@ async function main() {
     { common: true, gov: false, core: false },
     useBummerConfig,
   ) as BaseConfig
-
+  const institutionConfig = getInstitutionConfigByNetwork(
+    hre.network.name,
+    institutionId,
+    { gov: true, core: true },
+    useBummerConfig,
+  ) as BaseConfig
   // Ensure InstitutionalVaultRegistry is configured in the base (regular) config
   const registryAddress = validateAddress(
     config.deployedContracts.core.institutionalVaultRegistry?.address,
@@ -44,14 +46,43 @@ async function main() {
   const weth = validateToken(config, 'weth')
   const wethAddress = config.tokens[weth]
 
+  const registry = await hre.viem.getContractAt('InstitutionalVaultRegistry', registryAddress)
+
+  // check if institution is already registered
+  const institutionBytes32 = await registry.read.getBytes32InstitutionId([institutionId])
+  const exists = await registry.read.exists([institutionBytes32])
+
+  // check if the addresses match
+  const registeredInstitution = await registry.read.institutions([institutionBytes32])
+  const addressessMatch =
+    registeredInstitution[0] ===
+      institutionConfig.deployedContracts.core.configurationManager?.address &&
+    registeredInstitution[1] ===
+      institutionConfig.deployedContracts.gov.protocolAccessManager?.address &&
+    registeredInstitution[2] === institutionConfig.deployedContracts.core.admiralsQuarters?.address
+
+  if (exists && addressessMatch) {
+    console.log(kleur.yellow('Institution already registered in registry. Skipping deployment.'))
+    return
+  }
+
+  if (exists && !addressessMatch) {
+    // remove institution from registry
+    const hash = await registry.write.removeInstitution([institutionBytes32])
+    await publicClient.waitForTransactionReceipt({ hash })
+    console.log(kleur.green().bold('Institution successfully removed from registry.'))
+  }
+
   // Read institution governance for current network and validate
   const governance = readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name)
 
   const treasury = governance.treasury
 
-  const moduleName = `InstitutionWhitelist_${institutionId}`
+  const envLabel = useBummerConfig ? 'staging_' : ''
+  const moduleName = `${envLabel}InstitutionWhitelist_${institutionId}`
+
   const InstitutionModule = createInstitutionWhitelistModule(moduleName)
-  const deployed = (await hre.ignition.deploy(InstitutionModule, {
+  const deployed = await hre.ignition.deploy(InstitutionModule, {
     parameters: {
       [moduleName]: {
         swapProvider: swapProvider,
@@ -59,11 +90,10 @@ async function main() {
         treasury: treasury as ViemAddress,
       },
     },
-  })) as InstitutionWhitelistContracts
-
+  })
   console.log(kleur.green().bold('Institution contracts deployed. Writing institution index...'))
 
-  // gov: only protocolAccessManager for whitelist flow
+  // gov: only protocolAccessManagerV2 for whitelist flow
   updateInstitutionDeployedContracts(institutionId, useBummerConfig, hre.network.name, 'gov', {
     protocolAccessManager: { address: deployed.protocolAccessManager.address },
   })
@@ -81,11 +111,6 @@ async function main() {
 
   // Attempt to register institution in the registry if caller is owner
   try {
-    const registry = await hre.viem.getContractAt(
-      'InstitutionalVaultRegistry' as string,
-      registryAddress,
-    )
-
     // Compute id via contract helper to avoid encoding inconsistencies
     const institutionBytes32 = (await registry.read.getBytes32InstitutionId([
       institutionId,
@@ -118,7 +143,6 @@ async function main() {
         configurationManager: deployed.configurationManager.address,
         protocolAccessManager: deployed.protocolAccessManager.address,
         admiralsQuarters: deployed.admiralsQuarters.address,
-        active: true,
       },
     ])
     await publicClient.waitForTransactionReceipt({ hash })
@@ -133,28 +157,45 @@ async function main() {
 
   // Grant governor and guardian roles to accounts from institution governance
   try {
-    const protocolAccessManager = await hre.viem.getContractAt(
-      'ProtocolAccessManager' as string,
+    const protocolAccessManagerV2 = await hre.viem.getContractAt(
+      'ProtocolAccessManagerV2' as string,
       deployed.protocolAccessManager.address,
     )
     const publicClient = await hre.viem.getPublicClient()
 
     for (const addr of governance.governor) {
-      const hash = await protocolAccessManager.write.grantGovernorRole([addr as ViemAddress])
+      const hash = await protocolAccessManagerV2.write.grantGovernorRole([addr as ViemAddress])
       await publicClient.waitForTransactionReceipt({ hash })
       console.log(kleur.green(`Granted GOVERNOR_ROLE to ${addr}`))
     }
 
     for (const addr of governance.guardian) {
-      const hash = await protocolAccessManager.write.grantGuardianRole([addr as ViemAddress])
+      const hash = await protocolAccessManagerV2.write.grantGuardianRole([addr as ViemAddress])
       await publicClient.waitForTransactionReceipt({ hash })
       console.log(kleur.green(`Granted GUARDIAN_ROLE to ${addr}`))
     }
+
+    if (
+      governance.superKeeper &&
+      governance.superKeeper !== '0x0000000000000000000000000000000000000000'
+    ) {
+      const hash = await protocolAccessManagerV2.write.grantSuperKeeperRole([
+        governance.superKeeper as ViemAddress,
+      ])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Granted SUPER_KEEPER_ROLE to ${governance.superKeeper}`))
+    }
+
+    for (const addr of governance.whitelistManagers) {
+      const hash = await protocolAccessManagerV2.write.grantWhitelistManagerRole([
+        addr as ViemAddress,
+      ])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Granted WHITELIST_MANAGER_ROLE to ${addr}`))
+    }
   } catch (e) {
     console.error(
-      kleur.red(
-        `Failed to grant governor/guardian roles: ${e instanceof Error ? e.message : String(e)}`,
-      ),
+      kleur.red(`Failed to grant governance roles: ${e instanceof Error ? e.message : String(e)}`),
     )
     throw e
   }

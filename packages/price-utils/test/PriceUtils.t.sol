@@ -243,4 +243,58 @@ contract PriceUtilsTest is Test {
 
         assertEq(outputAmount, 2e8);
     }
+
+    /**
+        toPriceFromOraclePrice tests
+     */
+    function test_toPriceFromOraclePrice_sameDecimals() public pure {
+        uint256 baseAmount = 1e18;
+        int128 oraclePrice = 3000e8;
+        uint8 oracleDecimals = 8;
+        uint8 quoteDecimals = 8;
+
+        Price memory price = toPriceFromOraclePrice(
+            baseAmount,
+            oraclePrice,
+            oracleDecimals,
+            quoteDecimals
+        );
+
+        assertEq(price.baseAmount, baseAmount);
+        assertEq(price.quoteAmount, uint256(int256(oraclePrice)));
+    }
+
+    function test_toPriceFromOraclePrice_oracleGreaterDecimals() public pure {
+        uint256 baseAmount = 1e18;
+        int128 oraclePrice = 3000e18;
+        uint8 oracleDecimals = 18;
+        uint8 quoteDecimals = 6;
+
+        Price memory price = toPriceFromOraclePrice(
+            baseAmount,
+            oraclePrice,
+            oracleDecimals,
+            quoteDecimals
+        );
+
+        assertEq(price.baseAmount, baseAmount);
+        assertEq(price.quoteAmount, 3000e6);
+    }
+
+    function test_toPriceFromOraclePrice_oracleSmallerDecimals() public pure {
+        uint256 baseAmount = 1e8;
+        int128 oraclePrice = 60000e8;
+        uint8 oracleDecimals = 8;
+        uint8 quoteDecimals = 18;
+
+        Price memory price = toPriceFromOraclePrice(
+            baseAmount,
+            oraclePrice,
+            oracleDecimals,
+            quoteDecimals
+        );
+
+        assertEq(price.baseAmount, baseAmount);
+        assertEq(price.quoteAmount, 60000e18);
+    }
 }

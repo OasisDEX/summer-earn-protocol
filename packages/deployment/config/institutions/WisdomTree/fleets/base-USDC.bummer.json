@@ -1,0 +1,39 @@
+{
+  "fleetName": "WisdomTree_USDC_Base",
+  "isBummer": true,
+  "symbol": "WisdomTreeUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "10000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "1000000000000000000",
+  "network": "base",
+  "details": {
+    "type": "protocol",
+    "name": "WisdomTree_USDC_Base",
+    "chainId": 8453,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC"
+  },
+  "curator": "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
+  "arks": [
+    {
+      "type": "WisdomTreeArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "wisdomtree",
+        "depositCap": "100000000",
+        "fundName": "WTGXX"
+      }
+    },
+    {
+      "type": "WisdomTreeArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "wisdomtree",
+        "depositCap": "100000000",
+        "fundName": "WTSIX"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1104 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.28;
+
+import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import "../../src/contracts/arks/WisdomTreeArk.sol";
+import "../../src/events/IArkEvents.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
+import {AssetsForwarder} from "../../src/utils/AssetsForwarder/AssetsForwarder.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
+import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Test, console} from "forge-std/Test.sol";
+
+// Dummy mock for Chainlink Oracle
+contract MockOracle is AggregatorV3Interface {
+    uint8 public _decimals;
+    int256 public _answer;
+
+    uint80 public _roundId = 1;
+    uint256 public _updatedAt;
+    uint80 public _answeredInRound = 1;
+
+    constructor(uint8 decimals_, int256 answer_) {
+        _decimals = decimals_;
+        _answer = answer_;
+        _updatedAt = block.timestamp;
+    }
+
+    function setAnswer(int256 newAnswer) external {
+        _answer = newAnswer;
+        _updatedAt = block.timestamp;
+    }
+
+    function setRoundData(
+        uint80 roundId,
+        int256 answer,
+        uint256 updatedAt,
+        uint80 answeredInRound
+    ) external {
+        _roundId = roundId;
+        _answer = answer;
+        _updatedAt = updatedAt;
+        _answeredInRound = answeredInRound;
+    }
+
+    function decimals() external view override returns (uint8) {
+        return _decimals;
+    }
+
+    function description() external pure override returns (string memory) {
+        return "Mock";
+    }
+
+    function version() external pure override returns (uint256) {
+        return 1;
+    }
+
+    function getRoundData(
+        uint80
+    )
+        external
+        pure
+        override
+        returns (uint80, int256, uint256, uint256, uint80)
+    {
+        revert();
+    }
+
+    function latestRoundData()
+        external
+        view
+        override
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
+    {
+        return (_roundId, _answer, _updatedAt, _updatedAt, _answeredInRound);
+    }
+}
+
+contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
+    using SafeERC20 for IERC20;
+
+    event CustodianWalletUpdated(address oldWallet, address newWallet);
+    event ArkIsFrozenUpdated(bool isFrozen, uint256 frozenTotalAssets);
+    WisdomTreeArk public ark;
+    BufferArk public bufferArk;
+    IERC20 public usdc;
+    MockERC20 public wtToken;
+    MockOracle public oracle;
+    ArkParams public params;
+
+    address public constant USDC_ADDRESS =
+        0xdAC17F958D2ee523a2206206994597C13D831ec7;
+    address public targetWallet;
+
+    uint256 forkBlock = 21666256;
+    uint256 forkId;
+
+    function setUp() public {
+        initializeCoreContracts();
+        forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
+
+        usdc = IERC20(USDC_ADDRESS);
+        targetWallet = makeAddr("targetWallet");
+        keeper = makeAddr("keeper");
+
+        // Set up mock share token (18 decimals)
+        wtToken = new MockERC20();
+        wtToken.initialize("WTBTC", "WTBTC", 18);
+
+        // Set up mock oracle (8 decimals, price = 1.00)
+        // USDC has 6 decimals, WTBTC has 18 decimals, Oracle has 8 decimals
+        // So a price of 1 means 1 WTBTC (1e18) = 1 USDC (1e6)
+        // We will make 1 WTBTC = 60,000 USDC.
+        // answer * 1e18 / 1e(8 + 18 - 6) = 60000 * 1e6
+        // answer = 60000 * 1e8 = 6,000,000,000,000
+        oracle = new MockOracle(8, 60000 * 1e8);
+
+        params = ArkParams({
+            name: "USDC WisdomTree Ark",
+            details: "USDC WisdomTree Ark details",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            asset: USDC_ADDRESS,
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
+        });
+
+        vm.startPrank(governor);
+        Percentage sweepSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
+        Percentage depositSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
+        ark = new WisdomTreeArk(
+            targetWallet,
+            address(wtToken),
+            address(oracle),
+            sweepSlippage,
+            depositSlippage,
+            params
+        );
+        vm.stopPrank();
+
+        ArkParams memory bParams = ArkParams({
+            name: "TestArk",
+            details: "TestArk details",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            asset: USDC_ADDRESS,
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
+        });
+        bufferArk = new BufferArk(bParams, address(commander));
+
+        // Permissioning
+        vm.startPrank(governor);
+        accessManager.grantCommanderRole(address(ark), address(commander));
+        accessManager.grantKeeperRole(address(ark), keeper);
+
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        ark.registerFleetCommander();
+        vm.stopPrank();
+    }
+
+    function test_Constructor() public {
+        vm.expectRevert(WisdomTreeArk.InvalidTargetWallet.selector);
+        new WisdomTreeArk(
+            address(0),
+            address(wtToken),
+            address(oracle),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            params
+        );
+
+        vm.expectRevert(WisdomTreeArk.InvalidOracleAddress.selector);
+        new WisdomTreeArk(
+            targetWallet,
+            address(wtToken),
+            address(0),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            params
+        );
+
+        vm.expectRevert(WisdomTreeArk.InvalidShareTokenAddress.selector);
+        new WisdomTreeArk(
+            targetWallet,
+            address(0),
+            address(oracle),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            params
+        );
+
+        assertEq(
+            ark.custodianWallet(),
+            targetWallet,
+            "Target wallet should match"
+        );
+        assertEq(address(ark.asset()), USDC_ADDRESS, "Asset should match");
+    }
+
+    function test_SetCustodianWallet() public {
+        address newWallet = makeAddr("newWallet");
+
+        // Reverts if called by non-keeper
+        vm.prank(targetWallet);
+        vm.expectRevert();
+        ark.setCustodianWallet(newWallet);
+
+        vm.startPrank(keeper);
+
+        // Reverts if address(0)
+        vm.expectRevert(WisdomTreeArk.InvalidTargetWallet.selector);
+        ark.setCustodianWallet(address(0));
+
+        // Success
+        vm.expectEmit(false, false, false, true);
+        emit CustodianWalletUpdated(targetWallet, newWallet);
+        ark.setCustodianWallet(newWallet);
+
+        vm.stopPrank();
+
+        assertEq(
+            ark.custodianWallet(),
+            newWallet,
+            "Custodian wallet should be updated"
+        );
+    }
+
+    function test_Board_And_PendingDeposit() public {
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+
+        uint256 initialTargetBalance = usdc.balanceOf(targetWallet);
+
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 finalTargetBalance = usdc.balanceOf(targetWallet);
+        assertEq(
+            finalTargetBalance,
+            initialTargetBalance + amount,
+            "Target wallet should receive tokens"
+        );
+        assertEq(
+            ark.totalAssets(),
+            amount,
+            "Total assets should match boarded amount (pending deposit)"
+        );
+        assertEq(
+            ark.pendingDepositAssets(),
+            amount,
+            "Pending deposit should match"
+        );
+    }
+
+    function test_ClearPendingDeposit() public {
+        // 1. Board
+        uint256 amount = 60000 * 1e6; // Exact price of 1 share
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // 2. Shares arrive off-chain
+        uint256 sharesMinted = 1e18; // 1 WTBTC
+        wtToken.mint(address(ark), sharesMinted);
+
+        // 3. Keep clears
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+
+        assertEq(
+            ark.pendingDepositAssets(),
+            0,
+            "Pending deposit should be cleared"
+        );
+        assertEq(
+            ark.totalAssets(),
+            amount,
+            "Total assets should perfectly transition to oracle share value"
+        );
+    }
+
+    function test_SetArkFrozen() public {
+        vm.prank(targetWallet);
+        vm.expectRevert();
+        ark.setArkFrozen(true, type(uint256).max);
+
+        vm.startPrank(keeper);
+        vm.expectEmit(false, false, false, true);
+        emit ArkIsFrozenUpdated(true, 0);
+        ark.setArkFrozen(true, type(uint256).max);
+        vm.stopPrank();
+
+        assertTrue(ark.isArkFrozen());
+    }
+
+    function test_RevertBoardWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+
+        vm.expectRevert(WisdomTreeArk.ArkIsFrozen.selector);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_RevertRequestWithdrawalWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+
+        uint256 amount = 1000 * 1e6;
+        vm.startPrank(keeper);
+        vm.expectRevert(WisdomTreeArk.ArkIsFrozen.selector);
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+    }
+
+    function test_TotalAssetsIsCachedWhenFrozen_MaxUint256() public {
+        uint256 amount = 60000 * 1e6; // 1 share worth
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(ark), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+
+        uint256 assetsBeforeFreeze = ark.totalAssets();
+
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+
+        // Change oracle price
+        oracle.setAnswer(120000 * 1e8);
+
+        uint256 assetsAfterFreeze = ark.totalAssets();
+        assertEq(
+            assetsBeforeFreeze,
+            assetsAfterFreeze,
+            "Total assets should be cached if frozen"
+        );
+
+        vm.prank(keeper);
+        ark.setArkFrozen(false, 0);
+
+        uint256 assetsAfterUnfreeze = ark.totalAssets();
+        assertTrue(
+            assetsAfterUnfreeze > assetsBeforeFreeze,
+            "Total assets should update after unfreeze"
+        );
+    }
+
+    function test_TotalAssetsIsCachedWhenFrozen_NormalValue() public {
+        uint256 amount = 60000 * 1e6; // 1 share worth
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(ark), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+
+        uint256 customFrozenValue = 1337 * 1e6;
+
+        vm.prank(keeper);
+        ark.setArkFrozen(true, customFrozenValue);
+
+        // Change oracle price
+        oracle.setAnswer(120000 * 1e8);
+
+        uint256 assetsAfterFreeze = ark.totalAssets();
+        assertEq(
+            assetsAfterFreeze,
+            customFrozenValue,
+            "Total assets should equal the custom frozen value"
+        );
+
+        vm.prank(keeper);
+        ark.setArkFrozen(false, 0);
+
+        uint256 assetsAfterUnfreeze = ark.totalAssets();
+        assertTrue(
+            assetsAfterUnfreeze > customFrozenValue,
+            "Total assets should update after unfreeze"
+        );
+        assertTrue(
+            assetsAfterUnfreeze > amount,
+            "Total assets should reflect the new oracle price"
+        );
+    }
+
+    function test_ClearPendingDepositAmount() public {
+        uint256 amount = 60000 * 1e6; // Exact price of 1 share
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        assertEq(ark.pendingDepositAssets(), amount);
+
+        uint256 clearAmount = 10000 * 1e6;
+        uint256 equivalentShares = (clearAmount * 1e18) / amount;
+        deal(address(wtToken), address(ark), equivalentShares);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit(clearAmount);
+        vm.stopPrank();
+
+        assertEq(
+            ark.pendingDepositAssets(),
+            amount - clearAmount,
+            "Pending deposit should be partially cleared"
+        );
+    }
+
+    function test_RevertBoardWhenPendingDepositNonMoneyMarket() public {
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount * 2);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount * 2);
+
+        // First board succeeds
+        ark.board(amount, bytes(""));
+
+        // Second board reverts because it's a NonMoneyMarket ark
+        vm.expectRevert(WisdomTreeArk.PendingDepositActive.selector);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    /* Withdrawal Tests */
+
+    function test_RequestWithdrawal_RevertsIfPendingDeposit() public {
+        // 1. Board (creates pending deposit)
+        uint256 amount = 60000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // 2. Try to withdraw
+        vm.startPrank(keeper);
+        vm.expectRevert(WisdomTreeArk.PendingDepositActive.selector);
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+    }
+
+    function test_RequestWithdrawal_And_Sweep() public {
+        // 1. Setup fully cleared deposit
+        uint256 amount = 60000 * 1e6; // 1 share worth
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(ark), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+
+        // Verify initial state
+        assertEq(ark.totalAssets(), amount);
+
+        // 2. Request Withdrawal
+        vm.startPrank(keeper);
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        // Verify post-request state
+        assertEq(
+            wtToken.balanceOf(targetWallet),
+            sharesMinted,
+            "Shares should be sent to target wallet"
+        );
+        assertEq(
+            wtToken.balanceOf(address(ark)),
+            0,
+            "Ark should have 0 shares"
+        );
+        assertEq(
+            ark.pendingWithdrawalShares(),
+            sharesMinted,
+            "Pending withdrawal tracks shares"
+        );
+        assertEq(
+            ark.totalAssets(),
+            amount,
+            "Total assets remains stable during withdrawal"
+        );
+
+        // The swept USDC goes to the Ark now
+        deal(USDC_ADDRESS, address(ark), amount);
+
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        vm.startPrank(keeper);
+        ark.sweep();
+        vm.stopPrank();
+
+        assertEq(
+            ark.pendingWithdrawalShares(),
+            0,
+            "Pending withdrawal cleared"
+        );
+        assertEq(
+            ark.totalAssets(),
+            0,
+            "Total assets drops to 0 after sweep sends USDC away"
+        );
+        assertEq(usdc.balanceOf(address(ark)), 0, "Ark has 0 USDC");
+    }
+
+    /* _withdrawableTotalAssets and Disembark should be no-ops for this Ark type */
+
+    function test_Disembark_IsNoOp() public {
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_Sweep_Success() public {
+        uint256 amount = 60000 * 1e6; // Equals 1 share worth exactly based on oracle Price
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(ark), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        // 0.5% slippage expected to work. 60000e6 * 0.995 = 59700e6
+        uint256 returnedUsdc = 59700 * 1e6;
+        deal(USDC_ADDRESS, address(ark), returnedUsdc);
+
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        vm.startPrank(keeper);
+        ark.sweep();
+        vm.stopPrank();
+
+        assertEq(ark.pendingWithdrawalShares(), 0);
+        assertEq(usdc.balanceOf(address(bufferArk)), returnedUsdc);
+    }
+
+    function test_Sweep_Reverts_InsufficientAssets() public {
+        uint256 amount = 60000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(ark), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        // 59600e6 is less than 59700e6 (0.5% slippage limit)
+        uint256 returnedUsdc = 59600 * 1e6; // Fails slippage constraint
+        deal(USDC_ADDRESS, address(ark), returnedUsdc);
+
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        vm.startPrank(keeper);
+        vm.expectRevert();
+        ark.sweep();
+        vm.stopPrank();
+    }
+
+    function test_EmergencySweep_Reverts_If_Not_Governor() public {
+        vm.startPrank(keeper); // not governor
+        vm.expectRevert();
+        ark.emergencySweep();
+        vm.stopPrank();
+    }
+
+    function test_EmergencySweep_Success() public {
+        uint256 amount = 60000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(ark), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        // Use returned Usdc far below the slippage limit
+        uint256 returnedUsdc = 50000 * 1e6; // Fails slippage constraint
+        deal(USDC_ADDRESS, address(ark), returnedUsdc);
+
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        // Should work when called by governor
+        vm.startPrank(governor);
+        ark.emergencySweep();
+        vm.stopPrank();
+
+        assertEq(ark.pendingWithdrawalShares(), 0);
+        assertEq(usdc.balanceOf(address(bufferArk)), returnedUsdc);
+    }
+
+    /* Oracle Validation Tests */
+
+    function test_RevertIfOraclePriceNotPositive() public {
+        oracle.setAnswer(0);
+        vm.expectRevert(WisdomTreeArk.OraclePriceNotPositive.selector);
+        ark.sharesToAssets(1e18);
+
+        oracle.setAnswer(-1);
+        vm.expectRevert(WisdomTreeArk.OraclePriceNotPositive.selector);
+        ark.sharesToAssets(1e18);
+    }
+
+    function test_RevertIfOracleStale() public {
+        // Heartbeat is 24 hours
+        oracle.setRoundData(1, 60000 * 1e8, block.timestamp - 24 hours - 1, 1);
+        vm.expectRevert(WisdomTreeArk.StaleOraclePrice.selector);
+        ark.sharesToAssets(1e18);
+
+        // updatedAt == 0 case
+        oracle.setRoundData(1, 60000 * 1e8, 0, 1);
+        vm.expectRevert(WisdomTreeArk.StaleOraclePrice.selector);
+        ark.sharesToAssets(1e18);
+    }
+
+    function test_ClearPendingDeposit_RevertsIfSharesNotArrived() public {
+        // 1. Board exact price of 1 share
+        uint256 amount = 60000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // 2. NO SHARES ARE MINTED OFF-CHAIN YET.
+        // This simulates a malicious or overly fast Keeper trying to crash the NAV.
+
+        uint256 expectedShares = 1e18; // 1 WTBTC
+
+        // 3. Keeper attempts to clear. Must revert with our new custom error.
+        vm.startPrank(keeper);
+
+        // We expect SharesNotArrived(expectedShares, actualNewShares)
+        // Adjust the expected error signature to match exactly what you implemented
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                WisdomTreeArk.SharesNotArrived.selector,
+                expectedShares,
+                0 // 0 shares actually arrived
+            )
+        );
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+
+        // Ensure state remains intact
+        assertEq(
+            ark.pendingDepositAssets(),
+            amount,
+            "Pending deposit should remain untouched"
+        );
+    }
+
+    function test_ClearPendingDeposit_RevertsIfOutsideSlippage() public {
+        uint256 amount = 60000 * 1e6; // Boarding 60k USDC, expecting 1 Share
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // 2. Shares arrive, but it's significantly less than expected
+        // Outside the allowed deposit slippage (e.g., 0.5%)
+        uint256 shortSharesMinted = 0.9e18;
+        wtToken.mint(address(ark), shortSharesMinted);
+
+        uint256 expectedShares = 1e18;
+
+        vm.startPrank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                WisdomTreeArk.SharesNotArrived.selector,
+                expectedShares,
+                shortSharesMinted
+            )
+        );
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+    }
+
+    function test_ClearPendingDeposit_WithSlippage_Success() public {
+        uint256 amount = 60000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // 2. Shares arrive with a tiny bit of negative slippage (0.2% loss).
+        // 1 Share - 0.2% = 0.998 Shares.
+        // Assuming your depositSlippage is set to 0.5%, this should pass.
+        uint256 slightlyShortShares = 0.9981e18;
+        wtToken.mint(address(ark), slightlyShortShares);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit(); // Should succeed
+        vm.stopPrank();
+
+        assertEq(
+            ark.pendingDepositAssets(),
+            0,
+            "Deposit should be cleared despite slight slippage"
+        );
+
+        // Ensure the cached share balance caught the slightly short shares perfectly
+        assertEq(
+            ark.cachedShareBalance(),
+            slightlyShortShares,
+            "Cache should update to the exact actual shares"
+        );
+    }
+
+    function test_ClearPendingDeposit_PartialClearance_SafeUpdate() public {
+        // Board 120k USDC (Expect 2 Shares)
+        uint256 amount = 120000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // Only 1 Share arrives off-chain initially
+        uint256 partialSharesMinted = 1e18;
+        wtToken.mint(address(ark), partialSharesMinted);
+
+        uint256 partialClearance = 60000 * 1e6; // Clear half the USDC
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit(partialClearance); // Clear half
+        vm.stopPrank();
+
+        // Verify partial state
+        assertEq(
+            ark.pendingDepositAssets(),
+            60000 * 1e6,
+            "Half of the deposit should still be pending"
+        );
+        assertEq(
+            ark.cachedShareBalance(),
+            partialSharesMinted,
+            "Cache should safely track the partial delivery"
+        );
+
+        // Assert totalAssets is still completely stable
+        // 1 share in cache (60k) + 60k pending = 120k total
+        assertEq(
+            ark.totalAssets(),
+            amount,
+            "NAV should not shift during partial clearance"
+        );
+    }
+
+    function test_EmergencyClearPendingDeposit_RescuesDeadlock() public {
+        uint256 amount = 1200000 * 1e6; // $1.2M USDC -> 20 shares
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // WisdomTree buys shares at the old price (e.g., 10 Shares for $600k)
+        // but only partially fills the order before the market closes.
+        uint256 partialSharesDelivered = 10e18;
+        wtToken.mint(address(ark), partialSharesDelivered);
+
+        // Suddenly, the Chainlink oracle price PLUMMETS (e.g. WTBTC drops to 20k)
+        oracle.setAnswer(20000 * 1e8);
+
+        // The Keeper wakes up and tries to clear the $600k partial fill.
+        // But because the oracle price dropped, $600k *should* buy 30 shares today.
+        // Since only 10 shares arrived, the slippage guardrail brutally rejects it.
+        vm.startPrank(keeper);
+
+        uint256 clearanceAttempt = 600000 * 1e6;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                WisdomTreeArk.SharesNotArrived.selector,
+                30e18, // Contract demands 30 shares based on today's cheap price
+                partialSharesDelivered // Only 10 arrived
+            )
+        );
+        ark.clearPendingDeposit(clearanceAttempt);
+        vm.stopPrank();
+
+        // The Governor verifies off-chain that $600k was legitimately
+        // spent to buy those 10 shares before the crash.
+
+        // First, ensure a rogue Keeper cannot call the emergency function
+        vm.startPrank(keeper);
+        vm.expectRevert(); // AccessControl revert
+        ark.emergencyClearPendingDeposit(clearanceAttempt);
+        vm.stopPrank();
+
+        // Governor executes the rescue
+        vm.startPrank(governor);
+
+        vm.expectEmit(false, false, false, true);
+        emit WisdomTreeArk.PendingDepositCleared(clearanceAttempt);
+
+        ark.emergencyClearPendingDeposit(clearanceAttempt);
+        vm.stopPrank();
+
+        assertEq(
+            ark.pendingDepositAssets(),
+            amount - clearanceAttempt,
+            "Pending queue should retain the remaining $600k"
+        );
+
+        // 2. The cache was forcefully sync'd to reality, capturing the 10 shares
+        assertEq(
+            ark.cachedShareBalance(),
+            partialSharesDelivered,
+            "Cache must hard-reset to physical balance to restore NAV parity"
+        );
+
+        // 3. The system is un-bricked and NAV calculates cleanly
+        uint256 rescuedTotalAssets = ark.totalAssets();
+
+        // 10 shares at $20k = $200k. Plus $600k still pending = $800k total.
+        uint256 expectedRescuedAssets = (10 * 20000 * 1e6) + (600000 * 1e6);
+        assertEq(
+            rescuedTotalAssets,
+            expectedRescuedAssets,
+            "NAV should perfectly reflect the new oracle reality + remaining pending USDC"
+        );
+    }
+
+    /* Slippage Setter Tests */
+
+    function test_SetSweepSlippage() public {
+        vm.prank(targetWallet);
+        vm.expectRevert();
+        ark.setSweepSlippage(Percentage.wrap(PERCENTAGE_FACTOR / 4));
+
+        vm.startPrank(keeper);
+        Percentage newSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 4);
+        vm.expectEmit(false, false, false, true);
+        emit WisdomTreeArk.SweepSlippageUpdated(
+            ark.sweepSlippage(),
+            newSlippage
+        );
+        ark.setSweepSlippage(newSlippage);
+        vm.stopPrank();
+
+        assertEq(
+            Percentage.unwrap(ark.sweepSlippage()),
+            Percentage.unwrap(newSlippage)
+        );
+    }
+
+    function test_SetSweepSlippage_RevertsExceedsMax() public {
+        vm.startPrank(keeper);
+        Percentage invalidSlippage = Percentage.wrap(PERCENTAGE_FACTOR); // 1%, max is 0.5%
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                WisdomTreeArk.InvalidSweepSlippage.selector,
+                invalidSlippage,
+                ark.MAX_SWEEP_SLIPPAGE()
+            )
+        );
+        ark.setSweepSlippage(invalidSlippage);
+        vm.stopPrank();
+    }
+
+    function test_SetDepositSlippage() public {
+        vm.prank(targetWallet);
+        vm.expectRevert();
+        ark.setDepositSlippage(Percentage.wrap(PERCENTAGE_FACTOR / 4));
+
+        vm.startPrank(keeper);
+        Percentage newSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 4);
+        vm.expectEmit(false, false, false, true);
+        emit WisdomTreeArk.DepositSlippageUpdated(
+            ark.depositSlippage(),
+            newSlippage
+        );
+        ark.setDepositSlippage(newSlippage);
+        vm.stopPrank();
+
+        assertEq(
+            Percentage.unwrap(ark.depositSlippage()),
+            Percentage.unwrap(newSlippage)
+        );
+    }
+
+    function test_SetDepositSlippage_RevertsExceedsMax() public {
+        vm.startPrank(keeper);
+        Percentage invalidSlippage = Percentage.wrap(PERCENTAGE_FACTOR); // 1%, max is 0.5%
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                WisdomTreeArk.InvalidDepositSlippage.selector,
+                invalidSlippage,
+                ark.MAX_DEPOSIT_SLIPPAGE()
+            )
+        );
+        ark.setDepositSlippage(invalidSlippage);
+        vm.stopPrank();
+    }
+
+    /* Zero Amount and No-op Tests */
+
+    function test_ZeroAmountMath() public {
+        assertEq(
+            ark.sharesToAssets(0),
+            0,
+            "sharesToAssets with 0 should return 0"
+        );
+        // internal calls to _assetsToShares(0) happens if requestWithdrawal(0)
+        // Let's test requestWithdrawal(0) to hit _assetsToShares(0) since it's an internal function.
+        vm.startPrank(keeper);
+        ark.requestWithdrawal(0);
+        vm.stopPrank();
+
+        // pendingWithdrawalShares should not have increased
+        assertEq(
+            ark.pendingWithdrawalShares(),
+            0,
+            "No shares should be requested"
+        );
+
+        // Now test sweep when it returns 0
+        // Need to set commander dependencies correctly
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.startPrank(keeper);
+        ark.sweep(); // this will execute _sweep(0)
+        vm.stopPrank();
+        assertEq(ark.pendingWithdrawalShares(), 0);
+    }
+
+    function test_NoOps() public {
+        // Test claimWithdrawal
+        vm.prank(targetWallet);
+        vm.expectRevert();
+        ark.claimWithdrawal();
+
+        vm.startPrank(keeper);
+        ark.claimWithdrawal(); // should not revert
+
+        // Test withdrawUsingSwap
+        ark.withdrawUsingSwap(1e6, new bytes(0)); // should not revert
+        vm.stopPrank();
+
+        // Test fallback views
+        assertEq(ark.withdrawalRequestId(), 0);
+        assertFalse(ark.isWithdrawalClaimRequired());
+        assertEq(ark.assetsInWithdrawalQueue(), 0); // since pendingWithdrawalShares = 0
+
+        // Harvest logic inside Ark using `ark.harvest("")`
+        vm.startPrank(governor);
+        configurationManager.setRaft(commander);
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        ark.harvest(new bytes(0)); // _harvest() returns empty arrays, should not revert
+        vm.stopPrank();
+    }
+
+    function test_ZeroAmountTransfers() public {
+        vm.startPrank(address(commander));
+
+        // board(0) should increase pendingDepositAssets by 0 and not revert.
+        ark.board(0, bytes(""));
+        assertEq(ark.pendingDepositAssets(), 0, "pending deposit assets");
+
+        // Request withdrawal of 0
+        vm.stopPrank();
+
+        vm.startPrank(keeper);
+        ark.requestWithdrawal(0);
+        vm.stopPrank();
+
+        // disembark(0)
+        vm.startPrank(address(commander));
+        ark.disembark(0, new bytes(0));
+        vm.stopPrank();
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit(0);
+        vm.stopPrank();
+    }
+}

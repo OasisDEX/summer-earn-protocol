@@ -102,10 +102,14 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
      * @dev Modifier to check that the caller has the Governor role
      */
     modifier onlyGovernor() {
-        if (!hasRole(GOVERNOR_ROLE, msg.sender)) {
-            revert CallerIsNotGovernor(msg.sender);
-        }
+        _revertIfNotGovernor();
         _;
+    }
+
+    function _revertIfNotGovernor() private view {
+        if (!hasRole(GOVERNOR_ROLE, _msgSender())) {
+            revert CallerIsNotGovernor(_msgSender());
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -124,7 +128,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
      */
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override returns (bool) {
+    ) public view virtual override returns (bool) {
         return
             interfaceId == type(IProtocolAccessManager).interfaceId ||
             super.supportsInterface(interfaceId);
@@ -276,10 +280,10 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         address roleTargetContract
     ) public {
         bytes32 role = generateRole(roleName, roleTargetContract);
-        if (!hasRole(role, msg.sender)) {
-            revert CallerIsNotContractSpecificRole(msg.sender, role);
+        if (!hasRole(role, _msgSender())) {
+            revert CallerIsNotContractSpecificRole(_msgSender(), role);
         }
-        _revokeRole(role, msg.sender);
+        _revokeRole(role, _msgSender());
     }
 
     /// @inheritdoc IProtocolAccessManager

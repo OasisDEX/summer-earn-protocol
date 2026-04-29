@@ -15,7 +15,7 @@
   },
   "scripts": {
     "start:node": "hardhat node",
-    "build": "forge build --extra-output-files abi",
+    "build": "forge build --extra-output-files abi --quiet",
     "build:hh": "REPORT_CONTRACT_SIZE=true hardhat compile",
     "spawn:devnet": "export $(pnpx tsx scripts/node/spawn-devnet.ts)",
     "coverage": "forge coverage --ir-minimum",
@@ -50,6 +50,8 @@
     "deploy:status:base": "hardhat ignition status chain-8453",
     "deploy:summer-vesting-factory-v2": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-summer-vesting-factory-v2.ts --network $NETWORK",
     "deploy:timelock-guard-factory": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-timelock-guard-factory.ts --network $NETWORK",
+    "deploy:assets-forwarder": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-assets-forwarder.ts --network $NETWORK",
+    "deploy:wisdomtree-fleet": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-wisdomtree-fleet.ts --network $NETWORK",
     "verify:mainnet": "hardhat ignition verify chain-1",
     "verify:arbitrum": "hardhat ignition verify chain-42161",
     "verify:unichain": "hardhat ignition verify chain-130",
@@ -70,6 +72,7 @@
     "gov:test-transfer-bummer-tokens": "hardhat run scripts/governance/test-transfer-bummer-tokens.ts --network $NETWORK",
     "gov:execute-proposal": "hardhat run scripts/governance/execute-proposal.ts --network $NETWORK",
     "gov:execute-proposal:direct": "hardhat run scripts/governance/execute-proposal-direct.ts --network $NETWORK",
+    "gov:execute-timelock": "hardhat run scripts/governance/execute-timelock.ts --network $NETWORK",
     "gov:create-fleet-rewards-proposals": "hardhat run scripts/governance/create-fleet-rewards-proposals.ts --network $NETWORK",
     "gov:enable-fleet-transferability": "hardhat run scripts/governance/enable-fleet-transferability-proposal.ts --network $NETWORK",
     "gov:setup-foundation-roles": "hardhat run scripts/governance/setup-foundation-roles.ts --network $NETWORK",
@@ -89,8 +92,9 @@
     "gov:convert-safe-tx-to-timelock": "tsx scripts/governance/convert-safe-tx-to-timelock.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --check \"**/*.sol\" --no-error-on-unmatched-pattern",
-    "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern"
+    "format": "prettier --check \"**/*.ts\" --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.ts\" --no-error-on-unmatched-pattern",
+    "decode-safe-tx": "hardhat run scripts/governance/decode-safe-tx.ts"
   },
   "devDependencies": {
     "@layerzerolabs/lz-v2-utilities": "2.3.39",
@@ -133,7 +137,7 @@
     "@safe-global/types-kit": "^1.0.1",
     "@summerfi/earn-protocol-contracts": "workspace:*",
     "dotenv": "16.4.5",
-    "lodash": "^4.17.23",
+    "lodash": "^4.18.1",
     "solhint-plugin-prettier": "0.1.0",
     "solidity-bytes-utils": "0.8.2",
     "tsx": "4.19.2"

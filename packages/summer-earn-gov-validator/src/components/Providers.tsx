@@ -2,15 +2,19 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { createAppKit } from '@reown/appkit'
+import type { AppKitNetwork } from '@reown/appkit/networks'
 import {
   arbitrum as appkitArbitrum,
   base as appkitBase,
   mainnet as appkitMainnet,
+  sonic as appkitSonic,
 } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { http, WagmiProvider } from 'wagmi'
+import { WagmiProvider } from 'wagmi'
 import { arbitrum, base, mainnet, sonic } from 'wagmi/chains'
+
+import { CHAIN_RPC_URLS, createRpcTransport, VIEM_CHAIN_ENTITIES } from '@/config/rpc'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
@@ -18,24 +22,30 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_ID || 'demo'
 
   const appkitNetworks = useMemo(
-    () => [appkitMainnet, appkitArbitrum, appkitBase],
+    () =>
+      [appkitMainnet, appkitArbitrum, appkitBase, appkitSonic] as [
+        AppKitNetwork,
+        ...AppKitNetwork[],
+      ],
     [],
-  ) as Parameters<typeof createAppKit>[0]['networks']
+  )
+
+  const chains = useMemo(() => Object.values(VIEM_CHAIN_ENTITIES), [])
 
   const wagmiAdapter = useMemo(() => {
     return new WagmiAdapter({
       projectId,
       ssr: true,
       networks: appkitNetworks,
-      chains: [mainnet, arbitrum, base, sonic],
+      chains: chains as [typeof mainnet, ...(typeof mainnet)[]],
       transports: {
-        [mainnet.id]: http(mainnet.rpcUrls.default.http[0]),
-        [arbitrum.id]: http(arbitrum.rpcUrls.default.http[0]),
-        [base.id]: http(base.rpcUrls.default.http[0]),
-        [sonic.id]: http(sonic.rpcUrls.default.http[0]),
+        [mainnet.id]: createRpcTransport(CHAIN_RPC_URLS[mainnet.id]),
+        [arbitrum.id]: createRpcTransport(CHAIN_RPC_URLS[arbitrum.id]),
+        [base.id]: createRpcTransport(CHAIN_RPC_URLS[base.id]),
+        [sonic.id]: createRpcTransport(CHAIN_RPC_URLS[sonic.id]),
       },
     })
-  }, [projectId, appkitNetworks])
+  }, [projectId, appkitNetworks, chains])
 
   useEffect(() => {
     type WindowWithAppKit = typeof window & {

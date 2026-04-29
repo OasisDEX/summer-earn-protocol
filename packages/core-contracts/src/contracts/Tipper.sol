@@ -111,7 +111,7 @@ abstract contract Tipper is ITipper {
     function previewTip(
         address tipJar,
         uint256 totalSupply
-    ) public view returns (uint256 tippedShares) {
+    ) public view virtual returns (uint256 tippedShares) {
         uint256 timeElapsed = block.timestamp - lastTipTimestamp;
         if (timeElapsed == 0) return 0;
 
@@ -144,7 +144,7 @@ abstract contract Tipper is ITipper {
     function _accrueTip(
         address tipJar,
         uint256 totalSupply
-    ) internal returns (uint256 tippedShares) {
+    ) internal virtual returns (uint256 tippedShares) {
         if (tipRate == toPercentage(0)) {
             lastTipTimestamp = block.timestamp;
             return 0;

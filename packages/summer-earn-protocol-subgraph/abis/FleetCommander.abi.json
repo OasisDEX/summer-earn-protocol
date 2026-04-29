@@ -1890,6 +1890,19 @@
   },
   {
     "type": "event",
+    "name": "OperatorGatewayStatusUpdated",
+    "inputs": [
+      {
+        "name": "newStatus",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "Paused",
     "inputs": [
       {
@@ -2034,6 +2047,12 @@
         "internalType": "uint256"
       }
     ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TransfersDisabled",
+    "inputs": [],
     "anonymous": false
   },
   {
@@ -2210,6 +2229,17 @@
   {
     "type": "error",
     "name": "CallerIsNotKeeper",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotOperator",
     "inputs": [
       {
         "name": "caller",
@@ -2568,6 +2598,16 @@
   {
     "type": "error",
     "name": "FleetCommanderCantUseRebalanceOnBufferArk",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderDirectDepositsClosed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderDirectWithdrawalsClosed",
     "inputs": []
   },
   {

@@ -3,56 +3,56 @@ pragma solidity 0.8.28;
 
 import {IWhitelist} from "./IWhitelist.sol";
 import {NotWhitelisted} from "./IWhitelistErrors.sol";
+import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerV2.sol";
 
 /**
  * @title Whitelist
- * @notice Inheritable whitelist utility with events and an optional "open" mode.
- * @dev Use `onlyWhitelisted(account)` to gate functions. Manage status via
- *      `_setWhitelisted` or `_setWhitelistedBatch`. If `address(0)` is set to
- *      allowed, the whitelist becomes open and all accounts are considered allowed.
+ * @notice Inheritable whitelist utility that delegates to a central ProtocolAccessManagerV2.
+ * @dev All whitelisting state is now centralized and scoped by a context (e.g. the vault itself).
+ *      Inheriting contracts must implement `_getAccessManager()`.
  */
 abstract contract Whitelist is IWhitelist {
-    /**
-     * STATE
-     */
-
-    /**
-     * @notice Mapping indicating whether an account is whitelisted
-     * @dev Special case: when `_whitelisted[address(0)] == true`, the whitelist is open and
-     *      all addresses are treated as whitelisted.
-     */
-    mapping(address account => bool isWhitelisted) internal _whitelisted;
-
     /**
      * MODIFIERS
      */
 
     /**
-     * @notice Ensures `account` is whitelisted, otherwise reverts.
+     * @notice Ensures `account` is whitelisted in `context`, otherwise reverts.
+     * @param context The context for which the account status is checked.
      * @param account The account to check.
-     * @dev No-op when the whitelist is open (i.e., `address(0)` is allowed).
      */
-    modifier onlyWhitelisted(address account) {
-        _revertIfNotWhitelisted(account);
+    modifier onlyWhitelisted(address context, address account) {
+        _revertIfNotWhitelisted(context, account);
         _;
     }
 
+    /**
+     * VIRTUAL HOOK
+     */
+
+    /**
+     * @notice Returns the address of the access manager to delegate to.
+     * @dev Must be implemented by the inheriting contract.
+     */
+    function _getAccessManager() internal view virtual returns (address);
+
+    /**
+     * PUBLIC FUNCTIONS
+     */
+
     ///@inheritdoc IWhitelist
-    function isWhitelisted(address account) external view returns (bool) {
-        return _isWhitelisted(account);
+    function isWhitelisted(
+        address context,
+        address account
+    ) external view returns (bool) {
+        return _isWhitelisted(context, account);
     }
 
     ///@inheritdoc IWhitelist
-    function setWhitelisted(address account, bool allowed) external virtual {
-        _setWhitelisted(account, allowed);
-    }
-
-    ///@inheritdoc IWhitelist
-    function setWhitelistedBatch(
-        address[] memory accounts,
-        bool[] memory allowed
-    ) external virtual {
-        _setWhitelistedBatch(accounts, allowed);
+    function isWhitelistOpen(
+        address context
+    ) public view virtual returns (bool) {
+        return _isWhitelistOpen(context);
     }
 
     /**
@@ -60,60 +60,86 @@ abstract contract Whitelist is IWhitelist {
      */
 
     /**
-     * @notice Returns true if `account` is whitelisted.
-     * @dev Returns true for any account when the whitelist is open.
+     * @notice Returns true if the whitelist for a specific context is globally open
      */
-    function _isWhitelisted(address account) internal view returns (bool) {
-        return _isWhitelistOpen() || _whitelisted[account];
+    function _isWhitelistOpen(address context) internal view returns (bool) {
+        return
+            IProtocolAccessManagerV2(_getAccessManager()).isWhitelistOpen(
+                context
+            );
     }
 
     /**
-     * @notice Reverts with NotWhitelisted if `account` is not whitelisted.
-     * @dev No-op when the whitelist is open.
+     * @notice Returns true if `account` is whitelisted in `context`.
      */
-    function _revertIfNotWhitelisted(address account) internal view {
-        if (!_isWhitelisted(account)) {
-            revert NotWhitelisted(account);
+    function _isWhitelisted(
+        address context,
+        address account
+    ) internal view returns (bool) {
+        return
+            IProtocolAccessManagerV2(_getAccessManager()).isWhitelisted(
+                context,
+                account
+            );
+    }
+
+    /**
+     * @notice Reverts with NotWhitelisted if `account` is not whitelisted in `context`.
+     */
+    function _revertIfNotWhitelisted(
+        address context,
+        address account1
+    ) internal view {
+        if (!_isWhitelisted(context, account1)) {
+            revert NotWhitelisted(context, account1);
         }
     }
-
     /**
-     * INTERNAL STATE CHANGE HELPERS
-     * @dev Expose small helpers so inheriting contracts can control access.
+     * @notice Reverts with NotWhitelisted if `account` is not whitelisted in `context`.
      */
-
-    /**
-     * @notice Sets whitelist status for `account` to `allowed`.
-     * @dev Access control must be added by the inheriting contract.
-     *      Using `account = address(0)` toggles the open whitelist behavior for all accounts.
-     */
-    function _setWhitelisted(address account, bool allowed) internal {
-        _whitelisted[account] = allowed;
-        emit WhitelistStatusUpdated(account, allowed);
+    function _revertIfNotWhitelisted(
+        address context,
+        address account1,
+        address account2
+    ) internal view {
+        address[] memory accounts = new address[](2);
+        accounts[0] = account1;
+        accounts[1] = account2;
+        _revertIfNotWhitelisted(context, accounts);
     }
 
     /**
-     * @notice Batch set whitelist statuses.
-     * @dev Lengths must match; access control in the inheriting contract. Including `address(0)`
-     *      toggles the open whitelist behavior for all accounts.
+     * @notice Reverts with NotWhitelisted if `account` is not whitelisted in `context`.
      */
-    function _setWhitelistedBatch(
-        address[] memory accounts,
-        bool[] memory allowed
-    ) internal {
-        uint256 length = accounts.length;
-        require(length == allowed.length, "Whitelist: length mismatch");
-        for (uint256 i = 0; i < length; i++) {
-            _whitelisted[accounts[i]] = allowed[i];
-            emit WhitelistStatusUpdated(accounts[i], allowed[i]);
+    function _revertIfNotWhitelisted(
+        address context,
+        address account1,
+        address account2,
+        address account3
+    ) internal view {
+        address[] memory accounts = new address[](3);
+        accounts[0] = account1;
+        accounts[1] = account2;
+        accounts[2] = account3;
+        _revertIfNotWhitelisted(context, accounts);
+    }
+    /**
+     * @notice Reverts if any of the `accounts` is not whitelisted in `context`.
+     * @dev Optimized with a single external batch call relative to `context`.
+     */
+    function _revertIfNotWhitelisted(
+        address context,
+        address[] memory accounts
+    ) internal view {
+        IProtocolAccessManagerV2 am = IProtocolAccessManagerV2(
+            _getAccessManager()
+        );
+
+        bool[] memory statuses = am.areWhitelisted(context, accounts);
+        for (uint256 i = 0; i < accounts.length; i++) {
+            if (!statuses[i]) {
+                revert NotWhitelisted(context, accounts[i]);
+            }
         }
-    }
-
-    /**
-     * @notice Returns true if the whitelist is in open mode.
-     * @dev Open mode is enabled by whitelisting `address(0)`.
-     */
-    function _isWhitelistOpen() internal view returns (bool) {
-        return _whitelisted[address(0)];
     }
 }

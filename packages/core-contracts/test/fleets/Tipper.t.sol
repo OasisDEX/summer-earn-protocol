@@ -8,6 +8,7 @@ import {ITipperEvents} from "../../src/events/ITipperEvents.sol";
 import {IConfigurationManager} from "@summerfi/config-contracts/interfaces/IConfigurationManager.sol";
 
 import {Tipper} from "../../src/contracts/Tipper.sol";
+import {ITipperErrors} from "../../src/errors/ITipperErrors.sol";
 
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 
@@ -99,10 +100,13 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_TipRateCannotExceedFivePercent() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("TipRateCannotExceedFivePercent()")
-        );
+        vm.expectRevert(ITipperErrors.TipRateCannotExceedFivePercent.selector);
         fleetCommander.setTipRate(PercentageUtils.fromIntegerPercentage(6));
+    }
+
+    function test_ConstructorTipRateCannotExceedFivePercent() public {
+        vm.expectRevert(ITipperErrors.TipRateCannotExceedFivePercent.selector);
+        new TipperConstructorHarness(PercentageUtils.fromIntegerPercentage(6));
     }
 
     function test_CompoundingEffect() public {
@@ -209,4 +213,13 @@ contract TipperHarness is Tipper {
     ) internal virtual override {}
 
     function test_() public {}
+}
+
+contract TipperConstructorHarness is Tipper {
+    constructor(Percentage rate) Tipper(rate) {}
+
+    function _mintTip(
+        address account,
+        uint256 amount
+    ) internal virtual override {}
 }

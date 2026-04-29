@@ -32,21 +32,29 @@ export function createFleetWhitelistModule(moduleName: string) {
       'fleetCommanderRewardsManagerFactory',
     )
 
-    const fleetCommanderWhitelist = m.contract('FleetCommanderWhitelist', [
+    const fleetCommanderCacheLib = m.contract('FleetCommanderCacheLib', [])
+
+    const fleetCommanderWhitelist = m.contract(
+      'FleetCommanderWhitelist',
+      [
+        {
+          name: fleetName,
+          symbol: fleetSymbol,
+          configurationManager: configurationManager,
+          accessManager: protocolAccessManager,
+          asset: asset,
+          details: fleetDetails,
+          initialMinimumBufferBalance: initialMinimumBufferBalance,
+          initialRebalanceCooldown: initialRebalanceCooldown,
+          depositCap: depositCap,
+          initialTipRate: initialTipRate,
+          fleetCommanderRewardsManagerFactory: fleetCommanderRewardsManagerFactory,
+        },
+      ],
       {
-        name: fleetName,
-        symbol: fleetSymbol,
-        configurationManager: configurationManager,
-        accessManager: protocolAccessManager,
-        asset: asset,
-        details: fleetDetails,
-        initialMinimumBufferBalance: initialMinimumBufferBalance,
-        initialRebalanceCooldown: initialRebalanceCooldown,
-        depositCap: depositCap,
-        initialTipRate: initialTipRate,
-        fleetCommanderRewardsManagerFactory: fleetCommanderRewardsManagerFactory,
+        libraries: { FleetCommanderCacheLib: fleetCommanderCacheLib },
       },
-    ])
-    return { fleetCommanderWhitelist }
+    )
+    return { fleetCommander: fleetCommanderWhitelist }
   })
 }

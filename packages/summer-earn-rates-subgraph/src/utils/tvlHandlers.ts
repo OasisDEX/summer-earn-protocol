@@ -10,7 +10,9 @@ export function handleTvl(
 ): void {
   const tvl = product.getTvl(block.timestamp, block.number)
   const totalValueLocked = new TotalValueLocked(
-    `${protocolName}-${product.token.id.toHexString()}-${block.number.toString()}-${crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString()}`,
+    `${protocolName}-${product.token.id.toHexString()}-${block.number.toString()}-${crypto
+      .keccak256(ByteArray.fromUTF8(product.name))
+      .toHexString()}`,
   )
   totalValueLocked.protocol = protocolName
   totalValueLocked.token = product.token.id

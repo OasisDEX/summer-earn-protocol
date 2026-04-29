@@ -12,7 +12,9 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 enum ContractSpecificRoles {
     CURATOR_ROLE,
     KEEPER_ROLE,
-    COMMANDER_ROLE
+    COMMANDER_ROLE,
+    // V2
+    OPERATOR_ROLE
 }
 
 /**

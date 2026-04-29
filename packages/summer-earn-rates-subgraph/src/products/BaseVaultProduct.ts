@@ -35,6 +35,21 @@ export abstract class BaseVaultProduct extends Product {
   threshold: BigDecimal = BigDecimalConstants.ONE_BPS
   abstract getSharePrice(): BigDecimal
 
+  isDailyVault(): boolean {
+    const nameLower = this.name.toLowerCase()
+    const dailyVaults: string[] = [
+      '0xa0d3707c569ff8c87fa923d3823ec5d81c98be78',
+      'origin',
+      'infinifi',
+    ]
+    for (let i = 0; i < dailyVaults.length; i++) {
+      if (nameLower.includes(dailyVaults[i])) {
+        return true
+      }
+    }
+    return false
+  }
+
   getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
     if (
       currentBlock.ge(BigInt.fromI32(396229273)) &&
@@ -51,54 +66,64 @@ export abstract class BaseVaultProduct extends Product {
       return BigDecimalConstants.ZERO
     }
     const vaultState = this.getOrCreateVaultState()
-    // if the share price is the same as the previous share price, return 0
-    // this is to prevent division by zero in the calculation,
-    // not update the lastSharePrice,lastUpdateTimestamp
-    // and to avoid unnecessary calculations
     const previousSharePrice = vaultState.lastSharePrice
     const previousRate = vaultState.lastRate!
-    if (previousSharePrice.equals(sharePrice)) {
-      return previousRate
+
+    // First time initialization
+    if (vaultState.lastUpdateTimestamp.equals(BigIntConstants.ZERO)) {
+      this.updateVaultState(sharePrice, BigDecimalConstants.ZERO, currentTimestamp, vaultState)
+      return BigDecimalConstants.ZERO
     }
-    const priceChange = sharePrice.minus(previousSharePrice).div(previousSharePrice)
+
     const timeDiff = this.getTimeDifference(currentTimestamp, vaultState)
-    if (timeDiff.equals(BigIntConstants.ZERO)) {
+
+    // Minimum interval enforcement
+    const targetInterval = this.isDailyVault()
+      ? BigIntConstants.DAY_IN_SECONDS
+      : BigIntConstants.ZERO
+
+    if (timeDiff.lt(targetInterval) || timeDiff.equals(BigIntConstants.ZERO)) {
       return previousRate
     }
-    if (
-      this.name.toLowerCase().includes('0xa0d3707c569ff8c87fa923d3823ec5d81c98be78') &&
-      timeDiff.lt(BigIntConstants.DAY_IN_SECONDS)
-    ) {
-      return previousRate
+
+    // Now evaluate price change
+    if (previousSharePrice.equals(sharePrice)) {
+      if (this.isDailyVault()) {
+        // Daily vaults explicitly hold their previous rate over flat periods
+        // to properly smear the APY across intervals.
+        return previousRate
+      } else {
+        // Regular vaults should drop to 0% to avoid falsely advertising
+        // a past high APY during an actual yield hiccup.
+        return BigDecimalConstants.ZERO
+      }
     }
+
+    const priceChange = sharePrice.minus(previousSharePrice).div(previousSharePrice)
 
     const annualizedRate = priceChange
       .times(BigDecimalConstants.SECONDS_PER_YEAR)
       .div(timeDiff.toBigDecimal())
       .times(BigDecimalConstants.HUNDRED)
+
     const annualizedRateBelowZero = annualizedRate.lt(this.threshold.neg())
     const annualizedRateWithinThreshold =
       annualizedRate.lt(this.threshold) && annualizedRate.gt(this.threshold.neg())
-    // If the rate is negative (e.g., due to a vault fee or loss), we skip updating the vault state and return the previous rate.
-    // This means the next time a positive rate is observed, it will be annualized over the entire period since the last update,
-    // effectively skipping negative rates and waiting for a positive period before updating the vault state.
 
+    // If the rate is negative (e.g., due to a vault fee or loss), we handle it based on vault type.
     if (annualizedRateBelowZero) {
-      // @dev special handling for fluid lite
-      // for non fluid lite it's usualy one update with negative rate, so we need to restart accounting from current share price
-      // for others it's a longer period of negative rates, hence we air for positive rate to average it out
-      if (!this.name.toLowerCase().includes('0xa0d3707c569ff8c87fa923d3823ec5d81c98be78')) {
+      // For daily vaults, wait for a longer period to see if the rate averages out to positive.
+      // For others, restart accounting from current share price.
+      if (!this.isDailyVault()) {
         this.updateVaultState(sharePrice, annualizedRate, currentTimestamp, vaultState)
       }
       return previousRate
     }
+
     // If the rate change is minimal (within our threshold), we maintain the previous rate
     // This filters out small fluctuations from routine vault operations like deposits/withdrawals
     // We skip updating vault state to ensure the next calculation uses the original timestamp
-    if (
-      annualizedRateWithinThreshold &&
-      vaultState.lastUpdateTimestamp.notEqual(BigInt.fromI32(0))
-    ) {
+    if (annualizedRateWithinThreshold) {
       return previousRate
     }
 
@@ -106,6 +131,7 @@ export abstract class BaseVaultProduct extends Product {
 
     return annualizedRate
   }
+
   getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
     return []
   }

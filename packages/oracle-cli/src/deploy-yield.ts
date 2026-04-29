@@ -32,7 +32,6 @@ const USDC_ADDRESSES: Record<string, Address> = {
   base: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   mainnet: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
   arbitrum: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-  ethereum: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
 }
 
 const ConfigSchema = z.object({
@@ -73,9 +72,8 @@ export async function deployYieldSystem(forcedFactory?: Address) {
   const yieldDeployments = loadYieldDeployments()
 
   for (const [networkKey, oracleChainData] of Object.entries(oracleDeployments)) {
-    // Map network key to one of our supported keys for USDC lookup
-    // deployments.json uses 'ethereum' for mainnet usually, but let's handle both
-    const network = networkKey === 'ethereum' ? 'mainnet' : networkKey
+    // Standardized network key from deployments.json
+    const network = networkKey
 
     // Skip if no oracles
     if (oracleChainData.oracles.length === 0) continue

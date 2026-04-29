@@ -9,28 +9,32 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IAToken} from "../interfaces/aave-v3/IAtoken.sol";
 import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
 import {IComet} from "../interfaces/compound-v3/IComet.sol";
 import {IWETH} from "../interfaces/misc/IWETH.sol";
 import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManagedV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedV2.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ProtectedMulticallWhitelist} from "./ProtectedMulticallWhitelist.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IWhitelist} from "../utils/Whitelist/IWhitelist.sol";
+import {Whitelist} from "../utils/Whitelist/Whitelist.sol";
+import {ISignatureTransfer} from "../interfaces/permit2/IPermit2.sol";
 
 /**
  * @title AdmiralsQuarters
  * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
- *      with integrated swapping functionality using 1inch Router.
+ *      with integrated swapping functionality using 1inch Router.whi
  * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas
  * efficiency.
- * @notice Whitelist gating: All external functions are invoked via `multicall` in
- * `ProtectedMulticallWhitelist`, which enforces `onlyWhitelisted(_msgSender())`. If the
- * underlying whitelist is set to open mode by whitelisting `address(0)`, any caller is treated as
- * whitelisted and may use `multicall`.
+ * @notice Whitelist gating: Specific operations are gated by explicit context-aware whitelists.
+ * - Fleet operations (`enterFleet`, `exitFleet`) are gated by whitelisting against the
+ *   target `fleetCommander` address as the context.
+ * - `depositTokens` and `withdrawTokens` are currently open and do not enforce context-specific
+ *   whitelists directly, though they are still protected by reentrancy guards.
  *
  * @dev How to use this contract:
  * 1. Deposit tokens: Use `depositTokens` to deposit ERC20 tokens into the contract.
@@ -66,7 +70,7 @@ contract AdmiralsQuartersWhitelist is
     ProtectedMulticallWhitelist,
     ReentrancyGuardTransient,
     IAdmiralsQuartersWhitelist,
-    ProtocolAccessManaged,
+    ProtocolAccessManagedV2,
     ConfigurationManaged
 {
     using SafeERC20 for IERC20;
@@ -77,6 +81,9 @@ contract AdmiralsQuartersWhitelist is
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public immutable WRAPPED_NATIVE;
 
+    address public constant PERMIT2 =
+        0x000000000022D473030F116dDEE9F6B43aC78BA3;
+
     constructor(
         address _oneInchRouter,
         address _configurationManager,
@@ -85,7 +92,7 @@ contract AdmiralsQuartersWhitelist is
     )
         Ownable(_msgSender())
         ConfigurationManaged(_configurationManager)
-        ProtocolAccessManaged(_protocolAccessManager)
+        ProtocolAccessManagedV2(_protocolAccessManager)
     {
         if (_oneInchRouter == address(0)) revert InvalidRouterAddress();
         ONE_INCH_ROUTER = _oneInchRouter;
@@ -139,6 +146,7 @@ contract AdmiralsQuartersWhitelist is
         uint256 assets,
         address receiver
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _revertIfNotWhitelisted(fleetCommander, receiver, _msgSender());
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -156,10 +164,87 @@ contract AdmiralsQuartersWhitelist is
     }
 
     /// @inheritdoc IAdmiralsQuartersWhitelist
+    function enterFleetWithPermit(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        bytes calldata referralCode,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _validateFleetCommander(fleetCommander);
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        IERC20 fleetAsset = IERC20(fleet.asset());
+
+        IERC20Permit(address(fleetAsset)).permit(
+            owner,
+            address(this),
+            assets,
+            deadline,
+            v,
+            r,
+            s
+        );
+        fleetAsset.safeTransferFrom(owner, address(this), assets);
+
+        fleetAsset.forceApprove(address(fleet), assets);
+        if (referralCode.length == 0) {
+            shares = fleet.deposit(assets, owner);
+            emit FleetEntered(owner, fleetCommander, assets, shares);
+        } else {
+            shares = fleet.deposit(assets, owner, referralCode);
+            emit FleetEnteredWithReferral(
+                owner,
+                fleetCommander,
+                assets,
+                shares,
+                referralCode
+            );
+        }
+    }
+
+    /// @inheritdoc IAdmiralsQuartersWhitelist
+    function enterFleetWithPermit2(
+        address owner,
+        address fleetCommander,
+        uint256 assets,
+        address receiver,
+        ISignatureTransfer.PermitTransferFrom calldata permitData,
+        bytes calldata signature
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _revertIfNotWhitelisted(fleetCommander, receiver, owner);
+        _validateFleetCommander(fleetCommander);
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        IERC20 fleetAsset = IERC20(fleet.asset());
+        if (permitData.permitted.token != fleetAsset) revert InvalidToken();
+        if (permitData.permitted.amount != assets) revert InvalidAmount();
+        ISignatureTransfer(PERMIT2).permitTransferFrom(
+            permitData,
+            ISignatureTransfer.SignatureTransferDetails({
+                to: address(this),
+                requestedAmount: assets
+            }),
+            owner,
+            signature
+        );
+
+        assets = assets == 0 ? fleetAsset.balanceOf(address(this)) : assets;
+        receiver = receiver == address(0) ? owner : receiver;
+
+        fleetAsset.forceApprove(address(fleet), assets);
+        shares = fleet.deposit(assets, receiver);
+
+        emit FleetEntered(owner, fleetCommander, assets, shares);
+    }
+
+    /// @inheritdoc IAdmiralsQuartersWhitelist
     function exitFleet(
         address fleetCommander,
         uint256 assets
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _revertIfNotWhitelisted(fleetCommander, _msgSender());
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -222,20 +307,11 @@ contract AdmiralsQuartersWhitelist is
 
     /// ADMIN
 
-    ///@inheritdoc IWhitelist
-    function setWhitelisted(
-        address account,
-        bool allowed
-    ) external override onlyGovernor {
-        _setWhitelisted(account, allowed);
-    }
-
-    ///@inheritdoc IWhitelist
-    function setWhitelistedBatch(
-        address[] memory accounts,
-        bool[] memory allowed
-    ) external override onlyGovernor {
-        _setWhitelistedBatch(accounts, allowed);
+    /**
+     * @dev Implementation of the Whitelist proxy adapter's virtual hook.
+     */
+    function _getAccessManager() internal view override returns (address) {
+        return address(_accessManager);
     }
 
     /**
@@ -271,17 +347,17 @@ contract AdmiralsQuartersWhitelist is
     }
 
     function _validateFleetCommander(address fleetCommander) internal view {
-        if (
-            !IHarborCommand(harborCommand()).activeFleetCommanders(
-                fleetCommander
-            )
-        ) {
+        if (!_isFleetCommander(fleetCommander)) {
             revert InvalidFleetCommander();
         }
     }
+    function _isFleetCommander(address account) internal view returns (bool) {
+        return IHarborCommand(harborCommand()).activeFleetCommanders(account);
+    }
 
-    function _validateToken(IERC20 token) internal pure {
-        if (address(token) == address(0)) revert InvalidToken();
+    function _validateToken(IERC20 token) internal view {
+        if (address(token) == address(0) || _isFleetCommander(address(token)))
+            revert InvalidToken();
     }
 
     function _validateAmount(uint256 amount) internal pure {

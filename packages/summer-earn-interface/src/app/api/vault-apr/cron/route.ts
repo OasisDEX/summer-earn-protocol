@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+import { getSecret } from '@/lib/secrets'
+
 import { fetchAllVaults } from '../utils'
 
 /**
@@ -17,7 +19,7 @@ import { fetchAllVaults } from '../utils'
 export async function GET(request: Request) {
   // Optional: Add authentication/authorization check here
   const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
+  const cronSecret = await getSecret('CRON_SECRET')
 
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

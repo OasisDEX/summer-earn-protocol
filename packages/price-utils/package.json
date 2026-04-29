@@ -2,8 +2,10 @@
   "name": "@summerfi/price-solidity",
   "description": "Price Utils Library",
   "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
-    "@prb/math": "^4.1.0",
+    "@openzeppelin/contracts": "^5.4.0",
     "solhint-plugin-prettier": "0.1.0"
   },
   "devDependencies": {
@@ -24,10 +26,9 @@
     "smart-contracts",
     "solidity"
   ],
-  "private": true,
   "scripts": {
     "clean": "rm -rf cache out",
-    "build": "forge build",
+    "build": "forge build --quiet",
     "format": "prettier --check \"**/*.sol\" --no-error-on-unmatched-pattern --ignore-path \".prettierignore\"",
     "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern --ignore-path \".prettierignore\"",
     "test": "forge test",

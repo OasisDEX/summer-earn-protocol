@@ -6,6 +6,7 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { BaseConfig, FleetConfig, FleetDeployment } from '../../types/config-types'
 import { GOVERNOR_ROLE } from './constants'
+import { getGovernorClient } from './governance-utils'
 import {
   getAvailableFleets,
   getFleetDeploymentDir,
@@ -53,7 +54,6 @@ export async function addArkToFleet(
     fleet = loadFleetDeployment(path.join(deploymentsDir, fleetFileName))
   }
   const publicClient = await hre.viem.getPublicClient()
-  const [deployer] = await hre.viem.getWalletClients()
   if (fleet) {
     console.log(kleur.blue('Selected fleet:'), kleur.cyan(fleet.fleetName))
     console.log(kleur.blue('Fleet address:'), kleur.cyan(fleet.fleetAddress))
@@ -85,17 +85,16 @@ export async function addArkToFleet(
       hre,
     )
 
-    const protocolAccessManager = await hre.viem.getContractAt(
-      'ProtocolAccessManager' as string,
+    const governorClient = await getGovernorClient(
+      hre,
       config.deployedContracts.gov.protocolAccessManager.address as Address,
     )
-    const hasGovernorRole = await protocolAccessManager.read.hasRole([
-      GOVERNOR_ROLE,
-      deployer.account.address,
-    ])
-    if (hasGovernorRole) {
+
+    if (governorClient) {
       try {
-        const hash = await fleetContract.write.addArk([arkAddress])
+        const hash = await fleetContract.write.addArk([arkAddress], {
+          account: governorClient.account,
+        })
         await publicClient.waitForTransactionReceipt({
           hash: hash,
           confirmations: 2,

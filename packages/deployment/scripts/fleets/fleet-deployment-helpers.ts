@@ -6,7 +6,7 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { deployArk } from '../common/ark-deployment'
-import { GOVERNOR_ROLE } from '../common/constants'
+import { getGovernorClient } from '../common/governance-utils'
 
 /**
  * Deploys all Arks specified in the fleet definition
@@ -17,8 +17,8 @@ import { GOVERNOR_ROLE } from '../common/constants'
 export async function deployArks(
   fleetDefinition: FleetConfig,
   config: BaseConfig,
-): Promise<Address[]> {
-  const deployedArks: Address[] = []
+): Promise<`0x${string}`[]> {
+  const deployedArks: `0x${string}`[] = []
   const MAX_RETRIES = 5
   const DELAY = 13000 // 13 seconds
 
@@ -34,7 +34,11 @@ export async function deployArks(
         console.log('Deploying Ark - fleet deployment helper [Debug]')
         const arkAddress = await deployArk(arkConfig, config, fleetDefinition)
         deployedArks.push(arkAddress)
-        console.log(kleur.green().bold(`Successfully deployed ${arkConfig.type} at ${arkAddress}`))
+        console.log(
+          kleur
+            .green()
+            .bold(`Successfully deployed ${arkConfig.type} at ${JSON.stringify(arkAddress)}`),
+        )
         break
       } catch (error) {
         if (retries === MAX_RETRIES) {
@@ -66,24 +70,23 @@ export async function addFleetToHarbor(
   protocolAccessManagerAddress: Address,
 ) {
   const publicClient = await hre.viem.getPublicClient()
-  const [deployer] = await hre.viem.getWalletClients()
-  console.log('Deployer: ', deployer.account.address)
-  const protocolAccessManager = await hre.viem.getContractAt(
-    'ProtocolAccessManager' as string,
-    protocolAccessManagerAddress,
-  )
-  const hasGovernorRole = await protocolAccessManager.read.hasRole([
-    GOVERNOR_ROLE,
-    deployer.account.address,
-  ])
-  if (hasGovernorRole) {
+  const governorClient = await getGovernorClient(hre, protocolAccessManagerAddress)
+
+  if (governorClient) {
     const harborCommand = await hre.viem.getContractAt(
       'HarborCommand' as string,
       harborCommandAddress,
     )
     const isEnlisted = await harborCommand.read.activeFleetCommanders([fleetCommanderAddress])
     if (!isEnlisted) {
-      const hash = await harborCommand.write.enlistFleetCommander([fleetCommanderAddress])
+      console.log(
+        kleur.green(
+          `Governor found (${governorClient.account?.address}). Enlisting fleet in Harbor Command...`,
+        ),
+      )
+      const hash = await harborCommand.write.enlistFleetCommander([fleetCommanderAddress], {
+        account: governorClient.account,
+      })
       await publicClient.waitForTransactionReceipt({
         hash: hash,
       })
@@ -92,7 +95,7 @@ export async function addFleetToHarbor(
       console.log(kleur.yellow('Fleet already enlisted in Harbor Command'))
     }
   } else {
-    console.log(kleur.red('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
+    console.log(kleur.red('No governor account found among the first 10 deployers.'))
     console.log(
       kleur.red(
         `Please add the fleet @ ${fleetCommanderAddress} to the Harbor Command (${harborCommandAddress}) via governance`,
@@ -157,6 +160,34 @@ export async function grantKeeperRole(
   await publicClient.waitForTransactionReceipt({ hash })
   console.log(kleur.green('CURATOR_ROLE granted successfully!'))
 }
+
+export async function grantOperatorRole(
+  protocolAccessManagerAddress: Address,
+  fleetCommanderAddress: Address,
+  operatorAddress: Address,
+  hre: any,
+) {
+  const publicClient = await hre.viem.getPublicClient()
+  const protocolAccessManager = await hre.viem.getContractAt(
+    'ProtocolAccessManagerV2' as string,
+    protocolAccessManagerAddress,
+  )
+
+  console.log(
+    kleur.blue('Granting OPERATOR_ROLE to'),
+    kleur.cyan(operatorAddress),
+    kleur.blue('for fleet'),
+    kleur.cyan(fleetCommanderAddress),
+  )
+
+  const hash = await protocolAccessManager.write.grantOperatorRole([
+    fleetCommanderAddress,
+    operatorAddress,
+  ])
+  await publicClient.waitForTransactionReceipt({ hash })
+  console.log(kleur.green('OPERATOR_ROLE granted successfully!'))
+}
+
 /**
  * Configures initial rewards for a fleet's reward manager
  * @param fleetCommanderRewardsManager Address of the rewards manager contract

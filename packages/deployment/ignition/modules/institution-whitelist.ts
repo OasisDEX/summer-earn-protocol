@@ -20,7 +20,7 @@ export function createInstitutionWhitelistModule(moduleName: string) {
     const treasury = m.getParameter('treasury')
 
     // Deploy institution-scoped access manager
-    const protocolAccessManager = m.contract('ProtocolAccessManager', [deployer])
+    const protocolAccessManager = m.contract('ProtocolAccessManagerV2', [deployer])
 
     // Core infra and components
     const dutchAuctionLibrary = m.contract('DutchAuctionLibrary', [])
@@ -64,13 +64,4 @@ export function createInstitutionWhitelistModule(moduleName: string) {
       admiralsQuarters,
     }
   })
-}
-
-export type InstitutionWhitelistContracts = {
-  protocolAccessManager: { address: string }
-  configurationManager: { address: string }
-  tipJar: { address: string }
-  harborCommand: { address: string }
-  raft: { address: string }
-  admiralsQuarters: { address: string }
 }

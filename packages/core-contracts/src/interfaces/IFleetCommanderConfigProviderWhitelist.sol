@@ -5,21 +5,16 @@ import {IFleetCommanderConfigProviderErrors} from "../errors/IFleetCommanderConf
 
 import {IFleetCommanderConfigProviderEvents} from "../events/IFleetCommanderConfigProviderEvents.sol";
 
-import {FleetConfig} from "../types/FleetCommanderTypes.sol";
+import {FleetConfigWhitelist} from "../types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
- * @title IFleetCommanderConfigProviderWhitelist Interface
- * @notice Interface for the FleetCommanderConfigProviderWhitelist contract, which manages asset allocation across multiple Arks
- * @notice Whitelist administration
+ * @title IFleetCommanderConfigProviderWhitelist
+ * @notice Configuration management for Whitelist-enabled fleets.
+ * @dev Extension of the standard fleet configuration provider to support Operator gateways and Whitelisting.
  * @dev This contract inherits `Whitelist` which provides:
- *      - `onlyWhitelisted(account)` modifier to gate functionality
- *      - `_setWhitelisted(account, allowed)` and batch variant for admin control
- *      - Open mode when `address(0)` is whitelisted; all accounts are treated as whitelisted
- *
- * Governor-facing wrappers:
- * - {setWhitelisted}: set a single account's whitelist status (including `address(0)` to toggle open mode)
- * - {setWhitelistedBatch}: batch update multiple accounts (including `address(0)`)
+ *      - `onlyWhitelisted(context, account)` modifier to gate functionality
+ *      - Open mode when isWhitelistOpen(context)
  */
 
 interface IFleetCommanderConfigProviderWhitelist is
@@ -41,7 +36,7 @@ interface IFleetCommanderConfigProviderWhitelist is
     /**
      * @notice Retrieves the current fleet config
      */
-    function getConfig() external view returns (FleetConfig memory);
+    function getConfig() external view returns (FleetConfigWhitelist memory);
 
     /**
      * @notice Retrieves the buffer ark address
@@ -131,6 +126,16 @@ interface IFleetCommanderConfigProviderWhitelist is
     /**
      * @notice Enables or disables transfers of fleet commander shares
      * @dev Only callable by the governor when not paused
+     * @param newStatus The new status of the fleet token transferability
      */
-    function setFleetTokenTransferability() external;
+    function setFleetTokenTransferability(bool newStatus) external;
+
+    /**
+     * @notice Sets the operator gateway status
+     * @dev Entry (deposit/mint) and exit (withdraw/redeem) operations are gated by the operator gateway.
+     *      When the gateway is closed, only accounts with the OPERATOR_ROLE can perform these actions.
+     *      When the gateway is open, all whitelisted accounts can perform these actions.
+     * @param newStatus The new status of the operator gateway
+     */
+    function setOperatorGatewayStatus(bool newStatus) external;
 }

@@ -4,7 +4,11 @@
   "summer-governor-start-block": 14231175,
   "summer-governor-v2-address": "0x94F29e66fE35Ee2BC03EC9D8C3fb6d9E183f3572",
   "summer-governor-v2-start-block": 14231175,
+  "timelock-address": "0x4c32A28AD95deaBc06bF7C83AdEbCF6fe6721ED9",
+  "timelock-start-block": 14231000,
   "protocol-access-manager-address": "0xAFb8a8beA8F7CdB4b65437b0c5963dc7Cd270bC6",
   "protocol-access-manager-start-block": 14231139,
-  "harbor-command-address": "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
+  "harbor-command-address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F",
+  "summer-governance-token-address": "0x0000000000000000000000000000000000000000",
+  "summer-governance-token-start-block": 14231000
 }

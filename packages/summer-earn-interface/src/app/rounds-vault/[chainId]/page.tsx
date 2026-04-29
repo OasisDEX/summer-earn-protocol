@@ -3,10 +3,12 @@
 import { use } from 'react'
 
 import { RoundsVaultDashboard } from '@/components/rounds-vault/RoundsVaultDashboard'
+import { useSyncWalletChain } from '@/hooks/useSyncWalletChain'
 import type { ChainId } from '@/types'
 
 export default function RoundsVaultPage({ params }: { params: Promise<{ chainId: string }> }) {
   const { chainId } = use(params)
+  useSyncWalletChain(chainId as ChainId)
 
   return (
     <main className="min-h-screen bg-charcoal-900 p-8">

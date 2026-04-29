@@ -69,7 +69,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0x4e92071F9BC94011419Dc03fEaCA32D11241313a"
+          "address": "0x2e4AC08988c3a995A290Da2655664a8dEF92675F"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -91,13 +91,15 @@
       "seam": "0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85",
       "ws": "0x0000000000000000000000000000000000000000",
       "wrappedNative": "0x4200000000000000000000000000000000000006",
-      "usdt": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
+      "usdt": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "sumr": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"
     },
     "common": {
       "chainId": "8453",
       "initialSupply": "1000000000",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
@@ -347,7 +349,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0x1db04f01386c6BE2d22b7947236d8ACc05901219"
+          "address": "0x20aF9545eBb320c80C5736880bAA7a244a75868f"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -368,13 +370,15 @@
       "reul": "0x0000000000000000000000000000000000000000",
       "seam": "0x0000000000000000000000000000000000000000",
       "ws": "0x0000000000000000000000000000000000000000",
-      "wrappedNative": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+      "wrappedNative": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+      "sumr": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"
     },
     "common": {
       "chainId": "42161",
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "eID": "30110",
@@ -606,7 +610,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0xD03bD9Ef8c72Aee3DBb5b8DF83c479D847622Dba"
+          "address": "0x09124a25756223Eb7A523A0377cc83Dc8D22e1bE"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -627,13 +631,15 @@
       "reul": "0xf3e621395fc714b90da337aa9108771597b4e696",
       "seam": "0x0000000000000000000000000000000000000000",
       "ws": "0x0000000000000000000000000000000000000000",
-      "wrappedNative": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+      "wrappedNative": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "sumr": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"
     },
     "common": {
       "chainId": "1",
       "initialSupply": "0",
       "swapProvider": "0x111111125421cA6dc452d289314280a0f8842A65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "eID": "30101",
@@ -668,6 +674,9 @@
       }
     },
     "protocolSpecific": {
+      "originUSD": {
+        "originUSD": "0x2A8e1E676Ec238d8A992307B495b45B3fEAa5e86"
+      },
       "originETH": {
         "originETH": "0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3",
         "arms": {
@@ -695,6 +704,13 @@
             "syrupAdmin": "0x0000000000000000000000000000000000000000",
             "withdrawalManager": "0x86eBDf902d800F2a82038290B6DBb2A5eE29eB8C",
             "syrupRedeemer": "0x0000000000000000000000000000000000000000"
+          }
+        }
+      },
+      "mapleInstitutional": {
+        "pools": {
+          "usdc": {
+            "pool": "0xc39a5a616f0ad1ff45077fa2de3f79ab8eb8b8b9"
           }
         }
       },
@@ -971,6 +987,11 @@
       "infinifi": {
         "gateway": "0x3f04b65Ddbd87f9CE0A2e7Eb24d80e7fb87625b5",
         "siUSD": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB"
+      },
+      "upshift": {
+        "usdc": {
+          "Upshift_Core_USDC": "0xE9B725010A9E419412ed67d0fA5f3A5f40159D32"
+        }
       }
     },
     "bridge": {
@@ -1046,7 +1067,7 @@
           "address": "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
         },
         "admiralsQuarters": {
-          "address": "0xa514a99b3584D152b2BE9cBe3e7B34Ad40954410"
+          "address": "0xAf755eD8D76Fdceab2B1cdC0d4C8C94f4e8eEe54"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xC474Cd1ea6f1809d17be61717b83f0F984EF0459"
@@ -1064,13 +1085,15 @@
       "ws": "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
       "wrappedNative": "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
       "reul": "0x0000000000000000000000000000000000000000",
-      "syrup": "0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66"
+      "syrup": "0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66",
+      "sumr": "0x4e0037f487bBb588bf1B7a83BDe6c34FeD6099e3"
     },
     "common": {
       "chainId": "146",
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
@@ -1243,6 +1266,7 @@
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
@@ -1342,7 +1366,7 @@
           "address": "0x5CD5D7e3A1b604E0EdeDc4A2343b312729e09E3F"
         },
         "admiralsQuarters": {
-          "address": "0x3D4AE5aefbE0F5471Eb33BCFcBBcf6d9234D32a5"
+          "address": "0x13c93bB39F8f6F08310522DD447d18683aB3ca51"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xBcA69b2918bad37E8A4e1F77B6864F27eee05AEe"
@@ -1365,13 +1389,15 @@
       "ws": "0x0000000000000000000000000000000000000000",
       "whype": "0x5555555555555555555555555555555555555555",
       "usdt": "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
-      "wrappedNative": "0x5555555555555555555555555555555555555555"
+      "wrappedNative": "0x5555555555555555555555555555555555555555",
+      "sumr": "0x72c527d3efDe2169AA950EFc9573C838cf125D21"
     },
     "common": {
       "chainId": "999",
       "initialSupply": "0",
       "swapProvider": "0x6131b5fae19ea4f9d964eac0408e4408b66337b5",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x3A73033C0b1407574C76BdBAc67f126f6b4a9AA9",

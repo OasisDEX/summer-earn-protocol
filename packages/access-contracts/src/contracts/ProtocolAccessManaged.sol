@@ -124,10 +124,14 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlyGovernor() {
-        if (!_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)) {
-            revert CallerIsNotGovernor(msg.sender);
-        }
+        _revertIfNotGovernor();
         _;
+    }
+
+    function _revertIfNotGovernor() private view {
+        if (!_accessManager.hasRole(GOVERNOR_ROLE, _msgSender())) {
+            revert CallerIsNotGovernor(_msgSender());
+        }
     }
 
     /**
@@ -145,15 +149,19 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Performs two role checks, which may impact gas usage
      */
     modifier onlyKeeper() {
+        _revertIfNotKeeper();
+        _;
+    }
+
+    function _revertIfNotKeeper() private view {
         if (
             !_accessManager.hasRole(
                 generateRole(ContractSpecificRoles.KEEPER_ROLE, address(this)),
-                msg.sender
-            ) && !_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)
+                _msgSender()
+            ) && !_accessManager.hasRole(SUPER_KEEPER_ROLE, _msgSender())
         ) {
-            revert CallerIsNotKeeper(msg.sender);
+            revert CallerIsNotKeeper(_msgSender());
         }
-        _;
     }
 
     /**
@@ -169,10 +177,14 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlySuperKeeper() {
-        if (!_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)) {
-            revert CallerIsNotSuperKeeper(msg.sender);
-        }
+        _revertIfNotSuperKeeper();
         _;
+    }
+
+    function _revertIfNotSuperKeeper() private view {
+        if (!_accessManager.hasRole(SUPER_KEEPER_ROLE, _msgSender())) {
+            revert CallerIsNotSuperKeeper(_msgSender());
+        }
     }
 
     /**
@@ -181,16 +193,20 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * @dev Checks if the caller has the contract-specific CURATOR_ROLE
      */
     modifier onlyCurator(address fleetAddress) {
+        _revertIfNotCurator(fleetAddress);
+        _;
+    }
+
+    function _revertIfNotCurator(address fleetAddress) private view {
         if (
             fleetAddress == address(0) ||
             !_accessManager.hasRole(
                 generateRole(ContractSpecificRoles.CURATOR_ROLE, fleetAddress),
-                msg.sender
+                _msgSender()
             )
         ) {
-            revert CallerIsNotCurator(msg.sender);
+            revert CallerIsNotCurator(_msgSender());
         }
-        _;
     }
 
     /**
@@ -206,10 +222,14 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlyGuardian() {
-        if (!_accessManager.hasRole(GUARDIAN_ROLE, msg.sender)) {
-            revert CallerIsNotGuardian(msg.sender);
-        }
+        _revertIfNotGuardian();
         _;
+    }
+
+    function _revertIfNotGuardian() private view {
+        if (!_accessManager.hasRole(GUARDIAN_ROLE, _msgSender())) {
+            revert CallerIsNotGuardian(_msgSender());
+        }
     }
 
     /**
@@ -227,23 +247,31 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Performs two role checks, which may impact gas usage
      */
     modifier onlyGuardianOrGovernor() {
-        if (
-            !_accessManager.hasRole(GUARDIAN_ROLE, msg.sender) &&
-            !_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)
-        ) {
-            revert CallerIsNotGuardianOrGovernor(msg.sender);
-        }
+        _revertIfNotGuardianOrGovernor();
         _;
+    }
+
+    function _revertIfNotGuardianOrGovernor() private view {
+        if (
+            !_accessManager.hasRole(GUARDIAN_ROLE, _msgSender()) &&
+            !_accessManager.hasRole(GOVERNOR_ROLE, _msgSender())
+        ) {
+            revert CallerIsNotGuardianOrGovernor(_msgSender());
+        }
     }
 
     /**
      * @notice Modifier to restrict access to decay controllers only
      */
     modifier onlyDecayController() {
-        if (!_accessManager.hasRole(DECAY_CONTROLLER_ROLE, msg.sender)) {
-            revert CallerIsNotDecayController(msg.sender);
-        }
+        _revertIfNotDecayController();
         _;
+    }
+
+    function _revertIfNotDecayController() private view {
+        if (!_accessManager.hasRole(DECAY_CONTROLLER_ROLE, _msgSender())) {
+            revert CallerIsNotDecayController(_msgSender());
+        }
     }
 
     /**
@@ -254,15 +282,19 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlyFoundation() {
+        _revertIfNotFoundation();
+        _;
+    }
+
+    function _revertIfNotFoundation() private view {
         if (
             !_accessManager.hasRole(
                 _accessManager.FOUNDATION_ROLE(),
-                msg.sender
+                _msgSender()
             )
         ) {
-            revert CallerIsNotFoundation(msg.sender);
+            revert CallerIsNotFoundation(_msgSender());
         }
-        _;
     }
 
     /*//////////////////////////////////////////////////////////////

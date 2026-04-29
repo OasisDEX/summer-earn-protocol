@@ -1,0 +1,29 @@
+{
+  "name": "@summerfi/summer-earn-gov-alert-bot",
+  "version": "1.1.6",
+  "private": true,
+  "main": "dist/index.js",
+  "license": "BUSL-1.1",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "build": "esbuild",
+    "format": "prettier --check \"src/**/*.ts\"",
+    "sync-config": "node scripts/sync-config.js"
+  },
+  "dependencies": {
+    "dotenv": "16.4.5",
+    "esbuild": "0.25.0",
+    "node-cron": "^3.0.3",
+    "telegraf": "^4.16.3",
+    "viem": "^2.41.2"
+  },
+  "devDependencies": {
+    "@summerfi/typescript-config": "workspace:*",
+    "@types/node": "20.12.7",
+    "@types/node-cron": "^3.0.11",
+    "glob": "^13.0.6",
+    "tsx": "4.19.2",
+    "typescript": "5.4.5"
+  }
+}

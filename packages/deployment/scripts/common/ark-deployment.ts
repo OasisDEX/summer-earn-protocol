@@ -13,10 +13,13 @@ import { deployFluidFTokenArk } from '../arks/deploy-fluid-ftoken-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployHyperlendArk } from '../arks/deploy-hyperlend-ark'
 import { deployHypurrArk } from '../arks/deploy-hypurr-ark'
+import { deployMapleInstitutionalArk } from '../arks/deploy-maple-institutional-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { deployMorphoArk } from '../arks/deploy-morpho-ark'
+import { deployMorphoV2VaultArk } from '../arks/deploy-morpho-v2-vault-ark'
 import { deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
 import { deployOriginETHArk } from '../arks/deploy-origineth-ark'
+import { deployOriginUSDArk } from '../arks/deploy-originusd-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
@@ -31,7 +34,8 @@ import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
-import { deployMapleInstitutionalArk } from '../arks/deploy-maple-institutional-ark'
+import { deployUpshiftArk } from '../arks/deploy-upshift-ark'
+import { deployWisdomTreeArk } from '../arks/deploy-wisdom-tree-ark'
 import {
   validateAddress,
   validateConfigAddressEntry,
@@ -41,7 +45,6 @@ import {
   validateToken,
 } from '../helpers/validation'
 import { ZERO_STRING } from './constants'
-import { deployMorphoV2VaultArk } from '../arks/deploy-morpho-v2-vault-ark'
 
 export type BaseArkParams = {
   token: {
@@ -61,7 +64,7 @@ export async function deployArk(
   arkConfig: ArkConfig,
   config: BaseConfig,
   fleetConfig: FleetConfig,
-): Promise<Address> {
+): Promise<`0x${string}`> {
   const { type, params } = arkConfig
   const { asset, protocol, vaultName } = params
 
@@ -125,6 +128,21 @@ export async function deployArk(
         'ERC4626 vault',
       )
       const ark = await deployERC4626Ark(config, {
+        ...baseArkParams,
+        vaultId: vaultAddress,
+        vaultName: validatedVaultName,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.UpshiftArk: {
+      const validatedVaultName = validateString(vaultName, 'vault name')
+      const vaultAddress = validateConfigAddressEntry(
+        config.protocolSpecific.upshift[token],
+        validatedVaultName,
+        'Upshift vault',
+      )
+      const ark = await deployUpshiftArk(config, {
         ...baseArkParams,
         vaultId: vaultAddress,
         vaultName: validatedVaultName,
@@ -348,6 +366,11 @@ export async function deployArk(
       deployedArk = await deploySiloArkV2(config, siloParams)
       break
     }
+    case ArkType.OriginUSDArk: {
+      const ark = await deployOriginUSDArk(config, baseArkParams)
+      deployedArk = ark
+      break
+    }
     case ArkType.OriginETHArk: {
       const ark = await deployOriginETHArk(config, baseArkParams)
       deployedArk = ark
@@ -456,6 +479,43 @@ export async function deployArk(
       })
       break
     }
+    case ArkType.WisdomTreeArk: {
+      const fundName = validateString(arkConfig.params.fundName, 'fundName')
+
+      const wisdomtreeByToken = config.protocolSpecific.wisdomtree[token]
+      if (!wisdomtreeByToken) {
+        throw new Error(`WisdomTree config missing for token '${token}'`)
+      }
+
+      const targetWallet = validateConfigAddressEntry(
+        wisdomtreeByToken[fundName],
+        'targetWallet',
+        `WisdomTree fund '${fundName}' targetWallet`,
+      )
+      const shareToken = validateConfigAddressEntry(
+        wisdomtreeByToken[fundName],
+        'shareToken',
+        `WisdomTree fund '${fundName}' shareToken`,
+      )
+      const oracle = validateConfigAddressEntry(
+        wisdomtreeByToken[fundName],
+        'oracle',
+        `WisdomTree fund '${fundName}' oracle`,
+      )
+      const sweepSlippage = wisdomtreeByToken[fundName].sweepSlippage
+      const depositSlippage = wisdomtreeByToken[fundName].depositSlippage
+      const ark = await deployWisdomTreeArk(config, {
+        ...baseArkParams,
+        fundName: fundName,
+        targetWallet: targetWallet,
+        shareToken: shareToken,
+        oracle: oracle,
+        sweepSlippage: sweepSlippage,
+        depositSlippage: depositSlippage,
+      })
+      deployedArk = ark
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${type}`)
   }
@@ -464,7 +524,7 @@ export async function deployArk(
     throw new Error(`Failed to deploy ${type}`)
   }
 
-  return deployedArk.ark.address as Address
+  return deployedArk.ark.address as `0x${string}`
 }
 
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
@@ -498,6 +558,10 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.ERC4626Ark:
       deployedArk = await deployERC4626Ark(config)
+      break
+
+    case ArkType.UpshiftArk:
+      deployedArk = await deployUpshiftArk(config)
       break
 
     case ArkType.MorphoArk: {
