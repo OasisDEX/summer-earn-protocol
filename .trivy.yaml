@@ -13,7 +13,8 @@ severity:
   - HIGH
   - CRITICAL
 skip-dirs:
-  - packages/deployment/ignition/deployments
+  - "**/packages/deployment/ignition/deployments/**"
+include-dev-deps: false
 
 # Reporting Options
 format: table
@@ -25,7 +26,7 @@ misconfig:
   exclude-paths:
     - .terraform
     - terraform.tfstate
-    - packages/deployment/ignition/deployments
+    - "**/packages/deployment/ignition/deployments/**"
 
 # Terraform Settings
 terraform:
