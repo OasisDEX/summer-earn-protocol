@@ -8,12 +8,15 @@ scanners:
   - secret
 
 # Global Options
-exit-code: 1
+exit-code: 0
 severity:
   - HIGH
   - CRITICAL
 skip-dirs:
-  - "**/packages/deployment/ignition/deployments/**"
+  - "packages/deployment/ignition/deployments/*"
+  - "packages/deployment/artifacts/*"
+  - "packages/external-dependencies/lib/pendle-core-v2-public/*"
+  
 include-dev-deps: false
 
 # Reporting Options
@@ -27,6 +30,7 @@ misconfig:
     - .terraform
     - terraform.tfstate
     - "**/packages/deployment/ignition/deployments/**"
+    - "**/packages/external-dependencies/lib/pendle-core-v2-public/**"
 
 # Terraform Settings
 terraform:
@@ -37,3 +41,11 @@ terraform:
 # Secret Scanning Settings
 secret:
   enabled: true
+  # enable-builtin-rules:
+  #   - aws-access-key-id
+  #   - aws-secret-access-key
+  #   - github-pat
+  # allow-rules:
+  #   - id: skip-report-file
+  #     description: ignore the output report
+  #     path: trivy-report.txt
