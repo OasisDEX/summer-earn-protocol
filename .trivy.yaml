@@ -2,8 +2,8 @@
 # Focuses on Infrastructure as Code (Terraform) and Container security
 
 scan:
-  type: 'config,secret'
-  exit-code: 0 # Change to 1 in CI if you want to block builds on failure
+  type: 'vuln,config,secret'
+  exit-code: 1 # Fail on HIGH,CRITICAL findings
   severity: 'HIGH,CRITICAL'
 
 terraform:
