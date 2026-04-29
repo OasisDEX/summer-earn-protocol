@@ -64,11 +64,11 @@ export const HUB_TOKEN_ADDRESS = '0x7cC488F2681cFC2A5E8A00184bfA94ea6d520D1c' as
 export const HUB_CHAIN_ID = '8453'
 
 export const CHAINS = [
-  { id: '8453', name: 'Base', key: 'base', eID: '30184' },
-  { id: '42161', name: 'Arbitrum', key: 'arbitrum', eID: '30110' },
-  { id: '1', name: 'Ethereum', key: 'mainnet', eID: '30101' },
-  { id: '146', name: 'Sonic', key: 'sonic', eID: '30332' },
-  { id: '999', anme: 'HyperLiquid', key: 'hyperliquid', eID: '30367' },
+  { id: '8453', name: 'Base', key: 'base', eID: '30184', tenderlyId: '8453' },
+  { id: '42161', name: 'Arbitrum', key: 'arbitrum', eID: '30110', tenderlyId: '42161' },
+  { id: '1', name: 'Ethereum', key: 'mainnet', eID: '30101', tenderlyId: '1' },
+  { id: '146', name: 'Sonic', key: 'sonic', eID: '30332', tenderlyId: '146' },
+  { id: '999', name: 'HyperLiquid', key: 'hyperliquid', eID: '30367', tenderlyId: null },
 ]
 export function getChainNameById(id: string) {
   return CHAINS.find((chain) => chain.id === id)?.name || 'Unknown'

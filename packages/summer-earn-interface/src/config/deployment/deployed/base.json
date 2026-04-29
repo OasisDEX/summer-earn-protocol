@@ -144,5 +144,6 @@
   "ExtDemoCorp_3_FleetWhitelist_extDemo_USDC_base#FleetCommanderCacheLib": "0x7ee1d574d5837307F54BAB5f123d712b389Be0C9",
   "ExtDemoCorp_3_FleetWhitelist_extDemo_USDC_base#FleetCommanderWhitelist": "0x8769C243D48F64595049189ef14c845281b42545",
   "ExtDemoCorp_3_RoundsVaultInput_extDemo_USDC_base#RoundsVaultInput": "0xCa24d4deaCD56db3c248fa596eAf5D1ecEb21113",
-  "ExtDemoCorp_3_RoundsVaultOutput_extDemo_USDC_base#RoundsVaultOutput": "0xD1c27c2AC8832E2f53dfd60e3Fe004584158fA67"
+  "ExtDemoCorp_3_RoundsVaultOutput_extDemo_USDC_base#RoundsVaultOutput": "0xD1c27c2AC8832E2f53dfd60e3Fe004584158fA67",
+  "AdmiralsQuartersModule_20260422T081402616#AdmiralsQuarters": "0x2e4AC08988c3a995A290Da2655664a8dEF92675F"
 }
