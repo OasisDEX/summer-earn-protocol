@@ -1,27 +1,35 @@
 # Trivy configuration for Summer Earn Protocol
-# Focuses on Infrastructure as Code (Terraform) and Container security
+# Focuses on Infrastructure as Code (Terraform), Secrets, and Vulnerabilities
 
-scan:
-  type: 'vuln,config,secret'
-  exit-code: 1 # Fail on HIGH,CRITICAL findings
-  severity: 'HIGH,CRITICAL'
+# Scan Options
+scanners:
+  - vuln
+  - misconfig
+  - secret
 
-terraform:
-  # Paths to ignore or specific checks to skip if there are false positives
-  # skip-checks:
-  #   - AVD-AWS-001
+# Global Options
+exit-code: 1
+severity:
+  - HIGH
+  - CRITICAL
 
-secret:
-  # Scans for secrets in the codebase
-  enabled: true
+# Reporting Options
+format: table
+output: trivy-report.txt
 
-report:
-  format: 'table'
-  output: 'trivy-report.txt'
-
-# Misconfiguration scanning options
+# Misconfiguration Scanning Settings
 misconfig:
   include-non-failures: true
   exclude-paths:
     - .terraform
     - terraform.tfstate
+
+# Terraform Settings
+terraform:
+  # Paths to ignore or specific checks to skip
+  # skip-checks:
+  #   - AVD-AWS-001
+
+# Secret Scanning Settings
+secret:
+  enabled: true

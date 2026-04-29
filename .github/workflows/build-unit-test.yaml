@@ -64,8 +64,7 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          format: 'table'
-          exit-code: '1' # Fail the build on High/Critical findings
+          exit-code: '1'
           severity: 'CRITICAL,HIGH'
           trivy-config: '.trivy.yaml'
 
