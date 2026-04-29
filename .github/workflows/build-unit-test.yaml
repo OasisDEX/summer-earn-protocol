@@ -59,6 +59,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Run Trivy security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+          trivy-config: '.trivy.yaml'
+
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1.7.0
 

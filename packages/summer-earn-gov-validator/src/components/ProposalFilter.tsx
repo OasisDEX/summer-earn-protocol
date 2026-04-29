@@ -29,17 +29,19 @@ export const ProposalFilter: React.FC<ProposalFilterProps> = ({
   }
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
-      <span className="text-sm font-medium text-gray-700">Filter by status:</span>
-      <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-4">
+      <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] ml-1">
+        Filter status
+      </span>
+      <div className="bg-surface-container-low/50 border border-outline-variant/10 p-1 rounded-xl flex flex-wrap items-center gap-1 shadow-inner">
         {allStatuses.map((status) => (
           <button
             key={status}
             onClick={() => handleStatusChange(status)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 active:scale-95 ${
               selectedStatuses.includes(status)
-                ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+                ? 'bg-brand-gradient text-black shadow-neon-strong'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-bright/50'
             }`}
           >
             {status}

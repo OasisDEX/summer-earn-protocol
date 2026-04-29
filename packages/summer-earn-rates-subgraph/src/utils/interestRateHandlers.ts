@@ -38,7 +38,9 @@ export function handleInterestRate(
 ): void {
   const rate = product.getAPY(block.timestamp, block.number)
   const interestRate = new InterestRate(
-    `${protocolName}-${product.token.id.toHexString()}-${block.number.toString()}-${crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString()}`,
+    `${protocolName}-${product.token.id.toHexString()}-${block.number.toString()}-${crypto
+      .keccak256(ByteArray.fromUTF8(product.name))
+      .toHexString()}`,
   )
 
   const hourlyResult = getHourlyRateIdAndTimestamp(normalizedTimestamp, protocolName, product)
@@ -78,7 +80,9 @@ export function handleInterestRate(
   for (let i = 0; i < rewardRates.length; i++) {
     const reward = rewardRates[i]
     const rewardRate = new RewardsInterestRate(
-      `${protocolName}-${product.token.id.toHexString()}-${block.number.toString()}-${crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString()}-${i.toString()}`,
+      `${protocolName}-${product.token.id.toHexString()}-${block.number.toString()}-${crypto
+        .keccak256(ByteArray.fromUTF8(product.name))
+        .toHexString()}-${i.toString()}`,
     )
     rewardRate.blockNumber = block.number
     rewardRate.rate = reward.rate

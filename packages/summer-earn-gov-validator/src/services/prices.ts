@@ -1,64 +1,77 @@
-const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY
+import { getSecret } from '@/lib/secrets'
 
-const COINGECKO_IDS: Record<string, string> = {
-  SUMMER: 'summer-2',
+const SYMBOL_TO_ID: Record<string, string> = {
+  SUM: 'summer-fi',
   ETH: 'ethereum',
-  WETH: 'ethereum',
+  WETH: 'weth',
   USDC: 'usd-coin',
-  'USDC.e': 'usd-coin',
   USDT: 'tether',
   DAI: 'dai',
-  WBTC: 'wrapped-bitcoin',
-  wSonic: 'sonic-3',
-  wHYPE: 'hyperliquid',
+  RETH: 'rocket-pool-eth',
+  WSTETH: 'wrapped-staked-ether',
+  CBETH: 'coinbase-wrapped-staked-eth',
+  CRV: 'curve-dao-token',
+  LDO: 'lido-dao',
+  LINK: 'chainlink',
+  USDS: 'usds',
 }
 
 export interface PriceResponse {
   prices: Record<string, number>
-  error?: string
+  error: string | undefined
 }
 
-export async function fetchPrices(symbols: string[]): Promise<PriceResponse> {
-  const uniqueSymbols = [...new Set(symbols)]
-  const ids = [...new Set(uniqueSymbols.map((s) => COINGECKO_IDS[s]).filter(Boolean))].join(',')
+export async function getPrices(symbols: string | string[]): Promise<PriceResponse> {
+  const symbolArray = Array.isArray(symbols) ? symbols : [symbols]
+  const ids = symbolArray.map((s) => SYMBOL_TO_ID[s.toUpperCase()] || s.toLowerCase()).join(',')
 
-  if (!ids) return { prices: {} }
+  let coingeckoApiKey: string
+  try {
+    coingeckoApiKey = await getSecret('COINGECKO_API_KEY')
+  } catch (error: any) {
+    console.error('Failed to fetch COINGECKO_API_KEY from SSM:', error)
+    return {
+      prices: {} as Record<string, number>,
+      error: `Price service initialization failed: ${error.message}`,
+    }
+  }
 
   try {
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&x_cg_demo_api_key=${COINGECKO_API_KEY}`
-
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&x_cg_demo_api_key=${coingeckoApiKey}`
     const response = await fetch(url, {
-      next: {
-        revalidate: 3600, // 1 hour cache
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
       },
     })
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return {
-          prices: {},
-          error: 'CoinGecko rate limit reached. Treasury values may be inaccurate.',
-        }
+      const errorData = await response.json().catch(() => ({}))
+      console.error('CoinGecko API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+      })
+      return {
+        prices: {} as Record<string, number>,
+        error: `CoinGecko API failed with status ${response.status}`,
       }
-      throw new Error(`CoinGecko API error: ${response.statusText}`)
     }
 
     const data = await response.json()
 
+    // Map IDs back to Symbols for the treasury service
     const prices: Record<string, number> = {}
-    uniqueSymbols.forEach((symbol) => {
-      const id = COINGECKO_IDS[symbol]
-      if (id && data[id]) {
+    symbolArray.forEach((symbol) => {
+      const id = SYMBOL_TO_ID[symbol.toUpperCase()] || symbol.toLowerCase()
+      if (data[id]) {
         prices[symbol] = data[id].usd
       }
     })
 
-    return { prices }
-  } catch (error) {
-    console.error('Error fetching prices from CoinGecko:', error)
-    return {
-      prices: {},
-      error: 'Failed to fetch real-time prices. Using stale data.',
-    }
+    return { prices, error: undefined }
+  } catch (error: any) {
+    console.error(`Error fetching prices for symbols ${symbolArray.join(',')}:`, error)
+    return { prices: {} as Record<string, number>, error: error.message }
   }
 }

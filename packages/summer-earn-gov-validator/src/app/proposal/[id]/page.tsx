@@ -16,6 +16,7 @@ import { convertRawUrlsToMarkdown } from '@/utils/text'
 import { formatTimestamp } from '@/utils/timing'
 
 import delegatesData from '../../../../delegates.json'
+import { SimulateProposalButton } from './SimulateProposalButton'
 
 function resolveDelegateInfo(address: string) {
   const nodes = delegatesData.data.delegates.nodes
@@ -135,6 +136,9 @@ export default async function ProposalDetailPage({ params }: PageProps) {
                 <span className="material-symbols-outlined text-sm">schedule</span>
                 Created {formatTimestamp(proposal.createdAt)}
               </span>
+              <div className="ml-auto">
+                <SimulateProposalButton fullProposal={fullProposal} status={proposal.status} />
+              </div>
             </div>
             <h1 className="text-4xl font-extrabold text-on-surface tracking-tighter mb-6">
               {proposal.title}

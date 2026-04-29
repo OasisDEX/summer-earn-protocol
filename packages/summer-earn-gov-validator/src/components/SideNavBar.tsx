@@ -16,15 +16,26 @@ export function SideNavBar() {
   ]
 
   return (
-    <aside className="hidden lg:flex flex-col h-[calc(100vh-73px)] w-64 p-4 space-y-4 bg-slate-950/75 backdrop-blur-2xl border-r border-sky-400/10 sticky top-[73px]">
+    <aside className="hidden lg:flex flex-col h-[calc(100vh-73px)] w-64 p-4 space-y-4 bg-surface-dim/75 backdrop-blur-2xl border-r border-outline/20 sticky top-[73px]">
       <nav className="flex-1 space-y-1 font-sans text-sm font-medium">
         {navItems.map((item) => (
           <Link
             key={item.path}
             href={item.path}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg active:scale-[0.98] duration-150 ${isActive(item.path) ? 'bg-sky-400/10 text-sky-300' : 'text-slate-400 hover:bg-sky-400/5 hover:translate-x-1 transition-all'}`}
+            className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg active:scale-[0.98] duration-150 transition-all ${
+              isActive(item.path)
+                ? 'bg-primary/10 text-primary'
+                : 'text-on-surface-variant hover:bg-surface-bright/50 hover:text-on-surface hover:translate-x-1'
+            }`}
           >
-            <span className="material-symbols-outlined">{item.icon}</span>
+            {isActive(item.path) && (
+              <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-brand-gradient rounded-full" />
+            )}
+            <span
+              className={`material-symbols-outlined ${isActive(item.path) ? 'text-primary' : 'text-on-surface-variant/70 group-hover:text-primary'} transition-colors`}
+            >
+              {item.icon}
+            </span>
             {item.label}
           </Link>
         ))}
