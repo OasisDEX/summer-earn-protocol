@@ -14,6 +14,9 @@ severity:
   - CRITICAL
 skip-dirs:
   - "**/packages/deployment/ignition/deployments/**"
+  - "**/packages/external-dependencies/lib/pendle-core-v2-public/**"
+skip-files:
+  - "**/packages/external-dependencies/lib/pendle-core-v2-public/yarn.lock"
 include-dev-deps: false
 
 # Reporting Options
