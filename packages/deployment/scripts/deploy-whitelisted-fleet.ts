@@ -248,7 +248,7 @@ async function main() {
   // Deploy via whitelist module (FleetCommanderWhitelist)
   const envLabel = useBummerConfig ? 'staging_' : ''
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
-  const moduleName = `${envLabel}_${institutionId}_FleetWhitelist_${name}`
+  const moduleName = `${envLabel}${institutionId}_FleetWhitelist_${name}`
   const fleetModule = createFleetWhitelistModule(moduleName)
 
   // Use addresses directly from merged config (ensures propagation is correct)
@@ -284,11 +284,11 @@ async function main() {
 
   let deployedInputVault: Address | undefined
   let deployedOutputVault: Address | undefined
-
-  if (fleetDefinition.operatorType === 'roundsVaults') {
+  const isRoundsVault = fleetDefinition.operatorType === 'roundsVaults'
+  if (isRoundsVault) {
     // Deploy RoundsVaults
-    const inputModuleName = `${envLabel}_${institutionId}_RoundsVaultInput_${name}`
-    const outputModuleName = `${envLabel}_${institutionId}_RoundsVaultOutput_${name}`
+    const inputModuleName = `${envLabel}${institutionId}_RoundsVaultInput_${name}`
+    const outputModuleName = `${envLabel}${institutionId}_RoundsVaultOutput_${name}`
 
     const inputVaultModule = createRoundsVaultInputModule(inputModuleName)
     const outputVaultModule = createRoundsVaultOutputModule(outputModuleName)
@@ -315,6 +315,9 @@ async function main() {
       },
     })
     deployedOutputVault = getAddress(outputVault.roundsVaultOutput.address)
+
+    fleetDefinition.roundsVaultInput = deployedInputVault
+    fleetDefinition.roundsVaultOutput = deployedOutputVault
   }
   const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
   const deployedArks = await deployArks(fleetDefinition, config)
@@ -326,12 +329,21 @@ async function main() {
     undefined,
     useBummerConfig,
   )
+  const additionalRouindsVaultsInfo =
+    isRoundsVault && fleetDefinition.roundsVaultInput && fleetDefinition.roundsVaultOutput
+      ? ({
+          roundsVaultInput: fleetDefinition.roundsVaultInput,
+          roundsVaultOutput: fleetDefinition.roundsVaultOutput,
+        } as const)
+      : undefined
 
+  console.log(additionalRouindsVaultsInfo)
   // Persist institution-scoped fleet entry using the fleet config filename (requested: same name as config)
   const fleetNameKey = fleetDefinition.fleetName
   updateInstitutionFleetEntry(institutionId, useBummerConfig, network, fleetNameKey, {
     fleetCommander: deployedFleet.fleetCommander.address as ViemAddress,
     bufferArk: bufferArkAddress as ViemAddress,
+    ...additionalRouindsVaultsInfo,
     arks: deployedArks as ViemAddress[],
   })
 
