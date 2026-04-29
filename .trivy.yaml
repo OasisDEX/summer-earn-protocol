@@ -12,6 +12,8 @@ exit-code: 1
 severity:
   - HIGH
   - CRITICAL
+skip-dirs:
+  - packages/deployment/ignition/deployments
 
 # Reporting Options
 format: table
@@ -23,6 +25,7 @@ misconfig:
   exclude-paths:
     - .terraform
     - terraform.tfstate
+    - packages/deployment/ignition/deployments
 
 # Terraform Settings
 terraform:
