@@ -32,8 +32,14 @@ resource "aws_amplify_app" "this" {
 
   iam_service_role_arn = aws_iam_role.this.arn
 
-  enable_branch_auto_build    = true
-  enable_branch_auto_deletion = true
+  enable_branch_auto_build      = false
+  enable_branch_auto_deletion   = true
+  enable_auto_branch_creation   = true
+  auto_branch_creation_patterns = ["pr*", "!*dependabot*"]
+
+  environment_variables = {
+    AMPLIFY_DIFF_DEPLOY = "true"
+  }
 
   auto_branch_creation_config {
     enable_auto_build             = true
