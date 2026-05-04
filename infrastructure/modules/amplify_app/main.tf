@@ -180,10 +180,13 @@ resource "aws_amplify_app" "this" {
 
   environment_variables = merge(var.environment_variables, {
     AMPLIFY_MONOREPO_APP_ROOT = var.package_root
+    AMPLIFY_DIFF_DEPLOY       = "true"
   })
 
-  enable_branch_auto_build    = true
-  enable_branch_auto_deletion = true
+  enable_branch_auto_build      = false
+  enable_branch_auto_deletion   = true
+  enable_auto_branch_creation   = true
+  auto_branch_creation_patterns = ["pr*", "!*dependabot*"]
 
   auto_branch_creation_config {
     enable_auto_build             = true
