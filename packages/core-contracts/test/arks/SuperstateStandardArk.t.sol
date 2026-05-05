@@ -2,7 +2,8 @@
 pragma solidity 0.8.28;
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
-import "../../src/contracts/arks/SuperstateArk.sol";
+import "../../src/contracts/arks/SuperstateStandardArk.sol";
+import {ISuperstateOracle} from "../../src/interfaces/superstate/ISuperstateOracle.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {AssetsForwarder} from "../../src/utils/AssetsForwarder/AssetsForwarder.sol";
@@ -66,47 +67,22 @@ contract MockSuperstateOracle is ISuperstateOracle {
     }
 }
 
-contract MockSuperstateSubscribe is ISuperstateSubscribe {
-    using SafeERC20 for IERC20;
-    IERC20 public usdc;
 
-    constructor(address _usdc) {
-        usdc = IERC20(_usdc);
-    }
 
-    function subscribe(uint256 amount, address to) external {
-        usdc.safeTransferFrom(msg.sender, address(this), amount);
-        // Minting happens later off-chain in tests
-    }
-}
-
-contract MockSuperstateRedeem is ISuperstateRedeem {
-    using SafeERC20 for IERC20;
-    IERC20 public shareToken;
-
-    constructor(address _shareToken) {
-        shareToken = IERC20(_shareToken);
-    }
-
-    function redeem(uint256 amount, address to) external {
-        shareToken.safeTransferFrom(msg.sender, address(this), amount);
-        // USDC delivery happens later off-chain in tests
-    }
-}
-
-contract SuperstateArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
+contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     using SafeERC20 for IERC20;
 
     event CustodianWalletUpdated(address oldWallet, address newWallet);
     event ArkIsFrozenUpdated(bool isFrozen, uint256 frozenTotalAssets);
     
-    SuperstateArk public ark;
+    SuperstateStandardArk public ark;
     BufferArk public bufferArk;
     IERC20 public usdc;
     MockERC20 public shareToken;
     MockSuperstateOracle public oracle;
-    MockSuperstateSubscribe public subscribeContract;
-    MockSuperstateRedeem public redeemContract;
+    
+    address depositAddress = address(0x1111);
+    address redeemAddress = address(0x2222);
     
     ArkParams public params;
 
@@ -125,9 +101,6 @@ contract SuperstateArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         shareToken = new MockERC20();
         shareToken.initialize("USTB", "USTB", 6);
-        
-        subscribeContract = new MockSuperstateSubscribe(USDC_ADDRESS);
-        redeemContract = new MockSuperstateRedeem(address(shareToken));
 
         oracle = new MockSuperstateOracle(8, 10 * 1e8);
 
@@ -147,10 +120,10 @@ contract SuperstateArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(governor);
         Percentage sweepSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
         Percentage depositSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 2);
-        ark = new SuperstateArk(
+        ark = new SuperstateStandardArk(
             address(shareToken),
-            address(subscribeContract),
-            address(redeemContract),
+            depositAddress,
+            redeemAddress,
             address(oracle),
             sweepSlippage,
             depositSlippage,
@@ -185,33 +158,33 @@ contract SuperstateArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Constructor() public {
-        vm.expectRevert(SuperstateArk.InvalidShareTokenAddress.selector);
-        new SuperstateArk(
+        vm.expectRevert(SuperstateStandardArk.InvalidShareTokenAddress.selector);
+        new SuperstateStandardArk(
             address(0),
-            address(subscribeContract),
-            address(redeemContract),
+            depositAddress,
+            redeemAddress,
             address(oracle),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             params
         );
         
-        vm.expectRevert(SuperstateArk.InvalidSubscribeAddress.selector);
-        new SuperstateArk(
+        vm.expectRevert(SuperstateStandardArk.InvalidDepositAddress.selector);
+        new SuperstateStandardArk(
             address(shareToken),
             address(0),
-            address(redeemContract),
+            redeemAddress,
             address(oracle),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             params
         );
 
-        vm.expectRevert(SuperstateArk.InvalidOracleAddress.selector);
-        new SuperstateArk(
+        vm.expectRevert(SuperstateStandardArk.InvalidOracleAddress.selector);
+        new SuperstateStandardArk(
             address(shareToken),
-            address(subscribeContract),
-            address(redeemContract),
+            depositAddress,
+            redeemAddress,
             address(0),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
@@ -228,12 +201,12 @@ contract SuperstateArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
 
-        uint256 initialTargetBalance = usdc.balanceOf(address(subscribeContract));
+        uint256 initialTargetBalance = usdc.balanceOf(depositAddress);
 
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        uint256 finalTargetBalance = usdc.balanceOf(address(subscribeContract));
+        uint256 finalTargetBalance = usdc.balanceOf(depositAddress);
         assertEq(
             finalTargetBalance,
             initialTargetBalance + amount,
@@ -308,7 +281,7 @@ contract SuperstateArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         // Verify post-request state
         assertEq(
-            shareToken.balanceOf(address(redeemContract)),
+            shareToken.balanceOf(redeemAddress),
             sharesMinted,
             "Shares should be sent to redeem contract"
         );

@@ -9,78 +9,12 @@ import {PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contr
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
-/**
- * @title Standard ERC20 Interface
- * @notice Includes standard functions required for USDC, USTB, and USCC interactions.
- */
-interface IERC20Standard is IERC20Metadata {
-    function balanceOf(
-        address account
-    ) external view override returns (uint256);
-    function transfer(
-        address to,
-        uint256 value
-    ) external override returns (bool);
-    function approve(
-        address spender,
-        uint256 value
-    ) external override returns (bool);
-    function transferFrom(
-        address from,
-        address to,
-        uint256 value
-    ) external override returns (bool);
-}
+// Removed Superstate interfaces
+import {ISuperstateOracle} from "../../interfaces/superstate/ISuperstateOracle.sol";
 
 /**
- * @title Superstate Subscribe Interface
- * @notice Interface for the Superstate subscription mechanism.
- */
-interface ISuperstateSubscribe {
-    /**
-     * @notice Subscribes USDC to mint Superstate Fund Tokens to a designated address.
-     * @dev The caller MUST be on the Superstate on-chain Allowlist, and the `to` address must be allowlisted.
-     * @param amount The amount of USDC to subscribe.
-     * @param to The address to receive the minted fund tokens.
-     */
-    function subscribe(uint256 amount, address to) external;
-}
-
-/**
- * @title Superstate Redeem Interface
- * @notice Interface for the Superstate redemption mechanism.
- */
-interface ISuperstateRedeem {
-    /**
-     * @notice Redeems Superstate Fund Tokens for USDC.
-     * @dev The caller MUST be on the Superstate on-chain Allowlist, and the `to` address must be allowlisted.
-     * @param amount The amount of fund tokens to redeem.
-     * @param to The address to receive the USDC payout.
-     */
-    function redeem(uint256 amount, address to) external;
-}
-
-/**
- * @title Superstate Continuous Price Oracle Interface
- * @notice Interface to read the current NAV (share price) from Superstate's Oracle or Chainlink.
- */
-interface ISuperstateOracle {
-    function latestRoundData()
-        external
-        view
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        );
-    function decimals() external view returns (uint8);
-}
-
-/**
- * @title SuperstateArk
- * @notice Integration contract for programmatically interacting with Superstate's Tokenized Funds (USTB and USCC).
+ * @title SuperstateStandardArk
+ * @notice Integration contract for programmatically interacting with Superstate's Tokenized Funds (like USCC).
  * @dev
  * **Allowlist Requirements:**
  * Superstate funds are regulated securities. The address interacting with the Superstate Subscribe/Redeem
@@ -101,8 +35,8 @@ interface ISuperstateOracle {
  *     Subscribe Address:  0x14d60E7FDC0D71d8611742720E4C50E7a974020c
  *     Redemption Address: 0x14d60E7FDC0D71d8611742720E4C50E7a974020c
  */
-contract SuperstateArk is ArkWithWithdrawalRequest {
-    using SafeERC20 for IERC20Standard;
+contract SuperstateStandardArk is ArkWithWithdrawalRequest {
+    using SafeERC20 for IERC20Metadata;
     using SafeERC20 for IERC20;
     using PriceUtils for Price;
     using PercentageUtils for uint256;
@@ -124,7 +58,7 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
 
     error InvalidOracleAddress();
     error InvalidShareTokenAddress();
-    error InvalidSubscribeAddress();
+    error InvalidDepositAddress();
     error InvalidRedeemAddress();
 
     error OraclePriceNotPositive();
@@ -168,13 +102,13 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The Superstate fund token contract (USTB or USCC)
-    IERC20Standard public immutable shareToken;
+    IERC20Metadata public immutable shareToken;
 
-    /// @notice The Superstate Subscribe contract
-    ISuperstateSubscribe public immutable superstateSubscribe;
+    /// @notice The Superstate Deposit address
+    address public immutable depositAddress;
 
-    /// @notice The Superstate Redeem contract
-    ISuperstateRedeem public immutable superstateRedeem;
+    /// @notice The Superstate Redeem address
+    address public immutable redeemAddress;
 
     /// @notice Superstate/Chainlink price feed: price of 1 Superstate share denominated in USDC
     ISuperstateOracle public immutable oracle;
@@ -204,21 +138,20 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
 
     constructor(
         address _shareToken,
-        address _superstateSubscribe,
-        address _superstateRedeem,
+        address _depositAddress,
+        address _redeemAddress,
         address _oracle,
         Percentage _sweepSlippage,
         Percentage _depositSlippage,
         ArkParams memory _params
     ) ArkWithWithdrawalRequest(_params, DEFAULT_SWAP_SLIPPAGE) {
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
-        if (_superstateSubscribe == address(0))
-            revert InvalidSubscribeAddress();
+        if (_depositAddress == address(0)) revert InvalidDepositAddress();
         if (_oracle == address(0)) revert InvalidOracleAddress();
 
-        shareToken = IERC20Standard(_shareToken);
-        superstateSubscribe = ISuperstateSubscribe(_superstateSubscribe);
-        superstateRedeem = ISuperstateRedeem(_superstateRedeem);
+        shareToken = IERC20Metadata(_shareToken);
+        depositAddress = _depositAddress;
+        redeemAddress = _redeemAddress;
         oracle = ISuperstateOracle(_oracle);
 
         if (_sweepSlippage > MAX_SWEEP_SLIPPAGE) {
@@ -234,8 +167,8 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
         depositSlippage = _depositSlippage;
 
         oracleDecimals = ISuperstateOracle(_oracle).decimals();
-        shareDecimals = IERC20Standard(_shareToken).decimals();
-        assetDecimals = IERC20Standard(_params.asset).decimals();
+        shareDecimals = IERC20Metadata(_shareToken).decimals();
+        assetDecimals = IERC20Metadata(_params.asset).decimals();
         ONE_ASSET = 10 ** assetDecimals;
     }
 
@@ -316,13 +249,8 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
 
         pendingWithdrawalShares += sharesToRedeem;
 
-        if (address(superstateRedeem) == address(0)) {
-            shareToken.safeTransfer(address(superstateSubscribe), sharesToRedeem);
-        } else {
-            // Approve and execute redemption call to burn tokens and receive USDC
-            shareToken.forceApprove(address(superstateRedeem), sharesToRedeem);
-            superstateRedeem.redeem(sharesToRedeem, address(this));
-        }
+        address target = redeemAddress == address(0) ? depositAddress : redeemAddress;
+        shareToken.safeTransfer(target, sharesToRedeem);
 
         emit RedemptionExecuted(sharesToRedeem, amount);
         emit WithdrawalRequested(amount, 0);
@@ -434,13 +362,9 @@ contract SuperstateArk is ArkWithWithdrawalRequest {
         cachedShareBalance = shareToken.balanceOf(address(this));
         pendingDepositAssets += amount;
 
-        IERC20Standard(address(config.asset)).forceApprove(
-            address(superstateSubscribe),
-            amount
-        );
-        superstateSubscribe.subscribe(amount, address(this));
+        IERC20Metadata(address(config.asset)).safeTransfer(depositAddress, amount);
 
-        emit SubscriptionExecuted(amount, address(this));
+        emit SubscriptionExecuted(amount, depositAddress);
     }
 
     function _disembark(
