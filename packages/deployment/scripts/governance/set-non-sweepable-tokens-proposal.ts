@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import fs from 'fs'
 import kleur from 'kleur'
 import path from 'path'
+import { z } from 'zod'
 import {
   Address,
   createPublicClient,
@@ -24,13 +25,12 @@ import { ArkDetails } from '../helpers/zod-schemas'
 
 dotenv.config({ path: '../../.env' })
 
-interface ArkConfig {
-  chain: string
-  arkAddress: string
-  fleetAddress: string
-  arkSymbol: string
-  [key: string]: unknown
-}
+const SimpleArkConfigSchema = z.object({
+  chain: z.string(),
+  arkAddress: z.string(),
+  fleetAddress: z.string(),
+  arkSymbol: z.string(),
+})
 
 const TARGET_CHAINS = ['base', 'arbitrum', 'mainnet', 'sonic']
 
@@ -184,7 +184,12 @@ export async function getArkTokenMapping(
 async function main() {
   // Load arks configuration
   const arksConfigPath = path.join(__dirname, '../../config/curation/arks.json')
-  const arksConfig = JSON.parse(fs.readFileSync(arksConfigPath, 'utf-8')) as ArkConfig[]
+  const rawArks = fs.readFileSync(arksConfigPath, 'utf-8')
+  const parsedArks = SimpleArkConfigSchema.array().safeParse(JSON.parse(rawArks))
+  if (!parsedArks.success) {
+    throw new Error(`Invalid arks config: ${parsedArks.error.message}`)
+  }
+  const arksConfig = parsedArks.data
 
   // Get hub chain configuration through prompt
   const {

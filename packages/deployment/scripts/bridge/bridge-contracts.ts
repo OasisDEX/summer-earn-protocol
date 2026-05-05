@@ -3,7 +3,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address } from 'viem'
 import bridgeModule from '../../ignition/modules/bridge'
-import { DeployedBridge } from '../../types/bridge-types'
+import { DeployedBridge } from '../../types/config-types'
 import { ADDRESS_ZERO } from '../common/constants'
 import { getChainId } from '../helpers/get-chainid'
 

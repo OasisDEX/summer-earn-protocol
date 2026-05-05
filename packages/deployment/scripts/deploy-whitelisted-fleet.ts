@@ -58,13 +58,13 @@ async function selectInstitutionFleetConfig(
     choices: files.map((f) => ({ title: f, value: f })),
   })
   const full = path.join(dir, file)
-  const data = JSON.parse(fs.readFileSync(full, 'utf8'))
-  const parsed = FleetConfigSchema.parse(data)
-  // Preserve optional fields and ensure specific typing for details
-  return {
-    ...parsed,
-    details: typeof parsed.details === 'string' ? parsed.details : JSON.stringify(parsed.details),
-  } as unknown as FleetConfig
+  const raw = fs.readFileSync(full, 'utf8')
+  const parsed = FleetConfigSchema.safeParse(JSON.parse(raw))
+  if (!parsed.success) {
+    throw new Error(`Invalid fleet config ${full}: ${parsed.error.message}`)
+  }
+  const data = parsed.data
+  return data
 }
 
 enum WhitelistDeploymentMode {

@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { DeployedBridge } from '../../types/bridge-types'
+import { DeployedBridge } from '../../types/config-types'
 
 export function getBridgeDeploymentDir() {
   return path.join(process.cwd(), 'deployments', 'bridge')

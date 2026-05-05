@@ -4,9 +4,11 @@ import fs from 'fs'
 import path from 'path'
 import prompts from 'prompts'
 import { Address, createPublicClient, encodeFunctionData, getAddress, http } from 'viem'
+import { z } from 'zod'
 
 import chalk from 'chalk'
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+import { ArkConfig, ArkConfigSchema } from '../../types/config-types'
 import { readInstitutionConfigFile } from '../helpers/institution-config'
 dotenv.config({ path: '../../.env' })
 
@@ -468,9 +470,19 @@ async function loadConfigurations() {
   console.log(`- Arks: ${arksConfigPath}`)
   console.log(`- Auctions: ${auctionsConfigPath}`)
 
-  const arksConfig: ArkConfig[] = JSON.parse(fs.readFileSync(arksConfigPath, 'utf-8'))
+  const rawArks = fs.readFileSync(arksConfigPath, 'utf-8')
+  const parsedArks = z.array(ArkConfigSchema).safeParse(JSON.parse(rawArks))
+  if (!parsedArks.success) {
+    throw new Error(`Invalid arks config: ${parsedArks.error.message}`)
+  }
+  const arksConfig: ArkConfig[] = parsedArks.data
 
-  const auctionsConfig: AuctionConfig[] = JSON.parse(fs.readFileSync(auctionsConfigPath, 'utf-8'))
+  const rawAuctions = fs.readFileSync(auctionsConfigPath, 'utf-8')
+  const parsedAuctions = AuctionConfigSchema.safeParse(JSON.parse(rawAuctions))
+  if (!parsedAuctions.success) {
+    throw new Error(`Invalid auctions config: ${parsedAuctions.error.message}`)
+  }
+  const auctionsConfig: AuctionConfig[] = parsedAuctions.data
 
   const modeResponse = await prompts({
     type: 'select',

@@ -1,7 +1,13 @@
 import { Address } from 'viem'
 import { BaseConfig, Token } from '../../types/config-types'
 import { ADDRESS_ZERO } from '../common/constants'
-import { ArkDetailsSchema, VaultNameSchema, type ArkDetails } from './zod-schemas'
+import {
+  AddressSchema,
+  ArkDeploymentDetailsSchema,
+  NonZeroAddressSchema,
+  VaultNameSchema,
+  type ArkDetails,
+} from './zod-schemas'
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -17,17 +23,28 @@ export function validateNumber(value: unknown, context: string, min: number, max
   return value
 }
 
+/** Validates an address string (non-zero). Reuses zod AddressSchema + NonZeroAddressSchema. */
 export function validateAddress(address: unknown, context: string): Address {
-  if (!address || typeof address !== 'string') {
-    throw new ValidationError(`Invalid ${context}: address must be a string`)
+  try {
+    return NonZeroAddressSchema.parse(address) as Address
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new ValidationError(`Invalid ${context}: ${error.message}`)
+    }
+    throw new ValidationError(`Invalid ${context}: validation failed`)
   }
-  if (address === ADDRESS_ZERO) {
-    throw new ValidationError(`Invalid ${context}: cannot be zero address`)
+}
+
+/** Validates an address string (allows zero). Use when zero address is valid. */
+export function validateAddressAllowZero(address: unknown, context: string): Address {
+  try {
+    return AddressSchema.parse(address) as Address
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new ValidationError(`Invalid ${context}: ${error.message}`)
+    }
+    throw new ValidationError(`Invalid ${context}: validation failed`)
   }
-  if (!address.startsWith('0x')) {
-    throw new ValidationError(`Invalid ${context}: must start with 0x`)
-  }
-  return address as Address
 }
 
 export function validateString(value: unknown, context: string, minLength = 1): string {
@@ -55,7 +72,7 @@ export function validateToken(config: BaseConfig, token: string): Token {
   return normalizedToken as Token
 }
 
-export function validateDeployedContracts(config: any) {
+export function validateDeployedContracts(config: BaseConfig) {
   if (!config.deployedContracts) {
     throw new ValidationError('Missing deployedContracts configuration')
   }
@@ -73,11 +90,12 @@ export function validateDeployedContracts(config: any) {
   )
 }
 
-export function validateProtocolConfig(config: any, protocol: string) {
-  if (!config.protocolSpecific?.[protocol]) {
+export function validateProtocolConfig(config: BaseConfig, protocol: string) {
+  const ps = config.protocolSpecific as Record<string, unknown> | undefined
+  if (!ps || !ps[protocol]) {
     throw new ValidationError(`Missing ${protocol} protocol configuration`)
   }
-  return config.protocolSpecific[protocol]
+  return ps[protocol]
 }
 
 export function validateMarketId(marketId: unknown, context: string) {
@@ -88,12 +106,9 @@ export function validateMarketId(marketId: unknown, context: string) {
   return validatedMarketId
 }
 
-export function validateErc4626Address(address: unknown, context: string) {
-  const validatedAddress = validateAddress(address, context)
-  if (!validatedAddress.startsWith('0x')) {
-    throw new ValidationError(`Invalid ${context}: vault address must start with 0x`)
-  }
-  return validatedAddress
+/** Validates an ERC4626 vault address (non-zero, passes AddressSchema). */
+export function validateErc4626Address(address: unknown, context: string): Address {
+  return validateAddress(address, context)
 }
 
 export function validateConfigAddressEntry(
@@ -123,7 +138,7 @@ export function validateConfigAddressEntry(
  */
 export function validateArkDetails(details: unknown, context: string = 'ark details'): ArkDetails {
   try {
-    return ArkDetailsSchema.parse(details)
+    return ArkDeploymentDetailsSchema.parse(details)
   } catch (error) {
     if (error instanceof Error) {
       throw new ValidationError(`Invalid ${context}: ${error.message}`)

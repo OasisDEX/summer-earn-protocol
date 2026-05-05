@@ -1,8 +1,11 @@
-import hre from 'hardhat'
+import chalk from 'chalk'
 import fs from 'fs'
+import hre from 'hardhat'
 import path from 'path'
 import { Address, getAddress } from 'viem'
-import chalk from 'chalk'
+
+import { FleetDeployment } from '../../types/config-types'
+import { FleetDeploymentSchema } from '../helpers/zod-schemas'
 
 // Constants
 const WAD = BigInt(1e18)
@@ -113,20 +116,6 @@ const ARK_ABI = [
   },
 ] as const
 
-interface FleetDeployment {
-  fleetName: string
-  isBummer?: boolean
-  fleetSymbol: string
-  assetSymbol: string
-  fleetAddress: Address
-  bufferArkAddress: Address
-  network: string
-  arks: Address[]
-  initialMinimumBufferBalance?: string
-  initialRebalanceCooldown?: string
-  depositCap?: string
-  initialTipRate?: string
-}
 
 /**
  * Get asset decimals based on asset symbol
@@ -173,7 +162,12 @@ function loadFleetDeployments(): FleetDeployment[] {
     try {
       const filePath = path.join(deploymentsDir, file)
       const content = fs.readFileSync(filePath, 'utf-8')
-      const deployment = JSON.parse(content) as FleetDeployment
+      const parsed = FleetDeploymentSchema.safeParse(JSON.parse(content))
+      if (!parsed.success) {
+        console.log(chalk.yellow(`Invalid fleet deployment ${file}: ${parsed.error.message}`))
+        continue
+      }
+      const deployment = parsed.data
 
       // Only include Bummer fleets
       if (deployment.isBummer === true) {

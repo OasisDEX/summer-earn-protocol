@@ -1,5 +1,5 @@
 import hre from 'hardhat'
-import { DeployedBridge } from '../../types/bridge-types'
+import { DeployedBridge } from '../../types/config-types'
 
 export async function setupBridgeGovernance(deployedBridge: DeployedBridge, config: any) {
   const protocolAccessManager = await hre.viem.getContractAt(

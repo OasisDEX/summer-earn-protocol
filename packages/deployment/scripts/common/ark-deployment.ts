@@ -3,6 +3,7 @@ import kleur from 'kleur'
 import path from 'path'
 import { Address } from 'viem'
 import { ArkConfig, ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
+import { CrossChainConfigSchema } from '../helpers/zod-schemas'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployAeraArk } from '../arks/deploy-aera-ark'
 import { deployArmArk } from '../arks/deploy-arm-ark'
@@ -57,7 +58,7 @@ export type BaseArkParams = {
   maxDepositPercentageOfTVL: string
   fleetName: string
   isBummer?: boolean
-  version: number
+  version?: number
 }
 
 export async function deployArk(
@@ -329,17 +330,24 @@ export async function deployArk(
 
       // Load the config
       const configPath = path.join(configDir, configFiles[0])
-      const crossChainConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+      const raw = fs.readFileSync(configPath, 'utf8')
+      const parsed = CrossChainConfigSchema.safeParse(JSON.parse(raw))
+      if (!parsed.success) {
+        throw new Error(`Invalid cross-chain config ${configPath}: ${parsed.error.message}`)
+      }
+      const crossChainConfig = parsed.data
 
       // Find the protocol configuration
       const destination = crossChainConfig.destinations.find(
-        (d: any) => d.chainId === targetChainId,
+        (d: { chainId: number }) => d.chainId === targetChainId,
       )
       if (!destination) {
         throw new Error(`Destination with chain ID ${targetChainId} not found in config`)
       }
 
-      const protocol = destination.protocols.find((p: any) => p.protocol === targetProtocol)
+      const protocol = destination.protocols.find(
+        (p: { protocol: string }) => p.protocol === targetProtocol,
+      )
 
       deployedArk = await deployCrossChainArk(config, {
         ...baseArkParams,
@@ -528,7 +536,7 @@ export async function deployArk(
 }
 
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
-  let deployedArk: any
+  let deployedArk: { ark: { address: string } } | null | undefined = undefined
 
   switch (arkType) {
     case ArkType.SyrupArk:

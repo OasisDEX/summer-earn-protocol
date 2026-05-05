@@ -34,7 +34,7 @@ export interface FleetCrossChainContent extends FleetSingleChainContent {
  * Generates a formatted description for a fleet deployment proposal
  */
 export async function generateFleetProposalDescription(
-  deployedFleet: FleetContracts,
+  deployedFleetAddress: Address,
   fleetDefinition: FleetConfig,
   deployedArks: Address[],
   bufferArkAddress: Address,
@@ -146,7 +146,7 @@ This proposal activates the ${fleetDefinition.fleetName} Fleet (${fleetDefinitio
 This fleet deployment will expand the protocol's capabilities by adding ${deployedArks.length} new Arks to the ecosystem.
 
 ## Technical Details
-- Fleet Commander: ${deployedFleet.fleetCommander.address}
+- Fleet Commander: ${deployedFleetAddress}
 - Buffer Ark: ${bufferArkAddress}
 - Number of Arks: ${deployedArks.length}
 ${curatorSection}
@@ -195,7 +195,7 @@ This cross-chain fleet deployment will expand the protocol's capabilities across
 ## Technical Details
 - Hub Chain: ${hubChain}
 - Target Chain: ${targetChain}
-- Fleet Commander: ${deployedFleet.fleetCommander.address}
+- Fleet Commander: ${deployedFleetAddress}
 - Buffer Ark: ${bufferArkAddress}
 - Number of Arks: ${deployedArks.length}
 ${curatorSection}
@@ -447,7 +447,7 @@ export async function prepareRewardSetupActions(
   rewardsDurations: number[],
   timelock: Address,
   summerTokenAddress: Address,
-  publicClient: PublicClient,
+  publicClient: any,
 ): Promise<{ targets: Address[]; values: bigint[]; calldatas: Hex[] }> {
   const targets: Address[] = []
   const values: bigint[] = []
@@ -614,7 +614,7 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
  * Creates a governance proposal on the hub chain and optionally submits a draft to Tally
  */
 export async function createHubGovernanceProposal(
-  deployedFleet: FleetContracts,
+  deployedFleetAddress: Address,
   bufferArkAddress: Address,
   deployedArks: Address[],
   config: BaseConfig,
@@ -636,7 +636,7 @@ export async function createHubGovernanceProposal(
 
   // 1. Add Fleet to Harbor Command
   const harborActions = prepareHarborAdditionActions(
-    deployedFleet.fleetCommander.address,
+    deployedFleetAddress,
     harborCommandAddress,
   )
   targets = [...targets, ...harborActions.targets]
@@ -646,7 +646,7 @@ export async function createHubGovernanceProposal(
   // 2. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
   const bufferArkActions = prepareBufferArkActions(
     bufferArkAddress,
-    deployedFleet.fleetCommander.address,
+    deployedFleetAddress,
     protocolAccessManagerAddress,
   )
   targets = [...targets, ...bufferArkActions.targets]
@@ -655,7 +655,7 @@ export async function createHubGovernanceProposal(
 
   // 3. Add Arks and grant COMMANDER_ROLE
   const arkActions = await prepareArkAdditionActions(
-    deployedFleet.fleetCommander.address,
+    deployedFleetAddress,
     deployedArks,
     protocolAccessManagerAddress,
     raftAddress,
@@ -668,7 +668,7 @@ export async function createHubGovernanceProposal(
   // 4. Grant CURATOR_ROLE if provided
   if (curatorAddress) {
     const curatorActions = prepareCuratorActions(
-      deployedFleet.fleetCommander.address,
+      deployedFleetAddress,
       curatorAddress,
       protocolAccessManagerAddress,
     )
@@ -685,7 +685,7 @@ export async function createHubGovernanceProposal(
   ) {
     try {
       const rewardsManagerAddress = await getRewardsManagerAddress(
-        deployedFleet.fleetCommander.address,
+        deployedFleetAddress,
       )
 
       const rewardActions = await prepareRewardSetupActions(
@@ -730,7 +730,7 @@ export async function createHubGovernanceProposal(
     }
 
     const proposalContent = await generateFleetProposalDescription(
-      deployedFleet,
+      deployedFleetAddress,
       fleetDefinition,
       deployedArks,
       bufferArkAddress,
@@ -740,11 +740,11 @@ export async function createHubGovernanceProposal(
       curatorAddress, // Add curator address
       fleetDefinition.rewardTokens
         ? {
-            // Add reward info if available
-            tokens: fleetDefinition.rewardTokens,
-            amounts: fleetDefinition.rewardAmounts,
-            duration: fleetDefinition.rewardsDuration?.toString(),
-          }
+          // Add reward info if available
+          tokens: fleetDefinition.rewardTokens,
+          amounts: fleetDefinition.rewardAmounts,
+          duration: fleetDefinition.rewardsDuration?.toString(),
+        }
         : undefined,
       useBummerConfig,
     )
@@ -795,7 +795,7 @@ export async function createHubGovernanceProposal(
  * Creates a cross-chain governance proposal from the hub chain to a satellite chain
  */
 export async function createSatelliteGovernanceProposal(
-  deployedFleet: FleetContracts,
+  deployedFleetAddress: Address,
   bufferArkAddress: Address,
   deployedArks: Address[],
   targetChainConfig: BaseConfig,
@@ -815,7 +815,7 @@ export async function createSatelliteGovernanceProposal(
   const { publicClient: hubChainPublicClient } = await createClients(
     result.chainConfig.chain as any,
     result.chainConfig.rpcUrl,
-    process.env.DEPLOYER_PRIV_KEY as Address,
+    process.env.DEPLOYER_PRIV_KEY as Hex,
   )
   const targetChainPublicClient = await hre.viem.getPublicClient()
 
@@ -848,7 +848,7 @@ export async function createSatelliteGovernanceProposal(
   dstCalldatas.push(
     encodeFunctionData({
       abi: parseAbi(['function enlistFleetCommander(address fleetCommander) external']),
-      args: [deployedFleet.fleetCommander.address],
+      args: [deployedFleetAddress],
     }) as Hex,
   )
 
@@ -861,13 +861,13 @@ export async function createSatelliteGovernanceProposal(
   dstCalldatas.push(
     encodeFunctionData({
       abi: parseAbi(['function grantCommanderRole(address arkAddress, address account) external']),
-      args: [bufferArkAddress, deployedFleet.fleetCommander.address],
+      args: [bufferArkAddress, deployedFleetAddress],
     }) as Hex,
   )
 
   // 3.3 & 3.4 Add Arks and grant COMMANDER_ROLE
   const arkActions = await prepareArkAdditionActions(
-    deployedFleet.fleetCommander.address,
+    deployedFleetAddress,
     deployedArks,
     protocolAccessManagerAddress,
     raftAddress,
@@ -886,7 +886,7 @@ export async function createSatelliteGovernanceProposal(
         abi: parseAbi([
           'function grantCuratorRole(address fleetAddress, address account) external',
         ]),
-        args: [deployedFleet.fleetCommander.address, curatorAddress],
+        args: [deployedFleetAddress, curatorAddress],
       }) as Hex,
     )
   }
@@ -899,7 +899,7 @@ export async function createSatelliteGovernanceProposal(
   ) {
     try {
       const rewardsManagerAddress = await getRewardsManagerAddress(
-        deployedFleet.fleetCommander.address,
+        deployedFleetAddress,
       )
 
       const rewardActions = await prepareRewardSetupActions(
@@ -929,7 +929,7 @@ export async function createSatelliteGovernanceProposal(
   }
 
   const proposalDescriptions = (await generateFleetProposalDescription(
-    deployedFleet,
+    deployedFleetAddress,
     fleetDefinition,
     deployedArks,
     bufferArkAddress,
@@ -939,10 +939,10 @@ export async function createSatelliteGovernanceProposal(
     curatorAddress, // Add curator address
     fleetDefinition.rewardTokens
       ? {
-          tokens: fleetDefinition.rewardTokens,
-          amounts: fleetDefinition.rewardAmounts,
-          duration: fleetDefinition.rewardsDuration?.toString(),
-        }
+        tokens: fleetDefinition.rewardTokens,
+        amounts: fleetDefinition.rewardAmounts,
+        duration: fleetDefinition.rewardsDuration?.toString(),
+      }
       : undefined,
   )) as FleetCrossChainContent
 

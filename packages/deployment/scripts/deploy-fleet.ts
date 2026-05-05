@@ -175,7 +175,7 @@ async function deployFleet() {
  */
 async function handleNewFleetDeployment(
   fleetDefinition: FleetConfig,
-  config: any,
+  config: BaseConfig,
   isHubChain: boolean,
   useBummerConfig: boolean,
   isTenderly: boolean,
@@ -203,13 +203,14 @@ async function handleNewFleetDeployment(
 
     const deployedArks = await deployArks(fleetDefinition, config)
     console.log(kleur.green(`Successfully deployed ${deployedArks.length} arks.`))
+    const deployedFleetAddress = deployedFleet.fleetCommander.address as Address
 
     // Save deployment info
     saveFleetDeploymentJson(
       fleetDefinition,
-      deployedFleet,
-      bufferArkAddress,
-      deployedArks,
+      deployedFleetAddress,
+      bufferArkAddress as Address,
+      deployedArks as Address[],
       useBummerConfig,
     )
 
@@ -233,7 +234,7 @@ async function handleNewFleetDeployment(
       }
 
       await addFleetToHarbor(
-        deployedFleet.fleetCommander.address as Address,
+        deployedFleetAddress,
         config.deployedContracts.core.harborCommand.address as Address,
         config.deployedContracts.gov.protocolAccessManager.address as Address,
       )
@@ -241,7 +242,7 @@ async function handleNewFleetDeployment(
       await grantCommanderRole(
         config.deployedContracts.gov.protocolAccessManager.address as Address,
         bufferArkAddress as Address,
-        deployedFleet.fleetCommander.address as Address,
+        deployedFleetAddress,
         hre,
       )
 
@@ -249,7 +250,7 @@ async function handleNewFleetDeployment(
       if (curatorAddress) {
         await grantCuratorRole(
           config.deployedContracts.gov.protocolAccessManager.address as Address,
-          deployedFleet.fleetCommander.address as Address,
+          deployedFleetAddress,
           curatorAddress,
           hre,
         )
@@ -264,7 +265,7 @@ async function handleNewFleetDeployment(
         try {
           console.log('About to get rewards manager address')
           const rewardsManagerAddress = await getRewardsManagerAddress(
-            deployedFleet.fleetCommander.address as Address,
+            deployedFleetAddress,
           )
 
           console.log('rewardsManagerAddress', rewardsManagerAddress)
@@ -291,9 +292,9 @@ async function handleNewFleetDeployment(
 
       if (isHubChain) {
         await createHubGovernanceProposal(
-          deployedFleet,
-          bufferArkAddress,
-          deployedArks,
+          deployedFleetAddress,
+          bufferArkAddress as Address,
+          deployedArks as Address[],
           config,
           fleetDefinition,
           useBummerConfig,
@@ -302,9 +303,9 @@ async function handleNewFleetDeployment(
         )
       } else {
         await createSatelliteGovernanceProposal(
-          deployedFleet,
-          bufferArkAddress,
-          deployedArks,
+          deployedFleetAddress,
+          bufferArkAddress as Address,
+          deployedArks as Address[],
           config,
           fleetDefinition,
           useBummerConfig,
@@ -315,7 +316,7 @@ async function handleNewFleetDeployment(
       }
     }
 
-    logDeploymentResults(deployedFleet)
+    logDeploymentResults(deployedFleetAddress)
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
@@ -326,7 +327,7 @@ async function handleNewFleetDeployment(
  */
 async function handleArkAddition(
   fleetDefinition: FleetConfig,
-  config: any,
+  config: BaseConfig,
   isHubChain: boolean,
   useBummerConfig: boolean,
   isTenderly: boolean,

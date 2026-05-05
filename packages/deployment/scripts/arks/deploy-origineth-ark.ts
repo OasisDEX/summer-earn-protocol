@@ -7,7 +7,19 @@ import {
   createOriginETHArkModule,
   OriginETHArkContracts,
 } from '../../ignition/modules/arks/origineth-ark'
-import { ArkParams } from '../../types/ark-params'
+interface ArkParams {
+  name: string
+  accessManager: string
+  configurationManager: string
+  asset: string
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+  requiresKeeperData: boolean
+  maxDepositPercentageOfTVL: string
+  details: string
+}
+
 import { BaseConfig, Token } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'

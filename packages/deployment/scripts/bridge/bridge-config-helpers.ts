@@ -1,4 +1,4 @@
-import { BridgeAdaptersConfig } from '../../types/bridge-types'
+import { BridgeAdaptersConfig } from '../../types/config-types'
 
 /**
  * Extracts bridge adapter configurations from the network config

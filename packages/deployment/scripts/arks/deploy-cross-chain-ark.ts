@@ -9,6 +9,7 @@ import {
   createCrossChainArkModule,
 } from '../../ignition/modules/arks/cross-chain-ark'
 import { BaseConfig } from '../../types/config-types'
+import { CrossChainConfigSchema } from '../helpers/zod-schemas'
 import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
@@ -115,7 +116,12 @@ export async function deployCrossChainArk(
       )
     }
     selectedConfigFile = matchingFile
-    crossChainConfig = JSON.parse(fs.readFileSync(path.join(configDir, matchingFile), 'utf8'))
+    const raw = fs.readFileSync(path.join(configDir, matchingFile), 'utf8')
+    const parsed = CrossChainConfigSchema.safeParse(JSON.parse(raw))
+    if (!parsed.success) {
+      throw new Error(`Invalid cross-chain config ${matchingFile}: ${parsed.error.message}`)
+    }
+    crossChainConfig = parsed.data
   } else {
     // Otherwise let user select from available configs
     const { configFile } = await prompts({
@@ -133,7 +139,12 @@ export async function deployCrossChainArk(
     selectedConfigFile = configFile
     const configPath = path.join(configDir, configFile)
     console.log(kleur.blue(`Loading config from: ${configPath}`))
-    crossChainConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    const raw = fs.readFileSync(configPath, 'utf8')
+    const parsed = CrossChainConfigSchema.safeParse(JSON.parse(raw))
+    if (!parsed.success) {
+      throw new Error(`Invalid cross-chain config ${configFile}: ${parsed.error.message}`)
+    }
+    crossChainConfig = parsed.data
   }
 
   console.log(kleur.green(`Loaded cross-chain config: ${selectedConfigFile}`))
@@ -245,12 +256,15 @@ async function findMatchingConfigFile(
   for (const file of configFiles) {
     const configPath = path.join(configDir, file)
     try {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-      const matchingDest = config.destinations.find((dest: any) => dest.chainId === targetChainId)
+      const raw = fs.readFileSync(configPath, 'utf8')
+      const config = CrossChainConfigSchema.safeParse(JSON.parse(raw))
+      if (!config.success) {
+        console.warn(kleur.yellow(`Invalid config file ${file}: ${config.error.message}`))
+        continue
+      }
+      const matchingDest = config.data.destinations.find((dest) => dest.chainId === targetChainId)
       if (matchingDest) {
-        const matchingProtocol = matchingDest.protocols.find(
-          (p: any) => p.protocol === targetProtocol,
-        )
+        const matchingProtocol = matchingDest.protocols.find((p) => p.protocol === targetProtocol)
         if (matchingProtocol) {
           return file
         }

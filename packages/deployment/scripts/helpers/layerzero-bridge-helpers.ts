@@ -24,7 +24,7 @@ export async function prepareBridgeTransaction(
   destinationChainEid: number,
   recipient: Address,
   refundAddress: Address,
-  publicClient: PublicClient,
+  publicClient: any,
   safetyMultiplier: number = 1.5,
 ): Promise<{ targets: Address[]; values: bigint[]; calldatas: Hex[] }> {
   const targets: Address[] = []

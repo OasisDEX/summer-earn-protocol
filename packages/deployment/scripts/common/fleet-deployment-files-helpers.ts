@@ -149,11 +149,11 @@ export async function loadFleetDeploymentJson(
 /**
  * Creates and saves a deployment JSON file with fleet information.
  * @param {any} fleetDefinition - The fleet definition object.
- * @param {FleetContracts} deployedFleet - The deployed fleet contracts.
+ * @param {Address} deployedFleet - The deployed fleet contracts.
  */
 export function saveFleetDeploymentJson(
   fleetDefinition: FleetConfig,
-  deployedFleet: FleetContracts,
+  deployedFleetAddress: Address,
   bufferArkAddress: Address,
   deployedArks?: Address[],
   isBummer?: boolean,
@@ -163,14 +163,14 @@ export function saveFleetDeploymentJson(
     isBummer: isBummer,
     fleetSymbol: fleetDefinition.symbol,
     assetSymbol: fleetDefinition.assetSymbol,
-    fleetAddress: deployedFleet.fleetCommander.address,
-    bufferArkAddress: bufferArkAddress.toString(),
+    fleetAddress: deployedFleetAddress,
+    bufferArkAddress: bufferArkAddress,
     network: fleetDefinition.network,
     initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
     initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
     depositCap: fleetDefinition.depositCap,
     initialTipRate: fleetDefinition.initialTipRate,
-    arks: deployedArks?.map((address) => address.toString()) || undefined,
+    arks: deployedArks,
     details:
       typeof fleetDefinition.details === 'string'
         ? JSON.parse(fleetDefinition.details)

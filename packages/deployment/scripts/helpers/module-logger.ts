@@ -13,6 +13,7 @@ import { GovContractsV2 } from '../../ignition/modules/gov-v2'
 import { StakingContracts } from '../../ignition/modules/staking'
 import { GovV1CoreContracts } from '../../ignition/modules/gov-v1-core'
 import { TimelockGuardFactoryContracts } from '../../ignition/modules/timelock-guard-factory'
+import { Address } from 'viem'
 
 export class ModuleLogger {
   private moduleName: string
@@ -88,9 +89,9 @@ export class ModuleLogger {
     logger.logAddresses()
   }
 
-  static logFleet(contracts: FleetContracts): void {
+  static logFleet(address: Address): void {
     const logger = new ModuleLogger('FleetModule', {
-      'Fleet Commander': contracts.fleetCommander,
+      'Fleet Commander': { address: address },
     })
     logger.logAddresses()
   }

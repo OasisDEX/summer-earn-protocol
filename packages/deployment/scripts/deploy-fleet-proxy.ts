@@ -6,6 +6,7 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { createFleetProxyModule } from '../ignition/modules/fleet-proxy'
 import { BaseConfig } from '../types/config-types'
+import { FleetDeploymentSchema } from './helpers/zod-schemas'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { loadCrossChainConfig, saveCrossChainConfig } from './helpers/cross-chain-config'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
@@ -133,7 +134,11 @@ async function getUserInput(
   for (const file of deploymentFiles) {
     const deploymentPath = path.join(deploymentsDir, file)
     const deploymentContent = fs.readFileSync(deploymentPath, 'utf8')
-    const fleetDeployment = JSON.parse(deploymentContent)
+    const parsed = FleetDeploymentSchema.safeParse(JSON.parse(deploymentContent))
+    if (!parsed.success) {
+      throw new Error(`Invalid fleet deployment ${file}: ${parsed.error.message}`)
+    }
+    const fleetDeployment = parsed.data
 
     // Check if deployment is for current chain
     const sourceNetwork = fleetDeployment.network
@@ -168,7 +173,11 @@ async function getUserInput(
   // Load the selected deployment file
   const deploymentPath = path.join(deploymentsDir, selectedDeployment)
   const deploymentContent = fs.readFileSync(deploymentPath, 'utf8')
-  const fleetDeployment = JSON.parse(deploymentContent)
+  const parsed = FleetDeploymentSchema.safeParse(JSON.parse(deploymentContent))
+  if (!parsed.success) {
+    throw new Error(`Invalid fleet deployment ${selectedDeployment}: ${parsed.error.message}`)
+  }
+  const fleetDeployment = parsed.data
 
   // Extract fleet information
   const fleetName = fleetDeployment.fleetName

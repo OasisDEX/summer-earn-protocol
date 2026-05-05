@@ -1,5 +1,6 @@
 import fs from 'fs'
 import hre from 'hardhat'
+import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
@@ -111,7 +112,7 @@ export async function grantCuratorRole(
   protocolAccessManagerAddress: Address,
   fleetCommanderAddress: Address,
   curatorAddress: Address,
-  hre: any,
+  hre: HardhatRuntimeEnvironment,
 ) {
   const publicClient = await hre.viem.getPublicClient()
   const protocolAccessManager = await hre.viem.getContractAt(
@@ -145,7 +146,7 @@ export async function grantKeeperRole(
   protocolAccessManagerAddress: Address,
   fleetCommanderAddress: Address,
   keeperAddress: Address,
-  hre: any,
+  hre: HardhatRuntimeEnvironment,
 ) {
   const publicClient = await hre.viem.getPublicClient()
   const protocolAccessManager = await hre.viem.getContractAt(
@@ -177,7 +178,7 @@ export async function grantOperatorRole(
   protocolAccessManagerAddress: Address,
   fleetCommanderAddress: Address,
   operatorAddress: Address,
-  hre: any,
+  hre: HardhatRuntimeEnvironment,
 ) {
   const publicClient = await hre.viem.getPublicClient()
   const protocolAccessManager = await hre.viem.getContractAt(

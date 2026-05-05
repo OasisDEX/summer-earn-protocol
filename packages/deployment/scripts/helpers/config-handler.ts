@@ -4,6 +4,7 @@ import path from 'path'
 import { CoreContracts } from '../../ignition/modules/core'
 import { GovContracts } from '../../ignition/modules/gov'
 import { BaseConfig, Config } from '../../types/config-types'
+import { BaseConfigSchema, ConfigSchema } from './zod-schemas'
 import { readInstitutionConfigFile } from './institution-config'
 import { validateAddress, validateNumber } from './validation'
 
@@ -38,7 +39,12 @@ export function getConfigByNetwork(
     console.log(kleur.yellow().bold(`\nUsing bummer config from ${configFileName}!`))
   }
 
-  const config: Config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+  const raw = fs.readFileSync(configPath, 'utf8')
+  const parsed = ConfigSchema.safeParse(JSON.parse(raw))
+  if (!parsed.success) {
+    throw new Error(`Invalid config at ${configPath}: ${parsed.error.message}`)
+  }
+  const config: Config = parsed.data
 
   // Return all network configs if 'all' is requested
   if (network === 'all') {
@@ -85,29 +91,33 @@ export function getInstitutionConfigByNetwork(
   const baseConfig = getConfigByNetwork(network, validateConfig, useBummerConfig)
 
   // Clone to avoid mutating the cached/base object
-  const mergedConfig: BaseConfig = JSON.parse(JSON.stringify(baseConfig))
+  const mergedConfig: BaseConfig = structuredClone(baseConfig)
 
   const index = readInstitutionConfigFile(institutionId, useBummerConfig)
 
   // Normalize local network mapping consistent with getConfigByNetwork
   const _network = network === 'hardhat' || network === 'local' ? 'base' : network
-  const institutionNet = (index as any)[_network] as any
-  const deployed = institutionNet?.deployedContracts as any
+  const institutionNet = index[_network as keyof typeof index]
+  const deployed = institutionNet?.deployedContracts
 
   if (deployed?.gov) {
     for (const k of Object.keys(deployed.gov)) {
-      const addressObj = deployed.gov[k]
+      const addressObj = (deployed.gov as Record<string, { address?: string }>)[k]
       if (addressObj?.address) {
-        ;(mergedConfig.deployedContracts.gov as any)[k] = { address: addressObj.address }
+        mergedConfig.deployedContracts.gov[k as keyof typeof mergedConfig.deployedContracts.gov] = {
+          address: addressObj.address,
+        }
       }
     }
   }
 
   if (deployed?.core) {
     for (const k of Object.keys(deployed.core)) {
-      const addressObj = deployed.core[k]
+      const addressObj = (deployed.core as Record<string, { address?: string }>)[k]
       if (addressObj?.address) {
-        ;(mergedConfig.deployedContracts.core as any)[k] = { address: addressObj.address }
+        mergedConfig.deployedContracts.core[k as keyof typeof mergedConfig.deployedContracts.core] = {
+          address: addressObj.address,
+        }
       }
     }
   }

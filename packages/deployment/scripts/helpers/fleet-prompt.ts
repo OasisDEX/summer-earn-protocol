@@ -2,7 +2,8 @@ import fs from 'fs'
 import path from 'path'
 import prompts from 'prompts'
 import { Address, Chain, parseAbi } from 'viem'
-import { BaseConfig, FleetConfig } from '../../types/config-types'
+import { BaseConfig } from '../../types/config-types'
+import { FleetConfigSchema } from './zod-schemas'
 import { ChainName } from './chain-configs'
 import { createClients } from './wallet-helper'
 
@@ -30,9 +31,12 @@ export async function promptForFleet(
     .readdirSync(fleetsDir)
     .filter((file) => file.endsWith('.json'))
     .filter((file) => {
-      // Load each file and check if it matches the chain
-      const fleetConfig = JSON.parse(fs.readFileSync(path.join(fleetsDir, file), 'utf8'))
-      return fleetConfig.network.toLowerCase() === chainName.toLowerCase()
+      const raw = fs.readFileSync(path.join(fleetsDir, file), 'utf8')
+      const parsed = FleetConfigSchema.safeParse(JSON.parse(raw))
+      if (!parsed.success) {
+        throw new Error(`Invalid fleet config ${file}: ${parsed.error.message}`)
+      }
+      return parsed.data.network.toLowerCase() === chainName.toLowerCase()
     })
 
   if (fleetFiles.length === 0) {
@@ -42,12 +46,16 @@ export async function promptForFleet(
   // Create choices array for the prompt
   const choices = await Promise.all(
     fleetFiles.map(async (file) => {
-      const config = JSON.parse(fs.readFileSync(path.join(fleetsDir, file), 'utf8'))
+      const raw = fs.readFileSync(path.join(fleetsDir, file), 'utf8')
+      const parsed = FleetConfigSchema.safeParse(JSON.parse(raw))
+      if (!parsed.success) {
+        throw new Error(`Invalid fleet config ${file}: ${parsed.error.message}`)
+      }
       return {
-        title: `${config.fleetName} (${config.symbol}) - ${config.assetSymbol} ${
-          config.isBummer ? '(Bummer)' : ''
+        title: `${parsed.data.fleetName} (${parsed.data.symbol}) - ${parsed.data.assetSymbol} ${
+          parsed.data.isBummer ? '(Bummer)' : ''
         }`,
-        value: config,
+        value: parsed.data,
       }
     }),
   )
