@@ -9,7 +9,7 @@ import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 export interface FluidLiteArkUserInput extends BaseArkParams {
   token: { address: Address; symbol: Token }
@@ -33,11 +33,11 @@ export async function deployFluidLiteArk(config: BaseConfig, arkParams?: FluidLi
 }
 
 async function getUserInput(config: BaseConfig): Promise<FluidLiteArkUserInput> {
+  const fluidConfig = getProtocolConfig(config, 'fluid')
   const tokens = []
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as Token]
-    // Only add tokens that have a corresponding Fluid Lite configuration
-    const fluidLiteConfig = config.protocolSpecific.fluid.lite[tokenSymbol as Token]
+    const fluidLiteConfig = fluidConfig.lite[tokenSymbol as Token]
     if (
       fluidLiteConfig &&
       fluidLiteConfig.wrapper &&
@@ -118,18 +118,16 @@ async function deployFluidLiteArkContract(
   const envLabel = userInput.isBummer ? 'staging_' : ''
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}` + '_' + 'gov'
 
+  const fluidConfig = getProtocolConfig(config, 'fluid')
   const wrapper = validateAddress(
-    config.protocolSpecific.fluid.lite[userInput.token.symbol].wrapper,
+    fluidConfig.lite[userInput.token.symbol].wrapper,
     'Fluid Lite wrapper',
   )
-  const vault = validateAddress(
-    config.protocolSpecific.fluid.lite[userInput.token.symbol].vault,
-    'Fluid Lite vault',
-  )
+  const vault = validateAddress(fluidConfig.lite[userInput.token.symbol].vault, 'Fluid Lite vault')
   const weth = validateAddress(config.tokens.weth, 'WETH')
   const steth = validateAddress(config.tokens.steth, 'STETH')
   const withdrawalQueue = validateAddress(
-    config.protocolSpecific.fluid.lite[userInput.token.symbol].withdrawalQueue,
+    fluidConfig.lite[userInput.token.symbol].withdrawalQueue,
     'Fluid Lite withdrawal queue',
   )
 

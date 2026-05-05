@@ -10,6 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { getProtocolConfig } from '../helpers/validation'
 
 export interface SiloArkUserInput extends BaseArkParams {
   siloId: string
@@ -30,14 +31,14 @@ export async function deploySiloArkV2(config: BaseConfig, arkParams?: SiloArkUse
 }
 
 async function getUserInput(config: BaseConfig): Promise<SiloArkUserInput> {
-  // Extract Silo vaults from the configuration
+  const siloConfig = getProtocolConfig(config, 'silo')
   const siloVaults = []
-  if (!config.protocolSpecific.silo || !config.protocolSpecific.silo.pools) {
+  if (!siloConfig || !siloConfig.pools) {
     throw new Error('No Silo vaults found in the configuration.')
   }
-  for (const token in config.protocolSpecific.silo.pools) {
-    for (const vaultName in config.protocolSpecific.silo.pools[token as Token]) {
-      const vaultId = config.protocolSpecific.silo.pools[token as Token][vaultName]
+  for (const token in siloConfig.pools) {
+    for (const vaultName in siloConfig.pools[token as Token]) {
+      const vaultId = siloConfig.pools[token as Token][vaultName]
       siloVaults.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
         value: { token, vaultId, vaultName },

@@ -115,9 +115,10 @@ export function getInstitutionConfigByNetwork(
     for (const k of Object.keys(deployed.core)) {
       const addressObj = (deployed.core as Record<string, { address?: string }>)[k]
       if (addressObj?.address) {
-        mergedConfig.deployedContracts.core[k as keyof typeof mergedConfig.deployedContracts.core] = {
-          address: addressObj.address,
-        }
+        mergedConfig.deployedContracts.core[k as keyof typeof mergedConfig.deployedContracts.core] =
+          {
+            address: addressObj.address,
+          }
       }
     }
   }

@@ -6,8 +6,10 @@ import {
   ArkDeploymentDetailsSchema,
   NonZeroAddressSchema,
   VaultNameSchema,
+  ProtocolSpecificSchema,
   type ArkDetails,
 } from './zod-schemas'
+import { z } from 'zod'
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -96,6 +98,38 @@ export function validateProtocolConfig(config: BaseConfig, protocol: string) {
     throw new ValidationError(`Missing ${protocol} protocol configuration`)
   }
   return ps[protocol]
+}
+
+const PROTOCOL_SCHEMAS = (() => {
+  const shape = ProtocolSpecificSchema.shape
+  const entries = Object.entries(shape).filter(([, schema]) => schema instanceof z.ZodType)
+  return Object.fromEntries(entries) as Record<string, z.ZodType>
+})()
+
+type ProtocolName = keyof typeof PROTOCOL_SCHEMAS
+
+export function getProtocolConfig<T extends ProtocolName>(
+  config: BaseConfig,
+  protocol: T,
+): z.infer<(typeof PROTOCOL_SCHEMAS)[T]> {
+  if (!config.protocolSpecific) {
+    throw new ValidationError(`Missing protocolSpecific configuration`)
+  }
+
+  const protocolConfig = (config.protocolSpecific as Record<string, unknown>)[protocol]
+  if (!protocolConfig) {
+    throw new ValidationError(`Missing ${protocol} protocol configuration`)
+  }
+
+  const schema = PROTOCOL_SCHEMAS[protocol]
+  try {
+    return schema.parse(protocolConfig) as z.infer<typeof schema>
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new ValidationError(`Invalid ${protocol} config: ${error.message}`)
+    }
+    throw error
+  }
 }
 
 export function validateMarketId(marketId: unknown, context: string) {

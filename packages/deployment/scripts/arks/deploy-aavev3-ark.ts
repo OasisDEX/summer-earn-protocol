@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 /**
  * Main function to deploy an AaveV3Ark.
@@ -117,8 +117,9 @@ async function deployAaveV3ArkContract(
   const envLabel = userInput.isBummer ? 'staging_' : ''
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
-  const aaveV3Pool = validateAddress(config.protocolSpecific.aaveV3.pool, 'aaveV3 pool')
-  const aaveV3Rewards = validateAddress(config.protocolSpecific.aaveV3.rewards, 'aaveV3 rewards')
+  const aaveV3Config = getProtocolConfig(config, 'aaveV3')
+  const aaveV3Pool = validateAddress(aaveV3Config.pool, 'aaveV3 pool')
+  const aaveV3Rewards = validateAddress(aaveV3Config.rewards, 'aaveV3 rewards')
 
   // Create and validate ark details
   const arkDetails = {

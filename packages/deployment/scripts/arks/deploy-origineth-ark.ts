@@ -27,7 +27,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 /**
  * Main function to deploy an OriginETHArk.
@@ -125,7 +125,10 @@ async function deployOriginETHArkContract(
   const envLabel = userInput.isBummer ? 'staging_' : ''
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}` + '_' + 'gov'
 
-  const originETHAddress = validateAddress(config.protocolSpecific.originETH.originETH, 'OriginETH')
+  const originETHAddress = validateAddress(
+    getProtocolConfig(config, 'originETH').originETH,
+    'OriginETH',
+  )
 
   // Create and validate ark details
 
@@ -162,7 +165,7 @@ async function deployOriginETHArkContract(
 
   console.log('arkParams', arkParams)
   if (chainId === 1) {
-    const armAddress = validateAddress(config.protocolSpecific.originETH.arm, 'OriginETH ARM')
+    const armAddress = validateAddress(getProtocolConfig(config, 'originETH').arm, 'OriginETH ARM')
     return await _deployMainnet(moduleName, originETHAddress, armAddress, arkParams, deploymentId)
   } else {
     return await _deployBase(moduleName, originETHAddress, arkParams, deploymentId)

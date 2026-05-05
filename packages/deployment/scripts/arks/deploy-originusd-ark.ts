@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 /**
  * Main function to deploy an OriginUSDArk.
@@ -104,7 +104,10 @@ async function deployOriginUSDArkContract(
   const envLabel = userInput.isBummer ? 'staging_' : ''
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}` + '_' + 'gov'
 
-  const originUSDAddress = validateAddress(config.protocolSpecific.originUSD.originUSD, 'OriginUSD')
+  const originUSDAddress = validateAddress(
+    getProtocolConfig(config, 'originUSD').originUSD,
+    'OriginUSD',
+  )
 
   const arkDetails = {
     protocol: 'Origin',

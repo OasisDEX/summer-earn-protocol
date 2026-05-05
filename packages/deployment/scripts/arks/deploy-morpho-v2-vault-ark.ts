@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 export interface MorphoV2VaultArkUserInput extends BaseArkParams {
   vaultId: Address
@@ -51,12 +51,12 @@ export async function deployMorphoV2VaultArk(
  * @returns {Promise<MorphoV2VaultArkUserInput>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput(config: BaseConfig): Promise<MorphoV2VaultArkUserInput> {
-  // Extract Morpho V2 vaults from the configuration
-  const morphoV2Vaults = []
-  const vaultsV2 = config.protocolSpecific.morpho.vaultsV2
+  const morphoConfig = getProtocolConfig(config, 'morpho')
+  const vaultsV2 = morphoConfig.vaultsV2
   if (!vaultsV2) {
     throw new Error('No Morpho V2 vaults found in the configuration (morpho.vaultsV2).')
   }
+  const morphoV2Vaults = []
   for (const token in vaultsV2) {
     for (const vaultName in vaultsV2[token]) {
       const vaultId = vaultsV2[token][vaultName]

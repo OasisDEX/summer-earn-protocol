@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 /**
  * Main function to deploy a MoonwellArk.
@@ -43,9 +43,9 @@ export async function deployMoonwellArk(config: BaseConfig, arkParams?: BaseArkP
  * @returns {Promise<BaseArkParams>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
-  // Extract Moonwell markets from the configuration
+  const moonwellConfig = getProtocolConfig(config, 'moonwell')
   const moonwellMTokens = []
-  for (const token in config.protocolSpecific.moonwell.pools) {
+  for (const token in moonwellConfig.pools) {
     moonwellMTokens.push({
       title: `${token.toUpperCase()}`,
       value: token,
@@ -128,7 +128,7 @@ async function deployMoonwellArkContract(
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const mToken = validateAddress(
-    config.protocolSpecific.moonwell.pools[userInput.token.symbol].mToken,
+    getProtocolConfig(config, 'moonwell').pools[userInput.token.symbol].mToken,
     'Moonwell mToken',
   )
 

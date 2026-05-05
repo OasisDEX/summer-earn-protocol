@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 export async function deployFluidFTokenArk(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting FluidFTokenArk deployment process...'))
@@ -29,13 +29,14 @@ export async function deployFluidFTokenArk(config: BaseConfig, arkParams?: BaseA
 }
 
 async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
+  const fluidConfig = getProtocolConfig(config, 'fluid')
   const tokens = []
-  if (!config.protocolSpecific.erc4626) {
+  if (!fluidConfig.fToken) {
     throw new Error('No ERC4626 vaults found in the configuration.')
   }
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as Token]
-    const fluidFTokenConfig = config.protocolSpecific.fluid.fToken[tokenSymbol as Token]
+    const fluidFTokenConfig = fluidConfig.fToken[tokenSymbol as Token]
     if (fluidFTokenConfig && fluidFTokenConfig.fToken && fluidFTokenConfig.merkleDistributor) {
       tokens.push({
         title: tokenSymbol.toUpperCase(),
@@ -117,7 +118,7 @@ async function deployFluidFTokenArkContract(
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const fToken = validateAddress(
-    config.protocolSpecific.fluid.fToken[userInput.token.symbol].fToken,
+    getProtocolConfig(config, 'fluid').fToken[userInput.token.symbol].fToken,
     'Fluid fToken',
   )
 

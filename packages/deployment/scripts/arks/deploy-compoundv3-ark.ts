@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 /**
  * Main function to deploy a CompoundV3Ark.
@@ -43,9 +43,9 @@ export async function deployCompoundV3Ark(config: BaseConfig, arkParams?: BaseAr
  * @returns {Promise<BaseArkParams>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
-  // Extract Compound V3 pools from the configuration
+  const compoundV3Config = getProtocolConfig(config, 'compoundV3')
   const compoundV3Pools = []
-  for (const pool in config.protocolSpecific.compoundV3.pools) {
+  for (const pool in compoundV3Config.pools) {
     compoundV3Pools.push({
       title: pool.toUpperCase(),
       value: pool,
@@ -128,11 +128,11 @@ async function deployCompoundV3ArkContract(
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const compoundV3Pool = validateAddress(
-    config.protocolSpecific.compoundV3.pools[userInput.token.symbol].cToken,
+    getProtocolConfig(config, 'compoundV3').pools[userInput.token.symbol].cToken,
     'Compound V3 Pool',
   )
   const compoundV3Rewards = validateAddress(
-    config.protocolSpecific.compoundV3.rewards,
+    getProtocolConfig(config, 'compoundV3').rewards,
     'Compound V3 Rewards',
   )
 

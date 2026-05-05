@@ -11,7 +11,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 export interface PsmERC4626ArkUserInput extends BaseArkParams {
   vaultId: string
@@ -34,7 +34,7 @@ export async function deployPsmERC4626Ark(config: BaseConfig, arkParams?: PsmERC
 }
 
 async function getUserInput(config: BaseConfig): Promise<PsmERC4626ArkUserInput> {
-  // First, let user select PSM type
+  const skyConfig = getProtocolConfig(config, 'sky')
   const psmTypeResponse = await prompts([
     {
       type: 'select',
@@ -53,8 +53,8 @@ async function getUserInput(config: BaseConfig): Promise<PsmERC4626ArkUserInput>
     const tokenAddress = config.tokens[tokenSymbol as Token]
     const psmAddress =
       psmTypeResponse.psmType === 'psm3'
-        ? config.protocolSpecific.sky.psm3?.[tokenSymbol as Token]
-        : config.protocolSpecific.sky.psmLite?.[tokenSymbol as Token]
+        ? skyConfig.psm3?.[tokenSymbol as Token]
+        : skyConfig.psmLite?.[tokenSymbol as Token]
 
     if (psmAddress && psmAddress != ADDRESS_ZERO) {
       tokens.push({
@@ -161,8 +161,8 @@ async function deployPsmERC4626ArkContract(config: BaseConfig, userInput: PsmERC
 
   const psmAddress = validateAddress(
     userInput.psmType === 'psm3'
-      ? config.protocolSpecific.sky.psm3[userInput.token.symbol]
-      : config.protocolSpecific.sky.psmLite[userInput.token.symbol],
+      ? getProtocolConfig(config, 'sky').psm3[userInput.token.symbol]
+      : getProtocolConfig(config, 'sky').psmLite[userInput.token.symbol],
     'PSM',
   )
   const usdsAddress = validateAddress(config.tokens.usds, 'USDS')

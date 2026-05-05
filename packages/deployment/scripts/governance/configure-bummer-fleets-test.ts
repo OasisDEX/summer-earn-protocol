@@ -116,7 +116,6 @@ const ARK_ABI = [
   },
 ] as const
 
-
 /**
  * Get asset decimals based on asset symbol
  */

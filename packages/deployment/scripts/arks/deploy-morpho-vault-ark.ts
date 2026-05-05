@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 export interface MorphoVaultArkUserInput extends BaseArkParams {
   vaultId: Address
@@ -51,11 +51,11 @@ export async function deployMorphoVaultArk(
  * @returns {Promise<MorphoVaultArkUserInput>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput> {
-  // Extract Morpho vaults from the configuration
+  const morphoConfig = getProtocolConfig(config, 'morpho')
   const morphoVaults = []
-  for (const token in config.protocolSpecific.morpho.vaults) {
-    for (const vaultName in config.protocolSpecific.morpho.vaults[token as Token]) {
-      const vaultId = config.protocolSpecific.morpho.vaults[token as Token][vaultName]
+  for (const token in morphoConfig.vaults) {
+    for (const vaultName in morphoConfig.vaults[token as Token]) {
+      const vaultId = morphoConfig.vaults[token as Token][vaultName]
       morphoVaults.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
         value: { token, vaultId, vaultName },
@@ -151,7 +151,7 @@ async function deployMorphoVaultArkContract(
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const urdFactoryAddress = validateAddress(
-    config.protocolSpecific.morpho.urdFactory,
+    getProtocolConfig(config, 'morpho').urdFactory,
     'Morpho URD Factory',
   )
 

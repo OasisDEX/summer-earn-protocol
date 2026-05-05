@@ -5,9 +5,11 @@ import { ArkType } from '../../types/base-types'
 
 export const FLEET_SCHEMA_VERSION = 2
 
-export const AddressSchema = z
-  .string()
-  .regex(/^0x[a-fA-F0-9]{40}$/) as unknown as z.ZodType<Address, z.ZodTypeDef, string>
+export const AddressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/) as unknown as z.ZodType<
+  Address,
+  z.ZodTypeDef,
+  string
+>
 
 /** Address schema that rejects the zero address */
 export const NonZeroAddressSchema = AddressSchema.refine(
@@ -493,6 +495,7 @@ export const ProtocolSpecificMorphoSchema = z.object({
   blue: z.string(),
   urdFactory: z.string(),
   vaults: z.record(z.string(), z.record(z.string(), z.string())),
+  vaultsV2: z.record(z.string(), z.record(z.string(), z.string())).optional(),
   markets: z.record(z.string(), z.record(z.string(), z.string())),
 })
 
@@ -594,6 +597,14 @@ export const ProtocolSpecificHypurrSchema = z.object({
   rewards: AddressSchema,
 })
 
+export const ProtocolSpecificOriginUSDSchema = z.object({
+  originUSD: AddressSchema,
+})
+
+export const ProtocolSpecificMapleInstitutionalSchema = z.object({
+  pools: z.record(z.string(), z.record(z.string(), z.object({ pool: AddressSchema }))),
+})
+
 export const ProtocolSpecificSchema = z.object({
   aaveV3: ProtocolSpecificAaveV3Schema.optional(),
   spark: ProtocolSpecificSparkSchema.optional(),
@@ -612,6 +623,8 @@ export const ProtocolSpecificSchema = z.object({
   pendle: ProtocolSpecificPendleSchema.optional(),
   hyperlend: ProtocolSpecificHyperlendSchema.optional(),
   hypurr: ProtocolSpecificHypurrSchema.optional(),
+  originUSD: ProtocolSpecificOriginUSDSchema.optional(),
+  mapleInstitutional: ProtocolSpecificMapleInstitutionalSchema.optional(),
   bridge: BridgeSchema.optional(),
 })
 
@@ -639,13 +652,15 @@ export const BaseConfigSchema = z.object({
       receiveUln302: z.string(),
       blockedMessageLib: z.string(),
       lzDeadDVN: z.string(),
-      dvns: z.record(
-        z.string(),
-        z.object({
-          lzLabs: z.string(),
-          secondDvn: z.string(),
-        }),
-      ).optional(),
+      dvns: z
+        .record(
+          z.string(),
+          z.object({
+            lzLabs: z.string(),
+            secondDvn: z.string(),
+          }),
+        )
+        .optional(),
     }),
   }),
   protocolSpecific: ProtocolSpecificSchema,

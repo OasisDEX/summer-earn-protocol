@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 /**
  * Main function to deploy a HypurrArk.
@@ -121,8 +121,9 @@ async function deployHypurrArkContract(
   const envLabel = userInput.isBummer ? 'staging_' : ''
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
-  const hypurrPool = validateAddress(config.protocolSpecific.hypurr.pool, 'hypurr pool')
-  const hypurrRewards = validateAddress(config.protocolSpecific.hypurr.rewards, 'hypurr rewards')
+  const hypurrConfig = getProtocolConfig(config, 'hypurr')
+  const hypurrPool = validateAddress(hypurrConfig.pool, 'hypurr pool')
+  const hypurrRewards = validateAddress(hypurrConfig.rewards, 'hypurr rewards')
 
   // Create and validate ark details
   const arkDetails = {

@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 export async function deploySyrupArk(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting SyrupArk deployment process...'))
@@ -26,14 +26,14 @@ export async function deploySyrupArk(config: BaseConfig, arkParams?: BaseArkPara
 }
 
 async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
-  // Extract Syrup vaults from the configuration
+  const syrupConfig = getProtocolConfig(config, 'syrup')
   const syrupVaults = []
-  if (!config.protocolSpecific.syrup) {
+  if (!syrupConfig) {
     throw new Error('No Syrup vaults found in the configuration.')
   }
-  for (const token in config.protocolSpecific.syrup) {
-    for (const vaultName in config.protocolSpecific.syrup.pools[token as Token]) {
-      const vaultId = config.protocolSpecific.syrup.pools[token as Token].syrup
+  for (const token in syrupConfig.pools) {
+    for (const vaultName in syrupConfig.pools[token as Token]) {
+      const vaultId = syrupConfig.pools[token as Token].syrup
       syrupVaults.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
         value: { token, vaultId, vaultName },
@@ -116,11 +116,11 @@ async function deploySyrupArkContract(
   const protocol = `Syrup`
 
   const syrupAddress = validateAddress(
-    config.protocolSpecific.syrup.pools[userInput.token.symbol].syrup,
+    getProtocolConfig(config, 'syrup').pools[userInput.token.symbol].syrup,
     'Syrup Vault',
   )
   const routerAddress = validateAddress(
-    config.protocolSpecific.syrup.pools[userInput.token.symbol].router,
+    getProtocolConfig(config, 'syrup').pools[userInput.token.symbol].router,
     'Syrup Router',
   )
 

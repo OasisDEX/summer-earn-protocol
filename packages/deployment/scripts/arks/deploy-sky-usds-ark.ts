@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 /**
  * Main function to deploy a SkyUsdsArk.
@@ -43,11 +43,11 @@ export async function deploySkyUsdsArk(config: BaseConfig, arkParams?: BaseArkPa
  * @returns {Promise<BaseArkParams>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
+  const skyConfig = getProtocolConfig(config, 'sky')
   const tokens = []
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as Token]
-    // Only add tokens that have a corresponding PSM Lite configuration
-    const psmLiteAddress = config.protocolSpecific.sky.psmLite[tokenSymbol as Token]
+    const psmLiteAddress = skyConfig.psmLite[tokenSymbol as Token]
     if (psmLiteAddress && psmLiteAddress != ADDRESS_ZERO) {
       tokens.push({
         title: tokenSymbol.toUpperCase(),
@@ -104,7 +104,7 @@ async function confirmDeployment(userInput: BaseArkParams, config: BaseConfig, s
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(
-    kleur.yellow(`PSM Lite: ${config.protocolSpecific.sky.psmLite[userInput.token.symbol]}`),
+    kleur.yellow(`PSM Lite: ${getProtocolConfig(config, 'sky').psmLite[userInput.token.symbol]}`),
   )
   console.log(kleur.yellow(`USDS: ${config.tokens.usds}`))
   console.log(kleur.yellow(`Staked USDS: ${config.tokens.stakedUsds}`))
@@ -132,7 +132,7 @@ async function deploySkyUsdsArkContract(
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const psmLiteAddress = validateAddress(
-    config.protocolSpecific.sky.psmLite[userInput.token.symbol],
+    getProtocolConfig(config, 'sky').psmLite[userInput.token.symbol],
     'PSM Lite',
   )
   const usdsAddress = validateAddress(config.tokens.usds, 'USDS')

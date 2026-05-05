@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 /**
  * Main function to deploy an ArmArk.
@@ -44,10 +44,11 @@ export async function deployArmArk(
  */
 async function getUserInput(config: BaseConfig): Promise<BaseArkParams & { vaultName: string }> {
   const fleetConfig = await getFleetConfig()
+  const originETHConfig = getProtocolConfig(config, 'originETH')
 
   console.log(kleur.yellow('ArmArk only supports WETH as the asset.'))
 
-  const availableArms = Object.keys(config.protocolSpecific.originETH.arms[Token.WETH] || {})
+  const availableArms = Object.keys(originETHConfig.arms[Token.WETH] || {})
   if (availableArms.length === 0) {
     throw new Error('No ARM configurations found for WETH in the config')
   }
@@ -120,7 +121,8 @@ async function deployArmArkContract(
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   // Look up ARM address from config based on token and vaultName
-  const armConfigs = config.protocolSpecific.originETH.arms[userInput.token.symbol as Token]
+  const originETHConfig = getProtocolConfig(config, 'originETH')
+  const armConfigs = originETHConfig.arms[userInput.token.symbol as Token]
   if (!armConfigs || !armConfigs[vaultName]) {
     throw new Error(
       `No ARM configuration found for ${userInput.token.symbol} with vault name ${vaultName}`,

@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 export interface StargateV2ArkParams extends BaseArkParams {
   stargatePoolAddress: Address
@@ -47,9 +47,9 @@ export async function deployStargateV2PoolArk(config: BaseConfig, arkParams?: St
  * @returns {Promise<StargateV2ArkParams>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput(config: BaseConfig): Promise<StargateV2ArkParams> {
-  // Extract Stargate V2 pools from the configuration
+  const stargateConfig = getProtocolConfig(config, 'stargate')
   const stargateV2Pools = []
-  for (const pool in config.protocolSpecific.stargate.pools) {
+  for (const pool in stargateConfig.pools) {
     stargateV2Pools.push({
       title: pool.toUpperCase(),
       value: pool,
@@ -92,7 +92,7 @@ async function getUserInput(config: BaseConfig): Promise<StargateV2ArkParams> {
   // Set the token address based on the selected pool
   const selectedPool = responses.stargateV2Pool as Token
   const tokenAddress = config.tokens[selectedPool]
-  const stargatePoolAddress = config.protocolSpecific.stargate.pools[selectedPool]
+  const stargatePoolAddress = stargateConfig.pools[selectedPool]
 
   return {
     ...responses,
@@ -140,7 +140,7 @@ async function deployStargateV2PoolArkContract(
 
   const stargatePool = validateAddress(userInput.stargatePoolAddress, 'Stargate V2 Pool')
   const stargateStaking = validateAddress(
-    config.protocolSpecific.stargate.staking,
+    getProtocolConfig(config, 'stargate').staking,
     'Stargate V2 Staking',
   )
   const wethAddress = validateAddress(config.tokens.weth, 'WETH')

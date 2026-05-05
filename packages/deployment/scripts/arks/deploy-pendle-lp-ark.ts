@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 export interface PendleLPArkUserInput extends BaseArkParams {
   marketId: string
@@ -34,16 +34,14 @@ export async function deployPendleLPArk(config: BaseConfig, arkParams?: PendleLP
 }
 
 async function getUserInput(config: BaseConfig): Promise<PendleLPArkUserInput> {
-  // Extract Pendle markets from the configuration
+  const pendleConfig = getProtocolConfig(config, 'pendle')
   const pendleMarkets = []
-  if (!config.protocolSpecific.pendle || !config.protocolSpecific.pendle.markets) {
+  if (!pendleConfig || !pendleConfig.markets) {
     throw new Error('No Pendle markets found in the configuration.')
   }
-  for (const token in config.protocolSpecific.pendle.markets) {
-    for (const marketName in config.protocolSpecific.pendle.markets[token as Token]
-      .marketAddresses) {
-      const marketId =
-        config.protocolSpecific.pendle.markets[token as Token].marketAddresses[marketName]
+  for (const token in pendleConfig.markets) {
+    for (const marketName in pendleConfig.markets[token as Token].marketAddresses) {
+      const marketId = pendleConfig.markets[token as Token].marketAddresses[marketName]
       pendleMarkets.push({
         title: `${token.toUpperCase()} - ${marketName}`,
         value: {
@@ -131,9 +129,9 @@ async function deployPendleLPArkContract(
   const envLabel = userInput.isBummer ? 'staging_' : ''
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
-  const routerAddress = validateAddress(config.protocolSpecific.pendle.router, 'Pendle Router')
+  const routerAddress = validateAddress(getProtocolConfig(config, 'pendle').router, 'Pendle Router')
   const oracleAddress = validateAddress(
-    config.protocolSpecific.pendle['lp-oracle'],
+    getProtocolConfig(config, 'pendle')['lp-oracle'],
     'Pendle LP Oracle',
   )
 

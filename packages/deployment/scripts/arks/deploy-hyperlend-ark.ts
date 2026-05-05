@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 /**
  * Main function to deploy a HyperlendArk.
@@ -124,11 +124,9 @@ async function deployHyperlendArkContract(
   const envLabel = userInput.isBummer ? 'staging_' : ''
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
-  const hyperlendPool = validateAddress(config.protocolSpecific.hyperlend.pool, 'hyperlend pool')
-  const hyperlendRewards = validateAddress(
-    config.protocolSpecific.hyperlend.rewards,
-    'hyperlend rewards',
-  )
+  const hyperlendConfig = getProtocolConfig(config, 'hyperlend')
+  const hyperlendPool = validateAddress(hyperlendConfig.pool, 'hyperlend pool')
+  const hyperlendRewards = validateAddress(hyperlendConfig.rewards, 'hyperlend rewards')
 
   // Create and validate ark details
   const arkDetails = {

@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 export async function deployMapleInstitutionalArk(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting MapleInstitutionalArk deployment process...'))
@@ -32,13 +32,14 @@ export async function deployMapleInstitutionalArk(config: BaseConfig, arkParams?
 }
 
 async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
+  const mapleConfig = getProtocolConfig(config, 'mapleInstitutional')
   const mapleVaults = []
-  if (!config.protocolSpecific.mapleInstitutional) {
+  if (!mapleConfig) {
     throw new Error('No Maple Institutional vaults found in the configuration.')
   }
-  for (const token in config.protocolSpecific.mapleInstitutional.pools) {
-    for (const vaultName in config.protocolSpecific.mapleInstitutional.pools[token as Token]) {
-      const vaultId = config.protocolSpecific.mapleInstitutional.pools[token as Token].pool
+  for (const token in mapleConfig.pools) {
+    for (const vaultName in mapleConfig.pools[token as Token]) {
+      const vaultId = mapleConfig.pools[token as Token].pool
       mapleVaults.push({
         title: `${token.toUpperCase()} - Maple Institutional (${vaultName})`,
         value: { token, vaultId, vaultName },
@@ -121,7 +122,7 @@ async function deployMapleInstitutionalArkContract(
   const protocol = `MapleInstitutional`
 
   const mapleVaultAddress = validateAddress(
-    config.protocolSpecific.mapleInstitutional.pools[userInput.token.symbol].pool,
+    getProtocolConfig(config, 'mapleInstitutional').pools[userInput.token.symbol].pool,
     'Maple Institutional Vault',
   )
 

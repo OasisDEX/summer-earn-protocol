@@ -13,7 +13,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 export interface PendlePtOracleArkUserInput extends BaseArkParams {
   marketAssetOracle: Address
@@ -42,14 +42,14 @@ export async function deployPendlePTOracleArk(
 }
 
 async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserInput> {
-  // Extract Pendle markets from the configuration
+  const pendleConfig = getProtocolConfig(config, 'pendle')
   const pendleMarkets = []
-  if (!config.protocolSpecific.pendle || !config.protocolSpecific.pendle.markets) {
+  if (!pendleConfig || !pendleConfig.markets) {
     throw new Error('No Pendle markets found in the configuration.')
   }
 
-  for (const token in config.protocolSpecific.pendle.markets) {
-    const marketConfig = config.protocolSpecific.pendle.markets[token as Token]
+  for (const token in pendleConfig.markets) {
+    const marketConfig = pendleConfig.markets[token as Token]
     for (const marketName in marketConfig.marketAddresses) {
       const marketId = marketConfig.marketAddresses[marketName]
       const marketAssetAddress = config.tokens[token as Token]
@@ -69,8 +69,7 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
   })
 
   const selectedMarketAsset = marketResponse.marketSelection.token
-  const selectedMarketConfig =
-    config.protocolSpecific.pendle.markets[selectedMarketAsset.symbol as Token]
+  const selectedMarketConfig = pendleConfig.markets[selectedMarketAsset.symbol as Token]
   const arkAssetChoices = selectedMarketConfig.swapInTokens.map((arkAsset) => ({
     title: `Ark Asset: ${arkAsset.token.toUpperCase()} - Oracle: ${arkAsset.oracle}`,
     value: arkAsset,
@@ -154,9 +153,9 @@ async function deployPendlePtOracleArkContract(
   const envLabel = userInput.isBummer ? 'staging_' : ''
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
-  const routerAddress = validateAddress(config.protocolSpecific.pendle.router, 'Pendle Router')
+  const routerAddress = validateAddress(getProtocolConfig(config, 'pendle').router, 'Pendle Router')
   const oracleAddress = validateAddress(
-    config.protocolSpecific.pendle['lp-oracle'],
+    getProtocolConfig(config, 'pendle')['lp-oracle'],
     'Pendle LP Oracle',
   )
 

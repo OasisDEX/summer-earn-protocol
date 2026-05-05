@@ -264,9 +264,7 @@ async function handleNewFleetDeployment(
       ) {
         try {
           console.log('About to get rewards manager address')
-          const rewardsManagerAddress = await getRewardsManagerAddress(
-            deployedFleetAddress,
-          )
+          const rewardsManagerAddress = await getRewardsManagerAddress(deployedFleetAddress)
 
           console.log('rewardsManagerAddress', rewardsManagerAddress)
 

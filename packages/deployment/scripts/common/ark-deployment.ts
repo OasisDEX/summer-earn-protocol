@@ -38,10 +38,12 @@ import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import { deployUpshiftArk } from '../arks/deploy-upshift-ark'
 import { deployWisdomTreeArk } from '../arks/deploy-wisdom-tree-ark'
 import {
+  getProtocolConfig,
   validateAddress,
   validateConfigAddressEntry,
   validateErc4626Address,
   validateMarketId,
+  validateProtocolConfig,
   validateString,
   validateToken,
 } from '../helpers/validation'
@@ -123,8 +125,12 @@ export async function deployArk(
     }
     case ArkType.ERC4626Ark: {
       const validatedVaultName = validateString(vaultName, 'vault name')
+      const erc4626Config = validateProtocolConfig(config, 'erc4626') as Record<
+        string,
+        Record<string, string>
+      >
       const vaultAddress = validateConfigAddressEntry(
-        config.protocolSpecific.erc4626[token],
+        erc4626Config[token],
         validatedVaultName,
         'ERC4626 vault',
       )
@@ -138,8 +144,12 @@ export async function deployArk(
     }
     case ArkType.UpshiftArk: {
       const validatedVaultName = validateString(vaultName, 'vault name')
+      const upshiftConfig = validateProtocolConfig(config, 'upshift') as Record<
+        string,
+        Record<string, string>
+      >
       const vaultAddress = validateConfigAddressEntry(
-        config.protocolSpecific.upshift[token],
+        upshiftConfig[token],
         validatedVaultName,
         'Upshift vault',
       )
@@ -158,10 +168,8 @@ export async function deployArk(
     }
     case ArkType.MorphoArk: {
       const marketName = validateString(arkConfig.params.vaultName, 'vaultName')
-      const marketId = validateMarketId(
-        config.protocolSpecific.morpho.markets[token][marketName],
-        'Morpho market ID',
-      )
+      const morphoConfig = getProtocolConfig(config, 'morpho')
+      const marketId = validateMarketId(morphoConfig.markets[token][marketName], 'Morpho market ID')
       const ark = await deployMorphoArk(config, {
         ...baseArkParams,
         marketId,
@@ -172,8 +180,9 @@ export async function deployArk(
     }
     case ArkType.MorphoVaultArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const morphoConfig = getProtocolConfig(config, 'morpho')
       const vaultId = validateConfigAddressEntry(
-        config.protocolSpecific.morpho.vaults[token],
+        morphoConfig.vaults[token],
         vaultName,
         'Morpho vault ID',
       )
@@ -187,8 +196,9 @@ export async function deployArk(
     }
     case ArkType.MorphoV2VaultArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const morphoConfig = getProtocolConfig(config, 'morpho')
       const vaultId = validateConfigAddressEntry(
-        config.protocolSpecific.morpho.vaultsV2[token],
+        morphoConfig.vaultsV2![token],
         vaultName,
         'Morpho V2 vault ID',
       )
@@ -202,8 +212,9 @@ export async function deployArk(
     }
     case ArkType.PendleLPArk: {
       const marketName = validateString(arkConfig.params.vaultName, 'marketName')
+      const pendleConfig = getProtocolConfig(config, 'pendle')
       const pendleMarket = validateAddress(
-        config.protocolSpecific.pendle.markets[token].marketAddresses[marketName],
+        pendleConfig.markets[token].marketAddresses[marketName],
         `Pendle-${token}`,
       )
       const pendleLPParams = {
@@ -217,8 +228,9 @@ export async function deployArk(
 
     case 'PendlePTArk': {
       const marketName = validateString(arkConfig.params.vaultName, 'marketName')
+      const pendleConfig = getProtocolConfig(config, 'pendle')
       const pendleMarket = validateAddress(
-        config.protocolSpecific.pendle.markets[token].marketAddresses[marketName],
+        pendleConfig.markets[token].marketAddresses[marketName],
         `Pendle-${token}`,
       )
       const pendlePTParams = {
@@ -232,12 +244,13 @@ export async function deployArk(
 
     case 'PendlePtOracleArk': {
       const marketName = validateString(arkConfig.params.vaultName, 'marketName')
+      const pendleConfig = getProtocolConfig(config, 'pendle')
       const pendleMarket = validateAddress(
-        config.protocolSpecific.pendle.markets[token].marketAddresses[marketName],
+        pendleConfig.markets[token].marketAddresses[marketName],
         `Pendle-${token}`,
       )
       const marketAssetOracle = validateAddress(
-        config.protocolSpecific.pendle.markets[token].swapInTokens[0].oracle,
+        pendleConfig.markets[token].swapInTokens[0].oracle,
         `Pendle-${token}`,
       )
       const pendlePTOracleParams = {
@@ -290,8 +303,9 @@ export async function deployArk(
     }
     case ArkType.SiloArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const siloConfig = getProtocolConfig(config, 'silo')
       const vaultId = validateErc4626Address(
-        config.protocolSpecific.silo.pools[token][vaultName],
+        siloConfig.pools[token][vaultName],
         `Silo-${vaultName}`,
       )
       const siloParams = {
@@ -362,8 +376,9 @@ export async function deployArk(
 
     case ArkType.SiloArkV2: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const siloConfig = getProtocolConfig(config, 'silo')
       const vaultId = validateErc4626Address(
-        config.protocolSpecific.silo.pools[token][vaultName],
+        siloConfig.pools[token][vaultName],
         `Silo-${vaultName}`,
       )
       const siloParams = {
@@ -400,8 +415,9 @@ export async function deployArk(
     }
     case ArkType.SiloManagedVaultArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const siloConfig = getProtocolConfig(config, 'silo')
       const vaultId = validateErc4626Address(
-        config.protocolSpecific.silo.vaults[token][vaultName],
+        siloConfig.vaults[token][vaultName],
         `Silo-${vaultName}`,
       )
       const siloManagedVaultParams = {
@@ -414,8 +430,9 @@ export async function deployArk(
     }
     case ArkType.AeraArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const aeraConfig = getProtocolConfig(config, 'aera')
       const provisioner = validateAddress(
-        config.protocolSpecific.aera.vaults[token][vaultName].provisioner,
+        aeraConfig.vaults[token][vaultName].provisioner,
         `Aera-${vaultName}`,
       )
       const ark = await deployAeraArk(config, {
@@ -427,8 +444,9 @@ export async function deployArk(
       break
     }
     case ArkType.StargateV2PoolArk: {
+      const stargateConfig = getProtocolConfig(config, 'stargate')
       const stargatePoolAddress = validateAddress(
-        config.protocolSpecific.stargate.pools[token],
+        stargateConfig.pools[token],
         `StargateV2-${token}`,
       )
       const ark = await deployStargateV2PoolArk(config, {
@@ -443,8 +461,12 @@ export async function deployArk(
       if (token !== Token.USDC) {
         throw new Error('SiUSDArk only supports USDC as the asset')
       }
-      const gateway = validateAddress(config.protocolSpecific.infinifi?.gateway, 'InfiniFi Gateway')
-      const siUSD = validateErc4626Address(config.protocolSpecific.infinifi?.siUSD, 'siUSD vault')
+      const infinifiConfig = validateProtocolConfig(config, 'infinifi') as {
+        gateway: string
+        siUSD: string
+      }
+      const gateway = validateAddress(infinifiConfig.gateway, 'InfiniFi Gateway')
+      const siUSD = validateErc4626Address(infinifiConfig.siUSD, 'siUSD vault')
       // Enforce USDC + config validations as in deployArk
       const ark = await deploySiUSDArk(config, {
         ...baseArkParams,
@@ -457,8 +479,12 @@ export async function deployArk(
     case ArkType.PsmLiteERC4626Ark: {
       const vaultToken = validateToken(config, arkConfig.params.vaultToken || '')
       const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626Config = validateProtocolConfig(config, 'erc4626') as Record<
+        string,
+        Record<string, string>
+      >
       const erc4626VaultId = validateErc4626Address(
-        config.protocolSpecific.erc4626[vaultToken][erc4626VaultName],
+        erc4626Config[vaultToken][erc4626VaultName],
         `ERC4626-${erc4626VaultName}`,
       )
       deployedArk = await deployPsmERC4626Ark(config, {
@@ -474,8 +500,12 @@ export async function deployArk(
     case ArkType.Psm3ERC4626Ark: {
       const vaultToken = validateToken(config, arkConfig.params.vaultToken || '')
       const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626Config = validateProtocolConfig(config, 'erc4626') as Record<
+        string,
+        Record<string, string>
+      >
       const erc4626VaultId = validateErc4626Address(
-        config.protocolSpecific.erc4626[vaultToken][erc4626VaultName],
+        erc4626Config[vaultToken][erc4626VaultName],
         `ERC4626-${erc4626VaultName}`,
       )
       deployedArk = await deployPsmERC4626Ark(config, {
@@ -490,7 +520,11 @@ export async function deployArk(
     case ArkType.WisdomTreeArk: {
       const fundName = validateString(arkConfig.params.fundName, 'fundName')
 
-      const wisdomtreeByToken = config.protocolSpecific.wisdomtree[token]
+      const wisdomtreeConfig = validateProtocolConfig(config, 'wisdomtree') as Record<
+        string,
+        Record<string, string>
+      >
+      const wisdomtreeByToken = wisdomtreeConfig[token]
       if (!wisdomtreeByToken) {
         throw new Error(`WisdomTree config missing for token '${token}'`)
       }

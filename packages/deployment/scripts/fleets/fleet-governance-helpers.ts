@@ -635,10 +635,7 @@ export async function createHubGovernanceProposal(
   let calldatas: Hex[] = []
 
   // 1. Add Fleet to Harbor Command
-  const harborActions = prepareHarborAdditionActions(
-    deployedFleetAddress,
-    harborCommandAddress,
-  )
+  const harborActions = prepareHarborAdditionActions(deployedFleetAddress, harborCommandAddress)
   targets = [...targets, ...harborActions.targets]
   values = [...values, ...harborActions.values]
   calldatas = [...calldatas, ...harborActions.calldatas]
@@ -684,9 +681,7 @@ export async function createHubGovernanceProposal(
     fleetDefinition.rewardsDuration
   ) {
     try {
-      const rewardsManagerAddress = await getRewardsManagerAddress(
-        deployedFleetAddress,
-      )
+      const rewardsManagerAddress = await getRewardsManagerAddress(deployedFleetAddress)
 
       const rewardActions = await prepareRewardSetupActions(
         rewardsManagerAddress,
@@ -740,11 +735,11 @@ export async function createHubGovernanceProposal(
       curatorAddress, // Add curator address
       fleetDefinition.rewardTokens
         ? {
-          // Add reward info if available
-          tokens: fleetDefinition.rewardTokens,
-          amounts: fleetDefinition.rewardAmounts,
-          duration: fleetDefinition.rewardsDuration?.toString(),
-        }
+            // Add reward info if available
+            tokens: fleetDefinition.rewardTokens,
+            amounts: fleetDefinition.rewardAmounts,
+            duration: fleetDefinition.rewardsDuration?.toString(),
+          }
         : undefined,
       useBummerConfig,
     )
@@ -898,9 +893,7 @@ export async function createSatelliteGovernanceProposal(
     fleetDefinition.rewardsDuration
   ) {
     try {
-      const rewardsManagerAddress = await getRewardsManagerAddress(
-        deployedFleetAddress,
-      )
+      const rewardsManagerAddress = await getRewardsManagerAddress(deployedFleetAddress)
 
       const rewardActions = await prepareRewardSetupActions(
         rewardsManagerAddress,
@@ -939,10 +932,10 @@ export async function createSatelliteGovernanceProposal(
     curatorAddress, // Add curator address
     fleetDefinition.rewardTokens
       ? {
-        tokens: fleetDefinition.rewardTokens,
-        amounts: fleetDefinition.rewardAmounts,
-        duration: fleetDefinition.rewardsDuration?.toString(),
-      }
+          tokens: fleetDefinition.rewardTokens,
+          amounts: fleetDefinition.rewardAmounts,
+          duration: fleetDefinition.rewardsDuration?.toString(),
+        }
       : undefined,
   )) as FleetCrossChainContent
 

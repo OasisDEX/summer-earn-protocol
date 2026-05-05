@@ -10,7 +10,7 @@ import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
-import { validateAddress, validateArkDetails } from '../helpers/validation'
+import { validateAddress, validateArkDetails, getProtocolConfig } from '../helpers/validation'
 
 export interface MorphoArkUserInput extends BaseArkParams {
   marketId: string
@@ -44,11 +44,11 @@ export async function deployMorphoArk(config: BaseConfig, arkParams?: MorphoArkU
  * @returns {Promise<MorphoArkUserInput>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput(config: BaseConfig): Promise<MorphoArkUserInput> {
-  // Extract Morpho markets from the configuration
+  const morphoConfig = getProtocolConfig(config, 'morpho')
   const morphoMarkets = []
-  for (const token in config.protocolSpecific.morpho.markets) {
-    for (const marketName in config.protocolSpecific.morpho.markets[token as Token]) {
-      const marketId = config.protocolSpecific.morpho.markets[token as Token][marketName]
+  for (const token in morphoConfig.markets) {
+    for (const marketName in morphoConfig.markets[token as Token]) {
+      const marketId = morphoConfig.markets[token as Token][marketName]
       morphoMarkets.push({
         title: `${token.toUpperCase()} - ${marketName}`,
         value: { token, marketId, marketName },
@@ -138,10 +138,10 @@ async function deployMorphoArkContract(
   const moduleName = `${envLabel}${userInput.fleetName}_${arkName.replace(/-/g, '_')}`
 
   const urdFactoryAddress = validateAddress(
-    config.protocolSpecific.morpho.urdFactory,
+    getProtocolConfig(config, 'morpho').urdFactory,
     'Morpho URD Factory',
   )
-  const blueAddress = validateAddress(config.protocolSpecific.morpho.blue, 'Morpho Blue')
+  const blueAddress = validateAddress(getProtocolConfig(config, 'morpho').blue, 'Morpho Blue')
 
   // Create and validate ark details
   const arkDetails = {
