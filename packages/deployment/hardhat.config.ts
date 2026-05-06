@@ -96,8 +96,8 @@ const config: HardhatUserConfig = {
         },
       ],
       forking: {
-        url: 'https://eth-mainnet.g.alchemy.com/v2/rssSfHwTA7Uswv4e-O9y5'
-      }
+        url: 'https://eth-mainnet.g.alchemy.com/v2/rssSfHwTA7Uswv4e-O9y5',
+      },
     },
     // mainnets
     mainnet: {

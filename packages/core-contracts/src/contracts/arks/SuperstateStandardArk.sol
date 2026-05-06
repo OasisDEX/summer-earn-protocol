@@ -8,9 +8,7 @@ import "../ArkWithWithdrawalRequest.sol";
 import {PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
-
-// Removed Superstate interfaces
-import {ISuperstateOracle} from "../../interfaces/superstate/ISuperstateOracle.sol";
+import {AggregatorV3Interface} from "../../interfaces/external/Chainlink/AggregatorV3Interface.sol";
 
 /**
  * @title SuperstateStandardArk
@@ -111,7 +109,7 @@ contract SuperstateStandardArk is ArkWithWithdrawalRequest {
     address public immutable redeemAddress;
 
     /// @notice Superstate/Chainlink price feed: price of 1 Superstate share denominated in USDC
-    ISuperstateOracle public immutable oracle;
+    AggregatorV3Interface public immutable oracle;
 
     uint8 public immutable oracleDecimals;
     uint8 public immutable assetDecimals;
@@ -152,7 +150,7 @@ contract SuperstateStandardArk is ArkWithWithdrawalRequest {
         shareToken = IERC20Metadata(_shareToken);
         depositAddress = _depositAddress;
         redeemAddress = _redeemAddress;
-        oracle = ISuperstateOracle(_oracle);
+        oracle = AggregatorV3Interface(_oracle);
 
         if (_sweepSlippage > MAX_SWEEP_SLIPPAGE) {
             revert InvalidSweepSlippage(_sweepSlippage, MAX_SWEEP_SLIPPAGE);
@@ -166,7 +164,7 @@ contract SuperstateStandardArk is ArkWithWithdrawalRequest {
         sweepSlippage = _sweepSlippage;
         depositSlippage = _depositSlippage;
 
-        oracleDecimals = ISuperstateOracle(_oracle).decimals();
+        oracleDecimals = AggregatorV3Interface(_oracle).decimals();
         shareDecimals = IERC20Metadata(_shareToken).decimals();
         assetDecimals = IERC20Metadata(_params.asset).decimals();
         ONE_ASSET = 10 ** assetDecimals;
@@ -249,7 +247,9 @@ contract SuperstateStandardArk is ArkWithWithdrawalRequest {
 
         pendingWithdrawalShares += sharesToRedeem;
 
-        address target = redeemAddress == address(0) ? depositAddress : redeemAddress;
+        address target = redeemAddress == address(0)
+            ? depositAddress
+            : redeemAddress;
         shareToken.safeTransfer(target, sharesToRedeem);
 
         emit RedemptionExecuted(sharesToRedeem, amount);
@@ -362,7 +362,10 @@ contract SuperstateStandardArk is ArkWithWithdrawalRequest {
         cachedShareBalance = shareToken.balanceOf(address(this));
         pendingDepositAssets += amount;
 
-        IERC20Metadata(address(config.asset)).safeTransfer(depositAddress, amount);
+        IERC20Metadata(address(config.asset)).safeTransfer(
+            depositAddress,
+            amount
+        );
 
         emit SubscriptionExecuted(amount, depositAddress);
     }

@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/SuperstateStandardArk.sol";
-import {ISuperstateOracle} from "../../src/interfaces/superstate/ISuperstateOracle.sol";
+import {AggregatorV3Interface} from "../../src/interfaces/external/Chainlink/AggregatorV3Interface.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {AssetsForwarder} from "../../src/utils/AssetsForwarder/AssetsForwarder.sol";
@@ -14,7 +14,7 @@ import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentag
 import {Test, console} from "forge-std/Test.sol";
 
 // Dummy mock for Chainlink Oracle
-contract MockSuperstateOracle is ISuperstateOracle {
+contract MockSuperstateOracle is AggregatorV3Interface {
     uint8 public _decimals;
     int256 public _answer;
 
@@ -49,9 +49,32 @@ contract MockSuperstateOracle is ISuperstateOracle {
         return _decimals;
     }
 
-
-
     function latestRoundData()
+        external
+        view
+        override
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
+    {
+        return (_roundId, _answer, _updatedAt, _updatedAt, _answeredInRound);
+    }
+
+    function description() external view override returns (string memory) {
+        return "MockOracle";
+    }
+
+    function version() external view override returns (uint256) {
+        return 1;
+    }
+
+    function getRoundData(
+        uint80 _roundId
+    )
         external
         view
         override
@@ -67,23 +90,21 @@ contract MockSuperstateOracle is ISuperstateOracle {
     }
 }
 
-
-
 contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     using SafeERC20 for IERC20;
 
     event CustodianWalletUpdated(address oldWallet, address newWallet);
     event ArkIsFrozenUpdated(bool isFrozen, uint256 frozenTotalAssets);
-    
+
     SuperstateStandardArk public ark;
     BufferArk public bufferArk;
     IERC20 public usdc;
     MockERC20 public shareToken;
     MockSuperstateOracle public oracle;
-    
+
     address depositAddress = address(0x1111);
     address redeemAddress = address(0x2222);
-    
+
     ArkParams public params;
 
     address public constant USDC_ADDRESS =
@@ -158,7 +179,9 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Constructor() public {
-        vm.expectRevert(SuperstateStandardArk.InvalidShareTokenAddress.selector);
+        vm.expectRevert(
+            SuperstateStandardArk.InvalidShareTokenAddress.selector
+        );
         new SuperstateStandardArk(
             address(0),
             depositAddress,
@@ -168,7 +191,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             params
         );
-        
+
         vm.expectRevert(SuperstateStandardArk.InvalidDepositAddress.selector);
         new SuperstateStandardArk(
             address(shareToken),
@@ -254,7 +277,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             "Total assets should perfectly transition to oracle share value"
         );
     }
-    
+
     function test_RequestWithdrawal_And_Sweep() public {
         // 1. Setup fully cleared deposit
         uint256 amount = 10 * 1e6; // 1 share worth

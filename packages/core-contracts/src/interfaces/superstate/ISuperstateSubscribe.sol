@@ -13,7 +13,11 @@ interface ISuperstateSubscribe {
      * @param inAmount The amount of stablecoin to subscribe.
      * @param stablecoin The address of the stablecoin to use.
      */
-    function subscribe(address to, uint256 inAmount, address stablecoin) external;
+    function subscribe(
+        address to,
+        uint256 inAmount,
+        address stablecoin
+    ) external;
 
     /**
      * @notice Subscribes to mint Superstate Fund Tokens to the caller.

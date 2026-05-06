@@ -11,11 +11,12 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
     SuperstateSubscribeArk public ark;
 
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    
+
     // Superstate USTB constants on Mainnet
     address public constant USTB = 0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e;
-    address public constant ALLOWLIST = 0x02f1fA8B196d21c7b733EB2700B825611d8A38E5;
-    
+    address public constant ALLOWLIST =
+        0x02f1fA8B196d21c7b733EB2700B825611d8A38E5;
+
     // TODO: Add the actual mainnet addresses for the Subscribe, Redeem, and Oracle contracts
     address public constant SUBSCRIBE_TARGET = address(0x1111);
     address public constant REDEEM_TARGET = address(0x2222);
@@ -85,7 +86,11 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
     function _mockAllowlist(address _address, string memory _symbol) internal {
         vm.mockCall(
             ALLOWLIST,
-            abi.encodeWithSignature("isAddressAllowedForFund(address,string)", _address, _symbol),
+            abi.encodeWithSignature(
+                "isAddressAllowedForFund(address,string)",
+                _address,
+                _symbol
+            ),
             abi.encode(true)
         );
     }
@@ -97,10 +102,15 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
         // Mock the subscribe call since we don't have the real contract address yet
         vm.mockCall(
             SUBSCRIBE_TARGET,
-            abi.encodeWithSignature("subscribe(address,uint256,address)", address(ark), amount, USDC),
+            abi.encodeWithSignature(
+                "subscribe(address,uint256,address)",
+                address(ark),
+                amount,
+                USDC
+            ),
             abi.encode()
         );
-        
+
         // Mock the token minting that would happen in the real subscribe
         deal(USTB, address(ark), 100 * 10 ** 6);
 

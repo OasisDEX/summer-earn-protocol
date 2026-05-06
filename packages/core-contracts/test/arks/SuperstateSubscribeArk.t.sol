@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/SuperstateSubscribeArk.sol";
-import {ISuperstateOracle} from "../../src/interfaces/superstate/ISuperstateOracle.sol";
+import {AggregatorV3Interface} from "../../src/interfaces/external/Chainlink/AggregatorV3Interface.sol";
 import {ISuperstateSubscribe} from "../../src/interfaces/superstate/ISuperstateSubscribe.sol";
 import {ISuperstateRedeem} from "../../src/interfaces/superstate/ISuperstateRedeem.sol";
 import {ISuperstateToken, SupportedStablecoin} from "../../src/interfaces/superstate/ISuperstateToken.sol";
@@ -15,7 +15,7 @@ import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentag
 import {Test, console} from "forge-std/Test.sol";
 
 // Dummy mock for Chainlink Oracle
-contract MockSuperstateOracle is ISuperstateOracle {
+contract MockSuperstateOracle is AggregatorV3Interface {
     uint8 public _decimals;
     int256 public _answer;
 
@@ -52,6 +52,31 @@ contract MockSuperstateOracle is ISuperstateOracle {
     {
         return (_roundId, _answer, _updatedAt, _updatedAt, _answeredInRound);
     }
+
+    function description() external view override returns (string memory) {
+        return "MockOracle";
+    }
+
+    function version() external view override returns (uint256) {
+        return 1;
+    }
+
+    function getRoundData(
+        uint80 _roundId
+    )
+        external
+        view
+        override
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
+    {
+        return (_roundId, _answer, _updatedAt, _updatedAt, _answeredInRound);
+    }
 }
 
 contract MockSuperstateSubscribe is ISuperstateSubscribe {
@@ -62,13 +87,25 @@ contract MockSuperstateSubscribe is ISuperstateSubscribe {
         usdc = IERC20(_usdc);
     }
 
-    function subscribe(address /*to*/, uint256 inAmount, address stablecoin) external override {
-        IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), inAmount);
+    function subscribe(
+        address /*to*/,
+        uint256 inAmount,
+        address stablecoin
+    ) external override {
+        IERC20(stablecoin).safeTransferFrom(
+            msg.sender,
+            address(this),
+            inAmount
+        );
         // We can simulate minting by assuming the test has access to the MockERC20
     }
 
     function subscribe(uint256 inAmount, address stablecoin) external override {
-        IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), inAmount);
+        IERC20(stablecoin).safeTransferFrom(
+            msg.sender,
+            address(this),
+            inAmount
+        );
     }
 }
 
@@ -92,22 +129,25 @@ contract MockSuperstateToken is MockERC20, ISuperstateToken {
     address public expectedStablecoin;
     address public configuredSweepDestination;
 
-    function setSupportedStablecoin(address stablecoin, address sweepDestination) external {
+    function setSupportedStablecoin(
+        address stablecoin,
+        address sweepDestination
+    ) external {
         expectedStablecoin = stablecoin;
         configuredSweepDestination = sweepDestination;
     }
 
-    function supportedStablecoins(address stablecoin) external view override returns (SupportedStablecoin memory) {
+    function supportedStablecoins(
+        address stablecoin
+    ) external view override returns (SupportedStablecoin memory) {
         if (stablecoin == expectedStablecoin) {
-            return SupportedStablecoin({
-                sweepDestination: configuredSweepDestination,
-                fee: 0
-            });
+            return
+                SupportedStablecoin({
+                    sweepDestination: configuredSweepDestination,
+                    fee: 0
+                });
         }
-        return SupportedStablecoin({
-            sweepDestination: address(0),
-            fee: 0
-        });
+        return SupportedStablecoin({sweepDestination: address(0), fee: 0});
     }
 }
 
@@ -120,10 +160,11 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     MockSuperstateOracle public oracle;
     MockSuperstateSubscribe public subscribeContract;
     MockSuperstateRedeem public redeemContract;
-    
+
     ArkParams public params;
 
-    address public constant USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public constant USDC_ADDRESS =
+        0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
     uint256 forkBlock = 21666256;
     uint256 forkId;
@@ -138,9 +179,12 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         shareToken = new MockSuperstateToken();
         shareToken.initialize("USTB", "USTB", 6);
         shareToken.setSupportedStablecoin(USDC_ADDRESS, address(0x5555));
-        
+
         subscribeContract = new MockSuperstateSubscribe(USDC_ADDRESS);
-        redeemContract = new MockSuperstateRedeem(address(shareToken), USDC_ADDRESS);
+        redeemContract = new MockSuperstateRedeem(
+            address(shareToken),
+            USDC_ADDRESS
+        );
 
         oracle = new MockSuperstateOracle(8, 10 * 1e8); // 1 share = 10 USDC
 
@@ -158,14 +202,17 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         });
 
         vm.startPrank(governor);
-        // Note: the original ISuperstateToken uses the shareToken to get the mapping, but the 
-        // Ark's constructor uses `_superstateSubscribe` to call `supportedStablecoins`. 
-        // Let's mock call `supportedStablecoins` on `subscribeContract` to return valid struct since 
+        // Note: the original ISuperstateToken uses the shareToken to get the mapping, but the
+        // Ark's constructor uses `_superstateSubscribe` to call `supportedStablecoins`.
+        // Let's mock call `supportedStablecoins` on `subscribeContract` to return valid struct since
         // the subscribeContract is the one that has `supportedStablecoins` according to the updated plan
         // wait, I made the proxy subscribeContract above. Let's just mock it.
         vm.mockCall(
             address(subscribeContract),
-            abi.encodeWithSelector(ISuperstateToken.supportedStablecoins.selector, USDC_ADDRESS),
+            abi.encodeWithSelector(
+                ISuperstateToken.supportedStablecoins.selector,
+                USDC_ADDRESS
+            ),
             abi.encode(address(0x5555), uint96(0))
         );
 
@@ -190,7 +237,9 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Constructor() public {
-        vm.expectRevert(SuperstateSubscribeArk.InvalidShareTokenAddress.selector);
+        vm.expectRevert(
+            SuperstateSubscribeArk.InvalidShareTokenAddress.selector
+        );
         new SuperstateSubscribeArk(
             address(0),
             address(subscribeContract),
@@ -198,8 +247,10 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             address(oracle),
             params
         );
-        
-        vm.expectRevert(SuperstateSubscribeArk.InvalidSubscribeAddress.selector);
+
+        vm.expectRevert(
+            SuperstateSubscribeArk.InvalidSubscribeAddress.selector
+        );
         new SuperstateSubscribeArk(
             address(shareToken),
             address(0),
@@ -222,10 +273,13 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_UnsupportedStablecoin() public {
         vm.startPrank(governor);
-        
+
         vm.mockCall(
             address(subscribeContract),
-            abi.encodeWithSelector(ISuperstateToken.supportedStablecoins.selector, USDC_ADDRESS),
+            abi.encodeWithSelector(
+                ISuperstateToken.supportedStablecoins.selector,
+                USDC_ADDRESS
+            ),
             abi.encode(address(0), uint96(0))
         );
 
@@ -247,7 +301,9 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
 
-        uint256 initialTargetBalance = usdc.balanceOf(address(subscribeContract));
+        uint256 initialTargetBalance = usdc.balanceOf(
+            address(subscribeContract)
+        );
 
         ark.board(amount, bytes(""));
         vm.stopPrank();
@@ -258,8 +314,8 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             initialTargetBalance + amount,
             "Subscribe contract should receive tokens"
         );
-        
-        // After boarding, shares are theoretically minted by Superstate. 
+
+        // After boarding, shares are theoretically minted by Superstate.
         // We will simulate that:
         shareToken.mint(address(ark), 100 * 1e6); // 100 shares * 10 = 1000 USDC
 
@@ -269,7 +325,7 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             "Total assets should match boarded amount"
         );
     }
-    
+
     function test_Disembark() public {
         // Setup initial shares
         uint256 amount = 1000 * 1e6;

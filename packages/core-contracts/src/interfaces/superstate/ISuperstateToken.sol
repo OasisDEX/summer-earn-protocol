@@ -7,5 +7,7 @@ struct SupportedStablecoin {
 }
 
 interface ISuperstateToken {
-    function supportedStablecoins(address stablecoin) external view returns (SupportedStablecoin memory);
+    function supportedStablecoins(
+        address stablecoin
+    ) external view returns (SupportedStablecoin memory);
 }

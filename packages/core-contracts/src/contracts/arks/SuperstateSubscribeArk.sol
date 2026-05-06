@@ -12,7 +12,7 @@ import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 import {ISuperstateSubscribe} from "../../interfaces/superstate/ISuperstateSubscribe.sol";
 import {ISuperstateRedeem} from "../../interfaces/superstate/ISuperstateRedeem.sol";
-import {ISuperstateOracle} from "../../interfaces/superstate/ISuperstateOracle.sol";
+import {AggregatorV3Interface} from "../../interfaces/external/Chainlink/AggregatorV3Interface.sol";
 import {ISuperstateToken, SupportedStablecoin} from "../../interfaces/superstate/ISuperstateToken.sol";
 
 /**
@@ -73,7 +73,7 @@ contract SuperstateSubscribeArk is Ark {
     ISuperstateRedeem public immutable superstateRedeem;
 
     /// @notice Superstate/Chainlink price feed: price of 1 Superstate share denominated in USDC
-    ISuperstateOracle public immutable oracle;
+    AggregatorV3Interface public immutable oracle;
 
     uint8 public immutable oracleDecimals;
     uint8 public immutable assetDecimals;
@@ -94,22 +94,21 @@ contract SuperstateSubscribeArk is Ark {
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
         if (_superstateSubscribe == address(0))
             revert InvalidSubscribeAddress();
-        if (_superstateRedeem == address(0))
-            revert InvalidRedeemAddress();
-        if (_oracle == address(0))
-            revert InvalidOracleAddress();
+        if (_superstateRedeem == address(0)) revert InvalidRedeemAddress();
+        if (_oracle == address(0)) revert InvalidOracleAddress();
 
         shareToken = IERC20Metadata(_shareToken);
         superstateSubscribe = ISuperstateSubscribe(_superstateSubscribe);
         superstateRedeem = ISuperstateRedeem(_superstateRedeem);
-        oracle = ISuperstateOracle(_oracle);
+        oracle = AggregatorV3Interface(_oracle);
 
-        SupportedStablecoin memory info = ISuperstateToken(_superstateSubscribe).supportedStablecoins(address(_params.asset));
+        SupportedStablecoin memory info = ISuperstateToken(_superstateSubscribe)
+            .supportedStablecoins(address(_params.asset));
         if (info.sweepDestination == address(0)) {
             revert UnsupportedStablecoin();
         }
 
-        oracleDecimals = ISuperstateOracle(_oracle).decimals();
+        oracleDecimals = AggregatorV3Interface(_oracle).decimals();
         shareDecimals = IERC20Metadata(_shareToken).decimals();
         assetDecimals = IERC20Metadata(_params.asset).decimals();
         ONE_ASSET = 10 ** assetDecimals;
@@ -119,12 +118,7 @@ contract SuperstateSubscribeArk is Ark {
                                VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function totalAssets()
-        public
-        view
-        override
-        returns (uint256 assets)
-    {
+    function totalAssets() public view override returns (uint256 assets) {
         uint256 currentShares = shareToken.balanceOf(address(this));
         assets = _sharesToAssets(currentShares);
     }
@@ -137,23 +131,21 @@ contract SuperstateSubscribeArk is Ark {
                           INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _board(
-        uint256 amount,
-        bytes calldata
-    ) internal override {
+    function _board(uint256 amount, bytes calldata) internal override {
         IERC20Metadata(address(config.asset)).forceApprove(
             address(superstateSubscribe),
             amount
         );
-        superstateSubscribe.subscribe(address(this), amount, address(config.asset));
+        superstateSubscribe.subscribe(
+            address(this),
+            amount,
+            address(config.asset)
+        );
 
         emit SubscriptionExecuted(amount, address(superstateSubscribe));
     }
 
-    function _disembark(
-        uint256 amount,
-        bytes calldata
-    ) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal override {
         uint256 sharesToRedeem = _assetsToShares(amount);
 
         shareToken.forceApprove(address(superstateRedeem), sharesToRedeem);

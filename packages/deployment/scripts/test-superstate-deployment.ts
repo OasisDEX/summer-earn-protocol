@@ -5,8 +5,12 @@ import { BaseConfig } from '../types/config-types'
 
 async function main() {
   console.log('Testing SuperstateArk deployment on local network...')
-  const config = getConfigByNetwork('mainnet', { common: true, gov: true, core: true }, true) as BaseConfig
-  
+  const config = getConfigByNetwork(
+    'mainnet',
+    { common: true, gov: true, core: true },
+    true,
+  ) as BaseConfig
+
   const superstateTokenConfig = config.protocolSpecific.superstate?.usdc?.USTB
 
   if (!superstateTokenConfig) {
