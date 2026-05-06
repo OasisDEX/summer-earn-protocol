@@ -53,11 +53,17 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
             abi.encode(1, 10 * 1e8, block.timestamp, block.timestamp, 1)
         );
 
+        vm.mockCall(
+            SUBSCRIBE_TARGET,
+            abi.encodeWithSignature("supportedStablecoins(address)", USDC),
+            abi.encode(address(0x4444), uint96(0)) // sweepDestination = 0x4444
+        );
+
         ark = new SuperstateSubscribeArk(
+            USTB,
             SUBSCRIBE_TARGET,
             REDEEM_TARGET,
             ORACLE,
-            USTB,
             params
         );
 
