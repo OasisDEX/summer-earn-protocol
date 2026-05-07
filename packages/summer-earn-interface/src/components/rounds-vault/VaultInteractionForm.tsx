@@ -2,7 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import { erc20Abi, formatUnits, parseUnits } from 'viem'
-import { useConnection, useReadContract, useReadContracts, useWriteContract } from 'wagmi'
+import {
+  useConnection,
+  usePublicClient,
+  useReadContract,
+  useReadContracts,
+  useWriteContract,
+} from 'wagmi'
 
 const erc20MetadataAbi = [
   ...erc20Abi,
@@ -22,11 +28,46 @@ const erc20MetadataAbi = [
   },
 ] as const
 
+const accessManagerAbi = [
+  {
+    type: 'function',
+    name: 'setWhitelisted',
+    inputs: [
+      { name: 'context', type: 'address' },
+      { name: 'account', type: 'address' },
+      { name: 'allowed', type: 'bool' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'hasRole',
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'isWhitelisted',
+    inputs: [
+      { name: 'context', type: 'address' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+  },
+] as const
+
 interface VaultInteractionFormProps {
   title: string
   description: string
   vaultAddress: `0x${string}`
   vaultAbi: any
+  accessManagerAddress?: `0x${string}`
   showFleetURL?: boolean
 }
 
@@ -35,12 +76,28 @@ export function VaultInteractionForm({
   description,
   vaultAddress,
   vaultAbi,
-  showFleetURL = false,
+  accessManagerAddress,
 }: VaultInteractionFormProps) {
   const { address, chain } = useConnection()
+  const publicClient = usePublicClient()
+
   const [depositAmount, setDepositAmount] = useState('')
   const [exchangeAmount, setExchangeAmount] = useState('')
   const [receiptId, setReceiptId] = useState('')
+
+  const [retryRoundId, setRetryRoundId] = useState('')
+  const [settleRoundId, setSettleRoundId] = useState('')
+  const [rollbackRoundId, setRollbackRoundId] = useState('')
+
+  const [whitelistAddress, setWhitelistAddress] = useState('')
+  const [whitelistStatus, setWhitelistStatus] = useState<boolean>(true)
+
+  const roundStateMap: Record<number, string> = {
+    0: 'NotOpened',
+    1: 'Opened',
+    2: 'InSettlement',
+    3: 'Settled',
+  }
 
   // ── On-chain reads ──
 
@@ -62,11 +119,76 @@ export function VaultInteractionForm({
     functionName: 'getCurrentRound',
   }) as { data: bigint | undefined }
 
+  const { data: roundStateValue } = useReadContract({
+    address: vaultAddress,
+    abi: vaultAbi,
+    functionName: 'roundState',
+    args: currentRound !== undefined ? [currentRound] : undefined,
+    query: { enabled: currentRound !== undefined },
+  }) as { data: number | undefined }
+
   const { data: vaultTotalAssets } = useReadContract({
     address: vaultAddress,
     abi: vaultAbi,
     functionName: 'totalAssets',
   }) as { data: bigint | undefined }
+
+  const { data: targetVault } = useReadContract({
+    address: vaultAddress,
+    abi: vaultAbi,
+    functionName: 'vault',
+  }) as { data: `0x${string}` | undefined }
+
+  const { data: governorRoleHash } = useReadContract({
+    address: vaultAddress,
+    abi: vaultAbi,
+    functionName: 'GOVERNOR_ROLE',
+  }) as { data: `0x${string}` | undefined }
+
+  const { data: superKeeperRoleHash } = useReadContract({
+    address: vaultAddress,
+    abi: vaultAbi,
+    functionName: 'SUPER_KEEPER_ROLE',
+  }) as { data: `0x${string}` | undefined }
+
+  const { data: keeperRoleHash } = useReadContract({
+    address: vaultAddress,
+    abi: vaultAbi,
+    functionName: 'generateRole',
+    args: [1, vaultAddress], // ContractSpecificRoles.KEEPER_ROLE is 1
+  }) as { data: `0x${string}` | undefined }
+
+  const { data: isGovernor } = useReadContract({
+    address: accessManagerAddress,
+    abi: accessManagerAbi,
+    functionName: 'hasRole',
+    args: governorRoleHash && address ? [governorRoleHash, address] : undefined,
+    query: { enabled: !!accessManagerAddress && !!governorRoleHash && !!address },
+  }) as { data: boolean | undefined }
+
+  const { data: isSuperKeeper } = useReadContract({
+    address: accessManagerAddress,
+    abi: accessManagerAbi,
+    functionName: 'hasRole',
+    args: superKeeperRoleHash && address ? [superKeeperRoleHash, address] : undefined,
+    query: { enabled: !!accessManagerAddress && !!superKeeperRoleHash && !!address },
+  }) as { data: boolean | undefined }
+
+  const { data: isKeeperLocal } = useReadContract({
+    address: accessManagerAddress,
+    abi: accessManagerAbi,
+    functionName: 'hasRole',
+    args: keeperRoleHash && address ? [keeperRoleHash, address] : undefined,
+    query: { enabled: !!accessManagerAddress && !!keeperRoleHash && !!address },
+  }) as { data: boolean | undefined }
+
+  const { data: isWhitelisted } = useReadContract({
+    address: accessManagerAddress,
+    abi: accessManagerAbi,
+    functionName: 'isWhitelisted',
+    args: targetVault && address ? [targetVault, address] : undefined,
+    query: { enabled: !!accessManagerAddress && !!targetVault && !!address },
+  }) as { data: boolean | undefined }
 
   // ── Token metadata ──
 
@@ -98,6 +220,14 @@ export function VaultInteractionForm({
     functionName: 'symbol',
     query: { enabled: !!exchangeTokenAddr },
   }) as { data: string | undefined }
+
+  const { data: allowance } = useReadContract({
+    address: depositTokenAddr,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: address && vaultAddress ? [address, vaultAddress] : undefined,
+    query: { enabled: !!address && !!depositTokenAddr && !!vaultAddress },
+  }) as { data: bigint | undefined }
 
   // ── Multicall: receipt balances for ALL rounds (0 .. currentRound) ──
 
@@ -153,14 +283,23 @@ export function VaultInteractionForm({
     if (!depositAmount || !address || !depositTokenAddr) return
     const parsed = parseUnits(depositAmount, dDec)
     try {
-      await writeContractAsync({
-        address: depositTokenAddr,
-        abi: erc20Abi,
-        functionName: 'approve',
-        args: [vaultAddress, parsed],
-        chain: chain,
-        account: address,
-      })
+      // Check if allowance is insufficient
+      if (allowance === undefined || allowance < parsed) {
+        const hash = await writeContractAsync({
+          address: depositTokenAddr,
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [vaultAddress, parsed],
+          chain: chain,
+          account: address,
+        })
+
+        // Wait for the approve transaction to be mined
+        if (publicClient) {
+          await publicClient.waitForTransactionReceipt({ hash })
+        }
+      }
+
       await writeContractAsync({
         address: vaultAddress,
         abi: vaultAbi,
@@ -223,6 +362,74 @@ export function VaultInteractionForm({
     }
   }
 
+  const handleRetryRound = async () => {
+    if (!retryRoundId) return
+    try {
+      await writeContractAsync({
+        address: vaultAddress,
+        abi: vaultAbi,
+        functionName: 'retryRound',
+        args: [BigInt(retryRoundId)],
+        chain: chain,
+        account: address,
+      })
+      setRetryRoundId('')
+    } catch (e) {
+      console.error('retryRound failed:', e)
+    }
+  }
+
+  const handleSetRoundSettled = async () => {
+    if (!settleRoundId) return
+    try {
+      await writeContractAsync({
+        address: vaultAddress,
+        abi: vaultAbi,
+        functionName: 'setRoundSettled',
+        args: [BigInt(settleRoundId)],
+        chain: chain,
+        account: address,
+      })
+      setSettleRoundId('')
+    } catch (e) {
+      console.error('setRoundSettled failed:', e)
+    }
+  }
+
+  const handleEmergencyRollback = async () => {
+    if (!rollbackRoundId) return
+    try {
+      await writeContractAsync({
+        address: vaultAddress,
+        abi: vaultAbi,
+        functionName: 'emergencyRollbackRound',
+        args: [BigInt(rollbackRoundId)],
+        chain: chain,
+        account: address,
+      })
+      setRollbackRoundId('')
+    } catch (e) {
+      console.error('emergencyRollbackRound failed:', e)
+    }
+  }
+
+  const handleSetWhitelisted = async () => {
+    if (!whitelistAddress || !accessManagerAddress || !targetVault) return
+    try {
+      await writeContractAsync({
+        address: accessManagerAddress,
+        abi: accessManagerAbi,
+        functionName: 'setWhitelisted',
+        args: [targetVault, whitelistAddress as `0x${string}`, whitelistStatus],
+        chain: chain,
+        account: address,
+      })
+      setWhitelistAddress('')
+    } catch (e) {
+      console.error('setWhitelisted failed:', e)
+    }
+  }
+
   // ── Render ──
 
   return (
@@ -234,7 +441,12 @@ export function VaultInteractionForm({
 
       {/* ── Protocol State ── */}
       <div className="space-y-3 mb-8">
-        <Row label="Current Round" value={currentRound?.toString() ?? '…'} />
+        <Row
+          label="Current Round"
+          value={`${currentRound?.toString() ?? '…'} ${
+            roundStateValue !== undefined ? `(${roundStateMap[roundStateValue]})` : ''
+          }`}
+        />
         <Row label="Deposit token" value={`${dSym} (${depositTokenAddr?.slice(0, 8)}…)`} />
         <Row label="Exchange token" value={`${eSym} (${exchangeTokenAddr?.slice(0, 8)}…)`} />
         <Row
@@ -301,6 +513,15 @@ export function VaultInteractionForm({
 
       {/* ── Deposit ── */}
       <Section title={`Deposit ${dSym}`}>
+        {isWhitelisted === false && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl mb-4 text-sm flex items-start gap-2">
+            <span className="mt-0.5 text-red-500">⚠️</span>
+            <span>
+              Your wallet is not whitelisted to interact with this vault. Deposits and withdrawals
+              will revert until you are granted access.
+            </span>
+          </div>
+        )}
         <div className="flex gap-3">
           <input
             type="text"
@@ -317,9 +538,14 @@ export function VaultInteractionForm({
             Deposit
           </button>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          Balance: {depositBalance !== undefined ? formatUnits(depositBalance, dDec) : '0'} {dSym}
-        </p>
+        <div className="flex justify-between items-center mt-1">
+          <p className="text-xs text-gray-500">
+            Balance: {depositBalance !== undefined ? formatUnits(depositBalance, dDec) : '0'} {dSym}
+          </p>
+          <p className="text-xs text-gray-500">
+            Approved: {allowance !== undefined ? formatUnits(allowance, dDec) : '0'} {dSym}
+          </p>
+        </div>
       </Section>
 
       <Divider />
@@ -358,38 +584,182 @@ export function VaultInteractionForm({
 
       <Divider />
 
-      {/* ── Keeper Panel ── */}
+      {/* ── Administration Panel ── */}
       <div className="space-y-4 bg-gray-900/40 p-5 rounded-xl border border-blue-500/20">
-        <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wider">
-          Keeper Actions
-        </h3>
-        {exchangeTokenAddr && (
-          <div className="text-xs text-gray-400 break-all mb-2">
-            <span className="text-gray-500 block mb-1">Exchange asset contract:</span>
-            <code className="text-blue-300 font-mono bg-blue-900/20 px-2 py-1 rounded">
-              {exchangeTokenAddr}
-            </code>
-            {showFleetURL && (
-              <a
-                href={`/fleet/${chain.id}/${exchangeTokenAddr}`}
-                className="block mt-1 text-blue-400 hover:text-blue-300 underline"
-              >
-                View Fleet Commander →
-              </a>
+        <div className="flex justify-between items-center">
+          <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-2">
+            Administration Actions
+          </h3>
+          <div className="flex gap-2">
+            {isGovernor && (
+              <span className="text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded">
+                GOVERNOR
+              </span>
+            )}
+            {isSuperKeeper && (
+              <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded">
+                SUPER KEEPER
+              </span>
+            )}
+            {isKeeperLocal && (
+              <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded">
+                LOCAL KEEPER
+              </span>
             )}
           </div>
+        </div>
+
+        {accessManagerAddress && (
+          <div className="text-xs text-gray-400 break-all mb-2 flex flex-col gap-2">
+            <div>
+              <span className="text-gray-500 block mb-1">Access Manager contract:</span>
+              <code className="text-blue-300 font-mono bg-blue-900/20 px-2 py-1 rounded">
+                {accessManagerAddress}
+              </code>
+            </div>
+          </div>
         )}
-        <div className="flex justify-between items-center pt-2 border-t border-white/5">
-          <span className="text-sm text-gray-400">
-            Advance to Round {currentRound !== undefined ? Number(currentRound) + 1 : '…'}
-          </span>
-          <button
-            onClick={handleNextRound}
-            disabled={isPending}
-            className="bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 border border-red-500/30 font-medium px-4 py-2 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
-          >
-            Execute nextRound()
-          </button>
+
+        <div className="space-y-3 pt-2 border-t border-white/5">
+          <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-xl border border-white/5 gap-4">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
+                  KEEPER
+                </span>
+                <span className="text-sm text-gray-300">Advance Round</span>
+              </div>
+              <span className="text-xs text-gray-500 mt-1">
+                Advances to Round {currentRound !== undefined ? Number(currentRound) + 1 : '…'}
+              </span>
+            </div>
+            <button
+              onClick={handleNextRound}
+              disabled={isPending}
+              className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 border border-blue-500/30 font-medium px-4 py-2 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
+            >
+              nextRound()
+            </button>
+          </div>
+
+          <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-xl border border-white/5 gap-4">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
+                  KEEPER
+                </span>
+                <span className="text-sm text-gray-300">Retry Round</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="Round ID"
+                value={retryRoundId}
+                onChange={(e) => setRetryRoundId(e.target.value)}
+                className="w-24 bg-gray-800 border border-white/10 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+              />
+              <button
+                onClick={handleRetryRound}
+                disabled={isPending || !retryRoundId}
+                className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 border border-blue-500/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
+              >
+                retryRound()
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-xl border border-white/5 gap-4">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
+                  KEEPER
+                </span>
+                <span className="text-sm text-gray-300">Settle Round</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="Round ID"
+                value={settleRoundId}
+                onChange={(e) => setSettleRoundId(e.target.value)}
+                className="w-24 bg-gray-800 border border-white/10 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+              />
+              <button
+                onClick={handleSetRoundSettled}
+                disabled={isPending || !settleRoundId}
+                className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 border border-blue-500/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
+              >
+                setRoundSettled()
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-xl border border-white/5 gap-4">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded">
+                  GOVERNOR
+                </span>
+                <span className="text-sm text-gray-300">Emergency Rollback</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="Round ID"
+                value={rollbackRoundId}
+                onChange={(e) => setRollbackRoundId(e.target.value)}
+                className="w-24 bg-gray-800 border border-white/10 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+              />
+              <button
+                onClick={handleEmergencyRollback}
+                disabled={isPending || !rollbackRoundId}
+                className="bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 hover:text-purple-300 border border-purple-500/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
+              >
+                emergencyRollback()
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-xl border border-white/5 gap-4">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold bg-green-500/20 text-green-300 px-2 py-0.5 rounded">
+                  WHITELIST MANAGER
+                </span>
+                <span className="text-sm text-gray-300">Set Whitelist</span>
+              </div>
+              <span className="text-xs text-gray-500 mt-1">
+                Context: {targetVault ? `${targetVault.slice(0, 10)}…` : '…'}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="0x..."
+                value={whitelistAddress}
+                onChange={(e) => setWhitelistAddress(e.target.value)}
+                className="w-40 bg-gray-800 border border-white/10 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500/50"
+              />
+              <select
+                value={whitelistStatus ? 'true' : 'false'}
+                onChange={(e) => setWhitelistStatus(e.target.value === 'true')}
+                className="bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500/50"
+              >
+                <option value="true">Allow</option>
+                <option value="false">Deny</option>
+              </select>
+              <button
+                onClick={handleSetWhitelisted}
+                disabled={isPending || !whitelistAddress || !accessManagerAddress}
+                className="bg-green-500/20 text-green-400 hover:bg-green-500/30 hover:text-green-300 border border-green-500/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
+              >
+                setWhitelisted()
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

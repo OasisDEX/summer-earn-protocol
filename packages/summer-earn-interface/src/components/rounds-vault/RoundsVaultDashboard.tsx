@@ -38,6 +38,7 @@ interface VaultPair {
   name: string
   inputAddress: `0x${string}`
   outputAddress: `0x${string}`
+  accessManagerAddress?: `0x${string}`
 }
 
 export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
@@ -60,11 +61,19 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
 
         const outputKey = `${prefix}_RoundsVaultOutput_${identifier}#RoundsVaultOutput`
         if (config[outputKey]) {
+          const possibleInstitution = identifier.split('_')[0]
+          const pamKey = keys.find(
+            (k) =>
+              (k.includes('ProtocolAccessManagerV2') || k.includes('ProtocolAccessManager')) &&
+              (k.includes(prefix) || k.includes(possibleInstitution)),
+          )
+
           pairs.push({
             id: identifier,
             name: identifier.replace(/_/g, ' '),
             inputAddress: config[key] as `0x${string}`,
             outputAddress: config[outputKey] as `0x${string}`,
+            accessManagerAddress: pamKey ? (config[pamKey] as `0x${string}`) : undefined,
           })
         }
       }
@@ -111,6 +120,27 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
         </div>
       )}
 
+      {selectedPair && (
+        <div className="flex flex-col lg:flex-row gap-4 text-sm">
+          <div className="flex-1 bg-gray-900/40 p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="font-medium text-gray-300 mb-1">Input Vault Address</div>
+              <code className="text-blue-400 bg-blue-500/10 px-2 py-1 rounded select-all font-mono">
+                {selectedPair.inputAddress}
+              </code>
+            </div>
+          </div>
+          <div className="flex-1 bg-gray-900/40 p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="font-medium text-gray-300 mb-1">Output Vault Address</div>
+              <code className="text-blue-400 bg-blue-500/10 px-2 py-1 rounded select-all font-mono">
+                {selectedPair.outputAddress}
+              </code>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Input Vault: deposit underlying (USDC) → receipts → exchange for Fleet shares */}
         <VaultInteractionForm
@@ -118,6 +148,7 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
           description="Deposit your tokens to receive shares automatically at the end of the round."
           vaultAddress={selectedPair.inputAddress}
           vaultAbi={RoundsVaultInputABI}
+          accessManagerAddress={selectedPair.accessManagerAddress}
           showFleetURL={true}
         />
 
@@ -127,6 +158,7 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
           description="Deposit your Fleet shares to receive the underlying asset at the end of the round."
           vaultAddress={selectedPair.outputAddress}
           vaultAbi={RoundsVaultOutputABI}
+          accessManagerAddress={selectedPair.accessManagerAddress}
         />
       </div>
     </div>
