@@ -369,7 +369,7 @@ export function VaultInteractionForm({
             <code className="text-blue-300 font-mono bg-blue-900/20 px-2 py-1 rounded">
               {exchangeTokenAddr}
             </code>
-            {showFleetURL && (
+            {showFleetURL && chain && (
               <a
                 href={`/fleet/${chain.id}/${exchangeTokenAddr}`}
                 className="block mt-1 text-blue-400 hover:text-blue-300 underline"
