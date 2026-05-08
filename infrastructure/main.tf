@@ -18,6 +18,7 @@ locals {
   common_app_secrets = {
     COINGECKO_API_KEY   = var.coingecko_api_key
     BLOCKSCOUT_API_KEY  = var.blockscout_api_key
+    ETHERSCAN_API_KEY   = var.etherscan_api_key
     TENDERLY_ACCESS_KEY = var.tenderly_access_key
     CRON_SECRET         = var.cron_secret
   }
