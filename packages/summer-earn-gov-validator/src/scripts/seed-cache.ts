@@ -7,7 +7,7 @@ import { isAddress } from 'viem'
 
 import { CHAINS } from '../config/chains'
 import deploymentConfig from '../config/index.json'
-import { BLOCKSCOUT_APIS, fetchAbi, getImplementationAddress } from '../lib/abi'
+import { getAbiFetcher } from '../lib/abi'
 import { getCache, putCache } from '../lib/dynamodb'
 
 const DEPLOYED_DIR = path.join(process.cwd(), 'src/config/deployed')
@@ -99,22 +99,24 @@ async function seed() {
         continue
       }
 
-      const apiUrl = BLOCKSCOUT_APIS[chainId]
-      if (!apiUrl) {
-        // console.warn(`⚠️  No explorer for chain ${chainId} (${address})`)
+      let fetcher
+      try {
+        fetcher = await getAbiFetcher(chainId)
+      } catch {
+        // Skip unsupported chains silently like before
         continue
       }
 
-      const apiKey = process.env.BLOCKSCOUT_API_KEY
+      const parsedChainId = parseInt(chainId)
 
       // 2. Fetch
       let addressToFetch = address
-      const implementationAddress = await getImplementationAddress(apiUrl, address, apiKey)
+      const implementationAddress = await fetcher.getImplementationAddress(address, parsedChainId)
       if (implementationAddress) {
         addressToFetch = implementationAddress
       }
 
-      const abi = await fetchAbi(apiUrl, addressToFetch, apiKey)
+      const abi = await fetcher.fetchAbi(addressToFetch, parsedChainId)
 
       // 3. Save
       const success = await putCache(cacheKey, 'DATA', {

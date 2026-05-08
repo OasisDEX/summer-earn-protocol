@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Abi } from 'viem'
 
-import { BLOCKSCOUT_APIS, fetchAbi, getImplementationAddress } from '@/lib/abi'
+import { getAbiFetcher } from '@/lib/abi'
 import { getCache, putCache } from '@/lib/dynamodb'
 
 export async function GET(request: NextRequest) {
@@ -25,26 +25,27 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  const apiUrl = BLOCKSCOUT_APIS[chainId]
-  if (!apiUrl) {
+  let fetcher
+  try {
+    fetcher = await getAbiFetcher(chainId)
+  } catch (error) {
     return NextResponse.json(
-      { error: `Chain ID ${chainId} is not supported by the exclusive Blockscout provider` },
+      { error: error instanceof Error ? error.message : 'Chain is not supported' },
       { status: 400 },
     )
   }
 
   try {
     let addressToFetch = address
-    const apiKey = process.env.BLOCKSCOUT_API_KEY
-
+    const parsedChainId = parseInt(chainId)
     // Check if the contract is a proxy and get implementation address
-    const implementationAddress = await getImplementationAddress(apiUrl, address, apiKey)
+    const implementationAddress = await fetcher.getImplementationAddress(address, parsedChainId)
     if (implementationAddress) {
       addressToFetch = implementationAddress
     }
 
-    // Exclusively use Blockscout for all supported chains
-    const abi = await fetchAbi(apiUrl, addressToFetch, apiKey)
+    // Fetch ABI using the selected provider (Blockscout, Sourcify, etc.)
+    const abi = await fetcher.fetchAbi(addressToFetch, parsedChainId)
 
     // 2. Save to DynamoDB Cache
     await putCache(cacheKey, 'DATA', {

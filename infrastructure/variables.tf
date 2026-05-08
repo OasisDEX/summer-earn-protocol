@@ -58,6 +58,13 @@ variable "blockscout_api_key" {
   default     = ""
 }
 
+variable "etherscan_api_key" {
+  description = "API Key for Etherscan"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "tenderly_access_key" {
   description = "Access Key for Tenderly"
   type        = string
