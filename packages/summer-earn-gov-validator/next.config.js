@@ -7,9 +7,9 @@ const __dirname = path.dirname(__filename)
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // experimental: {
-  //   outputFileTracingRoot: path.join(__dirname, '../../'),
-  // },
+  experimental: {
+    outputFileTracingRoot: path.join(__dirname, '../../'),
+  },
 }
 
 export default nextConfig;
