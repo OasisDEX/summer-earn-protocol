@@ -10,6 +10,6 @@
   "summer-staking-v2-staging-start-block": 301218468,
   "interval-handler-block-interval": 30,
   "enable-grafting": false,
-  "grafting-base": "QmfJ7fMYgeMpTV3pRHbDbmQvuoMyDytc5ipxg5mJZPbSrP",
-  "grafting-block": "24533626"
+  "grafting-base": "QmbDPxVraF2DfgxgbHDuwGSK5WmQMhuNbk9jHHeNL7iB78",
+  "grafting-block": "25066000"
 }
