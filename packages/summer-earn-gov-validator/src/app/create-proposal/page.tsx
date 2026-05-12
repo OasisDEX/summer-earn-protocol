@@ -7,7 +7,9 @@ import {
   Bold,
   ChevronDown,
   Code,
+  Download,
   Eye,
+  FileText,
   Globe,
   Italic,
   Link as LinkIcon,
@@ -22,10 +24,20 @@ import {
   Table as TableIcon,
   Trash2,
   Type,
+  Upload,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import remarkGfm from 'remark-gfm'
-import { Address, encodeFunctionData, Hex, isAddress, keccak256, stringToHex } from 'viem'
+import {
+  Abi,
+  Address,
+  decodeFunctionData,
+  encodeFunctionData,
+  Hex,
+  isAddress,
+  keccak256,
+  stringToHex,
+} from 'viem'
 import { useConnection, useReadContract, useWriteContract } from 'wagmi'
 
 import { SideNavBar } from '@/components/SideNavBar'
@@ -200,6 +212,8 @@ export default function CreateProposalPage() {
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor')
   const [isFetchingAbi, setIsFetchingAbi] = useState<Record<string, boolean>>({})
   const [failedAbiFetchIds, setFailedAbiFetchIds] = useState<Set<string>>(new Set())
+  const [isDecodingImport, setIsDecodingImport] = useState(false)
+  const [decodeErrors, setDecodeErrors] = useState<Record<string, string>>({})
   const descriptionRef = React.useRef<HTMLTextAreaElement>(null)
 
   const insertMarkdown = (prefix: string, suffix: string = '') => {
@@ -255,6 +269,7 @@ export default function CreateProposalPage() {
       const shouldFetch =
         isAddress(action.target) &&
         action.abi.length === 0 &&
+        !action.rawCalldata && // Skip ABI fetch for actions with raw calldata (handled by import decoder)
         !isFetchingAbi[action.id] &&
         !failedAbiFetchIds.has(action.id) &&
         action.chainId !== '999' // HyperLiquid not supported for ABI fetching
@@ -301,8 +316,13 @@ export default function CreateProposalPage() {
       const isHub = chainId === HUB_CHAIN_ID
 
       const targets = groupActions.map((a) => a.target as Address)
-      const values = groupActions.map(() => 0n)
+      const values = groupActions.map((a) => {
+        if (a.rawValue) return BigInt(a.rawValue)
+        return 0n
+      })
       const calldatas = groupActions.map((a) => {
+        // Use raw calldata if available (from imported proposals)
+        if (a.rawCalldata) return a.rawCalldata as Hex
         const methodObj = a.abi.find((m: AbiItem) => m.name === a.method)
         if (!methodObj || !methodObj.inputs) return '0x' as Hex
         return encodeFunctionData({
@@ -353,6 +373,240 @@ export default function CreateProposalPage() {
     }
   }
 
+  // --- Import / Export ---
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  interface ProposalJsonCrossChainEntry {
+    name: string
+    chainId: number
+    targets: string[]
+    values: string[]
+    datas: string[]
+  }
+
+  interface ProposalJson {
+    title?: string
+    description?: string
+    targets?: string[]
+    values?: string[]
+    calldatas?: string[]
+    crossChainExecution?: ProposalJsonCrossChainEntry[]
+  }
+
+  const handleImportProposal = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const json = JSON.parse(e.target?.result as string) as ProposalJson
+        const importedActions: ProposalAction[] = []
+
+        // Set title and description
+        if (json.title) setTitle(json.title)
+        if (json.description) setDescription(json.description)
+
+        // Import cross-chain execution entries (per-chain raw actions)
+        if (json.crossChainExecution && Array.isArray(json.crossChainExecution)) {
+          for (const entry of json.crossChainExecution) {
+            const chainInfo = CHAINS.find((c) => c.id === String(entry.chainId))
+            const chainId = chainInfo?.id || String(entry.chainId)
+
+            for (let i = 0; i < entry.targets.length; i++) {
+              importedActions.push({
+                id: Math.random().toString(36).substr(2, 9),
+                chainId,
+                target: entry.targets[i],
+                abi: [],
+                method: '',
+                args: {},
+                isValid: true,
+                rawCalldata: entry.datas[i],
+                rawValue: entry.values[i],
+              })
+            }
+          }
+        }
+
+        // If no cross-chain entries, fall back to top-level targets/values/calldatas (hub actions)
+        if (importedActions.length === 0 && json.targets && json.calldatas) {
+          for (let i = 0; i < json.targets.length; i++) {
+            importedActions.push({
+              id: Math.random().toString(36).substr(2, 9),
+              chainId: HUB_CHAIN_ID,
+              target: json.targets[i],
+              abi: [],
+              method: '',
+              args: {},
+              isValid: true,
+              rawCalldata: json.calldatas[i],
+              rawValue: json.values?.[i] || '0',
+            })
+          }
+        }
+
+        if (importedActions.length > 0) {
+          setActions(importedActions)
+          setDecodeErrors({})
+
+          // Async: try to fetch ABI and decode each action's raw calldata
+          setIsDecodingImport(true)
+          const newDecodeErrors: Record<string, string> = {}
+
+          const decodedActions = await Promise.all(
+            importedActions.map(async (action) => {
+              if (!action.rawCalldata || !isAddress(action.target)) return action
+
+              try {
+                // Fetch ABI via the existing API endpoint
+                const res = await fetch(
+                  `/api/abi?address=${action.target}&chainId=${action.chainId}`,
+                )
+                const data = await res.json()
+
+                if (!data.abi || data.abi.length === 0) {
+                  newDecodeErrors[action.id] =
+                    'ABI not found — contract may not be verified on the explorer'
+                  return action
+                }
+
+                const abi = data.abi as Abi
+
+                // Try to decode the raw calldata against the fetched ABI
+                const decoded = decodeFunctionData({
+                  abi,
+                  data: action.rawCalldata as Hex,
+                })
+
+                // Find the matching ABI item to get input names
+                const abiItem = (abi as AbiItem[]).find(
+                  (item) => item.type === 'function' && item.name === decoded.functionName,
+                )
+
+                // Build args map from decoded values
+                // Need to recursively convert BigInts to strings for form display
+                // (tuples like _sendParam contain nested BigInt values)
+                const convertBigInts = (v: unknown): unknown => {
+                  if (typeof v === 'bigint') return v.toString()
+                  if (Array.isArray(v)) return v.map(convertBigInts)
+                  if (typeof v === 'object' && v !== null) {
+                    const result: Record<string, unknown> = {}
+                    for (const [key, val] of Object.entries(v)) {
+                      result[key] = convertBigInts(val)
+                    }
+                    return result
+                  }
+                  return v
+                }
+
+                const args: Record<string, unknown> = {}
+                if (abiItem?.inputs && decoded.args) {
+                  abiItem.inputs.forEach((input, idx) => {
+                    const val = (decoded.args as unknown[])[idx]
+                    args[input.name] = convertBigInts(val)
+                  })
+                }
+
+                // Successfully decoded — return a fully populated action
+                return {
+                  ...action,
+                  abi: data.abi as AbiItem[],
+                  method: decoded.functionName,
+                  args,
+                  rawCalldata: undefined,
+                  isValid: true,
+                }
+              } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown decoding error'
+                newDecodeErrors[action.id] = `Could not decode calldata: ${message}`
+                return action
+              }
+            }),
+          )
+
+          setActions(decodedActions)
+          setDecodeErrors(newDecodeErrors)
+          setIsDecodingImport(false)
+        }
+      } catch (err) {
+        console.error('Failed to parse proposal JSON:', err)
+        alert('Failed to parse proposal JSON. Please check the file format.')
+        setIsDecodingImport(false)
+      }
+    }
+    reader.readAsText(file)
+
+    // Reset file input so the same file can be re-imported
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleExportProposal = () => {
+    const crossChainExecution: ProposalJsonCrossChainEntry[] = []
+
+    // Group actions by chain
+    const chainGroups = actions.reduce(
+      (acc, action) => {
+        acc[action.chainId] = acc[action.chainId] || []
+        acc[action.chainId].push(action)
+        return acc
+      },
+      {} as Record<string, ProposalAction[]>,
+    )
+
+    Object.entries(chainGroups).forEach(([chainId, groupActions]) => {
+      if (chainId === HUB_CHAIN_ID) return // Hub actions go in top-level
+
+      const chainInfo = CHAINS.find((c) => c.id === chainId)
+      crossChainExecution.push({
+        name: chainInfo?.key || chainId,
+        chainId: Number(chainId),
+        targets: groupActions.map((a) => a.target),
+        values: groupActions.map((a) => a.rawValue || '0'),
+        datas: groupActions.map((a) => {
+          if (a.rawCalldata) return a.rawCalldata
+          const methodObj = a.abi.find((m) => m.name === a.method)
+          if (!methodObj) return '0x'
+          return encodeFunctionData({
+            abi: [methodObj],
+            functionName: a.method,
+            args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
+          })
+        }),
+      })
+    })
+
+    // Hub actions
+    const hubActions = chainGroups[HUB_CHAIN_ID] || []
+
+    const proposalJson = {
+      title,
+      description,
+      targets: hubActions.map((a) => a.target),
+      values: hubActions.map((a) => a.rawValue || '0'),
+      calldatas: hubActions.map((a) => {
+        if (a.rawCalldata) return a.rawCalldata
+        const methodObj = a.abi.find((m) => m.name === a.method)
+        if (!methodObj) return '0x'
+        return encodeFunctionData({
+          abi: [methodObj],
+          functionName: a.method,
+          args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
+        })
+      }),
+      timestamp: Date.now(),
+      crossChainExecution: crossChainExecution.length > 0 ? crossChainExecution : undefined,
+    }
+
+    const blob = new Blob([JSON.stringify(proposalJson, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `proposal_${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // --- Handlers ---
   const addAction = () => {
     setActions([
@@ -382,21 +636,26 @@ export default function CreateProposalPage() {
   const handleSimulate = async () => {
     // 1. Encode all actions per chain for the simulation API
     const simActions = actions.map((a) => {
-      const methodObj = a.abi.find((m) => m.name === a.method)
-      const calldata = methodObj
-        ? encodeFunctionData({
-            abi: [methodObj],
-            functionName: a.method,
-            args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
-          })
-        : '0x'
+      let calldata: string
+      if (a.rawCalldata) {
+        calldata = a.rawCalldata
+      } else {
+        const methodObj = a.abi.find((m) => m.name === a.method)
+        calldata = methodObj
+          ? encodeFunctionData({
+              abi: [methodObj],
+              functionName: a.method,
+              args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
+            })
+          : '0x'
+      }
       return {
         chainId: a.chainId,
         target: a.target,
-        method: a.method,
+        method: a.rawCalldata ? 'raw' : a.method,
         calldata,
         salt: '0x0000000000000000000000000000000000000000000000000000000000000000',
-        value: '0',
+        value: a.rawValue || '0',
       }
     })
 
@@ -446,9 +705,39 @@ export default function CreateProposalPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Hidden file input for import */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportProposal}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isDecodingImport}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all font-bold text-sm disabled:opacity-50"
+                title="Import proposal from JSON"
+              >
+                {isDecodingImport ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  <Upload size={16} />
+                )}
+                {isDecodingImport ? 'Decoding...' : 'Import'}
+              </button>
+              <button
+                onClick={handleExportProposal}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all font-bold text-sm"
+                title="Export proposal to JSON"
+              >
+                <Download size={16} />
+                Export
+              </button>
+              <div className="w-px h-6 bg-outline-variant mx-1" />
               <button
                 onClick={handleSimulate}
-                disabled={isSimulating || actions.some((a) => !a.method)}
+                disabled={isSimulating || actions.some((a) => !a.method && !a.rawCalldata)}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-primary/30 text-primary hover:bg-primary/10 transition-all font-bold disabled:opacity-50"
               >
                 {isSimulating ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}
@@ -810,8 +1099,55 @@ export default function CreateProposalPage() {
                           </div>
                         )}
 
+                        {/* Imported raw calldata display (shown when ABI decode failed) */}
+                        {action.rawCalldata && (
+                          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <FileText size={14} className="text-primary" />
+                              <span className="text-[10px] font-bold text-primary tracking-widest uppercase">
+                                Imported Raw Calldata
+                              </span>
+                              {action.rawValue && action.rawValue !== '0' && (
+                                <span className="bg-yellow-500/10 text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-yellow-500/20">
+                                  Value: {action.rawValue} wei
+                                </span>
+                              )}
+                            </div>
+                            {decodeErrors[action.id] && (
+                              <div className="p-3 bg-error/5 border border-error/20 rounded-xl flex items-start gap-2">
+                                <AlertCircle size={14} className="text-error/60 mt-0.5 shrink-0" />
+                                <p className="text-[11px] text-error/80">
+                                  {decodeErrors[action.id]}
+                                </p>
+                              </div>
+                            )}
+                            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 overflow-x-auto">
+                              <code className="text-[11px] font-mono text-on-surface-variant break-all leading-relaxed">
+                                {action.rawCalldata.slice(0, 10)}
+                                <span className="opacity-40">
+                                  {action.rawCalldata.slice(10, 74)}...
+                                </span>
+                              </code>
+                              <div className="mt-2 flex items-center gap-2">
+                                <span className="text-[9px] text-on-surface-variant/40">
+                                  {action.rawCalldata.length} chars
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(action.rawCalldata || '')
+                                  }}
+                                  className="text-[9px] text-primary hover:text-primary-fixed transition-colors"
+                                >
+                                  Copy full calldata
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {action.abi.length === 0 &&
                           !isFetchingAbi[action.id] &&
+                          !action.rawCalldata &&
                           action.target &&
                           isAddress(action.target) && (
                             <div className="p-6 border border-dashed border-error/20 bg-error/5 rounded-2xl flex flex-col items-center justify-center text-center space-y-2">
@@ -823,7 +1159,7 @@ export default function CreateProposalPage() {
                             </div>
                           )}
 
-                        {(!action.target || !isAddress(action.target)) && (
+                        {(!action.target || !isAddress(action.target)) && !action.rawCalldata && (
                           <div className="p-8 border border-dashed border-outline-variant rounded-2xl flex flex-col items-center justify-center text-center space-y-2 grayscale">
                             <Settings size={20} className="text-on-surface-variant/30" />
                             <p className="text-xs text-on-surface-variant/50 max-w-[200px]">
