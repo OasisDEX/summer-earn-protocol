@@ -742,26 +742,26 @@ contract TipJarTest is Test, ITipJarEvents {
 
     function test_FailShakeWhenNotKeeper() public {
         address nonKeeper = address(99);
-        
+
         vm.startPrank(nonKeeper);
-        
+
         vm.expectRevert(
             abi.encodeWithSignature("CallerIsNotKeeper(address)", nonKeeper)
         );
         tipJar.shake(address(fleetCommander));
-        
+
         address[] memory commanders = new address[](1);
         commanders[0] = address(fleetCommander);
         vm.expectRevert(
             abi.encodeWithSignature("CallerIsNotKeeper(address)", nonKeeper)
         );
         tipJar.shakeMultiple(commanders);
-        
+
         vm.expectRevert(
             abi.encodeWithSignature("CallerIsNotKeeper(address)", nonKeeper)
         );
         tipJar.shakeAll();
-        
+
         vm.stopPrank();
     }
 }

@@ -149,9 +149,7 @@ contract TipJar is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ITipJar
-    function shake(
-        address fleetCommander_
-    ) external whenNotPaused onlyKeeper {
+    function shake(address fleetCommander_) external whenNotPaused onlyKeeper {
         _shake(fleetCommander_);
     }
 
