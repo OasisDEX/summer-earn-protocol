@@ -129,7 +129,7 @@ contract TipJar is
         _validateTipStreamAllocation(tipStream.allocation, currentAllocation);
 
         if (shakeAllFleetCommanders) {
-            shakeAll();
+            _shakeAll();
         }
         if (
             tipStream.lockedUntilEpoch >
@@ -149,22 +149,24 @@ contract TipJar is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ITipJar
-    function shake(address fleetCommander_) external whenNotPaused {
+    function shake(
+        address fleetCommander_
+    ) external whenNotPaused onlyKeeper {
         _shake(fleetCommander_);
     }
 
     /// @inheritdoc ITipJar
-    function shakeMultiple(address[] calldata fleetCommanders) external {
+    function shakeMultiple(
+        address[] calldata fleetCommanders
+    ) external onlyKeeper {
         _shakeMultiple(fleetCommanders);
     }
 
     /// @notice Shakes all active fleet commanders
     /// @dev This function can be called to distribute rewards from all active fleet commanders
     /// @dev Warning: This operation can be gas expensive if there are many fleet commanders
-    function shakeAll() public {
-        address[] memory activeFleetCommanders = IHarborCommand(harborCommand())
-            .getActiveFleetCommanders();
-        _shakeMultiple(activeFleetCommanders);
+    function shakeAll() external onlyKeeper {
+        _shakeAll();
     }
 
     /**
@@ -308,6 +310,16 @@ contract TipJar is
         for (uint256 i = 0; i < fleetCommanders.length; i++) {
             _shake(fleetCommanders[i]);
         }
+    }
+
+    /**
+     * @notice Shakes all active fleet commanders
+     * @dev This function is used internally
+     */
+    function _shakeAll() internal {
+        address[] memory activeFleetCommanders = IHarborCommand(harborCommand())
+            .getActiveFleetCommanders();
+        _shakeMultiple(activeFleetCommanders);
     }
 
     /**

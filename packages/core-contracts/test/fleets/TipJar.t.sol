@@ -40,12 +40,6 @@ contract TipJarTest is Test, ITipJarEvents {
 
     function setUp() public {
         accessManager = new ProtocolAccessManager(governor);
-        vm.prank(governor);
-        accessManager.grantContractSpecificRole(
-            ContractSpecificRoles.KEEPER_ROLE,
-            address(0),
-            keeper
-        );
         harborCommand = new HarborCommand(address(accessManager));
 
         underlyingToken = new ERC20Mock();
@@ -65,6 +59,13 @@ contract TipJarTest is Test, ITipJarEvents {
         );
 
         tipJar = new TipJar(address(accessManager), address(configManager));
+
+        vm.prank(governor);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(tipJar),
+            keeper
+        );
         configManager.setTipRate(100); // 1%
 
         vm.prank(address(fleetCommander));
@@ -237,6 +238,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.stopPrank();
 
         // Shake the jar
+        vm.prank(keeper);
         tipJar.shake(address(fleetCommander));
         assertEq(IERC20(fleetCommander).balanceOf(address(tipJar)), 0 ether);
         // Check balances
@@ -279,6 +281,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.stopPrank();
 
         // Shake the jar
+        vm.prank(keeper);
         tipJar.shake(address(fleetCommander));
 
         // Check balances
@@ -335,6 +338,7 @@ contract TipJarTest is Test, ITipJarEvents {
         address[] memory commanders = new address[](2);
         commanders[0] = address(fleetCommander);
         commanders[1] = address(fleetCommander2);
+        vm.prank(keeper);
         tipJar.shakeMultiple(commanders);
 
         // Check balances (should be doubled compared to the single shake test)
@@ -383,6 +387,7 @@ contract TipJarTest is Test, ITipJarEvents {
         underlyingToken.mint(address(fleetCommander), accruedInterest);
 
         // Shake the jar
+        vm.prank(keeper);
         tipJar.shake(address(fleetCommander));
 
         // Calculate expected amounts
@@ -468,6 +473,7 @@ contract TipJarTest is Test, ITipJarEvents {
 
         vm.expectEmit(true, true, true, true);
         emit TipJarShaken(address(fleetCommander), 0);
+        vm.prank(keeper);
         tipJar.shake(address(fleetCommander));
     }
 
@@ -476,6 +482,7 @@ contract TipJarTest is Test, ITipJarEvents {
 
         vm.expectEmit(true, true, true, true);
         emit TipJarShaken(address(fleetCommander), 0);
+        vm.prank(keeper);
         tipJar.shake(address(fleetCommander));
     }
 
@@ -496,6 +503,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.expectRevert(
             abi.encodeWithSignature("InvalidFleetCommanderAddress()")
         );
+        vm.prank(keeper);
         tipJar.shake(address(0));
     }
 
@@ -720,6 +728,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.stopPrank();
 
         // Shake again to test new allocation
+        vm.prank(keeper);
         tipJar.shake(address(fleetCommander));
 
         // Check final balances
@@ -729,5 +738,30 @@ contract TipJarTest is Test, ITipJarEvents {
             900 ether
         ); // 600 + (30% of 1000)
         assertEq(underlyingToken.balanceOf(treasury), 200 ether); // Unchanged as 100% allocated to streams
+    }
+
+    function test_FailShakeWhenNotKeeper() public {
+        address nonKeeper = address(99);
+        
+        vm.startPrank(nonKeeper);
+        
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotKeeper(address)", nonKeeper)
+        );
+        tipJar.shake(address(fleetCommander));
+        
+        address[] memory commanders = new address[](1);
+        commanders[0] = address(fleetCommander);
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotKeeper(address)", nonKeeper)
+        );
+        tipJar.shakeMultiple(commanders);
+        
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotKeeper(address)", nonKeeper)
+        );
+        tipJar.shakeAll();
+        
+        vm.stopPrank();
     }
 }
