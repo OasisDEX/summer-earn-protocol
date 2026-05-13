@@ -85,7 +85,7 @@ contract AdmiralsQuartersWhitelistPermitTest is AdmiralsQuartersWhitelistTest {
             )
         );
 
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, true, true, address(admiralsQuarters));
         emit IAdmiralsQuartersEvents.FleetEntered(
             owner,
             address(usdcFleet),
@@ -143,7 +143,7 @@ contract AdmiralsQuartersWhitelistPermitTest is AdmiralsQuartersWhitelistTest {
             )
         );
 
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, true, true, address(admiralsQuarters));
         emit IAdmiralsQuartersEvents.FleetEntered(
             owner,
             address(usdcFleet),

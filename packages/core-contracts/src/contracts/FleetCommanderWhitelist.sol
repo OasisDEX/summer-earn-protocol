@@ -54,6 +54,24 @@ contract FleetCommanderWhitelist is
     {}
 
     /*//////////////////////////////////////////////////////////////
+                            INTERNAL HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    function _isMaxFunctionBlocked(
+        address account
+    ) internal view returns (bool) {
+        if (paused()) return true;
+
+        if (hasOperatorRole(_msgSender())) {
+            return false;
+        }
+
+        return
+            !config.isOperatorGatewayOpen ||
+            !_isWhitelisted(address(this), account);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             PRIVATE HELPERS
     //////////////////////////////////////////////////////////////*/
 
@@ -361,7 +379,7 @@ contract FleetCommanderWhitelist is
     function maxDeposit(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit) {
-        if (paused() || !_isWhitelisted(address(this), owner)) return 0;
+        if (_isMaxFunctionBlocked(owner)) return 0;
 
         uint256 _totalAssets = totalAssets();
         uint256 maxAssets = _totalAssets > config.depositCap
@@ -375,7 +393,7 @@ contract FleetCommanderWhitelist is
     function maxMint(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxMint) {
-        if (paused() || !_isWhitelisted(address(this), owner)) return 0;
+        if (_isMaxFunctionBlocked(owner)) return 0;
 
         uint256 _totalAssets = totalAssets();
         uint256 maxAssets = _totalAssets > config.depositCap
@@ -390,7 +408,7 @@ contract FleetCommanderWhitelist is
     function maxBufferWithdraw(
         address owner
     ) public view returns (uint256 _maxBufferWithdraw) {
-        if (paused() || !_isWhitelisted(address(this), owner)) return 0;
+        if (_isMaxFunctionBlocked(owner)) return 0;
 
         _maxBufferWithdraw = Math.min(
             config.bufferArk.totalAssets(),
@@ -402,7 +420,7 @@ contract FleetCommanderWhitelist is
     function maxWithdraw(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxWithdraw) {
-        if (paused() || !_isWhitelisted(address(this), owner)) return 0;
+        if (_isMaxFunctionBlocked(owner)) return 0;
 
         _maxWithdraw = Math.min(
             withdrawableTotalAssets(),
@@ -414,7 +432,7 @@ contract FleetCommanderWhitelist is
     function maxRedeem(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem) {
-        if (paused() || !_isWhitelisted(address(this), owner)) return 0;
+        if (_isMaxFunctionBlocked(owner)) return 0;
 
         _maxRedeem = Math.min(
             convertToShares(withdrawableTotalAssets()),
@@ -426,7 +444,7 @@ contract FleetCommanderWhitelist is
     function maxBufferRedeem(
         address owner
     ) public view returns (uint256 _maxBufferRedeem) {
-        if (paused() || !_isWhitelisted(address(this), owner)) return 0;
+        if (_isMaxFunctionBlocked(owner)) return 0;
 
         _maxBufferRedeem = Math.min(
             previewWithdraw(config.bufferArk.totalAssets()),

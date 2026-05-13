@@ -117,7 +117,7 @@ contract FleetCommanderWhitelistMaxTests is
             false
         );
 
-        // 3. Verify they return 0
+        // 3. Verify they return 0 (because owner is not whitelisted anymore)
         assertEq(whitelistFleet.maxDeposit(mockUser), 0);
         assertEq(whitelistFleet.maxMint(mockUser), 0);
         assertEq(whitelistFleet.maxWithdraw(mockUser), 0);
