@@ -71,7 +71,7 @@ abstract contract RoundsVaultBase is
     /// Output: Underlying = proxiedVault (the shares), ExchangeAsset = proxiedVault.asset()
     BaseVaultType public immutable VAULT_TYPE;
 
-    /// @dev Transient storage to track if the vault is redeeming
+    /// @dev Transient storage to track if the user is redeeming receipts for shares for themselve
     bool isSelfRedeeming;
 
     /**

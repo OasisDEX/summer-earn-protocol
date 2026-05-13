@@ -285,11 +285,8 @@ contract RoundsVaultMinPositionTest is
         inputVault.setRoundSettled(0); // Round 0 -> Settled
         vm.stopPrank();
 
-        // User now has 500e6 direct shares and 1000e6 receipts for round 0.
         // User redeems all their receipts.
         vm.startPrank(user);
-        // Before Issue 52 fix, this would revert because during `_burn(1000e6)`,
-        // the receipt balance drops to 0, leaving aggregate balance = 500e6 < MIN_POSITION
         inputVault.redeemExchangeAsset(0, 1000e6, user, user);
 
         // Ensure redemption was successful and user received the target shares
@@ -314,9 +311,9 @@ contract RoundsVaultMinPositionTest is
         vm.stopPrank();
 
         vm.startPrank(user);
-        // User attempts to redeem and send shares to someone else
-        // This will burn the 1000 receipts, leaving them with 500e6 direct shares
-        // Since 500e6 < 1000e6 (MIN_POSITION), it must revert!
+        // User attempts to redeem and send shares to another receiver
+        // This will burn 1000 receipts, leaving them with 500e6 direct shares
+        // Reverts because 500e6 < MIN_POSITION
         vm.expectRevert(
             abi.encodeWithSelector(
                 RoundsVaultPositionTooSmall.selector,
@@ -329,9 +326,7 @@ contract RoundsVaultMinPositionTest is
         vm.stopPrank();
     }
 
-    function test_MinPosition_RedeemExchangeAsset_LossRound_LocksFunds()
-        public
-    {
+    function test_MinPosition_RedeemExchangeAsset_LossRound_Succeeds() public {
         vm.startPrank(user);
         // User deposits exactly MIN_POSITION (1000e6)
         inputVault.deposit(1000e6, user);
