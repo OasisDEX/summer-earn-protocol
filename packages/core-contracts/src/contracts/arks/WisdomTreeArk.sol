@@ -364,6 +364,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         public
         override
         onlyKeeper
+        onlyNotFrozen
         nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
     {
