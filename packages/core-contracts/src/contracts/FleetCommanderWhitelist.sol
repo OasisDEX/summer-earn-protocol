@@ -54,24 +54,6 @@ contract FleetCommanderWhitelist is
     {}
 
     /*//////////////////////////////////////////////////////////////
-                            INTERNAL HELPERS
-    //////////////////////////////////////////////////////////////*/
-
-    function _isMaxFunctionBlocked(
-        address account
-    ) internal view returns (bool) {
-        if (paused()) return true;
-
-        if (hasOperatorRole(_msgSender())) {
-            return false;
-        }
-
-        return
-            !config.isOperatorGatewayOpen ||
-            !_isWhitelisted(address(this), account);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                             PRIVATE HELPERS
     //////////////////////////////////////////////////////////////*/
 
@@ -1187,5 +1169,26 @@ contract FleetCommanderWhitelist is
         returns (address[] memory)
     {
         return getActiveArks();
+    }
+
+    /**
+     * @notice Checks if the max functions are blocked
+     * @dev This function checks if the contract is paused, if the caller has operator role, or if the operator gateway
+     * is closed and the caller is not whitelisted
+     * @param account The address to check
+     * @return True if the max functions are blocked, false otherwise
+     */
+    function _isMaxFunctionBlocked(
+        address account
+    ) internal view returns (bool) {
+        if (paused()) return true;
+
+        if (hasOperatorRole(_msgSender())) {
+            return false;
+        }
+
+        return
+            !config.isOperatorGatewayOpen ||
+            !_isWhitelisted(address(this), account);
     }
 }
