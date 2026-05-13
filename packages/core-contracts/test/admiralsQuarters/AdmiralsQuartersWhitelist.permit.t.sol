@@ -7,6 +7,7 @@ import {IDistributor} from "../../src/interfaces/merkl/IDistributor.sol";
 import {ISignatureTransfer} from "../../src/interfaces/permit2/IPermit2.sol";
 import {AdmiralsQuartersWhitelistTest} from "./AdmiralsQuartersWhitelist.t.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {NotWhitelisted} from "../../src/utils/Whitelist/IWhitelistErrors.sol";
 import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/ConfigurationManaged.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -110,6 +111,59 @@ contract AdmiralsQuartersWhitelistPermitTest is AdmiralsQuartersWhitelistTest {
             0,
             "AdmiralsQuarters should have 0 balance"
         );
+    }
+
+    function test_enterFleetWithPermit2_RevertsZeroReceiver() public {
+        uint256 amount = 1000e6;
+        uint256 deadline = block.timestamp + 100;
+
+        // First step: User must approve Permit2 (done once usually)
+        vm.startPrank(owner);
+        IERC20(USDC_ADDRESS).approve(PERMIT2, type(uint256).max);
+        vm.stopPrank();
+
+        // Second step: User signs Permit2 transfer
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer
+            .PermitTransferFrom({
+                permitted: ISignatureTransfer.TokenPermissions({
+                    token: IERC20(USDC_ADDRESS),
+                    amount: amount
+                }),
+                nonce: 0,
+                deadline: deadline
+            });
+
+        bytes memory signature = _getPermit2Signature(
+            permit,
+            address(admiralsQuarters),
+            ownerPrivateKey
+        );
+
+        // Third step: Execute enterFleetWithPermit2 as the intent solver, but with address(0) receiver
+        vm.startPrank(solver);
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.enterFleetWithPermit2,
+            (
+                owner,
+                address(usdcFleet),
+                amount,
+                address(0), // zero receiver
+                permit,
+                signature
+            )
+        );
+
+        // It should revert because address(0) is not whitelisted
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotWhitelisted.selector,
+                address(usdcFleet),
+                address(0)
+            )
+        );
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
     }
 
     function test_enterFleetWithPermit() public {
