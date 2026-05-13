@@ -72,7 +72,7 @@ abstract contract RoundsVaultBase is
     BaseVaultType public immutable VAULT_TYPE;
 
     /// @dev Transient storage to track if the vault is redeeming
-    bool isRedeeming;
+    bool isSelfRedeeming;
 
     /**
      * CONSTRUCTOR
@@ -412,7 +412,7 @@ abstract contract RoundsVaultBase is
         if (from != address(0) && from != address(this)) {
             _revertIfNotWhitelisted(vault, from);
 
-            if (!isRedeeming) {
+            if (!isSelfRedeeming) {
                 _validateAggregateAssets(
                     from,
                     isInputVault,
@@ -573,9 +573,9 @@ abstract contract RoundsVaultBase is
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
         // shares are burned and after the assets are transfered, which is a valid state.
-        isRedeeming = true;
+        isSelfRedeeming = owner == receiver;
         _burn(owner, id, amount);
-        isRedeeming = false;
+        isSelfRedeeming = false;
 
         exchangeAmount = _exchangeRateByRound[id].quote(amount);
 
@@ -628,9 +628,9 @@ abstract contract RoundsVaultBase is
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
         // shares are burned and after the assets are transfered, which is a valid state.
-        isRedeeming = true;
+        isSelfRedeeming = owner == receiver;
         _burnBatch(owner, ids, amounts);
-        isRedeeming = false;
+        isSelfRedeeming = false;
 
         for (uint256 i = 0; i < ids.length; i++) {
             exchangeAmount += _exchangeRateByRound[ids[i]].quote(amounts[i]);
