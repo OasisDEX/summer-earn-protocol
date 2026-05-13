@@ -689,4 +689,83 @@ contract FleetCommanderWhitelistTest is
         whitelistFleet.redeemFromArks(1, mockUser2, operator);
         vm.stopPrank();
     }
+
+    /**
+     * @notice Tests that tip() manual call correctly accrues tip using super.totalSupply()
+     * avoiding recursive double-counting of the previewed tip.
+     */
+    function test_Tip_ManualCall_UsesSuperTotalSupply() public {
+        vm.prank(governor);
+        whitelistFleet.setTipRate(PercentageUtils.fromIntegerPercentage(5));
+
+        uint256 initialSupply = whitelistFleet.totalSupply(); // same as super.totalSupply() right after setTipRate
+
+        vm.warp(block.timestamp + 365 days);
+
+        uint256 expectedTip = whitelistFleet.previewTip(
+            whitelistFleet.tipJar(),
+            initialSupply
+        );
+        uint256 initialTipJarBalance = whitelistFleet.balanceOf(
+            whitelistFleet.tipJar()
+        );
+
+        vm.startPrank(keeper);
+        whitelistFleet.tip();
+        vm.stopPrank();
+
+        uint256 finalTipJarBalance = whitelistFleet.balanceOf(
+            whitelistFleet.tipJar()
+        );
+
+        assertEq(
+            finalTipJarBalance - initialTipJarBalance,
+            expectedTip,
+            "Manual tip accrual should match expected tip calculated on base supply"
+        );
+    }
+
+    /**
+     * @notice Tests that setPerformanceFeeRate correctly accrues the tip using super.totalSupply()
+     * before changing the rate.
+     */
+    function test_SetPerformanceFeeRate_UsesSuperTotalSupply() public {
+        vm.prank(governor);
+        whitelistFleet.setFeeType(IFlexibleTipper.FeeType.PERFORMANCE);
+        
+        vm.prank(governor);
+        whitelistFleet.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(5));
+
+        uint256 initialSupply = whitelistFleet.totalSupply();
+
+        // Simulate some time and yield
+        vm.warp(block.timestamp + 365 days);
+        
+        // mock token yield into the buffer ark to generate performance fee
+        mockToken.mint(address(whitelistFleet.bufferArk()), 10 * 10 ** 6);
+
+        uint256 expectedTip = whitelistFleet.previewTip(
+            whitelistFleet.tipJar(),
+            initialSupply
+        );
+        
+        uint256 initialTipJarBalance = whitelistFleet.balanceOf(
+            whitelistFleet.tipJar()
+        );
+
+        vm.startPrank(governor);
+        // Change fee rate to trigger accrual
+        whitelistFleet.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(10));
+        vm.stopPrank();
+
+        uint256 finalTipJarBalance = whitelistFleet.balanceOf(
+            whitelistFleet.tipJar()
+        );
+
+        assertEq(
+            finalTipJarBalance - initialTipJarBalance,
+            expectedTip,
+            "Fee rate change tip accrual should match expected tip calculated on base supply"
+        );
+    }
 }

@@ -310,7 +310,7 @@ contract FleetCommanderWhitelist is
 
     /// @inheritdoc IFleetCommanderWhitelist
     function tip() public onlyKeeper whenNotPaused returns (uint256) {
-        return _accrueTip(tipJar(), totalSupply());
+        return _accrueTip(tipJar(), super.totalSupply());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -478,7 +478,7 @@ contract FleetCommanderWhitelist is
     function setPerformanceFeeRate(
         Percentage newRate
     ) external onlyGovernor whenNotPaused {
-        _setPerformanceFeeRate(newRate, tipJar(), totalSupply());
+        _setPerformanceFeeRate(newRate, tipJar(), super.totalSupply());
     }
 
     /*//////////////////////////////////////////////////////////////
