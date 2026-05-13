@@ -164,48 +164,6 @@ contract AdmiralsQuartersWhitelist is
     }
 
     /// @inheritdoc IAdmiralsQuartersWhitelist
-    function enterFleetWithPermit(
-        address owner,
-        address fleetCommander,
-        uint256 assets,
-        bytes calldata referralCode,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
-        _validateFleetCommander(fleetCommander);
-        IFleetCommander fleet = IFleetCommander(fleetCommander);
-        IERC20 fleetAsset = IERC20(fleet.asset());
-
-        IERC20Permit(address(fleetAsset)).permit(
-            owner,
-            address(this),
-            assets,
-            deadline,
-            v,
-            r,
-            s
-        );
-        fleetAsset.safeTransferFrom(owner, address(this), assets);
-
-        fleetAsset.forceApprove(address(fleet), assets);
-        if (referralCode.length == 0) {
-            shares = fleet.deposit(assets, owner);
-            emit FleetEntered(owner, fleetCommander, assets, shares);
-        } else {
-            shares = fleet.deposit(assets, owner, referralCode);
-            emit FleetEnteredWithReferral(
-                owner,
-                fleetCommander,
-                assets,
-                shares,
-                referralCode
-            );
-        }
-    }
-
-    /// @inheritdoc IAdmiralsQuartersWhitelist
     function enterFleetWithPermit2(
         address owner,
         address fleetCommander,
