@@ -72,7 +72,7 @@ abstract contract RoundsVaultBase is
     BaseVaultType public immutable VAULT_TYPE;
 
     /// @dev Transient storage to track if the user is redeeming receipts for shares for themselve
-    bool isSelfRedeeming;
+    bool transient isSelfRedeeming;
 
     /**
      * CONSTRUCTOR
