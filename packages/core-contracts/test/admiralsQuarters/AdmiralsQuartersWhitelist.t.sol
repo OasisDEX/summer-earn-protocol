@@ -738,24 +738,37 @@ contract AdmiralsQuartersWhitelistTest is
 
     function test_ImportReverts() public {
         vm.startPrank(user1);
+        bytes[] memory calls = new bytes[](1);
 
         // Test invalid token addresses
-        // Since safeTransferFrom or standard operations on 0x0 will fail.
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.moveFromCompoundToAdmiralsQuarters,
+            (address(0), 1000)
+        );
         vm.expectRevert();
-        admiralsQuarters.moveFromCompoundToAdmiralsQuarters(address(0), 1000);
+        admiralsQuarters.multicall(calls);
 
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.moveFromAaveToAdmiralsQuarters,
+            (address(0), 1000)
+        );
         vm.expectRevert();
-        admiralsQuarters.moveFromAaveToAdmiralsQuarters(address(0), 1000);
+        admiralsQuarters.multicall(calls);
 
-        vm.expectRevert();
-        admiralsQuarters.moveFromERC4626ToAdmiralsQuarters(address(0), 1000);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.moveFromERC4626ToAdmiralsQuarters,
+            (address(0), 1000)
+        );
+        vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
+        admiralsQuarters.multicall(calls);
 
         // Test insufficient balance (using CUSDC_ADDRESS on user1 which has 0)
-        vm.expectRevert();
-        admiralsQuarters.moveFromCompoundToAdmiralsQuarters(
-            CUSDC_ADDRESS,
-            1000
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.moveFromCompoundToAdmiralsQuarters,
+            (CUSDC_ADDRESS, 1000)
         );
+        vm.expectRevert();
+        admiralsQuarters.multicall(calls);
 
         vm.stopPrank();
     }

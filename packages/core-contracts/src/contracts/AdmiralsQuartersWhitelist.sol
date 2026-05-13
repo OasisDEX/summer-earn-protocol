@@ -462,6 +462,8 @@ contract AdmiralsQuartersWhitelist is
         address vault,
         uint256 shares
     ) external onlyMulticall nonReentrant {
+        _validateToken(IERC20(vault));
+
         IERC4626 vaultToken = IERC4626(vault);
 
         // Get actual shares if 0 was passed
