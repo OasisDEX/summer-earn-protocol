@@ -71,6 +71,9 @@ abstract contract RoundsVaultBase is
     /// Output: Underlying = proxiedVault (the shares), ExchangeAsset = proxiedVault.asset()
     BaseVaultType public immutable VAULT_TYPE;
 
+    /// @dev Transient storage to track if the vault is redeeming
+    bool isRedeeming;
+
     /**
      * CONSTRUCTOR
      */
@@ -408,12 +411,15 @@ abstract contract RoundsVaultBase is
 
         if (from != address(0) && from != address(this)) {
             _revertIfNotWhitelisted(vault, from);
-            _validateAggregateAssets(
-                from,
-                isInputVault,
-                _minPositionSize,
-                vault
-            );
+
+            if (!isRedeeming) {
+                _validateAggregateAssets(
+                    from,
+                    isInputVault,
+                    _minPositionSize,
+                    vault
+                );
+            }
         }
     }
 
@@ -567,7 +573,9 @@ abstract contract RoundsVaultBase is
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
         // shares are burned and after the assets are transfered, which is a valid state.
+        isRedeeming = true;
         _burn(owner, id, amount);
+        isRedeeming = false;
 
         exchangeAmount = _exchangeRateByRound[id].quote(amount);
 
@@ -620,7 +628,9 @@ abstract contract RoundsVaultBase is
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
         // shares are burned and after the assets are transfered, which is a valid state.
+        isRedeeming = true;
         _burnBatch(owner, ids, amounts);
+        isRedeeming = false;
 
         for (uint256 i = 0; i < ids.length; i++) {
             exchangeAmount += _exchangeRateByRound[ids[i]].quote(amounts[i]);

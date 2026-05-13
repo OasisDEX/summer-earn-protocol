@@ -115,6 +115,15 @@ contract RoundsVaultMinPositionTest is
         vm.prank(admin);
         outputVault.setMinPositionSize(MIN_POSITION);
 
+        // Grant keeper role to admin for testing round settlements
+        bytes32 specificKeeperRole = keccak256(
+            abi.encodePacked(
+                ContractSpecificRoles.KEEPER_ROLE,
+                address(inputVault)
+            )
+        );
+        accessManager.grantRole(specificKeeperRole, admin);
+
         usdc.mint(user, 10000e6);
         vm.prank(user);
         usdc.approve(address(inputVault), 10000e6);
@@ -257,6 +266,34 @@ contract RoundsVaultMinPositionTest is
         outputVault.deposit(1000e6, user);
         assertEq(outputVault.balanceOfAll(user), 1000e6);
         assertEq(targetVault.balanceOf(user), 0);
+        vm.stopPrank();
+    }
+
+    function test_MinPosition_RedeemExchangeAsset_Issue52_Succeeds() public {
+        vm.startPrank(user);
+        // User has direct target shares, but LESS than MIN_POSITION
+        targetVault.deposit(500e6, user);
+
+        // User deposits into inputVault to make aggregate balance >= MIN_POSITION (500 + 1000 = 1500 >= 1000)
+        inputVault.deposit(1000e6, user);
+        vm.stopPrank();
+
+        // Admin advances and settles round 0
+        vm.startPrank(admin);
+        inputVault.nextRound(); // Round 0 -> InSettlement
+        inputVault.setRoundSettled(0); // Round 0 -> Settled
+        vm.stopPrank();
+
+        // User now has 500e6 direct shares and 1000e6 receipts for round 0.
+        // User redeems all their receipts.
+        vm.startPrank(user);
+        // Before Issue 52 fix, this would revert because during `_burn(1000e6)`,
+        // the receipt balance drops to 0, leaving aggregate balance = 500e6 < MIN_POSITION
+        inputVault.redeemExchangeAsset(0, 1000e6, user, user);
+
+        // Ensure redemption was successful and user received the target shares
+        assertEq(targetVault.balanceOf(user), 1500e6);
+        assertEq(inputVault.balanceOf(user, 0), 0);
         vm.stopPrank();
     }
 }
