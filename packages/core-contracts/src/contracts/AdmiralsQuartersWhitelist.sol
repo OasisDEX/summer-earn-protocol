@@ -201,7 +201,9 @@ contract AdmiralsQuartersWhitelist is
         _revertIfNotWhitelisted(fleetCommander, receiver, owner);
         _validateFleetCommander(fleetCommander);
 
-        IERC20 fleetAsset = IERC20(IFleetCommander(fleetCommander).asset());
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        IERC20 fleetAsset = IERC20(fleet.asset());
+
         if (permitData.permitted.token != fleetAsset) revert InvalidToken();
         if (permitData.permitted.amount != assets) revert InvalidAmount();
 
@@ -228,8 +230,7 @@ contract AdmiralsQuartersWhitelist is
             signature
         );
 
-        IFleetCommander fleet = IFleetCommander(fleetCommander);
-        IERC20(fleet.asset()).forceApprove(address(fleet), assets);
+        fleetAsset.forceApprove(address(fleet), assets);
 
         shares = fleet.deposit(assets, receiver);
         emit FleetEntered(owner, fleetCommander, assets, shares);
