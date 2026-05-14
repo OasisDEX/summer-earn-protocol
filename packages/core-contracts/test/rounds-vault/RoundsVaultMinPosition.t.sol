@@ -18,6 +18,7 @@ import {Test} from "forge-std/Test.sol";
 // Mock ERC4626
 contract MockERC4626 is ERC4626VaultMock {
     mapping(address => uint256) public shareBalances;
+
     constructor(address asset_) ERC4626VaultMock(asset_) {}
 
     function convertToShares(
@@ -114,6 +115,15 @@ contract RoundsVaultMinPositionTest is
         inputVault.setMinPositionSize(MIN_POSITION);
         vm.prank(admin);
         outputVault.setMinPositionSize(MIN_POSITION);
+
+        // Grant keeper role to admin for testing round settlements
+        bytes32 specificKeeperRole = keccak256(
+            abi.encodePacked(
+                ContractSpecificRoles.KEEPER_ROLE,
+                address(inputVault)
+            )
+        );
+        accessManager.grantRole(specificKeeperRole, admin);
 
         usdc.mint(user, 10000e6);
         vm.prank(user);
@@ -257,6 +267,83 @@ contract RoundsVaultMinPositionTest is
         outputVault.deposit(1000e6, user);
         assertEq(outputVault.balanceOfAll(user), 1000e6);
         assertEq(targetVault.balanceOf(user), 0);
+        vm.stopPrank();
+    }
+
+    function test_MinPosition_RedeemExchangeAsset_Issue52_Succeeds() public {
+        vm.startPrank(user);
+        // User has direct target shares, but LESS than MIN_POSITION
+        targetVault.deposit(500e6, user);
+
+        // User deposits into inputVault to make aggregate balance >= MIN_POSITION (500 + 1000 = 1500 >= 1000)
+        inputVault.deposit(1000e6, user);
+        vm.stopPrank();
+
+        // Admin advances and settles round 0
+        vm.startPrank(admin);
+        inputVault.nextRound(); // Round 0 -> InSettlement
+        inputVault.setRoundSettled(0); // Round 0 -> Settled
+        vm.stopPrank();
+
+        // User redeems all their receipts.
+        vm.startPrank(user);
+        inputVault.redeemExchangeAsset(0, 1000e6, user, user);
+
+        // Ensure redemption was successful and user received the target shares
+        assertEq(targetVault.balanceOf(user), 1500e6);
+        assertEq(inputVault.balanceOf(user, 0), 0);
+        vm.stopPrank();
+    }
+
+    function test_MinPosition_RedeemExchangeAsset_ReceiverDiffers_Reverts()
+        public
+    {
+        vm.startPrank(user);
+        // User deposits 1500e6 total (which is >= 1000 MIN_POSITION)
+        targetVault.deposit(500e6, user);
+        inputVault.deposit(1000e6, user);
+        vm.stopPrank();
+
+        // Admin advances and settles round 0
+        vm.startPrank(admin);
+        inputVault.nextRound(); // Round 0 -> InSettlement
+        inputVault.setRoundSettled(0); // Round 0 -> Settled
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        // User attempts to redeem and send shares to another receiver
+        // This will burn 1000 receipts, leaving them with 500e6 direct shares
+        // Reverts because 500e6 < MIN_POSITION
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RoundsVaultPositionTooSmall.selector,
+                user,
+                500e6,
+                MIN_POSITION
+            )
+        );
+        inputVault.redeemExchangeAsset(0, 1000e6, otherUser, user);
+        vm.stopPrank();
+    }
+
+    function test_MinPosition_RedeemExchangeAsset_LossRound_Succeeds() public {
+        vm.startPrank(user);
+        // User deposits exactly MIN_POSITION (1000e6)
+        inputVault.deposit(1000e6, user);
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        targetVault.deposit(900e6, user);
+        inputVault.deposit(600e6, user);
+        vm.stopPrank();
+
+        vm.startPrank(admin);
+        inputVault.nextRound(); // Round 0 -> InSettlement
+        inputVault.setRoundSettled(0); // Round 0 -> Settled
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        inputVault.redeemExchangeAsset(0, 600e6, user, user);
         vm.stopPrank();
     }
 }
