@@ -160,6 +160,8 @@ contract AdmiralsQuartersWhitelist is
         uint256 assets,
         address receiver
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        receiver = receiver == address(0) ? _msgSender() : receiver;
+
         _revertIfNotWhitelisted(fleetCommander, receiver, _msgSender());
         _validateFleetCommander(fleetCommander);
 
@@ -168,55 +170,13 @@ contract AdmiralsQuartersWhitelist is
 
         uint256 balance = fleetAsset.balanceOf(address(this));
         assets = assets == 0 ? balance : assets;
-        receiver = receiver == address(0) ? _msgSender() : receiver;
+
         if (assets > balance) revert InsufficientOutputAmount();
 
         fleetAsset.forceApprove(address(fleet), assets);
         shares = fleet.deposit(assets, receiver);
 
         emit FleetEntered(_msgSender(), fleetCommander, assets, shares);
-    }
-
-    /// @inheritdoc IAdmiralsQuartersWhitelist
-    function enterFleetWithPermit(
-        address owner,
-        address fleetCommander,
-        uint256 assets,
-        bytes calldata referralCode,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
-        _validateFleetCommander(fleetCommander);
-        IFleetCommander fleet = IFleetCommander(fleetCommander);
-        IERC20 fleetAsset = IERC20(fleet.asset());
-
-        IERC20Permit(address(fleetAsset)).permit(
-            owner,
-            address(this),
-            assets,
-            deadline,
-            v,
-            r,
-            s
-        );
-        fleetAsset.safeTransferFrom(owner, address(this), assets);
-
-        fleetAsset.forceApprove(address(fleet), assets);
-        if (referralCode.length == 0) {
-            shares = fleet.deposit(assets, owner);
-            emit FleetEntered(owner, fleetCommander, assets, shares);
-        } else {
-            shares = fleet.deposit(assets, owner, referralCode);
-            emit FleetEnteredWithReferral(
-                owner,
-                fleetCommander,
-                assets,
-                shares,
-                referralCode
-            );
-        }
     }
 
     /**

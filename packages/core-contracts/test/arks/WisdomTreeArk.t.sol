@@ -342,6 +342,16 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
     }
 
+    function test_RevertSweepWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+
+        vm.startPrank(keeper);
+        vm.expectRevert(WisdomTreeArk.ArkIsFrozen.selector);
+        ark.sweep();
+        vm.stopPrank();
+    }
+
     function test_TotalAssetsIsCachedWhenFrozen_MaxUint256() public {
         uint256 amount = 60000 * 1e6; // 1 share worth
         deal(USDC_ADDRESS, commander, amount);
@@ -484,6 +494,30 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         // 2. Try to withdraw
         vm.startPrank(keeper);
         vm.expectRevert(WisdomTreeArk.PendingDepositActive.selector);
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+    }
+
+    function test_RequestWithdrawal_RevertsIfPendingWithdrawal() public {
+        // 1. Setup fully cleared deposit
+        uint256 amount = 60000 * 1e6; // 1 share worth
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(ark), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        
+        // 2. Request first withdrawal successfully
+        ark.requestWithdrawal(amount);
+        
+        // 3. Try to request another withdrawal while one is already pending
+        vm.expectRevert(WisdomTreeArk.PendingWithdrawalActive.selector);
         ark.requestWithdrawal(amount);
         vm.stopPrank();
     }

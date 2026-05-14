@@ -56,29 +56,6 @@ interface IAdmiralsQuartersWhitelist is
      * @return shares The number of shares received from the FleetCommander
      * @dev Emits a FleetEntered event
      */
-    /**
-     * @notice Enters a FleetCommander by depositing tokens using standard ERC20 permit
-     * @param owner The address of the token owner
-     * @param fleetCommander The address of the FleetCommander contract
-     * @param assets The amount of inputToken to be deposited (0 for all)
-     * @param referralCode The referral code to use
-     * @param deadline The deadline for the permit
-     * @param v The v value of the permit signature
-     * @param r The r value of the permit signature
-     * @param s The s value of the permit signature
-     * @return shares The number of shares received from the FleetCommander
-     * @dev Emits a FleetEntered or FleetEnteredWithReferral event
-     */
-    function enterFleetWithPermit(
-        address owner,
-        address fleetCommander,
-        uint256 assets,
-        bytes calldata referralCode,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external payable returns (uint256 shares);
 
     /**
      * @notice Enters a FleetCommander by depositing tokens using permit2
