@@ -207,17 +207,6 @@ contract AdmiralsQuartersWhitelist is
         if (permitData.permitted.token != fleetAsset) revert InvalidToken();
         if (permitData.permitted.amount != assets) revert InvalidAmount();
 
-        bytes32 witness = keccak256(
-            abi.encode(
-                _FLEET_DEPOSIT_TYPEHASH,
-                fleetCommander,
-                receiver,
-                // The whitelisted protocol variant does not utilize referral tracking.
-                // We utilize a zero-sentinel (bytes32(0)) in the witness payload to maintain
-                // architectural consistency and signature verification compatibility.
-                bytes32(0)
-            )
-        );
         ISignatureTransfer(PERMIT2).permitWitnessTransferFrom(
             permitData,
             ISignatureTransfer.SignatureTransferDetails({
@@ -225,7 +214,17 @@ contract AdmiralsQuartersWhitelist is
                 requestedAmount: assets
             }),
             owner,
-            witness,
+            keccak256(
+                abi.encode(
+                    _FLEET_DEPOSIT_TYPEHASH,
+                    address(fleet),
+                    receiver,
+                    // The whitelisted protocol variant does not utilize referral tracking.
+                    // We utilize a zero-sentinel (bytes32(0)) in the witness payload to maintain
+                    // architectural consistency and signature verification compatibility.
+                    bytes32(0)
+                )
+            ),
             _WITNESS_TYPE_STRING,
             signature
         );
