@@ -28,6 +28,15 @@ interface ISignatureTransfer {
         bytes calldata signature
     ) external;
 
+    function permitWitnessTransferFrom(
+        PermitTransferFrom memory permit,
+        SignatureTransferDetails calldata transferDetails,
+        address owner,
+        bytes32 witness,
+        string calldata witnessTypeString,
+        bytes calldata signature
+    ) external;
+
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 }
 

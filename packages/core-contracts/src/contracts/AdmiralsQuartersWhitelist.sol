@@ -84,6 +84,20 @@ contract AdmiralsQuartersWhitelist is
     address public constant PERMIT2 =
         0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
+    struct FleetDepositWitness {
+        address fleetCommander;
+        address receiver;
+        bytes32 referralCode;
+    }
+
+    bytes32 internal constant _FLEET_DEPOSIT_TYPEHASH =
+        keccak256(
+            "FleetDepositWitness(address fleetCommander,address receiver,bytes32 referralCode)"
+        );
+
+    string internal constant _WITNESS_TYPE_STRING =
+        "FleetDepositWitness witness)FleetDepositWitness(address fleetCommander,address receiver,bytes32 referralCode)TokenPermissions(address token,uint256 amount)";
+
     constructor(
         address _oneInchRouter,
         address _configurationManager,
@@ -165,11 +179,21 @@ contract AdmiralsQuartersWhitelist is
         emit FleetEntered(_msgSender(), fleetCommander, assets, shares);
     }
 
-    /// @inheritdoc IAdmiralsQuartersWhitelist
+    /**
+     * @notice Enters a FleetCommander by depositing tokens using permit2.
+     * @dev This whitelisted implementation does not support referral tracking. To maintain
+     *      interface parity with the public version and ensure signature compatibility,
+     *      the referral parameter is accepted but internally hardcoded to bytes32(0)
+     *      within the witness payload.
+     *
+     *      IMPORTANT: Off-chain signature generation must use bytes32(0) for the referral
+     *      field to match the on-chain witness construction.
+     */
     function enterFleetWithPermit2(
         address owner,
         address fleetCommander,
         uint256 assets,
+        bytes calldata /* referralCode */,
         address receiver,
         ISignatureTransfer.PermitTransferFrom calldata permitData,
         bytes calldata signature
@@ -183,19 +207,31 @@ contract AdmiralsQuartersWhitelist is
         if (permitData.permitted.token != fleetAsset) revert InvalidToken();
         if (permitData.permitted.amount != assets) revert InvalidAmount();
 
-        ISignatureTransfer(PERMIT2).permitTransferFrom(
+        ISignatureTransfer(PERMIT2).permitWitnessTransferFrom(
             permitData,
             ISignatureTransfer.SignatureTransferDetails({
                 to: address(this),
                 requestedAmount: assets
             }),
             owner,
+            keccak256(
+                abi.encode(
+                    _FLEET_DEPOSIT_TYPEHASH,
+                    address(fleet),
+                    receiver,
+                    // The whitelisted protocol variant does not utilize referral tracking.
+                    // We utilize a zero-sentinel (bytes32(0)) in the witness payload to maintain
+                    // architectural consistency and signature verification compatibility.
+                    bytes32(0)
+                )
+            ),
+            _WITNESS_TYPE_STRING,
             signature
         );
 
         fleetAsset.forceApprove(address(fleet), assets);
-        shares = fleet.deposit(assets, receiver);
 
+        shares = fleet.deposit(assets, receiver);
         emit FleetEntered(owner, fleetCommander, assets, shares);
     }
 
@@ -311,6 +347,7 @@ contract AdmiralsQuartersWhitelist is
             revert InvalidFleetCommander();
         }
     }
+
     function _isFleetCommander(address account) internal view returns (bool) {
         return IHarborCommand(harborCommand()).activeFleetCommanders(account);
     }
