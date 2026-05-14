@@ -75,16 +75,6 @@ contract DaoTipJarIntegrationTest is Test {
         );
 
         vm.startPrank(governor);
-        accessManager.grantContractSpecificRole(
-            ContractSpecificRoles.KEEPER_ROLE,
-            address(globalTipJar),
-            keeper
-        );
-        accessManager.grantContractSpecificRole(
-            ContractSpecificRoles.KEEPER_ROLE,
-            address(daoTipJar),
-            keeper
-        );
         configurationManager.initializeConfiguration(
             ConfigurationManagerParams({
                 raft: raft,
@@ -280,7 +270,6 @@ contract DaoTipJarIntegrationTest is Test {
         uint256 r2BeforeGlobal = underlying.balanceOf(streamRecipient2);
 
         vm.recordLogs();
-        vm.prank(keeper);
         globalTipJar.shakeAll();
         (
             uint256 globalNonDaoAmount,
@@ -312,7 +301,6 @@ contract DaoTipJarIntegrationTest is Test {
         uint256 r2BeforeDao = underlying.balanceOf(streamRecipient2);
 
         vm.recordLogs();
-        vm.prank(keeper);
         daoTipJar.shakeAll();
         (
             uint256 daoJarNonDaoAmount,
