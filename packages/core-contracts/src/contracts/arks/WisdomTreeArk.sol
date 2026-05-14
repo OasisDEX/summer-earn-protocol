@@ -304,15 +304,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         _clearPendingDeposit(pendingDepositAssets);
     }
 
-    /**
-     * @notice Removes a fulfilled deposit amount from `pendingDepositAssets`.
-     * @dev Called by the keeper after WisdomTree issues shares to this contract to
-     *      clear a partial deposit.
-     */
-    function clearPendingDeposit(uint256 amount) external onlyKeeper {
-        _validateReceivedShares(amount);
-        _clearPendingDeposit(amount);
-    }
 
     /**
      * @inheritdoc IArkWithWithdrawalRequest

@@ -35,9 +35,9 @@ stateDiagram-v2
 - **Double-Counting Protection**: If this is the start of a deposit queue, the Ark snapshots its current share balance into `cachedShareBalance`. While `pendingDepositAssets > 0`, the `totalAssets()` calculation uses `cachedShareBalance` instead of the live `balanceOf`. This prevents newly delivered shares from being counted twice (once as USDC and once as Shares) before the Keeper formally clears them.
 
 ### 2. Deposit Clearance
-- **Action**: `clearPendingDeposit(amount)`
+- **Action**: `clearPendingDeposit()`
 - **Requirement**: Shares must have arrived off-chain.
-- **Validation**: The Keeper verifies that the newly arrived shares meet the `depositSlippage` threshold relative to the current Oracle price. If validated, `pendingDepositAssets` is reduced, and the `cachedShareBalance` is updated.
+- **Validation**: The Keeper verifies that the newly arrived shares meet the `depositSlippage` threshold relative to the current Oracle price. If validated, `pendingDepositAssets` is cleared, and the `cachedShareBalance` is updated.
 
 ### 3. The Withdrawal Flow (Request)
 - **Action**: `requestWithdrawal(amount)`
