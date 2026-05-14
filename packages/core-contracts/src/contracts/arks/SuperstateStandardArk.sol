@@ -226,14 +226,6 @@ contract SuperstateStandardArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @notice Removes a fulfilled partial deposit amount from `pendingDepositAssets`.
-     */
-    function clearPendingDeposit(uint256 amount) external onlyKeeper {
-        _validateReceivedShares(amount);
-        _clearPendingDeposit(amount);
-    }
-
-    /**
      * @inheritdoc IArkWithWithdrawalRequest
      * @notice Queries the on-chain Oracle to calculate expected USDC, and burns fund tokens via Redeem function.
      *      Ensures the resulting USDC is routed back to the caller's whitelisted Payout Destination (tracked via pendingWithdrawalShares).

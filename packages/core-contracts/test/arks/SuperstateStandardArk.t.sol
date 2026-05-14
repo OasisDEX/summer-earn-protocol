@@ -354,4 +354,28 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         );
         assertEq(usdc.balanceOf(address(ark)), 0, "Ark has 0 USDC");
     }
+
+    function test_ZeroAmountTransfers() public {
+        vm.startPrank(address(commander));
+
+        // board(0) should increase pendingDepositAssets by 0 and not revert.
+        ark.board(0, bytes(""));
+        assertEq(ark.pendingDepositAssets(), 0, "pending deposit assets");
+
+        // Request withdrawal of 0
+        vm.stopPrank();
+
+        vm.startPrank(keeper);
+        ark.requestWithdrawal(0);
+        vm.stopPrank();
+
+        // disembark(0)
+        vm.startPrank(address(commander));
+        ark.disembark(0, new bytes(0));
+        vm.stopPrank();
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+    }
 }
