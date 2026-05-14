@@ -361,6 +361,8 @@ contract FleetCommanderWhitelist is
     function maxDeposit(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit) {
+        if (_isMaxFunctionBlocked(owner)) return 0;
+
         uint256 _totalAssets = totalAssets();
         uint256 maxAssets = _totalAssets > config.depositCap
             ? 0
@@ -373,6 +375,8 @@ contract FleetCommanderWhitelist is
     function maxMint(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxMint) {
+        if (_isMaxFunctionBlocked(owner)) return 0;
+
         uint256 _totalAssets = totalAssets();
         uint256 maxAssets = _totalAssets > config.depositCap
             ? 0
@@ -386,6 +390,8 @@ contract FleetCommanderWhitelist is
     function maxBufferWithdraw(
         address owner
     ) public view returns (uint256 _maxBufferWithdraw) {
+        if (_isMaxFunctionBlocked(owner)) return 0;
+
         _maxBufferWithdraw = Math.min(
             config.bufferArk.totalAssets(),
             previewRedeem(balanceOf(owner))
@@ -396,6 +402,8 @@ contract FleetCommanderWhitelist is
     function maxWithdraw(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxWithdraw) {
+        if (_isMaxFunctionBlocked(owner)) return 0;
+
         _maxWithdraw = Math.min(
             withdrawableTotalAssets(),
             previewRedeem(balanceOf(owner))
@@ -406,6 +414,8 @@ contract FleetCommanderWhitelist is
     function maxRedeem(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem) {
+        if (_isMaxFunctionBlocked(owner)) return 0;
+
         _maxRedeem = Math.min(
             convertToShares(withdrawableTotalAssets()),
             balanceOf(owner)
@@ -416,6 +426,8 @@ contract FleetCommanderWhitelist is
     function maxBufferRedeem(
         address owner
     ) public view returns (uint256 _maxBufferRedeem) {
+        if (_isMaxFunctionBlocked(owner)) return 0;
+
         _maxBufferRedeem = Math.min(
             previewWithdraw(config.bufferArk.totalAssets()),
             balanceOf(owner)
@@ -1157,5 +1169,26 @@ contract FleetCommanderWhitelist is
         returns (address[] memory)
     {
         return getActiveArks();
+    }
+
+    /**
+     * @notice Checks if the max functions are blocked
+     * @dev This function checks if the contract is paused, if the caller has operator role, or if the operator gateway
+     * is closed and the caller is not whitelisted
+     * @param account The address to check
+     * @return True if the max functions are blocked, false otherwise
+     */
+    function _isMaxFunctionBlocked(
+        address account
+    ) internal view returns (bool) {
+        if (paused()) return true;
+
+        if (hasOperatorRole(_msgSender())) {
+            return false;
+        }
+
+        return
+            !config.isOperatorGatewayOpen ||
+            !_isWhitelisted(address(this), account);
     }
 }
