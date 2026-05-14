@@ -342,6 +342,16 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
     }
 
+    function test_RevertSweepWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+
+        vm.startPrank(keeper);
+        vm.expectRevert(WisdomTreeArk.ArkIsFrozen.selector);
+        ark.sweep();
+        vm.stopPrank();
+    }
+
     function test_TotalAssetsIsCachedWhenFrozen_MaxUint256() public {
         uint256 amount = 60000 * 1e6; // 1 share worth
         deal(USDC_ADDRESS, commander, amount);
