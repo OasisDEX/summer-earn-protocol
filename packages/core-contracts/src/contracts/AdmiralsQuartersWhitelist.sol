@@ -146,6 +146,8 @@ contract AdmiralsQuartersWhitelist is
         uint256 assets,
         address receiver
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        receiver = receiver == address(0) ? _msgSender() : receiver;
+
         _revertIfNotWhitelisted(fleetCommander, receiver, _msgSender());
         _validateFleetCommander(fleetCommander);
 
@@ -154,7 +156,7 @@ contract AdmiralsQuartersWhitelist is
 
         uint256 balance = fleetAsset.balanceOf(address(this));
         assets = assets == 0 ? balance : assets;
-        receiver = receiver == address(0) ? _msgSender() : receiver;
+
         if (assets > balance) revert InsufficientOutputAmount();
 
         fleetAsset.forceApprove(address(fleet), assets);
@@ -174,10 +176,13 @@ contract AdmiralsQuartersWhitelist is
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
         _revertIfNotWhitelisted(fleetCommander, receiver, owner);
         _validateFleetCommander(fleetCommander);
+
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         IERC20 fleetAsset = IERC20(fleet.asset());
+
         if (permitData.permitted.token != fleetAsset) revert InvalidToken();
         if (permitData.permitted.amount != assets) revert InvalidAmount();
+
         ISignatureTransfer(PERMIT2).permitTransferFrom(
             permitData,
             ISignatureTransfer.SignatureTransferDetails({
@@ -187,9 +192,6 @@ contract AdmiralsQuartersWhitelist is
             owner,
             signature
         );
-
-        assets = assets == 0 ? fleetAsset.balanceOf(address(this)) : assets;
-        receiver = receiver == address(0) ? owner : receiver;
 
         fleetAsset.forceApprove(address(fleet), assets);
         shares = fleet.deposit(assets, receiver);

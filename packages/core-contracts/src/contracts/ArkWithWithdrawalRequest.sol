@@ -141,7 +141,7 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         if (!whitelistedRouters[router]) {
             revert RouterNotWhitelisted();
         }
-        IERC20(sellToken).approve(router, amountIn);
+        IERC20(sellToken).forceApprove(router, amountIn);
         uint256 buyTokenBalanceBefore = IERC20(buyToken).balanceOf(
             address(this)
         );
@@ -158,7 +158,7 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
 
     function _boardToBufferArk(uint256 amount) internal {
         address bufferArk = IFleetCommander(config.commander).bufferArk();
-        IERC20(address(config.asset)).approve(bufferArk, amount);
+        IERC20(address(config.asset)).forceApprove(bufferArk, amount);
         IArk(bufferArk).board(amount, "");
     }
 }

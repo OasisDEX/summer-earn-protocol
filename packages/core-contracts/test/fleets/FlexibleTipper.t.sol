@@ -382,6 +382,13 @@ contract FlexibleTipperTest is Test, ITipperEvents {
         vault.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(51));
     }
 
+    function test_SetPerformanceFeeRate_RevertIfZero() public {
+        vm.expectRevert(
+            abi.encodeWithSignature("PerformanceFeeRateCannotBeZero()")
+        );
+        vault.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(0));
+    }
+
     function test_SetPerformanceFeeRate_Success() public {
         Percentage newRate = PercentageUtils.fromIntegerPercentage(15);
         vault.setPerformanceFeeRate(newRate);
