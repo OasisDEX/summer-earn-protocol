@@ -80,10 +80,24 @@ interface IAdmiralsQuartersWhitelist is
         bytes32 s
     ) external payable returns (uint256 shares);
 
+    /**
+     * @notice Enters a FleetCommander by depositing tokens using permit2
+     * @param owner The address of the token owner
+     * @param fleetCommander The address of the FleetCommander contract
+     * @param assets The amount of inputToken to be deposited (0 for all)
+     * @param _referralCode Reserved for referral code parity. This implementation ignores the referral code
+     *          and internally utilizes bytes32(0) for the witness hash.
+     *          SDKs and frontends must sign with a zero-value referral for signature compatibility.
+     * @param receiver The address to receive the shares
+     * @param permitData The permit2 data
+     * @param signature The signature for permit2
+     * @return shares The number of shares received from the FleetCommander
+     */
     function enterFleetWithPermit2(
         address owner,
         address fleetCommander,
         uint256 assets,
+        bytes calldata _referralCode,
         address receiver,
         ISignatureTransfer.PermitTransferFrom calldata permitData,
         bytes calldata signature
