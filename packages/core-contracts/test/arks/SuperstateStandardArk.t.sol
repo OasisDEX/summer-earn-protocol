@@ -4,6 +4,9 @@ pragma solidity 0.8.28;
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/SuperstateStandardArk.sol";
 import {AggregatorV3Interface} from "../../src/interfaces/external/Chainlink/AggregatorV3Interface.sol";
+import {ISuperstateArkErrors} from "../../src/errors/arks/ISuperstateArkErrors.sol";
+import {ISuperstateStandardArkErrors} from "../../src/errors/arks/ISuperstateStandardArkErrors.sol";
+import {ISuperstateStandardArk} from "../../src/interfaces/arks/ISuperstateStandardArk.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {AssetsForwarder} from "../../src/utils/AssetsForwarder/AssetsForwarder.sol";
@@ -179,9 +182,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Constructor() public {
-        vm.expectRevert(
-            SuperstateStandardArk.InvalidShareTokenAddress.selector
-        );
+        vm.expectRevert(ISuperstateArkErrors.InvalidShareTokenAddress.selector);
         new SuperstateStandardArk(
             address(0),
             depositAddress,
@@ -192,7 +193,9 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             params
         );
 
-        vm.expectRevert(SuperstateStandardArk.InvalidDepositAddress.selector);
+        vm.expectRevert(
+            ISuperstateStandardArkErrors.InvalidDepositAddress.selector
+        );
         new SuperstateStandardArk(
             address(shareToken),
             address(0),
@@ -203,7 +206,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             params
         );
 
-        vm.expectRevert(SuperstateStandardArk.InvalidOracleAddress.selector);
+        vm.expectRevert(ISuperstateArkErrors.InvalidOracleAddress.selector);
         new SuperstateStandardArk(
             address(shareToken),
             depositAddress,

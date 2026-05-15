@@ -14,6 +14,8 @@ import {ISuperstateSubscribe} from "../../interfaces/superstate/ISuperstateSubsc
 import {ISuperstateRedeem} from "../../interfaces/superstate/ISuperstateRedeem.sol";
 import {AggregatorV3Interface} from "../../interfaces/external/Chainlink/AggregatorV3Interface.sol";
 import {ISuperstateToken, SupportedStablecoin} from "../../interfaces/superstate/ISuperstateToken.sol";
+import {IArk} from "../../interfaces/IArk.sol";
+import {ISuperstateSubscribeArk} from "../../interfaces/arks/ISuperstateSubscribeArk.sol";
 
 /**
  * @title SuperstateSubscribeArk
@@ -28,7 +30,7 @@ import {ISuperstateToken, SupportedStablecoin} from "../../interfaces/superstate
  *   This Ark is strictly for synchronous subscriptions using the `subscribe` function and the
  *   `RedemptionIdle` contract for instant liquidity on redemptions.
  */
-contract SuperstateSubscribeArk is Ark {
+contract SuperstateSubscribeArk is Ark, ISuperstateSubscribeArk {
     using SafeERC20 for IERC20Metadata;
     using SafeERC20 for IERC20;
     using PriceUtils for Price;
@@ -41,43 +43,24 @@ contract SuperstateSubscribeArk is Ark {
     uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 hours;
 
     /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error InvalidShareTokenAddress();
-    error InvalidSubscribeAddress();
-    error InvalidRedeemAddress();
-    error InvalidOracleAddress();
-    error UnsupportedStablecoin();
-    error OraclePriceNotPositive();
-    error StaleOraclePrice();
-
-    /*//////////////////////////////////////////////////////////////
-                            EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event SubscriptionExecuted(uint256 usdcAmount, address target);
-    event RedemptionExecuted(uint256 shareAmount, address target);
-
-    /*//////////////////////////////////////////////////////////////
                            STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The Superstate fund token contract (USTB)
-    IERC20Metadata public immutable shareToken;
+    IERC20Metadata public immutable SHARE_TOKEN;
 
     /// @notice The Superstate Subscribe contract (usually the token proxy itself)
-    ISuperstateSubscribe public immutable superstateSubscribe;
+    ISuperstateSubscribe public immutable SUPERSTATE_SUBSCRIBE;
 
     /// @notice The Superstate Redeem contract (RedemptionIdle contract)
-    ISuperstateRedeem public immutable superstateRedeem;
+    ISuperstateRedeem public immutable SUPERSTATE_REDEEM;
 
     /// @notice Superstate/Chainlink price feed: price of 1 Superstate share denominated in USDC
-    AggregatorV3Interface public immutable oracle;
+    AggregatorV3Interface public immutable ORACLE;
 
-    uint8 public immutable oracleDecimals;
-    uint8 public immutable assetDecimals;
-    uint8 public immutable shareDecimals;
+    uint8 public immutable ORACLE_DECIMALS;
+    uint8 public immutable ASSET_DECIMALS;
+    uint8 public immutable SHARE_DECIMALS;
     uint256 public immutable ONE_ASSET;
 
     /*//////////////////////////////////////////////////////////////
@@ -97,10 +80,10 @@ contract SuperstateSubscribeArk is Ark {
         if (_superstateRedeem == address(0)) revert InvalidRedeemAddress();
         if (_oracle == address(0)) revert InvalidOracleAddress();
 
-        shareToken = IERC20Metadata(_shareToken);
-        superstateSubscribe = ISuperstateSubscribe(_superstateSubscribe);
-        superstateRedeem = ISuperstateRedeem(_superstateRedeem);
-        oracle = AggregatorV3Interface(_oracle);
+        SHARE_TOKEN = IERC20Metadata(_shareToken);
+        SUPERSTATE_SUBSCRIBE = ISuperstateSubscribe(_superstateSubscribe);
+        SUPERSTATE_REDEEM = ISuperstateRedeem(_superstateRedeem);
+        ORACLE = AggregatorV3Interface(_oracle);
 
         SupportedStablecoin memory info = ISuperstateToken(_superstateSubscribe)
             .supportedStablecoins(address(_params.asset));
@@ -108,21 +91,32 @@ contract SuperstateSubscribeArk is Ark {
             revert UnsupportedStablecoin();
         }
 
-        oracleDecimals = AggregatorV3Interface(_oracle).decimals();
-        shareDecimals = IERC20Metadata(_shareToken).decimals();
-        assetDecimals = IERC20Metadata(_params.asset).decimals();
-        ONE_ASSET = 10 ** assetDecimals;
+        ORACLE_DECIMALS = AggregatorV3Interface(_oracle).decimals();
+        SHARE_DECIMALS = IERC20Metadata(_shareToken).decimals();
+        ASSET_DECIMALS = IERC20Metadata(_params.asset).decimals();
+        ONE_ASSET = 10 ** ASSET_DECIMALS;
     }
 
     /*//////////////////////////////////////////////////////////////
                                VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function totalAssets() public view override returns (uint256 assets) {
-        uint256 currentShares = shareToken.balanceOf(address(this));
+    /**
+     * @inheritdoc IArk
+     */
+    function totalAssets()
+        public
+        view
+        override(Ark, IArk)
+        returns (uint256 assets)
+    {
+        uint256 currentShares = SHARE_TOKEN.balanceOf(address(this));
         assets = _sharesToAssets(currentShares);
     }
 
+    /**
+     * @notice Converts shares to assets.
+     */
     function sharesToAssets(uint256 shares) external view returns (uint256) {
         return _sharesToAssets(shares);
     }
@@ -131,32 +125,48 @@ contract SuperstateSubscribeArk is Ark {
                           INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @inheritdoc Ark
+     */
     function _board(uint256 amount, bytes calldata) internal override {
         IERC20Metadata(address(config.asset)).forceApprove(
-            address(superstateSubscribe),
+            address(SUPERSTATE_SUBSCRIBE),
             amount
         );
-        superstateSubscribe.subscribe(
+        SUPERSTATE_SUBSCRIBE.subscribe(
             address(this),
             amount,
             address(config.asset)
         );
 
-        emit SubscriptionExecuted(amount, address(superstateSubscribe));
+        emit SubscriptionExecuted(amount, address(SUPERSTATE_SUBSCRIBE));
     }
 
+    /**
+     * @inheritdoc Ark
+     */
     function _disembark(uint256 amount, bytes calldata) internal override {
         uint256 sharesToRedeem = _assetsToShares(amount);
 
-        shareToken.forceApprove(address(superstateRedeem), sharesToRedeem);
-        superstateRedeem.redeem(sharesToRedeem, address(this));
+        SHARE_TOKEN.forceApprove(address(SUPERSTATE_REDEEM), sharesToRedeem);
+        SUPERSTATE_REDEEM.redeem(sharesToRedeem, address(this));
 
-        emit RedemptionExecuted(sharesToRedeem, address(superstateRedeem));
+        emit RedemptionExecuted(sharesToRedeem, address(SUPERSTATE_REDEEM));
     }
 
+    /**
+     * @inheritdoc Ark
+     */
     function _validateBoardData(bytes calldata) internal override {}
+
+    /**
+     * @inheritdoc Ark
+     */
     function _validateDisembarkData(bytes calldata) internal override {}
 
+    /**
+     * @inheritdoc Ark
+     */
     function _withdrawableTotalAssets()
         internal
         view
@@ -166,6 +176,9 @@ contract SuperstateSubscribeArk is Ark {
         return totalAssets();
     }
 
+    /**
+     * @inheritdoc Ark
+     */
     function _harvest(
         bytes calldata
     )
@@ -201,7 +214,7 @@ contract SuperstateSubscribeArk is Ark {
         view
         returns (Price memory)
     {
-        (, int256 answer, , uint256 updatedAt, ) = oracle.latestRoundData();
+        (, int256 answer, , uint256 updatedAt, ) = ORACLE.latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
 
         if (block.timestamp - updatedAt > ORACLE_HEARTBEAT_TIMEOUT) {
@@ -210,10 +223,10 @@ contract SuperstateSubscribeArk is Ark {
 
         return
             toPriceFromOraclePrice(
-                10 ** shareDecimals,
+                10 ** SHARE_DECIMALS,
                 answer,
-                oracleDecimals,
-                assetDecimals
+                ORACLE_DECIMALS,
+                ASSET_DECIMALS
             );
     }
 }

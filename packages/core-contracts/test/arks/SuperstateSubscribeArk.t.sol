@@ -7,6 +7,9 @@ import {ISuperstateSubscribe} from "../../src/interfaces/superstate/ISuperstateS
 import {ISuperstateRedeem} from "../../src/interfaces/superstate/ISuperstateRedeem.sol";
 import {ISuperstateToken, SupportedStablecoin} from "../../src/interfaces/superstate/ISuperstateToken.sol";
 import "../../src/events/IArkEvents.sol";
+import {ISuperstateArkErrors} from "../../src/errors/arks/ISuperstateArkErrors.sol";
+import {ISuperstateSubscribeArkErrors} from "../../src/errors/arks/ISuperstateSubscribeArkErrors.sol";
+import {ISuperstateSubscribeArk} from "../../src/interfaces/arks/ISuperstateSubscribeArk.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
@@ -237,9 +240,7 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Constructor() public {
-        vm.expectRevert(
-            SuperstateSubscribeArk.InvalidShareTokenAddress.selector
-        );
+        vm.expectRevert(ISuperstateArkErrors.InvalidShareTokenAddress.selector);
         new SuperstateSubscribeArk(
             address(0),
             address(subscribeContract),
@@ -249,7 +250,7 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         );
 
         vm.expectRevert(
-            SuperstateSubscribeArk.InvalidSubscribeAddress.selector
+            ISuperstateSubscribeArkErrors.InvalidSubscribeAddress.selector
         );
         new SuperstateSubscribeArk(
             address(shareToken),
@@ -259,7 +260,7 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             params
         );
 
-        vm.expectRevert(SuperstateSubscribeArk.InvalidOracleAddress.selector);
+        vm.expectRevert(ISuperstateArkErrors.InvalidOracleAddress.selector);
         new SuperstateSubscribeArk(
             address(shareToken),
             address(subscribeContract),
@@ -283,7 +284,9 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             abi.encode(address(0), uint96(0))
         );
 
-        vm.expectRevert(SuperstateSubscribeArk.UnsupportedStablecoin.selector);
+        vm.expectRevert(
+            ISuperstateSubscribeArkErrors.UnsupportedStablecoin.selector
+        );
         new SuperstateSubscribeArk(
             address(shareToken),
             address(subscribeContract),
