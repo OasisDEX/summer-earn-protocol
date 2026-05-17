@@ -5,7 +5,6 @@ import {FleetCommander} from "../../../src/contracts/FleetCommander.sol";
 import {DCAStrategyManager} from "../../../src/contracts/arks/DCAs/DCAStrategyManager.sol";
 import {IDCAStrategyManager} from "../../../src/interfaces/arks/IDCAStrategyManager.sol";
 import {IFleetCommander} from "../../../src/interfaces/IFleetCommander.sol";
-import {OneInchTestHelpers} from "../../helpers/OneInchTestHelpers.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
@@ -16,17 +15,19 @@ import {HarborCommand} from "../../../src/contracts/HarborCommand.sol";
 import {FleetCommanderRewardsManagerFactory} from "../../../src/contracts/FleetCommanderRewardsManagerFactory.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-contract DCAStrategyManagerTest is Test, OneInchTestHelpers {
+contract DCAStrategyManagerTest is Test {
     DCAStrategyManager public dcaManager;
     FleetCommander public usdcFleet;
     FleetCommander public wethFleet;
 
-    address public constant ONE_INCH_ROUTER =
-        0x111111125421cA6dc452d289314280a0f8842A65;
+    address public constant ENSO_ROUTER =
+        0xF75584eF6673aD213a685a1B58Cc0330B8eA22Cf;
     address public constant ETH_USD_FEED =
         0x5F4EC3dF9CBd43714FE2740F5E3617235d988Bbb;
     address public constant USDC_USD_FEED =
         0x8fFFfFd4B3Cf5CA76D5CD5D9D8Bc5A9E5b0c4dd9;
+    address public constant PERMIT2 =
+        0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
     address public constant USDC_ADDRESS =
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -106,10 +107,11 @@ contract DCAStrategyManagerTest is Test, OneInchTestHelpers {
 
         dcaManager = new DCAStrategyManager(
             address(accessManager),
-            ONE_INCH_ROUTER,
+            ENSO_ROUTER,
             address(harborCommand),
             ETH_USD_FEED,
-            USDC_USD_FEED
+            USDC_USD_FEED,
+            PERMIT2
         );
 
         vm.stopPrank();
@@ -263,17 +265,19 @@ contract DCAStrategyManagerTest is Test, OneInchTestHelpers {
     }
 }
 
-contract DCAStrategyManagerIntegrationTest is Test, OneInchTestHelpers {
+contract DCAStrategyManagerIntegrationTest is Test {
     DCAStrategyManager public dcaManager;
     IFleetCommander public sourceFleet;
     IFleetCommander public targetFleet;
 
-    address public constant ONE_INCH_ROUTER =
-        0x111111125421cA6dc452d289314280a0f8842A65;
+    address public constant ENSO_ROUTER =
+        0xF75584eF6673aD213a685a1B58Cc0330B8eA22Cf;
     address public constant ETH_USD_FEED =
         0x5F4EC3dF9CBd43714FE2740F5E3617235d988Bbb;
     address public constant USDC_USD_FEED =
         0x8fFFfFd4B3Cf5CA76D5CD5D9D8Bc5A9E5b0c4dd9;
+    address public constant PERMIT2 =
+        0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
     address public constant USDC_ADDRESS =
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -358,10 +362,11 @@ contract DCAStrategyManagerIntegrationTest is Test, OneInchTestHelpers {
 
         dcaManager = new DCAStrategyManager(
             address(accessManager),
-            ONE_INCH_ROUTER,
+            ENSO_ROUTER,
             address(harborCommand),
             ETH_USD_FEED,
-            USDC_USD_FEED
+            USDC_USD_FEED,
+            PERMIT2
         );
 
         vm.stopPrank();
@@ -387,12 +392,14 @@ contract DCAStrategyManagerIntegrationTest is Test, OneInchTestHelpers {
     }
 
     function test_Execute_PullsWithStandardERC20Approve() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
         vm.warp(block.timestamp + 2 days);
 
-        uint256 strategyId = _createStrategy();
-
         IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
-            strategyId
+            strategyId,
+            endDate
         );
 
         vm.prank(keeper);
@@ -406,12 +413,14 @@ contract DCAStrategyManagerIntegrationTest is Test, OneInchTestHelpers {
     }
 
     function test_Execute_MintsSharesToOwnerNotContract() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
         vm.warp(block.timestamp + 2 days);
 
-        uint256 strategyId = _createStrategy();
-
         IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
-            strategyId
+            strategyId,
+            endDate
         );
 
         uint256 ownerWethSharesBefore = IERC20(address(targetFleet)).balanceOf(
@@ -438,7 +447,7 @@ contract DCAStrategyManagerIntegrationTest is Test, OneInchTestHelpers {
         );
     }
 
-    function _createStrategy() internal returns (uint256) {
+    function _createStrategy(uint256 endDate) internal returns (uint256) {
         vm.startPrank(strategyOwner);
         IDCAStrategyManager.StrategyConfig memory config = IDCAStrategyManager
             .StrategyConfig({
@@ -453,7 +462,7 @@ contract DCAStrategyManagerIntegrationTest is Test, OneInchTestHelpers {
                 slippageBps: 50,
                 maxPrice: 0,
                 minPrice: 0,
-                endDate: block.timestamp + 365 days,
+                endDate: endDate,
                 maxTrades: 100
             });
 
@@ -463,7 +472,8 @@ contract DCAStrategyManagerIntegrationTest is Test, OneInchTestHelpers {
     }
 
     function _buildConfig(
-        uint256 strategyId
+        uint256 strategyId,
+        uint256 endDate
     ) internal view returns (IDCAStrategyManager.StrategyConfig memory) {
         return IDCAStrategyManager.StrategyConfig({
             strategyId: strategyId,
@@ -477,7 +487,7 @@ contract DCAStrategyManagerIntegrationTest is Test, OneInchTestHelpers {
             slippageBps: 50,
             maxPrice: 0,
             minPrice: 0,
-            endDate: block.timestamp + 365 days,
+            endDate: endDate,
             maxTrades: 100
         });
     }
