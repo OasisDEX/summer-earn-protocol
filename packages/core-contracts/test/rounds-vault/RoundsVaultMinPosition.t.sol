@@ -346,4 +346,123 @@ contract RoundsVaultMinPositionTest is
         inputVault.redeemExchangeAsset(0, 600e6, user, user);
         vm.stopPrank();
     }
+
+    function test_MinPosition_RedeemExchangeAsset_ReceiverDust_Reverts()
+        public
+    {
+        usdc.mint(otherUser, 100e6);
+        vm.startPrank(otherUser);
+        usdc.approve(address(targetVault), 100e6);
+        targetVault.deposit(100e6, otherUser);
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        inputVault.deposit(2000e6, user);
+        vm.stopPrank();
+
+        vm.startPrank(admin);
+        inputVault.nextRound();
+        inputVault.setRoundSettled(0);
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        // Expect revert: redeeming to another receiver leaves receiver with dust position in target vault
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RoundsVaultPositionTooSmall.selector,
+                otherUser,
+                500e6,
+                MIN_POSITION
+            )
+        );
+        inputVault.redeemExchangeAsset(0, 400e6, otherUser, user);
+        vm.stopPrank();
+    }
+
+    function test_MinPosition_OutputVault_Redeem_ReceiverDust_Reverts()
+        public
+    {
+        vm.startPrank(user);
+        targetVault.deposit(2000e6, user);
+        targetVault.approve(address(outputVault), 2000e6);
+        outputVault.deposit(2000e6, user);
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        // Expect revert: redeeming to another receiver leaves receiver with dust position
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RoundsVaultPositionTooSmall.selector,
+                otherUser,
+                500e6,
+                MIN_POSITION
+            )
+        );
+        outputVault.redeem(0, 500e6, otherUser, user);
+        vm.stopPrank();
+    }
+
+    function test_MinPosition_OutputVault_Redeem_DustRemaining_Reverts()
+        public
+    {
+        vm.startPrank(user);
+        targetVault.deposit(2000e6, user);
+        targetVault.approve(address(outputVault), 2000e6);
+        outputVault.deposit(2000e6, user);
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        // Expect revert: partial redemption leaves user with dust position (Output Vault only counts direct target shares)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RoundsVaultPositionTooSmall.selector,
+                user,
+                500e6,
+                MIN_POSITION
+            )
+        );
+        outputVault.redeem(0, 500e6, user, user);
+        vm.stopPrank();
+    }
+
+    function test_MinPosition_Redeem_DustAll_Succeeds() public {
+        // Setup initial position below minimum size by toggling limits
+        vm.prank(admin);
+        inputVault.setMinPositionSize(0);
+
+        vm.startPrank(user);
+        inputVault.deposit(500e6, user);
+        vm.stopPrank();
+
+        vm.prank(admin);
+        inputVault.setMinPositionSize(MIN_POSITION);
+
+        // Complete redemption bringing balance to zero is allowed even with dust balance
+        vm.startPrank(user);
+        inputVault.redeem(0, 500e6, user, user);
+        assertEq(inputVault.balanceOfAll(user), 0);
+        vm.stopPrank();
+    }
+
+    function test_MinPosition_OutputVault_Redeem_DustAll_Succeeds() public {
+        // Setup initial position below minimum size by toggling limits
+        vm.prank(admin);
+        outputVault.setMinPositionSize(0);
+
+        vm.startPrank(user);
+        targetVault.deposit(500e6, user);
+        targetVault.approve(address(outputVault), 500e6);
+        outputVault.deposit(500e6, user);
+        vm.stopPrank();
+
+        vm.prank(admin);
+        outputVault.setMinPositionSize(MIN_POSITION);
+
+        // Complete redemption bringing receipt balance to zero is allowed even with dust
+        vm.startPrank(user);
+        outputVault.redeem(0, 500e6, user, user);
+        assertEq(outputVault.balanceOfAll(user), 0);
+        assertEq(targetVault.balanceOf(user), 500e6);
+        vm.stopPrank();
+    }
 }

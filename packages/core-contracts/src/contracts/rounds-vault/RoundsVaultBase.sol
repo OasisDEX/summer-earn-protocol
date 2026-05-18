@@ -71,9 +71,6 @@ abstract contract RoundsVaultBase is
     /// Output: Underlying = proxiedVault (the shares), ExchangeAsset = proxiedVault.asset()
     BaseVaultType public immutable VAULT_TYPE;
 
-    /// @dev Transient storage to track if the user is redeeming receipts for shares for themselve
-    bool transient isSelfRedeeming;
-
     /**
      * CONSTRUCTOR
      */
@@ -190,6 +187,40 @@ abstract contract RoundsVaultBase is
     }
 
     /**
+     * @dev Validates the user's aggregate asset position is at least the minimum position size.
+     */
+    modifier validateMinPosition(address from, address to) {
+        _;
+
+        uint256 _minPositionSize = minPositionSize;
+        if (_minPositionSize > 0) {
+            bool isInput = VAULT_TYPE == BaseVaultType.Input;
+            address targetVault = vault();
+            bool isSelf = from == to;
+
+            if (from != address(0) && from != address(this)) {
+                if (!isSelf || balanceOfAll(from) > 0) {
+                    _validateAggregateAssets(
+                        from,
+                        isInput,
+                        _minPositionSize,
+                        targetVault
+                    );
+                }
+            }
+
+            if (!isSelf && to != address(0) && to != address(this)) {
+                _validateAggregateAssets(
+                    to,
+                    isInput,
+                    _minPositionSize,
+                    targetVault
+                );
+            }
+        }
+    }
+
+    /**
      *     @inheritdoc IERC4626MultiToken
      */
     function deposit(
@@ -199,6 +230,7 @@ abstract contract RoundsVaultBase is
         public
         virtual
         override(IERC4626MultiToken, ERC4626MultiToken)
+        validateMinPosition(address(0), receiver)
         returns (uint256)
     {
         _revertIfNotWhitelisted(vault(), receiver, _msgSender());
@@ -218,6 +250,7 @@ abstract contract RoundsVaultBase is
         public
         virtual
         override(IERC4626MultiToken, ERC4626MultiToken)
+        validateMinPosition(owner, receiver)
         returns (uint256)
     {
         _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
@@ -243,6 +276,7 @@ abstract contract RoundsVaultBase is
         public
         virtual
         override(IERC4626MultiToken, ERC4626MultiToken)
+        validateMinPosition(owner, receiver)
         returns (uint256 assets)
     {
         _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
@@ -267,7 +301,7 @@ abstract contract RoundsVaultBase is
         uint256 amount,
         address receiver,
         address owner
-    ) public returns (uint256) {
+    ) public validateMinPosition(owner, receiver) returns (uint256) {
         _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
 
         if (id >= _roundNumber) {
@@ -296,7 +330,7 @@ abstract contract RoundsVaultBase is
         uint256[] calldata amounts,
         address receiver,
         address owner
-    ) public returns (uint256 shares) {
+    ) public validateMinPosition(owner, receiver) returns (uint256 shares) {
         _revertIfNotWhitelisted(vault(), owner, receiver, _msgSender());
         if (ids.length != amounts.length) {
             revert BadRedeemBatchParameters(ids.length, amounts.length);
@@ -335,7 +369,7 @@ abstract contract RoundsVaultBase is
         uint256 id,
         uint256 value,
         bytes memory data
-    ) public virtual override(ERC1155, IERC1155) {
+    ) public virtual override(ERC1155, IERC1155) validateMinPosition(from, to) {
         _revertIfNotWhitelisted(vault(), from, to, _msgSender());
         super.safeTransferFrom(from, to, id, value, data);
     }
@@ -351,7 +385,7 @@ abstract contract RoundsVaultBase is
         uint256[] memory ids,
         uint256[] memory values,
         bytes memory data
-    ) public virtual override(ERC1155, IERC1155) {
+    ) public virtual override(ERC1155, IERC1155) validateMinPosition(from, to) {
         _revertIfNotWhitelisted(vault(), from, to, _msgSender());
         super.safeBatchTransferFrom(from, to, ids, values, data);
     }
@@ -389,40 +423,6 @@ abstract contract RoundsVaultBase is
         return _exchangeRateByRound[round];
     }
 
-    // INTERNALS
-
-    function _update(
-        address from,
-        address to,
-        uint256[] memory ids,
-        uint256[] memory values
-    ) internal virtual override {
-        super._update(from, to, ids, values);
-        uint256 _minPositionSize = minPositionSize;
-        if (minPositionSize == 0) return;
-
-        bool isInputVault = VAULT_TYPE == BaseVaultType.Input;
-        address vault = vault();
-
-        if (to != address(0) && to != address(this)) {
-            _revertIfNotWhitelisted(vault, to);
-            _validateAggregateAssets(to, isInputVault, _minPositionSize, vault);
-        }
-
-        if (from != address(0) && from != address(this)) {
-            _revertIfNotWhitelisted(vault, from);
-
-            if (!isSelfRedeeming) {
-                _validateAggregateAssets(
-                    from,
-                    isInputVault,
-                    _minPositionSize,
-                    vault
-                );
-            }
-        }
-    }
-
     /**
      * @dev Validates that the user has at least the minimum position size in the target vault.
      *      - Output Vault receipts (withdrawal queue) are treated as 0 (already gone).
@@ -432,7 +432,7 @@ abstract contract RoundsVaultBase is
         address user,
         bool isInputVault,
         uint256 _minPositionSize,
-        address vault
+        address targetVault
     ) internal view {
         uint256 targetAssets = 0;
 
@@ -441,11 +441,11 @@ abstract contract RoundsVaultBase is
             if (targetAssets >= _minPositionSize) return;
         }
 
-        IERC4626 targetVault = IERC4626(vault);
-        uint256 shares = targetVault.balanceOf(user);
+        IERC4626 targetVaultContract = IERC4626(targetVault);
+        uint256 shares = targetVaultContract.balanceOf(user);
 
         if (shares > 0) {
-            targetAssets += targetVault.convertToAssets(shares);
+            targetAssets += targetVaultContract.convertToAssets(shares);
         }
         if (targetAssets > 0 && targetAssets < _minPositionSize) {
             revert RoundsVaultPositionTooSmall(
@@ -573,9 +573,7 @@ abstract contract RoundsVaultBase is
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
         // shares are burned and after the assets are transfered, which is a valid state.
-        isSelfRedeeming = owner == receiver;
         _burn(owner, id, amount);
-        isSelfRedeeming = false;
 
         exchangeAmount = _exchangeRateByRound[id].quote(amount);
 
@@ -628,9 +626,7 @@ abstract contract RoundsVaultBase is
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
         // shares are burned and after the assets are transfered, which is a valid state.
-        isSelfRedeeming = owner == receiver;
         _burnBatch(owner, ids, amounts);
-        isSelfRedeeming = false;
 
         for (uint256 i = 0; i < ids.length; i++) {
             exchangeAmount += _exchangeRateByRound[ids[i]].quote(amounts[i]);
