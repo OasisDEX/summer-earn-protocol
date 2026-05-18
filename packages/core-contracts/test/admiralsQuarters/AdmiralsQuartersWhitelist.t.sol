@@ -316,6 +316,29 @@ contract AdmiralsQuartersWhitelistTest is
         vm.stopPrank();
     }
 
+    function test_EnterFleet_ZeroReceiver() public {
+        _setWhitelisted(address(usdcFleet), user1, true);
+
+        vm.startPrank(user1);
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), 1000e6)
+        );
+        calls[1] = abi.encodeWithSelector(
+            ENTER_FLEET_SELECTOR,
+            address(usdcFleet),
+            1000e6,
+            address(0) // Zero receiver should default to user1
+        );
+
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+
+        uint256 shares = usdcFleet.balanceOf(user1);
+        assertGt(shares, 0, "User1 should receive shares when receiver is zero");
+    }
+
     function test_EnterFleet_RevertsInvalidFleetCommander() public {
         _setWhitelisted(address(0), user1, true); // this makes _revertIfNotWhitelisted pass because context doesn't match? Wait whitelist has a specific context
         // actually just whitelist user1 for address(0) to bypass whitelist check:

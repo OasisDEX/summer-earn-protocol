@@ -84,6 +84,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     error StaleOraclePrice();
     error InsufficientPendingDeposit();
     error PendingDepositActive();
+    error PendingWithdrawalActive();
     error ArkIsFrozen();
     error InvalidDepositSlippage(
         Percentage newSlippage,
@@ -303,15 +304,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         _clearPendingDeposit(pendingDepositAssets);
     }
 
-    /**
-     * @notice Removes a fulfilled deposit amount from `pendingDepositAssets`.
-     * @dev Called by the keeper after WisdomTree issues shares to this contract to
-     *      clear a partial deposit.
-     */
-    function clearPendingDeposit(uint256 amount) external onlyKeeper {
-        _validateReceivedShares(amount);
-        _clearPendingDeposit(amount);
-    }
 
     /**
      * @inheritdoc IArkWithWithdrawalRequest
@@ -322,6 +314,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         uint256 amount
     ) external override onlyKeeper onlyNotFrozen {
         // Prevent concurrent deposit/withdrawal cycles
+        if (pendingWithdrawalShares > 0) revert PendingWithdrawalActive();
         if (pendingDepositAssets > 0) revert PendingDepositActive();
 
         uint256 sharesToRedeem = _assetsToShares(amount);
@@ -364,6 +357,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         public
         override
         onlyKeeper
+        onlyNotFrozen
         nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
     {
