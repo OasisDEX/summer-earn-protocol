@@ -9,18 +9,17 @@ const ACCOUNT_SLUG = 'oazoapps'
 const PROJECT_SLUG = 'lazy-summer-governance-dashboard'
 
 import { DeploymentConfig } from '@/types/deployment'
-import { decodeCrossChainCalldata } from '@/services/validation'
 
 const deploymentConfig = deploymentConfigRaw as DeploymentConfig
 
 import {
   Address,
+  encodeAbiParameters,
   encodeFunctionData,
   formatEther,
-  toHex,
-  parseAbiParameters,
-  encodeAbiParameters,
   keccak256,
+  parseAbiParameters,
+  toHex,
 } from 'viem'
 
 import { getPublicClient } from '@/config/rpc'

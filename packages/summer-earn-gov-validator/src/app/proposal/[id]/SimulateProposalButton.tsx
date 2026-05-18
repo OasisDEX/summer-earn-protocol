@@ -4,11 +4,11 @@ import React, { useMemo, useState } from 'react'
 import { Play } from 'lucide-react'
 
 import { SimulationModal } from '@/components/SimulationCenter/SimulationModal'
+import { CHAINS, HUB_CHAIN_ID } from '@/config/chains'
 import { useSimulation } from '@/hooks/useSimulation'
+import { decodeCrossChainCalldata } from '@/services/validation'
 import { FinalStatus, ProposalWithCrossChain } from '@/types/governance'
 import { Action } from '@/types/tenderly'
-import { decodeCrossChainCalldata } from '@/services/validation'
-import { CHAINS, HUB_CHAIN_ID } from '@/config/chains'
 
 interface SimulateProposalButtonProps {
   fullProposal: ProposalWithCrossChain
