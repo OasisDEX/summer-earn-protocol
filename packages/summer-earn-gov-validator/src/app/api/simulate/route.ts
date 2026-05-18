@@ -9,10 +9,19 @@ const ACCOUNT_SLUG = 'oazoapps'
 const PROJECT_SLUG = 'lazy-summer-governance-dashboard'
 
 import { DeploymentConfig } from '@/types/deployment'
+import { decodeCrossChainCalldata } from '@/services/validation'
 
 const deploymentConfig = deploymentConfigRaw as DeploymentConfig
 
-import { Address, encodeFunctionData, formatEther, toHex } from 'viem'
+import {
+  Address,
+  encodeFunctionData,
+  formatEther,
+  toHex,
+  parseAbiParameters,
+  encodeAbiParameters,
+  keccak256,
+} from 'viem'
 
 import { getPublicClient } from '@/config/rpc'
 import { Action, TenderlyChainResult, TenderlyRawBundleResponse } from '@/types/tenderly'
@@ -61,7 +70,7 @@ export async function POST(req: Request) {
   try {
     tenderlyKey = await getSecret('TENDERLY_ACCESS_KEY')
   } catch (e: unknown) {
-    console.error('Failed to fetch TENDERLY_ACCESS_KEY:', e)
+    console.error('[SIMULATE] Failed to fetch TENDERLY_ACCESS_KEY:', e)
     return NextResponse.json(
       {
         error: 'TENDERLY_ACCESS_KEY fetch failed',
@@ -73,7 +82,13 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { actions, proposalId } = (await req.json()) as { actions: Action[]; proposalId?: string }
+    const body = await req.json()
+    const { actions, proposalId } = body as { actions: Action[]; proposalId?: string }
+
+    if (!actions || actions.length === 0) {
+      console.warn('[SIMULATE] No actions provided in the request.')
+      return NextResponse.json({ error: 'No actions provided' }, { status: 400 })
+    }
 
     // 1. Check DynamoDB Cache if proposalId is provided
     if (proposalId) {
@@ -83,7 +98,6 @@ export async function POST(req: Request) {
         'RESULT',
       )
       if (cached) {
-        console.log(`Serving cached simulation results for proposal ${proposalId}`)
         return NextResponse.json({ results: cached.results, source: 'cache' })
       }
     }
@@ -102,8 +116,13 @@ export async function POST(req: Request) {
 
     // 2. Process each chain
     for (const [chainId, groupActions] of Object.entries(chainGroups)) {
+      if (!groupActions || groupActions.length === 0) {
+        continue
+      }
+
       const chainConfig = CHAINS.find((c) => c.id === chainId)
       if (!chainConfig || !chainConfig.tenderlyId) {
+        console.warn(`[SIMULATE] Unsupported chain ID: ${chainId} (no tenderlyId found).`)
         results[chainId] = { error: 'Unsupported network for simulation' }
         continue
       }
@@ -113,6 +132,9 @@ export async function POST(req: Request) {
       const governorAddress = chainData?.deployedContracts?.govV2?.summerGovernor?.address
 
       if (!timelockAddress || !governorAddress) {
+        console.error(
+          `[SIMULATE] Failed to resolve contracts for chain ${chainId}. Timelock=${timelockAddress}, Governor=${governorAddress}`,
+        )
         results[chainId] = { error: 'Timelock or Governor address not found for this chain' }
         continue
       }
@@ -121,10 +143,53 @@ export async function POST(req: Request) {
       const balance = await publicClient.getBalance({ address: timelockAddress as Address })
       const balanceEther = formatEther(balance)
 
+      // Generate Governor queue storage overrides if there are calls targeting the Governor contract
+      const govStorage: Record<string, string> = {}
+      const govActions = groupActions.filter(
+        (a) => a.target.toLowerCase() === governorAddress.toLowerCase(),
+      )
+
+      if (govActions.length > 0) {
+        const N = govActions.length
+
+        // Slot 5 contains packed: uint128 _begin = 0, uint128 _end = N
+        // Pack into 32 bytes (leftmost 16 bytes: _end, rightmost 16 bytes: _begin)
+        const beginHex = '00000000000000000000000000000000'
+        const endHex = BigInt(N).toString(16).padStart(32, '0')
+        const slot5Value = `0x${endHex}${beginHex}`
+
+        const slot5Key = '0x0000000000000000000000000000000000000000000000000000000000000005'
+        govStorage[slot5Key] = slot5Value
+
+        // Populate _data mapping slots (slot 6 is the mapping itself)
+        govActions.forEach((action, i) => {
+          const msgDataHash = keccak256(action.calldata as `0x${string}`)
+
+          // Mapping slot for _data[i] at slot 6
+          const mappingSlot = keccak256(
+            encodeAbiParameters(parseAbiParameters('uint256, uint256'), [BigInt(i), 6n]),
+          )
+
+          govStorage[mappingSlot] = msgDataHash
+        })
+      }
+
+      const stateObjects = {
+        [timelockAddress]: {
+          balance: toHex(balance),
+        },
+        [governorAddress]: {
+          // Fund the governor contract with 100 ETH to ensure LayerZero messaging fees can be paid in the simulation
+          balance: toHex(100n * 10n ** 18n),
+          storage: govStorage,
+        },
+      }
+
       const targets = groupActions.map((a) => a.target as Address)
       const values = groupActions.map((a) => BigInt(a.value || '0'))
       const payloads = groupActions.map((a) => a.calldata as `0x${string}`)
-      const salt = (groupActions[0].salt ||
+
+      const salt = (groupActions[0]?.salt ||
         '0x0000000000000000000000000000000000000000000000000000000000000000') as `0x${string}`
       const predecessor =
         '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
@@ -144,11 +209,7 @@ export async function POST(req: Request) {
           save: true,
           save_if_fails: true,
           simulation_type: 'abi',
-          state_objects: {
-            [timelockAddress]: {
-              balance: toHex(balance),
-            },
-          },
+          state_objects: stateObjects,
         },
         // 2. Schedule the batch
         {
@@ -164,6 +225,7 @@ export async function POST(req: Request) {
           save: true,
           save_if_fails: true,
           simulation_type: 'abi',
+          state_objects: stateObjects,
         },
         // 3. Execute the batch
         {
@@ -180,6 +242,7 @@ export async function POST(req: Request) {
           save_if_fails: true,
           simulation_type: 'abi',
           value: values.reduce((acc, v) => acc + v, 0n).toString(),
+          state_objects: stateObjects,
         },
       ]
 
@@ -197,7 +260,7 @@ export async function POST(req: Request) {
 
       if (!response.ok) {
         const err = await response.text()
-        console.error(`Tenderly API error on chain ${chainId}:`, err)
+        console.error(`[SIMULATE] Tenderly API error on chain ${chainId}:`, err)
         results[chainId] = {
           error: `Tenderly API error: ${err}`,
           balance: balanceEther,
@@ -207,12 +270,19 @@ export async function POST(req: Request) {
 
       const rawData = (await response.json()) as TenderlyRawBundleResponse
       const simResults = rawData.simulation_results || []
+
       const allShareLinks: string[] = []
 
       // 3. Make EACH simulation public and get shared links
-      for (const res of simResults) {
+      for (let index = 0; index < simResults.length; index++) {
+        const res = simResults[index]
         const simId = res.simulation?.id
-        if (!simId) continue
+        if (!simId) {
+          console.warn(
+            `[SIMULATE] No simulation ID found for transaction ${index + 1}. Skipping share call.`,
+          )
+          continue
+        }
 
         try {
           const shareReq = await fetch(
@@ -228,41 +298,47 @@ export async function POST(req: Request) {
           )
 
           if (shareReq.ok) {
-            allShareLinks.push(`https://www.tdly.co/shared/simulation/${simId}`)
+            const shareLink = `https://www.tdly.co/shared/simulation/${simId}`
+            allShareLinks.push(shareLink)
+          } else {
+            console.error(`[SIMULATE] Tenderly share call failed with status: ${shareReq.status}`)
           }
         } catch (shareErr) {
-          console.error(`Error sharing simulation ${simId}:`, shareErr)
+          console.error(`[SIMULATE] Error sharing simulation ${simId}:`, shareErr)
         }
       }
 
       const shareUrls = allShareLinks
-      const shareUrl = allShareLinks[allShareLinks.length - 1] // The EXECUTE transaction
+      const shareUrl =
+        allShareLinks.length > 0 ? allShareLinks[allShareLinks.length - 1] : undefined
 
       // 4. Sanitize data to keep it under 400KB for DynamoDB and ensure consistency
       const sanitizedData: TenderlyChainResult = {
         balance: balanceEther,
         shareUrl,
         shareUrls,
-        simulation_results: simResults.map((res) => ({
-          transaction: {
-            hash: res.transaction?.hash,
-            status: res.transaction?.status,
-            gas_used: res.transaction?.gas_used,
-            error_message: res.transaction?.error_message,
-          },
-          simulation: {
-            id: res.simulation?.id,
-            status: res.simulation?.status,
-            gas_used: res.simulation?.gas_used,
-            error_message: res.simulation?.error_message,
-          },
-        })),
+        simulation_results: simResults.map((res, index) => {
+          if (!res.transaction || !res.simulation) {
+            console.warn(`[SIMULATE] Transaction or simulation object missing in result ${index}.`)
+          }
+          return {
+            transaction: {
+              hash: res.transaction?.hash,
+              status: res.transaction?.status,
+              gas_used: res.transaction?.gas_used,
+              error_message: res.transaction?.error_message,
+            },
+            simulation: {
+              id: res.simulation?.id,
+              status: res.simulation?.status,
+              gas_used: res.simulation?.gas_used,
+              error_message: res.simulation?.error_message,
+            },
+          }
+        }),
       }
 
       results[chainId] = sanitizedData
-      console.log(
-        `Simulation successful for chain ${chainId}. Shared links created: ${allShareLinks.length}`,
-      )
     }
 
     // 5. Save to DynamoDB Cache if proposalId is provided
@@ -277,7 +353,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ results })
   } catch (err) {
     const error = err as Error
-    console.error('Simulation API Internal Error:', error)
+    console.error('[SIMULATE] Simulation API Internal Critical Error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

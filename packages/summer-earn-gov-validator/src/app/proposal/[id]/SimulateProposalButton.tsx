@@ -7,6 +7,8 @@ import { SimulationModal } from '@/components/SimulationCenter/SimulationModal'
 import { useSimulation } from '@/hooks/useSimulation'
 import { FinalStatus, ProposalWithCrossChain } from '@/types/governance'
 import { Action } from '@/types/tenderly'
+import { decodeCrossChainCalldata } from '@/services/validation'
+import { CHAINS, HUB_CHAIN_ID } from '@/config/chains'
 
 interface SimulateProposalButtonProps {
   fullProposal: ProposalWithCrossChain
@@ -23,41 +25,60 @@ export function SimulateProposalButton({ fullProposal, status }: SimulateProposa
     if (isTerminalState) return []
 
     // 1. Hub chain actions (baseProposal)
-    // We assume the hub chain ID is 8453 (Base) but should ideally get it from proposal.chain
-    // However, baseProposal.targets and calldatas are definitely for the Hub.
-    const hubChainId = '8453'
     const simActions: Action[] = []
 
     fullProposal.baseProposal.targets.forEach((target, i) => {
       const calldata = fullProposal.baseProposal.calldatas[i]
-
-      // We skip things that look like cross-chain initiators IF they are already represented
-      // in crossChainProposals. But simulation API wants the LOW LEVEL calls.
-      // If we simulate the initiator, it might not actually 'do' the satellite work in Tenderly
-      // without extra cross-chain simulation support.
-      // For now, we simulate what's EXACTLY in the proposal.
+      const value = fullProposal.baseProposal.values[i]?.toString() || '0'
 
       simActions.push({
-        chainId: hubChainId,
+        chainId: HUB_CHAIN_ID,
         target,
         method: 'unknown',
         calldata,
         salt: fullProposal.baseProposal.salt,
-        value: fullProposal.baseProposal.values[i]?.toString() || '0',
+        value,
       })
+
+      // Try to decode cross-chain executions from sendProposalToTargetChain
+      const decodedCrossChain = decodeCrossChainCalldata(calldata)
+      if (decodedCrossChain) {
+        const satelliteChain = CHAINS.find((c) => c.key === decodedCrossChain.dstEid)
+        if (satelliteChain) {
+          decodedCrossChain.dstTargets.forEach((dstTarget, j) => {
+            simActions.push({
+              chainId: satelliteChain.id,
+              target: dstTarget,
+              method: 'unknown',
+              calldata: decodedCrossChain.dstCalldatas[j],
+              salt: fullProposal.baseProposal.salt,
+              value: decodedCrossChain.dstValues[j]?.toString() || '0',
+            })
+          })
+        }
+      }
     })
 
-    // 2. Satellite chain actions
+    // 2. Satellite chain actions from subgraph (as fallback, ensuring no duplicates)
     fullProposal.crossChainProposals.forEach((ccp) => {
       ccp.targets.forEach((target, i) => {
-        simActions.push({
-          chainId: ccp.chainId,
-          target,
-          method: 'unknown',
-          calldata: ccp.calldatas[i],
-          salt: ccp.salt,
-          value: ccp.values[i]?.toString() || '0',
-        })
+        const calldata = ccp.calldatas[i]
+        const alreadyExists = simActions.some(
+          (a) =>
+            a.chainId === ccp.chainId &&
+            a.target.toLowerCase() === target.toLowerCase() &&
+            a.calldata.toLowerCase() === calldata.toLowerCase(),
+        )
+        if (!alreadyExists) {
+          simActions.push({
+            chainId: ccp.chainId,
+            target,
+            method: 'unknown',
+            calldata,
+            salt: ccp.salt,
+            value: ccp.values[i]?.toString() || '0',
+          })
+        }
       })
     })
 

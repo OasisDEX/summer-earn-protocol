@@ -49,6 +49,7 @@ import deploymentConfigRaw from '@/config/index.json'
 import { useSimulation } from '@/hooks/useSimulation'
 import { DeploymentConfig } from '@/types/deployment'
 import { AbiInput, AbiItem, ProposalAction } from '@/types/governance'
+import { Action } from '@/types/tenderly'
 
 // --- Types ---
 
@@ -634,28 +635,45 @@ export default function CreateProposalPage() {
   }
 
   const handleSimulate = async () => {
-    // 1. Encode all actions per chain for the simulation API
-    const simActions = actions.map((a) => {
-      let calldata: string
-      if (a.rawCalldata) {
-        calldata = a.rawCalldata
-      } else {
-        const methodObj = a.abi.find((m) => m.name === a.method)
-        calldata = methodObj
-          ? encodeFunctionData({
-              abi: [methodObj],
-              functionName: a.method,
-              args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
-            })
-          : '0x'
-      }
-      return {
-        chainId: a.chainId,
-        target: a.target,
-        method: a.rawCalldata ? 'raw' : a.method,
-        calldata,
+    const encoded = encodeProposal()
+    const simActions: Action[] = []
+
+    // 1. Add all encoded Hub actions (which includes Base actions + sendProposalToTargetChain calls)
+    encoded.targets.forEach((target, i) => {
+      simActions.push({
+        chainId: HUB_CHAIN_ID,
+        target,
+        method: 'unknown',
+        calldata: encoded.calldatas[i],
         salt: '0x0000000000000000000000000000000000000000000000000000000000000000',
-        value: a.rawValue || '0',
+        value: encoded.values[i].toString(),
+      })
+    })
+
+    // 2. Add raw satellite actions for their direct simulations on their respective chains
+    actions.forEach((a) => {
+      if (a.chainId !== HUB_CHAIN_ID) {
+        let calldata: string
+        if (a.rawCalldata) {
+          calldata = a.rawCalldata
+        } else {
+          const methodObj = a.abi.find((m) => m.name === a.method)
+          calldata = methodObj
+            ? encodeFunctionData({
+                abi: [methodObj],
+                functionName: a.method,
+                args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
+              })
+            : '0x'
+        }
+        simActions.push({
+          chainId: a.chainId,
+          target: a.target,
+          method: a.rawCalldata ? 'raw' : a.method,
+          calldata,
+          salt: '0x0000000000000000000000000000000000000000000000000000000000000000',
+          value: a.rawValue || '0',
+        })
       }
     })
 
@@ -768,7 +786,10 @@ export default function CreateProposalPage() {
               <Network className="text-primary" size={20} />
               <h2 className="text-xl font-bold">Simulation Center</h2>
             </div>
-            <SimulationCenter results={results} targetChainIds={actions.map((a) => a.chainId)} />
+            <SimulationCenter
+              results={results}
+              targetChainIds={Array.from(new Set([HUB_CHAIN_ID, ...actions.map((a) => a.chainId)]))}
+            />
           </section>
 
           {!isEligible && isConnected && (
