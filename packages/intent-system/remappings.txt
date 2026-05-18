@@ -21,3 +21,4 @@ metamorpho/=node_modules/@summerfi/dependencies/lib/metamorpho-local/src/
 @summerfi/earn-protocol-contracts-test/=node_modules/@summerfi/earn-protocol-contracts/test/
 @summerfi/earn-protocol-test/=node_modules/@summerfi/earn-protocol-contracts/test/
 @summerfi/config-contracts/=node_modules/@summerfi/config-contracts/src/
+solidity-bytes-utils/=../../node_modules/solidity-bytes-utils/
