@@ -5,12 +5,16 @@ import {ISyrupManager} from "../../interfaces/syrup/ISyrupManager.sol";
 import {ISyrupPool} from "../../interfaces/syrup/ISyrupPool.sol";
 import {ISyrupRouter} from "../../interfaces/syrup/ISyrupRouter.sol";
 import {ISyrupWithdrawalManagerV2} from "../../interfaces/syrup/ISyrupWithdrawalManagerV2.sol";
+import {IPoolPermissionManager} from "../../interfaces/syrup/IPoolPermissionManager.sol";
 import "../ArkWithWithdrawalRequest.sol";
 
 error InvalidWithdrawalManager();
 error InvalidManager();
 error InvalidRouterAddress();
 error WrongAmountOfSharesReturned();
+error AlreadyWhitelisted();
+error WhitelistFailed();
+error InvalidPoolPermissionManagerAddress();
 
 /**
  * @title SyrupArkV2
@@ -29,6 +33,7 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
     ISyrupManager public immutable manager;
     ISyrupWithdrawalManagerV2 public immutable withdrawalManager;
     ISyrupRouter public immutable router;
+    IPoolPermissionManager public immutable poolPermissionManager;
     bytes32 public immutable summerReferralCode;
 
     /*//////////////////////////////////////////////////////////////
@@ -100,6 +105,67 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
      */
     function assetsInWithdrawalQueue() public view returns (uint256) {
         return _assetsInWithdrawalQueue();
+    }
+
+    /**
+     * @notice Authorizes and deposits assets into the Syrup pool
+     * @dev Can only be called once by the keeper when not yet whitelisted. Pulls funds from the keeper.
+     */
+    function authorizeAndDeposit(
+        uint256 bitmap,
+        uint256 deadline,
+        uint8 auth_v,
+        bytes32 auth_r,
+        bytes32 auth_s,
+        uint256 amount
+    ) external onlyKeeper nonReentrant {
+        address _poolPermissionManager = router.poolPermissionManager();
+        if (_poolPermissionManager == address(0)) {
+            revert InvalidPoolPermissionManagerAddress();
+        }
+
+        if (
+            IPoolPermissionManager(_poolPermissionManager).hasPermission(
+                address(manager),
+                address(this),
+                "P:deposit"
+            )
+        ) {
+            revert AlreadyWhitelisted();
+        }
+
+        // Pull funds from keeper
+        IERC20(vault.asset()).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+
+        // Approve router
+        IERC20(vault.asset()).forceApprove(address(router), amount);
+
+        // Call authorizeAndDeposit on router
+        router.authorizeAndDeposit(
+            bitmap,
+            deadline,
+            auth_v,
+            auth_r,
+            auth_s,
+            amount,
+            summerReferralCode
+        );
+
+        if (
+            !IPoolPermissionManager(_poolPermissionManager).hasPermission(
+                address(manager),
+                address(this),
+                "P:deposit"
+            )
+        ) {
+            revert WhitelistFailed();
+        }
+
+        emit Boarded(msg.sender, address(config.asset), amount);
     }
 
     /**
