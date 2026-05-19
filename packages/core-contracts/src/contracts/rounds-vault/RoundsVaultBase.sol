@@ -234,7 +234,7 @@ abstract contract RoundsVaultBase is
         public
         virtual
         override(IERC4626MultiToken, ERC4626MultiToken)
-        validateMinPosition(address(0), receiver)
+        validateMinPosition(_msgSender(), receiver)
         returns (uint256)
     {
         _revertIfNotWhitelisted(vault(), receiver, _msgSender());
