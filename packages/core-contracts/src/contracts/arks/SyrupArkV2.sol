@@ -5,12 +5,21 @@ import {ISyrupManager} from "../../interfaces/syrup/ISyrupManager.sol";
 import {ISyrupPool} from "../../interfaces/syrup/ISyrupPool.sol";
 import {ISyrupRouter} from "../../interfaces/syrup/ISyrupRouter.sol";
 import {ISyrupWithdrawalManagerV2} from "../../interfaces/syrup/ISyrupWithdrawalManagerV2.sol";
-import "../ArkWithWithdrawalRequest.sol";
+import {IPoolPermissionManager} from "../../interfaces/syrup/IPoolPermissionManager.sol";
+import {ArkWithWithdrawalRequest} from "../ArkWithWithdrawalRequest.sol";
+import {IArk} from "../../interfaces/IArk.sol";
+import {IArkWithWithdrawalRequest} from "../../interfaces/IArkWithWithdrawalRequest.sol";
+import {Ark} from "../Ark.sol";
+import {ArkParams} from "../../types/ArkTypes.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 error InvalidWithdrawalManager();
 error InvalidManager();
 error InvalidRouterAddress();
 error WrongAmountOfSharesReturned();
+error AlreadyWhitelisted();
+error WhitelistFailed();
+error InvalidPoolPermissionManagerAddress();
 
 /**
  * @title SyrupArkV2
@@ -25,11 +34,11 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    ISyrupPool public immutable vault;
-    ISyrupManager public immutable manager;
-    ISyrupWithdrawalManagerV2 public immutable withdrawalManager;
-    ISyrupRouter public immutable router;
-    bytes32 public immutable summerReferralCode;
+    ISyrupPool public immutable VAULT;
+    ISyrupManager public immutable MANAGER;
+    ISyrupWithdrawalManagerV2 public immutable WITHDRAWAL_MANAGER;
+    ISyrupRouter public immutable ROUTER;
+    bytes32 public immutable SUMMER_REFERRAL_CODE;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -49,25 +58,25 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
         if (_vault == address(0)) revert InvalidVaultAddress();
         if (_router == address(0)) revert InvalidRouterAddress();
 
-        vault = ISyrupPool(_vault);
-        router = ISyrupRouter(_router);
+        VAULT = ISyrupPool(_vault);
+        ROUTER = ISyrupRouter(_router);
 
         // Validate vault asset matches Ark's asset
-        if (address(vault.asset()) != address(config.asset)) {
+        if (address(VAULT.asset()) != address(config.asset)) {
             revert ERC4626AssetMismatch();
         }
 
         // Set up and validate manager references
-        manager = ISyrupManager(vault.manager());
-        withdrawalManager = ISyrupWithdrawalManagerV2(
-            manager.withdrawalManager()
+        MANAGER = ISyrupManager(VAULT.manager());
+        WITHDRAWAL_MANAGER = ISyrupWithdrawalManagerV2(
+            MANAGER.withdrawalManager()
         );
 
-        if (address(withdrawalManager) == address(0)) {
+        if (address(WITHDRAWAL_MANAGER) == address(0)) {
             revert InvalidWithdrawalManager();
         }
-
-        summerReferralCode = bytes32("0:summer");
+        // forge-lint: disable-next-line(unsafe-typecast)
+        SUMMER_REFERRAL_CODE = bytes32("0:summer");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -89,9 +98,9 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
         assets += _assetsInWithdrawalQueue();
 
         // Add value of shares held by Ark
-        uint256 sharesInArk = vault.balanceOf(address(this));
+        uint256 sharesInArk = VAULT.balanceOf(address(this));
         if (sharesInArk > 0) {
-            assets += vault.convertToExitAssets(sharesInArk);
+            assets += VAULT.convertToExitAssets(sharesInArk);
         }
     }
 
@@ -100,6 +109,67 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
      */
     function assetsInWithdrawalQueue() public view returns (uint256) {
         return _assetsInWithdrawalQueue();
+    }
+
+    /**
+     * @notice Authorizes and deposits assets into the Syrup pool
+     * @dev Can only be called once by the keeper when not yet whitelisted. Pulls funds from the keeper.
+     */
+    function authorizeAndDeposit(
+        uint256 bitmap,
+        uint256 deadline,
+        uint8 authV,
+        bytes32 authR,
+        bytes32 authS,
+        uint256 amount
+    ) external onlyKeeper nonReentrant {
+        address _poolPermissionManager = ROUTER.poolPermissionManager();
+        if (_poolPermissionManager == address(0)) {
+            revert InvalidPoolPermissionManagerAddress();
+        }
+
+        if (
+            IPoolPermissionManager(_poolPermissionManager).hasPermission(
+                address(MANAGER),
+                address(this),
+                "P:deposit"
+            )
+        ) {
+            revert AlreadyWhitelisted();
+        }
+
+        // Pull funds from keeper
+        IERC20(VAULT.asset()).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+
+        // Approve router
+        IERC20(VAULT.asset()).forceApprove(address(ROUTER), amount);
+
+        // Call authorizeAndDeposit on router
+        ROUTER.authorizeAndDeposit(
+            bitmap,
+            deadline,
+            authV,
+            authR,
+            authS,
+            amount,
+            SUMMER_REFERRAL_CODE
+        );
+
+        if (
+            !IPoolPermissionManager(_poolPermissionManager).hasPermission(
+                address(MANAGER),
+                address(this),
+                "P:deposit"
+            )
+        ) {
+            revert WhitelistFailed();
+        }
+
+        emit Boarded(msg.sender, address(config.asset), amount);
     }
 
     /**
@@ -113,14 +183,14 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
         }
         uint256 shares = 0;
         if (amount == type(uint256).max) {
-            shares = vault.balanceOf(address(this));
+            shares = VAULT.balanceOf(address(this));
         } else {
-            shares = vault.convertToExitShares(amount);
+            shares = VAULT.convertToExitShares(amount);
         }
-        vault.requestRedeem(shares, address(this));
+        VAULT.requestRedeem(shares, address(this));
         emit WithdrawalRequested(
             amount,
-            withdrawalManager.requestIds(address(this))
+            WITHDRAWAL_MANAGER.requestIds(address(this))
         );
     }
 
@@ -152,13 +222,13 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
      * @dev Uses Maple's pool.removeShares to cancel the request
      */
     function cancelWithdrawal() external onlyKeeper {
-        uint256 escrowedShares = withdrawalManager.userEscrowedShares(
+        uint256 escrowedShares = WITHDRAWAL_MANAGER.userEscrowedShares(
             address(this)
         );
         if (escrowedShares == 0) {
             revert NoWithdrawalToClaim();
         }
-        uint256 returnedShares = vault.removeShares(
+        uint256 returnedShares = VAULT.removeShares(
             escrowedShares,
             address(this)
         );
@@ -176,10 +246,13 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
         bytes calldata data
     ) external onlyKeeper nonReentrant {
         // conservative estimate of shares to withdraw (reflecting market knowledge of unrealized losses)
-        uint256 shares = vault.convertToExitShares(amount);
-        SwapData memory swapData = abi.decode(data, (SwapData));
+        uint256 shares = VAULT.convertToExitShares(amount);
+        IArkWithWithdrawalRequest.SwapData memory swapData = abi.decode(
+            data,
+            (IArkWithWithdrawalRequest.SwapData)
+        );
         uint256 assetBought = _swap(
-            address(vault),
+            address(VAULT),
             address(config.asset),
             swapData.router,
             shares,
@@ -205,12 +278,12 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
         override
         returns (uint256)
     {
-        return IERC20(vault.asset()).balanceOf(address(this));
+        return IERC20(VAULT.asset()).balanceOf(address(this));
     }
 
     function _board(uint256 amount, bytes calldata) internal override {
-        IERC20(vault.asset()).forceApprove(address(router), amount);
-        router.deposit(amount, summerReferralCode);
+        IERC20(VAULT.asset()).forceApprove(address(ROUTER), amount);
+        ROUTER.deposit(amount, SUMMER_REFERRAL_CODE);
     }
 
     function _disembark(uint256, bytes calldata) internal override {
@@ -243,13 +316,13 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
      *      front-running of impairment events.
      */
     function _assetsInWithdrawalQueue() internal view returns (uint256) {
-        uint256 escrowedShares = withdrawalManager.userEscrowedShares(
+        uint256 escrowedShares = WITHDRAWAL_MANAGER.userEscrowedShares(
             address(this)
         );
         if (escrowedShares == 0) {
             return 0;
         }
-        return vault.convertToExitAssets(escrowedShares);
+        return VAULT.convertToExitAssets(escrowedShares);
     }
 
     /**
@@ -257,6 +330,6 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
      *      withdrawal manager. Returns 0 if no pending request exists.
      */
     function _withdrawalRequestId() internal view returns (uint256) {
-        return withdrawalManager.requestIds(address(this));
+        return WITHDRAWAL_MANAGER.requestIds(address(this));
     }
 }

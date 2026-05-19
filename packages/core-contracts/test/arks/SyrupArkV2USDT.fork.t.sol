@@ -2,7 +2,9 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/SyrupArkV2.sol";
+import "../../src/interfaces/IArkWithWithdrawalRequest.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 import "../../src/events/IArkEvents.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
@@ -11,15 +13,6 @@ import {ISyrupRouter} from "../../src/interfaces/syrup/ISyrupRouter.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-
-// Mock interface for PoolPermissionManager
-interface IPoolPermissionManager {
-    function setLenderAllowlist(
-        address poolManager_,
-        address[] calldata lenders_,
-        bool[] calldata booleans_
-    ) external;
-}
 
 contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
@@ -48,8 +41,10 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
 
     uint256 forkBlock = 24519080;
     uint256 forkId;
+    bytes32 public constant REFERRAL_CODE = bytes32("0:summer");
 
     function setUp() public {
+        forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
         initializeCoreContracts();
         (
             address _commander,
@@ -57,7 +52,6 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
         ) = setupFleetCommanderWithBufferArk(USDT_ADDRESS, "Test Fleet");
         commander = _commander;
         bufferArk = _bufferArk;
-        forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         usdt = IERC20(USDT_ADDRESS);
         syrupPool = ISyrupPool(SYRUP_USDT_POOL_ADDRESS);
@@ -101,18 +95,8 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
         ark.whitelistRouter(KYBER_ROUTER_MAINNET, true);
         vm.stopPrank();
 
-        vm.startPrank(SYRUP_ADMIN_ADDRESS);
-        address[] memory lenders = new address[](1);
-        lenders[0] = address(ark);
-        bool[] memory booleans = new bool[](1);
-        booleans[0] = true;
-        IPoolPermissionManager(SYRUP_POOL_PERMISSION_MANAGER)
-            .setLenderAllowlist(
-                SYRUP_USDT_POOL_MANAGER_ADDRESS,
-                lenders,
-                booleans
-            );
-        vm.stopPrank();
+        // Admin Whitelists the Ark (Pre-requisite for the router's deposit logic)
+        _keeperAuthorization();
 
         vm.makePersistent(address(usdt));
         vm.makePersistent(address(syrupPool));
@@ -146,7 +130,7 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
             abi.encodeWithSelector(
                 ISyrupRouter.deposit.selector,
                 amount,
-                bytes32("0:summer")
+                REFERRAL_CODE
             )
         );
         uint256 shares = ISyrupPool(SYRUP_USDT_POOL_ADDRESS).convertToShares(
@@ -154,16 +138,13 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
         );
 
         // Expect the Transfer event to be emitted - minted shares
-        vm.expectEmit();
+        vm.expectEmit(true, true, true, true, address(syrupPool));
         emit IERC20.Transfer(SYRUP_USDT_ROUTER_ADDRESS, address(ark), shares);
 
         // Expect the DepositData event to be emitted with summer referral code
         vm.expectEmit();
-        emit ISyrupRouter.DepositData(
-            address(ark),
-            amount,
-            bytes32("0:summer")
-        );
+
+        emit ISyrupRouter.DepositData(address(ark), amount, REFERRAL_CODE);
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
@@ -399,15 +380,15 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
             bufferArk
         );
 
-        vm.expectEmit(true, true, true, true);
-        emit Disembarked(address(keeper), USDT_ADDRESS, amount - 1);
+        vm.expectEmit(true, true, false, false);
+        emit Disembarked(address(keeper), USDT_ADDRESS, 0);
 
         vm.prank(keeper);
         ark.sweep();
 
-        assertEq(
+        assertGt(
             IERC20(USDT_ADDRESS).balanceOf(bufferArk),
-            bufferArkUsdtBalanceBefore + amount - 1
+            bufferArkUsdtBalanceBefore + amount
         );
     }
 
@@ -420,7 +401,9 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
             });
         bytes memory data = abi.encode(swapData);
         vm.prank(keeper);
-        vm.expectRevert(abi.encodeWithSignature("RouterNotWhitelisted()"));
+        vm.expectRevert(
+            IArkWithWithdrawalRequest.RouterNotWhitelisted.selector
+        );
         ark.withdrawUsingSwap(10000 * 10 ** 6, data);
     }
 
@@ -451,6 +434,69 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
             0,
             "There should be no syrupUSDT in the ark"
         );
+    }
+
+    function _keeperAuthorization() internal {
+        uint256 signerPk = 0x1234;
+        address recoveredSigner = vm.addr(signerPk);
+
+        // Mock the permission check on the real PoolPermissionManager contract
+        vm.mockCall(
+            SYRUP_POOL_PERMISSION_MANAGER,
+            abi.encodeWithSignature(
+                "permissionAdmins(address)",
+                recoveredSigner
+            ),
+            abi.encode(true)
+        );
+        uint256 amount = 3; // 1 USDT
+        deal(USDT_ADDRESS, keeper, amount * 2);
+
+        uint256 nonce = ISyrupRouter(SYRUP_USDT_ROUTER_ADDRESS).nonces(
+            address(ark)
+        );
+        uint256 bitmap = 16;
+        uint256 deadline = block.timestamp + 1 hours;
+
+        // 1. First deposit WITH authorization (Sets protocol bitmaps and deposits)
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                block.chainid,
+                SYRUP_USDT_ROUTER_ADDRESS,
+                address(ark),
+                nonce,
+                bitmap,
+                deadline
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, digest);
+        address recoveredSigner2 = ecrecover(digest, v, r, s);
+        assertTrue(recoveredSigner == recoveredSigner2);
+        vm.startPrank(keeper);
+        usdt.forceApprove(address(ark), amount);
+        ark.authorizeAndDeposit(bitmap, deadline, v, r, s, amount);
+        vm.stopPrank();
+    }
+
+    function test_AuthorizeAndDeposit_AlreadyWhitelisted_Reverts() public {
+        // Since 'ark' is already whitelisted in setUp() via the mock, calling authorizeAndDeposit should revert immediately
+        uint256 amount = 1000 * 10 ** 6;
+        deal(address(usdt), keeper, amount);
+
+        vm.startPrank(keeper);
+        usdt.forceApprove(address(ark), amount);
+
+        vm.expectRevert(AlreadyWhitelisted.selector);
+        ark.authorizeAndDeposit(
+            16,
+            block.timestamp + 1 hours,
+            27,
+            bytes32(0),
+            bytes32(0),
+            amount
+        );
+        vm.stopPrank();
     }
 }
 

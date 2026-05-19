@@ -45,4 +45,16 @@ interface ISyrupRouter {
         uint256 assets,
         bytes32 depositData
     ) external returns (uint256 shares);
+
+    /**
+     *  @dev    Returns the next nonce for the owner's signature.
+     *  @param  owner The address to check the nonce for.
+     *  @return The next nonce.
+     */
+    function nonces(address owner) external view returns (uint256);
+
+    /**
+     *  @dev    Returns the address of the pool permission manager.
+     */
+    function poolPermissionManager() external view returns (address);
 }
