@@ -494,4 +494,16 @@ contract RoundsVaultMinPositionTest is
         outputVault.deposit(800e6, otherUser);
         vm.stopPrank();
     }
+
+    function test_MinPosition_DepositToDifferentUser_SenderDust_Succeeds()
+        public
+    {
+        // Give user as position below minimum (100e6 < MIN_POSITION)
+        deal(address(targetVault), otherUser, 100e6);
+        usdc.mint(otherUser, 2000e6);
+        vm.startPrank(otherUser);
+        usdc.approve(address(inputVault), 2000e6);
+        inputVault.deposit(2000e6, user);
+        vm.stopPrank();
+    }
 }
