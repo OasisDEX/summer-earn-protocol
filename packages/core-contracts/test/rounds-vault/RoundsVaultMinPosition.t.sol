@@ -379,9 +379,7 @@ contract RoundsVaultMinPositionTest is
         vm.stopPrank();
     }
 
-    function test_MinPosition_OutputVault_Redeem_ReceiverDust_Reverts()
-        public
-    {
+    function test_MinPosition_OutputVault_Redeem_ReceiverDust_Reverts() public {
         vm.startPrank(user);
         targetVault.deposit(2000e6, user);
         targetVault.approve(address(outputVault), 2000e6);
@@ -463,6 +461,37 @@ contract RoundsVaultMinPositionTest is
         outputVault.redeem(0, 500e6, user, user);
         assertEq(outputVault.balanceOfAll(user), 0);
         assertEq(targetVault.balanceOf(user), 500e6);
+        vm.stopPrank();
+    }
+
+    function test_MinPosition_OutputVault_Deposit_DepositorBelowMinimum_Reverts()
+        public
+    {
+        // Give otherUser a position above minimum so the incoming check passes cleanly
+        usdc.mint(otherUser, 2000e6);
+        vm.startPrank(otherUser);
+        usdc.approve(address(targetVault), 2000e6);
+        targetVault.deposit(2000e6, otherUser);
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        // User acquires 1500e6 target shares (above minimum)
+        targetVault.deposit(1500e6, user);
+        targetVault.approve(address(outputVault), 1500e6);
+
+        // Depositing 800e6 into output vault with receiver=otherUser leaves the depositor (user)
+        // with 700e6 target shares — above 0 but below MIN_POSITION.
+        // The deposit passes address(0) as outgoing so the depositor is never validated,
+        // meaning this call currently succeeds when it should revert (bug).
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RoundsVaultPositionTooSmall.selector,
+                user,
+                700e6,
+                MIN_POSITION
+            )
+        );
+        outputVault.deposit(800e6, otherUser);
         vm.stopPrank();
     }
 }
