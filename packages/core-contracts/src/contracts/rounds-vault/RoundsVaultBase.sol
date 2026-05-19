@@ -187,21 +187,25 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     * @dev Validates the user's aggregate asset position is at least the minimum position size.
+     * @dev Validates that both outgoing and incoming parties meet the minimum aggregate position size.
+     *      Runs post-flight (`_;` first) to inspect the final exact on-chain balances.
+     * @param outgoing The address reducing their position (use `address(0)` sentinel for deposits).
+     *                 For self-operations, allows a full exit (0 balance remaining) without reverting.
+     * @param incoming The address increasing their position (skips if self or address(this)).
      */
-    modifier validateMinPosition(address from, address to) {
+    modifier validateMinPosition(address outgoing, address incoming) {
         _;
 
         uint256 _minPositionSize = minPositionSize;
         if (_minPositionSize > 0) {
             bool isInput = VAULT_TYPE == BaseVaultType.Input;
             address targetVault = vault();
-            bool isSelf = from == to;
+            bool isSelf = outgoing == incoming;
 
-            if (from != address(0) && from != address(this)) {
-                if (!isSelf || balanceOfAll(from) > 0) {
+            if (outgoing != address(0)) {
+                if (!isSelf || balanceOfAll(outgoing) > 0) {
                     _validateAggregateAssets(
-                        from,
+                        outgoing,
                         isInput,
                         _minPositionSize,
                         targetVault
@@ -209,9 +213,9 @@ abstract contract RoundsVaultBase is
                 }
             }
 
-            if (!isSelf && to != address(0) && to != address(this)) {
+            if (!isSelf && incoming != address(0)) {
                 _validateAggregateAssets(
-                    to,
+                    incoming,
                     isInput,
                     _minPositionSize,
                     targetVault
