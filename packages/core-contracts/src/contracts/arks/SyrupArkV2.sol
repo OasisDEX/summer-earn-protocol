@@ -33,7 +33,6 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
     ISyrupManager public immutable manager;
     ISyrupWithdrawalManagerV2 public immutable withdrawalManager;
     ISyrupRouter public immutable router;
-    IPoolPermissionManager public immutable poolPermissionManager;
     bytes32 public immutable summerReferralCode;
 
     /*//////////////////////////////////////////////////////////////
