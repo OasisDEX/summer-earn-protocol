@@ -247,7 +247,10 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
     ) external onlyKeeper nonReentrant {
         // conservative estimate of shares to withdraw (reflecting market knowledge of unrealized losses)
         uint256 shares = VAULT.convertToExitShares(amount);
-        IArkWithWithdrawalRequest.SwapData memory swapData = abi.decode(data, (IArkWithWithdrawalRequest.SwapData));
+        IArkWithWithdrawalRequest.SwapData memory swapData = abi.decode(
+            data,
+            (IArkWithWithdrawalRequest.SwapData)
+        );
         uint256 assetBought = _swap(
             address(VAULT),
             address(config.asset),
