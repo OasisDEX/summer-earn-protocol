@@ -7,4 +7,5 @@ interface ISuperstateArkErrors {
     error InvalidRedeemAddress();
     error OraclePriceNotPositive();
     error StaleOraclePrice();
+    error OnlySelf();
 }

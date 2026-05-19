@@ -3,9 +3,8 @@ pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/SuperstateSubscribeArk.sol";
 import {AggregatorV3Interface} from "../../src/interfaces/external/Chainlink/AggregatorV3Interface.sol";
-import {ISuperstateSubscribe} from "../../src/interfaces/superstate/ISuperstateSubscribe.sol";
-import {ISuperstateRedeem} from "../../src/interfaces/superstate/ISuperstateRedeem.sol";
 import {ISuperstateToken, SupportedStablecoin} from "../../src/interfaces/superstate/ISuperstateToken.sol";
+import {ISuperstateRedeem} from "../../src/interfaces/superstate/ISuperstateRedeem.sol";
 import "../../src/events/IArkEvents.sol";
 import {ISuperstateArkErrors} from "../../src/errors/arks/ISuperstateArkErrors.sol";
 import {ISuperstateSubscribeArkErrors} from "../../src/errors/arks/ISuperstateSubscribeArkErrors.sol";
@@ -82,12 +81,14 @@ contract MockSuperstateOracle is AggregatorV3Interface {
     }
 }
 
-contract MockSuperstateSubscribe is ISuperstateSubscribe {
+contract MockSuperstateSubscribe is ISuperstateToken {
     using SafeERC20 for IERC20;
     IERC20 public usdc;
+    address public _superstateOracle;
 
-    constructor(address _usdc) {
+    constructor(address _usdc, address oracle_) {
         usdc = IERC20(_usdc);
+        _superstateOracle = oracle_;
     }
 
     function subscribe(
@@ -100,7 +101,6 @@ contract MockSuperstateSubscribe is ISuperstateSubscribe {
             address(this),
             inAmount
         );
-        // We can simulate minting by assuming the test has access to the MockERC20
     }
 
     function subscribe(uint256 inAmount, address stablecoin) external override {
@@ -109,6 +109,16 @@ contract MockSuperstateSubscribe is ISuperstateSubscribe {
             address(this),
             inAmount
         );
+    }
+
+    function supportedStablecoins(
+        address /*stablecoin*/
+    ) external pure override returns (SupportedStablecoin memory) {
+        return SupportedStablecoin({sweepDestination: address(0x5555), fee: 0});
+    }
+
+    function superstateOracle() external view override returns (address) {
+        return _superstateOracle;
     }
 }
 
@@ -123,6 +133,11 @@ contract MockSuperstateRedeem is ISuperstateRedeem {
     }
 
     function redeem(uint256 amount, address to) external {
+        shareToken.safeTransferFrom(msg.sender, address(this), amount);
+        usdc.safeTransfer(to, amount * 10);
+    }
+
+    function withdraw(address /*_token*/, address to, uint256 amount) external {
         shareToken.safeTransferFrom(msg.sender, address(this), amount);
         usdc.safeTransfer(to, amount * 10);
     }
@@ -151,6 +166,14 @@ contract MockSuperstateToken is MockERC20, ISuperstateToken {
                 });
         }
         return SupportedStablecoin({sweepDestination: address(0), fee: 0});
+    }
+
+    function subscribe(address, uint256, address) external override {}
+
+    function subscribe(uint256, address) external override {}
+
+    function superstateOracle() external pure override returns (address) {
+        return address(0);
     }
 }
 
@@ -183,7 +206,7 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         shareToken.initialize("USTB", "USTB", 6);
         shareToken.setSupportedStablecoin(USDC_ADDRESS, address(0x5555));
 
-        subscribeContract = new MockSuperstateSubscribe(USDC_ADDRESS);
+        subscribeContract = new MockSuperstateSubscribe(USDC_ADDRESS, address(oracle));
         redeemContract = new MockSuperstateRedeem(
             address(shareToken),
             USDC_ADDRESS
@@ -205,20 +228,6 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         });
 
         vm.startPrank(governor);
-        // Note: the original ISuperstateToken uses the shareToken to get the mapping, but the
-        // Ark's constructor uses `_superstateSubscribe` to call `supportedStablecoins`.
-        // Let's mock call `supportedStablecoins` on `subscribeContract` to return valid struct since
-        // the subscribeContract is the one that has `supportedStablecoins` according to the updated plan
-        // wait, I made the proxy subscribeContract above. Let's just mock it.
-        vm.mockCall(
-            address(subscribeContract),
-            abi.encodeWithSelector(
-                ISuperstateToken.supportedStablecoins.selector,
-                USDC_ADDRESS
-            ),
-            abi.encode(address(0x5555), uint96(0))
-        );
-
         ark = new SuperstateSubscribeArk(
             address(shareToken),
             address(subscribeContract),
