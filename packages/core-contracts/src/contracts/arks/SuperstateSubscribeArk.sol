@@ -229,6 +229,11 @@ contract SuperstateSubscribeArk is
      *      async off-chain path is taken via `_withdrawShares`.
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
+        // TODO: Check if the amount is the current balance of the ark without taking into account
+        // the pending withdrawals and in that case redeem all the balance at once. If the
+        // direct redeem/withdraw fails then check if there is a pending withdrawal and if so
+        // then bail out as we don't want to accumulate withdrawal requests.
+
         // To prevent dust in the ark we check if the amount is equal to the total assets
         // and if there are no pending withdrawals. In that case we redeem all the shares
         // at once.
