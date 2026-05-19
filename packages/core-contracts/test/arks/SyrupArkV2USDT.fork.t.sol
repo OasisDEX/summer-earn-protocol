@@ -13,6 +13,7 @@ import {ISyrupRouter} from "../../src/interfaces/syrup/ISyrupRouter.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
 contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     SyrupArkV2 public ark;
@@ -40,6 +41,7 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
 
     uint256 forkBlock = 24519080;
     uint256 forkId;
+    bytes32 public constant REFERRAL_CODE = bytes32("0:summer");
 
     function setUp() public {
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
@@ -128,7 +130,7 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
             abi.encodeWithSelector(
                 ISyrupRouter.deposit.selector,
                 amount,
-                bytes32("0:summer")
+                REFERRAL_CODE
             )
         );
         uint256 shares = ISyrupPool(SYRUP_USDT_POOL_ADDRESS).convertToShares(
@@ -141,11 +143,8 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
 
         // Expect the DepositData event to be emitted with summer referral code
         vm.expectEmit();
-        emit ISyrupRouter.DepositData(
-            address(ark),
-            amount,
-            bytes32("0:summer")
-        );
+
+        emit ISyrupRouter.DepositData(address(ark), amount, REFERRAL_CODE);
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
@@ -395,8 +394,8 @@ contract SyrupArkV2USDTTestFork is Test, IArkEvents, ArkTestBase {
 
     function test_WithdrawUsingSwap_NonWhitelistedRouter() public {
         test_Board_Syrup_fork();
-        IArkWithWithdrawalRequest.SwapData
-            memory swapData = IArkWithWithdrawalRequest.SwapData({
+        IArkWithWithdrawalRequest.SwapData memory swapData = IArkWithWithdrawalRequest
+            .SwapData({
                 router: address(0x123), // Non-whitelisted router
                 swapCalldata: hex"83bd37f9000180ac24aa929eaf5013f6436cda2a7ba190f5cc0b0001a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480569e9e421000574457d4f8d004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE9900000001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef04020204012fb5d42107010101020195538979e579d49999f780c04fc4bf68778b6f0000000000000000000006d9000d0101030101ff000000000000000000000080ac24aa929eaf5013f6436cda2a7ba190f5cc0ba0b86991c6218b36c1d19d4a2e9eb0ce3606eb48ab22d1d671bb5cee8735c5ba29ea651ccda48a8e00000000"
             });

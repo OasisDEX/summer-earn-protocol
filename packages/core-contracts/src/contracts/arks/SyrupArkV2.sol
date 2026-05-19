@@ -70,7 +70,7 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
         if (address(withdrawalManager) == address(0)) {
             revert InvalidWithdrawalManager();
         }
-
+        // forge-lint: disable-next-line(unsafe-typecast)
         summerReferralCode = bytes32("0:summer");
     }
 
