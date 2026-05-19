@@ -69,7 +69,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0xfec27FAAF888Fb4C2Ce6d51547F82E5D05F5D12d"
+          "address": "0x2e4AC08988c3a995A290Da2655664a8dEF92675F"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -349,7 +349,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0xc098248Ec73DF55c0fb3f9bEfcF62eE4C45097D1"
+          "address": "0x20aF9545eBb320c80C5736880bAA7a244a75868f"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -610,7 +610,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0xf5A69789Bf5e62A43C47E4c8d857b8DAE14d4ab0"
+          "address": "0x09124a25756223Eb7A523A0377cc83Dc8D22e1bE"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -909,11 +909,13 @@
             "Steakhouse_3Fx_USDC": "0xBEEf3f3A04e28895f3D5163d910474901981183D",
             "Steakhouse_High_Yield_Instant": "0xbeeff2C5bF38f90e3482a8b19F12E5a6D2FCa757",
             "Steakhouse_Prime_Instant": "0xbeef088055857739C12CD3765F20b7679Def0f51",
-            "August_USDC_V2": "0x7ceB0f01Cb7187a2EBED5661eCC4d5701d8F2350"
+            "August_USDC_V2": "0x7ceB0f01Cb7187a2EBED5661eCC4d5701d8F2350",
+            "Sky_USDC_Risk_Capital_V2": "0x56bfa6f53669B836D1E0Dfa5e99706b12c373ecf"
           },
           "usdt": {
             "Steakhouse_Prime_Instant": "0xbeef003C68896c7D2c3c60d363e8d71a49Ab2bf9",
-            "Steakhouse_High_Yield_Instant": "0xbeeff07d991C04CD640DE9F15C08ba59c4FEDEb7"
+            "Steakhouse_High_Yield_Instant": "0xbeeff07d991C04CD640DE9F15C08ba59c4FEDEb7",
+            "Sky_USDT_Savings_V2": "0x23f5E9c35820f4baB695Ac1F19c203cC3f8e1e11"
           },
           "weth": {
             "Steakhouse_Prime_Instant_V2": "0xbeef0046fcab1dE47E41fB75BB3dC4Dfc94108E3",
@@ -1065,7 +1067,7 @@
           "address": "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
         },
         "admiralsQuarters": {
-          "address": "0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274"
+          "address": "0xAf755eD8D76Fdceab2B1cdC0d4C8C94f4e8eEe54"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xC474Cd1ea6f1809d17be61717b83f0F984EF0459"
@@ -1364,7 +1366,7 @@
           "address": "0x5CD5D7e3A1b604E0EdeDc4A2343b312729e09E3F"
         },
         "admiralsQuarters": {
-          "address": "0x2c93a68Fbe527aD1594ae0B11b50CFEcBBf3255f"
+          "address": "0x13c93bB39F8f6F08310522DD447d18683aB3ca51"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xBcA69b2918bad37E8A4e1F77B6864F27eee05AEe"

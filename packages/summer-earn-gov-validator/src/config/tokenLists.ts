@@ -12,6 +12,15 @@ export const TOKEN_LISTS: Record<SupportedChainId, TokenInfo[]> = {
         'https://assets.smold.app/api/token/8453/0x194f360D130F2393a5E9F3117A6a1B78aBEa1624/logo-128.png',
     },
     {
+      address: '0xdc035d45d973e3ec169d2276ddab16f1e407384f',
+      name: 'USDS',
+      symbol: 'USDS',
+      decimals: 18,
+      chainId: 1,
+      logoURI:
+        'https://assets.smold.app/api/token/1/0xdc035d45d973e3ec169d2276ddab16f1e407384f/logo-128.png',
+    },
+    {
       address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
       name: 'USD Coin',
       symbol: 'USDC',

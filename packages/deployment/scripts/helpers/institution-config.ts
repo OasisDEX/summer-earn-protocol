@@ -133,6 +133,7 @@ export function updateInstitutionFleetEntry(
   fleetName: string,
   entry: InstitutionFleetEntry,
 ) {
+  console.log(entry)
   // Validate entry upfront for clearer errors
   InstitutionFleetEntrySchema.parse(entry)
   writeInstitutionIndex(institutionId, useBummer, (current) => {

@@ -11,9 +11,10 @@
     "SONIC_RPC_URL",
     "OPTIMISM_RPC_URL",
     "HYPERLIQUID_RPC_URL",
-    "FOUNDRY_FUZZ_RUNS"
+    "FOUNDRY_FUZZ_RUNS",
+    "ETHERSCAN_API_KEY"
   ],
-  "pipeline": {
+  "tasks": {
     "dev": {
       "cache": false,
       "persistent": true
@@ -50,7 +51,7 @@
     },
     "test": {
       "dependsOn": [
-        "^prebuild", 
+        "^prebuild",
         "^build"
       ],
       "inputs": [
@@ -120,14 +121,13 @@
     "coverage": {
       "dependsOn": [
         "^prebuild",
-        "^build",
-        "^coverage"
+        "^build"
       ]
     },
     "coverage:lcov": {
       "dependsOn": [
-        "prebuild",
-        "build"
+        "^prebuild",
+        "^build"
       ],
       "inputs": [
         "src/**/*.sol",
@@ -141,5 +141,8 @@
         "cache_forge/**"
       ]
     }
+  },
+  "futureFlags": {
+    "errorsOnlyShowHash": true
   }
 }

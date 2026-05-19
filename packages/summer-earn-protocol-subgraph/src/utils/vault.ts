@@ -28,7 +28,11 @@ export function getVaultDetails(vault: Vault, block: ethereum.Block): VaultDetai
       ? constants.BigDecimalConstants.ONE
       : totalAssets.toBigDecimal().div(totalSupply.toBigDecimal())
   const outputTokenPriceUSD = pricePerShare.times(inputTokenPriceUSD.price)
-  const withdrawableAssets = vaultContract.withdrawableTotalAssets()
+  const maybeWithdrawableAssets = vaultContract.try_withdrawableTotalAssets()
+
+  const withdrawableAssets = maybeWithdrawableAssets.reverted
+    ? constants.BigIntConstants.ZERO
+    : maybeWithdrawableAssets.value
   const withdrawableAssetsNormalized = formatAmount(
     withdrawableAssets,
     BigInt.fromI32(inputToken.decimals),

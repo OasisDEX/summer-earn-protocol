@@ -285,6 +285,40 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
+    function exitFleetWithPermit2(
+        address owner,
+        address fleetCommander,
+        ISignatureTransfer.PermitTransferFrom calldata permitData,
+        bytes calldata signature
+    ) external payable onlyMulticall nonReentrant returns (uint256 assets) {
+        _validateFleetCommander(fleetCommander);
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+
+        if (permitData.permitted.token != IERC20(fleetCommander)) {
+            revert InvalidToken();
+        }
+
+        uint256 sharesPulled = permitData.permitted.amount;
+        if (sharesPulled == 0) revert ZeroAmount();
+
+        // Pull the shares from the owner to AdmiralsQuarters via Permit2
+        ISignatureTransfer(PERMIT2).permitTransferFrom(
+            permitData,
+            ISignatureTransfer.SignatureTransferDetails({
+                to: address(this),
+                requestedAmount: sharesPulled
+            }),
+            owner,
+            signature
+        );
+
+        // Redeem the shares for assets and send them to the owner
+        assets = fleet.redeem(sharesPulled, owner, address(this));
+
+        emit FleetExited(owner, fleetCommander, assets, sharesPulled);
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
     function stake(
         address fleetCommander,
         uint256 shares

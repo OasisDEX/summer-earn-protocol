@@ -215,6 +215,8 @@
   "LazyVault_LowerRisk_USDT_MorphoV2Vault_usdt_Steakhouse_Prime_Instant_1#MorphoV2VaultArk": "0x915aE48314e88795c07aA79C2363fB196c629f62",
   "LazyVault_LowerRisk_WETH_MorphoV2Vault_weth_Steakhouse_Prime_Instant_V2_1#MorphoV2VaultArk": "0x7765c64Fd93753bA537Da7d62025A7e68551637e",
   "LazyVault_LowerRisk_WETH_MorphoV2Vault_weth_KPK_ETH_Prime_v2_1#MorphoV2VaultArk": "0x0030B0A5845624BaD5917e6738d42E95Ca4f36a5",
+  "LazyVault_HigherRisk_USDC_MorphoV2Vault_usdc_Sky_USDC_Risk_Capital_V2_1#MorphoV2VaultArk": "0xD00C168451fDdD8Ef839E5c0f5B9666143d9400b",
+  "LazyVault_LowerRisk_USDT_MorphoV2Vault_usdt_Sky_USDT_Savings_V2_1#MorphoV2VaultArk": "0x00589A321a766BDeB6E6C344B4C4Cc8A661fFBB8",
   "staging_InstitutionRegistry#InstitutionalVaultRegistry": "0x021983E824F1c76D956a8f56b12256A8725540d1",
   "staging_InstitutionWhitelist_ExtDemoCorp#DutchAuctionLibrary": "0x438cDd87b17fbD8F9771844731E9C29E2c10C602",
   "staging_InstitutionWhitelist_ExtDemoCorp#ProtocolAccessManager": "0x496aD01c3aAC1531FD9f117E19EB7B1123Ee7eD7",
@@ -233,5 +235,6 @@
   "staging_BummerLazyVault_USDC_MapleInstitutional_usdc_1_gov#MapleInstitutionalArk": "0xC287004D09D0D2Dc43bEeC30A563EB8696A02477",
   "staging_extDemo_USDC_mainnet_WisdomTree_WTGXX_usdc_1#WisdomTreeArk": "0xccd07C6c3eCAe85b8Bd8623047C6380d304f2193",
   "staging_extDemo_USDC_mainnet_WisdomTree_WTSIX_usdc_1#WisdomTreeArk": "0xEEc23130C702c1bDBC20743673D9E13D851e6F04",
-  "AdmiralsQuartersModule_20260410T141537361#AdmiralsQuarters": "0xf5A69789Bf5e62A43C47E4c8d857b8DAE14d4ab0"
+  "AdmiralsQuartersModule_20260410T141537361#AdmiralsQuarters": "0xf5A69789Bf5e62A43C47E4c8d857b8DAE14d4ab0",
+  "AdmiralsQuartersModule_20260422T081512059#AdmiralsQuarters": "0x09124a25756223Eb7A523A0377cc83Dc8D22e1bE"
 }

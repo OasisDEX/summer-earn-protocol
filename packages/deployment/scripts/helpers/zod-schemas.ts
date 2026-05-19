@@ -30,6 +30,8 @@ export const InstitutionFleetEntrySchema = z.object({
   fleetCommander: AddressSchema,
   bufferArk: AddressSchema,
   arks: z.array(AddressSchema),
+  roundsVaultInput: AddressSchema.optional(),
+  roundsVaultOutput: AddressSchema.optional(),
 })
 
 export const InstitutionNetworkSchema = z

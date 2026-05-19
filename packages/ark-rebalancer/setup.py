@@ -8,7 +8,7 @@ setup(
         "web3==5.31.1",
         "requests==2.32.4",
         "mypy==1.11.0",
-        "python-dotenv==1.0.1"
+        "python-dotenv==1.2.2"
     ],
     entry_points={
         'console_scripts': [

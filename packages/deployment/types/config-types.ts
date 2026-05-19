@@ -388,6 +388,8 @@ export interface FleetConfig {
   sipNumber?: string
   keeper: Address
   operatorType: OperatorType
+  roundsVaultInput?: Address
+  roundsVaultOutput?: Address
 }
 
 export interface FleetDeployment {
