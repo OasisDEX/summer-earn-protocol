@@ -4,6 +4,7 @@ out = "out"
 libs = [
   'lib'
 ]
+allow_paths = ["../../node_modules"]
 test = 'test'
 cache_path  = 'cache_forge'
 solc = "0.8.28"
