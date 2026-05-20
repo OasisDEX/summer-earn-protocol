@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.8.0;
 
+import {IDCAStrategyManager} from "../../interfaces/arks/IDCAStrategyManager.sol";
+
 interface IDCAStrategyManagerEvents {
     event StrategyCreated(
         uint256 indexed strategyId,
-        address indexed owner,
-        bytes32 configCommitment,
-        uint256 firstTriggerAt
+        IDCAStrategyManager.StrategyConfig config
     );
 
     event StrategyEdited(
         uint256 indexed strategyId,
-        bytes32 oldCommitment,
-        bytes32 newCommitment,
-        uint256 nextTriggerAt
+        IDCAStrategyManager.StrategyConfig config
     );
 
     event StrategyPaused(uint256 indexed strategyId, uint256 nextTriggerAt);

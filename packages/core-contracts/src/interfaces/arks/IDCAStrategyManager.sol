@@ -19,6 +19,8 @@ interface IDCAStrategyManager {
         IFleetCommander targetVault;
         IERC20 inAsset;
         IERC20 outAsset;
+        address inAssetFeed;
+        address outAssetFeed;
         uint256 tradeAmount;
         uint256 interval;
         uint256 slippageBps;
@@ -34,11 +36,12 @@ interface IDCAStrategyManager {
         uint256 interval;
         uint256 nextTriggerAt;
         uint256 lastScheduledAt;
+        uint256 maxTrades;
+        uint256 endDate;
     }
 
     function createStrategy(
-        StrategyConfig calldata config,
-        bytes calldata permit2Data
+        StrategyConfig calldata config
     ) external returns (uint256 strategyId);
 
     function editStrategy(StrategyConfig calldata config) external;
@@ -61,4 +64,8 @@ interface IDCAStrategyManager {
     function strategyStates(
         uint256 strategyId
     ) external view returns (StrategyState memory);
+
+    function checkUpkeep(
+        uint256 strategyId
+    ) external view returns (bool upkeepNeeded, bytes memory performData);
 }

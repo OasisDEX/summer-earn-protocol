@@ -44,4 +44,12 @@ interface IDCAStrategyManagerErrors {
     error SameAsset(address asset);
 
     error OraclePriceZero();
+
+    error IntervalTooShort(uint256 provided, uint256 minimum);
+
+    error InvalidFeedAddress();
+
+    error EmptyEnsoData(uint256 strategyId);
+
+    error AmountOverflowsUint160(uint256 amount);
 }

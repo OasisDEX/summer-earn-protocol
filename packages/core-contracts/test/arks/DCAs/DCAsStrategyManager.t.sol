@@ -6,6 +6,7 @@ import {DCAStrategyManager} from "../../../src/contracts/DCA/DCAStrategyManager.
 import {IDCAStrategyManager} from "../../../src/interfaces/arks/IDCAStrategyManager.sol";
 import {IFleetCommander} from "../../../src/interfaces/IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {ConfigurationManager} from "@summerfi/config-contracts/contracts/ConfigurationManager.sol";
 import {ConfigurationManagerParams} from "@summerfi/config-contracts/types/ConfigurationManagerTypes.sol";
@@ -15,6 +16,78 @@ import {HarborCommand} from "../../../src/contracts/HarborCommand.sol";
 import {FleetCommanderRewardsManagerFactory} from "../../../src/contracts/FleetCommanderRewardsManagerFactory.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {IPermit2} from "../../../src/interfaces/permit2/IPermit2.sol";
+import {AggregatorV3Interface} from "../../../src/interfaces/external/Chainlink/AggregatorV3Interface.sol";
+
+/// @notice Test-only mock that stands in for the Enso router. On any call it
+/// pulls a configured amount of source token from the caller (using its
+/// approval) and deposits a configured amount of the destination underlying
+/// asset into the destination FleetCommander, minting shares directly to the
+/// caller. This lets us exercise the swap pipeline without real Enso calldata.
+contract MockEnsoRouter {
+    using SafeERC20 for IERC20;
+
+    IERC20 public srcToken;
+    uint256 public srcAmount;
+    IERC20 public dstAsset;
+    uint256 public dstAssetAmount;
+    IFleetCommander public dstVault;
+
+    function setSwap(
+        IERC20 _src,
+        uint256 _srcAmt,
+        IERC20 _dstAsset,
+        uint256 _dstAssetAmt,
+        IFleetCommander _dstVault
+    ) external {
+        srcToken = _src;
+        srcAmount = _srcAmt;
+        dstAsset = _dstAsset;
+        dstAssetAmount = _dstAssetAmt;
+        dstVault = _dstVault;
+    }
+
+    fallback() external {
+        srcToken.safeTransferFrom(msg.sender, address(this), srcAmount);
+        dstAsset.forceApprove(address(dstVault), dstAssetAmount);
+        dstVault.deposit(dstAssetAmount, msg.sender);
+    }
+
+    receive() external payable {}
+}
+
+/// @notice Variant of MockEnsoRouter that pulls less than the configured
+/// srcAmount, simulating a router that doesn't consume the full approval.
+contract MockEnsoRouterUnderpull {
+    using SafeERC20 for IERC20;
+
+    IERC20 public srcToken;
+    uint256 public srcPullAmount;
+    IERC20 public dstAsset;
+    uint256 public dstAssetAmount;
+    IFleetCommander public dstVault;
+
+    function setSwap(
+        IERC20 _src,
+        uint256 _srcPull,
+        IERC20 _dstAsset,
+        uint256 _dstAssetAmt,
+        IFleetCommander _dstVault
+    ) external {
+        srcToken = _src;
+        srcPullAmount = _srcPull;
+        dstAsset = _dstAsset;
+        dstAssetAmount = _dstAssetAmt;
+        dstVault = _dstVault;
+    }
+
+    fallback() external {
+        srcToken.safeTransferFrom(msg.sender, address(this), srcPullAmount);
+        dstAsset.forceApprove(address(dstVault), dstAssetAmount);
+        dstVault.deposit(dstAssetAmount, msg.sender);
+    }
+
+    receive() external payable {}
+}
 
 contract DCAStrategyManagerTest is Test {
     DCAStrategyManager public dcaManager;
@@ -24,9 +97,9 @@ contract DCAStrategyManagerTest is Test {
     address public constant ENSO_ROUTER =
         0xF75584eF6673aD213a685a1B58Cc0330B8eA22Cf;
     address public constant ETH_USD_FEED =
-        0x5F4EC3dF9CBd43714FE2740F5E3617235d988Bbb;
+        0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
     address public constant USDC_USD_FEED =
-        0x8fFFfFd4B3Cf5CA76D5CD5D9D8Bc5A9E5b0c4dd9;
+        0x789190466E21a8b78b8027866CBBDc151542A26C;
     address public constant PERMIT2 =
         0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
@@ -110,8 +183,6 @@ contract DCAStrategyManagerTest is Test {
             address(accessManager),
             ENSO_ROUTER,
             address(harborCommand),
-            ETH_USD_FEED,
-            USDC_USD_FEED,
             PERMIT2
         );
 
@@ -136,13 +207,13 @@ contract DCAStrategyManagerTest is Test {
                 7 days
             )
         );
-        dcaManager.createStrategy(config, "");
+        dcaManager.createStrategy(config);
         vm.stopPrank();
     }
 
     function test_CheckUpkeep_ReturnsTrueWhenReady() public {
         vm.startPrank(strategyOwner);
-        uint256 strategyId = dcaManager.createStrategy(_defaultConfig(), "");
+        uint256 strategyId = dcaManager.createStrategy(_defaultConfig());
         vm.stopPrank();
 
         (bool upkeepNeededBefore, ) = dcaManager.checkUpkeep(strategyId);
@@ -162,7 +233,7 @@ contract DCAStrategyManagerTest is Test {
 
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
 
-        uint256 strategyId = dcaManager.createStrategy(config, "");
+        uint256 strategyId = dcaManager.createStrategy(config);
 
         assertEq(strategyId, 0, "First strategy should have id 0");
         assertTrue(
@@ -172,7 +243,7 @@ contract DCAStrategyManagerTest is Test {
 
         IDCAStrategyManager.StrategyConfig memory config2 = _defaultConfig();
         config2.owner = address(0x2222);
-        uint256 strategyId2 = dcaManager.createStrategy(config2, "");
+        uint256 strategyId2 = dcaManager.createStrategy(config2);
 
         assertEq(strategyId2, 1, "Second strategy should have id 1");
 
@@ -181,7 +252,7 @@ contract DCAStrategyManagerTest is Test {
 
     function test_PauseAndResume_UpdatesStateCorrectly() public {
         vm.startPrank(strategyOwner);
-        uint256 strategyId = dcaManager.createStrategy(_defaultConfig(), "");
+        uint256 strategyId = dcaManager.createStrategy(_defaultConfig());
 
         dcaManager.pauseStrategy(strategyId);
 
@@ -196,13 +267,9 @@ contract DCAStrategyManagerTest is Test {
         vm.stopPrank();
     }
 
-    // ==========================================
-    // Existing base tests
-    // ==========================================
-
     function test_CancelStrategy_PreventsFurtherExecutions() public {
         vm.startPrank(strategyOwner);
-        uint256 strategyId = dcaManager.createStrategy(_defaultConfig(), "");
+        uint256 strategyId = dcaManager.createStrategy(_defaultConfig());
 
         dcaManager.cancelStrategy(strategyId);
 
@@ -220,7 +287,7 @@ contract DCAStrategyManagerTest is Test {
 
     function test_Execute_RevertsOnCommitmentMismatch() public {
         vm.startPrank(strategyOwner);
-        uint256 strategyId = dcaManager.createStrategy(_defaultConfig(), "");
+        uint256 strategyId = dcaManager.createStrategy(_defaultConfig());
         vm.stopPrank();
 
         IDCAStrategyManager.StrategyConfig
@@ -239,7 +306,7 @@ contract DCAStrategyManagerTest is Test {
         vm.startPrank(strategyOwner);
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
         config.maxTrades = 2;
-        uint256 strategyId = dcaManager.createStrategy(config, "");
+        uint256 strategyId = dcaManager.createStrategy(config);
         vm.stopPrank();
 
         vm.warp(block.timestamp + 7 days);
@@ -257,7 +324,7 @@ contract DCAStrategyManagerTest is Test {
 
     function test_Execute_RevertsIfNotKeeper() public {
         vm.startPrank(strategyOwner);
-        uint256 strategyId = dcaManager.createStrategy(_defaultConfig(), "");
+        dcaManager.createStrategy(_defaultConfig());
         vm.stopPrank();
 
         IDCAStrategyManager.StrategyConfig memory execConfig = _defaultConfig();
@@ -268,7 +335,7 @@ contract DCAStrategyManagerTest is Test {
 
     function test_EditStrategy_UpdatesCommitmentAndSchedule() public {
         vm.startPrank(strategyOwner);
-        uint256 strategyId = dcaManager.createStrategy(_defaultConfig(), "");
+        uint256 strategyId = dcaManager.createStrategy(_defaultConfig());
 
         IDCAStrategyManager.StrategyConfig memory newConfig = _defaultConfig();
         newConfig.interval = 8 days;
@@ -295,6 +362,8 @@ contract DCAStrategyManagerTest is Test {
                 targetVault: IFleetCommander(address(wethFleet)),
                 inAsset: IERC20(USDC_ADDRESS),
                 outAsset: IERC20(WETH_ADDRESS),
+                inAssetFeed: USDC_USD_FEED,
+                outAssetFeed: ETH_USD_FEED,
                 tradeAmount: 100e6,
                 interval: 7 days,
                 slippageBps: 50,
@@ -310,13 +379,14 @@ contract DCAStrategyManagerIntegrationTest is Test {
     DCAStrategyManager public dcaManager;
     IFleetCommander public sourceFleet;
     IFleetCommander public targetFleet;
+    MockEnsoRouter public ensoRouter;
+    ProtocolAccessManager public accessManager;
+    HarborCommand public harborCommand;
 
-    address public constant ENSO_ROUTER =
-        0xF75584eF6673aD213a685a1B58Cc0330B8eA22Cf;
     address public constant ETH_USD_FEED =
-        0x5F4EC3dF9CBd43714FE2740F5E3617235d988Bbb;
+        0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
     address public constant USDC_USD_FEED =
-        0x8fFFfFd4B3Cf5CA76D5CD5D9D8Bc5A9E5b0c4dd9;
+        0x789190466E21a8b78b8027866CBBDc151542A26C;
     address public constant PERMIT2 =
         0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
@@ -335,6 +405,11 @@ contract DCAStrategyManagerIntegrationTest is Test {
     uint256 constant FORK_BLOCK = 20576616;
     uint256 public forkId;
 
+    /// @dev Amount of WETH the mock router will deposit into the target vault
+    /// on each swap. Generous (0.05 WETH per 100 USDC) so it comfortably
+    /// exceeds the contract's minOut at any realistic fork-time ETH price.
+    uint256 public constant MOCK_WETH_OUT = 0.05 ether;
+
     function setUp() public {
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
         _setupContracts();
@@ -342,11 +417,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
     }
 
     function _setupContracts() internal {
-        ProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
+        accessManager = new ProtocolAccessManager(governor);
 
-        HarborCommand harborCommand = new HarborCommand(address(accessManager));
+        harborCommand = new HarborCommand(address(accessManager));
 
         ConfigurationManager configurationManager = new ConfigurationManager(
             address(accessManager)
@@ -397,18 +470,24 @@ contract DCAStrategyManagerIntegrationTest is Test {
         targetFleet = IFleetCommander(address(new FleetCommander(wethParams)));
         harborCommand.enlistFleetCommander(address(targetFleet));
 
-        dcaManager = new DCAStrategyManager(
-            address(accessManager),
-            ENSO_ROUTER,
-            address(harborCommand),
-            ETH_USD_FEED,
-            USDC_USD_FEED,
-            PERMIT2
-        );
+        // Share transfers are gated by FleetCommander; the DCA flow pulls
+        // source shares from the owner via Permit2.transferFrom, which calls
+        // the underlying ERC20 transferFrom. Enable transfers on both fleets.
+        FleetCommander(address(sourceFleet)).setFleetTokenTransferability();
+        FleetCommander(address(targetFleet)).setFleetTokenTransferability();
 
         vm.stopPrank();
 
+        ensoRouter = new MockEnsoRouter();
+
         vm.startPrank(governor);
+        dcaManager = new DCAStrategyManager(
+            address(accessManager),
+            address(ensoRouter),
+            address(harborCommand),
+            PERMIT2
+        );
+
         ProtocolAccessManager(accessManager).grantKeeperRole(
             address(dcaManager),
             keeper
@@ -421,14 +500,86 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.startPrank(strategyOwner);
         IERC20(USDC_ADDRESS).approve(address(sourceFleet), type(uint256).max);
         sourceFleet.deposit(1000e6, strategyOwner);
-        IERC20(address(sourceFleet)).approve(
+
+        // Default path: Permit2 AllowanceTransfer approval. Tests that need
+        // a different setup override this explicitly.
+        IERC20(address(sourceFleet)).approve(PERMIT2, type(uint256).max);
+        IPermit2(PERMIT2).approve(
+            address(sourceFleet),
             address(dcaManager),
-            type(uint256).max
+            type(uint160).max,
+            type(uint48).max
         );
         vm.stopPrank();
+
+        // Pre-fund the mock router with WETH so it can deposit into the
+        // target vault when called.
+        deal(WETH_ADDRESS, address(ensoRouter), 100 ether);
+        ensoRouter.setSwap(
+            IERC20(address(sourceFleet)),
+            100e6,
+            IERC20(WETH_ADDRESS),
+            MOCK_WETH_OUT,
+            targetFleet
+        );
+
+        _mockOracles(1e8, 3000e8);
     }
 
-    function test_Execute_PullsWithStandardERC20Approve() public {
+    /// @dev Mock the Chainlink price feeds at the constant addresses. The
+    /// real proxy at USDC_USD_FEED gates `latestRoundData` with an access
+    /// list that excludes contract callers; mocking sidesteps both the
+    /// access check and any fork-time-of-day flakiness in the oracle
+    /// price. Default: 8 decimals like production mainnet feeds.
+    function _mockOracles(int256 inPrice, int256 outPrice) internal {
+        _mockOracles(inPrice, outPrice, 8, 8);
+    }
+
+    function _mockOracles(
+        int256 inPrice,
+        int256 outPrice,
+        uint8 inDec,
+        uint8 outDec
+    ) internal {
+        vm.mockCall(
+            USDC_USD_FEED,
+            abi.encodeWithSelector(
+                AggregatorV3Interface.latestRoundData.selector
+            ),
+            abi.encode(
+                uint80(1),
+                inPrice,
+                uint256(block.timestamp),
+                uint256(block.timestamp),
+                uint80(1)
+            )
+        );
+        vm.mockCall(
+            USDC_USD_FEED,
+            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
+            abi.encode(inDec)
+        );
+        vm.mockCall(
+            ETH_USD_FEED,
+            abi.encodeWithSelector(
+                AggregatorV3Interface.latestRoundData.selector
+            ),
+            abi.encode(
+                uint80(1),
+                outPrice,
+                uint256(block.timestamp),
+                uint256(block.timestamp),
+                uint80(1)
+            )
+        );
+        vm.mockCall(
+            ETH_USD_FEED,
+            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
+            abi.encode(outDec)
+        );
+    }
+
+    function test_Execute_RevertsOnEmptyEnsoData() public {
         uint256 endDate = block.timestamp + 365 days;
         uint256 strategyId = _createStrategy(endDate);
 
@@ -440,13 +591,36 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(config, "");
-
-        assertEq(
-            IERC20(address(sourceFleet)).balanceOf(strategyOwner),
-            900e6,
-            "Owner should have 900e6 shares left"
+        vm.expectRevert(
+            abi.encodeWithSignature("EmptyEnsoData(uint256)", strategyId)
         );
+        dcaManager.executeDCA(config, "");
+    }
+
+    function test_Execute_RevertsWithoutPermit2Allowance() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        // Revoke Permit2 setup that _setupUser put in place.
+        vm.startPrank(strategyOwner);
+        IPermit2(PERMIT2).approve(
+            address(sourceFleet),
+            address(dcaManager),
+            0,
+            0
+        );
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 7 days);
+
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            strategyId,
+            endDate
+        );
+
+        vm.prank(keeper);
+        vm.expectRevert();
+        dcaManager.executeDCA(config, hex"deadbeef");
     }
 
     function test_Execute_MintsSharesToOwnerNotContract() public {
@@ -465,7 +639,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(config, "");
+        dcaManager.executeDCA(config, hex"deadbeef");
 
         uint256 ownerWethSharesAfter = IERC20(address(targetFleet)).balanceOf(
             strategyOwner
@@ -498,7 +672,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(config, "");
+        dcaManager.executeDCA(config, hex"deadbeef");
 
         IDCAStrategyManager.StrategyState memory state = dcaManager
             .strategyStates(strategyId);
@@ -514,18 +688,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 endDate = block.timestamp + 365 days;
         uint256 strategyId = _createStrategy(endDate);
 
-        vm.startPrank(strategyOwner);
-        IERC20(address(sourceFleet)).approve(address(dcaManager), 0);
-
-        IERC20(address(sourceFleet)).approve(PERMIT2, type(uint256).max);
-        IPermit2(PERMIT2).approve(
-            address(sourceFleet),
-            address(dcaManager),
-            type(uint160).max,
-            type(uint48).max
-        );
-        vm.stopPrank();
-
         vm.warp(block.timestamp + 7 days);
 
         IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
@@ -533,7 +695,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
             endDate
         );
 
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, true, true, address(sourceFleet));
         emit IERC20.Transfer(
             strategyOwner,
             address(dcaManager),
@@ -541,7 +703,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(config, "");
+        dcaManager.executeDCA(config, hex"deadbeef");
     }
 
     function test_Execute_CalculatesMinOutUsingAssetsNotShares() public {
@@ -549,18 +711,167 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 strategyId = _createStrategy(endDate);
 
         vm.warp(block.timestamp + 7 days);
+
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            strategyId,
+            endDate
+        );
+
+        uint256 sourceSharesBefore = IERC20(address(sourceFleet)).balanceOf(
+            strategyOwner
+        );
+
+        vm.prank(keeper);
+        dcaManager.executeDCA(config, hex"deadbeef");
+
+        // 100e6 source shares pulled from owner.
+        assertEq(
+            IERC20(address(sourceFleet)).balanceOf(strategyOwner),
+            sourceSharesBefore - 100e6,
+            "100e6 source shares should have been pulled"
+        );
+
+        // Target shares minted to owner reflect the new previewDeposit-based
+        // calculation. With a fresh WETH fleet (1:1) and 0.05 WETH dealt in,
+        // owner should hold ~0.05e18 WETH-fleet shares.
+        uint256 ownerWethShares = IERC20(address(targetFleet)).balanceOf(
+            strategyOwner
+        );
+        assertGt(
+            ownerWethShares,
+            0,
+            "Owner should hold target shares after execution"
+        );
+        assertLe(
+            ownerWethShares,
+            MOCK_WETH_OUT,
+            "Target shares cannot exceed deposited WETH (1:1 in fresh vault)"
+        );
+    }
+
+    function test_Execute_HandlesFeedsWithDifferentDecimals() public {
+        // Override the default 8-decimal mocks with mismatched feed
+        // precisions: USDC feed at 6 decimals (price 1e6), ETH feed at
+        // 18 decimals (price 3000e18). The math must remain correct.
+        _mockOracles(int256(1e6), int256(3000e18), 6, 18);
+
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        vm.warp(block.timestamp + 7 days);
+
+        // Re-mock after the warp so block.timestamp matches.
+        _mockOracles(int256(1e6), int256(3000e18), 6, 18);
+
         IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
             strategyId,
             endDate
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(config, "");
+        dcaManager.executeDCA(config, hex"deadbeef");
+
+        uint256 ownerWethShares = IERC20(address(targetFleet)).balanceOf(
+            strategyOwner
+        );
+        assertGt(
+            ownerWethShares,
+            0,
+            "Math should still yield positive target shares with heterogeneous feed decimals"
+        );
+        assertLe(
+            ownerWethShares,
+            MOCK_WETH_OUT,
+            "Target shares cannot exceed deposited WETH"
+        );
     }
 
-    // ==========================================
-    // Helper functions
-    // ==========================================
+    function test_Execute_ClearsEnsoAllowance() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        vm.warp(block.timestamp + 7 days);
+
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            strategyId,
+            endDate
+        );
+
+        vm.prank(keeper);
+        dcaManager.executeDCA(config, hex"deadbeef");
+
+        assertEq(
+            IERC20(address(sourceFleet)).allowance(
+                address(dcaManager),
+                address(ensoRouter)
+            ),
+            0,
+            "Router allowance must be reset to zero post-swap"
+        );
+    }
+
+    function test_Execute_LeavesZeroAllowanceWhenRouterUnderspends() public {
+        // Swap out the default MockEnsoRouter for one that only pulls half
+        // the approved amount. The contract approved 100e6 but the router
+        // takes 50e6 — without the explicit reset, 50e6 would linger.
+        MockEnsoRouterUnderpull underpull = new MockEnsoRouterUnderpull();
+        deal(WETH_ADDRESS, address(underpull), 100 ether);
+        underpull.setSwap(
+            IERC20(address(sourceFleet)),
+            50e6,
+            IERC20(WETH_ADDRESS),
+            MOCK_WETH_OUT,
+            targetFleet
+        );
+
+        vm.startPrank(governor);
+        DCAStrategyManager newManager = new DCAStrategyManager(
+            address(accessManager),
+            address(underpull),
+            address(harborCommand),
+            PERMIT2
+        );
+        accessManager.grantKeeperRole(address(newManager), keeper);
+        vm.stopPrank();
+
+        // Re-route Permit2 allowance from the original manager to this one.
+        vm.startPrank(strategyOwner);
+        IPermit2(PERMIT2).approve(
+            address(sourceFleet),
+            address(newManager),
+            type(uint160).max,
+            type(uint48).max
+        );
+        vm.stopPrank();
+
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory createConfig = _buildConfig(
+            0,
+            endDate
+        );
+        vm.prank(strategyOwner);
+        uint256 strategyId = newManager.createStrategy(createConfig);
+
+        vm.warp(block.timestamp + 7 days);
+        _mockOracles(int256(1e8), int256(3000e8));
+
+        IDCAStrategyManager.StrategyConfig memory execConfig = _buildConfig(
+            strategyId,
+            endDate
+        );
+
+        vm.prank(keeper);
+        newManager.executeDCA(execConfig, hex"deadbeef");
+
+        assertEq(
+            IERC20(address(sourceFleet)).allowance(
+                address(newManager),
+                address(underpull)
+            ),
+            0,
+            "Allowance must be zero even when router under-spends the approval"
+        );
+    }
 
     function _createStrategy(uint256 endDate) internal returns (uint256) {
         vm.startPrank(strategyOwner);
@@ -568,7 +879,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
             0,
             endDate
         );
-        uint256 strategyId = dcaManager.createStrategy(config, "");
+        uint256 strategyId = dcaManager.createStrategy(config);
         vm.stopPrank();
         return strategyId;
     }
@@ -585,6 +896,8 @@ contract DCAStrategyManagerIntegrationTest is Test {
                 targetVault: targetFleet,
                 inAsset: IERC20(USDC_ADDRESS),
                 outAsset: IERC20(WETH_ADDRESS),
+                inAssetFeed: USDC_USD_FEED,
+                outAssetFeed: ETH_USD_FEED,
                 tradeAmount: 100e6,
                 interval: 7 days,
                 slippageBps: 50,

@@ -4,9 +4,11 @@ pragma solidity 0.8.28;
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {ISignatureTransfer} from "../../interfaces/permit2/IPermit2.sol";
+import {IPermit2} from "../../interfaces/permit2/IPermit2.sol";
 
 import {IDCAStrategyManager} from "../../interfaces/arks/IDCAStrategyManager.sol";
 import {IDCAStrategyManagerErrors} from "../../errors/arks/IDCAStrategyManagerErrors.sol";
@@ -25,7 +27,7 @@ contract DCAStrategyManager is
     using SafeERC20 for IERC20;
 
     uint256 private constant _BPS = 10000;
-    uint256 private constant _CHAINLINK_DECIMALS = 8;
+    uint256 private constant _MIN_INTERVAL = 7 days;
 
     uint256 private _nextStrategyId;
     mapping(uint256 => bytes32) private _strategyCommitments;
@@ -34,16 +36,12 @@ contract DCAStrategyManager is
 
     address public immutable ENSO_ROUTER;
     IHarborCommand public immutable HARBOR_COMMAND;
-    AggregatorV3Interface public immutable ETH_USD_FEED;
-    AggregatorV3Interface public immutable USDC_USD_FEED;
-    ISignatureTransfer public immutable PERMIT2;
+    IPermit2 public immutable PERMIT2;
 
     constructor(
         address _accessManager,
         address _ensoRouter,
         address _harborCommand,
-        address _ethUsdFeed,
-        address _usdcUsdFeed,
         address _permit2
     ) ProtocolAccessManaged(_accessManager) {
         if (_ensoRouter == address(0)) revert InvalidRouterAddress();
@@ -51,19 +49,25 @@ contract DCAStrategyManager is
 
         ENSO_ROUTER = _ensoRouter;
         HARBOR_COMMAND = IHarborCommand(_harborCommand);
-        ETH_USD_FEED = AggregatorV3Interface(_ethUsdFeed);
-        USDC_USD_FEED = AggregatorV3Interface(_usdcUsdFeed);
-        PERMIT2 = ISignatureTransfer(_permit2);
+        PERMIT2 = IPermit2(_permit2);
     }
 
     function createStrategy(
-        StrategyConfig calldata config,
-        bytes calldata permit2Data
+        StrategyConfig calldata config
     ) external returns (uint256 strategyId) {
-        if (config.interval == 0) revert InvalidInterval(0);
-        if (config.slippageBps > _BPS)
+        if (config.interval < _MIN_INTERVAL) {
+            revert IntervalTooShort(config.interval, _MIN_INTERVAL);
+        }
+        if (config.slippageBps > _BPS) {
             revert InvalidSlippage(config.slippageBps);
+        }
         if (config.tradeAmount == 0) revert ZeroTradeAmount();
+        if (
+            config.inAssetFeed == address(0) ||
+            config.outAssetFeed == address(0)
+        ) {
+            revert InvalidFeedAddress();
+        }
         if (
             !HARBOR_COMMAND.activeFleetCommanders(address(config.sourceVault))
         ) {
@@ -79,56 +83,45 @@ contract DCAStrategyManager is
         StrategyConfig memory mutableConfig = config;
         mutableConfig.strategyId = strategyId;
 
-        bytes32 commitment = keccak256(abi.encode(mutableConfig));
-        _strategyCommitments[strategyId] = commitment;
+        _strategyCommitments[strategyId] = keccak256(abi.encode(mutableConfig));
         _strategyOwners[strategyId] = config.owner;
 
-        uint256 firstTriggerAt = block.timestamp + config.interval;
         _strategyStates[strategyId] = StrategyState({
             status: uint8(Status.ACTIVE),
             tradesExecuted: 0,
             interval: config.interval,
-            nextTriggerAt: firstTriggerAt,
-            lastScheduledAt: block.timestamp
+            nextTriggerAt: block.timestamp + config.interval,
+            lastScheduledAt: block.timestamp,
+            maxTrades: config.maxTrades,
+            endDate: config.endDate
         });
 
-        if (permit2Data.length > 0) {
-            _setupPermit2(
-                config.owner,
-                address(config.sourceVault),
-                permit2Data
-            );
-        }
-
-        emit StrategyCreated(
-            strategyId,
-            config.owner,
-            commitment,
-            firstTriggerAt
-        );
+        emit StrategyCreated(strategyId, mutableConfig);
     }
 
     function editStrategy(StrategyConfig calldata config) external {
         if (msg.sender != _strategyOwners[config.strategyId]) {
             revert UnauthorizedAccess(config.strategyId, msg.sender);
         }
-
-        bytes32 oldCommitment = _strategyCommitments[config.strategyId];
-        bytes32 newCommitment = keccak256(abi.encode(config));
-        if (oldCommitment != newCommitment) {
-            _strategyCommitments[config.strategyId] = newCommitment;
+        if (config.interval < _MIN_INTERVAL) {
+            revert IntervalTooShort(config.interval, _MIN_INTERVAL);
         }
+        if (
+            config.inAssetFeed == address(0) ||
+            config.outAssetFeed == address(0)
+        ) {
+            revert InvalidFeedAddress();
+        }
+
+        _strategyCommitments[config.strategyId] = keccak256(abi.encode(config));
 
         StrategyState storage state = _strategyStates[config.strategyId];
         state.interval = config.interval;
+        state.maxTrades = config.maxTrades;
+        state.endDate = config.endDate;
         state.nextTriggerAt = state.lastScheduledAt + state.interval;
 
-        emit StrategyEdited(
-            config.strategyId,
-            oldCommitment,
-            newCommitment,
-            state.nextTriggerAt
-        );
+        emit StrategyEdited(config.strategyId, config);
     }
 
     function pauseStrategy(uint256 strategyId) external {
@@ -212,6 +205,8 @@ contract DCAStrategyManager is
             );
         }
 
+        if (ensoData.length == 0) revert EmptyEnsoData(config.strategyId);
+
         _executeSwap(config, ensoData, state);
     }
 
@@ -220,21 +215,17 @@ contract DCAStrategyManager is
         bytes calldata ensoData,
         StrategyState storage state
     ) internal {
-        uint256 strategyId = config.strategyId;
-        (uint256 inPrice, uint256 outPrice) = _getOraclePrices(
-            config.sourceVault,
-            config.targetVault
-        );
+        (uint256 inPrice, uint256 outPrice) = _getOraclePrices(config);
 
         if (inPrice == 0 || outPrice == 0) {
-            _skipWithAdvance(state, strategyId, "oracle_price_zero", "");
+            _skipWithAdvance(state, config.strategyId, "oracle_price_zero", "");
             return;
         }
 
         if (config.maxPrice > 0 && inPrice > config.maxPrice) {
             _skipWithAdvance(
                 state,
-                strategyId,
+                config.strategyId,
                 "price_ceiling",
                 abi.encode(inPrice, config.maxPrice)
             );
@@ -244,112 +235,70 @@ contract DCAStrategyManager is
         if (config.minPrice > 0 && inPrice < config.minPrice) {
             _skipWithAdvance(
                 state,
-                strategyId,
+                config.strategyId,
                 "price_floor",
                 abi.encode(inPrice, config.minPrice)
             );
             return;
         }
 
-        uint256 tradeAmount = config.tradeAmount;
-        uint256 pulled = _pullFunds(
+        _pullFunds(
             config.owner,
             address(config.sourceVault),
-            tradeAmount
+            config.tradeAmount
         );
 
-        if (pulled < tradeAmount) {
-            _skipWithAdvance(
-                state,
-                strategyId,
-                "insufficient_funds",
-                abi.encode(pulled, tradeAmount)
-            );
-            return;
-        }
-
-        _executeSwapCore(
-            config,
-            ensoData,
-            state,
-            strategyId,
-            tradeAmount,
-            inPrice,
-            outPrice
-        );
+        _executeSwapCore(config, ensoData, state, inPrice, outPrice);
     }
 
     function _executeSwapCore(
         StrategyConfig calldata config,
         bytes calldata ensoData,
         StrategyState storage state,
-        uint256 strategyId,
-        uint256 tradeAmount,
         uint256 inPrice,
         uint256 outPrice
     ) internal {
-        uint256 slippageBps = config.slippageBps;
-        uint256 interval = config.interval;
-        address targetVault = address(config.targetVault);
-        address owner = config.owner;
+        uint256 strategyId = config.strategyId;
 
-        uint256 targetSharesBefore = IERC20(targetVault).balanceOf(
-            address(this)
-        );
+        // Effects: write state before any external interaction.
+        uint256 nextTriggerAt = block.timestamp + config.interval;
+        state.tradesExecuted += 1;
+        state.lastScheduledAt = block.timestamp;
+        state.nextTriggerAt = nextTriggerAt;
+        uint248 tradesExecuted = state.tradesExecuted;
 
+        uint256 targetSharesBefore = IERC20(address(config.targetVault))
+            .balanceOf(address(this));
+
+        // Interactions: approve, swap, reset allowance.
         IERC20(address(config.sourceVault)).forceApprove(
             ENSO_ROUTER,
-            tradeAmount
+            config.tradeAmount
         );
+        {
+            (bool success, ) = ENSO_ROUTER.call(ensoData);
+            if (!success) revert SwapFailed(strategyId);
+        }
+        IERC20(address(config.sourceVault)).forceApprove(ENSO_ROUTER, 0);
 
-        (bool success, ) = ENSO_ROUTER.call(ensoData);
-        if (!success) revert SwapFailed(strategyId);
-
-        uint256 targetSharesAfter = IERC20(targetVault).balanceOf(
+        uint256 swappedAmount = IERC20(address(config.targetVault)).balanceOf(
             address(this)
-        );
-        uint256 swappedAmount = targetSharesAfter - targetSharesBefore;
+        ) - targetSharesBefore;
 
-        uint256 minOut = _calculateMinOut(
-            tradeAmount,
-            inPrice,
-            outPrice,
-            slippageBps
-        );
-
+        uint256 minOut = _calculateMinOut(config, inPrice, outPrice);
         if (swappedAmount < minOut) {
             revert SwapOutputBelowMinOut(strategyId, minOut, swappedAmount);
         }
 
-        IERC20(targetVault).safeTransfer(owner, swappedAmount);
-
-        _updateStateAfterSwap(
-            state,
-            strategyId,
-            tradeAmount,
-            swappedAmount,
-            interval
+        IERC20(address(config.targetVault)).safeTransfer(
+            config.owner,
+            swappedAmount
         );
-    }
-
-    function _updateStateAfterSwap(
-        StrategyState storage state,
-        uint256 strategyId,
-        uint256 tradeAmount,
-        uint256 swappedAmount,
-        uint256 interval
-    ) internal {
-        uint256 lastScheduled = state.nextTriggerAt;
-        uint256 nextTriggerAt = lastScheduled + interval;
-
-        state.tradesExecuted += 1;
-        state.lastScheduledAt = lastScheduled;
-        state.nextTriggerAt = nextTriggerAt;
 
         emit ExecutionCompleted(
             strategyId,
-            state.tradesExecuted,
-            tradeAmount,
+            tradesExecuted,
+            config.tradeAmount,
             swappedAmount,
             nextTriggerAt
         );
@@ -361,7 +310,8 @@ contract DCAStrategyManager is
         bytes32 reason,
         bytes memory extraData
     ) internal {
-        state.nextTriggerAt = state.lastScheduledAt + state.interval;
+        state.lastScheduledAt = block.timestamp;
+        state.nextTriggerAt = block.timestamp + state.interval;
         emit ExecutionSkipped(strategyId, reason, extraData);
     }
 
@@ -379,8 +329,14 @@ contract DCAStrategyManager is
 
     function checkUpkeep(
         uint256 strategyId
-    ) external view returns (bool, bytes memory) {
-        return (false, "");
+    ) external view returns (bool upkeepNeeded, bytes memory performData) {
+        StrategyState storage state = _strategyStates[strategyId];
+        upkeepNeeded =
+            state.status == uint8(Status.ACTIVE) &&
+            block.timestamp >= state.nextTriggerAt &&
+            state.tradesExecuted < state.maxTrades &&
+            block.timestamp < state.endDate;
+        performData = "";
     }
 
     function _pullFunds(
@@ -388,97 +344,59 @@ contract DCAStrategyManager is
         address sourceVault,
         uint256 amount
     ) internal returns (uint256) {
-        IERC20(sourceVault).safeTransferFrom(owner, address(this), amount);
+        if (amount > type(uint160).max) revert AmountOverflowsUint160(amount);
+        PERMIT2.transferFrom(
+            owner,
+            address(this),
+            uint160(amount),
+            sourceVault
+        );
         return amount;
     }
 
-    function _setupPermit2(
-        address owner,
-        address token,
-        bytes calldata permit2Data
-    ) internal {
-        (uint256 nonce, uint256 deadline, bytes memory signature) = abi.decode(
-            permit2Data,
-            (uint256, uint256, bytes)
-        );
-
-        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer
-            .PermitTransferFrom({
-                permitted: ISignatureTransfer.TokenPermissions({
-                    token: IERC20(token),
-                    amount: type(uint256).max
-                }),
-                nonce: nonce,
-                deadline: deadline
-            });
-
-        ISignatureTransfer.SignatureTransferDetails
-            memory transferDetails = ISignatureTransfer
-                .SignatureTransferDetails({
-                    to: address(this),
-                    requestedAmount: type(uint256).max
-                });
-
-        PERMIT2.permitTransferFrom(permit, transferDetails, owner, signature);
-    }
-
     function _getOraclePrices(
-        IFleetCommander sourceVault,
-        IFleetCommander targetVault
+        StrategyConfig calldata config
     ) internal view returns (uint256 inPrice, uint256 outPrice) {
-        (, int256 ethUsdRaw, , , ) = ETH_USD_FEED.latestRoundData();
-        if (ethUsdRaw <= 0) revert OraclePriceZero();
-        uint256 ethUsd = uint256(ethUsdRaw);
-
-        (, int256 usdcUsdRaw, , , ) = USDC_USD_FEED.latestRoundData();
-        if (usdcUsdRaw <= 0) revert OraclePriceZero();
-        uint256 usdcUsd = uint256(usdcUsdRaw);
-
-        address sourceAsset = address(sourceVault.asset());
-        address targetAsset = address(targetVault.asset());
-
-        bool sourceIsEth = sourceAsset ==
-            0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        bool sourceIsUsdc = sourceAsset ==
-            0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-        bool targetIsEth = targetAsset ==
-            0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        bool targetIsUsdc = targetAsset ==
-            0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-
-        if (sourceIsEth && targetIsUsdc) {
-            inPrice = ethUsd;
-            outPrice = usdcUsd;
-        } else if (sourceIsUsdc && targetIsEth) {
-            inPrice = usdcUsd;
-            outPrice = ethUsd;
-        } else if (sourceIsEth && !targetIsEth) {
-            inPrice = ethUsd;
-            outPrice = (ethUsd * (10 ** _CHAINLINK_DECIMALS)) / usdcUsd;
-        } else if (!sourceIsEth && targetIsEth) {
-            inPrice = (usdcUsd * (10 ** _CHAINLINK_DECIMALS)) / ethUsd;
-            outPrice = ethUsd;
-        } else if (sourceIsUsdc && !targetIsUsdc) {
-            inPrice = usdcUsd;
-            outPrice = (usdcUsd * (10 ** _CHAINLINK_DECIMALS)) / ethUsd;
-        } else if (!sourceIsUsdc && targetIsUsdc) {
-            inPrice = (usdcUsd * (10 ** _CHAINLINK_DECIMALS)) / ethUsd;
-            outPrice = usdcUsd;
-        } else {
-            inPrice = (ethUsd * (10 ** _CHAINLINK_DECIMALS)) / usdcUsd;
-            outPrice = (ethUsd * (10 ** _CHAINLINK_DECIMALS)) / usdcUsd;
-        }
+        (, int256 inRaw, , , ) = AggregatorV3Interface(config.inAssetFeed)
+            .latestRoundData();
+        if (inRaw <= 0) revert OraclePriceZero();
+        (, int256 outRaw, , , ) = AggregatorV3Interface(config.outAssetFeed)
+            .latestRoundData();
+        if (outRaw <= 0) revert OraclePriceZero();
+        inPrice = uint256(inRaw);
+        outPrice = uint256(outRaw);
     }
 
     function _calculateMinOut(
-        uint256 inAmount,
+        StrategyConfig calldata config,
         uint256 inPrice,
-        uint256 outPrice,
-        uint256 slippageBps
-    ) internal pure returns (uint256) {
-        uint256 expectedOut = (inAmount * inPrice) / outPrice;
+        uint256 outPrice
+    ) internal view returns (uint256 minOut) {
+        uint256 inAssets = config.sourceVault.convertToAssets(
+            config.tradeAmount
+        );
 
-        return (expectedOut * (_BPS - slippageBps)) / _BPS;
+        uint8 inAssetDec = IERC20Metadata(address(config.inAsset)).decimals();
+        uint8 outAssetDec = IERC20Metadata(address(config.outAsset)).decimals();
+        uint8 inOracleDec = AggregatorV3Interface(config.inAssetFeed)
+            .decimals();
+        uint8 outOracleDec = AggregatorV3Interface(config.outAssetFeed)
+            .decimals();
+
+        uint256 numScale = 10 ** (uint256(outOracleDec) + uint256(outAssetDec));
+        uint256 denScale = 10 ** (uint256(inOracleDec) + uint256(inAssetDec));
+
+        uint256 expectedOutAssets = Math.mulDiv(
+            inAssets * inPrice,
+            numScale,
+            outPrice * denScale
+        );
+
+        uint256 expectedOutShares = config.targetVault.previewDeposit(
+            expectedOutAssets
+        );
+
+        minOut = (expectedOutShares * (_BPS - config.slippageBps)) / _BPS;
     }
 
     error InvalidRouterAddress();
