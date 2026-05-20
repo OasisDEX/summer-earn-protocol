@@ -77,6 +77,11 @@
         "institutionalVaultRegistry": {
           "address": "0x47926511D8D215A182F3B93c36c94852fb10f5eD"
         }
+      },
+      "dca": {
+        "dcaStrategyManager": {
+          "address": "0x9407a57C1Ebe92cB7fc6CB68705e34371A33735A"
+        }
       }
     },
     "tokens": {
@@ -98,6 +103,7 @@
       "chainId": "8453",
       "initialSupply": "1000000000",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "ensoRouter": "0xf75584ef6673ad213a685a1b58cc0330b8ea22cf",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
       "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
@@ -638,6 +644,7 @@
       "chainId": "1",
       "initialSupply": "0",
       "swapProvider": "0x111111125421cA6dc452d289314280a0f8842A65",
+      "ensoRouter": "0xf75584ef6673ad213a685a1b58cc0330b8ea22cf",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
       "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
