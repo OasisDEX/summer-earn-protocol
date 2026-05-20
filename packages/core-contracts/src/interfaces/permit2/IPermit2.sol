@@ -220,7 +220,7 @@ interface ISignatureTransfer is IEIP712 {
     /// @notice The token and amount details for a transfer signed in the permit transfer signature
     struct TokenPermissions {
         // ERC20 token address
-        address token;
+        IERC20 token;
         // the maximum amount that can be spent
         uint256 amount;
     }

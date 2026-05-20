@@ -377,6 +377,12 @@ contract DCAStrategyManager is
         return _strategyStates[strategyId];
     }
 
+    function checkUpkeep(
+        uint256 strategyId
+    ) external view returns (bool, bytes memory) {
+        return (false, "");
+    }
+
     function _pullFunds(
         address owner,
         address sourceVault,

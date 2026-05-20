@@ -518,7 +518,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         IERC20(address(sourceFleet)).approve(address(dcaManager), 0);
 
         IERC20(address(sourceFleet)).approve(PERMIT2, type(uint256).max);
-        IPerm2(PERMIT2).approve(
+        IPermit2(PERMIT2).approve(
             address(sourceFleet),
             address(dcaManager),
             type(uint160).max,
@@ -572,7 +572,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.stopPrank();
         return strategyId;
     }
-
 
     function _buildConfig(
         uint256 strategyId,
