@@ -20,6 +20,8 @@ interface IDCAStrategyManagerEvents {
 
     event StrategyCancelled(uint256 indexed strategyId);
 
+    event StrategyCompleted(uint256 indexed strategyId, bytes32 reason);
+
     event ExecutionCompleted(
         uint256 indexed strategyId,
         uint256 tradesExecuted,

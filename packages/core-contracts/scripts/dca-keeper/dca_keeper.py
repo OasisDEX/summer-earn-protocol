@@ -46,11 +46,11 @@ DCA_MANAGER_ABI = json.loads(
     "name": "checkUpkeep",
     "stateMutability": "view",
     "inputs": [
+      {"name": "strategyId", "type": "uint256"},
       {
         "name": "config",
         "type": "tuple",
         "components": [
-          {"name": "strategyId",   "type": "uint256"},
           {"name": "owner",        "type": "address"},
           {"name": "sourceVault",  "type": "address"},
           {"name": "targetVault",  "type": "address"},
@@ -78,11 +78,11 @@ DCA_MANAGER_ABI = json.loads(
     "name": "executeDCA",
     "stateMutability": "nonpayable",
     "inputs": [
+      {"name": "strategyId", "type": "uint256"},
       {
         "name": "config",
         "type": "tuple",
         "components": [
-          {"name": "strategyId",   "type": "uint256"},
           {"name": "owner",        "type": "address"},
           {"name": "sourceVault",  "type": "address"},
           {"name": "targetVault",  "type": "address"},
@@ -118,11 +118,13 @@ log = logging.getLogger("dca-keeper")
 
 @dataclass
 class StrategyConfig:
-    """Mirror of IDCAStrategyManager.StrategyConfig.
+    """Mirror of IDCAStrategyManager.StrategyConfig plus the keeper's own
+    `strategyId` cursor.
 
-    We carry it as a dataclass for clarity and produce the positional tuple
-    the ABI encoder needs via `as_tuple()`. Keep field order in sync with
-    DCA_MANAGER_ABI above and IDCAStrategyManager.sol:15.
+    `strategyId` lives outside the on-chain StrategyConfig struct (it's the
+    mapping key, passed as a separate argument to checkUpkeep/executeDCA), so
+    `as_tuple()` omits it. Field order of as_tuple() must match the contract
+    struct in IDCAStrategyManager.sol:15.
     """
 
     strategyId: int
@@ -168,7 +170,6 @@ class StrategyConfig:
 
     def as_tuple(self) -> tuple:
         return (
-            self.strategyId,
             self.owner,
             self.sourceVault,
             self.targetVault,
@@ -324,7 +325,9 @@ class DCAKeeper:
         # Re-validate against the contract — subgraph could be lagging or the
         # oracle could have moved outside the strategy's price guardrails.
         try:
-            upkeep_needed, _ = await self.manager.functions.checkUpkeep(cfg.as_tuple()).call()
+            upkeep_needed, _ = await self.manager.functions.checkUpkeep(
+                cfg.strategyId, cfg.as_tuple()
+            ).call()
         except ContractLogicError as e:
             log.warning("[%d] checkUpkeep reverted (stale subgraph?): %s", sid, e)
             return
@@ -469,7 +472,9 @@ class DCAKeeper:
                 return
 
             try:
-                fn = self.manager.functions.executeDCA(cfg.as_tuple(), enso_data)
+                fn = self.manager.functions.executeDCA(
+                    cfg.strategyId, cfg.as_tuple(), enso_data
+                )
                 # build_transaction performs an eth_estimateGas which will
                 # revert with the contract's reason string if execution would
                 # fail — we surface it and skip rather than broadcast.

@@ -17,9 +17,7 @@ export function ConnectButton() {
   const { disconnect } = useDisconnect()
 
   if (!isConnected || !address) {
-    return (
-      <Button onClick={() => window.appKit?.open()}>Connect wallet</Button>
-    )
+    return <Button onClick={() => window.appKit?.open()}>Connect wallet</Button>
   }
 
   return (

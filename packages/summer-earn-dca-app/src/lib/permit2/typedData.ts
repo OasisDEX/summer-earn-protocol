@@ -22,10 +22,7 @@ export interface PermitSingle {
   sigDeadline: bigint
 }
 
-export function buildPermitSingleTypedData(opts: {
-  chainId: number
-  permitSingle: PermitSingle
-}) {
+export function buildPermitSingleTypedData(opts: { chainId: number; permitSingle: PermitSingle }) {
   return {
     domain: {
       name: PERMIT2_DOMAIN_NAME,

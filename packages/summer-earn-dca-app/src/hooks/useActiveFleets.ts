@@ -74,9 +74,10 @@ export function useActiveFleets(chainId: ChainId) {
       })
       const uniqueAssets = Array.from(
         new Set(fleetEntries.map((e) => e.assetAddress.toLowerCase())),
-      ).map((lower) =>
-        // pick checksummed back from one of the entries
-        fleetEntries.find((e) => e.assetAddress.toLowerCase() === lower)!.assetAddress,
+      ).map(
+        (lower) =>
+          // pick checksummed back from one of the entries
+          fleetEntries.find((e) => e.assetAddress.toLowerCase() === lower)!.assetAddress,
       )
 
       // Stage 2: per-asset symbol + decimals.

@@ -40,7 +40,8 @@ export function DualAmountInput({
     shares === 0n ? '' : formatDecimalOutput(shares, shareDecimals, shareDecimals),
   )
 
-  const assetsBig = activeField === 'assets' ? parseDecimalInput(assetsInput, underlyingDecimals) : 0n
+  const assetsBig =
+    activeField === 'assets' ? parseDecimalInput(assetsInput, underlyingDecimals) : 0n
   const sharesBig = activeField === 'shares' ? parseDecimalInput(sharesInput, shareDecimals) : 0n
 
   const preview = useSourceVaultPreview({

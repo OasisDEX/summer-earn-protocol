@@ -1,14 +1,14 @@
-import { encodeAbiParameters, type Hex,keccak256 } from 'viem'
+import { encodeAbiParameters, type Hex, keccak256 } from 'viem'
 
 import type { StrategyConfigTuple } from '@/types/strategy'
 
-// Mirrors `keccak256(abi.encode(config))` from DCAStrategyManager.sol.
-// Used purely for parity assertions against `strategyCommitments(id)` from RPC —
-// if our reconstruction is correct, the two hashes match.
+// Mirrors `keccak256(abi.encode(config))` from DCAStrategyManager.sol —
+// used to verify against `strategyCommitments(id)` from RPC and to drive the
+// `activeCommitments(commitment)` pre-flight duplicate check in the create
+// wizard. `strategyId` is NOT part of the hash (it lives outside the struct).
 const STRATEGY_CONFIG_TUPLE_TYPE = {
   type: 'tuple',
   components: [
-    { name: 'strategyId', type: 'uint256' },
     { name: 'owner', type: 'address' },
     { name: 'sourceVault', type: 'address' },
     { name: 'targetVault', type: 'address' },

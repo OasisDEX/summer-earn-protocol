@@ -25,9 +25,7 @@ export function CardTitle({ className, ...rest }: HTMLAttributes<HTMLHeadingElem
   return (
     <h3
       {...rest}
-      className={['font-headline text-lg font-semibold text-surface-50', className ?? ''].join(
-        ' ',
-      )}
+      className={['font-headline text-lg font-semibold text-surface-50', className ?? ''].join(' ')}
     />
   )
 }

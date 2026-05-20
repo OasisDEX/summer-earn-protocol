@@ -33,6 +33,11 @@ contract DCAStrategyManager is
     mapping(uint256 => bytes32) private _strategyCommitments;
     mapping(uint256 => StrategyState) private _strategyStates;
     mapping(uint256 => address) private _strategyOwners;
+    // Fingerprint of every commitment that has ever been registered and not
+    // explicitly freed by an edit. Permanent for cancelled/completed strategies
+    // — a user wanting an "identical" strategy later will use a future
+    // endDate, producing a different hash.
+    mapping(bytes32 => bool) private _activeCommitments;
 
     address public immutable ENSO_ROUTER;
     IHarborCommand public immutable HARBOR_COMMAND;
@@ -57,11 +62,12 @@ contract DCAStrategyManager is
     ) external returns (uint256 strategyId) {
         _validateStrategyConfig(config);
 
-        strategyId = _nextStrategyId++;
-        StrategyConfig memory mutableConfig = config;
-        mutableConfig.strategyId = strategyId;
+        bytes32 commitment = keccak256(abi.encode(config));
+        if (_activeCommitments[commitment]) revert DuplicateStrategy();
 
-        _strategyCommitments[strategyId] = keccak256(abi.encode(mutableConfig));
+        strategyId = _nextStrategyId++;
+        _activeCommitments[commitment] = true;
+        _strategyCommitments[strategyId] = commitment;
         _strategyOwners[strategyId] = config.owner;
 
         uint256 hourAligned = ((block.timestamp + 3599) / 3600) * 3600;
@@ -72,21 +78,31 @@ contract DCAStrategyManager is
             lastScheduledAt: hourAligned
         });
 
-        emit StrategyCreated(strategyId, mutableConfig);
+        emit StrategyCreated(strategyId, config);
     }
 
-    function editStrategy(StrategyConfig calldata config) external {
-        if (msg.sender != _strategyOwners[config.strategyId]) {
-            revert UnauthorizedAccess(config.strategyId, msg.sender);
+    function editStrategy(
+        uint256 strategyId,
+        StrategyConfig calldata config
+    ) external {
+        if (msg.sender != _strategyOwners[strategyId]) {
+            revert UnauthorizedAccess(strategyId, msg.sender);
         }
         _validateStrategyConfig(config);
 
-        _strategyCommitments[config.strategyId] = keccak256(abi.encode(config));
+        bytes32 newCommitment = keccak256(abi.encode(config));
+        bytes32 oldCommitment = _strategyCommitments[strategyId];
+        if (newCommitment != oldCommitment) {
+            if (_activeCommitments[newCommitment]) revert DuplicateStrategy();
+            _activeCommitments[oldCommitment] = false;
+            _activeCommitments[newCommitment] = true;
+            _strategyCommitments[strategyId] = newCommitment;
+        }
 
-        StrategyState storage state = _strategyStates[config.strategyId];
+        StrategyState storage state = _strategyStates[strategyId];
         state.nextTriggerAt = state.lastScheduledAt + config.interval;
 
-        emit StrategyEdited(config.strategyId, config);
+        emit StrategyEdited(strategyId, config);
     }
 
     function _validateStrategyConfig(
@@ -132,8 +148,10 @@ contract DCAStrategyManager is
         emit StrategyPaused(strategyId, state.nextTriggerAt);
     }
 
-    function resumeStrategy(StrategyConfig calldata config) external {
-        uint256 strategyId = config.strategyId;
+    function resumeStrategy(
+        uint256 strategyId,
+        StrategyConfig calldata config
+    ) external {
         if (msg.sender != _strategyOwners[strategyId]) {
             revert UnauthorizedAccess(strategyId, msg.sender);
         }
@@ -168,40 +186,42 @@ contract DCAStrategyManager is
     }
 
     function executeDCA(
+        uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData
     ) external onlyKeeper nonReentrant {
-        bytes32 storedCommitment = _strategyCommitments[config.strategyId];
+        bytes32 storedCommitment = _strategyCommitments[strategyId];
         if (keccak256(abi.encode(config)) != storedCommitment) {
-            revert CommitmentMismatch(config.strategyId);
+            revert CommitmentMismatch(strategyId);
         }
 
-        StrategyState storage state = _strategyStates[config.strategyId];
+        StrategyState storage state = _strategyStates[strategyId];
         if (state.status != uint8(Status.ACTIVE)) {
-            revert StrategyNotActive(config.strategyId);
+            revert StrategyNotActive(strategyId);
         }
 
         if (state.tradesExecuted >= config.maxTrades) {
-            revert TerminalStateReached(config.strategyId, "max_trades");
+            revert TerminalStateReached(strategyId, "max_trades");
         }
         if (block.timestamp >= config.endDate) {
-            revert TerminalStateReached(config.strategyId, "end_date");
+            revert TerminalStateReached(strategyId, "end_date");
         }
 
         if (block.timestamp < state.nextTriggerAt) {
             revert ExecutionWindowNotReached(
-                config.strategyId,
+                strategyId,
                 state.nextTriggerAt,
                 block.timestamp
             );
         }
 
-        if (ensoData.length == 0) revert EmptyEnsoData(config.strategyId);
+        if (ensoData.length == 0) revert EmptyEnsoData(strategyId);
 
-        _executeSwap(config, ensoData, state);
+        _executeSwap(strategyId, config, ensoData, state);
     }
 
     function _executeSwap(
+        uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData,
         StrategyState storage state
@@ -222,18 +242,24 @@ contract DCAStrategyManager is
             config.tradeAmount
         );
 
-        _executeSwapCore(config, ensoData, state, inPrice, outPrice);
+        _executeSwapCore(
+            strategyId,
+            config,
+            ensoData,
+            state,
+            inPrice,
+            outPrice
+        );
     }
 
     function _executeSwapCore(
+        uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData,
         StrategyState storage state,
         uint256 inPrice,
         uint256 outPrice
     ) internal {
-        uint256 strategyId = config.strategyId;
-
         // Effects: write state before any external interaction.
         uint256 nextTriggerAt = block.timestamp + config.interval;
         state.tradesExecuted += 1;
@@ -276,6 +302,17 @@ contract DCAStrategyManager is
             swappedAmount,
             nextTriggerAt
         );
+
+        // Proactively flip to COMPLETED after the last valid execution so a
+        // follow-up keeper call surfaces StrategyNotActive (clearer than the
+        // TerminalStateReached pre-check, which we keep as a backstop).
+        if (tradesExecuted >= config.maxTrades) {
+            state.status = uint8(Status.COMPLETED);
+            emit StrategyCompleted(strategyId, "max_trades");
+        } else if (nextTriggerAt >= config.endDate) {
+            state.status = uint8(Status.COMPLETED);
+            emit StrategyCompleted(strategyId, "end_date");
+        }
     }
 
     function strategyCommitments(
@@ -290,11 +327,18 @@ contract DCAStrategyManager is
         return _strategyStates[strategyId];
     }
 
+    function activeCommitments(
+        bytes32 commitment
+    ) external view returns (bool) {
+        return _activeCommitments[commitment];
+    }
+
     function checkUpkeep(
+        uint256 strategyId,
         StrategyConfig calldata config
     ) external view returns (bool upkeepNeeded, bytes memory performData) {
         performData = "";
-        StrategyState storage state = _strategyStates[config.strategyId];
+        StrategyState storage state = _strategyStates[strategyId];
 
         if (state.status != uint8(Status.ACTIVE)) return (false, performData);
         if (block.timestamp < state.nextTriggerAt) return (false, performData);

@@ -29,9 +29,9 @@ dataSources:
         - name: DCAStrategyManager
           file: ./abis/DCAStrategyManager.json
       eventHandlers:
-        - event: StrategyCreated(indexed uint256,(uint256,address,address,address,address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256))
+        - event: StrategyCreated(indexed uint256,(address,address,address,address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256))
           handler: handleStrategyCreated
-        - event: StrategyEdited(indexed uint256,(uint256,address,address,address,address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256))
+        - event: StrategyEdited(indexed uint256,(address,address,address,address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256))
           handler: handleStrategyEdited
         - event: StrategyPaused(indexed uint256,uint256)
           handler: handleStrategyPaused
@@ -39,6 +39,8 @@ dataSources:
           handler: handleStrategyResumed
         - event: StrategyCancelled(indexed uint256)
           handler: handleStrategyCancelled
+        - event: StrategyCompleted(indexed uint256,bytes32)
+          handler: handleStrategyCompleted
         - event: ExecutionCompleted(indexed uint256,uint256,uint256,uint256,uint256)
           handler: handleExecutionCompleted
       file: ./src/mappings/dcaStrategyManager.ts

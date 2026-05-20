@@ -45,7 +45,9 @@ export function Permit2ApprovalSteps({
           ].join(' ')}
         >
           <div>
-            <div className="font-medium text-surface-100">1. Allow Permit2 to spend your shares</div>
+            <div className="font-medium text-surface-100">
+              1. Allow Permit2 to spend your shares
+            </div>
             <div className="text-xs text-surface-400">Standard ERC20 approve, one-time.</div>
           </div>
           <Button
@@ -82,9 +84,7 @@ export function Permit2ApprovalSteps({
               disabled={p.step !== 'needs-permit2' || p.isWrongChain}
               loading={
                 useSig
-                  ? p.isSigning ||
-                    p.approvePermit2SigTx.isWriting ||
-                    p.approvePermit2SigTx.isMining
+                  ? p.isSigning || p.approvePermit2SigTx.isWriting || p.approvePermit2SigTx.isMining
                   : p.approvePermit2DirectTx.isWriting || p.approvePermit2DirectTx.isMining
               }
               onClick={useSig ? p.approvePermit2Sig : p.approvePermit2Direct}

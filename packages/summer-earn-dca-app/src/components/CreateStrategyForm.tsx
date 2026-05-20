@@ -3,18 +3,21 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Address } from 'viem'
-import { useAccount } from 'wagmi'
+import { useAccount, useReadContract } from 'wagmi'
 
+import { dcaStrategyManagerAbi } from '@/abis/DCAStrategyManager'
 import { DualAmountInput } from '@/components/DualAmountInput'
 import { FeedPriceDisplay } from '@/components/FeedPriceDisplay'
 import { Permit2ApprovalSteps } from '@/components/Permit2ApprovalSteps'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Field, TextInput } from '@/components/ui/Field'
-import { type ActiveFleet,useActiveFleets } from '@/hooks/useActiveFleets'
+import { DCA_STRATEGY_MANAGER_ADDRESSES } from '@/config/addresses'
+import { type ActiveFleet, useActiveFleets } from '@/hooks/useActiveFleets'
 import { useDcaStrategyActions } from '@/hooks/useDcaStrategyActions'
 import { usePermit2Approval } from '@/hooks/usePermit2Approval'
 import { shortAddress } from '@/lib/format'
+import { computeCommitment } from '@/lib/strategy/commitment'
 import { buildCreateTuple } from '@/lib/strategy/encode'
 import { INTERVAL_PRESETS, validateInterval } from '@/lib/strategy/intervals'
 import type { ChainId } from '@/types/chain'
@@ -58,10 +61,8 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
   const maxPrice = maxPriceStr ? BigInt(Math.round(parseFloat(maxPriceStr) * 1e8)) : 0n
   const minPrice = minPriceStr ? BigInt(Math.round(parseFloat(minPriceStr) * 1e8)) : 0n
 
-  const missingFeed =
-    (sourceFleet && !sourceFleet.feed) || (targetFleet && !targetFleet.feed)
-  const sameFleet =
-    sourceFleet && targetFleet && sourceFleet.address === targetFleet.address
+  const missingFeed = (sourceFleet && !sourceFleet.feed) || (targetFleet && !targetFleet.feed)
+  const sameFleet = sourceFleet && targetFleet && sourceFleet.address === targetFleet.address
 
   const formOk =
     Boolean(address) &&
@@ -117,9 +118,20 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
     maxTrades,
   ])
 
+  const commitment = useMemo(() => (tuple ? computeCommitment(tuple) : undefined), [tuple])
+  const dupQuery = useReadContract({
+    chainId: Number(chainId),
+    address: DCA_STRATEGY_MANAGER_ADDRESSES[chainId],
+    abi: dcaStrategyManagerAbi,
+    functionName: 'activeCommitments',
+    args: commitment ? [commitment] : undefined,
+    query: { enabled: Boolean(commitment) },
+  })
+  const isDuplicate = dupQuery.data === true
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!tuple) return
+    if (!tuple || isDuplicate) return
     actions.createStrategy(tuple)
   }
 
@@ -302,11 +314,13 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
         <p className="text-xs text-surface-400">
           {missingFeed
             ? 'Pick fleets whose assets have feed mappings to continue.'
-            : 'Approvals must complete before the strategy can be created.'}
+            : isDuplicate
+              ? 'A strategy with this exact configuration is already active. Change at least one field to create a new one.'
+              : 'Approvals must complete before the strategy can be created.'}
         </p>
         <Button
           type="submit"
-          disabled={!formOk || permit2.step !== 'ready'}
+          disabled={!formOk || permit2.step !== 'ready' || isDuplicate}
           loading={actions.createTx.isWriting || actions.createTx.isMining}
         >
           Create strategy

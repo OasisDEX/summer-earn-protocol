@@ -2,6 +2,7 @@ import { BigInt } from '@graphprotocol/graph-ts'
 import {
   ExecutionCompleted,
   StrategyCancelled,
+  StrategyCompleted,
   StrategyCreated,
   StrategyEdited,
   StrategyPaused,
@@ -133,6 +134,16 @@ export function handleStrategyCancelled(event: StrategyCancelled): void {
   if (s == null) return
 
   s.status = StrategyStatus.CANCELLED
+  s.updatedAt = event.block.timestamp
+  s.updatedAtBlock = event.block.number
+  s.save()
+}
+
+export function handleStrategyCompleted(event: StrategyCompleted): void {
+  const s = loadStrategyOrWarn(event.params.strategyId, 'handleStrategyCompleted')
+  if (s == null) return
+
+  s.status = StrategyStatus.COMPLETED
   s.updatedAt = event.block.timestamp
   s.updatedAtBlock = event.block.number
   s.save()

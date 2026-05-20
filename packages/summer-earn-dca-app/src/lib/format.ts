@@ -23,22 +23,28 @@ export function parseDecimalInput(value: string, decimals: number): bigint {
 export function formatLargeNumber(value: bigint, decimals: number): string {
   const num = parseFloat(formatUnits(value, decimals))
   if (num >= 1_000_000_000) {
-    return (num / 1_000_000_000).toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }) + 'B'
+    return (
+      (num / 1_000_000_000).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }) + 'B'
+    )
   }
   if (num >= 1_000_000) {
-    return (num / 1_000_000).toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }) + 'M'
+    return (
+      (num / 1_000_000).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }) + 'M'
+    )
   }
   if (num >= 1_000) {
-    return (num / 1_000).toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }) + 'K'
+    return (
+      (num / 1_000).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }) + 'K'
+    )
   }
   return formatDecimalOutput(value, decimals)
 }

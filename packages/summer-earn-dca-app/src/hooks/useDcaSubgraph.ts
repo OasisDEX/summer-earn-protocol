@@ -4,11 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
 
 import { gqlFetch } from '@/lib/subgraph/client'
-import {
-  EXECUTIONS_BY_STRATEGY,
-  STRATEGIES_BY_OWNER,
-  STRATEGY_BY_ID,
-} from '@/lib/subgraph/queries'
+import { EXECUTIONS_BY_STRATEGY, STRATEGIES_BY_OWNER, STRATEGY_BY_ID } from '@/lib/subgraph/queries'
 import type { SubgraphExecution, SubgraphStrategy } from '@/lib/subgraph/types'
 import type { ChainId } from '@/types/chain'
 

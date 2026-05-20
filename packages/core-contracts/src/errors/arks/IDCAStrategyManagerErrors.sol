@@ -4,6 +4,8 @@ pragma solidity >=0.8.0;
 interface IDCAStrategyManagerErrors {
     error CommitmentMismatch(uint256 strategyId);
 
+    error DuplicateStrategy();
+
     error StrategyNotActive(uint256 strategyId);
 
     error ExecutionWindowNotReached(

@@ -13,7 +13,6 @@ interface IDCAStrategyManager {
     }
 
     struct StrategyConfig {
-        uint256 strategyId;
         address owner;
         IFleetCommander sourceVault;
         IFleetCommander targetVault;
@@ -41,15 +40,22 @@ interface IDCAStrategyManager {
         StrategyConfig calldata config
     ) external returns (uint256 strategyId);
 
-    function editStrategy(StrategyConfig calldata config) external;
+    function editStrategy(
+        uint256 strategyId,
+        StrategyConfig calldata config
+    ) external;
 
     function pauseStrategy(uint256 strategyId) external;
 
-    function resumeStrategy(StrategyConfig calldata config) external;
+    function resumeStrategy(
+        uint256 strategyId,
+        StrategyConfig calldata config
+    ) external;
 
     function cancelStrategy(uint256 strategyId) external;
 
     function executeDCA(
+        uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData
     ) external;
@@ -62,7 +68,10 @@ interface IDCAStrategyManager {
         uint256 strategyId
     ) external view returns (StrategyState memory);
 
+    function activeCommitments(bytes32 commitment) external view returns (bool);
+
     function checkUpkeep(
+        uint256 strategyId,
         StrategyConfig calldata config
     ) external view returns (bool upkeepNeeded, bytes memory performData);
 }

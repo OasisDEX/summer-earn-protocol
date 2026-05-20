@@ -36,7 +36,10 @@ export function predictedNextTriggerAtCreation(
   return nextHourAligned(nowSeconds) + intervalSeconds
 }
 
-export function formatCountdown(targetUnix: bigint, nowSeconds = BigInt(Math.floor(Date.now() / 1000))): string {
+export function formatCountdown(
+  targetUnix: bigint,
+  nowSeconds = BigInt(Math.floor(Date.now() / 1000)),
+): string {
   const delta = targetUnix - nowSeconds
   if (delta <= 0n) return 'Ready'
   const days = delta / 86_400n

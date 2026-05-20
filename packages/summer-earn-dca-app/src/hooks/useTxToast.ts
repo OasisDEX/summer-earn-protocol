@@ -2,11 +2,31 @@
 
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import type { Hex } from 'viem'
+import { BaseError, ContractFunctionRevertedError, type Hex } from 'viem'
 import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 
 import type { ChainId } from '@/types/chain'
 import { txExplorerUrl } from '@/utils/explorer'
+
+// Map known custom errors to user-facing labels. Falls through to the
+// caller-supplied generic label when we don't recognise the revert.
+const FRIENDLY_REVERT_LABELS: Record<string, string> = {
+  DuplicateStrategy:
+    'A strategy with this exact configuration already exists. Change at least one field (e.g. end date or trade amount) to create a new one.',
+  CommitmentMismatch: 'Strategy configuration has changed on-chain. Reload and try again.',
+  StrategyNotActive: 'Strategy is not active.',
+  UnauthorizedAccess: 'Only the strategy owner can do this.',
+}
+
+function friendlyRevertLabel(error: unknown): string | undefined {
+  if (!(error instanceof BaseError)) return undefined
+  const reverted = error.walk((e) => e instanceof ContractFunctionRevertedError) as
+    | ContractFunctionRevertedError
+    | undefined
+  const name = reverted?.data?.errorName ?? reverted?.reason
+  if (!name) return undefined
+  return FRIENDLY_REVERT_LABELS[name]
+}
 
 interface UseTxToastOptions {
   chainId: ChainId
@@ -39,8 +59,13 @@ export function useTxToast(opts: UseTxToastOptions): UseTxToastResult & {
   writeContract: ReturnType<typeof useWriteContract>['writeContract']
   writeContractAsync: ReturnType<typeof useWriteContract>['writeContractAsync']
 } {
-  const { writeContract, writeContractAsync, data: hash, isPending: isWriting, error: writeError } =
-    useWriteContract()
+  const {
+    writeContract,
+    writeContractAsync,
+    data: hash,
+    isPending: isWriting,
+    error: writeError,
+  } = useWriteContract()
 
   const {
     isLoading: isMining,
@@ -58,7 +83,9 @@ export function useTxToast(opts: UseTxToastOptions): UseTxToastResult & {
 
   function endToastOnError(e: unknown) {
     if (toastIdRef.current !== undefined) {
-      toast.error(opts.labels.error, { id: toastIdRef.current })
+      toast.error(friendlyRevertLabel(e) ?? opts.labels.error, {
+        id: toastIdRef.current,
+      })
       toastIdRef.current = undefined
     }
     opts.onError?.(e)
@@ -70,7 +97,9 @@ export function useTxToast(opts: UseTxToastOptions): UseTxToastResult & {
 
   useEffect(() => {
     if (writeError && toastIdRef.current !== undefined) {
-      toast.error(opts.labels.error, { id: toastIdRef.current })
+      toast.error(friendlyRevertLabel(writeError) ?? opts.labels.error, {
+        id: toastIdRef.current,
+      })
       toastIdRef.current = undefined
       opts.onError?.(writeError)
     }
@@ -88,7 +117,9 @@ export function useTxToast(opts: UseTxToastOptions): UseTxToastResult & {
       toastIdRef.current = undefined
       opts.onSuccess?.(hash)
     } else if (isError && toastIdRef.current !== undefined) {
-      toast.error(opts.labels.error, { id: toastIdRef.current })
+      toast.error(friendlyRevertLabel(receiptError) ?? opts.labels.error, {
+        id: toastIdRef.current,
+      })
       toastIdRef.current = undefined
       opts.onError?.(receiptError)
     }

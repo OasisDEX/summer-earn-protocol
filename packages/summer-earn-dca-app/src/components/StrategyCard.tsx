@@ -100,7 +100,7 @@ export function StrategyCard({
           <Button
             variant="secondary"
             onClick={() =>
-              actions.resumeStrategy(toStrategyConfigStruct(strategy))
+              actions.resumeStrategy(BigInt(strategy.strategyId), toStrategyConfigStruct(strategy))
             }
             loading={actions.resumeTx.isWriting || actions.resumeTx.isMining}
           >

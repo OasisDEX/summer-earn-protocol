@@ -9,11 +9,7 @@ import { StrategyDetail } from '@/components/StrategyDetail'
 import { Button } from '@/components/ui/Button'
 import { asChainId, type ChainId } from '@/types/chain'
 
-export default function StrategyDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+export default function StrategyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const chainId: ChainId = asChainId(base.id)
 

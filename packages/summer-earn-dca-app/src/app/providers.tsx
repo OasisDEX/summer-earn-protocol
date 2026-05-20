@@ -27,10 +27,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const projectId = getWalletConnectProjectId()
 
-  const appkitNetworks = useMemo(
-    () => [appkitBase],
-    [],
-  ) as Parameters<typeof createAppKit>[0]['networks']
+  const appkitNetworks = useMemo(() => [appkitBase], []) as Parameters<
+    typeof createAppKit
+  >[0]['networks']
 
   const wagmiAdapter = useMemo(() => {
     return new WagmiAdapter({

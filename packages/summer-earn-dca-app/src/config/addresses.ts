@@ -52,7 +52,10 @@ export const FEED_BY_ASSET_ADDRESS: Record<ChainId, Record<string, Address>> = {
   },
 }
 
-export function lookupFeedForAsset(chainId: ChainId, asset: Address | undefined): Address | undefined {
+export function lookupFeedForAsset(
+  chainId: ChainId,
+  asset: Address | undefined,
+): Address | undefined {
   if (!asset) return undefined
   return FEED_BY_ASSET_ADDRESS[chainId]?.[asset.toLowerCase()]
 }

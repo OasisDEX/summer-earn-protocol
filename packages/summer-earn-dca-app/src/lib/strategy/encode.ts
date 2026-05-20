@@ -8,7 +8,6 @@ import type { StrategyConfigTuple } from '@/types/strategy'
 // re-passes the config will revert with CommitmentMismatch.
 export function toStrategyConfigStruct(s: SubgraphStrategy): StrategyConfigTuple {
   return {
-    strategyId: BigInt(s.strategyId),
     owner: getAddress(s.owner.id),
     sourceVault: getAddress(s.sourceVault),
     targetVault: getAddress(s.targetVault),
@@ -26,8 +25,6 @@ export function toStrategyConfigStruct(s: SubgraphStrategy): StrategyConfigTuple
   }
 }
 
-// Build a tuple suitable for createStrategy. The contract assigns the real
-// strategyId at write time, so we pass 0n here.
 export function buildCreateTuple(input: {
   owner: `0x${string}`
   sourceVault: `0x${string}`
@@ -45,7 +42,6 @@ export function buildCreateTuple(input: {
   maxTrades: bigint
 }): StrategyConfigTuple {
   return {
-    strategyId: 0n,
     owner: getAddress(input.owner),
     sourceVault: getAddress(input.sourceVault),
     targetVault: getAddress(input.targetVault),

@@ -39,10 +39,11 @@ export interface HybridStrategy {
 export function useHybridStrategy(chainId: ChainId, strategyIdStr: string | undefined) {
   const subgraphQuery = useStrategyById(chainId, strategyIdStr)
   const strategyIdBig = strategyIdStr ? BigInt(strategyIdStr) : undefined
-  const { state: rpcState, isLoading: rpcLoading, refetch: refetchRpc } = useStrategyState(
-    chainId,
-    strategyIdBig,
-  )
+  const {
+    state: rpcState,
+    isLoading: rpcLoading,
+    refetch: refetchRpc,
+  } = useStrategyState(chainId, strategyIdBig)
 
   const merged = useMemo<HybridStrategy | undefined>(() => {
     const sg = subgraphQuery.data

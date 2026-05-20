@@ -15,9 +15,7 @@ export default function Dashboard() {
     <main className="mx-auto max-w-5xl px-6 py-10">
       <header className="mb-8 flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-headline text-2xl font-semibold text-surface-50">
-            Summer Earn DCA
-          </h1>
+          <h1 className="font-headline text-2xl font-semibold text-surface-50">Summer Earn DCA</h1>
           <p className="text-sm text-surface-400">
             Recurring dollar-cost-averaging strategies on Base.
           </p>

@@ -131,6 +131,25 @@
   },
   {
     "type": "function",
+    "name": "activeCommitments",
+    "inputs": [
+      {
+        "name": "commitment",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "cancelStrategy",
     "inputs": [
       {
@@ -147,15 +166,15 @@
     "name": "checkUpkeep",
     "inputs": [
       {
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
         "name": "config",
         "type": "tuple",
         "internalType": "struct IDCAStrategyManager.StrategyConfig",
         "components": [
-          {
-            "name": "strategyId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
           {
             "name": "owner",
             "type": "address",
@@ -253,11 +272,6 @@
         "internalType": "struct IDCAStrategyManager.StrategyConfig",
         "components": [
           {
-            "name": "strategyId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
             "name": "owner",
             "type": "address",
             "internalType": "address"
@@ -344,15 +358,15 @@
     "name": "editStrategy",
     "inputs": [
       {
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
         "name": "config",
         "type": "tuple",
         "internalType": "struct IDCAStrategyManager.StrategyConfig",
         "components": [
-          {
-            "name": "strategyId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
           {
             "name": "owner",
             "type": "address",
@@ -434,15 +448,15 @@
     "name": "executeDCA",
     "inputs": [
       {
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
         "name": "config",
         "type": "tuple",
         "internalType": "struct IDCAStrategyManager.StrategyConfig",
         "components": [
-          {
-            "name": "strategyId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
           {
             "name": "owner",
             "type": "address",
@@ -585,15 +599,15 @@
     "name": "resumeStrategy",
     "inputs": [
       {
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
         "name": "config",
         "type": "tuple",
         "internalType": "struct IDCAStrategyManager.StrategyConfig",
         "components": [
-          {
-            "name": "strategyId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
           {
             "name": "owner",
             "type": "address",
@@ -782,6 +796,25 @@
   },
   {
     "type": "event",
+    "name": "StrategyCompleted",
+    "inputs": [
+      {
+        "name": "strategyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "StrategyCreated",
     "inputs": [
       {
@@ -796,11 +829,6 @@
         "indexed": false,
         "internalType": "struct IDCAStrategyManager.StrategyConfig",
         "components": [
-          {
-            "name": "strategyId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
           {
             "name": "owner",
             "type": "address",
@@ -892,11 +920,6 @@
         "indexed": false,
         "internalType": "struct IDCAStrategyManager.StrategyConfig",
         "components": [
-          {
-            "name": "strategyId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
           {
             "name": "owner",
             "type": "address",
@@ -1223,6 +1246,11 @@
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "DuplicateStrategy",
+    "inputs": []
   },
   {
     "type": "error",

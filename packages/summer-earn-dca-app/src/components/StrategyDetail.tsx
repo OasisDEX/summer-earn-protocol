@@ -20,13 +20,7 @@ import { toStrategyConfigStruct } from '@/lib/strategy/encode'
 import { formatCountdown } from '@/lib/strategy/intervals'
 import type { ChainId } from '@/types/chain'
 
-export function StrategyDetail({
-  chainId,
-  strategyId,
-}: {
-  chainId: ChainId
-  strategyId: string
-}) {
+export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; strategyId: string }) {
   const { data: hybrid, isLoading, isError } = useHybridStrategy(chainId, strategyId)
   const meta = useStrategyMetadata({
     chainId,
@@ -61,8 +55,7 @@ export function StrategyDetail({
   const shareDec = meta.data?.sourceVault.decimals ?? 18
   const inFeedDec = meta.data?.inAssetFeed.decimals ?? 8
 
-  const showStaleness =
-    hybrid.staleness.statusMismatch || hybrid.staleness.tradesDelta !== 0n
+  const showStaleness = hybrid.staleness.statusMismatch || hybrid.staleness.tradesDelta !== 0n
 
   return (
     <div className="space-y-4">
@@ -76,20 +69,10 @@ export function StrategyDetail({
             {showStaleness && <FreshFromChainPill />}
             <span className="ml-2 hidden text-xs text-surface-400 md:inline">
               In:&nbsp;
-              <FeedPriceDisplay
-                chainId={chainId}
-                feed={s.inAssetFeed}
-                symbol={inSym}
-                compact
-              />
+              <FeedPriceDisplay chainId={chainId} feed={s.inAssetFeed} symbol={inSym} compact />
               <span className="mx-2 text-surface-700">|</span>
               Out:&nbsp;
-              <FeedPriceDisplay
-                chainId={chainId}
-                feed={s.outAssetFeed}
-                symbol={outSym}
-                compact
-              />
+              <FeedPriceDisplay chainId={chainId} feed={s.outAssetFeed} symbol={outSym} compact />
             </span>
           </div>
           <div className="flex gap-2">
@@ -105,7 +88,7 @@ export function StrategyDetail({
             {hybrid.displayStatus === 'PAUSED' && tuple && (
               <Button
                 variant="secondary"
-                onClick={() => actions.resumeStrategy(tuple)}
+                onClick={() => actions.resumeStrategy(BigInt(s.strategyId), tuple)}
                 loading={actions.resumeTx.isWriting || actions.resumeTx.isMining}
               >
                 Resume
@@ -135,22 +118,16 @@ export function StrategyDetail({
             {hybrid.displayTradesExecuted.toString()} / {s.maxTrades}
           </Stat>
           <Stat label="Next trigger">
-            {hybrid.displayStatus === 'ACTIVE'
-              ? formatCountdown(hybrid.displayNextTriggerAt)
-              : '—'}
+            {hybrid.displayStatus === 'ACTIVE' ? formatCountdown(hybrid.displayNextTriggerAt) : '—'}
           </Stat>
           <Stat label="End date">
             {BigInt(s.endDate) === 0n ? '—' : formatUnixDate(BigInt(s.endDate))}
           </Stat>
           <Stat label="Max price (ceiling)">
-            {BigInt(s.maxPrice) === 0n
-              ? '—'
-              : `$${formatFeedPrice(BigInt(s.maxPrice), inFeedDec)}`}
+            {BigInt(s.maxPrice) === 0n ? '—' : `$${formatFeedPrice(BigInt(s.maxPrice), inFeedDec)}`}
           </Stat>
           <Stat label="Min price (floor)">
-            {BigInt(s.minPrice) === 0n
-              ? '—'
-              : `$${formatFeedPrice(BigInt(s.minPrice), inFeedDec)}`}
+            {BigInt(s.minPrice) === 0n ? '—' : `$${formatFeedPrice(BigInt(s.minPrice), inFeedDec)}`}
           </Stat>
           <Stat label="Live in-asset price">
             <FeedPriceDisplay chainId={chainId} feed={s.inAssetFeed} symbol={inSym} />
