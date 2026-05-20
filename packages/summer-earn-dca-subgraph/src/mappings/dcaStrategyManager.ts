@@ -11,6 +11,18 @@ import { Execution, Strategy } from '../../generated/schema'
 import { BigIntConstants, StrategyStatus } from '../common/constants'
 import { getOrCreateUser, loadStrategyOrWarn } from '../common/initializers'
 
+function updateStrategyStatus(s: Strategy, blockTimestamp: BigInt): void {
+  if (s.status == StrategyStatus.PAUSED || s.status == StrategyStatus.CANCELLED) {
+    return
+  }
+
+  if (s.tradesExecuted.ge(s.maxTrades) || blockTimestamp.ge(s.endDate)) {
+    s.status = StrategyStatus.COMPLETED
+  } else {
+    s.status = StrategyStatus.ACTIVE
+  }
+}
+
 export function handleStrategyCreated(event: StrategyCreated): void {
   const cfg = event.params.config
   const user = getOrCreateUser(cfg.owner, event.block)
@@ -47,6 +59,8 @@ export function handleStrategyCreated(event: StrategyCreated): void {
   s.lastScheduledAt = hourAligned
   s.nextTriggerAt = hourAligned.plus(cfg.interval)
 
+  updateStrategyStatus(s, event.block.timestamp)
+
   s.createdAt = event.block.timestamp
   s.createdAtBlock = event.block.number
   s.updatedAt = event.block.timestamp
@@ -60,6 +74,17 @@ export function handleStrategyEdited(event: StrategyEdited): void {
   if (s == null) return
 
   const cfg = event.params.config
+  const user = getOrCreateUser(cfg.owner, event.block)
+
+  // Update configurable fields, including owner and vault/asset configs
+  s.owner = user.id
+  s.sourceVault = cfg.sourceVault
+  s.targetVault = cfg.targetVault
+  s.inAsset = cfg.inAsset
+  s.outAsset = cfg.outAsset
+  s.inAssetFeed = cfg.inAssetFeed
+  s.outAssetFeed = cfg.outAssetFeed
+
   s.tradeAmount = cfg.tradeAmount
   s.interval = cfg.interval
   s.slippageBps = cfg.slippageBps
@@ -67,11 +92,12 @@ export function handleStrategyEdited(event: StrategyEdited): void {
   s.minPrice = cfg.minPrice
   s.endDate = cfg.endDate
   s.maxTrades = cfg.maxTrades
-  s.inAssetFeed = cfg.inAssetFeed
-  s.outAssetFeed = cfg.outAssetFeed
 
   // Mirror DCAStrategyManager.sol:86-88.
   s.nextTriggerAt = s.lastScheduledAt.plus(cfg.interval)
+
+  // Recalculate status in case the edit changed maxTrades or endDate
+  updateStrategyStatus(s, event.block.timestamp)
 
   s.updatedAt = event.block.timestamp
   s.updatedAtBlock = event.block.number
@@ -95,6 +121,8 @@ export function handleStrategyResumed(event: StrategyResumed): void {
 
   s.status = StrategyStatus.ACTIVE
   s.nextTriggerAt = event.params.nextTriggerAt
+  updateStrategyStatus(s, event.block.timestamp)
+
   s.updatedAt = event.block.timestamp
   s.updatedAtBlock = event.block.number
   s.save()
@@ -133,11 +161,8 @@ export function handleExecutionCompleted(event: ExecutionCompleted): void {
   s.totalInAssetSwapped = s.totalInAssetSwapped.plus(event.params.inAmount)
   s.totalOutAssetReceived = s.totalOutAssetReceived.plus(event.params.outAmount)
 
-  // Implicit COMPLETED transition — contract has no dedicated event, but
-  // executeDCA will revert on either condition from here on.
-  if (s.tradesExecuted.ge(s.maxTrades) || event.block.timestamp.ge(s.endDate)) {
-    s.status = StrategyStatus.COMPLETED
-  }
+  // Recalculate status to check if it has reached maxTrades or endDate
+  updateStrategyStatus(s, event.block.timestamp)
 
   s.updatedAt = event.block.timestamp
   s.updatedAtBlock = event.block.number
