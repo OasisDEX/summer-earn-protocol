@@ -1,0 +1,8 @@
+{
+  "network": "mainnet",
+  "dca-strategy-manager-address": "0x0000000000000000000000000000000000000000",
+  "dca-strategy-manager-start-block": 0,
+  "enable-grafting": false,
+  "grafting-base": "",
+  "grafting-block": "0"
+}
