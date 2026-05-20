@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {FleetCommander} from "../../../src/contracts/FleetCommander.sol";
-import {DCAStrategyManager} from "../../../src/contracts/arks/DCAs/DCAStrategyManager.sol";
+import {DCAStrategyManager} from "../../../src/contracts/DCA/DCAStrategyManager.sol";
 import {IDCAStrategyManager} from "../../../src/interfaces/arks/IDCAStrategyManager.sol";
 import {IFleetCommander} from "../../../src/interfaces/IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -14,6 +14,7 @@ import {toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.s
 import {HarborCommand} from "../../../src/contracts/HarborCommand.sol";
 import {FleetCommanderRewardsManagerFactory} from "../../../src/contracts/FleetCommanderRewardsManagerFactory.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {IPermit2} from "../../../src/interfaces/permit2/IPermit2.sol";
 
 contract DCAStrategyManagerTest is Test {
     DCAStrategyManager public dcaManager;
@@ -123,6 +124,39 @@ contract DCAStrategyManagerTest is Test {
         vm.stopPrank();
     }
 
+    function test_CreateStrategy_RevertsIfIntervalTooShortOnMainnet() public {
+        vm.startPrank(strategyOwner);
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.interval = 1 hours;
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "IntervalTooShort(uint256,uint256)",
+                1 hours,
+                7 days
+            )
+        );
+        dcaManager.createStrategy(config, "");
+        vm.stopPrank();
+    }
+
+    function test_CheckUpkeep_ReturnsTrueWhenReady() public {
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(_defaultConfig(), "");
+        vm.stopPrank();
+
+        (bool upkeepNeededBefore, ) = dcaManager.checkUpkeep(strategyId);
+        assertFalse(
+            upkeepNeededBefore,
+            "Upkeep should be false before interval"
+        );
+
+        vm.warp(block.timestamp + 7 days);
+
+        (bool upkeepNeededAfter, ) = dcaManager.checkUpkeep(strategyId);
+        assertTrue(upkeepNeededAfter, "Upkeep should be true after interval");
+    }
+
     function test_CreateStrategy_AssignsUniqueIdAndCommitment() public {
         vm.startPrank(strategyOwner);
 
@@ -162,6 +196,10 @@ contract DCAStrategyManagerTest is Test {
         vm.stopPrank();
     }
 
+    // ==========================================
+    // Existing base tests
+    // ==========================================
+
     function test_CancelStrategy_PreventsFurtherExecutions() public {
         vm.startPrank(strategyOwner);
         uint256 strategyId = dcaManager.createStrategy(_defaultConfig(), "");
@@ -185,7 +223,8 @@ contract DCAStrategyManagerTest is Test {
         uint256 strategyId = dcaManager.createStrategy(_defaultConfig(), "");
         vm.stopPrank();
 
-        IDCAStrategyManager.StrategyConfig memory wrongConfig = _defaultConfig();
+        IDCAStrategyManager.StrategyConfig
+            memory wrongConfig = _defaultConfig();
         wrongConfig.strategyId = strategyId;
         wrongConfig.tradeAmount = 1000e18;
 
@@ -203,9 +242,10 @@ contract DCAStrategyManagerTest is Test {
         uint256 strategyId = dcaManager.createStrategy(config, "");
         vm.stopPrank();
 
-        vm.warp(block.timestamp + 2 days);
+        vm.warp(block.timestamp + 7 days);
 
-        IDCAStrategyManager.StrategyConfig memory wrongConfig = _defaultConfig();
+        IDCAStrategyManager.StrategyConfig
+            memory wrongConfig = _defaultConfig();
         wrongConfig.maxTrades = 999;
 
         vm.prank(keeper);
@@ -231,13 +271,13 @@ contract DCAStrategyManagerTest is Test {
         uint256 strategyId = dcaManager.createStrategy(_defaultConfig(), "");
 
         IDCAStrategyManager.StrategyConfig memory newConfig = _defaultConfig();
-        newConfig.interval = 2 days;
+        newConfig.interval = 8 days;
 
         dcaManager.editStrategy(newConfig);
 
         IDCAStrategyManager.StrategyState memory state = dcaManager
             .strategyStates(strategyId);
-        assertEq(state.nextTriggerAt, state.lastScheduledAt + 2 days);
+        assertEq(state.nextTriggerAt, state.lastScheduledAt + 8 days);
 
         vm.stopPrank();
     }
@@ -247,21 +287,22 @@ contract DCAStrategyManagerTest is Test {
         view
         returns (IDCAStrategyManager.StrategyConfig memory)
     {
-        return IDCAStrategyManager.StrategyConfig({
-            strategyId: 0,
-            owner: strategyOwner,
-            sourceVault: IFleetCommander(address(usdcFleet)),
-            targetVault: IFleetCommander(address(wethFleet)),
-            inAsset: IERC20(USDC_ADDRESS),
-            outAsset: IERC20(WETH_ADDRESS),
-            tradeAmount: 100e6,
-            interval: 1 days,
-            slippageBps: 50,
-            maxPrice: 0,
-            minPrice: 0,
-            endDate: block.timestamp + 365 days,
-            maxTrades: 100
-        });
+        return
+            IDCAStrategyManager.StrategyConfig({
+                strategyId: 0,
+                owner: strategyOwner,
+                sourceVault: IFleetCommander(address(usdcFleet)),
+                targetVault: IFleetCommander(address(wethFleet)),
+                inAsset: IERC20(USDC_ADDRESS),
+                outAsset: IERC20(WETH_ADDRESS),
+                tradeAmount: 100e6,
+                interval: 7 days,
+                slippageBps: 50,
+                maxPrice: 0,
+                minPrice: 0,
+                endDate: block.timestamp + 365 days,
+                maxTrades: 100
+            });
     }
 }
 
@@ -338,9 +379,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
             initialTipRate: toPercentage(0),
             depositCap: type(uint256).max
         });
-        sourceFleet = IFleetCommander(
-            address(new FleetCommander(usdcParams))
-        );
+        sourceFleet = IFleetCommander(address(new FleetCommander(usdcParams)));
         harborCommand.enlistFleetCommander(address(sourceFleet));
 
         FleetCommanderParams memory wethParams = FleetCommanderParams({
@@ -355,9 +394,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
             initialTipRate: toPercentage(0),
             depositCap: type(uint256).max
         });
-        targetFleet = IFleetCommander(
-            address(new FleetCommander(wethParams))
-        );
+        targetFleet = IFleetCommander(address(new FleetCommander(wethParams)));
         harborCommand.enlistFleetCommander(address(targetFleet));
 
         dcaManager = new DCAStrategyManager(
@@ -395,7 +432,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 endDate = block.timestamp + 365 days;
         uint256 strategyId = _createStrategy(endDate);
 
-        vm.warp(block.timestamp + 2 days);
+        vm.warp(block.timestamp + 7 days);
 
         IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
             strategyId,
@@ -416,7 +453,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 endDate = block.timestamp + 365 days;
         uint256 strategyId = _createStrategy(endDate);
 
-        vm.warp(block.timestamp + 2 days);
+        vm.warp(block.timestamp + 7 days);
 
         IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
             strategyId,
@@ -447,48 +484,115 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
     }
 
+    function test_Execute_UpdatesNextTriggerAtBasedOnExecutionTime() public {
+        uint256 interval = 7 days;
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        uint256 executionTime = block.timestamp + 10 days;
+        vm.warp(executionTime);
+
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            strategyId,
+            endDate
+        );
+
+        vm.prank(keeper);
+        dcaManager.executeDCA(config, "");
+
+        IDCAStrategyManager.StrategyState memory state = dcaManager
+            .strategyStates(strategyId);
+
+        assertEq(
+            state.nextTriggerAt,
+            executionTime + interval,
+            "Catch-up bug: nextTriggerAt not based on actual execution time"
+        );
+    }
+
+    function test_Execute_PullsWithPermit2AllowanceTransfer() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        vm.startPrank(strategyOwner);
+        IERC20(address(sourceFleet)).approve(address(dcaManager), 0);
+
+        IERC20(address(sourceFleet)).approve(PERMIT2, type(uint256).max);
+        IPerm2(PERMIT2).approve(
+            address(sourceFleet),
+            address(dcaManager),
+            type(uint160).max,
+            type(uint48).max
+        );
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 7 days);
+
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            strategyId,
+            endDate
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit IERC20.Transfer(
+            strategyOwner,
+            address(dcaManager),
+            config.tradeAmount
+        );
+
+        vm.prank(keeper);
+        dcaManager.executeDCA(config, "");
+    }
+
+    function test_Execute_CalculatesMinOutUsingAssetsNotShares() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        vm.warp(block.timestamp + 7 days);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            strategyId,
+            endDate
+        );
+
+        vm.prank(keeper);
+        dcaManager.executeDCA(config, "");
+    }
+
+    // ==========================================
+    // Helper functions
+    // ==========================================
+
     function _createStrategy(uint256 endDate) internal returns (uint256) {
         vm.startPrank(strategyOwner);
-        IDCAStrategyManager.StrategyConfig memory config = IDCAStrategyManager
-            .StrategyConfig({
-                strategyId: 0,
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            0,
+            endDate
+        );
+        uint256 strategyId = dcaManager.createStrategy(config, "");
+        vm.stopPrank();
+        return strategyId;
+    }
+
+
+    function _buildConfig(
+        uint256 strategyId,
+        uint256 endDate
+    ) internal view returns (IDCAStrategyManager.StrategyConfig memory) {
+        return
+            IDCAStrategyManager.StrategyConfig({
+                strategyId: strategyId,
                 owner: strategyOwner,
                 sourceVault: sourceFleet,
                 targetVault: targetFleet,
                 inAsset: IERC20(USDC_ADDRESS),
                 outAsset: IERC20(WETH_ADDRESS),
                 tradeAmount: 100e6,
-                interval: 1 days,
+                interval: 7 days,
                 slippageBps: 50,
                 maxPrice: 0,
                 minPrice: 0,
                 endDate: endDate,
                 maxTrades: 100
             });
-
-        uint256 strategyId = dcaManager.createStrategy(config, "");
-        vm.stopPrank();
-        return strategyId;
-    }
-
-    function _buildConfig(
-        uint256 strategyId,
-        uint256 endDate
-    ) internal view returns (IDCAStrategyManager.StrategyConfig memory) {
-        return IDCAStrategyManager.StrategyConfig({
-            strategyId: strategyId,
-            owner: strategyOwner,
-            sourceVault: sourceFleet,
-            targetVault: targetFleet,
-            inAsset: IERC20(USDC_ADDRESS),
-            outAsset: IERC20(WETH_ADDRESS),
-            tradeAmount: 100e6,
-            interval: 1 days,
-            slippageBps: 50,
-            maxPrice: 0,
-            minPrice: 0,
-            endDate: endDate,
-            maxTrades: 100
-        });
     }
 }

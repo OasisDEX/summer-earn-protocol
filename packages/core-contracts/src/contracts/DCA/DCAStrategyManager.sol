@@ -6,14 +6,14 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {ISignatureTransfer} from "../../../interfaces/permit2/IPermit2.sol";
+import {ISignatureTransfer} from "../../interfaces/permit2/IPermit2.sol";
 
-import {IDCAStrategyManager} from "../../../interfaces/arks/IDCAStrategyManager.sol";
-import {IDCAStrategyManagerErrors} from "../../../errors/arks/IDCAStrategyManagerErrors.sol";
-import {IDCAStrategyManagerEvents} from "../../../events/arks/IDCAStrategyManagerEvents.sol";
-import {IFleetCommander} from "../../../interfaces/IFleetCommander.sol";
-import {IHarborCommand} from "../../../interfaces/IHarborCommand.sol";
-import {AggregatorV3Interface} from "../../../interfaces/external/Chainlink/AggregatorV3Interface.sol";
+import {IDCAStrategyManager} from "../../interfaces/arks/IDCAStrategyManager.sol";
+import {IDCAStrategyManagerErrors} from "../../errors/arks/IDCAStrategyManagerErrors.sol";
+import {IDCAStrategyManagerEvents} from "../../events/arks/IDCAStrategyManagerEvents.sol";
+import {IFleetCommander} from "../../interfaces/IFleetCommander.sol";
+import {IHarborCommand} from "../../interfaces/IHarborCommand.sol";
+import {AggregatorV3Interface} from "../../interfaces/external/Chainlink/AggregatorV3Interface.sol";
 
 contract DCAStrategyManager is
     IDCAStrategyManager,
@@ -61,12 +61,17 @@ contract DCAStrategyManager is
         bytes calldata permit2Data
     ) external returns (uint256 strategyId) {
         if (config.interval == 0) revert InvalidInterval(0);
-        if (config.slippageBps > _BPS) revert InvalidSlippage(config.slippageBps);
+        if (config.slippageBps > _BPS)
+            revert InvalidSlippage(config.slippageBps);
         if (config.tradeAmount == 0) revert ZeroTradeAmount();
-        if (!HARBOR_COMMAND.activeFleetCommanders(address(config.sourceVault))) {
+        if (
+            !HARBOR_COMMAND.activeFleetCommanders(address(config.sourceVault))
+        ) {
             revert InvalidSourceVault(address(config.sourceVault));
         }
-        if (!HARBOR_COMMAND.activeFleetCommanders(address(config.targetVault))) {
+        if (
+            !HARBOR_COMMAND.activeFleetCommanders(address(config.targetVault))
+        ) {
             revert InvalidTargetVault(address(config.targetVault));
         }
 
@@ -88,10 +93,19 @@ contract DCAStrategyManager is
         });
 
         if (permit2Data.length > 0) {
-            _setupPermit2(config.owner, address(config.sourceVault), permit2Data);
+            _setupPermit2(
+                config.owner,
+                address(config.sourceVault),
+                permit2Data
+            );
         }
 
-        emit StrategyCreated(strategyId, config.owner, commitment, firstTriggerAt);
+        emit StrategyCreated(
+            strategyId,
+            config.owner,
+            commitment,
+            firstTriggerAt
+        );
     }
 
     function editStrategy(StrategyConfig calldata config) external {
@@ -218,24 +232,51 @@ contract DCAStrategyManager is
         }
 
         if (config.maxPrice > 0 && inPrice > config.maxPrice) {
-            _skipWithAdvance(state, strategyId, "price_ceiling", abi.encode(inPrice, config.maxPrice));
+            _skipWithAdvance(
+                state,
+                strategyId,
+                "price_ceiling",
+                abi.encode(inPrice, config.maxPrice)
+            );
             return;
         }
 
         if (config.minPrice > 0 && inPrice < config.minPrice) {
-            _skipWithAdvance(state, strategyId, "price_floor", abi.encode(inPrice, config.minPrice));
+            _skipWithAdvance(
+                state,
+                strategyId,
+                "price_floor",
+                abi.encode(inPrice, config.minPrice)
+            );
             return;
         }
 
         uint256 tradeAmount = config.tradeAmount;
-        uint256 pulled = _pullFunds(config.owner, address(config.sourceVault), tradeAmount);
+        uint256 pulled = _pullFunds(
+            config.owner,
+            address(config.sourceVault),
+            tradeAmount
+        );
 
         if (pulled < tradeAmount) {
-            _skipWithAdvance(state, strategyId, "insufficient_funds", abi.encode(pulled, tradeAmount));
+            _skipWithAdvance(
+                state,
+                strategyId,
+                "insufficient_funds",
+                abi.encode(pulled, tradeAmount)
+            );
             return;
         }
 
-        _executeSwapCore(config, ensoData, state, strategyId, tradeAmount, inPrice, outPrice);
+        _executeSwapCore(
+            config,
+            ensoData,
+            state,
+            strategyId,
+            tradeAmount,
+            inPrice,
+            outPrice
+        );
     }
 
     function _executeSwapCore(
@@ -252,17 +293,29 @@ contract DCAStrategyManager is
         address targetVault = address(config.targetVault);
         address owner = config.owner;
 
-        uint256 targetSharesBefore = IERC20(targetVault).balanceOf(address(this));
+        uint256 targetSharesBefore = IERC20(targetVault).balanceOf(
+            address(this)
+        );
 
-        IERC20(address(config.sourceVault)).forceApprove(ENSO_ROUTER, tradeAmount);
+        IERC20(address(config.sourceVault)).forceApprove(
+            ENSO_ROUTER,
+            tradeAmount
+        );
 
         (bool success, ) = ENSO_ROUTER.call(ensoData);
         if (!success) revert SwapFailed(strategyId);
 
-        uint256 targetSharesAfter = IERC20(targetVault).balanceOf(address(this));
+        uint256 targetSharesAfter = IERC20(targetVault).balanceOf(
+            address(this)
+        );
         uint256 swappedAmount = targetSharesAfter - targetSharesBefore;
 
-        uint256 minOut = _calculateMinOut(tradeAmount, inPrice, outPrice, slippageBps);
+        uint256 minOut = _calculateMinOut(
+            tradeAmount,
+            inPrice,
+            outPrice,
+            slippageBps
+        );
 
         if (swappedAmount < minOut) {
             revert SwapOutputBelowMinOut(strategyId, minOut, swappedAmount);
@@ -270,7 +323,13 @@ contract DCAStrategyManager is
 
         IERC20(targetVault).safeTransfer(owner, swappedAmount);
 
-        _updateStateAfterSwap(state, strategyId, tradeAmount, swappedAmount, interval);
+        _updateStateAfterSwap(
+            state,
+            strategyId,
+            tradeAmount,
+            swappedAmount,
+            interval
+        );
     }
 
     function _updateStateAfterSwap(
@@ -347,11 +406,12 @@ contract DCAStrategyManager is
                 deadline: deadline
             });
 
-        ISignatureTransfer.SignatureTransferDetails memory transferDetails = ISignatureTransfer
-            .SignatureTransferDetails({
-                to: address(this),
-                requestedAmount: type(uint256).max
-            });
+        ISignatureTransfer.SignatureTransferDetails
+            memory transferDetails = ISignatureTransfer
+                .SignatureTransferDetails({
+                    to: address(this),
+                    requestedAmount: type(uint256).max
+                });
 
         PERMIT2.permitTransferFrom(permit, transferDetails, owner, signature);
     }
@@ -371,10 +431,14 @@ contract DCAStrategyManager is
         address sourceAsset = address(sourceVault.asset());
         address targetAsset = address(targetVault.asset());
 
-        bool sourceIsEth = sourceAsset == 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        bool sourceIsUsdc = sourceAsset == 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-        bool targetIsEth = targetAsset == 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        bool targetIsUsdc = targetAsset == 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        bool sourceIsEth = sourceAsset ==
+            0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        bool sourceIsUsdc = sourceAsset ==
+            0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        bool targetIsEth = targetAsset ==
+            0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        bool targetIsUsdc = targetAsset ==
+            0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
         if (sourceIsEth && targetIsUsdc) {
             inPrice = ethUsd;
@@ -408,7 +472,7 @@ contract DCAStrategyManager is
     ) internal pure returns (uint256) {
         uint256 expectedOut = (inAmount * inPrice) / outPrice;
 
-        return expectedOut * (_BPS - slippageBps) / _BPS;
+        return (expectedOut * (_BPS - slippageBps)) / _BPS;
     }
 
     error InvalidRouterAddress();
