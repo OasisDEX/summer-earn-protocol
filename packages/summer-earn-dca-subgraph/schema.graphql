@@ -1,0 +1,57 @@
+type User @entity {
+  "Owner address"
+  id: Bytes!
+  createdAt: BigInt!
+  strategies: [Strategy!]! @derivedFrom(field: "owner")
+}
+
+type Strategy @entity {
+  "strategyId.toString()"
+  id: String!
+  strategyId: BigInt!
+  owner: User!
+
+  sourceVault: Bytes!
+  targetVault: Bytes!
+  inAsset: Bytes!
+  outAsset: Bytes!
+  inAssetFeed: Bytes!
+  outAssetFeed: Bytes!
+
+  tradeAmount: BigInt!
+  interval: BigInt!
+  slippageBps: BigInt!
+  maxPrice: BigInt!
+  minPrice: BigInt!
+  endDate: BigInt!
+  maxTrades: BigInt!
+
+  "ACTIVE | PAUSED | CANCELLED | COMPLETED"
+  status: String!
+  nextTriggerAt: BigInt!
+  lastScheduledAt: BigInt!
+  tradesExecuted: BigInt!
+
+  totalInAssetSwapped: BigInt!
+  totalOutAssetReceived: BigInt!
+
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
+
+  executions: [Execution!]! @derivedFrom(field: "strategy")
+}
+
+type Execution @entity(immutable: true) {
+  "{strategyId}-{txHashHex}-{logIndex}"
+  id: String!
+  strategy: Strategy!
+  amountIn: BigInt!
+  amountOut: BigInt!
+  tradesExecutedAfter: BigInt!
+  executionTimestamp: BigInt!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: Bytes!
+}

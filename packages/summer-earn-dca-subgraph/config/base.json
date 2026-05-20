@@ -1,0 +1,8 @@
+{
+  "network": "base",
+  "dca-strategy-manager-address": "0x9407a57C1Ebe92cB7fc6CB68705e34371A33735A",
+  "dca-strategy-manager-start-block": 46243688,
+  "enable-grafting": false,
+  "grafting-base": "",
+  "grafting-block": "0"
+}

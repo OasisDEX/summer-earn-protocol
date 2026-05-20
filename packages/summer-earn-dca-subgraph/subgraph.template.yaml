@@ -1,0 +1,44 @@
+specVersion: 0.0.8
+description: Summer DCA Strategy Manager
+schema:
+  file: ./schema.graphql
+{{#enable-grafting}}
+features:
+  - grafting
+graft:
+  base: {{grafting-base}}
+  block: {{grafting-block}}
+{{/enable-grafting}}
+dataSources:
+  - kind: ethereum/contract
+    name: DCAStrategyManager
+    network: {{network}}
+    source:
+      abi: DCAStrategyManager
+      address: "{{dca-strategy-manager-address}}"
+      startBlock: {{dca-strategy-manager-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - User
+        - Strategy
+        - Execution
+      abis:
+        - name: DCAStrategyManager
+          file: ./abis/DCAStrategyManager.json
+      eventHandlers:
+        - event: StrategyCreated(indexed uint256,(uint256,address,address,address,address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256))
+          handler: handleStrategyCreated
+        - event: StrategyEdited(indexed uint256,(uint256,address,address,address,address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256))
+          handler: handleStrategyEdited
+        - event: StrategyPaused(indexed uint256,uint256)
+          handler: handleStrategyPaused
+        - event: StrategyResumed(indexed uint256,uint256)
+          handler: handleStrategyResumed
+        - event: StrategyCancelled(indexed uint256)
+          handler: handleStrategyCancelled
+        - event: ExecutionCompleted(indexed uint256,uint256,uint256,uint256,uint256)
+          handler: handleExecutionCompleted
+      file: ./src/mappings/dcaStrategyManager.ts

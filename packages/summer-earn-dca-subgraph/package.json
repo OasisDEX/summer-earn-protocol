@@ -1,0 +1,22 @@
+{
+  "name": "@summerfi/summer-earn-dca-subgraph",
+  "license": "UNLICENSED",
+  "version": "0.1.1",
+  "scripts": {
+    "codegen": "graph codegen",
+    "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml",
+    "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
+    "build:base": "pnpm run prepare:base && graph codegen && graph build",
+    "build:mainnet": "pnpm run prepare:mainnet && graph codegen && graph build",
+    "deploy:base": "bash -c 'source ../../.env && pnpm run build:base && goldsky subgraph deploy summer-dca-base/$npm_package_version --path .'",
+    "deploy:mainnet": "bash -c 'source ../../.env && pnpm run build:mainnet && goldsky subgraph deploy summer-dca/$npm_package_version --path .'",
+    "deploy:all": "pnpm run deploy:base && pnpm run deploy:mainnet",
+    "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --ignore-path .prettierignore",
+    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --ignore-path .prettierignore"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "0.96.0",
+    "@graphprotocol/graph-ts": "0.35.1",
+    "mustache": "4.2.0"
+  }
+}
