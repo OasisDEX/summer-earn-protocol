@@ -1,15 +1,6 @@
 import { CHAIN_DCA_SUBGRAPH_URLS } from '@/config/chains'
 import type { ChainId } from '@/types/chain'
 
-export class SubgraphNotConfiguredError extends Error {
-  constructor(chainId: ChainId) {
-    super(
-      `No DCA subgraph URL configured for chain ${chainId}. Set NEXT_PUBLIC_DCA_SUBGRAPH_URL_BASE to the Goldsky endpoint.`,
-    )
-    this.name = 'SubgraphNotConfiguredError'
-  }
-}
-
 interface GqlResponse<T> {
   data?: T
   errors?: Array<{ message: string }>
@@ -21,9 +12,6 @@ export async function gqlFetch<T>(
   variables: Record<string, unknown> = {},
 ): Promise<T> {
   const url = CHAIN_DCA_SUBGRAPH_URLS[chainId]
-  if (!url) {
-    throw new SubgraphNotConfiguredError(chainId)
-  }
 
   const response = await fetch(url, {
     method: 'POST',
