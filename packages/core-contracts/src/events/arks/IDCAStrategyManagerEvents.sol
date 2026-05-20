@@ -27,10 +27,4 @@ interface IDCAStrategyManagerEvents {
         uint256 outAmount,
         uint256 nextTriggerAt
     );
-
-    event ExecutionSkipped(
-        uint256 indexed strategyId,
-        bytes32 reason,
-        bytes extraData
-    );
 }

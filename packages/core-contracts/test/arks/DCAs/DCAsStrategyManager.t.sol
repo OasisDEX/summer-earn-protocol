@@ -123,6 +123,10 @@ contract DCAStrategyManagerTest is Test {
 
     function setUp() public {
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
+        // Pin fork time to an hour boundary so the contract's hour-aligned
+        // nextTriggerAt math lines up with `vm.warp(block.timestamp + N)` in
+        // tests without per-test offsets.
+        vm.warp(((block.timestamp + 3599) / 3600) * 3600);
         _setupContracts();
         _setupRoles();
     }
@@ -212,11 +216,12 @@ contract DCAStrategyManagerTest is Test {
     }
 
     function test_CheckUpkeep_ReturnsTrueWhenReady() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
         vm.startPrank(strategyOwner);
-        uint256 strategyId = dcaManager.createStrategy(_defaultConfig());
+        config.strategyId = dcaManager.createStrategy(config);
         vm.stopPrank();
 
-        (bool upkeepNeededBefore, ) = dcaManager.checkUpkeep(strategyId);
+        (bool upkeepNeededBefore, ) = dcaManager.checkUpkeep(config);
         assertFalse(
             upkeepNeededBefore,
             "Upkeep should be false before interval"
@@ -224,7 +229,7 @@ contract DCAStrategyManagerTest is Test {
 
         vm.warp(block.timestamp + 7 days);
 
-        (bool upkeepNeededAfter, ) = dcaManager.checkUpkeep(strategyId);
+        (bool upkeepNeededAfter, ) = dcaManager.checkUpkeep(config);
         assertTrue(upkeepNeededAfter, "Upkeep should be true after interval");
     }
 
@@ -251,18 +256,19 @@ contract DCAStrategyManagerTest is Test {
     }
 
     function test_PauseAndResume_UpdatesStateCorrectly() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
         vm.startPrank(strategyOwner);
-        uint256 strategyId = dcaManager.createStrategy(_defaultConfig());
+        config.strategyId = dcaManager.createStrategy(config);
 
-        dcaManager.pauseStrategy(strategyId);
+        dcaManager.pauseStrategy(config.strategyId);
 
         IDCAStrategyManager.StrategyState memory state = dcaManager
-            .strategyStates(strategyId);
+            .strategyStates(config.strategyId);
         assertEq(state.status, uint8(IDCAStrategyManager.Status.PAUSED));
 
-        dcaManager.resumeStrategy(strategyId);
+        dcaManager.resumeStrategy(config);
 
-        state = dcaManager.strategyStates(strategyId);
+        state = dcaManager.strategyStates(config.strategyId);
         assertEq(state.status, uint8(IDCAStrategyManager.Status.ACTIVE));
         vm.stopPrank();
     }
@@ -412,6 +418,10 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
     function setUp() public {
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
+        // Pin fork time to an hour boundary so the contract's hour-aligned
+        // nextTriggerAt math lines up with `vm.warp(block.timestamp + N)` in
+        // tests without per-test offsets.
+        vm.warp(((block.timestamp + 3599) / 3600) * 3600);
         _setupContracts();
         _setupUser();
     }

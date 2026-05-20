@@ -33,11 +33,8 @@ interface IDCAStrategyManager {
     struct StrategyState {
         uint8 status;
         uint248 tradesExecuted;
-        uint256 interval;
         uint256 nextTriggerAt;
         uint256 lastScheduledAt;
-        uint256 maxTrades;
-        uint256 endDate;
     }
 
     function createStrategy(
@@ -48,7 +45,7 @@ interface IDCAStrategyManager {
 
     function pauseStrategy(uint256 strategyId) external;
 
-    function resumeStrategy(uint256 strategyId) external;
+    function resumeStrategy(StrategyConfig calldata config) external;
 
     function cancelStrategy(uint256 strategyId) external;
 
@@ -66,6 +63,6 @@ interface IDCAStrategyManager {
     ) external view returns (StrategyState memory);
 
     function checkUpkeep(
-        uint256 strategyId
+        StrategyConfig calldata config
     ) external view returns (bool upkeepNeeded, bytes memory performData);
 }

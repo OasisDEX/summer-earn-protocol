@@ -52,4 +52,8 @@ interface IDCAStrategyManagerErrors {
     error EmptyEnsoData(uint256 strategyId);
 
     error AmountOverflowsUint160(uint256 amount);
+
+    error PriceAboveCeiling(uint256 inPrice, uint256 maxPrice);
+
+    error PriceBelowFloor(uint256 inPrice, uint256 minPrice);
 }

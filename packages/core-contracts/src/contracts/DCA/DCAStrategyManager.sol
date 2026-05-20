@@ -55,6 +55,43 @@ contract DCAStrategyManager is
     function createStrategy(
         StrategyConfig calldata config
     ) external returns (uint256 strategyId) {
+        _validateStrategyConfig(config);
+
+        strategyId = _nextStrategyId++;
+        StrategyConfig memory mutableConfig = config;
+        mutableConfig.strategyId = strategyId;
+
+        _strategyCommitments[strategyId] = keccak256(abi.encode(mutableConfig));
+        _strategyOwners[strategyId] = config.owner;
+
+        uint256 hourAligned = ((block.timestamp + 3599) / 3600) * 3600;
+        _strategyStates[strategyId] = StrategyState({
+            status: uint8(Status.ACTIVE),
+            tradesExecuted: 0,
+            nextTriggerAt: hourAligned + config.interval,
+            lastScheduledAt: hourAligned
+        });
+
+        emit StrategyCreated(strategyId, mutableConfig);
+    }
+
+    function editStrategy(StrategyConfig calldata config) external {
+        if (msg.sender != _strategyOwners[config.strategyId]) {
+            revert UnauthorizedAccess(config.strategyId, msg.sender);
+        }
+        _validateStrategyConfig(config);
+
+        _strategyCommitments[config.strategyId] = keccak256(abi.encode(config));
+
+        StrategyState storage state = _strategyStates[config.strategyId];
+        state.nextTriggerAt = state.lastScheduledAt + config.interval;
+
+        emit StrategyEdited(config.strategyId, config);
+    }
+
+    function _validateStrategyConfig(
+        StrategyConfig calldata config
+    ) internal view {
         if (config.interval < _MIN_INTERVAL) {
             revert IntervalTooShort(config.interval, _MIN_INTERVAL);
         }
@@ -78,50 +115,6 @@ contract DCAStrategyManager is
         ) {
             revert InvalidTargetVault(address(config.targetVault));
         }
-
-        strategyId = _nextStrategyId++;
-        StrategyConfig memory mutableConfig = config;
-        mutableConfig.strategyId = strategyId;
-
-        _strategyCommitments[strategyId] = keccak256(abi.encode(mutableConfig));
-        _strategyOwners[strategyId] = config.owner;
-
-        _strategyStates[strategyId] = StrategyState({
-            status: uint8(Status.ACTIVE),
-            tradesExecuted: 0,
-            interval: config.interval,
-            nextTriggerAt: block.timestamp + config.interval,
-            lastScheduledAt: block.timestamp,
-            maxTrades: config.maxTrades,
-            endDate: config.endDate
-        });
-
-        emit StrategyCreated(strategyId, mutableConfig);
-    }
-
-    function editStrategy(StrategyConfig calldata config) external {
-        if (msg.sender != _strategyOwners[config.strategyId]) {
-            revert UnauthorizedAccess(config.strategyId, msg.sender);
-        }
-        if (config.interval < _MIN_INTERVAL) {
-            revert IntervalTooShort(config.interval, _MIN_INTERVAL);
-        }
-        if (
-            config.inAssetFeed == address(0) ||
-            config.outAssetFeed == address(0)
-        ) {
-            revert InvalidFeedAddress();
-        }
-
-        _strategyCommitments[config.strategyId] = keccak256(abi.encode(config));
-
-        StrategyState storage state = _strategyStates[config.strategyId];
-        state.interval = config.interval;
-        state.maxTrades = config.maxTrades;
-        state.endDate = config.endDate;
-        state.nextTriggerAt = state.lastScheduledAt + state.interval;
-
-        emit StrategyEdited(config.strategyId, config);
     }
 
     function pauseStrategy(uint256 strategyId) external {
@@ -139,18 +132,22 @@ contract DCAStrategyManager is
         emit StrategyPaused(strategyId, state.nextTriggerAt);
     }
 
-    function resumeStrategy(uint256 strategyId) external {
-        StrategyState storage state = _strategyStates[strategyId];
-
+    function resumeStrategy(StrategyConfig calldata config) external {
+        uint256 strategyId = config.strategyId;
         if (msg.sender != _strategyOwners[strategyId]) {
             revert UnauthorizedAccess(strategyId, msg.sender);
         }
+        if (keccak256(abi.encode(config)) != _strategyCommitments[strategyId]) {
+            revert CommitmentMismatch(strategyId);
+        }
+
+        StrategyState storage state = _strategyStates[strategyId];
         if (state.status != uint8(Status.PAUSED)) {
             revert StrategyNotActive(strategyId);
         }
 
         state.status = uint8(Status.ACTIVE);
-        state.nextTriggerAt = block.timestamp + state.interval;
+        state.nextTriggerAt = block.timestamp + config.interval;
 
         emit StrategyResumed(strategyId, state.nextTriggerAt);
     }
@@ -184,17 +181,11 @@ contract DCAStrategyManager is
             revert StrategyNotActive(config.strategyId);
         }
 
-        if (
-            state.tradesExecuted >= config.maxTrades ||
-            block.timestamp >= config.endDate
-        ) {
-            state.status = uint8(Status.COMPLETED);
-            emit ExecutionSkipped(
-                config.strategyId,
-                "terminal",
-                abi.encode("max trades or end date reached")
-            );
-            return;
+        if (state.tradesExecuted >= config.maxTrades) {
+            revert TerminalStateReached(config.strategyId, "max_trades");
+        }
+        if (block.timestamp >= config.endDate) {
+            revert TerminalStateReached(config.strategyId, "end_date");
         }
 
         if (block.timestamp < state.nextTriggerAt) {
@@ -215,31 +206,14 @@ contract DCAStrategyManager is
         bytes calldata ensoData,
         StrategyState storage state
     ) internal {
+        // _getOraclePrices reverts with OraclePriceZero on raw <= 0.
         (uint256 inPrice, uint256 outPrice) = _getOraclePrices(config);
 
-        if (inPrice == 0 || outPrice == 0) {
-            _skipWithAdvance(state, config.strategyId, "oracle_price_zero", "");
-            return;
-        }
-
         if (config.maxPrice > 0 && inPrice > config.maxPrice) {
-            _skipWithAdvance(
-                state,
-                config.strategyId,
-                "price_ceiling",
-                abi.encode(inPrice, config.maxPrice)
-            );
-            return;
+            revert PriceAboveCeiling(inPrice, config.maxPrice);
         }
-
         if (config.minPrice > 0 && inPrice < config.minPrice) {
-            _skipWithAdvance(
-                state,
-                config.strategyId,
-                "price_floor",
-                abi.encode(inPrice, config.minPrice)
-            );
-            return;
+            revert PriceBelowFloor(inPrice, config.minPrice);
         }
 
         _pullFunds(
@@ -304,17 +278,6 @@ contract DCAStrategyManager is
         );
     }
 
-    function _skipWithAdvance(
-        StrategyState storage state,
-        uint256 strategyId,
-        bytes32 reason,
-        bytes memory extraData
-    ) internal {
-        state.lastScheduledAt = block.timestamp;
-        state.nextTriggerAt = block.timestamp + state.interval;
-        emit ExecutionSkipped(strategyId, reason, extraData);
-    }
-
     function strategyCommitments(
         uint256 strategyId
     ) external view returns (bytes32) {
@@ -328,15 +291,32 @@ contract DCAStrategyManager is
     }
 
     function checkUpkeep(
-        uint256 strategyId
+        StrategyConfig calldata config
     ) external view returns (bool upkeepNeeded, bytes memory performData) {
-        StrategyState storage state = _strategyStates[strategyId];
-        upkeepNeeded =
-            state.status == uint8(Status.ACTIVE) &&
-            block.timestamp >= state.nextTriggerAt &&
-            state.tradesExecuted < state.maxTrades &&
-            block.timestamp < state.endDate;
         performData = "";
+        StrategyState storage state = _strategyStates[config.strategyId];
+
+        if (state.status != uint8(Status.ACTIVE)) return (false, performData);
+        if (block.timestamp < state.nextTriggerAt) return (false, performData);
+        if (state.tradesExecuted >= config.maxTrades) {
+            return (false, performData);
+        }
+        if (block.timestamp >= config.endDate) return (false, performData);
+
+        // Oracle simulation only matters when guardrails are set; skipping
+        // the staticcall when both bounds are zero saves gas and avoids
+        // depending on a working feed for bound-less strategies.
+        if (config.maxPrice > 0 || config.minPrice > 0) {
+            (uint256 inPrice, ) = _getOraclePrices(config);
+            if (config.maxPrice > 0 && inPrice > config.maxPrice) {
+                return (false, performData);
+            }
+            if (config.minPrice > 0 && inPrice < config.minPrice) {
+                return (false, performData);
+            }
+        }
+
+        upkeepNeeded = true;
     }
 
     function _pullFunds(
