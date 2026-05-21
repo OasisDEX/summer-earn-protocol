@@ -20,9 +20,9 @@ export default async function StrategyDetailPage({ params }: { params: Promise<{
   return (
     <>
       <Topbar
-        crumbs={[{ href: '/', label: 'Portfolio' }, { label: `#${id}` }]}
+        crumbs={[{ href: '/portfolio', label: 'Portfolio' }, { label: `#${id}` }]}
         actions={
-          <Link href="/">
+          <Link href="/portfolio">
             <Button variant="ghost">← Back</Button>
           </Link>
         }

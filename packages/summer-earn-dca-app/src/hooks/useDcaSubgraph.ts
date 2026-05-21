@@ -13,14 +13,29 @@ import {
 import type { SubgraphExecution, SubgraphStrategy } from '@/lib/subgraph/types'
 import type { ChainId } from '@/types/chain'
 
-export function useStrategiesByOwner(chainId: ChainId, owner: Address | undefined) {
+export function useStrategiesByOwner(
+  chainId: ChainId,
+  owner: Address | undefined,
+  initialData?: SubgraphStrategy[],
+) {
   const queryClient = useQueryClient()
+  // Seed per-id entries from initialData at hook construction so that any
+  // child <StrategyCard> mounting on the first render already finds the
+  // entity in cache. Doing it here (instead of inside queryFn) means the
+  // server-delivered list also primes the detail-page cache before the
+  // user clicks through.
+  if (initialData) {
+    for (const s of initialData) {
+      queryClient.setQueryData(['dca', 'strategy', chainId, s.id], s)
+    }
+  }
   return useQuery({
     queryKey: ['dca', 'strategies', chainId, owner?.toLowerCase()],
     enabled: Boolean(owner),
     // Portfolio data is cheap to keep around — a 30s staleTime stops
     // re-fetching on every navigation back to the list.
     staleTime: 30_000,
+    initialData,
     queryFn: async () => {
       // First page only — use STRATEGIES_BY_OWNER_NEXT with the oldest
       // returned `createdAt` if pagination is ever wired in.
@@ -29,12 +44,6 @@ export function useStrategiesByOwner(chainId: ChainId, owner: Address | undefine
         STRATEGIES_BY_OWNER_FIRST,
         { owner: owner!.toLowerCase(), first: 50 },
       )
-      // Seed individual STRATEGY_BY_ID cache entries so that clicking through
-      // to the detail page renders the row from cache synchronously and the
-      // price-history queries can fire on the first render instead of after
-      // the subgraph round-trip. The fresh STRATEGY_BY_ID fetch (which asks
-      // for more executions than the list query embeds) still runs in the
-      // background and reconciles.
       for (const s of data.strategies) {
         queryClient.setQueryData(['dca', 'strategy', chainId, s.id], s)
       }

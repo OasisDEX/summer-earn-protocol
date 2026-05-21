@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useAccount } from 'wagmi'
+import type { Address } from 'viem'
 
 import { StrategyCard } from '@/components/StrategyCard'
 import { Button } from '@/components/ui/Button'
@@ -27,15 +27,26 @@ function counts(strategies: SubgraphStrategy[]): Record<StatusFilter, number> {
   return result
 }
 
-export function StrategyList({ chainId }: { chainId: ChainId }) {
-  const { address } = useAccount()
-  const { data: strategies, isLoading, error } = useStrategiesByOwner(chainId, address)
+// `owner` is now driven by the URL via <PortfolioBody>; this component is
+// owner-agnostic and just renders whatever it's pointed at. `readonly`
+// disables per-card mutation buttons when the viewer doesn't own the
+// strategies (URL address ≠ connected wallet, or no wallet at all).
+export function StrategyList({
+  chainId,
+  owner,
+  readonly = false,
+}: {
+  chainId: ChainId
+  owner: Address | undefined
+  readonly?: boolean
+}) {
+  const { data: strategies, isLoading, error } = useStrategiesByOwner(chainId, owner)
   const [filter, setFilter] = useState<StatusFilter>('ALL')
 
-  if (!address) {
+  if (!owner) {
     return (
       <div className="rounded-lg border border-dashed border-[var(--border)] p-12 text-center text-[var(--text-2)]">
-        Connect your wallet to view DCA strategies.
+        Connect your wallet, or open <code className="font-mono">/portfolio/0x…</code> to view DCA strategies.
       </div>
     )
   }
@@ -99,7 +110,7 @@ export function StrategyList({ chainId }: { chainId: ChainId }) {
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filtered.map((s) => (
-          <StrategyCard key={s.id} chainId={chainId} strategy={s} />
+          <StrategyCard key={s.id} chainId={chainId} strategy={s} readonly={readonly} />
         ))}
       </div>
     </>

@@ -16,9 +16,9 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   {
-    href: '/',
+    href: '/portfolio',
     label: 'Portfolio',
-    match: (p) => p === '/' || p.startsWith('/strategy'),
+    match: (p) => p === '/' || p.startsWith('/portfolio') || p.startsWith('/strategy'),
   },
   {
     href: '/create',
@@ -57,10 +57,17 @@ export function Sidebar() {
         </div>
         {NAV.map((item) => {
           const active = item.match(pathname)
+          // When a wallet is connected, the Portfolio link points straight
+          // at the owner-scoped URL so the user lands on their own data
+          // instead of the connect-wallet empty state.
+          const href =
+            item.href === '/portfolio' && address
+              ? `/portfolio/${address.toLowerCase()}`
+              : item.href
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={href}
               className={[
                 'flex w-full items-center gap-2.5 rounded-md border border-transparent px-3 py-[9px] text-sm transition',
                 active

@@ -22,9 +22,11 @@ import type { ChainId } from '@/types/chain'
 export function StrategyCard({
   chainId,
   strategy,
+  readonly = false,
 }: {
   chainId: ChainId
   strategy: SubgraphStrategy
+  readonly?: boolean
 }) {
   const hybrid = useHybridStrategy(chainId, strategy.id)
   const meta = useStrategyMetadata({
@@ -120,7 +122,7 @@ export function StrategyCard({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {status === 'ACTIVE' && tuple && (
+          {!readonly && status === 'ACTIVE' && tuple && (
             <Button
               variant="ghost"
               size="sm"
@@ -130,7 +132,7 @@ export function StrategyCard({
               Pause
             </Button>
           )}
-          {status === 'PAUSED' && tuple && (
+          {!readonly && status === 'PAUSED' && tuple && (
             <Button
               variant="ghost"
               size="sm"

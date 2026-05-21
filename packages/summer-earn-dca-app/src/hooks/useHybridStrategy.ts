@@ -48,11 +48,11 @@ export function useHybridStrategy(
 ) {
   const subgraphQuery = useStrategyById(chainId, strategyIdStr, initialSubgraph)
   const strategyIdBig = strategyIdStr ? BigInt(strategyIdStr) : undefined
-  const {
-    state: rpcState,
-    isLoading: rpcLoading,
-    refetch: refetchRpc,
-  } = useStrategyState(chainId, strategyIdBig, initialRpcState)
+  const { state: rpcState, refetch: refetchRpc } = useStrategyState(
+    chainId,
+    strategyIdBig,
+    initialRpcState,
+  )
 
   const merged = useMemo<HybridStrategy | undefined>(() => {
     const sg = subgraphQuery.data
@@ -96,9 +96,16 @@ export function useHybridStrategy(
     }
   }, [subgraphQuery.data, rpcState])
 
+  // Loading is anchored entirely on the subgraph — it indexes every mutable
+  // field (`status`, `nextTriggerAt`, `lastScheduledAt`, `tradesExecuted`)
+  // so the page can paint without ever blocking on RPC. The RPC read exists
+  // purely for *freshness-after-action* (e.g. instant feedback after the
+  // user clicks Pause) — when it arrives, `displayX` flips from the
+  // subgraph value to the RPC value via the `?? sg*` merge above, no
+  // visible reload.
   return {
     data: merged,
-    isLoading: subgraphQuery.isLoading || rpcLoading,
+    isLoading: subgraphQuery.isLoading,
     isError: subgraphQuery.isError,
     refetchSubgraph: subgraphQuery.refetch,
     refetchRpc,
