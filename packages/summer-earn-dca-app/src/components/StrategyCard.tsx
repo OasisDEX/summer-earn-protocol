@@ -11,6 +11,7 @@ import { Pair } from '@/components/ui/Pair'
 import { Progress } from '@/components/ui/Progress'
 import { useDcaStrategyActions } from '@/hooks/useDcaStrategyActions'
 import { useHybridStrategy } from '@/hooks/useHybridStrategy'
+import { useSourceVaultPreview } from '@/hooks/useSourceVaultPreview'
 import { useStrategyMetadata } from '@/hooks/useTokenMetadata'
 import { useTokenPriceHistory } from '@/hooks/useTokenPriceHistory'
 import { formatDecimalOutput } from '@/lib/format'
@@ -42,6 +43,14 @@ export function StrategyCard({
     range: '30d',
   })
   const actions = useDcaStrategyActions({ chainId })
+  // Convert the stored share amount → underlying assets so the card shows
+  // "1 USDC" not "0.937 LVUSDC mislabelled as USDC" — same shape as the
+  // Detail page (see StrategyDetail.tsx).
+  const sourcePreview = useSourceVaultPreview({
+    chainId,
+    sourceVault: getAddress(strategy.sourceVault) as Address,
+    shares: BigInt(strategy.tradeAmount),
+  })
 
   const status = hybrid.data?.displayStatus ?? strategy.status
   const tradesExecuted = Number(hybrid.data?.displayTradesExecuted ?? strategy.tradesExecuted)
@@ -55,6 +64,7 @@ export function StrategyCard({
   const shareDec = meta.data?.sourceVault.decimals ?? inDec
   const inSym = meta.data?.inAsset.symbol ?? '…'
   const outSym = meta.data?.outAsset.symbol ?? '…'
+  const shareSym = meta.data?.sourceVault.symbol ?? `${inSym}-shares`
   const tuple = hybrid.data ? toStrategyConfigStruct(hybrid.data.subgraph) : undefined
 
   return (
@@ -67,7 +77,12 @@ export function StrategyCard({
 
         <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <KV label="Per trade">
-            {formatDecimalOutput(BigInt(strategy.tradeAmount), shareDec, 4)} {inSym}
+            {sourcePreview.data?.assetsFromShares !== undefined
+              ? `${formatDecimalOutput(sourcePreview.data.assetsFromShares, inDec, 4)} ${inSym}`
+              : `${formatDecimalOutput(BigInt(strategy.tradeAmount), shareDec, 4)} ${inSym}`}
+            <span className="ml-1 text-[var(--text-3)]">
+              ({formatDecimalOutput(BigInt(strategy.tradeAmount), shareDec, 4)} {shareSym})
+            </span>
           </KV>
           <KV label="Interval">{Math.round(Number(strategy.interval) / 86_400)}d</KV>
           <KV label="Acquired">
