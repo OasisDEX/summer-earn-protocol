@@ -30,7 +30,15 @@ function toTyped(raw: RawState | undefined): StrategyStateOnchain | undefined {
 // per-block invalidation: with N visible StrategyCard instances it produces
 // an N-read multicall every Base block (~2s) which is wasteful for state
 // that changes at most once per interval (≥ 1 day).
-export function useStrategyState(chainId: ChainId, strategyId: bigint | undefined) {
+//
+// `initialState` is optional — pre-resolved value from a server component
+// loader, used as TanStack `initialData` so first render doesn't need a
+// client RPC round-trip. Polling kicks in immediately after hydration.
+export function useStrategyState(
+  chainId: ChainId,
+  strategyId: bigint | undefined,
+  initialState?: StrategyStateOnchain | null,
+) {
   const enabled = strategyId !== undefined
 
   const read = useReadContract({
@@ -45,6 +53,14 @@ export function useStrategyState(chainId: ChainId, strategyId: bigint | undefine
       // the cache. 30s is well under the contract's 1-day minimum interval.
       refetchInterval: 30_000,
       staleTime: 30_000,
+      initialData: initialState
+        ? {
+            status: initialState.status,
+            tradesExecuted: initialState.tradesExecuted,
+            nextTriggerAt: initialState.nextTriggerAt,
+            lastScheduledAt: initialState.lastScheduledAt,
+          }
+        : undefined,
     },
   })
 

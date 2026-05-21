@@ -3,7 +3,13 @@ import { gqlFetch } from '@/lib/subgraph/client'
 import { PRICE_WINDOW, PRICE_WINDOW_FIRST } from '@/lib/subgraph/queries'
 import type { SubgraphPriceFeed } from '@/lib/subgraph/types'
 
-import { type PriceFeedSource, type PricePoint, type PriceRange,type PriceSeries, RANGE_TO_SECONDS } from './types'
+import {
+  type PriceFeedSource,
+  type PricePoint,
+  type PriceRange,
+  type PriceSeries,
+  RANGE_TO_SECONDS,
+} from './types'
 
 interface WindowRound {
   answer: string

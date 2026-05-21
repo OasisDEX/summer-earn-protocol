@@ -38,6 +38,9 @@ interface UseStrategyMetadataInput {
   targetVault?: Address
   inAssetFeed?: Address
   outAssetFeed?: Address
+  // Pre-resolved metadata from a server component loader. Lets the client
+  // skip the 12-read multicall on first render.
+  initialData?: StrategyMetadata | null
 }
 
 // Batched ERC20.symbol/decimals and AggregatorV3.description/decimals reads
@@ -58,45 +61,46 @@ export function useStrategyMetadata(input: UseStrategyMetadataInput) {
     queryKey: ['dca', 'metadata', input.chainId, ...allAddresses.map((a) => a?.toLowerCase())],
     enabled: ready,
     staleTime: Number.POSITIVE_INFINITY,
+    initialData: input.initialData ?? undefined,
     queryFn: async (): Promise<StrategyMetadata> => {
       if (!client) throw new Error('Public client unavailable')
       return time('rpc:strategy-metadata', async () => {
         const calls = [
-        // 0-1: inAsset symbol+decimals
-        { address: input.inAsset!, abi: erc20Abi, functionName: 'symbol' as const },
-        { address: input.inAsset!, abi: erc20Abi, functionName: 'decimals' as const },
-        // 2-3: outAsset
-        { address: input.outAsset!, abi: erc20Abi, functionName: 'symbol' as const },
-        { address: input.outAsset!, abi: erc20Abi, functionName: 'decimals' as const },
-        // 4-5: sourceVault
-        { address: input.sourceVault!, abi: erc20Abi, functionName: 'symbol' as const },
-        { address: input.sourceVault!, abi: erc20Abi, functionName: 'decimals' as const },
-        // 6-7: targetVault
-        { address: input.targetVault!, abi: erc20Abi, functionName: 'symbol' as const },
-        { address: input.targetVault!, abi: erc20Abi, functionName: 'decimals' as const },
-        // 8-9: inAssetFeed description+decimals
-        {
-          address: input.inAssetFeed!,
-          abi: aggregatorV3Abi,
-          functionName: 'description' as const,
-        },
-        {
-          address: input.inAssetFeed!,
-          abi: aggregatorV3Abi,
-          functionName: 'decimals' as const,
-        },
-        // 10-11: outAssetFeed
-        {
-          address: input.outAssetFeed!,
-          abi: aggregatorV3Abi,
-          functionName: 'description' as const,
-        },
-        {
-          address: input.outAssetFeed!,
-          abi: aggregatorV3Abi,
-          functionName: 'decimals' as const,
-        },
-      ]
+          // 0-1: inAsset symbol+decimals
+          { address: input.inAsset!, abi: erc20Abi, functionName: 'symbol' as const },
+          { address: input.inAsset!, abi: erc20Abi, functionName: 'decimals' as const },
+          // 2-3: outAsset
+          { address: input.outAsset!, abi: erc20Abi, functionName: 'symbol' as const },
+          { address: input.outAsset!, abi: erc20Abi, functionName: 'decimals' as const },
+          // 4-5: sourceVault
+          { address: input.sourceVault!, abi: erc20Abi, functionName: 'symbol' as const },
+          { address: input.sourceVault!, abi: erc20Abi, functionName: 'decimals' as const },
+          // 6-7: targetVault
+          { address: input.targetVault!, abi: erc20Abi, functionName: 'symbol' as const },
+          { address: input.targetVault!, abi: erc20Abi, functionName: 'decimals' as const },
+          // 8-9: inAssetFeed description+decimals
+          {
+            address: input.inAssetFeed!,
+            abi: aggregatorV3Abi,
+            functionName: 'description' as const,
+          },
+          {
+            address: input.inAssetFeed!,
+            abi: aggregatorV3Abi,
+            functionName: 'decimals' as const,
+          },
+          // 10-11: outAssetFeed
+          {
+            address: input.outAssetFeed!,
+            abi: aggregatorV3Abi,
+            functionName: 'description' as const,
+          },
+          {
+            address: input.outAssetFeed!,
+            abi: aggregatorV3Abi,
+            functionName: 'decimals' as const,
+          },
+        ]
         const result = await client.multicall({ contracts: calls, allowFailure: false })
         return {
           inAsset: {

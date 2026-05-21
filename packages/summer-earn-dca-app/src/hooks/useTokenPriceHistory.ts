@@ -12,6 +12,9 @@ interface UseTokenPriceHistoryArgs {
   token: Address | undefined
   feed?: Address
   range?: PriceRange
+  // Pre-resolved series passed down from a server component. Avoids the
+  // first-paint round-trip to `/api/prices/...` when present.
+  initialSeries?: PriceSeries | null
 }
 
 // The route handler returns `{ unknown: true, points: [], ... }` when no
@@ -26,21 +29,16 @@ export function useTokenPriceHistory({
   token,
   feed,
   range = '30d',
+  initialSeries,
 }: UseTokenPriceHistoryArgs) {
   return useQuery<PriceHistoryResult>({
-    queryKey: [
-      'dca',
-      'price-history',
-      chainId,
-      token?.toLowerCase(),
-      range,
-      feed?.toLowerCase(),
-    ],
+    queryKey: ['dca', 'price-history', chainId, token?.toLowerCase(), range, feed?.toLowerCase()],
     enabled: Boolean(token),
-    // Matches the route's `revalidate: 300` — same cadence keeps the UI from
-    // re-fetching faster than the server cache can.
-    staleTime: 300_000,
-    gcTime: 30 * 60_000,
+    // Matches the route's `revalidate: 3600` (1 hour) — same cadence keeps
+    // the UI from re-fetching faster than the server cache rolls over.
+    staleTime: 60 * 60_000,
+    gcTime: 60 * 60_000,
+    initialData: initialSeries ? { series: initialSeries, isUnknown: false } : undefined,
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<PriceHistoryResult> => {
       if (!token) throw new Error('token required')

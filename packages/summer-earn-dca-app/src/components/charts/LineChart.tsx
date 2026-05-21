@@ -144,14 +144,8 @@ export function LineChart({
 
   if (showEmpty) {
     return (
-      <div
-        ref={containerRef}
-        className={['w-full', className].join(' ')}
-        style={{ height }}
-      >
-        <div
-          className="grid h-full place-items-center text-center text-sm text-[var(--text-3)]"
-        >
+      <div ref={containerRef} className={['w-full', className].join(' ')} style={{ height }}>
+        <div className="grid h-full place-items-center text-center text-sm text-[var(--text-3)]">
           {dataStartsAt
             ? `Price data begins ${new Date(dataStartsAt).toLocaleDateString()}`
             : 'No price history available'}

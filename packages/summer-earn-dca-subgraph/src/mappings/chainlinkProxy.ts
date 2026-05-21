@@ -1,6 +1,9 @@
 import { Bytes, DataSourceContext, dataSource, ethereum, log } from '@graphprotocol/graph-ts'
 
-import { AggregatorConfirmed, AggregatorProxy } from '../../generated/templates/ChainlinkProxy/AggregatorProxy'
+import {
+  AggregatorConfirmed,
+  AggregatorProxy,
+} from '../../generated/templates/ChainlinkProxy/AggregatorProxy'
 import { AggregatorRotation } from '../../generated/schema'
 import { ChainlinkAggregator } from '../../generated/templates'
 import { getOrCreatePriceFeedWithImpl } from '../common/initializers'

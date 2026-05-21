@@ -31,5 +31,9 @@ export function Countdown({ targetSec, className = '' }: CountdownProps) {
   }, [targetMs])
 
   if (!targetMs) return <span className={['font-mono', className].join(' ')}>—</span>
-  return <span className={['font-mono tabular-nums', className].join(' ')}>{format(targetMs - now)}</span>
+  return (
+    <span className={['font-mono tabular-nums', className].join(' ')}>
+      {format(targetMs - now)}
+    </span>
+  )
 }

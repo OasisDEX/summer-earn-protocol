@@ -6,8 +6,22 @@ import { type Address, getAddress } from 'viem'
 import { useHybridStrategy } from '@/hooks/useHybridStrategy'
 import { useStrategyMetadata } from '@/hooks/useTokenMetadata'
 import { useTokenPriceHistory } from '@/hooks/useTokenPriceHistory'
-import type { PriceBasis, PricePoint, PriceRange } from '@/lib/prices'
+import type { PriceBasis, PricePoint, PriceRange, PriceSeries } from '@/lib/prices'
+import type { SubgraphStrategy } from '@/lib/subgraph/types'
 import type { ChainId } from '@/types/chain'
+
+// Optional pre-resolved data from a server component loader. Lets the
+// hooks seed TanStack with initialData so first paint doesn't wait on any
+// network round-trip.
+export interface StrategyChartInitialData {
+  subgraph?: SubgraphStrategy | null
+  inSeries?: PriceSeries | null
+  outSeries?: PriceSeries | null
+  /** The range the initial series cover — `useTokenPriceHistory` keys on
+   *  range so we only apply `initialSeries` when the consumer asks for the
+   *  same range. */
+  range?: PriceRange
+}
 
 export interface StrategyChartExecution {
   t: number
@@ -87,8 +101,9 @@ export function useStrategyChartData(
   chainId: ChainId,
   strategyId: string | undefined,
   range: PriceRange = '90d',
+  initial?: StrategyChartInitialData,
 ) {
-  const hybrid = useHybridStrategy(chainId, strategyId)
+  const hybrid = useHybridStrategy(chainId, strategyId, initial?.subgraph)
   const sg = hybrid.data?.subgraph
 
   const metadata = useStrategyMetadata({
@@ -101,17 +116,24 @@ export function useStrategyChartData(
     outAssetFeed: sg ? (getAddress(sg.outAssetFeed) as Address) : undefined,
   })
 
+  // Only apply the server-pre-resolved series when the consumer hasn't
+  // switched to a different range yet — otherwise TanStack would re-seed
+  // the new range's queryKey with stale points from the initial range.
+  const seedSeries = initial?.range === range ? initial : undefined
+
   const outQuery = useTokenPriceHistory({
     chainId,
     token: sg ? (getAddress(sg.outAsset) as Address) : undefined,
     feed: sg ? (getAddress(sg.outAssetFeed) as Address) : undefined,
     range,
+    initialSeries: seedSeries?.outSeries,
   })
   const inQuery = useTokenPriceHistory({
     chainId,
     token: sg ? (getAddress(sg.inAsset) as Address) : undefined,
     feed: sg ? (getAddress(sg.inAssetFeed) as Address) : undefined,
     range,
+    initialSeries: seedSeries?.inSeries,
   })
 
   const data = useMemo<StrategyChartData | undefined>(() => {
@@ -125,10 +147,8 @@ export function useStrategyChartData(
     // Guardrails are stored as the 1e18-scaled out/in execution-price ratio
     // (see DCAStrategyManager._executionPrice). Decode to a plain float for
     // the chart's y-axis.
-    const ceiling =
-      sg.maxPrice && sg.maxPrice !== '0' ? Number(sg.maxPrice) / 1e18 : undefined
-    const floor =
-      sg.minPrice && sg.minPrice !== '0' ? Number(sg.minPrice) / 1e18 : undefined
+    const ceiling = sg.maxPrice && sg.maxPrice !== '0' ? Number(sg.maxPrice) / 1e18 : undefined
+    const floor = sg.minPrice && sg.minPrice !== '0' ? Number(sg.minPrice) / 1e18 : undefined
 
     // Build a pointwise ratio series outPrice/inPrice. We anchor on the
     // outAsset series timestamps (typically the volatile asset, denser cadence)
@@ -172,7 +192,7 @@ export function useStrategyChartData(
     const dataStartsAt =
       outSeries?.dataStartsAt !== undefined && inSeries?.dataStartsAt !== undefined
         ? Math.max(outSeries.dataStartsAt, inSeries.dataStartsAt)
-        : (outSeries?.dataStartsAt ?? inSeries?.dataStartsAt)
+        : outSeries?.dataStartsAt ?? inSeries?.dataStartsAt
 
     return {
       prices,
@@ -197,14 +217,9 @@ export function useStrategyChartData(
   // transitions smoothly without re-flashing the skeleton.
   return {
     data,
-    isLoading:
-      hybrid.isLoading ||
-      metadata.isLoading ||
-      !outQuery.data ||
-      !inQuery.data,
+    isLoading: hybrid.isLoading || metadata.isLoading || !outQuery.data || !inQuery.data,
     isError: hybrid.isError || outQuery.isError || inQuery.isError,
-    isUnknown:
-      (outQuery.data?.isUnknown ?? false) && !(outQuery.data?.series),
+    isUnknown: (outQuery.data?.isUnknown ?? false) && !outQuery.data?.series,
     refetchSubgraph: hybrid.refetchSubgraph,
   }
 }

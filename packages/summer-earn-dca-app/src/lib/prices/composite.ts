@@ -1,6 +1,12 @@
 import { time } from '@/lib/perf'
 
-import { type PriceFeedFetchArgs, type PriceFeedSource, type PricePoint, type PriceSeries,RANGE_TO_SECONDS } from './types'
+import {
+  type PriceFeedFetchArgs,
+  type PriceFeedSource,
+  type PricePoint,
+  type PriceSeries,
+  RANGE_TO_SECONDS,
+} from './types'
 
 // Threshold for merging a partial primary response with a fallback. If gaps
 // cover more than this fraction of the requested range, we treat the primary
@@ -22,9 +28,7 @@ export function createCompositePriceClient(sources: PriceFeedSource[]): Composit
       let primaryError: unknown = null
 
       try {
-        primary = await time(`price-source:${sources[0].name}`, () =>
-          sources[0].fetchSeries(args),
-        )
+        primary = await time(`price-source:${sources[0].name}`, () => sources[0].fetchSeries(args))
       } catch (err) {
         primaryError = err
         primary = null

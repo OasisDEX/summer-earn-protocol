@@ -43,15 +43,21 @@ export function useStrategiesByOwner(chainId: ChainId, owner: Address | undefine
   })
 }
 
-export function useStrategyById(chainId: ChainId, strategyId: string | undefined) {
+export function useStrategyById(
+  chainId: ChainId,
+  strategyId: string | undefined,
+  initialData?: SubgraphStrategy | null,
+) {
   const queryClient = useQueryClient()
   return useQuery<SubgraphStrategy | null>({
     queryKey: ['dca', 'strategy', chainId, strategyId],
     enabled: Boolean(strategyId),
     staleTime: 30_000,
-    // If the user came from the portfolio, the entity is already in the
-    // strategies-by-owner cache. Pull it forward so the detail page renders
-    // with data on the first paint while the fresh fetch refines it.
+    // Server-side loader can pass the row down with the HTML; use it as
+    // `initialData` so first render has the entity in hand without any
+    // client fetch. Fallback to scanning the strategies-by-owner cache for
+    // the portfolio → detail click-through path.
+    initialData: initialData ?? undefined,
     placeholderData: () => {
       if (!strategyId) return undefined
       const lists = queryClient.getQueriesData<SubgraphStrategy[]>({
@@ -83,14 +89,7 @@ export function useExecutionsByStrategy(
   cursorExecutionTimestamp?: string,
 ) {
   return useQuery({
-    queryKey: [
-      'dca',
-      'executions',
-      chainId,
-      strategyId,
-      first,
-      cursorExecutionTimestamp ?? null,
-    ],
+    queryKey: ['dca', 'executions', chainId, strategyId, first, cursorExecutionTimestamp ?? null],
     enabled: Boolean(strategyId),
     queryFn: async () => {
       const data = cursorExecutionTimestamp

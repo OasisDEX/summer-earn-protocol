@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { type Address,getAddress } from 'viem'
+import { type Address, getAddress } from 'viem'
 
 import { MiniChart } from '@/components/charts/MiniChart'
 import { StatusBadge } from '@/components/TxStatusBadge'
@@ -94,7 +94,10 @@ export function StrategyCard({
         </dl>
 
         <div className="mt-4">
-          <Progress value={tradesExecuted} total={maxTrades > 0 ? maxTrades : tradesExecuted || 1} />
+          <Progress
+            value={tradesExecuted}
+            total={maxTrades > 0 ? maxTrades : tradesExecuted || 1}
+          />
         </div>
 
         <div className="mt-3">

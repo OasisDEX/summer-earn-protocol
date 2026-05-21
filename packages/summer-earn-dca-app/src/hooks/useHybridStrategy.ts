@@ -36,14 +36,23 @@ export interface HybridStrategy {
 // Merges the subgraph entity (immutable config + aggregates + history) with
 // the RPC `strategyStates(id)` read. RPC always wins for mutable state fields
 // — that's the contract for the "fresh after action" guarantee in the plan.
-export function useHybridStrategy(chainId: ChainId, strategyIdStr: string | undefined) {
-  const subgraphQuery = useStrategyById(chainId, strategyIdStr)
+//
+// `initialSubgraph` is optional pre-resolved data from a server component
+// loader — useStrategyById uses it as TanStack `initialData` so the first
+// client render already has the row.
+export function useHybridStrategy(
+  chainId: ChainId,
+  strategyIdStr: string | undefined,
+  initialSubgraph?: SubgraphStrategy | null,
+  initialRpcState?: StrategyStateOnchain | null,
+) {
+  const subgraphQuery = useStrategyById(chainId, strategyIdStr, initialSubgraph)
   const strategyIdBig = strategyIdStr ? BigInt(strategyIdStr) : undefined
   const {
     state: rpcState,
     isLoading: rpcLoading,
     refetch: refetchRpc,
-  } = useStrategyState(chainId, strategyIdBig)
+  } = useStrategyState(chainId, strategyIdBig, initialRpcState)
 
   const merged = useMemo<HybridStrategy | undefined>(() => {
     const sg = subgraphQuery.data

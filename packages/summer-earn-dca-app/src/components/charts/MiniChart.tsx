@@ -11,7 +11,12 @@ interface MiniChartProps {
 
 // Card-sized area chart strip. No labels, no axes. Ignores gaps — at this
 // scale they're not visible.
-export function MiniChart({ data, height = 56, color = 'var(--pink)', className = '' }: MiniChartProps) {
+export function MiniChart({
+  data,
+  height = 56,
+  color = 'var(--pink)',
+  className = '',
+}: MiniChartProps) {
   const id = useId().replace(/[:]/g, '')
   if (!data || data.length < 2) {
     return <div className={className} style={{ height }} aria-hidden />

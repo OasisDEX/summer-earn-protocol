@@ -89,9 +89,7 @@ export function ExecutionHistoryTable({
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th
-      className="border-b border-[var(--border-faint)] px-[var(--row-px)] py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-3)]"
-    >
+    <th className="border-b border-[var(--border-faint)] px-[var(--row-px)] py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-3)]">
       {children}
     </th>
   )

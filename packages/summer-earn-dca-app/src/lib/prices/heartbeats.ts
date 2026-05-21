@@ -1,4 +1,4 @@
-import { type Address,getAddress } from 'viem'
+import { type Address, getAddress } from 'viem'
 import { base } from 'wagmi/chains'
 
 import type { ChainId } from '@/types/chain'

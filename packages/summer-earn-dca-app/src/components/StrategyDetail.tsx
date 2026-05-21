@@ -13,17 +13,29 @@ import { Segmented } from '@/components/ui/Segmented'
 import { useDcaStrategyActions } from '@/hooks/useDcaStrategyActions'
 import { useHybridStrategy } from '@/hooks/useHybridStrategy'
 import { useSourceVaultPreview } from '@/hooks/useSourceVaultPreview'
-import { useStrategyChartData } from '@/hooks/useStrategyChartData'
+import { type StrategyChartInitialData, useStrategyChartData } from '@/hooks/useStrategyChartData'
 import { useStrategyMetadata } from '@/hooks/useTokenMetadata'
-import {
-  formatBpsAsPercent,
-  formatDecimalOutput,
-  formatUnixDate,
-} from '@/lib/format'
-import type { PriceRange } from '@/lib/prices'
+import { formatBpsAsPercent, formatDecimalOutput, formatUnixDate } from '@/lib/format'
+import type { PriceRange, PriceSeries } from '@/lib/prices'
+import type {
+  SourceVaultPreview as InitialSourcePreview,
+  StrategyMetadata as InitialMetadata,
+} from '@/lib/server/loadStrategyDetail'
 import { toStrategyConfigStruct } from '@/lib/strategy/encode'
 import { formatCountdown } from '@/lib/strategy/intervals'
+import type { SubgraphStrategy } from '@/lib/subgraph/types'
 import type { ChainId } from '@/types/chain'
+import type { StrategyStateOnchain } from '@/types/strategy'
+
+export interface StrategyDetailInitialProps {
+  subgraph: SubgraphStrategy | null
+  inSeries: PriceSeries | null
+  outSeries: PriceSeries | null
+  range: PriceRange
+  metadata: InitialMetadata | null
+  sourcePreview: InitialSourcePreview | null
+  rpcState: StrategyStateOnchain | null
+}
 
 const RANGES: Array<{ value: PriceRange; label: string }> = [
   { value: '7d', label: '7d' },
@@ -32,9 +44,17 @@ const RANGES: Array<{ value: PriceRange; label: string }> = [
   { value: 'all', label: 'All' },
 ]
 
-export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; strategyId: string }) {
-  const [range, setRange] = useState<PriceRange>('90d')
-  const hybrid = useHybridStrategy(chainId, strategyId)
+export function StrategyDetail({
+  chainId,
+  strategyId,
+  initial,
+}: {
+  chainId: ChainId
+  strategyId: string
+  initial?: StrategyDetailInitialProps
+}) {
+  const [range, setRange] = useState<PriceRange>(initial?.range ?? '90d')
+  const hybrid = useHybridStrategy(chainId, strategyId, initial?.subgraph, initial?.rpcState)
   const meta = useStrategyMetadata({
     chainId,
     inAsset: hybrid.data?.subgraph.inAsset,
@@ -43,8 +63,21 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
     targetVault: hybrid.data?.subgraph.targetVault,
     inAssetFeed: hybrid.data?.subgraph.inAssetFeed,
     outAssetFeed: hybrid.data?.subgraph.outAssetFeed,
+    initialData: initial?.metadata,
   })
-  const chart = useStrategyChartData(chainId, strategyId, range)
+  const chartInitial = useMemo<StrategyChartInitialData | undefined>(
+    () =>
+      initial
+        ? {
+            subgraph: initial.subgraph,
+            inSeries: initial.inSeries,
+            outSeries: initial.outSeries,
+            range: initial.range,
+          }
+        : undefined,
+    [initial],
+  )
+  const chart = useStrategyChartData(chainId, strategyId, range, chartInitial)
   const actions = useDcaStrategyActions({ chainId })
   // Convert the on-chain share amount to underlying assets via the
   // FleetCommander's convertToAssets — that's the number the user thinks in
@@ -53,6 +86,7 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
     chainId,
     sourceVault: hybrid.data?.subgraph.sourceVault as `0x${string}` | undefined,
     shares: hybrid.data ? BigInt(hybrid.data.subgraph.tradeAmount) : undefined,
+    initialData: initial?.sourcePreview,
   })
 
   const tuple = useMemo(
@@ -71,7 +105,8 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
     return (v: number) => {
       if (!Number.isFinite(v)) return '—'
       const abs = Math.abs(v)
-      const body = abs < 1 ? v.toFixed(4) : abs < 100 ? v.toFixed(2) : Math.round(v).toLocaleString('en-US')
+      const body =
+        abs < 1 ? v.toFixed(4) : abs < 100 ? v.toFixed(2) : Math.round(v).toLocaleString('en-US')
       return `${body} ${meta.data?.inAsset.symbol ?? ''}`.trim()
     }
   }, [meta.data?.inAsset.symbol])
@@ -107,7 +142,8 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
   // until metadata loads.
   const shareDec = meta.data?.sourceVault.decimals ?? inDec
   const shareSym = meta.data?.sourceVault.symbol ?? `${inSym}-shares`
-  const showStaleness = hybrid.data.staleness.statusMismatch || hybrid.data.staleness.tradesDelta !== 0n
+  const showStaleness =
+    hybrid.data.staleness.statusMismatch || hybrid.data.staleness.tradesDelta !== 0n
 
   return (
     <div className="page">

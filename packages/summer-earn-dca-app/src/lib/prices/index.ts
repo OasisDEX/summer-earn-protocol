@@ -1,5 +1,5 @@
 import { createChainlinkSubgraphSource } from './chainlinkSubgraph'
-import { type CompositePriceClient,createCompositePriceClient } from './composite'
+import { type CompositePriceClient, createCompositePriceClient } from './composite'
 import { createDefiLlamaSource } from './defillama'
 
 export type {
@@ -20,10 +20,7 @@ let _client: CompositePriceClient | null = null
 
 export function getPriceClient(): CompositePriceClient {
   if (_client == null) {
-    _client = createCompositePriceClient([
-      createChainlinkSubgraphSource(),
-      createDefiLlamaSource(),
-    ])
+    _client = createCompositePriceClient([createChainlinkSubgraphSource(), createDefiLlamaSource()])
   }
   return _client
 }

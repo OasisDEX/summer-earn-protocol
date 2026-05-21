@@ -25,12 +25,7 @@ export function Pill({ variant = 'neutral', dot = true, children, className, ...
         className ?? '',
       ].join(' ')}
     >
-      {dot && (
-        <span
-          aria-hidden
-          className="inline-block h-1.5 w-1.5 rounded-full bg-current"
-        />
-      )}
+      {dot && <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-current" />}
       {children}
     </span>
   )

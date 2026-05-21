@@ -5,8 +5,7 @@
 // Lives in `src/lib` so it can be imported from both client hooks and
 // server route handlers — both have `performance.now()` and `console`.
 
-const ENABLED =
-  typeof process === 'undefined' || process.env.NEXT_PUBLIC_PERF_LOG !== '0'
+const ENABLED = typeof process === 'undefined' || process.env.NEXT_PUBLIC_PERF_LOG !== '0'
 
 export async function time<T>(label: string, fn: () => Promise<T>): Promise<T> {
   if (!ENABLED) return fn()

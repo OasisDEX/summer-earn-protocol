@@ -1,4 +1,4 @@
-import { type PriceFeedSource, type PricePoint, type PriceSeries,RANGE_TO_SECONDS } from './types'
+import { type PriceFeedSource, type PricePoint, type PriceSeries, RANGE_TO_SECONDS } from './types'
 
 interface DefiLlamaChartResponse {
   coins: Record<
@@ -28,9 +28,7 @@ export function createDefiLlamaSource(): PriceFeedSource {
       const startSec = nowSec - spanSeconds
       const span = Math.ceil(spanSeconds / period)
 
-      const url = new URL(
-        `https://coins.llama.fi/chart/base:${token.toLowerCase()}`,
-      )
+      const url = new URL(`https://coins.llama.fi/chart/base:${token.toLowerCase()}`)
       url.searchParams.set('start', String(startSec))
       url.searchParams.set('period', String(period))
       url.searchParams.set('span', String(span))

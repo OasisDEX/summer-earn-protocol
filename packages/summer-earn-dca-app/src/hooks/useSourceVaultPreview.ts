@@ -22,6 +22,9 @@ interface UseSourceVaultPreviewInput {
   assets?: bigint
   /** Share amount the user typed (mirrored field). */
   shares?: bigint
+  /** Pre-resolved data from a server component loader — used as
+   *  TanStack `initialData` so first render avoids the multicall. */
+  initialData?: SourceVaultPreview | null
 }
 
 // Two-way conversion against the FleetCommander vault. When the user types
@@ -46,6 +49,7 @@ export function useSourceVaultPreview(input: UseSourceVaultPreviewInput) {
     ],
     enabled,
     staleTime: 30_000,
+    initialData: input.initialData ?? undefined,
     queryFn: async (): Promise<SourceVaultPreview> => {
       if (!client || !input.sourceVault) throw new Error('not ready')
       const assetsIn = input.assets ?? 0n
