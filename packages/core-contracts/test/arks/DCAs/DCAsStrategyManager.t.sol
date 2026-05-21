@@ -361,12 +361,12 @@ contract DCAStrategyManagerTest is Test {
 
         IDCAStrategyManager.StrategyState memory state = dcaManager
             .strategyStates(strategyId);
-        assertEq(state.status, uint8(IDCAStrategyManager.Status.PAUSED));
+        assertEq(uint8(state.status), uint8(IDCAStrategyManager.Status.PAUSED));
 
         dcaManager.resumeStrategy(strategyId, config);
 
         state = dcaManager.strategyStates(strategyId);
-        assertEq(state.status, uint8(IDCAStrategyManager.Status.ACTIVE));
+        assertEq(uint8(state.status), uint8(IDCAStrategyManager.Status.ACTIVE));
         vm.stopPrank();
     }
 
@@ -379,7 +379,7 @@ contract DCAStrategyManagerTest is Test {
 
         IDCAStrategyManager.StrategyState memory state = dcaManager
             .strategyStates(strategyId);
-        assertEq(state.status, uint8(IDCAStrategyManager.Status.CANCELLED));
+        assertEq(uint8(state.status), uint8(IDCAStrategyManager.Status.CANCELLED));
         vm.stopPrank();
 
         vm.prank(strategyOwner);
@@ -1140,7 +1140,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         IDCAStrategyManager.StrategyState memory state = dcaManager
             .strategyStates(strategyId);
         assertEq(
-            state.status,
+            uint8(state.status),
             uint8(IDCAStrategyManager.Status.COMPLETED),
             "Strategy should auto-transition to COMPLETED on maxTrades"
         );
@@ -1179,7 +1179,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         IDCAStrategyManager.StrategyState memory state = dcaManager
             .strategyStates(strategyId);
         assertEq(
-            state.status,
+            uint8(state.status),
             uint8(IDCAStrategyManager.Status.COMPLETED),
             "Strategy should auto-transition to COMPLETED on endDate"
         );

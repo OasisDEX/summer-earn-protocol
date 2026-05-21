@@ -956,7 +956,7 @@ export const dcaStrategyManagerAbi = [
           {
             "name": "status",
             "type": "uint8",
-            "internalType": "uint8"
+            "internalType": "enum IDCAStrategyManager.Status"
           },
           {
             "name": "tradesExecuted",

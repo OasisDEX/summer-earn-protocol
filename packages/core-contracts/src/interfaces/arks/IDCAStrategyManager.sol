@@ -30,7 +30,7 @@ interface IDCAStrategyManager {
     }
 
     struct StrategyState {
-        uint8 status;
+        Status status;
         uint248 tradesExecuted;
         uint256 nextTriggerAt;
         uint256 lastScheduledAt;

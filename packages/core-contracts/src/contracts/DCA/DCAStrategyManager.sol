@@ -67,7 +67,7 @@ contract DCAStrategyManager is
 
         uint256 hourAligned = ((block.timestamp + 3599) / 3600) * 3600;
         _strategyStates[strategyId] = StrategyState({
-            status: uint8(Status.ACTIVE),
+            status: Status.ACTIVE,
             tradesExecuted: 0,
             nextTriggerAt: hourAligned + config.interval,
             lastScheduledAt: hourAligned
@@ -151,11 +151,11 @@ contract DCAStrategyManager is
         }
 
         StrategyState storage state = _strategyStates[strategyId];
-        if (state.status != uint8(Status.ACTIVE)) {
+        if (state.status != Status.ACTIVE) {
             revert StrategyNotActive(strategyId);
         }
 
-        state.status = uint8(Status.PAUSED);
+        state.status = Status.PAUSED;
 
         emit StrategyPaused(strategyId, state.nextTriggerAt);
     }
@@ -172,11 +172,11 @@ contract DCAStrategyManager is
         }
 
         StrategyState storage state = _strategyStates[strategyId];
-        if (state.status != uint8(Status.PAUSED)) {
+        if (state.status != Status.PAUSED) {
             revert StrategyNotActive(strategyId);
         }
 
-        state.status = uint8(Status.ACTIVE);
+        state.status = Status.ACTIVE;
         state.nextTriggerAt = block.timestamp + config.interval;
 
         emit StrategyResumed(strategyId, state.nextTriggerAt);
@@ -194,11 +194,11 @@ contract DCAStrategyManager is
         }
 
         StrategyState storage state = _strategyStates[strategyId];
-        if (state.status == uint8(Status.CANCELLED)) {
+        if (state.status == Status.CANCELLED) {
             revert StrategyNotActive(strategyId);
         }
 
-        state.status = uint8(Status.CANCELLED);
+        state.status = Status.CANCELLED;
 
         emit StrategyCancelled(strategyId);
     }
@@ -214,7 +214,7 @@ contract DCAStrategyManager is
         }
 
         StrategyState storage state = _strategyStates[strategyId];
-        if (state.status != uint8(Status.ACTIVE)) {
+        if (state.status != Status.ACTIVE) {
             revert StrategyNotActive(strategyId);
         }
 
@@ -322,10 +322,10 @@ contract DCAStrategyManager is
         );
 
         if (tradesExecuted >= config.maxTrades) {
-            state.status = uint8(Status.COMPLETED);
+            state.status = Status.COMPLETED;
             emit StrategyCompleted(strategyId, "max_trades");
         } else if (nextTriggerAt >= config.endDate) {
-            state.status = uint8(Status.COMPLETED);
+            state.status = Status.COMPLETED;
             emit StrategyCompleted(strategyId, "end_date");
         }
     }
@@ -355,7 +355,7 @@ contract DCAStrategyManager is
         performData = "";
         StrategyState storage state = _strategyStates[strategyId];
 
-        if (state.status != uint8(Status.ACTIVE)) return (false, performData);
+        if (state.status != Status.ACTIVE) return (false, performData);
         if (block.timestamp < state.nextTriggerAt) return (false, performData);
         if (state.tradesExecuted >= config.maxTrades) {
             return (false, performData);
