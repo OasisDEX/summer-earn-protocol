@@ -1,3 +1,5 @@
+'use cache'
+
 import Link from 'next/link'
 import { base } from 'wagmi/chains'
 
@@ -6,7 +8,7 @@ import { Topbar } from '@/components/shell/Topbar'
 import { Button } from '@/components/ui/Button'
 import { asChainId, type ChainId } from '@/types/chain'
 
-export default function PortfolioLandingPage() {
+export default async function PortfolioLandingPage() {
   const chainId: ChainId = asChainId(base.id)
   return (
     <>

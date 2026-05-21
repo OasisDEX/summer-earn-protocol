@@ -1,4 +1,4 @@
-'use client'
+'use cache'
 
 import { base } from 'wagmi/chains'
 
@@ -6,7 +6,7 @@ import { CreateStrategyForm } from '@/components/CreateStrategyForm'
 import { Topbar } from '@/components/shell/Topbar'
 import { asChainId, type ChainId } from '@/types/chain'
 
-export default function CreatePage() {
+export default async function CreatePage() {
   const chainId: ChainId = asChainId(base.id)
 
   return (

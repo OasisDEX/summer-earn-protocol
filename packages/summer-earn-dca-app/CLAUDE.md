@@ -130,9 +130,14 @@ config + execution history; reads from RPC for live state via
   Detail header surfaces an "off-chain pricing" pill so the user knows the
   guardrails (evaluated against Chainlink on-chain) and the chart aren't
   strictly comparable.
-- **`experimental.useCache` is required.** Don't remove it from
-  `next.config.mjs` — `'use cache'` directive in
-  `src/app/api/prices/[chainId]/[token]/route.ts` won't compile otherwise.
+- **`cacheComponents: true` is required.** It's the top-level Next 16 stable
+  flag in `next.config.mjs`. Anything async in a page must either be inside a
+  `'use cache'` function or under a `<Suspense>`, or the build fails with
+  "Uncached data was accessed outside of <Suspense>". `await params` counts —
+  defer it into the loader inside the Suspense, don't await it at the page
+  default export. `Sidebar` (uses `usePathname`/`useAccount`/`useBalance`) is
+  Suspense-wrapped in `src/app/layout.tsx` with a `SidebarSkeleton` fallback;
+  the layout itself is `'use cache'`.
 
 ## When the contract changes
 
@@ -171,6 +176,17 @@ Auto-build on `main`; `pr*` branches get PR previews.
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-05-21 — claude — migrated to Next 16 stable Partial Prerendering:
+  `next.config.mjs` swapped `experimental.useCache` → `cacheComponents: true`.
+  Root `layout.tsx` and `/portfolio`, `/create` page shells are now
+  `'use cache'`. `Sidebar` (uses `usePathname`/`useAccount`/`useBalance`)
+  lives inside `<Suspense fallback={<SidebarSkeleton />}>` so the cached
+  shell can prerender around it. `/portfolio/[address]` and `/strategy/[id]`
+  defer `await params` + `await loadPortfolio` / `await loadStrategyDetail`
+  into Suspense'd loader server components with new `PortfolioSkeleton` /
+  `StrategyDetailSkeleton` fallbacks — the routes now build as ◐ Partial
+  Prerender. Data-layer caching (`'use cache'` + `cacheTag` inside
+  `lib/server/*` and `lib/prices/cached`) was already in place.
 - 2026-05-21 — claude — `maxPrice` / `minPrice` are now bounds on the
   1e18-scaled out/in execution-price ratio (out-asset denominated in
   in-asset). `CreateStrategyForm` uses `parseUnits(_, 18)` and the labels

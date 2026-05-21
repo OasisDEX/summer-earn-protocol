@@ -1,6 +1,10 @@
+'use cache'
+
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 
 import { Sidebar } from '@/components/shell/Sidebar'
+import { SidebarSkeleton } from '@/components/shell/SidebarSkeleton'
 
 import { Providers } from './providers'
 
@@ -18,7 +22,7 @@ export const metadata: Metadata = {
   description: 'Recurring dollar-cost-averaging strategies on Summer.fi vaults',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="dark" data-density="cozy">
       <body>
@@ -26,7 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="bg-glow" aria-hidden />
           <div className="bg-grid" aria-hidden />
           <div className="app">
-            <Sidebar />
+            <Suspense fallback={<SidebarSkeleton />}>
+              <Sidebar />
+            </Suspense>
             <main>{children}</main>
           </div>
         </Providers>

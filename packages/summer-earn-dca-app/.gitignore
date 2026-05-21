@@ -7,3 +7,5 @@ node_modules
 *.log
 .DS_Store
 coverage
+# next-agents-md
+.next-docs/
