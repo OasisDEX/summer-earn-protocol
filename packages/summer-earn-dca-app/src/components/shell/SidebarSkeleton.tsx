@@ -12,7 +12,10 @@ export function SidebarSkeleton() {
             boxShadow: '0 0 0 4px rgba(255,73,160,0.10)',
           }}
         >
-          <span className="absolute inset-[5px] rounded-[4px]" style={{ background: 'var(--bg)' }} />
+          <span
+            className="absolute inset-[5px] rounded-[4px]"
+            style={{ background: 'var(--bg)' }}
+          />
         </span>
         summer.fi
       </div>

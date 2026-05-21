@@ -1,5 +1,4 @@
-const SHIMMER =
-  'animate-pulse rounded-md bg-[var(--surface)] border border-[var(--border-faint)]'
+const SHIMMER = 'animate-pulse rounded-md bg-[var(--surface)] border border-[var(--border-faint)]'
 
 export function StrategyDetailSkeleton() {
   return (
