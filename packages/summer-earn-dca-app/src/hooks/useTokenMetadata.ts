@@ -6,6 +6,7 @@ import { usePublicClient } from 'wagmi'
 
 import { aggregatorV3Abi } from '@/abis/AggregatorV3'
 import { erc20Abi } from '@/abis/ERC20'
+import { time } from '@/lib/perf'
 import type { ChainId } from '@/types/chain'
 
 export interface TokenMetadata {
@@ -59,7 +60,8 @@ export function useStrategyMetadata(input: UseStrategyMetadataInput) {
     staleTime: Number.POSITIVE_INFINITY,
     queryFn: async (): Promise<StrategyMetadata> => {
       if (!client) throw new Error('Public client unavailable')
-      const calls = [
+      return time('rpc:strategy-metadata', async () => {
+        const calls = [
         // 0-1: inAsset symbol+decimals
         { address: input.inAsset!, abi: erc20Abi, functionName: 'symbol' as const },
         { address: input.inAsset!, abi: erc20Abi, functionName: 'decimals' as const },
@@ -95,39 +97,40 @@ export function useStrategyMetadata(input: UseStrategyMetadataInput) {
           functionName: 'decimals' as const,
         },
       ]
-      const result = await client.multicall({ contracts: calls, allowFailure: false })
-      return {
-        inAsset: {
-          address: input.inAsset!,
-          symbol: result[0] as string,
-          decimals: result[1] as number,
-        },
-        outAsset: {
-          address: input.outAsset!,
-          symbol: result[2] as string,
-          decimals: result[3] as number,
-        },
-        sourceVault: {
-          address: input.sourceVault!,
-          symbol: result[4] as string,
-          decimals: result[5] as number,
-        },
-        targetVault: {
-          address: input.targetVault!,
-          symbol: result[6] as string,
-          decimals: result[7] as number,
-        },
-        inAssetFeed: {
-          address: input.inAssetFeed!,
-          description: result[8] as string,
-          decimals: result[9] as number,
-        },
-        outAssetFeed: {
-          address: input.outAssetFeed!,
-          description: result[10] as string,
-          decimals: result[11] as number,
-        },
-      }
+        const result = await client.multicall({ contracts: calls, allowFailure: false })
+        return {
+          inAsset: {
+            address: input.inAsset!,
+            symbol: result[0] as string,
+            decimals: result[1] as number,
+          },
+          outAsset: {
+            address: input.outAsset!,
+            symbol: result[2] as string,
+            decimals: result[3] as number,
+          },
+          sourceVault: {
+            address: input.sourceVault!,
+            symbol: result[4] as string,
+            decimals: result[5] as number,
+          },
+          targetVault: {
+            address: input.targetVault!,
+            symbol: result[6] as string,
+            decimals: result[7] as number,
+          },
+          inAssetFeed: {
+            address: input.inAssetFeed!,
+            description: result[8] as string,
+            decimals: result[9] as number,
+          },
+          outAssetFeed: {
+            address: input.outAssetFeed!,
+            description: result[10] as string,
+            decimals: result[11] as number,
+          },
+        }
+      })
     },
   })
 }

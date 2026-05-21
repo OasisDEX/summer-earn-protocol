@@ -4,7 +4,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Address } from 'viem'
 
 import { gqlFetch } from '@/lib/subgraph/client'
-import { EXECUTIONS_BY_STRATEGY, STRATEGIES_BY_OWNER, STRATEGY_BY_ID } from '@/lib/subgraph/queries'
+import {
+  EXECUTIONS_BY_STRATEGY_FIRST,
+  EXECUTIONS_BY_STRATEGY_NEXT,
+  STRATEGIES_BY_OWNER_FIRST,
+  STRATEGY_BY_ID,
+} from '@/lib/subgraph/queries'
 import type { SubgraphExecution, SubgraphStrategy } from '@/lib/subgraph/types'
 import type { ChainId } from '@/types/chain'
 
@@ -17,10 +22,12 @@ export function useStrategiesByOwner(chainId: ChainId, owner: Address | undefine
     // re-fetching on every navigation back to the list.
     staleTime: 30_000,
     queryFn: async () => {
+      // First page only — use STRATEGIES_BY_OWNER_NEXT with the oldest
+      // returned `createdAt` if pagination is ever wired in.
       const data = await gqlFetch<{ strategies: SubgraphStrategy[] }>(
         chainId,
-        STRATEGIES_BY_OWNER,
-        { owner: owner!.toLowerCase(), first: 50, skip: 0 },
+        STRATEGIES_BY_OWNER_FIRST,
+        { owner: owner!.toLowerCase(), first: 50 },
       )
       // Seed individual STRATEGY_BY_ID cache entries so that clicking through
       // to the detail page renders the row from cache synchronously and the
@@ -66,21 +73,37 @@ export function useStrategyById(chainId: ChainId, strategyId: string | undefined
   })
 }
 
+// Cursor-paginated. Pass the oldest `executionTimestamp` returned so far as
+// `cursorExecutionTimestamp` to fetch the next page; leave undefined for
+// the first page.
 export function useExecutionsByStrategy(
   chainId: ChainId,
   strategyId: string | undefined,
   first = 25,
-  skip = 0,
+  cursorExecutionTimestamp?: string,
 ) {
   return useQuery({
-    queryKey: ['dca', 'executions', chainId, strategyId, first, skip],
+    queryKey: [
+      'dca',
+      'executions',
+      chainId,
+      strategyId,
+      first,
+      cursorExecutionTimestamp ?? null,
+    ],
     enabled: Boolean(strategyId),
     queryFn: async () => {
-      const data = await gqlFetch<{ executions: SubgraphExecution[] }>(
-        chainId,
-        EXECUTIONS_BY_STRATEGY,
-        { strategyId: strategyId!, first, skip },
-      )
+      const data = cursorExecutionTimestamp
+        ? await gqlFetch<{ executions: SubgraphExecution[] }>(
+            chainId,
+            EXECUTIONS_BY_STRATEGY_NEXT,
+            { strategyId: strategyId!, first, cursorExecutionTimestamp },
+          )
+        : await gqlFetch<{ executions: SubgraphExecution[] }>(
+            chainId,
+            EXECUTIONS_BY_STRATEGY_FIRST,
+            { strategyId: strategyId!, first },
+          )
       return data.executions
     },
   })

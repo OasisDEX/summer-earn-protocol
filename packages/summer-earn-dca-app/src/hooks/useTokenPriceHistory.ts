@@ -3,6 +3,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
 
+import { time } from '@/lib/perf'
 import type { PriceRange, PriceSeries } from '@/lib/prices'
 import type { ChainId } from '@/types/chain'
 
@@ -45,18 +46,20 @@ export function useTokenPriceHistory({
       if (!token) throw new Error('token required')
       const params = new URLSearchParams({ range })
       if (feed) params.set('feed', feed)
-      const res = await fetch(
-        `/api/prices/${chainId}/${token.toLowerCase()}?${params.toString()}`,
-        { headers: { accept: 'application/json' } },
-      )
-      if (!res.ok) {
-        throw new Error(`price-history request failed: ${res.status}`)
-      }
-      const body = (await res.json()) as PriceSeries & { unknown?: boolean }
-      if (body.unknown) {
-        return { isUnknown: true }
-      }
-      return { series: body, isUnknown: false }
+      return time(`api:prices ${token.slice(0, 6)}…/${range}`, async () => {
+        const res = await fetch(
+          `/api/prices/${chainId}/${token.toLowerCase()}?${params.toString()}`,
+          { headers: { accept: 'application/json' } },
+        )
+        if (!res.ok) {
+          throw new Error(`price-history request failed: ${res.status}`)
+        }
+        const body = (await res.json()) as PriceSeries & { unknown?: boolean }
+        if (body.unknown) {
+          return { isUnknown: true }
+        }
+        return { series: body, isUnknown: false }
+      })
     },
   })
 }

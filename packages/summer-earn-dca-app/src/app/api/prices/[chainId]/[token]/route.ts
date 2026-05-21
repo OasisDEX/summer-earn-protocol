@@ -1,6 +1,7 @@
 import { cacheLife, cacheTag } from 'next/cache'
 import { type Address,isAddress } from 'viem'
 
+import { time } from '@/lib/perf'
 import { getPriceClient, type PriceRange } from '@/lib/prices'
 import { type ChainId,isSupportedChain } from '@/types/chain'
 
@@ -21,10 +22,15 @@ async function fetchCachedSeries(
   feed: Address | undefined,
 ) {
   'use cache'
-  // stale 60s — concurrent requests within a minute share the in-memory copy.
-  // revalidate 300s — background-refresh aligned with Chainlink heartbeats.
-  // expire 86_400s — drop after a day idle so we don't serve stale-by-a-week.
-  cacheLife({ stale: 60, revalidate: 300, expire: 86_400 })
+  // The underlying chainlink-subgraph source snaps `from` and `now` to
+  // bucket boundaries (≥ 1h depending on range), so the cached payload is
+  // *literally* identical for the entire bucket period. We can afford a
+  // much longer revalidate window: 1 hour matches the smallest bucket size
+  // and the keeper's hour-aligned `nextTriggerAt`.
+  //   - stale 300s   — burst-share the in-memory copy across visitors.
+  //   - revalidate 1h — re-pull at the next hour boundary in the background.
+  //   - expire 86_400s — drop after a day idle so we never serve > 1d stale.
+  cacheLife({ stale: 300, revalidate: 3600, expire: 86_400 })
   cacheTag(
     'price',
     `price:${chainId}`,
@@ -55,7 +61,10 @@ export async function GET(request: Request, { params }: RouteParams): Promise<Re
   const feed = feedParam && isAddress(feedParam) ? (feedParam as Address) : undefined
 
   try {
-    const series = await fetchCachedSeries(chainId, token, rangeParam, feed)
+    const series = await time(
+      `route:/api/prices ${token.slice(0, 6)}…/${rangeParam}`,
+      () => fetchCachedSeries(chainId, token, rangeParam, feed),
+    )
     if (series == null) {
       return Response.json(
         { token, chainId, range: rangeParam, points: [], unknown: true },
