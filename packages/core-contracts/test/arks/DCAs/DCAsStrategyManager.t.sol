@@ -223,7 +223,10 @@ contract DCAStrategyManagerTest is Test {
         config.slippageBps = 10_001;
 
         vm.expectRevert(
-            abi.encodeWithSelector(IDCAStrategyManagerErrors.InvalidSlippage.selector, uint256(10_001))
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.InvalidSlippage.selector,
+                uint256(10_001)
+            )
         );
         dcaManager.createStrategy(config);
         vm.stopPrank();
@@ -262,7 +265,10 @@ contract DCAStrategyManagerTest is Test {
         config.sourceVault = rogue;
 
         vm.expectRevert(
-            abi.encodeWithSelector(DCAStrategyManager.InvalidSourceVault.selector, address(rogue))
+            abi.encodeWithSelector(
+                DCAStrategyManager.InvalidSourceVault.selector,
+                address(rogue)
+            )
         );
         dcaManager.createStrategy(config);
         vm.stopPrank();
@@ -275,7 +281,10 @@ contract DCAStrategyManagerTest is Test {
         config.targetVault = rogue;
 
         vm.expectRevert(
-            abi.encodeWithSelector(DCAStrategyManager.InvalidTargetVault.selector, address(rogue))
+            abi.encodeWithSelector(
+                DCAStrategyManager.InvalidTargetVault.selector,
+                address(rogue)
+            )
         );
         dcaManager.createStrategy(config);
         vm.stopPrank();
@@ -291,7 +300,10 @@ contract DCAStrategyManagerTest is Test {
         vm.warp(block.timestamp + 7 days);
 
         (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
-        assertFalse(upkeepNeeded, "Upkeep should be false when maxTrades reached");
+        assertFalse(
+            upkeepNeeded,
+            "Upkeep should be false when maxTrades reached"
+        );
     }
 
     function test_CheckUpkeep_ReturnsFalseOnEndDatePassed() public {
@@ -379,12 +391,18 @@ contract DCAStrategyManagerTest is Test {
 
         IDCAStrategyManager.StrategyState memory state = dcaManager
             .strategyStates(strategyId);
-        assertEq(uint8(state.status), uint8(IDCAStrategyManager.Status.CANCELLED));
+        assertEq(
+            uint8(state.status),
+            uint8(IDCAStrategyManager.Status.CANCELLED)
+        );
         vm.stopPrank();
 
         vm.prank(strategyOwner);
         vm.expectRevert(
-            abi.encodeWithSelector(IDCAStrategyManagerErrors.StrategyNotActive.selector, strategyId)
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.StrategyNotActive.selector,
+                strategyId
+            )
         );
         dcaManager.pauseStrategy(strategyId, config);
     }
@@ -416,7 +434,10 @@ contract DCAStrategyManagerTest is Test {
 
         vm.prank(strategyOwner);
         vm.expectRevert(
-            abi.encodeWithSelector(IDCAStrategyManagerErrors.CommitmentMismatch.selector, strategyId)
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.CommitmentMismatch.selector,
+                strategyId
+            )
         );
         dcaManager.pauseStrategy(strategyId, wrong);
     }
@@ -432,9 +453,12 @@ contract DCAStrategyManagerTest is Test {
 
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(IDCAStrategyManagerErrors.CommitmentMismatch.selector, strategyId)
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.CommitmentMismatch.selector,
+                strategyId
+            )
         );
-        dcaManager.executeDCA(strategyId, wrongConfig, "");
+        dcaManager.executeStrategy(strategyId, wrongConfig, "");
     }
 
     function test_Execute_RevertsOnNonMatchingConfig() public {
@@ -452,9 +476,12 @@ contract DCAStrategyManagerTest is Test {
 
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(IDCAStrategyManagerErrors.CommitmentMismatch.selector, strategyId)
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.CommitmentMismatch.selector,
+                strategyId
+            )
         );
-        dcaManager.executeDCA(strategyId, wrongConfig, "");
+        dcaManager.executeStrategy(strategyId, wrongConfig, "");
     }
 
     function test_Execute_RevertsIfNotKeeper() public {
@@ -465,7 +492,7 @@ contract DCAStrategyManagerTest is Test {
         IDCAStrategyManager.StrategyConfig memory execConfig = _defaultConfig();
 
         vm.expectRevert();
-        dcaManager.executeDCA(strategyId, execConfig, "");
+        dcaManager.executeStrategy(strategyId, execConfig, "");
     }
 
     function test_EditStrategy_UpdatesCommitmentAndSchedule() public {
@@ -846,9 +873,12 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(IDCAStrategyManagerErrors.EmptyEnsoData.selector, strategyId)
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.EmptyEnsoData.selector,
+                strategyId
+            )
         );
-        dcaManager.executeDCA(strategyId, config, "");
+        dcaManager.executeStrategy(strategyId, config, "");
     }
 
     function test_Execute_RevertsWithoutPermit2Allowance() public {
@@ -873,7 +903,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         vm.prank(keeper);
         vm.expectRevert();
-        dcaManager.executeDCA(strategyId, config, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
     }
 
     function test_Execute_MintsSharesToOwnerNotContract() public {
@@ -891,7 +921,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(strategyId, config, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
 
         uint256 ownerWethSharesAfter = IERC20(address(targetFleet)).balanceOf(
             strategyOwner
@@ -923,7 +953,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(strategyId, config, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
 
         IDCAStrategyManager.StrategyState memory state = dcaManager
             .strategyStates(strategyId);
@@ -953,7 +983,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(strategyId, config, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
     }
 
     function test_Execute_CalculatesMinOutUsingAssetsNotShares() public {
@@ -971,7 +1001,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(strategyId, config, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
 
         // 100e6 source shares pulled from owner.
         assertEq(
@@ -1017,7 +1047,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(strategyId, config, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
 
         uint256 ownerWethShares = IERC20(address(targetFleet)).balanceOf(
             strategyOwner
@@ -1045,7 +1075,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(strategyId, config, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
 
         assertEq(
             IERC20(address(sourceFleet)).allowance(
@@ -1106,7 +1136,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        newManager.executeDCA(strategyId, execConfig, hex"deadbeef");
+        newManager.executeStrategy(strategyId, execConfig, hex"deadbeef");
 
         assertEq(
             IERC20(address(sourceFleet)).allowance(
@@ -1135,7 +1165,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(strategyId, cfg, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
 
         IDCAStrategyManager.StrategyState memory state = dcaManager
             .strategyStates(strategyId);
@@ -1150,9 +1180,12 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.warp(block.timestamp + 7 days);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(IDCAStrategyManagerErrors.StrategyNotActive.selector, strategyId)
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.StrategyNotActive.selector,
+                strategyId
+            )
         );
-        dcaManager.executeDCA(strategyId, cfg, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
     function test_Execute_AutoCompletesOnEndDate() public {
@@ -1174,7 +1207,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        dcaManager.executeDCA(strategyId, cfg, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
 
         IDCAStrategyManager.StrategyState memory state = dcaManager
             .strategyStates(strategyId);
@@ -1204,7 +1237,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
                 uint256(0.5e8)
             )
         );
-        dcaManager.executeDCA(strategyId, cfg, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
     function test_Execute_RevertsOnPriceBelowFloor() public {
@@ -1226,7 +1259,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
                 uint256(2e8)
             )
         );
-        dcaManager.executeDCA(strategyId, cfg, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
     function test_Execute_RevertsOnOraclePriceZero() public {
@@ -1240,7 +1273,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
         vm.prank(keeper);
         vm.expectRevert(IDCAStrategyManagerErrors.OraclePriceZero.selector);
-        dcaManager.executeDCA(strategyId, cfg, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
     function test_Execute_RevertsOnSwapOutputBelowMinOut() public {
@@ -1264,8 +1297,10 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.prank(keeper);
         // Selector-only match (bytes4 form) — the (minOut, actualOut) values
         // are dynamic and we just want to pin the right error path.
-        vm.expectPartialRevert(IDCAStrategyManagerErrors.SwapOutputBelowMinOut.selector);
-        dcaManager.executeDCA(strategyId, cfg, hex"deadbeef");
+        vm.expectPartialRevert(
+            IDCAStrategyManagerErrors.SwapOutputBelowMinOut.selector
+        );
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
     function test_Execute_RevertsOnExecutionWindowNotReached() public {
@@ -1281,7 +1316,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.expectPartialRevert(
             IDCAStrategyManagerErrors.ExecutionWindowNotReached.selector
         );
-        dcaManager.executeDCA(strategyId, cfg, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
     function test_Execute_RevertsOnSwapFailed() public {
@@ -1299,9 +1334,12 @@ contract DCAStrategyManagerIntegrationTest is Test {
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(DCAStrategyManager.SwapFailed.selector, strategyId)
+            abi.encodeWithSelector(
+                DCAStrategyManager.SwapFailed.selector,
+                strategyId
+            )
         );
-        dcaManager.executeDCA(strategyId, cfg, hex"deadbeef");
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
     function test_CheckUpkeep_ReturnsFalseOnPriceOutOfBounds() public {

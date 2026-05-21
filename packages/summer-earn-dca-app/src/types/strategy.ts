@@ -4,7 +4,7 @@ import type { Address, Hex } from 'viem'
 // Anything that changes here must change in lockstep with the on-chain struct,
 // or commitment checks will revert. `strategyId` lives outside the struct
 // (it's the mapping key, passed as a separate argument to
-// editStrategy/resumeStrategy/executeDCA/checkUpkeep).
+// editStrategy/resumeStrategy/executeStrategy/checkUpkeep).
 export interface StrategyConfigTuple {
   owner: Address
   sourceVault: Address

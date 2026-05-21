@@ -3,14 +3,14 @@ DCA keeper bot for DCAStrategyManager.
 
 Polls the DCA subgraph for strategies whose execution window has opened,
 re-validates each via the contract's checkUpkeep view, fetches Enso swap
-calldata, and broadcasts executeDCA. Designed as an MVP — single-process,
+calldata, and broadcasts executeStrategy. Designed as an MVP — single-process,
 single-signer, single-chain. Run one instance per chain.
 
 Flow per tick:
   1. GraphQL: ACTIVE strategies with nextTriggerAt <= now and tradesExecuted < maxTrades.
   2. checkUpkeep(config) on-chain — authoritative go/no-go (oracle bounds, etc.).
   3. POST Enso /shortcuts/route → { tx.data }.
-  4. executeDCA(config, ensoData) with serialised nonce + EIP-1559 gas, capped.
+  4. executeStrategy(config, ensoData) with serialised nonce + EIP-1559 gas, capped.
 
 Reads config from .env (see .env.example). Run with:
     pip install -r requirements.txt
@@ -75,7 +75,7 @@ DCA_MANAGER_ABI = json.loads(
   },
   {
     "type": "function",
-    "name": "executeDCA",
+    "name": "executeStrategy",
     "stateMutability": "nonpayable",
     "inputs": [
       {"name": "strategyId", "type": "uint256"},
@@ -122,7 +122,7 @@ class StrategyConfig:
     `strategyId` cursor.
 
     `strategyId` lives outside the on-chain StrategyConfig struct (it's the
-    mapping key, passed as a separate argument to checkUpkeep/executeDCA), so
+    mapping key, passed as a separate argument to checkUpkeep/executeStrategy), so
     `as_tuple()` omits it. Field order of as_tuple() must match the contract
     struct in IDCAStrategyManager.sol:15.
     """
@@ -194,6 +194,7 @@ query ActiveStrategies($now: BigInt!) {
     where: {
       status: "ACTIVE"
       nextTriggerAt_lte: $now
+      endDate_gt: $now
     }
   ) {
     strategyId
@@ -472,7 +473,7 @@ class DCAKeeper:
                 return
 
             try:
-                fn = self.manager.functions.executeDCA(
+                fn = self.manager.functions.executeStrategy(
                     cfg.strategyId, cfg.as_tuple(), enso_data
                 )
                 # build_transaction performs an eth_estimateGas which will
@@ -489,7 +490,7 @@ class DCAKeeper:
                     }
                 )
             except ContractLogicError as e:
-                log.error("[%d] executeDCA simulated revert: %s — NOT broadcasting", sid, e)
+                log.error("[%d] executeStrategy simulated revert: %s — NOT broadcasting", sid, e)
                 # The nonce we "reserved" was never consumed; rewind so we
                 # don't leave a permanent gap.
                 self._next_nonce = nonce
@@ -512,7 +513,7 @@ class DCAKeeper:
             # Commit the nonce advance only after a successful broadcast.
             self._next_nonce = nonce + 1
 
-        log.info("[%d] executeDCA broadcast: %s", sid, tx_hash.hex())
+        log.info("[%d] executeStrategy broadcast: %s", sid, tx_hash.hex())
         # Don't hold the nonce lock while waiting for inclusion.
         try:
             receipt = await asyncio.wait_for(

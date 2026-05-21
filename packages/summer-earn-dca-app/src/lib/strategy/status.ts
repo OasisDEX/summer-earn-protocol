@@ -13,7 +13,7 @@ export function deriveDisplayStatus(
   if (state.status === StrategyStatus.PAUSED) return 'PAUSED'
   // ACTIVE state — check terminal conditions even if the contract hasn't
   // observed them yet (a strategy stays ACTIVE on-chain until the next
-  // executeDCA call reverts with TerminalStateReached).
+  // executeStrategy call reverts with TerminalStateReached).
   if (maxTrades > 0n && state.tradesExecuted >= maxTrades) return 'COMPLETED'
   if (endDate > 0n && nowSeconds >= endDate) return 'COMPLETED'
   return 'ACTIVE'

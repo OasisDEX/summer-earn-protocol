@@ -61,7 +61,7 @@ interface IDCAStrategyManager {
         StrategyConfig calldata config
     ) external;
 
-    function executeDCA(
+    function executeStrategy(
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData

@@ -602,7 +602,7 @@ export const dcaStrategyManagerAbi = [
   },
   {
     "type": "function",
-    "name": "executeDCA",
+    "name": "executeStrategy",
     "inputs": [
       {
         "name": "strategyId",

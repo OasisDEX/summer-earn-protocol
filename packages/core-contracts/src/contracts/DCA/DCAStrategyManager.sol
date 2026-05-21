@@ -203,7 +203,7 @@ contract DCAStrategyManager is
         emit StrategyCancelled(strategyId);
     }
 
-    function executeDCA(
+    function executeStrategy(
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData
@@ -362,9 +362,6 @@ contract DCAStrategyManager is
         }
         if (block.timestamp >= config.endDate) return (false, performData);
 
-        // Oracle simulation only matters when guardrails are set; skipping
-        // the staticcall when both bounds are zero saves gas and avoids
-        // depending on a working feed for bound-less strategies.
         if (config.maxPrice > 0 || config.minPrice > 0) {
             (uint256 inPrice, ) = _getOraclePrices(config);
             if (config.maxPrice > 0 && inPrice > config.maxPrice) {

@@ -1326,7 +1326,7 @@
           "type": "bytes"
         }
       ],
-      "name": "executeDCA",
+      "name": "executeStrategy",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
