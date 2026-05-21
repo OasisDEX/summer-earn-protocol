@@ -10,16 +10,12 @@ import type { PriceBasis, PricePoint, PriceRange, PriceSeries } from '@/lib/pric
 import type { SubgraphStrategy } from '@/lib/subgraph/types'
 import type { ChainId } from '@/types/chain'
 
-// Optional pre-resolved data from a server component loader. Lets the
-// hooks seed TanStack with initialData so first paint doesn't wait on any
-// network round-trip.
 export interface StrategyChartInitialData {
   subgraph?: SubgraphStrategy | null
   inSeries?: PriceSeries | null
   outSeries?: PriceSeries | null
-  /** The range the initial series cover — `useTokenPriceHistory` keys on
-   *  range so we only apply `initialSeries` when the consumer asks for the
-   *  same range. */
+  // Only applied when the consumer asks for this same range; otherwise the
+  // seed would land under a different TanStack query key.
   range?: PriceRange
 }
 
@@ -67,8 +63,6 @@ function findNearest(points: PricePoint[], tMs: number): number | undefined {
   return points[best].p
 }
 
-// Merge two sorted gap arrays into a single union — used when both series
-// contribute gaps to the resulting ratio series.
 function mergeGaps(
   a: Array<[number, number]>,
   b: Array<[number, number]>,
@@ -86,17 +80,9 @@ function mergeGaps(
   return out
 }
 
-// Composes:
-//   - hybrid strategy (subgraph row + RPC state)
-//   - outAsset price-history (USD per outAsset over time)
-//   - inAsset price-history (USD per inAsset over time)
-//   - strategy metadata (decimals / symbols, via the existing hook)
-//
-// The chart line is the inAsset-per-outAsset RATIO over time (i.e.
-// outPriceUSD / inPriceUSD at each timestamp), so it lives in the same
-// numeric space as the contract's 1e18-scaled `maxPrice`/`minPrice`
-// guardrails. Execution dots use the realised ratio amountIn/amountOut from
-// each completed swap (in real units).
+// Chart line is the outAsset/inAsset price ratio over time, same units as
+// the contract's 1e18-scaled maxPrice/minPrice guardrails. Execution dots
+// use the realised amountIn/amountOut ratio.
 export function useStrategyChartData(
   chainId: ChainId,
   strategyId: string | undefined,
@@ -116,9 +102,6 @@ export function useStrategyChartData(
     outAssetFeed: sg ? (getAddress(sg.outAssetFeed) as Address) : undefined,
   })
 
-  // Only apply the server-pre-resolved series when the consumer hasn't
-  // switched to a different range yet — otherwise TanStack would re-seed
-  // the new range's queryKey with stale points from the initial range.
   const seedSeries = initial?.range === range ? initial : undefined
 
   const outQuery = useTokenPriceHistory({
@@ -144,16 +127,11 @@ export function useStrategyChartData(
     const inAssetDecimals = metadata.data.inAsset.decimals
     const outAssetDecimals = metadata.data.outAsset.decimals
 
-    // Guardrails are stored as the 1e18-scaled out/in execution-price ratio
-    // (see DCAStrategyManager._executionPrice). Decode to a plain float for
-    // the chart's y-axis.
     const ceiling = sg.maxPrice && sg.maxPrice !== '0' ? Number(sg.maxPrice) / 1e18 : undefined
     const floor = sg.minPrice && sg.minPrice !== '0' ? Number(sg.minPrice) / 1e18 : undefined
 
-    // Build a pointwise ratio series outPrice/inPrice. We anchor on the
-    // outAsset series timestamps (typically the volatile asset, denser cadence)
-    // and look up the nearest inAsset point. Drop any point where the
-    // inAsset is unknown so we don't divide by zero.
+    // Anchor on the outAsset timestamps; skip points where inAsset is 0
+    // so we don't divide by zero.
     const prices: PricePoint[] = []
     if (outSeries && inSeries && outSeries.points.length > 0 && inSeries.points.length > 0) {
       for (const op of outSeries.points) {
@@ -169,7 +147,6 @@ export function useStrategyChartData(
       const tMs = Number(e.executionTimestamp) * 1000
       const amountInF = Number(e.amountIn) / Math.pow(10, inAssetDecimals)
       const amountOutF = Number(e.amountOut) / Math.pow(10, outAssetDecimals)
-      // Realised execution ratio in the same units as the guardrails.
       const p = amountOutF > 0 ? amountInF / amountOutF : 0
       return {
         t: tMs,
@@ -188,7 +165,6 @@ export function useStrategyChartData(
       basis = 'mixed'
     }
 
-    // The ratio can't begin before BOTH feeds had data.
     const dataStartsAt =
       outSeries?.dataStartsAt !== undefined && inSeries?.dataStartsAt !== undefined
         ? Math.max(outSeries.dataStartsAt, inSeries.dataStartsAt)
@@ -207,14 +183,8 @@ export function useStrategyChartData(
     }
   }, [sg, metadata.data, outQuery.data?.series, inQuery.data?.series])
 
-  // "Loading" means: we don't yet know what the chart should show. Plain
-  // `outQuery.isLoading || inQuery.isLoading` lies because the queries flip
-  // from disabled (sg undefined) to pending across two render frames — for a
-  // single frame all four flags are false and the parent flashes the empty
-  // state before the fetch actually starts. Anchor on data presence instead
-  // (`!outQuery.data || !inQuery.data`); on range changes
-  // `placeholderData: keepPreviousData` keeps `data` defined so the chart
-  // transitions smoothly without re-flashing the skeleton.
+  // Anchor on data presence — the queries flip from disabled to pending
+  // across two render frames, so `outQuery.isLoading` alone briefly lies.
   return {
     data,
     isLoading: hybrid.isLoading || metadata.isLoading || !outQuery.data || !inQuery.data,

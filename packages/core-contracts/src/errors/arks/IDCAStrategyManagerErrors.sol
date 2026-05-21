@@ -55,13 +55,9 @@ interface IDCAStrategyManagerErrors {
 
     error AmountOverflowsUint160(uint256 amount);
 
-    /// @notice `executionPrice` is the 1e18-scaled out/in ratio computed by
-    /// the manager from the two Chainlink feeds, NOT the raw inAsset oracle
-    /// answer. `maxPrice` is the user-configured ceiling on that ratio.
+    /// @notice executionPrice is the 1e18-scaled out/in ratio (see _executionPrice).
     error PriceAboveCeiling(uint256 executionPrice, uint256 maxPrice);
 
-    /// @notice `executionPrice` is the 1e18-scaled out/in ratio computed by
-    /// the manager from the two Chainlink feeds, NOT the raw inAsset oracle
-    /// answer. `minPrice` is the user-configured floor on that ratio.
+    /// @notice executionPrice is the 1e18-scaled out/in ratio (see _executionPrice).
     error PriceBelowFloor(uint256 executionPrice, uint256 minPrice);
 }

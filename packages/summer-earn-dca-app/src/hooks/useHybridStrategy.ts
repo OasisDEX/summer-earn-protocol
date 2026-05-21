@@ -18,14 +18,11 @@ const STATUS_TO_STRING: Record<StrategyStatus, string> = {
 
 export interface HybridStrategy {
   subgraph: SubgraphStrategy
-  /** RPC-fresh state (may be undefined while loading). */
   rpcState?: StrategyStateOnchain
-  /** What the UI should display — RPC wins when present. */
   displayStatus: ReturnType<typeof deriveDisplayStatus>
   displayTradesExecuted: bigint
   displayNextTriggerAt: bigint
   displayLastScheduledAt: bigint
-  /** True when RPC and subgraph disagree on a state field. */
   staleness: {
     statusMismatch: boolean
     tradesDelta: bigint
@@ -33,13 +30,8 @@ export interface HybridStrategy {
   }
 }
 
-// Merges the subgraph entity (immutable config + aggregates + history) with
-// the RPC `strategyStates(id)` read. RPC always wins for mutable state fields
-// — that's the contract for the "fresh after action" guarantee in the plan.
-//
-// `initialSubgraph` is optional pre-resolved data from a server component
-// loader — useStrategyById uses it as TanStack `initialData` so the first
-// client render already has the row.
+// RPC values win over subgraph values when present — gives instant feedback
+// after Pause/Resume/Cancel before the indexer catches up.
 export function useHybridStrategy(
   chainId: ChainId,
   strategyIdStr: string | undefined,
@@ -96,13 +88,7 @@ export function useHybridStrategy(
     }
   }, [subgraphQuery.data, rpcState])
 
-  // Loading is anchored entirely on the subgraph — it indexes every mutable
-  // field (`status`, `nextTriggerAt`, `lastScheduledAt`, `tradesExecuted`)
-  // so the page can paint without ever blocking on RPC. The RPC read exists
-  // purely for *freshness-after-action* (e.g. instant feedback after the
-  // user clicks Pause) — when it arrives, `displayX` flips from the
-  // subgraph value to the RPC value via the `?? sg*` merge above, no
-  // visible reload.
+  // Subgraph already indexes every mutable field — never block paint on RPC.
   return {
     data: merged,
     isLoading: subgraphQuery.isLoading,

@@ -12,13 +12,10 @@ interface UseTokenPriceHistoryArgs {
   token: Address | undefined
   feed?: Address
   range?: PriceRange
-  // Pre-resolved series passed down from a server component. Avoids the
-  // first-paint round-trip to `/api/prices/...` when present.
   initialSeries?: PriceSeries | null
 }
 
-// The route handler returns `{ unknown: true, points: [], ... }` when no
-// source recognises the token; surface that as `isUnknown` instead of throwing.
+// `unknown: true` from the route means no source recognised the token.
 export interface PriceHistoryResult {
   series?: PriceSeries
   isUnknown: boolean
@@ -34,8 +31,7 @@ export function useTokenPriceHistory({
   return useQuery<PriceHistoryResult>({
     queryKey: ['dca', 'price-history', chainId, token?.toLowerCase(), range, feed?.toLowerCase()],
     enabled: Boolean(token),
-    // Matches the route's `revalidate: 3600` (1 hour) — same cadence keeps
-    // the UI from re-fetching faster than the server cache rolls over.
+    // Matches the route's 1h revalidate window.
     staleTime: 60 * 60_000,
     gcTime: 60 * 60_000,
     initialData: initialSeries ? { series: initialSeries, isUnknown: false } : undefined,

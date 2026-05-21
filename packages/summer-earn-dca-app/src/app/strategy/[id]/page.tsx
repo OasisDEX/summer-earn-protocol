@@ -7,11 +7,6 @@ import { Button } from '@/components/ui/Button'
 import { loadStrategyDetail } from '@/lib/server/loadStrategyDetail'
 import { asChainId, type ChainId } from '@/types/chain'
 
-// Async Server Component — pre-resolves the subgraph row + initial in/out
-// price series on the server so the client subtree paints with data on the
-// first render instead of waiting on `subgraph row → price queries` round-
-// trips after hydration. TanStack still owns refetch, range changes, and
-// any wallet-touching work in the client component.
 export default async function StrategyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const chainId: ChainId = asChainId(base.id)

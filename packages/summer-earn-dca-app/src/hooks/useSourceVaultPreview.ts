@@ -9,27 +9,18 @@ import { time } from '@/lib/perf'
 import type { ChainId } from '@/types/chain'
 
 export interface SourceVaultPreview {
-  /** convertToShares(assets) — used to set tradeAmount when user types underlying amount. */
   shares: bigint
-  /** convertToAssets(shares) — used to display history amounts (subgraph stores shares). */
   assetsFromShares: bigint
 }
 
 interface UseSourceVaultPreviewInput {
   chainId: ChainId
   sourceVault?: Address
-  /** Underlying asset amount the user typed. */
   assets?: bigint
-  /** Share amount the user typed (mirrored field). */
   shares?: bigint
-  /** Pre-resolved data from a server component loader — used as
-   *  TanStack `initialData` so first render avoids the multicall. */
   initialData?: SourceVaultPreview | null
 }
 
-// Two-way conversion against the FleetCommander vault. When the user types
-// the underlying amount we read convertToShares; when they type shares we
-// read convertToAssets. Either side is the source of truth for that render.
 export function useSourceVaultPreview(input: UseSourceVaultPreviewInput) {
   const client = usePublicClient({ chainId: Number(input.chainId) })
   const enabled =

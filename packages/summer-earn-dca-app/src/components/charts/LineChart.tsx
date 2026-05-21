@@ -16,10 +16,7 @@ interface LineChartProps {
   interactive?: boolean
   height?: number
   className?: string
-  // Used to label the "no data" message; e.g. "Price data begins May 14".
   dataStartsAt?: number
-  // Custom y-axis / tooltip / guardrail-label formatter. Defaults to a
-  // unitless number; the caller is expected to inject any asset symbol.
   formatValue?: (n: number) => string
 }
 
@@ -41,11 +38,8 @@ function formatDate(t: number): string {
   return new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-// Port of design_files/chart.jsx → TS. Key extension: `gaps` breaks the line
-// at each missing-data region instead of drawing a straight-line lie across
-// it. Dragging handles call onCeilingChange/onFloorChange; the chart never
-// invalidates the price-history query — guardrail state is local to the
-// Detail page until the user saves.
+// `gaps` breaks the path at each missing-data region rather than drawing
+// straight-line interpolations across it.
 export function LineChart({
   prices,
   gaps = [],

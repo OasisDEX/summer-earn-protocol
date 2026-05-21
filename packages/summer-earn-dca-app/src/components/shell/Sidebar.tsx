@@ -57,9 +57,6 @@ export function Sidebar() {
         </div>
         {NAV.map((item) => {
           const active = item.match(pathname)
-          // When a wallet is connected, the Portfolio link points straight
-          // at the owner-scoped URL so the user lands on their own data
-          // instead of the connect-wallet empty state.
           const href =
             item.href === '/portfolio' && address
               ? `/portfolio/${address.toLowerCase()}`

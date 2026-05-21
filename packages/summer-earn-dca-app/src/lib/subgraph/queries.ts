@@ -1,5 +1,4 @@
-// Hand-written GraphQL documents against packages/summer-earn-dca-subgraph/schema.graphql.
-// No codegen — repo convention.
+// No codegen — keep these hand-written and in sync with schema.graphql.
 
 const STRATEGY_FIELDS = /* GraphQL */ `
   id
@@ -41,10 +40,9 @@ const EXECUTION_FIELDS = /* GraphQL */ `
   txHash
 `
 
-// First page — no cursor predicate so The Graph doesn't choke on a null
-// filter value. Use STRATEGIES_BY_OWNER_NEXT with the oldest seen
-// `createdAt` to fetch subsequent pages. Keyset pagination scales O(log n)
-// per page on Graph indexers — never use `skip` for entity lists.
+// First/next pattern: The Graph rejects null filter values, so the cursor
+// predicate has to be absent entirely on the first page rather than nullable.
+// Never use `skip` for entity lists — keyset pagination only.
 export const STRATEGIES_BY_OWNER_FIRST = /* GraphQL */ `
   query StrategiesByOwnerFirst($owner: Bytes!, $first: Int = 50) {
     strategies(
@@ -95,8 +93,6 @@ export const STRATEGY_BY_ID = /* GraphQL */ `
   }
 `
 
-// First page — no cursor predicate. Use EXECUTIONS_BY_STRATEGY_NEXT with
-// the oldest seen `executionTimestamp` for subsequent pages.
 export const EXECUTIONS_BY_STRATEGY_FIRST = /* GraphQL */ `
   query ExecutionsByStrategyFirst($strategyId: String!, $first: Int = 25) {
     executions(
@@ -146,10 +142,8 @@ const PRICE_ROUND_FIELDS = /* GraphQL */ `
   updatedAt
 `
 
-// Fetch one time-window's worth of rounds plus the feed metadata.
-// Window is [$from, $to) and is sized so a single 1000-record page
-// covers the densest feed we index (~700 rounds/week for ETH/USD on Base).
-// Called once per request in the windowed-parallel fetcher.
+// [$from, $to) — window size chosen so a single 1000-record page covers
+// the densest feed we index (~700 rounds/week for ETH/USD on Base).
 export const PRICE_WINDOW_FIRST = /* GraphQL */ `
   query PriceWindowFirst($feed: Bytes!, $from: BigInt!, $to: BigInt!) {
     priceFeed(id: $feed) {
@@ -166,7 +160,6 @@ export const PRICE_WINDOW_FIRST = /* GraphQL */ `
   }
 `
 
-// Same as above without the one-shot feed metadata. Used for windows 2..N.
 export const PRICE_WINDOW = /* GraphQL */ `
   query PriceWindow($feed: Bytes!, $from: BigInt!, $to: BigInt!) {
     priceRounds(

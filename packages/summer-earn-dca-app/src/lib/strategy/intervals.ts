@@ -1,5 +1,5 @@
-// Contract enforces `interval >= 1 day` and aligns nextTriggerAt to the next
-// hour boundary. Presets below are the canonical FE choices.
+// Contract enforces interval >= 1 day and aligns nextTriggerAt to the
+// next hour boundary.
 
 export const ONE_DAY_SECONDS = BigInt(24 * 60 * 60)
 export const THREE_DAYS_SECONDS = ONE_DAY_SECONDS * 3n
@@ -28,8 +28,8 @@ export function validateInterval(seconds: bigint): { ok: boolean; reason?: strin
   return { ok: true }
 }
 
+// Matches the contract's ((block.timestamp + 3599) / 3600) * 3600.
 export function nextHourAligned(timestampSeconds: bigint): bigint {
-  // Match the contract's `((block.timestamp + 3599) / 3600) * 3600`.
   return ((timestampSeconds + 3599n) / 3600n) * 3600n
 }
 

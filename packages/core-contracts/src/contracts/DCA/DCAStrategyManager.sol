@@ -406,10 +406,7 @@ contract DCAStrategyManager is
         outPrice = uint256(outRaw);
     }
 
-    /// @dev Normalised "out per in" execution price in 1e18 precision: how
-    /// many inAsset units (oracle-adjusted) are needed to buy 1 outAsset unit.
-    /// Stays well inside uint256 — for 8-dec Chainlink feeds the numerator is
-    /// O(outPrice * 1e8 * 1e18) ≈ 1e34.
+    /// @dev 1e18-scaled out/in execution price (inAsset units per 1 outAsset).
     function _executionPrice(
         StrategyConfig calldata config,
         uint256 inPrice,

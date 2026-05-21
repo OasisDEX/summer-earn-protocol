@@ -56,10 +56,7 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
   const endDateUnix = endDateStr ? BigInt(Math.floor(new Date(endDateStr).getTime() / 1000)) : 0n
   const maxTrades = maxTradesStr ? BigInt(maxTradesStr) : 0n
 
-  // Guardrails are the 1e18-scaled out/in execution-price ratio. The contract
-  // computes the same: executionPrice = outPrice * 10**inOracleDec * 1e18
-  //                                   / (inPrice * 10**outOracleDec).
-  // User types e.g. "3500" for "1 outAsset ≤ 3500 inAsset" → 3500e18 on chain.
+  // 1e18-scaled out/in execution-price ratio — matches the contract.
   const safePriceInput = (s: string): bigint => {
     if (!s) return 0n
     try {

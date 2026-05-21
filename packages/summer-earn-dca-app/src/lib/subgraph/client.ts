@@ -7,9 +7,6 @@ interface GqlResponse<T> {
   errors?: Array<{ message: string }>
 }
 
-// Extracts the GraphQL operation name from a query string for perf labels:
-// `query StrategiesByOwner(...) { ... }` -> "StrategiesByOwner". Falls back
-// to "anonymous" if the query is unnamed.
 function operationName(query: string): string {
   const match = /\b(?:query|mutation|subscription)\s+(\w+)/.exec(query)
   return match?.[1] ?? 'anonymous'

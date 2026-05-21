@@ -16,39 +16,27 @@ import type { ChainId } from '@/types/chain'
 
 interface Props {
   chainId: ChainId
-  /** Address from `?address=…` query param (already validated server-side). */
   urlAddress?: Address
-  /** Server-resolved strategies for `urlAddress`. Undefined when URL has no address. */
   initialStrategies?: SubgraphStrategy[]
 }
 
-// Client subtree that owns:
-//   - URL ↔ wallet sync (connect → push ?address=…; URL is the source of truth)
-//   - viewing other users' portfolios in read-only mode (action buttons hidden)
-//   - seeding TanStack with the server-rendered strategy list when URL=wallet
 export function PortfolioBody({ chainId, urlAddress, initialStrategies }: Props) {
   const { address: walletAddress } = useAccount()
   const router = useRouter()
   const walletAddr = walletAddress ? (getAddress(walletAddress) as Address) : undefined
 
-  // When a wallet connects on the URL-less landing (`/portfolio`), push the
-  // wallet address into the path so the next paint hits the server-rendered
-  // `/portfolio/{address}` route. `router.replace` so the empty landing
-  // isn't left in the browser back stack.
+  // On wallet-connect from the URL-less landing, hop to the canonical
+  // /portfolio/{address} route so the next paint is server-rendered.
   useEffect(() => {
     if (walletAddr && !urlAddress) {
       router.replace(`/portfolio/${walletAddr.toLowerCase()}`)
     }
   }, [walletAddr, urlAddress, router])
 
-  // Owner the page is currently viewing. URL wins when present; otherwise
-  // fall back to the connected wallet (covers the brief window between
-  // wallet-connect and the URL update landing).
   const effectiveOwner = urlAddress ?? walletAddr
 
-  // Only seed initialData when the server actually pre-resolved for the
-  // address we're querying right now — protects against a stale URL prop
-  // ever lining up with a different owner.
+  // Only honour the server-resolved list when it matches the address we're
+  // about to query for.
   const seedStrategies =
     initialStrategies && urlAddress && effectiveOwner === urlAddress ? initialStrategies : undefined
 

@@ -15,12 +15,6 @@ export interface FeedPrice {
   updatedAt: bigint
 }
 
-// Reads latestRoundData + decimals from a Chainlink feed. Polled every 60s.
-// `decimals` is immutable on a feed but we keep it in the same multicall for
-// simplicity — Chainlink heartbeats are 1200s+ (ETH/USD) up to 86400s
-// (stables), so 60s gives near-immediate visibility of an answer update
-// without per-block multicall traffic. Bind to chainId in the query key so
-// switching networks evicts cleanly.
 export function useFeedPrice(chainId: ChainId, feed: Address | undefined) {
   const client = usePublicClient({ chainId: Number(chainId) })
 

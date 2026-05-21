@@ -80,9 +80,6 @@ export function StrategyDetail({
   )
   const chart = useStrategyChartData(chainId, strategyId, range, chartInitial)
   const actions = useDcaStrategyActions({ chainId })
-  // Convert the on-chain share amount to underlying assets via the
-  // FleetCommander's convertToAssets — that's the number the user thinks in
-  // ("100 USDC per trade"), not the raw share figure.
   const sourcePreview = useSourceVaultPreview({
     chainId,
     sourceVault: hybrid.data?.subgraph.sourceVault as `0x${string}` | undefined,
@@ -95,8 +92,7 @@ export function StrategyDetail({
     [hybrid.data],
   )
 
-  // Guardrail edits are local-only until the user saves via Edit modal — we
-  // initialise from chart-decoded values (out/in execution-price ratio).
+  // Local-only drag preview; saved through the Edit modal.
   const [ceiling, setCeiling] = useState<number | undefined>(undefined)
   const [floor, setFloor] = useState<number | undefined>(undefined)
   const [editOpen, setEditOpen] = useState(false)
@@ -140,8 +136,6 @@ export function StrategyDetail({
   const outSym = meta.data?.outAsset.symbol ?? '…'
   const inDec = meta.data?.inAsset.decimals ?? 18
   const outDec = meta.data?.outAsset.decimals ?? 18
-  // FleetCommander share decimals match the underlying — fall back to `inDec`
-  // until metadata loads.
   const shareDec = meta.data?.sourceVault.decimals ?? inDec
   const shareSym = meta.data?.sourceVault.symbol ?? `${inSym}-shares`
   const showStaleness =

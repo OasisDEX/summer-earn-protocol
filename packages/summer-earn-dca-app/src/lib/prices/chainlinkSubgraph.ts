@@ -29,15 +29,10 @@ const HOUR_SECONDS = 3600
 const DAY_SECONDS = 86_400
 const WEEK_SECONDS = 7 * DAY_SECONDS
 
-// Window size for parallel fetches. ETH/USD on Base updates ~every 20min,
-// so 1 week ≈ 504 rounds — comfortably below The Graph's 1000/page cap.
-// Sparser feeds fit even more easily. If a window over-flows we'd silently
-// drop the tail; revisit if we ever wire in a high-frequency feed.
+// 1 week ≈ 504 rounds for ETH/USD on Base — under The Graph's 1000/page cap.
+// Sparser feeds fit easily. A higher-frequency feed would silently truncate.
 const WINDOW_SECONDS = WEEK_SECONDS
 
-// Bucket size for the final downsampled series. Hourly is the natural
-// granularity for a daily-DCA chart; widen for longer ranges so the cached
-// payload stays ≤ ~1000 points and the cache key is more share-friendly.
 function bucketSecondsFor(range: PriceRange): number {
   switch (range) {
     case '7d':
@@ -51,8 +46,7 @@ function bucketSecondsFor(range: PriceRange): number {
   }
 }
 
-// `all` doesn't have a bounded window — cap lookback so the parallel
-// fan-out stays reasonable. ~1 year of weekly windows = 52 parallel calls.
+// Cap the unbounded `all` range so the parallel fan-out stays bounded.
 const ALL_RANGE_SECONDS = 365 * DAY_SECONDS
 
 export function createChainlinkSubgraphSource(): PriceFeedSource {
@@ -62,21 +56,17 @@ export function createChainlinkSubgraphSource(): PriceFeedSource {
       const feedAddress = feed ?? lookupFeedForAsset(chainId, token)
       if (!feedAddress) return null
 
-      // `priceFeed.id` is stored as `Bytes` (lowercased hex).
+      // priceFeed.id is stored as lowercased Bytes hex.
       const feedKey = feedAddress.toLowerCase()
       const bucketSec = bucketSecondsFor(range)
 
-      // Snap both ends of the window to bucket boundaries so the cached
-      // response is byte-identical for everyone in the same bucket period.
-      // Combined with `cacheLife.revalidate = 1h` upstream, this means at
-      // most one cold fetch per (feed, range) per hour globally per server.
+      // Snap to bucket boundaries so the cached payload is byte-identical
+      // for every request in the same bucket period.
       const nowSec = Math.floor(Date.now() / 1000)
       const nowAligned = Math.floor(nowSec / bucketSec) * bucketSec
       const totalSeconds = range === 'all' ? ALL_RANGE_SECONDS : RANGE_TO_SECONDS[range]
       const fromAligned = Math.floor((nowAligned - totalSeconds) / bucketSec) * bucketSec
 
-      // Build [start, end) windows. The last one stops at `nowAligned` to
-      // avoid double-fetching the current bucket.
       const windows: Array<[number, number]> = []
       for (let s = fromAligned; s < nowAligned; s += WINDOW_SECONDS) {
         const e = Math.min(s + WINDOW_SECONDS, nowAligned)
@@ -84,9 +74,6 @@ export function createChainlinkSubgraphSource(): PriceFeedSource {
       }
       if (windows.length === 0) windows.push([fromAligned, nowAligned])
 
-      // Fire every window's query in parallel. Wall-clock cost is
-      // max(window latency), not sum — typically ~300-500ms regardless of
-      // how many weeks the range covers.
       const responses = await Promise.all(
         windows.map(([wFrom, wTo], idx) => {
           const variables = {
@@ -106,25 +93,18 @@ export function createChainlinkSubgraphSource(): PriceFeedSource {
       const feedMeta = responses[0]?.priceFeed ?? null
       const decimals = feedMeta?.decimals ?? 8
 
-      // Merge all rounds in ascending order (windows are already disjoint
-      // and ordered by their start, and the indexer returns each window
-      // sorted by updatedAt asc).
       const rounds: WindowRound[] = []
       for (const r of responses) rounds.push(...r.priceRounds)
 
-      // Downsample to one point per bucket: the LAST round whose
-      // updatedAt falls in (bucket_start - bucketSec, bucket_start]. We
-      // walk the rounds in ascending time order and update the active
-      // round; for each bucket boundary, emit the active round if any.
+      // For each bucket boundary, emit the LAST round whose updatedAt is
+      // ≤ the boundary — carries the active price forward through buckets
+      // where the feed didn't tick.
       const points: PricePoint[] = []
       let cursor = 0
       let activeAnswer: number | null = null
-      let activeUpdatedAt = 0
       for (let bucketStart = fromAligned; bucketStart <= nowAligned; bucketStart += bucketSec) {
-        // Advance through all rounds at or before this bucket boundary.
         while (cursor < rounds.length && Number(rounds[cursor].updatedAt) <= bucketStart) {
           activeAnswer = Number(rounds[cursor].answer) / Math.pow(10, decimals)
-          activeUpdatedAt = Number(rounds[cursor].updatedAt)
           cursor++
         }
         if (activeAnswer != null) {
@@ -132,15 +112,8 @@ export function createChainlinkSubgraphSource(): PriceFeedSource {
         }
       }
 
-      // Suppress unused-var warning while keeping the line for debugging.
-      void activeUpdatedAt
-
       if (feedMeta == null && points.length === 0) return null
 
-      // With bucket-aligned sampling every bucket has a price (we carry
-      // forward the active round). True data starts after the feed's
-      // firstSeenAt; the chart uses `dataStartsAt` to label that boundary
-      // and skip empty pre-data buckets above.
       const gaps: Array<[number, number]> = []
 
       const dataStartsAt =

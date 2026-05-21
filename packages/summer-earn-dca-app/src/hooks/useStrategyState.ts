@@ -24,16 +24,6 @@ function toTyped(raw: RawState | undefined): StrategyStateOnchain | undefined {
   }
 }
 
-// RPC read of `strategyStates(id)`. Polled lazily on a 30s cadence — user
-// actions are already invalidated by useTxToast at confirmation time, and
-// external keeper executions surface via the subgraph in seconds. Avoid
-// per-block invalidation: with N visible StrategyCard instances it produces
-// an N-read multicall every Base block (~2s) which is wasteful for state
-// that changes at most once per interval (≥ 1 day).
-//
-// `initialState` is optional — pre-resolved value from a server component
-// loader, used as TanStack `initialData` so first render doesn't need a
-// client RPC round-trip. Polling kicks in immediately after hydration.
 export function useStrategyState(
   chainId: ChainId,
   strategyId: bigint | undefined,
@@ -49,8 +39,6 @@ export function useStrategyState(
     args: enabled ? [strategyId!] : undefined,
     query: {
       enabled,
-      // Background poll while the page is open; foreground reads will hit
-      // the cache. 30s is well under the contract's 1-day minimum interval.
       refetchInterval: 30_000,
       staleTime: 30_000,
       initialData: initialState

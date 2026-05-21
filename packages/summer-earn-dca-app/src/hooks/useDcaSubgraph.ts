@@ -19,11 +19,8 @@ export function useStrategiesByOwner(
   initialData?: SubgraphStrategy[],
 ) {
   const queryClient = useQueryClient()
-  // Seed per-id entries from initialData at hook construction so that any
-  // child <StrategyCard> mounting on the first render already finds the
-  // entity in cache. Doing it here (instead of inside queryFn) means the
-  // server-delivered list also primes the detail-page cache before the
-  // user clicks through.
+  // Seed per-id cache entries so child StrategyCards find them on first
+  // render and clicking through to /strategy/[id] is instant.
   if (initialData) {
     for (const s of initialData) {
       queryClient.setQueryData(['dca', 'strategy', chainId, s.id], s)
@@ -32,13 +29,9 @@ export function useStrategiesByOwner(
   return useQuery({
     queryKey: ['dca', 'strategies', chainId, owner?.toLowerCase()],
     enabled: Boolean(owner),
-    // Portfolio data is cheap to keep around — a 30s staleTime stops
-    // re-fetching on every navigation back to the list.
     staleTime: 30_000,
     initialData,
     queryFn: async () => {
-      // First page only — use STRATEGIES_BY_OWNER_NEXT with the oldest
-      // returned `createdAt` if pagination is ever wired in.
       const data = await gqlFetch<{ strategies: SubgraphStrategy[] }>(
         chainId,
         STRATEGIES_BY_OWNER_FIRST,
@@ -62,11 +55,9 @@ export function useStrategyById(
     queryKey: ['dca', 'strategy', chainId, strategyId],
     enabled: Boolean(strategyId),
     staleTime: 30_000,
-    // Server-side loader can pass the row down with the HTML; use it as
-    // `initialData` so first render has the entity in hand without any
-    // client fetch. Fallback to scanning the strategies-by-owner cache for
-    // the portfolio → detail click-through path.
     initialData: initialData ?? undefined,
+    // Fallback for the portfolio → detail click-through path: scan any
+    // cached strategies-by-owner list for the matching row.
     placeholderData: () => {
       if (!strategyId) return undefined
       const lists = queryClient.getQueriesData<SubgraphStrategy[]>({
@@ -88,9 +79,7 @@ export function useStrategyById(
   })
 }
 
-// Cursor-paginated. Pass the oldest `executionTimestamp` returned so far as
-// `cursorExecutionTimestamp` to fetch the next page; leave undefined for
-// the first page.
+// Cursor-paginated: pass the oldest `executionTimestamp` to fetch the next page.
 export function useExecutionsByStrategy(
   chainId: ChainId,
   strategyId: string | undefined,

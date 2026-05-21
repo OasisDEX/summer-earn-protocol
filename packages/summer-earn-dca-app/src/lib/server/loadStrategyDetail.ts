@@ -17,14 +17,8 @@ import type { SubgraphStrategy } from '@/lib/subgraph/types'
 import type { ChainId } from '@/types/chain'
 import { type StrategyStateOnchain, StrategyStatus } from '@/types/strategy'
 
-// Default range used by the detail page on first paint. The user can flip
-// the segmented control on the client, which triggers a fresh fetch via
-// useTokenPriceHistory; the initial range data we pass down avoids the
-// cold-fetch wait on first render.
 export const DEFAULT_DETAIL_RANGE: PriceRange = '90d'
 
-// Mirrors `useStrategyMetadata` — pre-resolved server-side so the client
-// doesn't need to re-multicall on first render.
 export interface StrategyMetadata {
   inAsset: { address: Address; symbol: string; decimals: number }
   outAsset: { address: Address; symbol: string; decimals: number }
@@ -40,24 +34,15 @@ export interface SourceVaultPreview {
 }
 
 export interface StrategyDetailInitial {
-  /** Subgraph row at the time the page was rendered. `null` when the id is unknown. */
   subgraph: SubgraphStrategy | null
-  /** Price series for the inAsset over `DEFAULT_DETAIL_RANGE`, or null when no source resolved. */
   inSeries: PriceSeries | null
-  /** Price series for the outAsset over `DEFAULT_DETAIL_RANGE`, or null when no source resolved. */
   outSeries: PriceSeries | null
   range: PriceRange
-  /** Token + feed metadata (decimals/symbols/descriptions). */
   metadata: StrategyMetadata | null
-  /** convertToShares(0) + convertToAssets(strategy.tradeAmount) on the source vault. */
   sourcePreview: SourceVaultPreview | null
-  /** Initial value of strategyStates(id) so the client doesn't need to refetch on mount. */
   rpcState: StrategyStateOnchain | null
 }
 
-// Cached subgraph row read — TanStack on the client still owns refetch and
-// re-validation; this entry just keeps repeated RSC renders within the
-// revalidate window from re-hitting the indexer.
 async function fetchCachedStrategy(
   chainId: ChainId,
   strategyId: string,
@@ -72,8 +57,6 @@ async function fetchCachedStrategy(
   return data.strategy
 }
 
-// Cached server-side multicall against immutable token + feed reads. Cached
-// forever — these never change for a deployed contract.
 async function fetchCachedMetadata(
   chainId: ChainId,
   inAsset: Address,
@@ -120,10 +103,6 @@ async function fetchCachedMetadata(
   }
 }
 
-// Cached convertToShares/convertToAssets pair. Vault exchange rate drifts
-// with yield accrual — 60s revalidate keeps it close to fresh without
-// hammering RPC. Client still re-reads if the user types into the amount
-// input on the Create form.
 async function fetchCachedSourcePreview(
   chainId: ChainId,
   sourceVault: Address,
@@ -154,10 +133,6 @@ async function fetchCachedSourcePreview(
   }
 }
 
-// Cached snapshot of strategyStates(id). Mutable on the contract — keepers
-// advance state on every execution — so the client still polls (30s)
-// post-hydration. This entry only needs to live long enough to cover a
-// burst of page renders from the same server.
 async function fetchCachedStrategyState(
   chainId: ChainId,
   strategyId: bigint,
@@ -185,11 +160,6 @@ async function fetchCachedStrategyState(
   }
 }
 
-// Server-side loader for `/strategy/[id]/page.tsx`. Resolves the subgraph
-// row first (price + metadata depend on its asset/feed addresses), then
-// fans out the price + metadata + vault-preview + RPC-state reads in
-// parallel. Each branch is independently cached, so a follow-up render
-// that only invalidates one tag won't refetch the others.
 export async function loadStrategyDetail(
   chainId: ChainId,
   strategyId: string,
@@ -216,8 +186,6 @@ export async function loadStrategyDetail(
   const tradeAmount = BigInt(subgraph.tradeAmount)
   const idBig = BigInt(subgraph.strategyId)
 
-  // Each branch failure is non-fatal — the client TanStack hook will
-  // retry on mount if the server-side prefetch came back null/error.
   const [inSeries, outSeries, metadata, sourcePreview, rpcState] = await Promise.all([
     fetchCachedSeries(chainId, inAsset, DEFAULT_DETAIL_RANGE, inAssetFeed),
     fetchCachedSeries(chainId, outAsset, DEFAULT_DETAIL_RANGE, outAssetFeed),

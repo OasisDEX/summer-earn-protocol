@@ -45,9 +45,6 @@ export function StrategyCard({
     range: '30d',
   })
   const actions = useDcaStrategyActions({ chainId })
-  // Convert the stored share amount → underlying assets so the card shows
-  // "1 USDC" not "0.937 LVUSDC mislabelled as USDC" — same shape as the
-  // Detail page (see StrategyDetail.tsx).
   const sourcePreview = useSourceVaultPreview({
     chainId,
     sourceVault: getAddress(strategy.sourceVault) as Address,
@@ -60,9 +57,7 @@ export function StrategyCard({
   const maxTrades = Number(strategy.maxTrades)
   const inDec = meta.data?.inAsset.decimals ?? 18
   const outDec = meta.data?.outAsset.decimals ?? 18
-  // FleetCommander share decimals usually match the underlying asset — 6 for
-  // USDC, 18 for WETH. `tradeAmount` is stored in shares; formatting it with
-  // a hardcoded 18 would render a USDC strategy as `0.000000000000…`.
+  // tradeAmount is in source-vault shares — format with shareDec, not 18.
   const shareDec = meta.data?.sourceVault.decimals ?? inDec
   const inSym = meta.data?.inAsset.symbol ?? '…'
   const outSym = meta.data?.outAsset.symbol ?? '…'

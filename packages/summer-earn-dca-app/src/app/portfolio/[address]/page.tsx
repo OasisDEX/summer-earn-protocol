@@ -9,10 +9,6 @@ import { Button } from '@/components/ui/Button'
 import { loadPortfolio } from '@/lib/server/loadPortfolio'
 import { asChainId, type ChainId } from '@/types/chain'
 
-// URL-driven portfolio. The address is the source of truth, served as a
-// path segment so the link is shareable and CDN-cacheable per owner.
-// `/portfolio` (no segment) shows the connect-wallet empty state — see the
-// sibling `app/portfolio/page.tsx`.
 export default async function PortfolioByAddressPage({
   params,
 }: {

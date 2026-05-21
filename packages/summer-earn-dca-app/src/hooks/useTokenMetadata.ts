@@ -38,13 +38,9 @@ interface UseStrategyMetadataInput {
   targetVault?: Address
   inAssetFeed?: Address
   outAssetFeed?: Address
-  // Pre-resolved metadata from a server component loader. Lets the client
-  // skip the 12-read multicall on first render.
   initialData?: StrategyMetadata | null
 }
 
-// Batched ERC20.symbol/decimals and AggregatorV3.description/decimals reads
-// for one strategy. Cached forever (per address) — metadata is immutable.
 export function useStrategyMetadata(input: UseStrategyMetadataInput) {
   const client = usePublicClient({ chainId: Number(input.chainId) })
   const allAddresses = [
@@ -139,8 +135,6 @@ export function useStrategyMetadata(input: UseStrategyMetadataInput) {
   })
 }
 
-// Lightweight single-token variant used by the create form when the user
-// types a custom address.
 export function useTokenMetadata(chainId: ChainId, token?: Address) {
   const client = usePublicClient({ chainId: Number(chainId) })
   return useQuery({

@@ -27,10 +27,6 @@ function counts(strategies: SubgraphStrategy[]): Record<StatusFilter, number> {
   return result
 }
 
-// `owner` is now driven by the URL via <PortfolioBody>; this component is
-// owner-agnostic and just renders whatever it's pointed at. `readonly`
-// disables per-card mutation buttons when the viewer doesn't own the
-// strategies (URL address ≠ connected wallet, or no wallet at all).
 export function StrategyList({
   chainId,
   owner,

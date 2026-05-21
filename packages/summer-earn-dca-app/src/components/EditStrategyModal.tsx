@@ -20,22 +20,15 @@ interface EditStrategyModalProps {
   chainId: ChainId
   strategyId: bigint
   oldConfig: StrategyConfigTuple
-  /** Shown in the input labels (e.g. "USDC per ETH"). */
   inSym: string
   outSym: string
-  /** Vault symbol — passed through to <DualAmountInput>. */
   shareSym: string
-  /** Decimals for amount inputs. */
   inDecimals: number
   shareDecimals: number
 }
 
-// Edit modal — mirrors the Create form but locked to the mutable fields the
-// contract's `editStrategy(strategyId, oldConfig, newConfig)` accepts:
-// owner / vaults / assets / feeds are immutable (the contract reverts on
-// owner change and a new strategy is the right tool if the asset pair
-// changes). Submit calls editStrategy with the original oldConfig (so the
-// commitment check passes) plus the patched newConfig.
+// Only the contract-mutable fields are exposed. Owner / vaults / assets /
+// feeds are immutable — editing those is a new strategy, not an edit.
 export function EditStrategyModal({
   open,
   onClose,
@@ -53,8 +46,6 @@ export function EditStrategyModal({
     onMutated: () => onClose(),
   })
 
-  // Pre-fill from the current on-chain config. Field state is local until
-  // the user submits — closing the modal discards edits.
   const [tradeAmountShares, setTradeAmountShares] = useState<bigint>(oldConfig.tradeAmount)
   const [intervalSeconds, setIntervalSeconds] = useState<bigint>(oldConfig.interval)
   const [slippageBps, setSlippageBps] = useState<bigint>(oldConfig.slippageBps)
@@ -109,8 +100,7 @@ export function EditStrategyModal({
     ],
   )
 
-  // `editStrategy` reverts with DuplicateStrategy if the new commitment is
-  // equal to the old one — quietly disable submit when nothing's changed.
+  // editStrategy reverts DuplicateStrategy if the commitment hasn't changed.
   const oldHash = useMemo(() => computeCommitment(oldConfig), [oldConfig])
   const newHash = useMemo(() => computeCommitment(newConfig), [newConfig])
   const noChange = oldHash === newHash

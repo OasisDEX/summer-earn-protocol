@@ -1,10 +1,8 @@
 import type { Address, Hex } from 'viem'
 
-// TS mirror of IDCAStrategyManager.StrategyConfig — field order is binding.
-// Anything that changes here must change in lockstep with the on-chain struct,
-// or commitment checks will revert. `strategyId` lives outside the struct
-// (it's the mapping key, passed as a separate argument to
-// editStrategy/resumeStrategy/executeStrategy/checkUpkeep).
+// Field order is binding — must match IDCAStrategyManager.StrategyConfig
+// exactly or the commitment hash diverges and every owner-gated call
+// reverts CommitmentMismatch. strategyId lives outside the struct.
 export interface StrategyConfigTuple {
   owner: Address
   sourceVault: Address
@@ -22,7 +20,6 @@ export interface StrategyConfigTuple {
   maxTrades: bigint
 }
 
-// IDCAStrategyManager.Status — uint8 enum.
 export enum StrategyStatus {
   ACTIVE = 0,
   PAUSED = 1,
@@ -46,12 +43,11 @@ export interface StrategyConfigFormInput {
   outAsset: Address
   inAssetFeed: Address
   outAssetFeed: Address
-  // Persisted as source-vault shares (uint160-bounded).
+  // Source-vault shares (uint160-bounded).
   tradeAmountShares: bigint
   intervalSeconds: bigint
   slippageBps: bigint
-  // 1e18-scaled out/in execution-price ratio (see contract _executionPrice).
-  // 0 = no bound.
+  // 1e18-scaled out/in execution-price ratio. 0 = no bound.
   maxPrice: bigint
   minPrice: bigint
   endDateUnix: bigint
