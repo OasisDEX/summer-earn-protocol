@@ -24,6 +24,10 @@ export function useSimulation() {
         body: JSON.stringify({ actions, proposalId }),
       })
 
+      if (!res.ok) {
+        throw new Error(`Simulation API returned status ${res.status}`)
+      }
+
       const data = (await res.json()) as SimulateApiResponse
 
       const updatedResults: Record<string, SimulationResult> = { ...initialSimStatus }
@@ -55,6 +59,15 @@ export function useSimulation() {
       setResults(updatedResults)
     } catch (err) {
       console.error('Simulation call failed:', err)
+      const errorResults: Record<string, SimulationResult> = { ...initialSimStatus }
+      targetChainIds.forEach((cid) => {
+        errorResults[cid] = {
+          chainId: cid,
+          status: 'error',
+          error: err instanceof Error ? err.message : 'Unknown simulation error',
+        }
+      })
+      setResults(errorResults)
     } finally {
       setIsSimulating(false)
     }
