@@ -89,8 +89,9 @@ jobs:
           OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
           HYPERLIQUID_RPC_URL: ${{ secrets.HYPERLIQUID_RPC_URL }}
 
+      # skip until solar issues are fixed
       - name: Generate coverage reports (Main only)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: !always()
         run: pnpm coverage:lcov
         env:
           TURBO_NO_DAEMON: true
@@ -102,9 +103,9 @@ jobs:
           OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
           HYPERLIQUID_RPC_URL: ${{ secrets.HYPERLIQUID_RPC_URL }}
           FOUNDRY_FUZZ_RUNS: 1
-
+      # skip until solar issues are fixed
       - name: Upload coverage report to Codecov (Main only)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: !always()
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

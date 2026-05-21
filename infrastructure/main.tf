@@ -79,6 +79,18 @@ module "interface" {
   tags                  = local.common_tags
 }
 
+module "dca_app" {
+  source                = "./modules/amplify_app"
+  app_name              = "summer-earn-dca-app"
+  repository            = var.github_repository
+  github_token          = var.github_token
+  package_root          = "packages/summer-earn-dca-app"
+  build_filter          = "@summerfi/summer-earn-dca-app"
+  environment_variables = local.common_app_env_vars
+  secrets               = local.common_app_secrets
+  tags                  = local.common_tags
+}
+
 module "gov_alert_bot" {
   source     = "./modules/ecs_worker"
   app_name   = "summer-earn-gov-alert-bot"
