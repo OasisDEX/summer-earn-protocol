@@ -113,3 +113,4 @@ myenv
 **/.terraform.lock.hcl
 **/terraform.tfvars
 *.tfvars
+.antigravitycli

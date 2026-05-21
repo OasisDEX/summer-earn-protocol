@@ -1,11 +1,11 @@
 {
   "name": "@summerfi/summer-earn-dca-subgraph",
   "license": "UNLICENSED",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "scripts": {
     "codegen": "graph codegen",
-    "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml",
-    "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
+    "prepare:base": "node scripts/prepare.mjs base",
+    "prepare:mainnet": "node scripts/prepare.mjs mainnet",
     "build:base": "pnpm run prepare:base && graph codegen && graph build",
     "build:mainnet": "pnpm run prepare:mainnet && graph codegen && graph build",
     "deploy:base": "bash -c 'source ../../.env && pnpm run build:base && goldsky subgraph deploy summer-dca-base/$npm_package_version --path .'",

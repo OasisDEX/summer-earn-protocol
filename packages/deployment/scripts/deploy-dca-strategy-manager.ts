@@ -57,7 +57,7 @@ async function deployDCAStrategyManager() {
 
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const versionString = 'v1'
+  const versionString = 'v2'
   const moduleName = `DCAStrategyManagerModule_${versionString}`
   const DCAStrategyManagerModule = createDCAStrategyManagerModule(moduleName)
 

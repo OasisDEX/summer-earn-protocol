@@ -1,152 +1,222 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
+import { LineChart } from '@/components/charts/LineChart'
 import { ExecutionHistoryTable } from '@/components/ExecutionHistoryTable'
-import { FeedPriceDisplay } from '@/components/FeedPriceDisplay'
 import { FreshFromChainPill, StatusBadge } from '@/components/TxStatusBadge'
 import { Button } from '@/components/ui/Button'
-import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/Card'
+import { Pair } from '@/components/ui/Pair'
+import { Pill } from '@/components/ui/Pill'
+import { Segmented } from '@/components/ui/Segmented'
 import { useDcaStrategyActions } from '@/hooks/useDcaStrategyActions'
 import { useHybridStrategy } from '@/hooks/useHybridStrategy'
+import { useStrategyChartData } from '@/hooks/useStrategyChartData'
 import { useStrategyMetadata } from '@/hooks/useTokenMetadata'
 import {
   formatBpsAsPercent,
   formatDecimalOutput,
-  formatFeedPrice,
   formatUnixDate,
 } from '@/lib/format'
+import type { PriceRange } from '@/lib/prices'
 import { toStrategyConfigStruct } from '@/lib/strategy/encode'
 import { formatCountdown } from '@/lib/strategy/intervals'
 import type { ChainId } from '@/types/chain'
 
+const RANGES: Array<{ value: PriceRange; label: string }> = [
+  { value: '7d', label: '7d' },
+  { value: '30d', label: '30d' },
+  { value: '90d', label: '90d' },
+  { value: 'all', label: 'All' },
+]
+
 export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; strategyId: string }) {
-  const { data: hybrid, isLoading, isError } = useHybridStrategy(chainId, strategyId)
+  const [range, setRange] = useState<PriceRange>('90d')
+  const hybrid = useHybridStrategy(chainId, strategyId)
   const meta = useStrategyMetadata({
     chainId,
-    inAsset: hybrid?.subgraph.inAsset,
-    outAsset: hybrid?.subgraph.outAsset,
-    sourceVault: hybrid?.subgraph.sourceVault,
-    targetVault: hybrid?.subgraph.targetVault,
-    inAssetFeed: hybrid?.subgraph.inAssetFeed,
-    outAssetFeed: hybrid?.subgraph.outAssetFeed,
+    inAsset: hybrid.data?.subgraph.inAsset,
+    outAsset: hybrid.data?.subgraph.outAsset,
+    sourceVault: hybrid.data?.subgraph.sourceVault,
+    targetVault: hybrid.data?.subgraph.targetVault,
+    inAssetFeed: hybrid.data?.subgraph.inAssetFeed,
+    outAssetFeed: hybrid.data?.subgraph.outAssetFeed,
   })
-
+  const chart = useStrategyChartData(chainId, strategyId, range)
   const actions = useDcaStrategyActions({ chainId })
 
   const tuple = useMemo(
-    () => (hybrid ? toStrategyConfigStruct(hybrid.subgraph) : undefined),
-    [hybrid],
+    () => (hybrid.data ? toStrategyConfigStruct(hybrid.data.subgraph) : undefined),
+    [hybrid.data],
   )
 
-  if (isLoading) return <div className="text-surface-300">Loading…</div>
-  if (isError || !hybrid)
+  // Guardrail edits are local-only until the user saves via Edit modal — we
+  // initialise from chart-decoded values (USD-denominated).
+  const [ceiling, setCeiling] = useState<number | undefined>(undefined)
+  const [floor, setFloor] = useState<number | undefined>(undefined)
+  const effectiveCeiling = ceiling ?? chart.data?.ceiling
+  const effectiveFloor = floor ?? chart.data?.floor
+
+  if (hybrid.isLoading) {
     return (
-      <div className="rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-danger">
-        Could not load strategy.
+      <div className="page">
+        <div className="skel h-[420px] rounded-lg" />
       </div>
     )
+  }
+  if (hybrid.isError || !hybrid.data) {
+    return (
+      <div className="page">
+        <Card>
+          <CardHeader>
+            <CardTitle>Could not load strategy</CardTitle>
+          </CardHeader>
+          <p className="text-sm text-[var(--text-3)]">
+            The subgraph is unreachable. Try again in a moment.
+          </p>
+        </Card>
+      </div>
+    )
+  }
 
-  const s = hybrid.subgraph
+  const s = hybrid.data.subgraph
   const inSym = meta.data?.inAsset.symbol ?? '…'
   const outSym = meta.data?.outAsset.symbol ?? '…'
   const inDec = meta.data?.inAsset.decimals ?? 18
   const outDec = meta.data?.outAsset.decimals ?? 18
-  const shareDec = meta.data?.sourceVault.decimals ?? 18
-  const inFeedDec = meta.data?.inAssetFeed.decimals ?? 8
-
-  const showStaleness = hybrid.staleness.statusMismatch || hybrid.staleness.tradesDelta !== 0n
+  const showStaleness = hybrid.data.staleness.statusMismatch || hybrid.data.staleness.tradesDelta !== 0n
 
   return (
-    <div className="space-y-4">
+    <div className="page">
+      {/* Header strip */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Pair from={inSym} to={outSym} sub={`#${s.strategyId}`} />
+          <StatusBadge status={hybrid.data.displayStatus} />
+          {showStaleness && <FreshFromChainPill />}
+          {chart.data?.basis === 'off-chain-aggregate' && (
+            <Pill variant="neutral" dot={false}>
+              off-chain pricing
+            </Pill>
+          )}
+          {chart.data?.basis === 'mixed' && (
+            <Pill variant="neutral" dot={false}>
+              mixed pricing
+            </Pill>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {hybrid.data.displayStatus === 'ACTIVE' && tuple && (
+            <Button
+              variant="secondary"
+              onClick={() => actions.pauseStrategy(BigInt(s.strategyId), tuple)}
+              loading={actions.pauseTx.isWriting || actions.pauseTx.isMining}
+            >
+              Pause
+            </Button>
+          )}
+          {hybrid.data.displayStatus === 'PAUSED' && tuple && (
+            <Button
+              variant="secondary"
+              onClick={() => actions.resumeStrategy(BigInt(s.strategyId), tuple)}
+              loading={actions.resumeTx.isWriting || actions.resumeTx.isMining}
+            >
+              Resume
+            </Button>
+          )}
+          {hybrid.data.displayStatus !== 'CANCELLED' && tuple && (
+            <Button
+              variant="danger"
+              onClick={() => actions.cancelStrategy(BigInt(s.strategyId), tuple)}
+              loading={actions.cancelTx.isWriting || actions.cancelTx.isMining}
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Key facts row */}
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-5">
+        <KV label="Source">{inSym}</KV>
+        <KV label="Target">{outSym}</KV>
+        <KV label="Interval">{Math.round(Number(s.interval) / 86_400)}d</KV>
+        <KV label="Per trade">{formatDecimalOutput(BigInt(s.tradeAmount), 18, 4)}</KV>
+        <KV label="Next trigger">
+          {hybrid.data.displayStatus === 'ACTIVE'
+            ? formatCountdown(hybrid.data.displayNextTriggerAt)
+            : '—'}
+        </KV>
+      </div>
+
+      {/* Chart card */}
       <Card>
         <CardHeader>
-          <div className="flex flex-wrap items-center gap-2">
+          <div>
             <CardTitle>
-              {inSym} → {outSym}
+              {outSym} price <span className="text-[var(--text-3)]">/ {inSym}</span>
             </CardTitle>
-            <StatusBadge status={hybrid.displayStatus} />
-            {showStaleness && <FreshFromChainPill />}
-            <span className="ml-2 hidden text-xs text-surface-400 md:inline">
-              In:&nbsp;
-              <FeedPriceDisplay chainId={chainId} feed={s.inAssetFeed} symbol={inSym} compact />
-              <span className="mx-2 text-surface-700">|</span>
-              Out:&nbsp;
-              <FeedPriceDisplay chainId={chainId} feed={s.outAssetFeed} symbol={outSym} compact />
-            </span>
+            <CardSub>
+              {chart.data?.basis === 'chainlink-feed'
+                ? 'Chainlink feed prices — same source as the keeper.'
+                : chart.data?.basis === 'off-chain-aggregate'
+                  ? 'Off-chain prices — guardrails are evaluated against Chainlink.'
+                  : chart.data?.basis === 'mixed'
+                    ? 'Filled gaps using off-chain pricing.'
+                    : '—'}
+            </CardSub>
           </div>
-          <div className="flex gap-2">
-            {hybrid.displayStatus === 'ACTIVE' && tuple && (
-              <Button
-                variant="secondary"
-                onClick={() => actions.pauseStrategy(BigInt(s.strategyId), tuple)}
-                loading={actions.pauseTx.isWriting || actions.pauseTx.isMining}
-              >
-                Pause
-              </Button>
-            )}
-            {hybrid.displayStatus === 'PAUSED' && tuple && (
-              <Button
-                variant="secondary"
-                onClick={() => actions.resumeStrategy(BigInt(s.strategyId), tuple)}
-                loading={actions.resumeTx.isWriting || actions.resumeTx.isMining}
-              >
-                Resume
-              </Button>
-            )}
-            {hybrid.displayStatus !== 'CANCELLED' && tuple && (
-              <Button
-                variant="danger"
-                onClick={() => actions.cancelStrategy(BigInt(s.strategyId), tuple)}
-                loading={actions.cancelTx.isWriting || actions.cancelTx.isMining}
-              >
-                Cancel
-              </Button>
-            )}
-          </div>
+          <Segmented value={range} onChange={setRange} options={RANGES} />
         </CardHeader>
-
-        <dl className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
-          <Stat label="Strategy id">#{s.strategyId}</Stat>
-          <Stat label="Owner">{s.owner.id}</Stat>
-          <Stat label="Trade amount (shares)">
-            {formatDecimalOutput(BigInt(s.tradeAmount), shareDec)}
-          </Stat>
-          <Stat label="Interval">{Number(s.interval) / 86_400}d</Stat>
-          <Stat label="Slippage">{formatBpsAsPercent(BigInt(s.slippageBps))}</Stat>
-          <Stat label="Trades">
-            {hybrid.displayTradesExecuted.toString()} / {s.maxTrades}
-          </Stat>
-          <Stat label="Next trigger">
-            {hybrid.displayStatus === 'ACTIVE' ? formatCountdown(hybrid.displayNextTriggerAt) : '—'}
-          </Stat>
-          <Stat label="End date">
-            {BigInt(s.endDate) === 0n ? '—' : formatUnixDate(BigInt(s.endDate))}
-          </Stat>
-          <Stat label="Max price (ceiling)">
-            {BigInt(s.maxPrice) === 0n ? '—' : `$${formatFeedPrice(BigInt(s.maxPrice), inFeedDec)}`}
-          </Stat>
-          <Stat label="Min price (floor)">
-            {BigInt(s.minPrice) === 0n ? '—' : `$${formatFeedPrice(BigInt(s.minPrice), inFeedDec)}`}
-          </Stat>
-          <Stat label="Live in-asset price">
-            <FeedPriceDisplay chainId={chainId} feed={s.inAssetFeed} symbol={inSym} />
-          </Stat>
-          <Stat label="Live out-asset price">
-            <FeedPriceDisplay chainId={chainId} feed={s.outAssetFeed} symbol={outSym} />
-          </Stat>
-          <Stat label="Total in">
-            {formatDecimalOutput(BigInt(s.totalInAssetSwapped), inDec)} {inSym}
-          </Stat>
-          <Stat label="Total out">
-            {formatDecimalOutput(BigInt(s.totalOutAssetReceived), outDec)} {outSym}
-          </Stat>
-        </dl>
+        <LineChart
+          prices={chart.data?.prices ?? []}
+          gaps={chart.data?.gaps}
+          executions={chart.data?.executions}
+          ceiling={effectiveCeiling}
+          floor={effectiveFloor}
+          onCeilingChange={(v) => setCeiling(v)}
+          onFloorChange={(v) => setFloor(v)}
+          dataStartsAt={chart.data?.dataStartsAt}
+        />
+        {(ceiling !== undefined || floor !== undefined) && (
+          <div className="mt-3 flex items-center justify-end gap-2 text-xs text-[var(--text-3)]">
+            <span>Preview — not saved.</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setCeiling(undefined)
+                setFloor(undefined)
+              }}
+            >
+              Reset
+            </Button>
+          </div>
+        )}
       </Card>
 
-      <Card>
+      {/* Stats grid */}
+      <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <KV label="Total spent">
+          {formatDecimalOutput(BigInt(s.totalInAssetSwapped), inDec, 2)} {inSym}
+        </KV>
+        <KV label="Total acquired">
+          {formatDecimalOutput(BigInt(s.totalOutAssetReceived), outDec, 4)} {outSym}
+        </KV>
+        <KV label="Slippage tolerance">{formatBpsAsPercent(BigInt(s.slippageBps))}</KV>
+        <KV label="End date">
+          {BigInt(s.endDate) === 0n ? '—' : formatUnixDate(BigInt(s.endDate))}
+        </KV>
+      </div>
+
+      {/* Executions */}
+      <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Execution history</CardTitle>
+          <CardTitle>Executions</CardTitle>
+          <CardSub>
+            {hybrid.data.displayTradesExecuted.toString()} of {s.maxTrades}
+          </CardSub>
         </CardHeader>
         <ExecutionHistoryTable
           chainId={chainId}
@@ -161,11 +231,11 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
   )
 }
 
-function Stat({ label, children }: { label: string; children: React.ReactNode }) {
+function KV({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-[11px] uppercase tracking-wide text-surface-500">{label}</dt>
-      <dd className="break-all text-surface-100">{children}</dd>
+      <div className="text-[11px] uppercase tracking-[0.06em] text-[var(--text-3)]">{label}</div>
+      <div className="mt-1 font-mono text-sm text-[var(--text)]">{children}</div>
     </div>
   )
 }

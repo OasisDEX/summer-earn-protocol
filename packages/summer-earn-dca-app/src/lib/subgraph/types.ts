@@ -22,6 +22,25 @@ export interface SubgraphExecution {
   txHash: SubgraphAddress
 }
 
+export interface SubgraphPriceFeed {
+  id: SubgraphAddress
+  decimals: number
+  description: string | null
+  firstSeenBlock: string
+  firstSeenAt: string
+  latestAnswer: string
+  latestRoundId: string
+  latestUpdatedAt: string
+}
+
+export interface SubgraphPriceRound {
+  id: string
+  roundId: string
+  answer: string
+  updatedAt: string
+  blockNumber: string
+}
+
 export interface SubgraphStrategy {
   id: string
   strategyId: string

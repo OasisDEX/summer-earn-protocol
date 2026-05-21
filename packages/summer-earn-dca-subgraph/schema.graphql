@@ -55,3 +55,69 @@ type Execution @entity(immutable: true) {
   logIndex: Int!
   txHash: Bytes!
 }
+
+"""
+A Chainlink price feed we index, keyed by the proxy address the user
+references in `Strategy.in/outAssetFeed`. USDC/USD and ETH/USD are seeded
+at deploy via static dataSources whose `startBlock` is pushed ~14 days
+before the DCAStrategyManager deploy block, so the FE has a baseline price
+history on day one. Every other feed begins indexing the block its address
+first appears in `StrategyCreated`/`StrategyEdited` (see `registerFeed` in
+src/common/initializers.ts).
+
+The Chainlink proxy is just a forwarder — the actual `AnswerUpdated` event
+fires from the underlying aggregator implementation. We track both: the
+proxy address for `AggregatorConfirmed` (impl rotations), and the current
+impl for `AnswerUpdated` (round stream). `aggregator` below reflects the
+current impl.
+"""
+type PriceFeed @entity {
+  "Aggregator proxy address — lowercased Bytes"
+  id: Bytes!
+  decimals: Int!
+  description: String
+  "Current aggregator implementation behind the proxy."
+  aggregator: Bytes!
+  firstSeenBlock: BigInt!
+  firstSeenAt: BigInt!
+  latestAnswer: BigInt!
+  latestRoundId: BigInt!
+  latestUpdatedAt: BigInt!
+  rotations: [AggregatorRotation!]! @derivedFrom(field: "feed")
+  rounds: [PriceRound!]! @derivedFrom(field: "feed")
+}
+
+"""
+Logged whenever the proxy emits `AggregatorConfirmed(previous, latest)` —
+i.e. Chainlink rotates the implementation behind the proxy. Lets the FE
+mark the chart at the rotation block and is the audit trail for round
+discontinuities.
+"""
+type AggregatorRotation @entity(immutable: true) {
+  "{proxyAddrHex}-{blockNumber}-{logIndex}"
+  id: String!
+  feed: PriceFeed!
+  previous: Bytes!
+  latest: Bytes!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+"""
+One round per `AnswerUpdated` event observed from the current aggregator
+implementation. `updatedAt` is the Chainlink-reported timestamp from the
+event payload (NOT block timestamp). `id = {proxyAddrHex}-{roundId}` keeps
+rounds stable across impl rotations.
+"""
+type PriceRound @entity(immutable: true) {
+  "{proxyAddrHex}-{roundId}"
+  id: String!
+  feed: PriceFeed!
+  roundId: BigInt!
+  answer: BigInt!
+  "Chainlink-reported `updatedAt` (seconds) from the event payload."
+  updatedAt: BigInt!
+  blockNumber: BigInt!
+  txHash: Bytes!
+  logIndex: Int!
+}

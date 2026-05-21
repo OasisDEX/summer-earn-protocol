@@ -1,24 +1,33 @@
 import type { ButtonHTMLAttributes } from 'react'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
+type Size = 'sm' | 'md' | 'lg'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant
+  size?: Size
   loading?: boolean
 }
 
-const STYLES: Record<Variant, string> = {
+const VARIANTS: Record<Variant, string> = {
   primary:
-    'bg-primary text-surface-900 hover:bg-primary-400 disabled:bg-surface-700 disabled:text-surface-400',
+    'bg-[var(--pink)] text-[#1A0A12] font-semibold hover:bg-[var(--pink-2)] disabled:bg-[var(--surface-2)] disabled:text-[var(--text-4)]',
   secondary:
-    'bg-surface-700 text-surface-100 hover:bg-surface-600 disabled:bg-surface-800 disabled:text-surface-500',
-  ghost: 'bg-transparent text-surface-100 hover:bg-surface-700/60',
+    'bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)]',
+  ghost: 'bg-transparent text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface)]',
   danger:
-    'bg-danger/80 text-white hover:bg-danger disabled:bg-surface-700 disabled:text-surface-400',
+    'bg-transparent text-[var(--danger)] border border-[rgba(255,92,122,0.3)] hover:bg-[rgba(255,92,122,0.08)] hover:border-[var(--danger)]',
+}
+
+const SIZES: Record<Size, string> = {
+  sm: 'px-2.5 py-1.5 text-xs',
+  md: 'px-4 py-2.5 text-sm',
+  lg: 'px-5 py-3.5 text-[15px]',
 }
 
 export function Button({
   variant = 'primary',
+  size = 'md',
   loading,
   className,
   children,
@@ -30,8 +39,10 @@ export function Button({
       {...rest}
       disabled={disabled || loading}
       className={[
-        'inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed',
-        STYLES[variant],
+        'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition active:translate-y-[1px] disabled:cursor-not-allowed',
+        'rounded-pill',
+        SIZES[size],
+        VARIANTS[variant],
         className ?? '',
       ].join(' ')}
     >

@@ -1,0 +1,41 @@
+[
+  {
+    "type": "function",
+    "name": "aggregator",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "type": "function",
+    "name": "decimals",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint8" }]
+  },
+  {
+    "type": "function",
+    "name": "description",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "string" }]
+  },
+  {
+    "type": "event",
+    "name": "AggregatorProposed",
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "current", "type": "address" },
+      { "indexed": true, "name": "proposed", "type": "address" }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "AggregatorConfirmed",
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "previous", "type": "address" },
+      { "indexed": true, "name": "latest", "type": "address" }
+    ]
+  }
+]

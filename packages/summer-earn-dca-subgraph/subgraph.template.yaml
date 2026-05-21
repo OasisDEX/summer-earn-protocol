@@ -25,9 +25,15 @@ dataSources:
         - User
         - Strategy
         - Execution
+        - PriceFeed
+        - AggregatorRotation
       abis:
         - name: DCAStrategyManager
           file: ./abis/DCAStrategyManager.json
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json
       eventHandlers:
         - event: StrategyCreated(indexed uint256,(address,address,address,address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256))
           handler: handleStrategyCreated
@@ -44,3 +50,136 @@ dataSources:
         - event: ExecutionCompleted(indexed uint256,uint256,uint256,uint256,uint256)
           handler: handleExecutionCompleted
       file: ./src/mappings/dcaStrategyManager.ts
+  - kind: ethereum/contract
+    name: BootstrapProxyUsdc
+    network: {{network}}
+    source:
+      abi: AggregatorProxy
+      address: "{{usdc-feed-proxy}}"
+      startBlock: {{feed-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - PriceFeed
+        - AggregatorRotation
+      abis:
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json
+      eventHandlers:
+        - event: AggregatorConfirmed(indexed address,indexed address)
+          handler: handleAggregatorConfirmed
+      file: ./src/mappings/chainlinkProxy.ts
+  - kind: ethereum/contract
+    name: BootstrapAggregatorUsdc
+    network: {{network}}
+    source:
+      abi: AggregatorV3Interface
+      address: "{{usdc-feed-aggregator}}"
+      startBlock: {{feed-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - PriceFeed
+        - PriceRound
+      abis:
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json
+      eventHandlers:
+        - event: AnswerUpdated(indexed int256,indexed uint256,uint256)
+          handler: handleBootstrapAnswerUpdated
+      file: ./src/mappings/chainlinkBootstrapAggregator.ts
+  - kind: ethereum/contract
+    name: BootstrapProxyEth
+    network: {{network}}
+    source:
+      abi: AggregatorProxy
+      address: "{{eth-feed-proxy}}"
+      startBlock: {{feed-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - PriceFeed
+        - AggregatorRotation
+      abis:
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json
+      eventHandlers:
+        - event: AggregatorConfirmed(indexed address,indexed address)
+          handler: handleAggregatorConfirmed
+      file: ./src/mappings/chainlinkProxy.ts
+  - kind: ethereum/contract
+    name: BootstrapAggregatorEth
+    network: {{network}}
+    source:
+      abi: AggregatorV3Interface
+      address: "{{eth-feed-aggregator}}"
+      startBlock: {{feed-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - PriceFeed
+        - PriceRound
+      abis:
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json
+      eventHandlers:
+        - event: AnswerUpdated(indexed int256,indexed uint256,uint256)
+          handler: handleBootstrapAnswerUpdated
+      file: ./src/mappings/chainlinkBootstrapAggregator.ts
+templates:
+  - kind: ethereum/contract
+    name: ChainlinkProxy
+    network: {{network}}
+    source:
+      abi: AggregatorProxy
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - PriceFeed
+        - AggregatorRotation
+      abis:
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json
+      eventHandlers:
+        - event: AggregatorConfirmed(indexed address,indexed address)
+          handler: handleAggregatorConfirmed
+      file: ./src/mappings/chainlinkProxy.ts
+  - kind: ethereum/contract
+    name: ChainlinkAggregator
+    network: {{network}}
+    source:
+      abi: AggregatorV3Interface
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - PriceFeed
+        - PriceRound
+      abis:
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json
+      eventHandlers:
+        - event: AnswerUpdated(indexed int256,indexed uint256,uint256)
+          handler: handleAnswerUpdated
+      file: ./src/mappings/chainlinkAggregator.ts

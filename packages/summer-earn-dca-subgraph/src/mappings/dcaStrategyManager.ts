@@ -10,7 +10,7 @@ import {
 } from '../../generated/DCAStrategyManager/DCAStrategyManager'
 import { Execution, Strategy } from '../../generated/schema'
 import { BigIntConstants, StrategyStatus } from '../common/constants'
-import { getOrCreateUser, loadStrategyOrWarn } from '../common/initializers'
+import { getOrCreateUser, loadStrategyOrWarn, registerFeed } from '../common/initializers'
 
 function updateStrategyStatus(s: Strategy, blockTimestamp: BigInt): void {
   if (s.status == StrategyStatus.PAUSED || s.status == StrategyStatus.CANCELLED) {
@@ -27,6 +27,11 @@ function updateStrategyStatus(s: Strategy, blockTimestamp: BigInt): void {
 export function handleStrategyCreated(event: StrategyCreated): void {
   const cfg = event.params.config
   const user = getOrCreateUser(cfg.owner, event.block)
+
+  // Spin up the polling template for any feed we haven't seen before. From
+  // this block forward the subgraph will sample `latestRoundData` ~every 5 min.
+  registerFeed(cfg.inAssetFeed, event.block)
+  registerFeed(cfg.outAssetFeed, event.block)
 
   const s = new Strategy(event.params.strategyId.toString())
   s.strategyId = event.params.strategyId
@@ -76,6 +81,10 @@ export function handleStrategyEdited(event: StrategyEdited): void {
 
   const cfg = event.params.config
   const user = getOrCreateUser(cfg.owner, event.block)
+
+  // Edits may swap in a previously-unseen feed pair — register them too.
+  registerFeed(cfg.inAssetFeed, event.block)
+  registerFeed(cfg.outAssetFeed, event.block)
 
   // Update configurable fields, including owner and vault/asset configs
   s.owner = user.id

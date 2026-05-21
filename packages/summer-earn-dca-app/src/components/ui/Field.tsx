@@ -9,13 +9,13 @@ interface FieldProps {
 
 export function Field({ label, hint, error, children }: FieldProps) {
   return (
-    <label className="flex flex-col gap-1.5 text-sm">
-      <span className="text-surface-200">{label}</span>
+    <label className="flex flex-col gap-2 text-sm">
+      <span className="text-[12px] uppercase tracking-[0.06em] text-[var(--text-3)]">{label}</span>
       {children}
       {error ? (
-        <span className="text-xs text-danger">{error}</span>
+        <span className="text-xs text-[var(--danger)]">{error}</span>
       ) : hint ? (
-        <span className="text-xs text-surface-400">{hint}</span>
+        <span className="text-xs text-[var(--text-3)]">{hint}</span>
       ) : null}
     </label>
   )
@@ -28,7 +28,7 @@ export function TextInput({ className, ...rest }: TextInputProps) {
     <input
       {...rest}
       className={[
-        'rounded-md border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-50 placeholder:text-surface-500 focus:border-primary focus:outline-none',
+        'w-full rounded-md border border-[var(--border)] bg-[var(--bg-elev)] px-3.5 py-3 text-sm text-[var(--text)] placeholder:text-[var(--text-4)] outline-none transition focus:border-[var(--pink)] focus:shadow-[0_0_0_3px_var(--pink-soft)]',
         className ?? '',
       ].join(' ')}
     />

@@ -1,4 +1,5 @@
-node_modules
-generated
 build
+generated
+node_modules
+src/mappings/_bootstrapMap.ts
 subgraph.yaml

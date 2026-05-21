@@ -35,7 +35,29 @@ config + execution history; reads from RPC for live state via
     tuple for `createStrategy`.
 - `src/lib/subgraph/{client,queries,types}.ts` — hand-written GraphQL docs +
   TS types mirroring [`schema.graphql`](../summer-earn-dca-subgraph/schema.graphql).
-  No codegen — repo convention.
+  No codegen — repo convention. Includes the `PRICE_HISTORY` query against
+  the `PriceFeed`/`PriceRound` entities the subgraph indexes from Chainlink
+  proxies.
+- `src/lib/prices/` — abstracted historical-price layer.
+  - `types.ts` — `PriceSeries`, `PricePoint`, `PriceFeedSource`, `PriceRange`.
+  - `chainlinkSubgraph.ts` — **primary** source. Queries `priceRounds` from
+    the DCA subgraph, resolves `token → feed` via `lookupFeedForAsset` and
+    detects gaps using `heartbeats.ts`. Faithful to what the keeper sees.
+  - `defillama.ts` — **fallback**. Free public `coins.llama.fi/chart/base:0x...`.
+    Sets `basis: 'off-chain-aggregate'` so the chart can warn that guardrail
+    lines are evaluated against a different oracle.
+  - `composite.ts` — cascade on null/throw, partial-merge when primary
+    covers <75% of the requested range.
+  - `index.ts` — singleton `getPriceClient()`; **server-only**.
+- `src/app/api/prices/[chainId]/[token]/route.ts` — cached GET handler.
+  `'use cache'` + `cacheLife({ stale: 60, revalidate: 300, expire: 86_400 })`
+  + `cacheTag('price', 'price:{chainId}', 'price:{chainId}:{token}',
+  'price:{chainId}:{token}:{range}')`. **Only place external HTTP happens.**
+  Opt-in via `experimental.useCache: true` in `next.config.mjs`.
+- `src/app/api/prices/revalidate/route.ts` — `POST` guarded by
+  `Bearer $PRICE_REVALIDATE_SECRET`; calls `updateTag` to drop edge cache on
+  Goldsky webhook delivery (so an executed strategy refreshes inside 5 min
+  instead of the 300s revalidate window).
 - `src/hooks/`
   - `useDcaStrategyActions.ts` — write paths
     (`create/edit/pause/resume/cancel`). Every contract write goes through
@@ -48,6 +70,22 @@ config + execution history; reads from RPC for live state via
   - `useHybridStrategy.ts` — merges subgraph row + RPC `strategyStates(id)`.
   - `usePermit2Approval.ts` — drives the 2-step approval (ERC20 → Permit2,
     then Permit2 → manager).
+  - `useTokenPriceHistory.ts` / `useTokenSparkline.ts` /
+    `useStrategyChartData.ts` — TanStack Query wrappers on the price route +
+    composer that merges `useHybridStrategy` with two price-history fetches
+    (in & out asset) and execution dots. Query key
+    `['dca','price-history', chainId, token, range, feed]`,
+    `staleTime: 300_000` (matches the edge revalidate).
+- `src/components/charts/{Sparkline,MiniChart,LineChart}.tsx` — chart
+  primitives. **`LineChart` is gap-aware**: it breaks the path at each
+  `gaps[][]` region instead of drawing straight-line lies. Draggable
+  ceiling/floor handles call local setters on the Detail page; the chart
+  never invalidates the price cache.
+- `src/components/shell/{Sidebar,Topbar}.tsx` + `src/app/layout.tsx` — the
+  summer.fi design shell (sidebar + topbar + `.bg-glow`/`.bg-grid` ambient
+  layers). Tokens live in `src/app/globals.css` (as CSS vars) and
+  `tailwind.config.js` (as alias names). Geist + Geist Mono via
+  `@fontsource/geist*`.
 - `src/components/CreateStrategyForm.tsx` — pre-flight duplicate check
   via `activeCommitments(commitment)` view; blocks submit if true.
 - `src/types/strategy.ts` — `StrategyConfigTuple` (no `strategyId`),
@@ -73,6 +111,19 @@ config + execution history; reads from RPC for live state via
 - **TS strictness.** `pnpm exec tsc --noEmit` + `pnpm lint` must be clean
   before push. The ABI is `as const`, so wagmi infers the exact arg/return
   types — typing drift catches contract/FE divergence at compile time.
+- **Price-source contract.** All sources return `null` to mean "I don't know
+  this token"; throws are reserved for transport/parse errors. The composite
+  client cascades on `null` and merges partial primary responses
+  (>25% gap fraction) with the fallback. Don't sprinkle `try/catch` inside
+  source impls — let throws propagate so the composite can pick a backup.
+- **Guardrail-line basis.** Dashed `MAX`/`MIN` lines on the LineChart are
+  always rendered in the contract's `maxPrice`/`minPrice` units. When the
+  underlying series is from DeFiLlama (`basis: 'off-chain-aggregate'`), the
+  Detail header surfaces an "off-chain pricing" pill so the user knows the
+  line and the chart aren't strictly comparable.
+- **`experimental.useCache` is required.** Don't remove it from
+  `next.config.mjs` — `'use cache'` directive in
+  `src/app/api/prices/[chainId]/[token]/route.ts` won't compile otherwise.
 
 ## When the contract changes
 
@@ -111,6 +162,19 @@ Auto-build on `main`; `pr*` branches get PR previews.
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-05-21 — claude — summer.fi rebuild: ported design tokens into
+  `globals.css`+`tailwind.config.js`, new sidebar+topbar shell, rebuilt
+  Portfolio dashboard (KPI tiles + filter + card grid), restyled Detail page
+  around the new chart card, gap-aware draggable-guardrail `LineChart`,
+  status-pill executions table.
+- 2026-05-21 — claude — added `src/lib/prices/` abstraction
+  (Chainlink-subgraph primary + DeFiLlama fallback + composite cascade),
+  `src/app/api/prices/[chainId]/[token]/route.ts` with
+  `'use cache'` + `cacheLife` + `cacheTag`, a revalidate endpoint, and
+  `useTokenPriceHistory`/`useTokenSparkline`/`useStrategyChartData` hooks.
+  Subgraph counterpart adds `PriceFeed`/`PriceRound` with bootstrap
+  USDC/ETH backfill + dynamic `ChainlinkAggregator` template registered
+  from `handleStrategyCreated`/`handleStrategyEdited`.
 - 2026-05-21 — claude — added pre-flight `activeCommitments` read in
   `CreateStrategyForm` to block duplicate submits before the wallet prompt;
   `useTxToast` decodes `DuplicateStrategy` / `CommitmentMismatch` /
