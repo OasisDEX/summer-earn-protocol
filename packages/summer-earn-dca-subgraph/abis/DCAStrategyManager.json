@@ -156,6 +156,83 @@
         "name": "strategyId",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "inAssetFeed",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "outAssetFeed",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
     "outputs": [],
@@ -363,7 +440,84 @@
         "internalType": "uint256"
       },
       {
-        "name": "config",
+        "name": "oldConfig",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "inAssetFeed",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "outAssetFeed",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "newConfig",
         "type": "tuple",
         "internalType": "struct IDCAStrategyManager.StrategyConfig",
         "components": [
@@ -589,6 +743,83 @@
         "name": "strategyId",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "inAssetFeed",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "outAssetFeed",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
     "outputs": [],

@@ -76,10 +76,10 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
             </span>
           </div>
           <div className="flex gap-2">
-            {hybrid.displayStatus === 'ACTIVE' && (
+            {hybrid.displayStatus === 'ACTIVE' && tuple && (
               <Button
                 variant="secondary"
-                onClick={() => actions.pauseStrategy(BigInt(s.strategyId))}
+                onClick={() => actions.pauseStrategy(BigInt(s.strategyId), tuple)}
                 loading={actions.pauseTx.isWriting || actions.pauseTx.isMining}
               >
                 Pause
@@ -94,10 +94,10 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
                 Resume
               </Button>
             )}
-            {hybrid.displayStatus !== 'CANCELLED' && (
+            {hybrid.displayStatus !== 'CANCELLED' && tuple && (
               <Button
                 variant="danger"
-                onClick={() => actions.cancelStrategy(BigInt(s.strategyId))}
+                onClick={() => actions.cancelStrategy(BigInt(s.strategyId), tuple)}
                 loading={actions.cancelTx.isWriting || actions.cancelTx.isMining}
               >
                 Cancel

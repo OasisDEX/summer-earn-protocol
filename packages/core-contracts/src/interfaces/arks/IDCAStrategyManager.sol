@@ -42,17 +42,24 @@ interface IDCAStrategyManager {
 
     function editStrategy(
         uint256 strategyId,
-        StrategyConfig calldata config
+        StrategyConfig calldata oldConfig,
+        StrategyConfig calldata newConfig
     ) external;
 
-    function pauseStrategy(uint256 strategyId) external;
+    function pauseStrategy(
+        uint256 strategyId,
+        StrategyConfig calldata config
+    ) external;
 
     function resumeStrategy(
         uint256 strategyId,
         StrategyConfig calldata config
     ) external;
 
-    function cancelStrategy(uint256 strategyId) external;
+    function cancelStrategy(
+        uint256 strategyId,
+        StrategyConfig calldata config
+    ) external;
 
     function executeDCA(
         uint256 strategyId,

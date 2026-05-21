@@ -90,7 +90,12 @@ export function StrategyCard({
         {status === 'ACTIVE' && (
           <Button
             variant="secondary"
-            onClick={() => actions.pauseStrategy(BigInt(strategy.strategyId))}
+            onClick={() =>
+              actions.pauseStrategy(
+                BigInt(strategy.strategyId),
+                toStrategyConfigStruct(strategy),
+              )
+            }
             loading={actions.pauseTx.isWriting || actions.pauseTx.isMining}
           >
             Pause
@@ -110,7 +115,12 @@ export function StrategyCard({
         {status !== 'CANCELLED' && (
           <Button
             variant="danger"
-            onClick={() => actions.cancelStrategy(BigInt(strategy.strategyId))}
+            onClick={() =>
+              actions.cancelStrategy(
+                BigInt(strategy.strategyId),
+                toStrategyConfigStruct(strategy),
+              )
+            }
             loading={actions.cancelTx.isWriting || actions.cancelTx.isMining}
           >
             Cancel

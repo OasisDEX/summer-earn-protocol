@@ -125,7 +125,11 @@ export function useDcaStrategyActions({
     }
   }
 
-  async function editStrategy(strategyId: bigint, config: StrategyConfigTuple) {
+  async function editStrategy(
+    strategyId: bigint,
+    oldConfig: StrategyConfigTuple,
+    newConfig: StrategyConfigTuple,
+  ) {
     if (!owner) return
     editTx.beginToast()
     try {
@@ -133,7 +137,7 @@ export function useDcaStrategyActions({
         address: manager,
         abi: dcaStrategyManagerAbi,
         functionName: 'editStrategy',
-        args: [strategyId, config],
+        args: [strategyId, oldConfig, newConfig],
         chain: VIEM_CHAIN_ENTITIES[chainId],
         account: owner,
       })
@@ -142,7 +146,7 @@ export function useDcaStrategyActions({
     }
   }
 
-  async function pauseStrategy(strategyId: bigint) {
+  async function pauseStrategy(strategyId: bigint, config: StrategyConfigTuple) {
     if (!owner) return
     pauseTx.beginToast()
     try {
@@ -150,7 +154,7 @@ export function useDcaStrategyActions({
         address: manager,
         abi: dcaStrategyManagerAbi,
         functionName: 'pauseStrategy',
-        args: [strategyId],
+        args: [strategyId, config],
         chain: VIEM_CHAIN_ENTITIES[chainId],
         account: owner,
       })
@@ -176,7 +180,7 @@ export function useDcaStrategyActions({
     }
   }
 
-  async function cancelStrategy(strategyId: bigint) {
+  async function cancelStrategy(strategyId: bigint, config: StrategyConfigTuple) {
     if (!owner) return
     cancelTx.beginToast()
     try {
@@ -184,7 +188,7 @@ export function useDcaStrategyActions({
         address: manager,
         abi: dcaStrategyManagerAbi,
         functionName: 'cancelStrategy',
-        args: [strategyId],
+        args: [strategyId, config],
         chain: VIEM_CHAIN_ENTITIES[chainId],
         account: owner,
       })

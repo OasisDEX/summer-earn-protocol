@@ -30,14 +30,10 @@ contract DCAStrategyManager is
     uint256 private constant _MIN_INTERVAL = 7 days;
 
     uint256 private _nextStrategyId;
-    mapping(uint256 => bytes32) private _strategyCommitments;
-    mapping(uint256 => StrategyState) private _strategyStates;
-    mapping(uint256 => address) private _strategyOwners;
-    // Fingerprint of every commitment that has ever been registered and not
-    // explicitly freed by an edit. Permanent for cancelled/completed strategies
-    // — a user wanting an "identical" strategy later will use a future
-    // endDate, producing a different hash.
-    mapping(bytes32 => bool) private _activeCommitments;
+    mapping(uint256 strategyId => bytes32 commitmentHash)
+        private _strategyCommitments;
+    mapping(uint256 strategyId => StrategyState state) private _strategyStates;
+    mapping(bytes32 commitmentHash => bool) private _activeCommitments;
 
     address public immutable ENSO_ROUTER;
     IHarborCommand public immutable HARBOR_COMMAND;
@@ -68,7 +64,6 @@ contract DCAStrategyManager is
         strategyId = _nextStrategyId++;
         _activeCommitments[commitment] = true;
         _strategyCommitments[strategyId] = commitment;
-        _strategyOwners[strategyId] = config.owner;
 
         uint256 hourAligned = ((block.timestamp + 3599) / 3600) * 3600;
         _strategyStates[strategyId] = StrategyState({
@@ -83,26 +78,37 @@ contract DCAStrategyManager is
 
     function editStrategy(
         uint256 strategyId,
-        StrategyConfig calldata config
+        StrategyConfig calldata oldConfig,
+        StrategyConfig calldata newConfig
     ) external {
-        if (msg.sender != _strategyOwners[strategyId]) {
+        bytes32 oldCommitment = keccak256(abi.encode(oldConfig));
+        if (oldCommitment != _strategyCommitments[strategyId]) {
+            revert CommitmentMismatch(strategyId);
+        }
+        if (msg.sender != oldConfig.owner) {
             revert UnauthorizedAccess(strategyId, msg.sender);
         }
-        _validateStrategyConfig(config);
+        // Ownership transfer via edit is disallowed — the commitment is the
+        // ownership proof, so changing config.owner would silently re-key
+        // authorization. Force-cancel + recreate instead.
+        if (newConfig.owner != oldConfig.owner) {
+            revert UnauthorizedAccess(strategyId, msg.sender);
+        }
+        _validateStrategyConfig(newConfig);
 
-        bytes32 newCommitment = keccak256(abi.encode(config));
-        bytes32 oldCommitment = _strategyCommitments[strategyId];
+        bytes32 newCommitment = keccak256(abi.encode(newConfig));
+        if (_activeCommitments[newCommitment]) revert DuplicateStrategy();
+
         if (newCommitment != oldCommitment) {
-            if (_activeCommitments[newCommitment]) revert DuplicateStrategy();
             _activeCommitments[oldCommitment] = false;
             _activeCommitments[newCommitment] = true;
             _strategyCommitments[strategyId] = newCommitment;
         }
 
         StrategyState storage state = _strategyStates[strategyId];
-        state.nextTriggerAt = state.lastScheduledAt + config.interval;
+        state.nextTriggerAt = state.lastScheduledAt + newConfig.interval;
 
-        emit StrategyEdited(strategyId, config);
+        emit StrategyEdited(strategyId, newConfig);
     }
 
     function _validateStrategyConfig(
@@ -133,12 +139,18 @@ contract DCAStrategyManager is
         }
     }
 
-    function pauseStrategy(uint256 strategyId) external {
-        StrategyState storage state = _strategyStates[strategyId];
-
-        if (msg.sender != _strategyOwners[strategyId]) {
+    function pauseStrategy(
+        uint256 strategyId,
+        StrategyConfig calldata config
+    ) external {
+        if (keccak256(abi.encode(config)) != _strategyCommitments[strategyId]) {
+            revert CommitmentMismatch(strategyId);
+        }
+        if (msg.sender != config.owner) {
             revert UnauthorizedAccess(strategyId, msg.sender);
         }
+
+        StrategyState storage state = _strategyStates[strategyId];
         if (state.status != uint8(Status.ACTIVE)) {
             revert StrategyNotActive(strategyId);
         }
@@ -152,11 +164,11 @@ contract DCAStrategyManager is
         uint256 strategyId,
         StrategyConfig calldata config
     ) external {
-        if (msg.sender != _strategyOwners[strategyId]) {
-            revert UnauthorizedAccess(strategyId, msg.sender);
-        }
         if (keccak256(abi.encode(config)) != _strategyCommitments[strategyId]) {
             revert CommitmentMismatch(strategyId);
+        }
+        if (msg.sender != config.owner) {
+            revert UnauthorizedAccess(strategyId, msg.sender);
         }
 
         StrategyState storage state = _strategyStates[strategyId];
@@ -170,12 +182,18 @@ contract DCAStrategyManager is
         emit StrategyResumed(strategyId, state.nextTriggerAt);
     }
 
-    function cancelStrategy(uint256 strategyId) external {
-        StrategyState storage state = _strategyStates[strategyId];
-
-        if (msg.sender != _strategyOwners[strategyId]) {
+    function cancelStrategy(
+        uint256 strategyId,
+        StrategyConfig calldata config
+    ) external {
+        if (keccak256(abi.encode(config)) != _strategyCommitments[strategyId]) {
+            revert CommitmentMismatch(strategyId);
+        }
+        if (msg.sender != config.owner) {
             revert UnauthorizedAccess(strategyId, msg.sender);
         }
+
+        StrategyState storage state = _strategyStates[strategyId];
         if (state.status == uint8(Status.CANCELLED)) {
             revert StrategyNotActive(strategyId);
         }
@@ -303,9 +321,6 @@ contract DCAStrategyManager is
             nextTriggerAt
         );
 
-        // Proactively flip to COMPLETED after the last valid execution so a
-        // follow-up keeper call surfaces StrategyNotActive (clearer than the
-        // TerminalStateReached pre-check, which we keep as a backstop).
         if (tradesExecuted >= config.maxTrades) {
             state.status = uint8(Status.COMPLETED);
             emit StrategyCompleted(strategyId, "max_trades");
