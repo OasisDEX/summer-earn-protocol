@@ -1,6 +1,3 @@
-// Auto-derived from packages/core-contracts/out/DCAStrategyManager.sol/DCAStrategyManager.json
-// Regenerate with: jq .abi <artifact> | wrap in `export const dcaStrategyManagerAbi = ... as const`.
-
 export const dcaStrategyManagerAbi = [
   {
     "type": "constructor",
@@ -1635,7 +1632,7 @@ export const dcaStrategyManagerAbi = [
     "name": "PriceAboveCeiling",
     "inputs": [
       {
-        "name": "inPrice",
+        "name": "executionPrice",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -1651,7 +1648,7 @@ export const dcaStrategyManagerAbi = [
     "name": "PriceBelowFloor",
     "inputs": [
       {
-        "name": "inPrice",
+        "name": "executionPrice",
         "type": "uint256",
         "internalType": "uint256"
       },

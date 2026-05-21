@@ -27,7 +27,8 @@ contract DCAStrategyManager is
     using SafeERC20 for IERC20;
 
     uint256 private constant _BPS = 10000;
-    uint256 private constant _MIN_INTERVAL = 7 days;
+    uint256 private constant _MIN_INTERVAL = 1 days;
+    uint256 private constant _PRICE_PRECISION = 1e18;
 
     uint256 private _nextStrategyId;
     mapping(uint256 strategyId => bytes32 commitmentHash)
@@ -247,11 +248,12 @@ contract DCAStrategyManager is
         // _getOraclePrices reverts with OraclePriceZero on raw <= 0.
         (uint256 inPrice, uint256 outPrice) = _getOraclePrices(config);
 
-        if (config.maxPrice > 0 && inPrice > config.maxPrice) {
-            revert PriceAboveCeiling(inPrice, config.maxPrice);
+        uint256 executionPrice = _executionPrice(config, inPrice, outPrice);
+        if (config.maxPrice > 0 && executionPrice > config.maxPrice) {
+            revert PriceAboveCeiling(executionPrice, config.maxPrice);
         }
-        if (config.minPrice > 0 && inPrice < config.minPrice) {
-            revert PriceBelowFloor(inPrice, config.minPrice);
+        if (config.minPrice > 0 && executionPrice < config.minPrice) {
+            revert PriceBelowFloor(executionPrice, config.minPrice);
         }
 
         _pullFunds(
@@ -363,11 +365,12 @@ contract DCAStrategyManager is
         if (block.timestamp >= config.endDate) return (false, performData);
 
         if (config.maxPrice > 0 || config.minPrice > 0) {
-            (uint256 inPrice, ) = _getOraclePrices(config);
-            if (config.maxPrice > 0 && inPrice > config.maxPrice) {
+            (uint256 inPrice, uint256 outPrice) = _getOraclePrices(config);
+            uint256 executionPrice = _executionPrice(config, inPrice, outPrice);
+            if (config.maxPrice > 0 && executionPrice > config.maxPrice) {
                 return (false, performData);
             }
-            if (config.minPrice > 0 && inPrice < config.minPrice) {
+            if (config.minPrice > 0 && executionPrice < config.minPrice) {
                 return (false, performData);
             }
         }
@@ -401,6 +404,27 @@ contract DCAStrategyManager is
         if (outRaw <= 0) revert OraclePriceZero();
         inPrice = uint256(inRaw);
         outPrice = uint256(outRaw);
+    }
+
+    /// @dev Normalised "out per in" execution price in 1e18 precision: how
+    /// many inAsset units (oracle-adjusted) are needed to buy 1 outAsset unit.
+    /// Stays well inside uint256 — for 8-dec Chainlink feeds the numerator is
+    /// O(outPrice * 1e8 * 1e18) ≈ 1e34.
+    function _executionPrice(
+        StrategyConfig calldata config,
+        uint256 inPrice,
+        uint256 outPrice
+    ) internal view returns (uint256) {
+        uint8 inOracleDec = AggregatorV3Interface(config.inAssetFeed)
+            .decimals();
+        uint8 outOracleDec = AggregatorV3Interface(config.outAssetFeed)
+            .decimals();
+        return
+            Math.mulDiv(
+                outPrice,
+                10 ** uint256(inOracleDec) * _PRICE_PRECISION,
+                inPrice * 10 ** uint256(outOracleDec)
+            );
     }
 
     function _calculateMinOut(

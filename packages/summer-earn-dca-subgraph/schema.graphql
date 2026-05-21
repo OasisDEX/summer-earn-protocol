@@ -21,7 +21,9 @@ type Strategy @entity {
   tradeAmount: BigInt!
   interval: BigInt!
   slippageBps: BigInt!
+  "Ceiling on the 1e18-scaled out/in execution-price ratio (outPrice * 10**inOracleDec * 1e18 / (inPrice * 10**outOracleDec)). 0 means no ceiling."
   maxPrice: BigInt!
+  "Floor on the 1e18-scaled out/in execution-price ratio (same formula as maxPrice). 0 means no floor."
   minPrice: BigInt!
   endDate: BigInt!
   maxTrades: BigInt!

@@ -210,10 +210,25 @@ contract DCAStrategyManagerTest is Test {
             abi.encodeWithSelector(
                 IDCAStrategyManagerErrors.IntervalTooShort.selector,
                 uint256(1 hours),
-                uint256(7 days)
+                uint256(1 days)
             )
         );
         dcaManager.createStrategy(config);
+        vm.stopPrank();
+    }
+
+    function test_CreateStrategy_AcceptsOneDayInterval() public {
+        vm.startPrank(strategyOwner);
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.interval = 1 days;
+
+        // Just asserting it doesn't revert — the minimum boundary is 1 day.
+        uint256 strategyId = dcaManager.createStrategy(config);
+        assertGt(
+            uint256(dcaManager.strategyStates(strategyId).nextTriggerAt),
+            0,
+            "1-day interval must be accepted by _validateStrategyConfig"
+        );
         vm.stopPrank();
     }
 
@@ -1221,8 +1236,10 @@ contract DCAStrategyManagerIntegrationTest is Test {
     function test_Execute_RevertsOnPriceAboveCeiling() public {
         uint256 endDate = block.timestamp + 365 days;
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
-        // USDC feed is mocked at 1e8 in setUp(); ceiling of 0.5e8 forces revert.
-        cfg.maxPrice = uint256(0.5e8);
+        // Mocked inPrice=1e8 (USDC/USD, 8 dec) and outPrice=3000e8 (ETH/USD,
+        // 8 dec) ⇒ executionPrice = (3000e8 * 1e8 * 1e18) / (1e8 * 1e8) = 3000e18.
+        // Ceiling of 2500e18 (USDC per ETH) forces PriceAboveCeiling.
+        cfg.maxPrice = uint256(2500e18);
         vm.prank(strategyOwner);
         uint256 strategyId = dcaManager.createStrategy(cfg);
 
@@ -1233,8 +1250,8 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IDCAStrategyManagerErrors.PriceAboveCeiling.selector,
-                uint256(1e8),
-                uint256(0.5e8)
+                uint256(3000e18),
+                uint256(2500e18)
             )
         );
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
@@ -1243,8 +1260,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
     function test_Execute_RevertsOnPriceBelowFloor() public {
         uint256 endDate = block.timestamp + 365 days;
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
-        // Floor of 2e8 with a 1e8 mocked feed forces PriceBelowFloor.
-        cfg.minPrice = uint256(2e8);
+        // executionPrice = 3000e18 (see ceiling test). Floor of 4000e18 (USDC
+        // per ETH) forces PriceBelowFloor.
+        cfg.minPrice = uint256(4000e18);
         vm.prank(strategyOwner);
         uint256 strategyId = dcaManager.createStrategy(cfg);
 
@@ -1255,8 +1273,8 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IDCAStrategyManagerErrors.PriceBelowFloor.selector,
-                uint256(1e8),
-                uint256(2e8)
+                uint256(3000e18),
+                uint256(4000e18)
             )
         );
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
@@ -1345,7 +1363,8 @@ contract DCAStrategyManagerIntegrationTest is Test {
     function test_CheckUpkeep_ReturnsFalseOnPriceOutOfBounds() public {
         uint256 endDate = block.timestamp + 365 days;
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
-        cfg.maxPrice = uint256(0.5e8); // mocked price = 1e8, ceiling = 0.5e8.
+        // executionPrice = 3000e18; ceiling at 2500e18 ⇒ upkeep must be false.
+        cfg.maxPrice = uint256(2500e18);
         vm.prank(strategyOwner);
         uint256 strategyId = dcaManager.createStrategy(cfg);
 
@@ -1355,7 +1374,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, cfg);
         assertFalse(
             upkeepNeeded,
-            "Upkeep must be false when price is outside guardrails"
+            "Upkeep must be false when execution price is outside guardrails"
         );
     }
 

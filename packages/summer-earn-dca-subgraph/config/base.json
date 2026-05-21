@@ -1,6 +1,6 @@
 {
   "network": "base",
-  "dca-strategy-manager-address": "0x48459d7F83E918472BB4827eEd14FE387a30FdA0",
+  "dca-strategy-manager-address": "0xc7de5CFE86ebEfb80b01014549D6eB0041Af9c72",
   "dca-strategy-manager-start-block": 46283733,
   "feed-start-block": 45638888,
   "usdc-feed-proxy": "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",

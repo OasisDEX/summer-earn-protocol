@@ -113,6 +113,13 @@ jq '.abi' out/DCAStrategyManager.sol/DCAStrategyManager.json \
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-05-21 — claude — `maxPrice` / `minPrice` are now bounds on the
+  1e18-scaled out/in execution-price ratio (out-asset denominated in
+  in-asset). Added `_executionPrice` helper; `_executeSwap` and `checkUpkeep`
+  compare it against the configured bounds. `PriceAboveCeiling` /
+  `PriceBelowFloor` selectors unchanged, but the first arg is now
+  `executionPrice`, not raw `inPrice`. `_MIN_INTERVAL` lowered from 7 days
+  to 1 day.
 - 2026-05-21 — claude — switched `StrategyState.status` to `Status` enum
   (was `uint8`) for compile-time safety; wire format unchanged.
 - 2026-05-21 — claude — renamed `executeDCA` → `executeStrategy`; ABIs and

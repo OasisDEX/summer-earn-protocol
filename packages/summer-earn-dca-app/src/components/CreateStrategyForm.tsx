@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { Address } from 'viem'
+import { type Address, parseUnits } from 'viem'
 import { useAccount, useReadContract } from 'wagmi'
 
 import { dcaStrategyManagerAbi } from '@/abis/DCAStrategyManager'
@@ -56,13 +56,26 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
   const endDateUnix = endDateStr ? BigInt(Math.floor(new Date(endDateStr).getTime() / 1000)) : 0n
   const maxTrades = maxTradesStr ? BigInt(maxTradesStr) : 0n
 
-  // Feed values use the feed's own decimals — most Chainlink USD feeds are 8.
-  // We accept the user-typed value at 8 decimals and round.
-  const maxPrice = maxPriceStr ? BigInt(Math.round(parseFloat(maxPriceStr) * 1e8)) : 0n
-  const minPrice = minPriceStr ? BigInt(Math.round(parseFloat(minPriceStr) * 1e8)) : 0n
+  // Guardrails are the 1e18-scaled out/in execution-price ratio. The contract
+  // computes the same: executionPrice = outPrice * 10**inOracleDec * 1e18
+  //                                   / (inPrice * 10**outOracleDec).
+  // User types e.g. "3500" for "1 outAsset ≤ 3500 inAsset" → 3500e18 on chain.
+  const safePriceInput = (s: string): bigint => {
+    if (!s) return 0n
+    try {
+      return parseUnits(s, 18)
+    } catch {
+      return 0n
+    }
+  }
+  const maxPrice = safePriceInput(maxPriceStr)
+  const minPrice = safePriceInput(minPriceStr)
 
   const missingFeed = (sourceFleet && !sourceFleet.feed) || (targetFleet && !targetFleet.feed)
   const sameFleet = sourceFleet && targetFleet && sourceFleet.address === targetFleet.address
+
+  const inSym = sourceFleet?.asset.symbol ?? 'in'
+  const outSym = targetFleet?.asset.symbol ?? 'out'
 
   const formOk =
     Boolean(address) &&
@@ -285,18 +298,26 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
               onChange={(e) => setSlippageBps(BigInt(e.target.value || '0'))}
             />
           </Field>
-          <Field label="Max in-asset price (USD)" hint="0 = no ceiling. Feed scale: 1e8.">
+          <Field
+            label={`Max ${outSym} price (${inSym} per ${outSym})`}
+            hint={`0 = no ceiling. Skip the trade if 1 ${outSym} would cost more than this in ${inSym}.`}
+          >
             <TextInput
               type="number"
               step="any"
+              min={0}
               value={maxPriceStr}
               onChange={(e) => setMaxPriceStr(e.target.value)}
             />
           </Field>
-          <Field label="Min in-asset price (USD)" hint="0 = no floor.">
+          <Field
+            label={`Min ${outSym} price (${inSym} per ${outSym})`}
+            hint={`0 = no floor. Skip the trade if 1 ${outSym} would cost less than this in ${inSym}.`}
+          >
             <TextInput
               type="number"
               step="any"
+              min={0}
               value={minPriceStr}
               onChange={(e) => setMinPriceStr(e.target.value)}
             />

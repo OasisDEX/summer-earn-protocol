@@ -79,6 +79,10 @@ Logs go to stdout at `LOG_LEVEL=INFO` by default. Each strategy logs its
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-05-21 — claude — keeper code unchanged but **semantic of
+  `maxPrice` / `minPrice` flipped** to a 1e18-scaled out/in execution-price
+  ratio (see [contract CLAUDE.md](../../src/contracts/DCA/CLAUDE.md)).
+  Keeper is still unit-blind — `checkUpkeep` enforces it on-chain.
 - 2026-05-21 — claude — renamed `executeDCA` → `executeStrategy`; inline ABI
   + dataclass + `as_tuple()` updated; `strategyId` is now a separate top-level
   arg to `checkUpkeep` and `executeStrategy`.

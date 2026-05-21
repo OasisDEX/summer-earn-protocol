@@ -10,7 +10,7 @@ export const PERMIT2_ADDRESS: Address = getAddress('0x000000000022D473030F116dDE
 // DCAStrategyManager deployment per chain.
 // (See packages/deployment/config/index.json — base.dca.dcaStrategyManager)
 export const DCA_STRATEGY_MANAGER_ADDRESSES: Record<ChainId, Address> = {
-  [base.id]: getAddress('0x48459d7F83E918472BB4827eEd14FE387a30FdA0'),
+  [base.id]: getAddress('0xc7de5CFE86ebEfb80b01014549D6eB0041Af9c72'),
 }
 
 // HarborCommand (active FleetCommander registry).

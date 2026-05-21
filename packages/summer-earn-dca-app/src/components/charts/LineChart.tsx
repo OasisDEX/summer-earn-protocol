@@ -18,17 +18,23 @@ interface LineChartProps {
   className?: string
   // Used to label the "no data" message; e.g. "Price data begins May 14".
   dataStartsAt?: number
+  // Custom y-axis / tooltip / guardrail-label formatter. Defaults to a
+  // unitless number; the caller is expected to inject any asset symbol.
+  formatValue?: (n: number) => string
 }
 
-const PAD_L = 56
+const PAD_L = 72
 const PAD_R = 24
 const PAD_T = 16
 const PAD_B = 28
 
-function formatPrice(p: number): string {
+function defaultFormatValue(p: number): string {
   if (!Number.isFinite(p)) return '—'
-  if (p < 100) return `$${p.toFixed(2)}`
-  return `$${Math.round(p).toLocaleString('en-US')}`
+  if (p === 0) return '0'
+  const abs = Math.abs(p)
+  if (abs < 1) return p.toFixed(4)
+  if (abs < 100) return p.toFixed(2)
+  return Math.round(p).toLocaleString('en-US')
 }
 
 function formatDate(t: number): string {
@@ -52,6 +58,7 @@ export function LineChart({
   height = 280,
   className = '',
   dataStartsAt,
+  formatValue = defaultFormatValue,
 }: LineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(800)
@@ -245,7 +252,7 @@ export function LineChart({
               fill="var(--text-3)"
               fontFamily="var(--font-mono)"
             >
-              {formatPrice(tick)}
+              {formatValue(tick)}
             </text>
           </g>
         ))}
@@ -357,23 +364,23 @@ export function LineChart({
               strokeWidth={1.5}
             />
             <rect
-              x={width - PAD_R - 90}
+              x={width - PAD_R - 140}
               y={y(ceiling) - 11}
-              width={90}
+              width={140}
               height={22}
               rx={11}
               fill="var(--bg-elev)"
               stroke="var(--danger)"
             />
             <text
-              x={width - PAD_R - 45}
+              x={width - PAD_R - 70}
               y={y(ceiling) + 4}
               fontSize={11}
               textAnchor="middle"
               fill="var(--danger)"
               fontFamily="var(--font-mono)"
             >
-              MAX {formatPrice(ceiling)}
+              MAX {formatValue(ceiling)}
             </text>
             {interactive && <circle cx={PAD_L + 8} cy={y(ceiling)} r={6} fill="var(--danger)" />}
           </g>
@@ -393,23 +400,23 @@ export function LineChart({
               strokeWidth={1.5}
             />
             <rect
-              x={width - PAD_R - 90}
+              x={width - PAD_R - 140}
               y={y(floor) - 11}
-              width={90}
+              width={140}
               height={22}
               rx={11}
               fill="var(--bg-elev)"
               stroke="var(--success)"
             />
             <text
-              x={width - PAD_R - 45}
+              x={width - PAD_R - 70}
               y={y(floor) + 4}
               fontSize={11}
               textAnchor="middle"
               fill="var(--success)"
               fontFamily="var(--font-mono)"
             >
-              MIN {formatPrice(floor)}
+              MIN {formatValue(floor)}
             </text>
             {interactive && <circle cx={PAD_L + 8} cy={y(floor)} r={6} fill="var(--success)" />}
           </g>
@@ -431,7 +438,7 @@ export function LineChart({
               year: 'numeric',
             })}
           </div>
-          <div className="mt-1 font-mono text-sm">{formatPrice(hover.p)}</div>
+          <div className="mt-1 font-mono text-sm">{formatValue(hover.p)}</div>
         </div>
       )}
     </div>

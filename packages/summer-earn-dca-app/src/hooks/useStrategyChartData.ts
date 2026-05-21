@@ -53,13 +53,36 @@ function findNearest(points: PricePoint[], tMs: number): number | undefined {
   return points[best].p
 }
 
+// Merge two sorted gap arrays into a single union — used when both series
+// contribute gaps to the resulting ratio series.
+function mergeGaps(
+  a: Array<[number, number]>,
+  b: Array<[number, number]>,
+): Array<[number, number]> {
+  const merged: Array<[number, number]> = [...a, ...b].sort((x, y) => x[0] - y[0])
+  const out: Array<[number, number]> = []
+  for (const [s, e] of merged) {
+    const tail = out[out.length - 1]
+    if (tail && s <= tail[1]) {
+      tail[1] = Math.max(tail[1], e)
+    } else {
+      out.push([s, e])
+    }
+  }
+  return out
+}
+
 // Composes:
 //   - hybrid strategy (subgraph row + RPC state)
-//   - outAsset price-history (the chart line)
-//   - inAsset price-history (used to convert execution amounts to USD when
-//     the inAsset isn't a stable)
+//   - outAsset price-history (USD per outAsset over time)
+//   - inAsset price-history (USD per inAsset over time)
 //   - strategy metadata (decimals / symbols, via the existing hook)
-// Returns the merged shape the LineChart consumes.
+//
+// The chart line is the inAsset-per-outAsset RATIO over time (i.e.
+// outPriceUSD / inPriceUSD at each timestamp), so it lives in the same
+// numeric space as the contract's 1e18-scaled `maxPrice`/`minPrice`
+// guardrails. Execution dots use the realised ratio amountIn/amountOut from
+// each completed swap (in real units).
 export function useStrategyChartData(
   chainId: ChainId,
   strategyId: string | undefined,
@@ -96,31 +119,38 @@ export function useStrategyChartData(
     const outSeries = outQuery.data?.series
     const inSeries = inQuery.data?.series
 
-    const prices: PricePoint[] = outSeries?.points ?? []
-    const gaps: Array<[number, number]> = outSeries?.gaps ?? []
-
-    const outFeedDecimals = metadata.data.outAssetFeed.decimals
     const inAssetDecimals = metadata.data.inAsset.decimals
     const outAssetDecimals = metadata.data.outAsset.decimals
 
-    const denomOut = Math.pow(10, outFeedDecimals)
+    // Guardrails are stored as the 1e18-scaled out/in execution-price ratio
+    // (see DCAStrategyManager._executionPrice). Decode to a plain float for
+    // the chart's y-axis.
     const ceiling =
-      sg.maxPrice && sg.maxPrice !== '0' ? Number(sg.maxPrice) / denomOut : undefined
+      sg.maxPrice && sg.maxPrice !== '0' ? Number(sg.maxPrice) / 1e18 : undefined
     const floor =
-      sg.minPrice && sg.minPrice !== '0' ? Number(sg.minPrice) / denomOut : undefined
+      sg.minPrice && sg.minPrice !== '0' ? Number(sg.minPrice) / 1e18 : undefined
 
-    const inPriceAt = (tMs: number): number => {
-      if (!inSeries || inSeries.points.length === 0) return 1
-      return findNearest(inSeries.points, tMs) ?? 1
+    // Build a pointwise ratio series outPrice/inPrice. We anchor on the
+    // outAsset series timestamps (typically the volatile asset, denser cadence)
+    // and look up the nearest inAsset point. Drop any point where the
+    // inAsset is unknown so we don't divide by zero.
+    const prices: PricePoint[] = []
+    if (outSeries && inSeries && outSeries.points.length > 0 && inSeries.points.length > 0) {
+      for (const op of outSeries.points) {
+        const ip = findNearest(inSeries.points, op.t)
+        if (!ip || ip === 0) continue
+        prices.push({ t: op.t, p: op.p / ip })
+      }
     }
+
+    const gaps = mergeGaps(outSeries?.gaps ?? [], inSeries?.gaps ?? [])
 
     const executions: StrategyChartExecution[] = (sg.executions ?? []).map((e) => {
       const tMs = Number(e.executionTimestamp) * 1000
       const amountInF = Number(e.amountIn) / Math.pow(10, inAssetDecimals)
       const amountOutF = Number(e.amountOut) / Math.pow(10, outAssetDecimals)
-      const inUsd = inPriceAt(tMs)
-      // Execution price = USD spent / outAsset received.
-      const p = amountOutF > 0 ? (amountInF * inUsd) / amountOutF : 0
+      // Realised execution ratio in the same units as the guardrails.
+      const p = amountOutF > 0 ? amountInF / amountOutF : 0
       return {
         t: tMs,
         p,
@@ -134,7 +164,15 @@ export function useStrategyChartData(
     let basis: PriceBasis = outSeries?.basis ?? 'chainlink-feed'
     if (outSeries && inSeries && outSeries.basis !== inSeries.basis) {
       basis = 'mixed'
+    } else if (inSeries && inSeries.basis !== basis) {
+      basis = 'mixed'
     }
+
+    // The ratio can't begin before BOTH feeds had data.
+    const dataStartsAt =
+      outSeries?.dataStartsAt !== undefined && inSeries?.dataStartsAt !== undefined
+        ? Math.max(outSeries.dataStartsAt, inSeries.dataStartsAt)
+        : (outSeries?.dataStartsAt ?? inSeries?.dataStartsAt)
 
     return {
       prices,
@@ -143,7 +181,7 @@ export function useStrategyChartData(
       ceiling,
       floor,
       basis,
-      dataStartsAt: outSeries?.dataStartsAt,
+      dataStartsAt,
       outAssetSymbol: metadata.data.outAsset.symbol,
       inAssetSymbol: metadata.data.inAsset.symbol,
     }

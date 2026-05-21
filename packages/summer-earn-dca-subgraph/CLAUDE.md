@@ -142,6 +142,10 @@ pnpm --filter @summerfi/summer-earn-dca-subgraph run deploy:base  # Goldsky CLI
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-05-21 — claude — `Strategy.maxPrice` / `Strategy.minPrice` natspec
+  updated to document the new unit (1e18-scaled out/in execution-price
+  ratio). Wire format and mappings unchanged — both fields still pass
+  through `cfg.maxPrice` / `cfg.minPrice` as opaque `BigInt!`.
 - 2026-05-21 — claude — impl resolution moved **into the subgraph** via a
   `kind: once` block handler (`handleProxyOnce`) on every `ChainlinkProxy`
   dataSource. Dropped the static bootstrap aggregator dataSources, the

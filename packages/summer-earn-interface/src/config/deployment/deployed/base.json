@@ -147,5 +147,6 @@
   "ExtDemoCorp_3_RoundsVaultOutput_extDemo_USDC_base#RoundsVaultOutput": "0xD1c27c2AC8832E2f53dfd60e3Fe004584158fA67",
   "AdmiralsQuartersModule_20260422T081402616#AdmiralsQuarters": "0x2e4AC08988c3a995A290Da2655664a8dEF92675F",
   "DCAStrategyManagerModule_v1#DCAStrategyManager": "0x9407a57C1Ebe92cB7fc6CB68705e34371A33735A",
-  "DCAStrategyManagerModule_v2#DCAStrategyManager": "0x48459d7F83E918472BB4827eEd14FE387a30FdA0"
+  "DCAStrategyManagerModule_v2#DCAStrategyManager": "0x48459d7F83E918472BB4827eEd14FE387a30FdA0",
+  "DCAStrategyManagerModule_v3#DCAStrategyManager": "0xc7de5CFE86ebEfb80b01014549D6eB0041Af9c72"
 }

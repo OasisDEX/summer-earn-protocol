@@ -61,11 +61,20 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
   )
 
   // Guardrail edits are local-only until the user saves via Edit modal — we
-  // initialise from chart-decoded values (USD-denominated).
+  // initialise from chart-decoded values (out/in execution-price ratio).
   const [ceiling, setCeiling] = useState<number | undefined>(undefined)
   const [floor, setFloor] = useState<number | undefined>(undefined)
   const effectiveCeiling = ceiling ?? chart.data?.ceiling
   const effectiveFloor = floor ?? chart.data?.floor
+
+  const formatRatio = useMemo(() => {
+    return (v: number) => {
+      if (!Number.isFinite(v)) return '—'
+      const abs = Math.abs(v)
+      const body = abs < 1 ? v.toFixed(4) : abs < 100 ? v.toFixed(2) : Math.round(v).toLocaleString('en-US')
+      return `${body} ${meta.data?.inAsset.symbol ?? ''}`.trim()
+    }
+  }, [meta.data?.inAsset.symbol])
 
   if (hybrid.isLoading) {
     return (
@@ -198,6 +207,7 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
           onCeilingChange={(v) => setCeiling(v)}
           onFloorChange={(v) => setFloor(v)}
           dataStartsAt={chart.data?.dataStartsAt}
+          formatValue={formatRatio}
         />
         {(ceiling !== undefined || floor !== undefined) && (
           <div className="mt-3 flex items-center justify-end gap-2 text-xs text-[var(--text-3)]">

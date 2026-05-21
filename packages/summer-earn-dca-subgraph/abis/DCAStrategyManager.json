@@ -1632,7 +1632,7 @@
     "name": "PriceAboveCeiling",
     "inputs": [
       {
-        "name": "inPrice",
+        "name": "executionPrice",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -1648,7 +1648,7 @@
     "name": "PriceBelowFloor",
     "inputs": [
       {
-        "name": "inPrice",
+        "name": "executionPrice",
         "type": "uint256",
         "internalType": "uint256"
       },

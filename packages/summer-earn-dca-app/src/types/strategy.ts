@@ -50,7 +50,8 @@ export interface StrategyConfigFormInput {
   tradeAmountShares: bigint
   intervalSeconds: bigint
   slippageBps: bigint
-  // Stored at feed precision (0 = no bound).
+  // 1e18-scaled out/in execution-price ratio (see contract _executionPrice).
+  // 0 = no bound.
   maxPrice: bigint
   minPrice: bigint
   endDateUnix: bigint

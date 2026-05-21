@@ -116,11 +116,20 @@ config + execution history; reads from RPC for live state via
   client cascades on `null` and merges partial primary responses
   (>25% gap fraction) with the fallback. Don't sprinkle `try/catch` inside
   source impls — let throws propagate so the composite can pick a backup.
-- **Guardrail-line basis.** Dashed `MAX`/`MIN` lines on the LineChart are
-  always rendered in the contract's `maxPrice`/`minPrice` units. When the
+- **`maxPrice` / `minPrice` are the 1e18-scaled out/in execution-price
+  ratio.** The on-chain check uses
+  `executionPrice = outPrice * 10**inOracleDec * 1e18
+                  / (inPrice * 10**outOracleDec)` and compares it against
+  the configured bounds. The form scales user input via `parseUnits(_, 18)`;
+  `useStrategyChartData` divides the stored bounds by `1e18` for display and
+  builds a *ratio* price line (`outPriceUSD / inPriceUSD` pointwise) so the
+  chart line and the guardrails live in the same numeric space.
+- **Guardrail-line basis.** Dashed `MAX`/`MIN` lines on the LineChart and
+  the chart line itself are in `inAsset per outAsset` units. When either
   underlying series is from DeFiLlama (`basis: 'off-chain-aggregate'`), the
   Detail header surfaces an "off-chain pricing" pill so the user knows the
-  line and the chart aren't strictly comparable.
+  guardrails (evaluated against Chainlink on-chain) and the chart aren't
+  strictly comparable.
 - **`experimental.useCache` is required.** Don't remove it from
   `next.config.mjs` — `'use cache'` directive in
   `src/app/api/prices/[chainId]/[token]/route.ts` won't compile otherwise.
@@ -162,6 +171,14 @@ Auto-build on `main`; `pr*` branches get PR previews.
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-05-21 — claude — `maxPrice` / `minPrice` are now bounds on the
+  1e18-scaled out/in execution-price ratio (out-asset denominated in
+  in-asset). `CreateStrategyForm` uses `parseUnits(_, 18)` and the labels
+  switched to "Max/Min `{out}` price (`{in}` per `{out}`)". `LineChart`
+  takes a `formatValue` prop (no hardcoded `$`); `useStrategyChartData`
+  builds a pointwise `outPrice/inPrice` ratio series so the chart line and
+  the guardrails share a unit. Minimum interval lowered from 7 days to 1
+  day; presets now include 1d / 3d / 7d / 14d / 28d.
 - 2026-05-21 — claude — summer.fi rebuild: ported design tokens into
   `globals.css`+`tailwind.config.js`, new sidebar+topbar shell, rebuilt
   Portfolio dashboard (KPI tiles + filter + card grid), restyled Detail page
