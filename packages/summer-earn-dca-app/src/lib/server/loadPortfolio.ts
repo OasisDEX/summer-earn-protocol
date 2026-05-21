@@ -37,10 +37,7 @@ async function fetchCachedStrategiesByOwner(
 // pulls the full strategies-by-owner page so the client subtree paints
 // with the list already in hand. Per-card fan-out (metadata, sparkline,
 // vault preview) still happens client-side after hydration.
-export async function loadPortfolio(
-  chainId: ChainId,
-  owner: Address,
-): Promise<PortfolioInitial> {
+export async function loadPortfolio(chainId: ChainId, owner: Address): Promise<PortfolioInitial> {
   const strategies = await fetchCachedStrategiesByOwner(chainId, owner)
   return { owner, strategies }
 }

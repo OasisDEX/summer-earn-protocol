@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 
 import { LineChart } from '@/components/charts/LineChart'
+import { EditStrategyModal } from '@/components/EditStrategyModal'
 import { ExecutionHistoryTable } from '@/components/ExecutionHistoryTable'
 import { FreshFromChainPill, StatusBadge } from '@/components/TxStatusBadge'
 import { Button } from '@/components/ui/Button'
@@ -98,6 +99,7 @@ export function StrategyDetail({
   // initialise from chart-decoded values (out/in execution-price ratio).
   const [ceiling, setCeiling] = useState<number | undefined>(undefined)
   const [floor, setFloor] = useState<number | undefined>(undefined)
+  const [editOpen, setEditOpen] = useState(false)
   const effectiveCeiling = ceiling ?? chart.data?.ceiling
   const effectiveFloor = floor ?? chart.data?.floor
 
@@ -183,6 +185,13 @@ export function StrategyDetail({
               Resume
             </Button>
           )}
+          {hybrid.data.displayStatus !== 'CANCELLED' &&
+            hybrid.data.displayStatus !== 'COMPLETED' &&
+            tuple && (
+              <Button variant="secondary" onClick={() => setEditOpen(true)}>
+                Edit
+              </Button>
+            )}
           {hybrid.data.displayStatus !== 'CANCELLED' && tuple && (
             <Button
               variant="danger"
@@ -194,6 +203,21 @@ export function StrategyDetail({
           )}
         </div>
       </div>
+
+      {tuple && (
+        <EditStrategyModal
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          chainId={chainId}
+          strategyId={BigInt(s.strategyId)}
+          oldConfig={tuple}
+          inSym={inSym}
+          outSym={outSym}
+          shareSym={shareSym}
+          inDecimals={inDec}
+          shareDecimals={shareDec}
+        />
+      )}
 
       {/* Key facts row */}
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-5">

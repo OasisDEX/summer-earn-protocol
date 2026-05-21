@@ -36,11 +36,7 @@ export default async function PortfolioByAddressPage({
           </Link>
         }
       />
-      <PortfolioBody
-        chainId={chainId}
-        urlAddress={owner}
-        initialStrategies={initial.strategies}
-      />
+      <PortfolioBody chainId={chainId} urlAddress={owner} initialStrategies={initial.strategies} />
     </>
   )
 }

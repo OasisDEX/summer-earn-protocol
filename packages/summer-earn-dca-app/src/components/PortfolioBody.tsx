@@ -50,9 +50,7 @@ export function PortfolioBody({ chainId, urlAddress, initialStrategies }: Props)
   // address we're querying right now — protects against a stale URL prop
   // ever lining up with a different owner.
   const seedStrategies =
-    initialStrategies && urlAddress && effectiveOwner === urlAddress
-      ? initialStrategies
-      : undefined
+    initialStrategies && urlAddress && effectiveOwner === urlAddress ? initialStrategies : undefined
 
   const { data: strategies } = useStrategiesByOwner(chainId, effectiveOwner, seedStrategies)
   const active = (strategies ?? []).filter((s) => s.status === 'ACTIVE').length
@@ -73,7 +71,9 @@ export function PortfolioBody({ chainId, urlAddress, initialStrategies }: Props)
                 {shortAddress(urlAddress)} · {active} active · {total} total
               </>
             ) : (
-              <>{active} active · {total} total</>
+              <>
+                {active} active · {total} total
+              </>
             )}
           </p>
         </div>
@@ -82,8 +82,8 @@ export function PortfolioBody({ chainId, urlAddress, initialStrategies }: Props)
       {isReadonly && walletAddr && (
         <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm">
           <span className="text-[var(--text-2)]">
-            Viewing {shortAddress(urlAddress!)} — read-only. Connect as that wallet to
-            edit or pause strategies.
+            Viewing {shortAddress(urlAddress!)} — read-only. Connect as that wallet to edit or pause
+            strategies.
           </span>
           <Link href={`/portfolio/${walletAddr.toLowerCase()}`}>
             <Button variant="ghost" size="sm">
@@ -93,9 +93,7 @@ export function PortfolioBody({ chainId, urlAddress, initialStrategies }: Props)
         </div>
       )}
 
-      {effectiveOwner && strategies && (
-        <PortfolioKpis chainId={chainId} strategies={strategies} />
-      )}
+      {effectiveOwner && strategies && <PortfolioKpis chainId={chainId} strategies={strategies} />}
 
       <div className="mt-8">
         <StrategyList chainId={chainId} owner={effectiveOwner} readonly={isReadonly} />

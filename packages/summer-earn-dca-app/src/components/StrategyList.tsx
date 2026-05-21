@@ -46,7 +46,8 @@ export function StrategyList({
   if (!owner) {
     return (
       <div className="rounded-lg border border-dashed border-[var(--border)] p-12 text-center text-[var(--text-2)]">
-        Connect your wallet, or open <code className="font-mono">/portfolio/0x…</code> to view DCA strategies.
+        Connect your wallet, or open <code className="font-mono">/portfolio/0x…</code> to view DCA
+        strategies.
       </div>
     )
   }
