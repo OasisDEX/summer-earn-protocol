@@ -187,13 +187,21 @@ export function useStrategyChartData(
     }
   }, [sg, metadata.data, outQuery.data?.series, inQuery.data?.series])
 
+  // "Loading" means: we don't yet know what the chart should show. Plain
+  // `outQuery.isLoading || inQuery.isLoading` lies because the queries flip
+  // from disabled (sg undefined) to pending across two render frames — for a
+  // single frame all four flags are false and the parent flashes the empty
+  // state before the fetch actually starts. Anchor on data presence instead
+  // (`!outQuery.data || !inQuery.data`); on range changes
+  // `placeholderData: keepPreviousData` keeps `data` defined so the chart
+  // transitions smoothly without re-flashing the skeleton.
   return {
     data,
     isLoading:
       hybrid.isLoading ||
       metadata.isLoading ||
-      outQuery.isLoading ||
-      inQuery.isLoading,
+      !outQuery.data ||
+      !inQuery.data,
     isError: hybrid.isError || outQuery.isError || inQuery.isError,
     isUnknown:
       (outQuery.data?.isUnknown ?? false) && !(outQuery.data?.series),

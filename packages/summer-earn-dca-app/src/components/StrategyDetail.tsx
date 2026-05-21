@@ -198,17 +198,21 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
           </div>
           <Segmented value={range} onChange={setRange} options={RANGES} />
         </CardHeader>
-        <LineChart
-          prices={chart.data?.prices ?? []}
-          gaps={chart.data?.gaps}
-          executions={chart.data?.executions}
-          ceiling={effectiveCeiling}
-          floor={effectiveFloor}
-          onCeilingChange={(v) => setCeiling(v)}
-          onFloorChange={(v) => setFloor(v)}
-          dataStartsAt={chart.data?.dataStartsAt}
-          formatValue={formatRatio}
-        />
+        {chart.isLoading ? (
+          <div className="skel w-full rounded-md mt-4" style={{ height: 280 }} />
+        ) : (
+          <LineChart
+            prices={chart.data?.prices ?? []}
+            gaps={chart.data?.gaps}
+            executions={chart.data?.executions}
+            ceiling={effectiveCeiling}
+            floor={effectiveFloor}
+            onCeilingChange={(v) => setCeiling(v)}
+            onFloorChange={(v) => setFloor(v)}
+            dataStartsAt={chart.data?.dataStartsAt}
+            formatValue={formatRatio}
+          />
+        )}
         {(ceiling !== undefined || floor !== undefined) && (
           <div className="mt-3 flex items-center justify-end gap-2 text-xs text-[var(--text-3)]">
             <span>Preview — not saved.</span>

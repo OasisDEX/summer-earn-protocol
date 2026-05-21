@@ -1,8 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { useBlockNumber, useReadContract } from 'wagmi'
+import { useReadContract } from 'wagmi'
 
 import { dcaStrategyManagerAbi } from '@/abis/DCAStrategyManager'
 import { DCA_STRATEGY_MANAGER_ADDRESSES } from '@/config/addresses'
@@ -26,10 +24,13 @@ function toTyped(raw: RawState | undefined): StrategyStateOnchain | undefined {
   }
 }
 
-// RPC read of `strategyStates(id)`. Re-queries on each new block so that
-// post-execution state reflects in the UI within ~1 block on Base.
+// RPC read of `strategyStates(id)`. Polled lazily on a 30s cadence — user
+// actions are already invalidated by useTxToast at confirmation time, and
+// external keeper executions surface via the subgraph in seconds. Avoid
+// per-block invalidation: with N visible StrategyCard instances it produces
+// an N-read multicall every Base block (~2s) which is wasteful for state
+// that changes at most once per interval (≥ 1 day).
 export function useStrategyState(chainId: ChainId, strategyId: bigint | undefined) {
-  const queryClient = useQueryClient()
   const enabled = strategyId !== undefined
 
   const read = useReadContract({
@@ -38,17 +39,14 @@ export function useStrategyState(chainId: ChainId, strategyId: bigint | undefine
     abi: dcaStrategyManagerAbi,
     functionName: 'strategyStates',
     args: enabled ? [strategyId!] : undefined,
-    query: { enabled },
+    query: {
+      enabled,
+      // Background poll while the page is open; foreground reads will hit
+      // the cache. 30s is well under the contract's 1-day minimum interval.
+      refetchInterval: 30_000,
+      staleTime: 30_000,
+    },
   })
-
-  const { data: blockNumber } = useBlockNumber({ chainId: Number(chainId), watch: true })
-
-  useEffect(() => {
-    if (!enabled || !blockNumber) return
-    if (read.queryKey) {
-      queryClient.invalidateQueries({ queryKey: read.queryKey })
-    }
-  }, [blockNumber, enabled, queryClient, read.queryKey])
 
   return {
     state: toTyped(read.data as RawState | undefined),
