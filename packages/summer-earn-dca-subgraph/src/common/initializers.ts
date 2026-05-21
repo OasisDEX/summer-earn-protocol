@@ -1,7 +1,7 @@
-import { Address, BigInt, Bytes, DataSourceContext, ethereum, log } from '@graphprotocol/graph-ts'
+import { Address, BigInt, Bytes, ethereum, log } from '@graphprotocol/graph-ts'
 
 import { AggregatorProxy } from '../../generated/templates/ChainlinkProxy/AggregatorProxy'
-import { ChainlinkAggregator, ChainlinkProxy } from '../../generated/templates'
+import { ChainlinkProxy } from '../../generated/templates'
 import { PriceFeed, Strategy, User } from '../../generated/schema'
 import { BigIntConstants } from './constants'
 
@@ -25,23 +25,13 @@ export function loadStrategyOrWarn(strategyId: BigInt, context: string): Strateg
 }
 
 // Idempotent `PriceFeed` accessor keyed by proxy address. If the entity
-// doesn't exist, we eth_call `decimals()`/`description()`/`aggregator()` on
-// the proxy once and persist them. The `WithImpl` variant skips the
-// `aggregator()` call when the caller already knows the impl (e.g. the
-// bootstrap aggregator handler resolves impl via `dataSource.address()`).
-export function getOrCreatePriceFeed(
-  proxyAddress: Address,
-  block: ethereum.Block,
-): PriceFeed {
-  const existing = PriceFeed.load(proxyAddress as Bytes)
-  if (existing != null) return existing
-
-  const proxy = AggregatorProxy.bind(proxyAddress)
-  const aggRes = proxy.try_aggregator()
-  const impl = aggRes.reverted ? Address.zero() : aggRes.value
-  return initPriceFeed(proxyAddress, block, impl)
-}
-
+// doesn't exist, we eth_call `decimals()`/`description()` on the proxy and
+// persist them along with the impl address the caller already knows.
+//
+// All callers go through `WithImpl` — either `handleProxyOnce` (resolves impl
+// via `proxy.aggregator()`) or `handleAggregatorConfirmed` (reads `latest`
+// from the event payload). That keeps the entity's `aggregator` field
+// authoritative without an extra eth_call per access.
 export function getOrCreatePriceFeedWithImpl(
   proxyAddress: Address,
   block: ethereum.Block,
@@ -72,33 +62,16 @@ function initPriceFeed(proxyAddress: Address, block: ethereum.Block, impl: Addre
   return feed
 }
 
-// Register a feed referenced by a strategy. Idempotent — graph-node ignores
-// duplicate template creates. Called preemptively from
-// `handleStrategyCreated`/`handleStrategyEdited` so user-supplied feeds
-// start streaming `AnswerUpdated` events the moment we see them.
+// Register a feed referenced by a strategy. Idempotent — `PriceFeed.load`
+// short-circuits the second call. Just spins up the `ChainlinkProxy`
+// template; the template's `handleProxyOnce` (kind: once block handler)
+// then resolves the impl, seeds the `PriceFeed` entity, and registers a
+// `ChainlinkAggregator` template instance for streaming `AnswerUpdated`
+// events. Whole bootstrap flow happens in the subgraph — no off-chain
+// prep step required.
 export function registerFeed(proxyAddress: Address, block: ethereum.Block): void {
   if (PriceFeed.load(proxyAddress as Bytes) != null) {
     return
   }
-
-  // Resolve current impl once. If the address isn't a real Chainlink proxy
-  // the call reverts and we skip registration — the app falls through to
-  // DeFiLlama via the composite price client.
-  const proxy = AggregatorProxy.bind(proxyAddress)
-  const aggRes = proxy.try_aggregator()
-  if (aggRes.reverted) {
-    log.warning('registerFeed: {} is not a Chainlink proxy (aggregator() reverted)', [
-      proxyAddress.toHexString(),
-    ])
-    return
-  }
-  const impl = aggRes.value
-
-  getOrCreatePriceFeedWithImpl(proxyAddress, block, impl)
-
   ChainlinkProxy.create(proxyAddress)
-
-  const ctx = new DataSourceContext()
-  ctx.setBytes('proxy', proxyAddress as Bytes)
-  ChainlinkAggregator.createWithContext(impl, ctx)
 }

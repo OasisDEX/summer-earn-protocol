@@ -69,33 +69,14 @@ dataSources:
           file: ./abis/AggregatorProxy.json
         - name: AggregatorV3Interface
           file: ./abis/AggregatorV3Interface.json
+      blockHandlers:
+        - handler: handleProxyOnce
+          filter:
+            kind: once
       eventHandlers:
         - event: AggregatorConfirmed(indexed address,indexed address)
           handler: handleAggregatorConfirmed
       file: ./src/mappings/chainlinkProxy.ts
-  - kind: ethereum/contract
-    name: BootstrapAggregatorUsdc
-    network: {{network}}
-    source:
-      abi: AggregatorV3Interface
-      address: "{{usdc-feed-aggregator}}"
-      startBlock: {{feed-start-block}}
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities:
-        - PriceFeed
-        - PriceRound
-      abis:
-        - name: AggregatorProxy
-          file: ./abis/AggregatorProxy.json
-        - name: AggregatorV3Interface
-          file: ./abis/AggregatorV3Interface.json
-      eventHandlers:
-        - event: AnswerUpdated(indexed int256,indexed uint256,uint256)
-          handler: handleBootstrapAnswerUpdated
-      file: ./src/mappings/chainlinkBootstrapAggregator.ts
   - kind: ethereum/contract
     name: BootstrapProxyEth
     network: {{network}}
@@ -115,33 +96,14 @@ dataSources:
           file: ./abis/AggregatorProxy.json
         - name: AggregatorV3Interface
           file: ./abis/AggregatorV3Interface.json
+      blockHandlers:
+        - handler: handleProxyOnce
+          filter:
+            kind: once
       eventHandlers:
         - event: AggregatorConfirmed(indexed address,indexed address)
           handler: handleAggregatorConfirmed
       file: ./src/mappings/chainlinkProxy.ts
-  - kind: ethereum/contract
-    name: BootstrapAggregatorEth
-    network: {{network}}
-    source:
-      abi: AggregatorV3Interface
-      address: "{{eth-feed-aggregator}}"
-      startBlock: {{feed-start-block}}
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities:
-        - PriceFeed
-        - PriceRound
-      abis:
-        - name: AggregatorProxy
-          file: ./abis/AggregatorProxy.json
-        - name: AggregatorV3Interface
-          file: ./abis/AggregatorV3Interface.json
-      eventHandlers:
-        - event: AnswerUpdated(indexed int256,indexed uint256,uint256)
-          handler: handleBootstrapAnswerUpdated
-      file: ./src/mappings/chainlinkBootstrapAggregator.ts
 templates:
   - kind: ethereum/contract
     name: ChainlinkProxy
@@ -160,6 +122,10 @@ templates:
           file: ./abis/AggregatorProxy.json
         - name: AggregatorV3Interface
           file: ./abis/AggregatorV3Interface.json
+      blockHandlers:
+        - handler: handleProxyOnce
+          filter:
+            kind: once
       eventHandlers:
         - event: AggregatorConfirmed(indexed address,indexed address)
           handler: handleAggregatorConfirmed
