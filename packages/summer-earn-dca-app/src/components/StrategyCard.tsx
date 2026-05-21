@@ -49,6 +49,10 @@ export function StrategyCard({
   const maxTrades = Number(strategy.maxTrades)
   const inDec = meta.data?.inAsset.decimals ?? 18
   const outDec = meta.data?.outAsset.decimals ?? 18
+  // FleetCommander share decimals usually match the underlying asset — 6 for
+  // USDC, 18 for WETH. `tradeAmount` is stored in shares; formatting it with
+  // a hardcoded 18 would render a USDC strategy as `0.000000000000…`.
+  const shareDec = meta.data?.sourceVault.decimals ?? inDec
   const inSym = meta.data?.inAsset.symbol ?? '…'
   const outSym = meta.data?.outAsset.symbol ?? '…'
   const tuple = hybrid.data ? toStrategyConfigStruct(hybrid.data.subgraph) : undefined
@@ -63,7 +67,7 @@ export function StrategyCard({
 
         <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <KV label="Per trade">
-            {formatDecimalOutput(BigInt(strategy.tradeAmount), 18, 4)}
+            {formatDecimalOutput(BigInt(strategy.tradeAmount), shareDec, 4)} {inSym}
           </KV>
           <KV label="Interval">{Math.round(Number(strategy.interval) / 86_400)}d</KV>
           <KV label="Acquired">

@@ -1,12 +1,6 @@
 'use client'
 
-import { type Address,getAddress } from 'viem'
-
-import { Sparkline } from '@/components/charts/Sparkline'
 import { Stat } from '@/components/ui/Stat'
-import { KNOWN_TOKEN_ADDRESSES } from '@/config/addresses'
-import { useTokenSparkline } from '@/hooks/useTokenSparkline'
-import { formatDecimalOutput } from '@/lib/format'
 import type { SubgraphStrategy } from '@/lib/subgraph/types'
 import type { ChainId } from '@/types/chain'
 
@@ -15,21 +9,20 @@ interface PortfolioKpisProps {
   strategies: SubgraphStrategy[]
 }
 
-// KPI tile row at the top of the Portfolio dashboard.
-// - "Value in DCA" — sum of total-in across active+paused strategies (in
-//   inAsset units, formatted at 18d as a stand-in for USDC's 6d display).
-// - "Acquired (USD)" — sum of total-out received (approximated; the chart
-//   sparkline shows ETH USD as a stand-in until we expose a portfolio aggregate).
-// - "Source yield" — placeholder until the vault APY hook is wired.
-// - "Next trigger" — the soonest pending execution across active strategies.
-export function PortfolioKpis({ chainId, strategies }: PortfolioKpisProps) {
-  const eth = getAddress(KNOWN_TOKEN_ADDRESSES[chainId].weth) as Address
-  const ethSparkline = useTokenSparkline(chainId, eth)
-
+// TODO(usd-aggregates): a "Total spent" / "Total acquired" tile needs to
+// convert each strategy's `totalInAssetSwapped` / `totalOutAssetReceived`
+// to USD via `useTokenPriceHistory({ token: inAsset, range: 'all' })` —
+// pick the nearest price at each execution timestamp, sum across all
+// strategies, display in dollars. Summing the raw BigInt values across
+// mixed-decimal assets (USDC=6, WETH=18) is meaningless, so we don't
+// surface a "Total" tile at all until that conversion lands.
+//
+// Kept tiles: strategy count + soonest next trigger. Both are unit-free.
+export function PortfolioKpis({ strategies }: PortfolioKpisProps) {
   const active = strategies.filter((s) => s.status === 'ACTIVE' || s.status === 'PAUSED')
+  const paused = strategies.filter((s) => s.status === 'PAUSED').length
+  const completed = strategies.filter((s) => s.status === 'COMPLETED').length
 
-  const totalIn = active.reduce((acc, s) => acc + BigInt(s.totalInAssetSwapped), 0n)
-  const totalOut = active.reduce((acc, s) => acc + BigInt(s.totalOutAssetReceived), 0n)
   const nextTriggers = active
     .filter((s) => s.status === 'ACTIVE')
     .map((s) => BigInt(s.nextTriggerAt))
@@ -47,19 +40,15 @@ export function PortfolioKpis({ chainId, strategies }: PortfolioKpisProps) {
         sub={`${active.length} active`}
       />
       <Stat
-        label="Total spent"
-        value={formatDecimalOutput(totalIn, 18, 2)}
-        sub="lifetime"
-      >
-        <Sparkline points={ethSparkline.points} />
-      </Stat>
+        label="Active"
+        value={(active.length - paused).toString()}
+        sub={paused > 0 ? `+ ${paused} paused` : 'live now'}
+      />
       <Stat
-        label="Total acquired"
-        value={formatDecimalOutput(totalOut, 18, 4)}
-        sub="lifetime"
-      >
-        <Sparkline points={ethSparkline.points} />
-      </Stat>
+        label="Completed"
+        value={completed.toString()}
+        sub={completed > 0 ? 'lifetime' : 'none yet'}
+      />
       <Stat
         label="Next trigger"
         value={soonest > 0n ? `${days}d ${hours}h` : '—'}

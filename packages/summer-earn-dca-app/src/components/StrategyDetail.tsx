@@ -12,6 +12,7 @@ import { Pill } from '@/components/ui/Pill'
 import { Segmented } from '@/components/ui/Segmented'
 import { useDcaStrategyActions } from '@/hooks/useDcaStrategyActions'
 import { useHybridStrategy } from '@/hooks/useHybridStrategy'
+import { useSourceVaultPreview } from '@/hooks/useSourceVaultPreview'
 import { useStrategyChartData } from '@/hooks/useStrategyChartData'
 import { useStrategyMetadata } from '@/hooks/useTokenMetadata'
 import {
@@ -45,6 +46,14 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
   })
   const chart = useStrategyChartData(chainId, strategyId, range)
   const actions = useDcaStrategyActions({ chainId })
+  // Convert the on-chain share amount to underlying assets via the
+  // FleetCommander's convertToAssets — that's the number the user thinks in
+  // ("100 USDC per trade"), not the raw share figure.
+  const sourcePreview = useSourceVaultPreview({
+    chainId,
+    sourceVault: hybrid.data?.subgraph.sourceVault as `0x${string}` | undefined,
+    shares: hybrid.data ? BigInt(hybrid.data.subgraph.tradeAmount) : undefined,
+  })
 
   const tuple = useMemo(
     () => (hybrid.data ? toStrategyConfigStruct(hybrid.data.subgraph) : undefined),
@@ -85,6 +94,10 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
   const outSym = meta.data?.outAsset.symbol ?? '…'
   const inDec = meta.data?.inAsset.decimals ?? 18
   const outDec = meta.data?.outAsset.decimals ?? 18
+  // FleetCommander share decimals match the underlying — fall back to `inDec`
+  // until metadata loads.
+  const shareDec = meta.data?.sourceVault.decimals ?? inDec
+  const shareSym = meta.data?.sourceVault.symbol ?? `${inSym}-shares`
   const showStaleness = hybrid.data.staleness.statusMismatch || hybrid.data.staleness.tradesDelta !== 0n
 
   return (
@@ -142,7 +155,14 @@ export function StrategyDetail({ chainId, strategyId }: { chainId: ChainId; stra
         <KV label="Source">{inSym}</KV>
         <KV label="Target">{outSym}</KV>
         <KV label="Interval">{Math.round(Number(s.interval) / 86_400)}d</KV>
-        <KV label="Per trade">{formatDecimalOutput(BigInt(s.tradeAmount), 18, 4)}</KV>
+        <KV label="Per trade">
+          {sourcePreview.data?.assetsFromShares !== undefined
+            ? `${formatDecimalOutput(sourcePreview.data.assetsFromShares, inDec, 4)} ${inSym}`
+            : `${formatDecimalOutput(BigInt(s.tradeAmount), shareDec, 4)} ${inSym}`}
+          <span className="ml-1 text-[var(--text-3)]">
+            ({formatDecimalOutput(BigInt(s.tradeAmount), shareDec, 4)} {shareSym})
+          </span>
+        </KV>
         <KV label="Next trigger">
           {hybrid.data.displayStatus === 'ACTIVE'
             ? formatCountdown(hybrid.data.displayNextTriggerAt)
