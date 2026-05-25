@@ -37,10 +37,10 @@ async function main() {
     { gov: true, core: true },
     useBummerConfig,
   ) as BaseConfig
-  // Ensure InstitutionalVaultRegistry is configured in the base (regular) config
+  // Ensure InstitutionalVaultRegistry V2 is configured in the base (regular) config
   const registryAddress = validateAddress(
-    config.deployedContracts.core.institutionalVaultRegistry?.address,
-    'InstitutionalVaultRegistry address',
+    config.deployedContracts.core.institutionalVaultRegistryV2?.address,
+    'InstitutionalVaultRegistry V2 address',
   )
   const swapProvider = validateAddress(config.common.swapProvider, 'Swap provider address')
   const weth = validateToken(config, 'weth')
@@ -62,7 +62,7 @@ async function main() {
     registeredInstitution[2] === institutionConfig.deployedContracts.core.admiralsQuarters?.address
 
   if (exists && addressessMatch) {
-    console.log(kleur.yellow('Institution already registered in registry. Skipping deployment.'))
+    console.log(kleur.yellow('Institution already registered in registry V2. Skipping deployment.'))
     return
   }
 
@@ -70,7 +70,7 @@ async function main() {
     // remove institution from registry
     const hash = await registry.write.removeInstitution([institutionBytes32])
     await publicClient.waitForTransactionReceipt({ hash })
-    console.log(kleur.green().bold('Institution successfully removed from registry.'))
+    console.log(kleur.green().bold('Institution successfully removed from registry V2.'))
   }
 
   // Read institution governance for current network and validate
@@ -119,7 +119,7 @@ async function main() {
     const alreadyExists = (await registry.read.exists([institutionBytes32])) as boolean
     if (alreadyExists) {
       console.log(
-        kleur.yellow('Institution already registered in registry. Skipping registration.'),
+        kleur.yellow('Institution already registered in registry V2. Skipping registration.'),
       )
       return
     }
@@ -129,13 +129,13 @@ async function main() {
     if (owner.toLowerCase() !== deployer.account.address.toLowerCase()) {
       console.log(
         kleur.yellow(
-          'Caller is not the owner of InstitutionalVaultRegistry. Please register the institution via the owner account.',
+          'Caller is not the owner of InstitutionalVaultRegistry V2. Please register the institution via the owner account.',
         ),
       )
       return
     }
 
-    console.log(kleur.cyan('Registering institution in InstitutionalVaultRegistry...'))
+    console.log(kleur.cyan('Registering institution in InstitutionalVaultRegistry V2...'))
     const publicClient = await hre.viem.getPublicClient()
     const hash = await registry.write.addInstitution([
       institutionBytes32,
@@ -146,11 +146,11 @@ async function main() {
       },
     ])
     await publicClient.waitForTransactionReceipt({ hash })
-    console.log(kleur.green().bold('Institution successfully registered in registry.'))
+    console.log(kleur.green().bold('Institution successfully registered in registry V2.'))
   } catch (e) {
     console.error(
       kleur.red(
-        `Failed to register institution in registry: ${e instanceof Error ? e.message : String(e)}`,
+        `Failed to register institution in registry V2: ${e instanceof Error ? e.message : String(e)}`,
       ),
     )
   }
