@@ -553,26 +553,63 @@ async function main() {
         kleur.gray(`[skip] registerPair(target=${fleetAddress}): pair already exists in RoundsVaultRegistry`),
       )
     } else {
-      const owner = (await institutionRegistry.read.owner()) as Address
+      // registerPair is gated by RoundsVaultRegistry's Ownable owner — NOT the institution PAM governor —
+      // so the batch's `hasGovernorRole` flag does not apply here. Resolve the owner directly.
+      const roundsRegistryOwner = (await roundsRegistryRead.read.owner()) as Address
       const deployers = await hre.viem.getWalletClients()
-      for (const deployer of deployers) {
-        if (owner === deployer.account.address) {
-          await batch.runOrQueue({
-            description: `registerPair(${institutionId}, fleet=${fleetAddress})`,
-            to: roundsRegistryAddress as Address,
-            data: encodeFunctionData({
-              abi: ROUNDS_VAULT_REGISTRY_ABI,
-              functionName: 'registerPair',
-              args: [
-                institutionIdBytes32,
-                fleetAddress,
-                deployedInputVault,
-                deployedOutputVault,
-              ],
-            }),
-            value: 0n,
-          })
-        }
+      const deployerThatOwnsRegistry = deployers.find(
+        (d) => d.account.address.toLowerCase() === roundsRegistryOwner.toLowerCase(),
+      )
+
+      const registerPairAction: GovernorAction = {
+        description: `registerPair(${institutionId}, fleet=${fleetAddress})`,
+        to: roundsRegistryAddress as Address,
+        data: encodeFunctionData({
+          abi: ROUNDS_VAULT_REGISTRY_ABI,
+          functionName: 'registerPair',
+          args: [
+            institutionIdBytes32,
+            fleetAddress,
+            deployedInputVault,
+            deployedOutputVault,
+          ],
+        }),
+        value: 0n,
+      }
+
+      if (deployerThatOwnsRegistry) {
+        const publicClient = await hre.viem.getPublicClient()
+        const hash = await deployerThatOwnsRegistry.sendTransaction({
+          to: registerPairAction.to,
+          data: registerPairAction.data,
+          value: registerPairAction.value,
+        })
+        await publicClient.waitForTransactionReceipt({ hash })
+        console.log(kleur.green(`✓ ${registerPairAction.description}`))
+      } else {
+        console.log(
+          kleur
+            .yellow()
+            .bold(
+              `⚠ Pair not registered on RoundsVaultRegistry yet, and no local wallet matches the registry owner.`,
+            ),
+        )
+        console.log(
+          kleur.yellow(
+            `  RoundsVaultRegistry @ ${roundsRegistryAddress} owner: ${roundsRegistryOwner}`,
+          ),
+        )
+        console.log(
+          kleur.yellow(
+            `  Local deployers: ${deployers.map((d) => d.account.address).join(', ') || '(none)'}`,
+          ),
+        )
+        console.log(
+          kleur.yellow(
+            `  Capturing registerPair into the Safe batch — the registry owner must import the JSON to finish wiring.`,
+          ),
+        )
+        batch.enqueue(registerPairAction)
       }
     }
   }
