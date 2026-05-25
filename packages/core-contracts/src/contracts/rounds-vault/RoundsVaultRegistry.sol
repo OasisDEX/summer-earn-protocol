@@ -3,7 +3,8 @@ pragma solidity 0.8.28;
 
 import {ProtocolAccessManagedV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedV2.sol";
 
-import {IERC4626MultiTokenWrapper} from "../../interfaces/extensions/ERC4626MultiTokenWrapper/IERC4626MultiTokenWrapper.sol";
+import {IRoundsVaultBase} from "../../interfaces/rounds-vault/IRoundsVaultBase.sol";
+import {IRoundsVaultBaseEnums} from "../../interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
 import {IRoundsVaultRegistry} from "../../interfaces/rounds-vault/IRoundsVaultRegistry.sol";
 
 /**
@@ -96,8 +97,8 @@ contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
         bytes32 pairId = getPairId(targetVault);
         if (exists(pairId)) revert PairAlreadyExists(pairId);
 
-        _validateVaultTarget(inputVault, targetVault);
-        _validateVaultTarget(outputVault, targetVault);
+        _validateVault(inputVault, targetVault, IRoundsVaultBaseEnums.BaseVaultType.Input);
+        _validateVault(outputVault, targetVault, IRoundsVaultBaseEnums.BaseVaultType.Output);
 
         _pairs[pairId] = RoundsVaultPair({
             inputVault: inputVault,
@@ -119,34 +120,58 @@ contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
     }
 
     /// @inheritdoc IRoundsVaultRegistry
-    function updatePair(
+    function setInputVault(
         bytes32 pairId,
-        address inputVault,
-        address outputVault
+        address inputVault
     ) external override onlyGovernor {
+        if (inputVault == address(0)) revert UseClearInsteadOfZero(pairId);
+
         RoundsVaultPair storage pair = _pairs[pairId];
         if (pair.targetVault == address(0)) revert PairNotFound(pairId);
 
-        address newInput = inputVault == address(0)
-            ? pair.inputVault
-            : inputVault;
-        address newOutput = outputVault == address(0)
-            ? pair.outputVault
-            : outputVault;
+        _validateVault(inputVault, pair.targetVault, IRoundsVaultBaseEnums.BaseVaultType.Input);
+        pair.inputVault = inputVault;
 
-        if (newInput == address(0) && newOutput == address(0)) {
-            revert UpdateWouldEmptyPair(pairId);
-        }
+        emit RoundsVaultPairUpdated(pairId, pair.inputVault, pair.outputVault);
+    }
 
-        if (inputVault != address(0)) {
-            _validateVaultTarget(inputVault, pair.targetVault);
-            pair.inputVault = inputVault;
-        }
-        if (outputVault != address(0)) {
-            _validateVaultTarget(outputVault, pair.targetVault);
-            pair.outputVault = outputVault;
-        }
+    /// @inheritdoc IRoundsVaultRegistry
+    function setOutputVault(
+        bytes32 pairId,
+        address outputVault
+    ) external override onlyGovernor {
+        if (outputVault == address(0)) revert UseClearInsteadOfZero(pairId);
 
+        RoundsVaultPair storage pair = _pairs[pairId];
+        if (pair.targetVault == address(0)) revert PairNotFound(pairId);
+
+        _validateVault(outputVault, pair.targetVault, IRoundsVaultBaseEnums.BaseVaultType.Output);
+        pair.outputVault = outputVault;
+
+        emit RoundsVaultPairUpdated(pairId, pair.inputVault, pair.outputVault);
+    }
+
+    /// @inheritdoc IRoundsVaultRegistry
+    function clearInputVault(
+        bytes32 pairId
+    ) external override onlyGovernor {
+        RoundsVaultPair storage pair = _pairs[pairId];
+        if (pair.targetVault == address(0)) revert PairNotFound(pairId);
+        if (pair.outputVault == address(0)) revert UpdateWouldEmptyPair(pairId);
+
+        pair.inputVault = address(0);
+        emit RoundsVaultPairUpdated(pairId, pair.inputVault, pair.outputVault);
+    }
+
+    /// @inheritdoc IRoundsVaultRegistry
+    function clearOutputVault(
+        bytes32 pairId
+    ) external override onlyGovernor {
+        RoundsVaultPair storage pair = _pairs[pairId];
+        if (pair.targetVault == address(0)) revert PairNotFound(pairId);
+        if (pair.inputVault == address(0)) revert UpdateWouldEmptyPair(pairId);
+
+        pair.outputVault = address(0);
         emit RoundsVaultPairUpdated(pairId, pair.inputVault, pair.outputVault);
     }
 
@@ -179,18 +204,27 @@ contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Confirms that a non-zero rounds-vault address actually wraps `expectedTarget`. No-op for
-     *      zero addresses so callers can pass one side as zero when only one flavor exists.
+     * @dev Validates that a non-zero rounds-vault wraps `expectedTarget` and matches
+     *      `expectedType`. No-op for `address(0)` so callers can pass one side as zero
+     *      when only one flavor exists.
      */
-    function _validateVaultTarget(
+    function _validateVault(
         address vaultAddr,
-        address expectedTarget
+        address expectedTarget,
+        IRoundsVaultBaseEnums.BaseVaultType expectedType
     ) private view {
         if (vaultAddr == address(0)) return;
 
-        address actual = IERC4626MultiTokenWrapper(vaultAddr).vault();
-        if (actual != expectedTarget) {
-            revert TargetMismatch(vaultAddr, expectedTarget, actual);
+        IRoundsVaultBase v = IRoundsVaultBase(vaultAddr);
+
+        address actualTarget = v.vault();
+        if (actualTarget != expectedTarget) {
+            revert TargetMismatch(vaultAddr, expectedTarget, actualTarget);
+        }
+
+        IRoundsVaultBaseEnums.BaseVaultType actualType = v.VAULT_TYPE();
+        if (actualType != expectedType) {
+            revert VaultFlavorMismatch(vaultAddr, expectedType, actualType);
         }
     }
 }
