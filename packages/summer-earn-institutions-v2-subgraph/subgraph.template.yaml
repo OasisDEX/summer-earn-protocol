@@ -225,9 +225,6 @@ templates:
         - event: TipRateUpdated(uint256)
           handler: handleTipRateUpdated
           receipt: true
-        - event: WhitelistStatusUpdated(indexed address,bool)
-          handler: handleWhitelistStatusUpdated
-          receipt: true
       file: ./src/mappings/fleetCommander.ts
 
   - kind: ethereum/contract
@@ -408,7 +405,13 @@ templates:
         - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
           handler: handleRoleRevoked
           receipt: true
-      file: ./src/mappings/accessManagement.ts      
+        - event: WhitelistStatusUpdated(indexed address,indexed address,bool)
+          handler: handleWhitelistStatusUpdated
+          receipt: true
+        - event: WhitelistOpenUpdated(indexed address,bool)
+          handler: handleWhitelistOpenUpdated
+          receipt: true
+      file: ./src/mappings/accessManagement.ts
   - kind: ethereum/contract
     name: AdmiralsQuarters
     network: {{network}}
@@ -455,10 +458,7 @@ templates:
           file: ./abis/GovernanceRewardsManager.abi.json    
         - name: Multicall
           file: ./abis/common/Multicall.json
-      eventHandlers:
-        - event: WhitelistStatusUpdated(indexed address,bool)
-          handler: handleWhitelistStatusUpdated
-          receipt: true
+      eventHandlers: []
       file: ./src/mappings/accessManagement.ts
   - kind: ethereum/contract
     name: RoundsVaultInputTemplate

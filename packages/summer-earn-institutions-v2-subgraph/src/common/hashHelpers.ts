@@ -13,6 +13,7 @@ export const ROLE_MAP = new Map<string, string>()
   .set(getHash(RoleName.ADMIRALS_QUARTERS_ROLE), RoleName.ADMIRALS_QUARTERS_ROLE)
   .set(getHash(RoleName.FOUNDATION_ROLE), RoleName.FOUNDATION_ROLE)
   .set(getHash(RoleName.GOVERNOR_ROLE), RoleName.GOVERNOR_ROLE)
+  .set(getHash(RoleName.WHITELIST_MANAGER_ROLE), RoleName.WHITELIST_MANAGER_ROLE)
 
 export function hasRole(role: Bytes, account: Address, accessManager: Address): boolean {
   const protocolAccessControllerEntity = ProtocolAccessManager.bind(accessManager)

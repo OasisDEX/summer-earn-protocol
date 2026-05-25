@@ -22,7 +22,6 @@ import {
   Rebalanced,
   TipAccrued,
   TipRateUpdated,
-  WhitelistStatusUpdated,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { addresses } from '../common/addressProvider'
@@ -36,8 +35,6 @@ import {
 import { generateContractSpecificRole, hasRole } from '../common/hashHelpers'
 import {
   createCurationEvent,
-  createRoleEvent,
-  getOrCreateAccessController,
   getOrCreateAccount,
   getOrCreateArk,
   getOrCreatePosition,
@@ -387,28 +384,4 @@ export function handleRewardPaid(event: RewardPaid): void {
       position.save()
     }
   }
-}
-
-export function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): void {
-  const accessController = getOrCreateAccessController(event.address.toHexString())
-  // role id is: fleetAddress-accountAddress
-  const id = `${event.address.toHexString()}-${event.params.account.toHexString()}`
-
-  const role = getOrCreateRole(id)
-  role.owner = event.params.account.toHexString()
-  role.name = 'WHITELIST_ROLE'
-  role.targetContract = event.address.toHexString()
-  role.accessController = event.address.toHexString()
-  role.createdTimestamp = event.block.timestamp
-  role.createdBlockNumber = event.block.number
-  role.institution = accessController.institution
-  role.active = event.params.allowed
-  role.save()
-
-  createRoleEvent(
-    event,
-    event.params.allowed ? constants.RoleAction.GRANT_ROLE : constants.RoleAction.REVOKE_ROLE,
-    role.id,
-    accessController.institution,
-  )
 }

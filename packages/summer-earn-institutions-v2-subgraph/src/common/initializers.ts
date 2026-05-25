@@ -434,6 +434,7 @@ export function getOrCreateVault(
     vault.depositLimit = config.depositCap
     vault.minimumBufferBalance = config.minimumBufferBalance
     vault.stakingRewardsManager = ADDRESS_ZERO
+    vault.isWhitelistOpen = false
 
     vault.maxRebalanceOperations = config.maxRebalanceOperations
     vault.details = utils.readValue<string>(vaultContract.try_details(), '')

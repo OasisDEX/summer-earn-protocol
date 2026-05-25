@@ -519,6 +519,9 @@ type Vault @entity @regularPolling {
   positions: [Position!]!
   institution: Institution!
 
+  " Whether the PAM-V2 whitelist is open (i.e. anyone is treated as whitelisted) for this vault. Driven by ProtocolAccessManagerV2.setWhitelistOpen(context, isOpen). "
+  isWhitelistOpen: Boolean!
+
   " The rounds-vault pair wrapping this FleetCommander, if any "
   roundsVaultPair: RoundsVaultPair @derivedFrom(field: "targetVault")
 }
