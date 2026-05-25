@@ -111,12 +111,12 @@ async function main() {
   const fleetDefinition = await selectInstitutionFleetConfig(institutionId, useBummerConfig)
   validateToken(config, fleetDefinition.assetSymbol)
 
-  // Gate by InstitutionalVaultRegistry: institution must be registered before continuing
-  const registryAddress = config.deployedContracts.core.institutionalVaultRegistry?.address
+  // Gate by InstitutionalVaultRegistry V2: institution must be registered before continuing
+  const registryAddress = config.deployedContracts.core.institutionalVaultRegistryV2?.address
   if (!registryAddress || registryAddress == ADDRESS_ZERO) {
     console.log(
       kleur.red(
-        'InstitutionalVaultRegistry address not found in base config. Please deploy and configure it before proceeding.',
+        'InstitutionalVaultRegistry V2 address not found in base config. Please deploy and configure it before proceeding.',
       ),
     )
     return
@@ -133,7 +133,7 @@ async function main() {
     if (!exists) {
       console.log(
         kleur.red(
-          `Institution '${institutionId}' is not registered in InstitutionalVaultRegistry on this chain. Aborting fleet deployment.`,
+          `Institution '${institutionId}' is not registered in InstitutionalVaultRegistry V2 on this chain. Aborting fleet deployment.`,
         ),
       )
       return
@@ -141,7 +141,7 @@ async function main() {
   } catch (e) {
     console.error(
       kleur.red(
-        `Failed to verify institution registration in registry: ${e instanceof Error ? e.message : String(e)}`,
+        `Failed to verify institution registration in registry V2: ${e instanceof Error ? e.message : String(e)}`,
       ),
     )
     return

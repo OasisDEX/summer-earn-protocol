@@ -23,31 +23,31 @@ async function main() {
   const { owner } = await prompts({
     type: 'text',
     name: 'owner',
-    message: 'Enter owner (EOA or multisig) address for InstitutionalVaultRegistry:',
+    message: 'Enter owner (EOA or multisig) address for InstitutionalVaultRegistry V2:',
     initial: (await hre.viem.getWalletClients())[0]?.account.address,
     validate: (v) => (/^0x[a-fA-F0-9]{40}$/.test(v) ? true : 'Invalid address'),
   })
 
-  console.log(kleur.cyan().bold('Deploying InstitutionalVaultRegistry...'))
+  console.log(kleur.cyan().bold('Deploying InstitutionalVaultRegistry (v2)...'))
   const envLabel = useBummerConfig ? 'staging_' : ''
-  const moduleName = `${envLabel}InstitutionRegistry`
+  const moduleName = `${envLabel}InstitutionRegistryV2`
   const RegistryModule = createInstitutionRegistryModule(moduleName)
   const deployed = (await hre.ignition.deploy(RegistryModule, {
     parameters: { [moduleName]: { owner } },
   })) as InstitutionRegistryContracts
 
   console.log(
-    kleur.green().bold('InstitutionalVaultRegistry deployed at:'),
+    kleur.green().bold('InstitutionalVaultRegistry V2 deployed at:'),
     deployed.institutionalVaultRegistry.address,
   )
 
-  // Update the main index.json only (one registry per network)
+  // Update the main index.json only (one v2 registry per network)
   await updateIndexJson(
     'core',
     hre.network.name,
     {
       ...(config as BaseConfig).deployedContracts.core,
-      institutionalVaultRegistry: { address: deployed.institutionalVaultRegistry.address },
+      institutionalVaultRegistryV2: { address: deployed.institutionalVaultRegistry.address },
     } as any,
     useBummerConfig,
   )
