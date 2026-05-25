@@ -66,6 +66,7 @@ export namespace RoleName {
   export const ADMIRALS_QUARTERS_ROLE = 'ADMIRALS_QUARTERS_ROLE'
   export const FOUNDATION_ROLE = 'FOUNDATION_ROLE'
   export const OPERATOR_ROLE = 'OPERATOR_ROLE'
+  export const WHITELIST_MANAGER_ROLE = 'WHITELIST_MANAGER_ROLE'
 }
 
 // enum used to compute the contract specific role name
