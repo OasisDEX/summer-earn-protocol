@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ProtocolAccessManagedV2} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedV2.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IRoundsVaultBase} from "../../interfaces/rounds-vault/IRoundsVaultBase.sol";
 import {IRoundsVaultBaseEnums} from "../../interfaces/rounds-vault/IRoundsVaultBaseEnums.sol";
@@ -10,14 +10,15 @@ import {IRoundsVaultRegistry} from "../../interfaces/rounds-vault/IRoundsVaultRe
 /**
  * @title RoundsVaultRegistry
  * @notice On-chain registry of (input, output, target) tuples for institutional rounds vaults.
- * @dev    Authoritative discovery point for the rounds-vaults subgraph. Governor-gated through
- *         ProtocolAccessManagedV2 to align with the rounds-vault contracts themselves.
+ * @dev    Authoritative discovery point for the rounds-vaults subgraph. Owned by a single account
+ *         (typically the protocol multisig) because the registry is shared across institutions
+ *         while each institution operates its own ProtocolAccessManager.
  *
  *         Pairs are keyed by `keccak256(targetVault)` rather than an external id, because every
  *         FleetCommander has at most one rounds-vault pair at any time. Soft-deactivation preserves
  *         indexer history; a redeployed vault is registered as a new pair against a new target.
  */
-contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
+contract RoundsVaultRegistry is Ownable, IRoundsVaultRegistry {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -29,9 +30,7 @@ contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(
-        address accessManager
-    ) ProtocolAccessManagedV2(accessManager) {}
+    constructor(address owner) Ownable(owner) {}
 
     /*//////////////////////////////////////////////////////////////
                                   VIEW
@@ -88,7 +87,7 @@ contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
         address targetVault,
         address inputVault,
         address outputVault
-    ) external override onlyGovernor {
+    ) external override onlyOwner {
         if (targetVault == address(0)) revert TargetVaultZero();
         if (inputVault == address(0) && outputVault == address(0)) {
             revert NoVaultProvided();
@@ -123,7 +122,7 @@ contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
     function setInputVault(
         bytes32 pairId,
         address inputVault
-    ) external override onlyGovernor {
+    ) external override onlyOwner {
         if (inputVault == address(0)) revert UseClearInsteadOfZero(pairId);
 
         RoundsVaultPair storage pair = _pairs[pairId];
@@ -139,7 +138,7 @@ contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
     function setOutputVault(
         bytes32 pairId,
         address outputVault
-    ) external override onlyGovernor {
+    ) external override onlyOwner {
         if (outputVault == address(0)) revert UseClearInsteadOfZero(pairId);
 
         RoundsVaultPair storage pair = _pairs[pairId];
@@ -154,7 +153,7 @@ contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
     /// @inheritdoc IRoundsVaultRegistry
     function clearInputVault(
         bytes32 pairId
-    ) external override onlyGovernor {
+    ) external override onlyOwner {
         RoundsVaultPair storage pair = _pairs[pairId];
         if (pair.targetVault == address(0)) revert PairNotFound(pairId);
         if (pair.outputVault == address(0)) revert UpdateWouldEmptyPair(pairId);
@@ -166,7 +165,7 @@ contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
     /// @inheritdoc IRoundsVaultRegistry
     function clearOutputVault(
         bytes32 pairId
-    ) external override onlyGovernor {
+    ) external override onlyOwner {
         RoundsVaultPair storage pair = _pairs[pairId];
         if (pair.targetVault == address(0)) revert PairNotFound(pairId);
         if (pair.inputVault == address(0)) revert UpdateWouldEmptyPair(pairId);
@@ -178,7 +177,7 @@ contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
     /// @inheritdoc IRoundsVaultRegistry
     function deactivatePair(
         bytes32 pairId
-    ) external override onlyGovernor {
+    ) external override onlyOwner {
         RoundsVaultPair storage pair = _pairs[pairId];
         if (pair.targetVault == address(0)) revert PairNotFound(pairId);
         if (!pair.active) revert PairStateUnchanged(pairId);
@@ -190,7 +189,7 @@ contract RoundsVaultRegistry is ProtocolAccessManagedV2, IRoundsVaultRegistry {
     /// @inheritdoc IRoundsVaultRegistry
     function reactivatePair(
         bytes32 pairId
-    ) external override onlyGovernor {
+    ) external override onlyOwner {
         RoundsVaultPair storage pair = _pairs[pairId];
         if (pair.targetVault == address(0)) revert PairNotFound(pairId);
         if (pair.active) revert PairStateUnchanged(pairId);

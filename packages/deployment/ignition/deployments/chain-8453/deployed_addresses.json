@@ -145,5 +145,19 @@
   "ExtDemoCorp_3_FleetWhitelist_extDemo_USDC_base#FleetCommanderWhitelist": "0x8769C243D48F64595049189ef14c845281b42545",
   "ExtDemoCorp_3_RoundsVaultInput_extDemo_USDC_base#RoundsVaultInput": "0xCa24d4deaCD56db3c248fa596eAf5D1ecEb21113",
   "ExtDemoCorp_3_RoundsVaultOutput_extDemo_USDC_base#RoundsVaultOutput": "0xD1c27c2AC8832E2f53dfd60e3Fe004584158fA67",
-  "AdmiralsQuartersModule_20260422T081402616#AdmiralsQuarters": "0x2e4AC08988c3a995A290Da2655664a8dEF92675F"
+  "AdmiralsQuartersModule_20260422T081402616#AdmiralsQuarters": "0x2e4AC08988c3a995A290Da2655664a8dEF92675F",
+  "staging_InstitutionRegistryV2#InstitutionalVaultRegistry": "0x3C6203f22cf5DF38638EF65c5F212f102c5FD985",
+  "staging_RoundsVaultRegistry#RoundsVaultRegistry": "0xEfCac87eb68757b02c334095145bB15B8139Bee0",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#DutchAuctionLibrary": "0xAc90097004971a6A803F0Dc62275014411cfDa03",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#ProtocolAccessManagerV2": "0x0eF127ce2ae77e7a08Dc4Bb460e6E888E86D0459",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#ConfigurationManagerWhitelist": "0x40998DbBA04E0b85Ec2851ce77198E664Be1dcAE",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#HarborCommand": "0x43fff3FB7e97b4d2bAE41fA899dD0E49Be0497c2",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#Raft": "0x318c9C76f8d2Be642f01A873A93aDcB63fBcb5E4",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#AdmiralsQuartersWhitelist": "0x9E74A42EfBEfb2360B948DA27292346321e7bA9E",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#TipJar": "0xFde5101e748824488D458D41DB59a33C6C46907c",
+  "staging_ExtDemoCorp_v2_FleetWhitelist_extDemo_USDC_base#FleetCommanderCacheLib": "0x65eF2340245E600C84Efd64A05E0CeF6aeA2B5ab",
+  "staging_ExtDemoCorp_v2_FleetWhitelist_extDemo_USDC_base#FleetCommanderWhitelist": "0xd40Ac82b840AF6fbb5B3BE41eC820b5ff1199dF1",
+  "staging_ExtDemoCorp_v2_RoundsVaultInput_extDemo_USDC_base#RoundsVaultInput": "0xcA50F64f2693b6DB0ef676cf14Dce52C183bc178",
+  "staging_ExtDemoCorp_v2_RoundsVaultOutput_extDemo_USDC_base#RoundsVaultOutput": "0xB379b432b7819B3b3c4E0b7e6bE3A3f780815e82",
+  "staging_extDemo_USDC_base_SkyUsds_usdc_8453#SkyUsdsPsm3Ark": "0xC64D773717843D3dd4f71286ceD490073586Db6e"
 }
