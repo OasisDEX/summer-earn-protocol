@@ -4,7 +4,6 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { createRoundsVaultRegistryModule } from '../ignition/modules/rounds/rounds-vault-registry'
 import { BaseConfig } from '../types/config-types'
-import { ADDRESS_ZERO } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
@@ -15,25 +14,15 @@ async function main() {
   const useBummerConfig = await promptForConfigType()
   const config = getConfigByNetwork(
     hre.network.name,
-    { common: true, gov: true, core: true },
+    { common: true, gov: false, core: false },
     useBummerConfig,
   ) as BaseConfig
 
-  const pamAddress = config.deployedContracts.gov.protocolAccessManager?.address
-  if (!pamAddress || pamAddress === ADDRESS_ZERO) {
-    console.log(
-      kleur.red(
-        'ProtocolAccessManager address missing from gov config — deploy it before the registry.',
-      ),
-    )
-    return
-  }
-
-  const { accessManager } = await prompts({
+  const { owner } = await prompts({
     type: 'text',
-    name: 'accessManager',
-    message: 'Enter ProtocolAccessManager address that will govern RoundsVaultRegistry:',
-    initial: pamAddress,
+    name: 'owner',
+    message: 'Enter owner (EOA or multisig) address for RoundsVaultRegistry:',
+    initial: (await hre.viem.getWalletClients())[0]?.account.address,
     validate: (v) => (/^0x[a-fA-F0-9]{40}$/.test(v) ? true : 'Invalid address'),
   })
 
@@ -43,7 +32,7 @@ async function main() {
   console.log(kleur.cyan().bold('Deploying RoundsVaultRegistry...'))
   const RegistryModule = createRoundsVaultRegistryModule(moduleName)
   const deployed = (await hre.ignition.deploy(RegistryModule, {
-    parameters: { [moduleName]: { accessManager } },
+    parameters: { [moduleName]: { owner } },
   })) as { roundsVaultRegistry: { address: Address } }
 
   console.log(

@@ -449,9 +449,14 @@ const PROTOCOL_ACCESS_MANAGER_V2_ABI = parseAbi([
   'function grantOperatorRole(address fleetCommanderAddress, address account)',
   'function grantKeeperRole(address fleetCommanderAddress, address account)',
   'function grantCuratorRole(address fleetCommanderAddress, address account)',
+  'function grantCommanderRole(address arkAddress, address account)',
 ])
 
 const FLEET_COMMANDER_ABI = parseAbi(['function addArk(address ark)'])
+
+const HARBOR_COMMAND_ABI = parseAbi([
+  'function enlistFleetCommander(address fleetCommander)',
+])
 
 export function buildGrantOperatorRoleAction(
   pam: Address,
@@ -504,6 +509,23 @@ export function buildGrantCuratorRoleAction(
   }
 }
 
+export function buildGrantCommanderRoleAction(
+  pam: Address,
+  ark: Address,
+  fleetCommander: Address,
+): GovernorAction {
+  return {
+    description: `grantCommanderRole(ark=${ark}, fleet=${fleetCommander})`,
+    to: pam,
+    data: encodeFunctionData({
+      abi: PROTOCOL_ACCESS_MANAGER_V2_ABI,
+      functionName: 'grantCommanderRole',
+      args: [ark, fleetCommander],
+    }),
+    value: 0n,
+  }
+}
+
 export function buildAddArkAction(fleet: Address, ark: Address): GovernorAction {
   return {
     description: `addArk(${ark}) on fleet ${fleet}`,
@@ -512,6 +534,22 @@ export function buildAddArkAction(fleet: Address, ark: Address): GovernorAction 
       abi: FLEET_COMMANDER_ABI,
       functionName: 'addArk',
       args: [ark],
+    }),
+    value: 0n,
+  }
+}
+
+export function buildEnlistFleetAction(
+  harborCommand: Address,
+  fleet: Address,
+): GovernorAction {
+  return {
+    description: `enlistFleetCommander(${fleet}) on HarborCommand ${harborCommand}`,
+    to: harborCommand,
+    data: encodeFunctionData({
+      abi: HARBOR_COMMAND_ABI,
+      functionName: 'enlistFleetCommander',
+      args: [fleet],
     }),
     value: 0n,
   }

@@ -67,6 +67,16 @@ export class GovernorActionBatch {
     }
   }
 
+  /**
+   * Force the action onto the Safe batch regardless of `hasRole`. Use when
+   * the action is gated by an authority other than the role this batch was
+   * constructed for (e.g. an Ownable owner on a different contract).
+   */
+  enqueue(action: GovernorAction): void {
+    this.pending.push(action)
+    console.log(kleur.yellow(`⊳ captured for Safe: ${action.description}`))
+  }
+
   getPending(): GovernorAction[] {
     return this.pending.slice()
   }

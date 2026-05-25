@@ -19,10 +19,12 @@ import {
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
 } from './common/fleet-deployment-files-helpers'
-import { GovernorActionBatch } from './common/governor-actions'
+import { GovernorAction, GovernorActionBatch } from './common/governor-actions'
 import { logDeploymentResults } from './fleets/fleet-contracts'
 import {
   buildAddArkAction,
+  buildEnlistFleetAction,
+  buildGrantCommanderRoleAction,
   buildGrantCuratorRoleAction,
   buildGrantKeeperRoleAction,
   buildGrantOperatorRoleAction,
@@ -33,7 +35,19 @@ import {
 
 const ROUNDS_VAULT_REGISTRY_ABI = parseAbi([
   'function registerPair(bytes32 institutionId, address targetVault, address inputVault, address outputVault)',
+  'function getPairId(address targetVault) view returns (bytes32)',
+  'function exists(bytes32 pairId) view returns (bool)',
 ])
+
+// ContractSpecificRoles enum positions (must match access-contracts IProtocolAccessManager.sol)
+const CONTRACT_SPECIFIC_ROLES = {
+  CURATOR: 0,
+  KEEPER: 1,
+  COMMANDER: 2,
+  OPERATOR: 3,
+} as const
+
+type ContractRole = (typeof CONTRACT_SPECIFIC_ROLES)[keyof typeof CONTRACT_SPECIFIC_ROLES]
 import { getInstitutionConfigByNetwork } from './helpers/config-handler'
 import {
   getInstitutionFleetConfigDir,
@@ -338,9 +352,9 @@ async function main() {
   const additionalRouindsVaultsInfo =
     isRoundsVault && fleetDefinition.roundsVaultInput && fleetDefinition.roundsVaultOutput
       ? ({
-          roundsVaultInput: fleetDefinition.roundsVaultInput,
-          roundsVaultOutput: fleetDefinition.roundsVaultOutput,
-        } as const)
+        roundsVaultInput: fleetDefinition.roundsVaultInput,
+        roundsVaultOutput: fleetDefinition.roundsVaultOutput,
+      } as const)
       : undefined
 
   console.log(additionalRouindsVaultsInfo)
@@ -365,31 +379,144 @@ async function main() {
   ])) as boolean
 
   const pamAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
+  const fleetAddress = deployedFleet.fleetCommander.address as Address
+  const fleetCommanderRead = await hre.viem.getContractAt(
+    'FleetCommanderWhitelist' as string,
+    fleetAddress,
+  )
+
+  // Idempotency helper: returns true when `account` already holds the contract-specific role
+  // for `roleName` on `target`. Used to skip redundant grant actions when re-running the script.
+  const accountHasContractRole = async (
+    roleName: ContractRole,
+    target: Address,
+    account: Address,
+  ): Promise<boolean> => {
+    const role = (await protocolAccessManager.read.generateRole([roleName, target])) as `0x${string}`
+    return (await protocolAccessManager.read.hasRole([role, account])) as boolean
+  }
+
+  // Queue a role-grant action only if the account does not yet hold it.
+  const queueGrantIfMissing = async (
+    label: string,
+    roleName: ContractRole,
+    target: Address,
+    account: Address,
+    action: GovernorAction,
+  ) => {
+    if (await accountHasContractRole(roleName, target, account)) {
+      console.log(kleur.gray(`[skip] ${label}: already granted (target=${target}, account=${account})`))
+      return
+    }
+    await batch.runOrQueue(action)
+  }
+
   const batch = new GovernorActionBatch(
     hasGovernorRole,
     hre,
     `Fleet ${fleetDefinition.fleetName} governor actions (institution ${institutionId})`,
   )
 
-  // Role assignments — always go through the batch (executes if deployer has GOVERNOR, queues for Safe otherwise).
+  // Post-deploy sequence — order matches deploy-fleet.ts so the v2 subgraph
+  // sees events in the same order it does for non-whitelist fleets. The
+  // critical step is enlistFleetCommander on HarborCommand: the subgraph
+  // bootstraps a FleetCommanderTemplate from that event and snapshots
+  // getActiveArks() at that block, so addArk calls must precede the enlist.
+
+  // 1. Per-ark: grant COMMANDER on ark to the fleet, then addArk.
+  //    (addArk reverts unless the fleet already holds COMMANDER on the ark.)
+  for (const arkAddress of deployedArks) {
+    await queueGrantIfMissing(
+      `COMMANDER on ark ${arkAddress} for fleet`,
+      CONTRACT_SPECIFIC_ROLES.COMMANDER,
+      arkAddress as Address,
+      fleetAddress,
+      buildGrantCommanderRoleAction(pamAddress, arkAddress as Address, fleetAddress),
+    )
+
+    const arkAlreadyActive = (await fleetCommanderRead.read.isArkActiveOrBufferArk([
+      arkAddress,
+    ])) as boolean
+    if (arkAlreadyActive) {
+      console.log(kleur.gray(`[skip] addArk(${arkAddress}): already active on fleet`))
+    } else {
+      await batch.runOrQueue(buildAddArkAction(fleetAddress, arkAddress as Address))
+    }
+  }
+
+  // 2. Enlist the fleet on HarborCommand. This is what bootstraps the
+  //    FleetCommanderTemplate in the v2 subgraph — without it the fleet is
+  //    invisible to the indexer.
+  const harborCommandAddress = validateAddress(
+    config.deployedContracts.core.harborCommand?.address,
+    'institution harborCommand',
+  ) as Address
+  const harborCommandRead = await hre.viem.getContractAt(
+    'HarborCommand' as string,
+    harborCommandAddress,
+  )
+  const fleetAlreadyEnlisted = (await harborCommandRead.read.activeFleetCommanders([
+    fleetAddress,
+  ])) as boolean
+  if (fleetAlreadyEnlisted) {
+    console.log(kleur.gray(`[skip] enlistFleetCommander(${fleetAddress}): already enlisted`))
+  } else {
+    await batch.runOrQueue(buildEnlistFleetAction(harborCommandAddress, fleetAddress))
+  }
+
+  // 3. COMMANDER on bufferArk for the fleet (matches deploy-fleet.ts position
+  //    after enlist). Needed at first user deposit, not at enlist time.
+  await queueGrantIfMissing(
+    'COMMANDER on bufferArk for fleet',
+    CONTRACT_SPECIFIC_ROLES.COMMANDER,
+    bufferArkAddress as Address,
+    fleetAddress,
+    buildGrantCommanderRoleAction(pamAddress, bufferArkAddress as Address, fleetAddress),
+  )
+
+  // 4. Curator (if configured).
+  if (fleetDefinition.curator && fleetDefinition.curator !== ADDRESS_ZERO) {
+    await queueGrantIfMissing(
+      'CURATOR on fleet',
+      CONTRACT_SPECIFIC_ROLES.CURATOR,
+      fleetAddress,
+      fleetDefinition.curator as Address,
+      buildGrantCuratorRoleAction(pamAddress, fleetAddress, fleetDefinition.curator as Address),
+    )
+  }
+
+  // 5. Keeper on fleet (if configured) — whitelist-specific extension.
+  if (fleetDefinition.keeper && fleetDefinition.keeper !== ADDRESS_ZERO) {
+    await queueGrantIfMissing(
+      'KEEPER on fleet',
+      CONTRACT_SPECIFIC_ROLES.KEEPER,
+      fleetAddress,
+      fleetDefinition.keeper as Address,
+      buildGrantKeeperRoleAction(pamAddress, fleetAddress, fleetDefinition.keeper as Address),
+    )
+  }
+
+  // 6. Operator/keeper grants — whitelist-specific. For rounds-vaults flow,
+  //    the fleet operates input/output vaults; for non-rounds flow, AdmiralsQuarters
+  //    operates the fleet directly.
   if (
     fleetDefinition.operatorType === 'roundsVaults' &&
     deployedInputVault &&
     deployedOutputVault
   ) {
-    await batch.runOrQueue(
-      buildGrantOperatorRoleAction(
-        pamAddress,
-        deployedFleet.fleetCommander.address as Address,
-        deployedInputVault,
-      ),
+    await queueGrantIfMissing(
+      'OPERATOR on input rounds-vault',
+      CONTRACT_SPECIFIC_ROLES.OPERATOR,
+      fleetAddress,
+      deployedInputVault,
+      buildGrantOperatorRoleAction(pamAddress, fleetAddress, deployedInputVault),
     )
-    await batch.runOrQueue(
-      buildGrantOperatorRoleAction(
-        pamAddress,
-        deployedFleet.fleetCommander.address as Address,
-        deployedOutputVault,
-      ),
+    await queueGrantIfMissing(
+      'OPERATOR on output rounds-vault',
+      CONTRACT_SPECIFIC_ROLES.OPERATOR,
+      fleetAddress,
+      deployedOutputVault,
+      buildGrantOperatorRoleAction(pamAddress, fleetAddress, deployedOutputVault),
     )
 
     const keeperToGrant =
@@ -397,10 +524,18 @@ async function main() {
         ? (fleetDefinition.keeper as Address)
         : (deployer.account.address as Address)
 
-    await batch.runOrQueue(
+    await queueGrantIfMissing(
+      'KEEPER on input rounds-vault',
+      CONTRACT_SPECIFIC_ROLES.KEEPER,
+      deployedInputVault,
+      keeperToGrant,
       buildGrantKeeperRoleAction(pamAddress, deployedInputVault, keeperToGrant),
     )
-    await batch.runOrQueue(
+    await queueGrantIfMissing(
+      'KEEPER on output rounds-vault',
+      CONTRACT_SPECIFIC_ROLES.KEEPER,
+      deployedOutputVault,
+      keeperToGrant,
       buildGrantKeeperRoleAction(pamAddress, deployedOutputVault, keeperToGrant),
     )
   } else {
@@ -408,38 +543,12 @@ async function main() {
       config.deployedContracts.core.admiralsQuarters?.address,
       'institution admiralsQuarters',
     )
-    await batch.runOrQueue(
-      buildGrantOperatorRoleAction(
-        pamAddress,
-        deployedFleet.fleetCommander.address as Address,
-        aqAddress as Address,
-      ),
-    )
-  }
-
-  // Add each deployed Ark to the fleet (also a governor action on the fleet itself).
-  for (const arkAddress of deployedArks) {
-    await batch.runOrQueue(
-      buildAddArkAction(deployedFleet.fleetCommander.address as Address, arkAddress as Address),
-    )
-  }
-
-  if (fleetDefinition.curator && fleetDefinition.curator !== ADDRESS_ZERO) {
-    await batch.runOrQueue(
-      buildGrantCuratorRoleAction(
-        pamAddress,
-        deployedFleet.fleetCommander.address as Address,
-        fleetDefinition.curator as Address,
-      ),
-    )
-  }
-  if (fleetDefinition.keeper && fleetDefinition.keeper !== ADDRESS_ZERO) {
-    await batch.runOrQueue(
-      buildGrantKeeperRoleAction(
-        pamAddress,
-        deployedFleet.fleetCommander.address as Address,
-        fleetDefinition.keeper as Address,
-      ),
+    await queueGrantIfMissing(
+      'OPERATOR for AdmiralsQuarters on fleet',
+      CONTRACT_SPECIFIC_ROLES.OPERATOR,
+      fleetAddress,
+      aqAddress as Address,
+      buildGrantOperatorRoleAction(pamAddress, fleetAddress, aqAddress as Address),
     )
   }
 
@@ -464,21 +573,78 @@ async function main() {
       institutionId,
     ])) as `0x${string}`
 
-    await batch.runOrQueue({
-      description: `registerPair(${institutionId}, fleet=${deployedFleet.fleetCommander.address})`,
-      to: roundsRegistryAddress as Address,
-      data: encodeFunctionData({
-        abi: ROUNDS_VAULT_REGISTRY_ABI,
-        functionName: 'registerPair',
-        args: [
-          institutionIdBytes32,
-          deployedFleet.fleetCommander.address as Address,
-          deployedInputVault,
-          deployedOutputVault,
-        ],
-      }),
-      value: 0n,
-    })
+    // Idempotency: skip if the (target, input, output) pair is already registered.
+    const roundsRegistryRead = await hre.viem.getContractAt(
+      'RoundsVaultRegistry' as string,
+      roundsRegistryAddress as Address,
+    )
+    const pairId = (await roundsRegistryRead.read.getPairId([fleetAddress])) as `0x${string}`
+    const pairAlreadyExists = (await roundsRegistryRead.read.exists([pairId])) as boolean
+
+    if (pairAlreadyExists) {
+      console.log(
+        kleur.gray(`[skip] registerPair(target=${fleetAddress}): pair already exists in RoundsVaultRegistry`),
+      )
+    } else {
+      // registerPair is gated by RoundsVaultRegistry's Ownable owner — NOT the institution PAM governor —
+      // so the batch's `hasGovernorRole` flag does not apply here. Resolve the owner directly.
+      const roundsRegistryOwner = (await roundsRegistryRead.read.owner()) as Address
+      const deployers = await hre.viem.getWalletClients()
+      const deployerThatOwnsRegistry = deployers.find(
+        (d) => d.account.address.toLowerCase() === roundsRegistryOwner.toLowerCase(),
+      )
+
+      const registerPairAction: GovernorAction = {
+        description: `registerPair(${institutionId}, fleet=${fleetAddress})`,
+        to: roundsRegistryAddress as Address,
+        data: encodeFunctionData({
+          abi: ROUNDS_VAULT_REGISTRY_ABI,
+          functionName: 'registerPair',
+          args: [
+            institutionIdBytes32,
+            fleetAddress,
+            deployedInputVault,
+            deployedOutputVault,
+          ],
+        }),
+        value: 0n,
+      }
+
+      if (deployerThatOwnsRegistry) {
+        const publicClient = await hre.viem.getPublicClient()
+        const hash = await deployerThatOwnsRegistry.sendTransaction({
+          to: registerPairAction.to,
+          data: registerPairAction.data,
+          value: registerPairAction.value,
+        })
+        await publicClient.waitForTransactionReceipt({ hash })
+        console.log(kleur.green(`✓ ${registerPairAction.description}`))
+      } else {
+        console.log(
+          kleur
+            .yellow()
+            .bold(
+              `⚠ Pair not registered on RoundsVaultRegistry yet, and no local wallet matches the registry owner.`,
+            ),
+        )
+        console.log(
+          kleur.yellow(
+            `  RoundsVaultRegistry @ ${roundsRegistryAddress} owner: ${roundsRegistryOwner}`,
+          ),
+        )
+        console.log(
+          kleur.yellow(
+            `  Local deployers: ${deployers.map((d) => d.account.address).join(', ') || '(none)'}`,
+          ),
+        )
+        console.log(
+          kleur.yellow(
+            `  Capturing registerPair into the Safe batch — the registry owner must import the JSON to finish wiring.`,
+          ),
+        )
+        batch.enqueue(registerPairAction)
+      }
+    }
   }
 
   // Emit Safe Transaction Builder JSON if anything was queued (deployer lacked GOVERNOR_ROLE).
@@ -495,7 +661,7 @@ async function main() {
     console.log(
       kleur.yellow().bold(
         `${pendingActions.length} governor actions captured for Safe. Import into the Safe UI ` +
-          `(Apps → Transaction Builder → Load): ${written}`,
+        `(Apps → Transaction Builder → Load): ${written}`,
       ),
     )
   } else {

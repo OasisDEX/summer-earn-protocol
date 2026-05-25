@@ -6,8 +6,7 @@ import {IRoundsVaultBaseEnums} from "../../src/interfaces/rounds-vault/IRoundsVa
 import {IRoundsVaultRegistry} from "../../src/interfaces/rounds-vault/IRoundsVaultRegistry.sol";
 import {IRoundsVaultRegistryErrors} from "../../src/interfaces/rounds-vault/IRoundsVaultRegistryErrors.sol";
 import {IRoundsVaultRegistryEvents} from "../../src/interfaces/rounds-vault/IRoundsVaultRegistryEvents.sol";
-import {MockAccessManager} from "../mocks/MockAccessManager.sol";
-import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Test} from "forge-std/Test.sol";
 
 /// @dev Flavor-aware stand-in for a RoundsVaultInput. Exposes `vault()` and `VAULT_TYPE()`.
@@ -38,10 +37,9 @@ contract RoundsVaultRegistryTest is
     IRoundsVaultRegistryEvents
 {
     RoundsVaultRegistry internal registry;
-    MockAccessManager internal accessManager;
 
-    address internal governor = address(0xC0);
-    address internal nonGovernor = address(0xBAD);
+    address internal owner = address(0xC0);
+    address internal nonOwner = address(0xBAD);
     address internal targetA = address(0xA);
     address internal targetB = address(0xB);
 
@@ -54,10 +52,7 @@ contract RoundsVaultRegistryTest is
     OutputVaultStub internal outputB;
 
     function setUp() public {
-        accessManager = new MockAccessManager();
-        accessManager.grantRole(accessManager.GOVERNOR_ROLE(), governor);
-
-        registry = new RoundsVaultRegistry(address(accessManager));
+        registry = new RoundsVaultRegistry(owner);
 
         inputA = new InputVaultStub(targetA);
         outputA = new OutputVaultStub(targetA);
@@ -81,7 +76,7 @@ contract RoundsVaultRegistryTest is
             address(outputA)
         );
 
-        vm.prank(governor);
+        vm.prank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
 
         IRoundsVaultRegistry.RoundsVaultPair memory stored = registry.getPair(expectedPairId);
@@ -97,39 +92,39 @@ contract RoundsVaultRegistryTest is
     }
 
     function test_RegisterPair_OnlyInput() public {
-        vm.prank(governor);
+        vm.prank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(0));
         assertEq(registry.getPairByTarget(targetA).outputVault, address(0));
     }
 
     function test_RegisterPair_OnlyOutput() public {
-        vm.prank(governor);
+        vm.prank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(0), address(outputA));
         assertEq(registry.getPairByTarget(targetA).inputVault, address(0));
     }
 
-    function test_RegisterPair_RevertWhen_NonGovernor() public {
+    function test_RegisterPair_RevertWhen_NonOwner() public {
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControlErrors.CallerIsNotGovernor.selector, nonGovernor)
+            abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner)
         );
-        vm.prank(nonGovernor);
+        vm.prank(nonOwner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
     }
 
     function test_RegisterPair_RevertWhen_TargetZero() public {
         vm.expectRevert(TargetVaultZero.selector);
-        vm.prank(governor);
+        vm.prank(owner);
         registry.registerPair(INSTITUTION_X, address(0), address(inputA), address(outputA));
     }
 
     function test_RegisterPair_RevertWhen_BothVaultsZero() public {
         vm.expectRevert(NoVaultProvided.selector);
-        vm.prank(governor);
+        vm.prank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(0), address(0));
     }
 
     function test_RegisterPair_RevertWhen_AlreadyExists() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
 
         bytes32 pairId = registry.getPairId(targetA);
@@ -143,7 +138,7 @@ contract RoundsVaultRegistryTest is
         vm.expectRevert(
             abi.encodeWithSelector(TargetMismatch.selector, address(inputB), targetA, targetB)
         );
-        vm.prank(governor);
+        vm.prank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputB), address(outputA));
     }
 
@@ -151,7 +146,7 @@ contract RoundsVaultRegistryTest is
         vm.expectRevert(
             abi.encodeWithSelector(TargetMismatch.selector, address(outputB), targetA, targetB)
         );
-        vm.prank(governor);
+        vm.prank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputB));
     }
 
@@ -166,7 +161,7 @@ contract RoundsVaultRegistryTest is
                 IRoundsVaultBaseEnums.BaseVaultType.Output
             )
         );
-        vm.prank(governor);
+        vm.prank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(badInput), address(outputA));
     }
 
@@ -180,12 +175,12 @@ contract RoundsVaultRegistryTest is
                 IRoundsVaultBaseEnums.BaseVaultType.Input
             )
         );
-        vm.prank(governor);
+        vm.prank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(badOutput));
     }
 
     function test_RegisterPair_MultiplePairsAccumulate() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         registry.registerPair(INSTITUTION_Y, targetB, address(inputB), address(outputB));
         vm.stopPrank();
@@ -200,7 +195,7 @@ contract RoundsVaultRegistryTest is
     //////////////////////////////////////////////////////////////*/
 
     function test_SetInputVault_Happy_FillInMissingSide() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(0), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -215,7 +210,7 @@ contract RoundsVaultRegistryTest is
     }
 
     function test_SetInputVault_Happy_ReplaceExisting() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
         InputVaultStub freshInput = new InputVaultStub(targetA);
@@ -227,7 +222,7 @@ contract RoundsVaultRegistryTest is
     }
 
     function test_SetInputVault_RevertWhen_Zero() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -239,12 +234,12 @@ contract RoundsVaultRegistryTest is
     function test_SetInputVault_RevertWhen_NotFound() public {
         bytes32 pairId = registry.getPairId(targetA);
         vm.expectRevert(abi.encodeWithSelector(PairNotFound.selector, pairId));
-        vm.prank(governor);
+        vm.prank(owner);
         registry.setInputVault(pairId, address(inputA));
     }
 
     function test_SetInputVault_RevertWhen_TargetMismatch() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -256,7 +251,7 @@ contract RoundsVaultRegistryTest is
     }
 
     function test_SetInputVault_RevertWhen_FlavorMismatch() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -273,15 +268,15 @@ contract RoundsVaultRegistryTest is
         vm.stopPrank();
     }
 
-    function test_SetInputVault_RevertWhen_NonGovernor() public {
-        vm.prank(governor);
+    function test_SetInputVault_RevertWhen_NonOwner() public {
+        vm.prank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControlErrors.CallerIsNotGovernor.selector, nonGovernor)
+            abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner)
         );
-        vm.prank(nonGovernor);
+        vm.prank(nonOwner);
         registry.setInputVault(pairId, address(inputA));
     }
 
@@ -290,7 +285,7 @@ contract RoundsVaultRegistryTest is
     //////////////////////////////////////////////////////////////*/
 
     function test_SetOutputVault_Happy_FillInMissingSide() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(0));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -303,7 +298,7 @@ contract RoundsVaultRegistryTest is
     }
 
     function test_SetOutputVault_RevertWhen_FlavorMismatch() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -320,7 +315,7 @@ contract RoundsVaultRegistryTest is
     }
 
     function test_SetOutputVault_RevertWhen_Zero() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -334,7 +329,7 @@ contract RoundsVaultRegistryTest is
     //////////////////////////////////////////////////////////////*/
 
     function test_ClearInputVault_Happy() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -347,7 +342,7 @@ contract RoundsVaultRegistryTest is
     }
 
     function test_ClearInputVault_RevertWhen_OutputAlreadyEmpty() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(0));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -357,7 +352,7 @@ contract RoundsVaultRegistryTest is
     }
 
     function test_ClearOutputVault_Happy() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -370,7 +365,7 @@ contract RoundsVaultRegistryTest is
     }
 
     function test_ClearOutputVault_RevertWhen_InputAlreadyEmpty() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(0), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -379,15 +374,15 @@ contract RoundsVaultRegistryTest is
         vm.stopPrank();
     }
 
-    function test_ClearInputVault_RevertWhen_NonGovernor() public {
-        vm.prank(governor);
+    function test_ClearInputVault_RevertWhen_NonOwner() public {
+        vm.prank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControlErrors.CallerIsNotGovernor.selector, nonGovernor)
+            abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner)
         );
-        vm.prank(nonGovernor);
+        vm.prank(nonOwner);
         registry.clearInputVault(pairId);
     }
 
@@ -396,7 +391,7 @@ contract RoundsVaultRegistryTest is
     //////////////////////////////////////////////////////////////*/
 
     function test_DeactivateThenReactivate_Flow() public {
-        vm.startPrank(governor);
+        vm.startPrank(owner);
         registry.registerPair(INSTITUTION_X, targetA, address(inputA), address(outputA));
         bytes32 pairId = registry.getPairId(targetA);
 
@@ -421,7 +416,7 @@ contract RoundsVaultRegistryTest is
     function test_Deactivate_RevertWhen_NotFound() public {
         bytes32 pairId = registry.getPairId(targetA);
         vm.expectRevert(abi.encodeWithSelector(PairNotFound.selector, pairId));
-        vm.prank(governor);
+        vm.prank(owner);
         registry.deactivatePair(pairId);
     }
 
