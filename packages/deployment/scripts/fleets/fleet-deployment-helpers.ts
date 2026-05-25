@@ -3,7 +3,8 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
-import { Address, encodePacked, keccak256 } from 'viem'
+import { Address, encodeFunctionData, encodePacked, keccak256, parseAbi } from 'viem'
+import { GovernorAction } from '../common/governor-actions'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { deployArk } from '../common/ark-deployment'
 import { getGovernorClient } from '../common/governance-utils'
@@ -438,4 +439,80 @@ export async function promptForFleetDeploymentOutput(
   console.log(kleur.green(`Selected fleet deployment: ${path.basename(selectedFleet)}`))
 
   return selectedFleet
+}
+
+/*//////////////////////////////////////////////////////////////
+                  SAFE-TX ACTION BUILDERS
+//////////////////////////////////////////////////////////////*/
+
+const PROTOCOL_ACCESS_MANAGER_V2_ABI = parseAbi([
+  'function grantOperatorRole(address fleetCommanderAddress, address account)',
+  'function grantKeeperRole(address fleetCommanderAddress, address account)',
+  'function grantCuratorRole(address fleetCommanderAddress, address account)',
+])
+
+const FLEET_COMMANDER_ABI = parseAbi(['function addArk(address ark)'])
+
+export function buildGrantOperatorRoleAction(
+  pam: Address,
+  fleet: Address,
+  operator: Address,
+): GovernorAction {
+  return {
+    description: `grantOperatorRole(${fleet}, ${operator})`,
+    to: pam,
+    data: encodeFunctionData({
+      abi: PROTOCOL_ACCESS_MANAGER_V2_ABI,
+      functionName: 'grantOperatorRole',
+      args: [fleet, operator],
+    }),
+    value: 0n,
+  }
+}
+
+export function buildGrantKeeperRoleAction(
+  pam: Address,
+  fleet: Address,
+  keeper: Address,
+): GovernorAction {
+  return {
+    description: `grantKeeperRole(${fleet}, ${keeper})`,
+    to: pam,
+    data: encodeFunctionData({
+      abi: PROTOCOL_ACCESS_MANAGER_V2_ABI,
+      functionName: 'grantKeeperRole',
+      args: [fleet, keeper],
+    }),
+    value: 0n,
+  }
+}
+
+export function buildGrantCuratorRoleAction(
+  pam: Address,
+  fleet: Address,
+  curator: Address,
+): GovernorAction {
+  return {
+    description: `grantCuratorRole(${fleet}, ${curator})`,
+    to: pam,
+    data: encodeFunctionData({
+      abi: PROTOCOL_ACCESS_MANAGER_V2_ABI,
+      functionName: 'grantCuratorRole',
+      args: [fleet, curator],
+    }),
+    value: 0n,
+  }
+}
+
+export function buildAddArkAction(fleet: Address, ark: Address): GovernorAction {
+  return {
+    description: `addArk(${ark}) on fleet ${fleet}`,
+    to: fleet,
+    data: encodeFunctionData({
+      abi: FLEET_COMMANDER_ABI,
+      functionName: 'addArk',
+      args: [ark],
+    }),
+    value: 0n,
+  }
 }
