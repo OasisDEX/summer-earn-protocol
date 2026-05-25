@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
-import { Address, getAddress, Address as ViemAddress } from 'viem'
+import { Address, encodeFunctionData, getAddress, parseAbi, Address as ViemAddress } from 'viem'
 import {
   createFleetWhitelistModule,
   FleetWhitelistContracts,
@@ -19,15 +19,21 @@ import {
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
 } from './common/fleet-deployment-files-helpers'
+import { GovernorActionBatch } from './common/governor-actions'
 import { logDeploymentResults } from './fleets/fleet-contracts'
 import {
+  buildAddArkAction,
+  buildGrantCuratorRoleAction,
+  buildGrantKeeperRoleAction,
+  buildGrantOperatorRoleAction,
   deployArks,
   getRewardsManagerAddress,
-  grantCuratorRole,
-  grantKeeperRole,
-  grantOperatorRole,
   setupFleetRewards,
 } from './fleets/fleet-deployment-helpers'
+
+const ROUNDS_VAULT_REGISTRY_ABI = parseAbi([
+  'function registerPair(bytes32 institutionId, address targetVault, address inputVault, address outputVault)',
+])
 import { getInstitutionConfigByNetwork } from './helpers/config-handler'
 import {
   getInstitutionFleetConfigDir,
@@ -353,93 +359,147 @@ async function main() {
     config.deployedContracts.gov.protocolAccessManager.address as Address,
   )
   const [deployer] = await hre.viem.getWalletClients()
-  const hasGovernorRole = await protocolAccessManager.read.hasRole([
+  const hasGovernorRole = (await protocolAccessManager.read.hasRole([
     GOVERNOR_ROLE,
     deployer.account.address,
-  ])
+  ])) as boolean
 
-  if (hasGovernorRole) {
-    // Role assignments based on operatorType
-    if (
-      fleetDefinition.operatorType === 'roundsVaults' &&
-      deployedInputVault &&
-      deployedOutputVault
-    ) {
-      // Grant operator role to Input/Output vaults
-      await grantOperatorRole(
-        config.deployedContracts.gov.protocolAccessManager.address as Address,
+  const pamAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
+  const batch = new GovernorActionBatch(
+    hasGovernorRole,
+    hre,
+    `Fleet ${fleetDefinition.fleetName} governor actions (institution ${institutionId})`,
+  )
+
+  // Role assignments — always go through the batch (executes if deployer has GOVERNOR, queues for Safe otherwise).
+  if (
+    fleetDefinition.operatorType === 'roundsVaults' &&
+    deployedInputVault &&
+    deployedOutputVault
+  ) {
+    await batch.runOrQueue(
+      buildGrantOperatorRoleAction(
+        pamAddress,
         deployedFleet.fleetCommander.address as Address,
         deployedInputVault,
-        hre,
-      )
-      await grantOperatorRole(
-        config.deployedContracts.gov.protocolAccessManager.address as Address,
-        deployedFleet.fleetCommander.address as Address,
-        deployedOutputVault,
-        hre,
-      )
-
-      // Grant keeper role to Input/Output vaults for their own operations
-      const keeperToGrant =
-        fleetDefinition.keeper && fleetDefinition.keeper !== ADDRESS_ZERO
-          ? (fleetDefinition.keeper as Address)
-          : (deployer.account.address as Address)
-
-      await grantKeeperRole(
-        config.deployedContracts.gov.protocolAccessManager.address as Address,
-        deployedInputVault,
-        keeperToGrant,
-        hre,
-      )
-      await grantKeeperRole(
-        config.deployedContracts.gov.protocolAccessManager.address as Address,
-        deployedOutputVault,
-        keeperToGrant,
-        hre,
-      )
-    } else {
-      // operatorType === 'admiralsQuarters'
-      // Grant operator role to AdmiralsQuarters contract
-      const aqAddress = validateAddress(
-        config.deployedContracts.core.admiralsQuarters?.address,
-        'institution admiralsQuarters',
-      )
-      await grantOperatorRole(
-        config.deployedContracts.gov.protocolAccessManager.address as Address,
-        deployedFleet.fleetCommander.address as Address,
-        aqAddress,
-        hre,
-      )
-    }
-
-    // Use unified helper to grant role, add ark to fleet, and update deployment JSON
-    for (const arkAddress of deployedArks) {
-      await addArkToFleet(arkAddress as Address, config, hre, fleetDefinition)
-    }
-
-    // Grant curator role if curator is specified
-    if (fleetDefinition.curator && fleetDefinition.curator !== ADDRESS_ZERO) {
-      await grantCuratorRole(
-        config.deployedContracts.gov.protocolAccessManager.address as Address,
-        deployedFleet.fleetCommander.address as Address,
-        fleetDefinition.curator as Address,
-        hre,
-      )
-    }
-    if (fleetDefinition.keeper && fleetDefinition.keeper !== ADDRESS_ZERO) {
-      await grantKeeperRole(
-        config.deployedContracts.gov.protocolAccessManager.address as Address,
-        deployedFleet.fleetCommander.address as Address,
-        fleetDefinition.keeper as Address,
-        hre,
-      )
-    }
-  } else {
-    console.log(
-      kleur.yellow(
-        'Deployer does not have governor role. Please run governance flow to enlist fleet and grant commander roles.',
       ),
     )
+    await batch.runOrQueue(
+      buildGrantOperatorRoleAction(
+        pamAddress,
+        deployedFleet.fleetCommander.address as Address,
+        deployedOutputVault,
+      ),
+    )
+
+    const keeperToGrant =
+      fleetDefinition.keeper && fleetDefinition.keeper !== ADDRESS_ZERO
+        ? (fleetDefinition.keeper as Address)
+        : (deployer.account.address as Address)
+
+    await batch.runOrQueue(
+      buildGrantKeeperRoleAction(pamAddress, deployedInputVault, keeperToGrant),
+    )
+    await batch.runOrQueue(
+      buildGrantKeeperRoleAction(pamAddress, deployedOutputVault, keeperToGrant),
+    )
+  } else {
+    const aqAddress = validateAddress(
+      config.deployedContracts.core.admiralsQuarters?.address,
+      'institution admiralsQuarters',
+    )
+    await batch.runOrQueue(
+      buildGrantOperatorRoleAction(
+        pamAddress,
+        deployedFleet.fleetCommander.address as Address,
+        aqAddress as Address,
+      ),
+    )
+  }
+
+  // Add each deployed Ark to the fleet (also a governor action on the fleet itself).
+  for (const arkAddress of deployedArks) {
+    await batch.runOrQueue(
+      buildAddArkAction(deployedFleet.fleetCommander.address as Address, arkAddress as Address),
+    )
+  }
+
+  if (fleetDefinition.curator && fleetDefinition.curator !== ADDRESS_ZERO) {
+    await batch.runOrQueue(
+      buildGrantCuratorRoleAction(
+        pamAddress,
+        deployedFleet.fleetCommander.address as Address,
+        fleetDefinition.curator as Address,
+      ),
+    )
+  }
+  if (fleetDefinition.keeper && fleetDefinition.keeper !== ADDRESS_ZERO) {
+    await batch.runOrQueue(
+      buildGrantKeeperRoleAction(
+        pamAddress,
+        deployedFleet.fleetCommander.address as Address,
+        fleetDefinition.keeper as Address,
+      ),
+    )
+  }
+
+  // Register the rounds-vault pair so the subgraph can discover it.
+  if (
+    fleetDefinition.operatorType === 'roundsVaults' &&
+    deployedInputVault &&
+    deployedOutputVault
+  ) {
+    const roundsRegistryAddress = config.deployedContracts.core.roundsVaultRegistry?.address
+    if (!roundsRegistryAddress || roundsRegistryAddress === ADDRESS_ZERO) {
+      throw new Error(
+        'roundsVaultRegistry not deployed for this network — run `pnpm deploy:rounds-vault-registry` first.',
+      )
+    }
+
+    const institutionRegistry = await hre.viem.getContractAt(
+      'InstitutionalVaultRegistry' as string,
+      registryAddress as Address,
+    )
+    const institutionIdBytes32 = (await institutionRegistry.read.getBytes32InstitutionId([
+      institutionId,
+    ])) as `0x${string}`
+
+    await batch.runOrQueue({
+      description: `registerPair(${institutionId}, fleet=${deployedFleet.fleetCommander.address})`,
+      to: roundsRegistryAddress as Address,
+      data: encodeFunctionData({
+        abi: ROUNDS_VAULT_REGISTRY_ABI,
+        functionName: 'registerPair',
+        args: [
+          institutionIdBytes32,
+          deployedFleet.fleetCommander.address as Address,
+          deployedInputVault,
+          deployedOutputVault,
+        ],
+      }),
+      value: 0n,
+    })
+  }
+
+  // Emit Safe Transaction Builder JSON if anything was queued (deployer lacked GOVERNOR_ROLE).
+  const publicClient = await hre.viem.getPublicClient()
+  const pendingActions = batch.getPending()
+  if (pendingActions.length > 0) {
+    const chainId = await publicClient.getChainId()
+    const outRel = path.join(
+      'scripts',
+      'output',
+      `pending-governor-actions-${network}-${institutionId}-${fleetDefinition.fleetName.replace(/\W/g, '')}.json`,
+    )
+    const written = await batch.writeSafeBatch(outRel, Number(chainId))
+    console.log(
+      kleur.yellow().bold(
+        `${pendingActions.length} governor actions captured for Safe. Import into the Safe UI ` +
+          `(Apps → Transaction Builder → Load): ${written}`,
+      ),
+    )
+  } else {
+    console.log(kleur.green().bold('All deployment + governor actions executed on-chain.'))
   }
 
   // Optional rewards setup
