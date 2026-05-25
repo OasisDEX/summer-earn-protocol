@@ -23,6 +23,7 @@ import { GovernorAction, GovernorActionBatch } from './common/governor-actions'
 import { logDeploymentResults } from './fleets/fleet-contracts'
 import {
   buildAddArkAction,
+  buildEnlistFleetAction,
   buildGrantCommanderRoleAction,
   buildGrantCuratorRoleAction,
   buildGrantKeeperRoleAction,
@@ -416,7 +417,88 @@ async function main() {
     `Fleet ${fleetDefinition.fleetName} governor actions (institution ${institutionId})`,
   )
 
-  // Role assignments — always go through the batch (executes if deployer has GOVERNOR, queues for Safe otherwise).
+  // Post-deploy sequence — order matches deploy-fleet.ts so the v2 subgraph
+  // sees events in the same order it does for non-whitelist fleets. The
+  // critical step is enlistFleetCommander on HarborCommand: the subgraph
+  // bootstraps a FleetCommanderTemplate from that event and snapshots
+  // getActiveArks() at that block, so addArk calls must precede the enlist.
+
+  // 1. Per-ark: grant COMMANDER on ark to the fleet, then addArk.
+  //    (addArk reverts unless the fleet already holds COMMANDER on the ark.)
+  for (const arkAddress of deployedArks) {
+    await queueGrantIfMissing(
+      `COMMANDER on ark ${arkAddress} for fleet`,
+      CONTRACT_SPECIFIC_ROLES.COMMANDER,
+      arkAddress as Address,
+      fleetAddress,
+      buildGrantCommanderRoleAction(pamAddress, arkAddress as Address, fleetAddress),
+    )
+
+    const arkAlreadyActive = (await fleetCommanderRead.read.isArkActiveOrBufferArk([
+      arkAddress,
+    ])) as boolean
+    if (arkAlreadyActive) {
+      console.log(kleur.gray(`[skip] addArk(${arkAddress}): already active on fleet`))
+    } else {
+      await batch.runOrQueue(buildAddArkAction(fleetAddress, arkAddress as Address))
+    }
+  }
+
+  // 2. Enlist the fleet on HarborCommand. This is what bootstraps the
+  //    FleetCommanderTemplate in the v2 subgraph — without it the fleet is
+  //    invisible to the indexer.
+  const harborCommandAddress = validateAddress(
+    config.deployedContracts.core.harborCommand?.address,
+    'institution harborCommand',
+  ) as Address
+  const harborCommandRead = await hre.viem.getContractAt(
+    'HarborCommand' as string,
+    harborCommandAddress,
+  )
+  const fleetAlreadyEnlisted = (await harborCommandRead.read.activeFleetCommanders([
+    fleetAddress,
+  ])) as boolean
+  if (fleetAlreadyEnlisted) {
+    console.log(kleur.gray(`[skip] enlistFleetCommander(${fleetAddress}): already enlisted`))
+  } else {
+    await batch.runOrQueue(buildEnlistFleetAction(harborCommandAddress, fleetAddress))
+  }
+
+  // 3. COMMANDER on bufferArk for the fleet (matches deploy-fleet.ts position
+  //    after enlist). Needed at first user deposit, not at enlist time.
+  await queueGrantIfMissing(
+    'COMMANDER on bufferArk for fleet',
+    CONTRACT_SPECIFIC_ROLES.COMMANDER,
+    bufferArkAddress as Address,
+    fleetAddress,
+    buildGrantCommanderRoleAction(pamAddress, bufferArkAddress as Address, fleetAddress),
+  )
+
+  // 4. Curator (if configured).
+  if (fleetDefinition.curator && fleetDefinition.curator !== ADDRESS_ZERO) {
+    await queueGrantIfMissing(
+      'CURATOR on fleet',
+      CONTRACT_SPECIFIC_ROLES.CURATOR,
+      fleetAddress,
+      fleetDefinition.curator as Address,
+      buildGrantCuratorRoleAction(pamAddress, fleetAddress, fleetDefinition.curator as Address),
+    )
+  }
+
+  // 5. Keeper on fleet (if configured) — whitelist-specific extension.
+  if (fleetDefinition.keeper && fleetDefinition.keeper !== ADDRESS_ZERO) {
+    await queueGrantIfMissing(
+      'KEEPER on fleet',
+      CONTRACT_SPECIFIC_ROLES.KEEPER,
+      fleetAddress,
+      fleetDefinition.keeper as Address,
+      buildGrantKeeperRoleAction(pamAddress, fleetAddress, fleetDefinition.keeper as Address),
+    )
+  }
+
+  // 6. Operator/keeper grants — whitelist-specific. For rounds-vaults flow,
+  //    the fleet operates input/output vaults; for non-rounds flow, AdmiralsQuarters
+  //    operates the fleet directly.
   if (
     fleetDefinition.operatorType === 'roundsVaults' &&
     deployedInputVault &&
@@ -467,55 +549,6 @@ async function main() {
       fleetAddress,
       aqAddress as Address,
       buildGrantOperatorRoleAction(pamAddress, fleetAddress, aqAddress as Address),
-    )
-  }
-
-  // Buffer ark needs COMMANDER_ROLE so the fleet can drive it (matches deploy-fleet.ts).
-  await queueGrantIfMissing(
-    'COMMANDER on bufferArk for fleet',
-    CONTRACT_SPECIFIC_ROLES.COMMANDER,
-    bufferArkAddress as Address,
-    fleetAddress,
-    buildGrantCommanderRoleAction(pamAddress, bufferArkAddress as Address, fleetAddress),
-  )
-
-  // For each deployed Ark: grant COMMANDER_ROLE to the fleet FIRST, then addArk
-  // (addArk reverts if the fleet does not yet hold COMMANDER_ROLE on the ark).
-  for (const arkAddress of deployedArks) {
-    await queueGrantIfMissing(
-      `COMMANDER on ark ${arkAddress} for fleet`,
-      CONTRACT_SPECIFIC_ROLES.COMMANDER,
-      arkAddress as Address,
-      fleetAddress,
-      buildGrantCommanderRoleAction(pamAddress, arkAddress as Address, fleetAddress),
-    )
-
-    const arkAlreadyActive = (await fleetCommanderRead.read.isArkActiveOrBufferArk([
-      arkAddress,
-    ])) as boolean
-    if (arkAlreadyActive) {
-      console.log(kleur.gray(`[skip] addArk(${arkAddress}): already active on fleet`))
-    } else {
-      await batch.runOrQueue(buildAddArkAction(fleetAddress, arkAddress as Address))
-    }
-  }
-
-  if (fleetDefinition.curator && fleetDefinition.curator !== ADDRESS_ZERO) {
-    await queueGrantIfMissing(
-      'CURATOR on fleet',
-      CONTRACT_SPECIFIC_ROLES.CURATOR,
-      fleetAddress,
-      fleetDefinition.curator as Address,
-      buildGrantCuratorRoleAction(pamAddress, fleetAddress, fleetDefinition.curator as Address),
-    )
-  }
-  if (fleetDefinition.keeper && fleetDefinition.keeper !== ADDRESS_ZERO) {
-    await queueGrantIfMissing(
-      'KEEPER on fleet',
-      CONTRACT_SPECIFIC_ROLES.KEEPER,
-      fleetAddress,
-      fleetDefinition.keeper as Address,
-      buildGrantKeeperRoleAction(pamAddress, fleetAddress, fleetDefinition.keeper as Address),
     )
   }
 

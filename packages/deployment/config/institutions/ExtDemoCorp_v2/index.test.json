@@ -33,6 +33,15 @@
         ],
         "roundsVaultInput": "0xcA50F64f2693b6DB0ef676cf14Dce52C183bc178",
         "roundsVaultOutput": "0xB379b432b7819B3b3c4E0b7e6bE3A3f780815e82"
+      },
+      "extDemo_2_USDC_base": {
+        "fleetCommander": "0xB5A07af4302fA0D2bBb389b4481055eD3F576B73",
+        "bufferArk": "0xcC1a3b8b61745307C0BafDc2e3132dC5D4270F06",
+        "arks": [
+          "0x50CbB1759370ae82a9B8488c7D3e91Fe11A4A5B0"
+        ],
+        "roundsVaultInput": "0xa5BB66ED32EA16B282b0bBf827b325C564C05Cd1",
+        "roundsVaultOutput": "0x39B9dd2440Fc4ff138643E3a86A486487F3cfc22"
       }
     },
     "treasury": "0x0f0fA89471259433b6955827226f19999D93c568",
