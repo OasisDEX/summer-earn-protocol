@@ -1,10 +1,11 @@
-import { store } from '@graphprotocol/graph-ts'
+import { log } from '@graphprotocol/graph-ts'
 import {
   RoleGranted,
   RoleRevoked,
+  WhitelistOpenUpdated,
+  WhitelistStatusUpdated,
 } from '../../generated/InstitutionalVaultRegistry/ProtocolAccessManager'
-import { Institution, Role } from '../../generated/schema'
-import { WhitelistStatusUpdated } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import { Institution, Role, Vault } from '../../generated/schema'
 import { ADDRESS_ZERO, ContractSpecificRole, RoleAction, RoleName } from '../common/constants'
 import { ROLE_MAP, getContractSpecificRoleName } from '../common/hashHelpers'
 import {
@@ -27,7 +28,6 @@ export function handleRoleGranted(event: RoleGranted): void {
   role.institution = accessController.institution
   const institution = Institution.load(accessController.institution)
   if (ROLE_MAP.has(event.params.role.toHexString())) {
-    // if its a static role return early
     role.name = ROLE_MAP.get(event.params.role.toHexString())
   } else {
     const vaults = institution!.vaults.load()
@@ -51,6 +51,15 @@ export function handleRoleGranted(event: RoleGranted): void {
         role.name = RoleName.KEEPER_ROLE
         role.targetContract = maybeKeeperForFleet
       }
+      const maybeOperatorForFleet = getContractSpecificRoleName(
+        event.params.role.toHexString(),
+        ContractSpecificRole.OPERATOR_ROLE,
+        vaultAddresses,
+      )
+      if (maybeOperatorForFleet) {
+        role.name = RoleName.OPERATOR_ROLE
+        role.targetContract = maybeOperatorForFleet
+      }
     }
   }
   role.save()
@@ -72,25 +81,39 @@ export function handleRoleRevoked(event: RoleRevoked): void {
 }
 
 export function handleWhitelistStatusUpdated(event: WhitelistStatusUpdated): void {
-  const accessController = getOrCreateAccessController(event.address.toHexString())
-  // role id is: fleetAddress-accountAddress
-  const id = `${event.address.toHexString()}-${event.params.account.toHexString()}`
+  const pam = event.address.toHexString()
+  const context = event.params.context.toHexString()
+  const account = event.params.account.toHexString()
+
+  const accessController = getOrCreateAccessController(pam)
+  const id = `${pam}-${context}-${account}`
 
   const role = getOrCreateRole(id)
-  role.owner = event.params.account.toHexString()
+  role.owner = account
   role.name = RoleName.WHITELIST_ROLE
-  role.targetContract = event.address.toHexString()
-  role.accessController = event.address.toHexString()
+  role.targetContract = context
+  role.accessController = pam
   role.createdTimestamp = event.block.timestamp
   role.createdBlockNumber = event.block.number
   role.institution = accessController.institution
-  role.active = event.params.allowed
+  role.active = event.params.isWhitelisted
   role.save()
 
   createRoleEvent(
     event,
-    event.params.allowed ? RoleAction.GRANT_ROLE : RoleAction.REVOKE_ROLE,
+    event.params.isWhitelisted ? RoleAction.GRANT_ROLE : RoleAction.REVOKE_ROLE,
     role.id,
     accessController.institution,
   )
+}
+
+export function handleWhitelistOpenUpdated(event: WhitelistOpenUpdated): void {
+  const context = event.params.context.toHexString()
+  const vault = Vault.load(context)
+  if (vault == null) {
+    log.warning('WhitelistOpenUpdated for unknown vault {}', [context])
+    return
+  }
+  vault.isWhitelistOpen = event.params.isOpen
+  vault.save()
 }
