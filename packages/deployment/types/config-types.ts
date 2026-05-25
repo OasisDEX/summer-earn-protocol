@@ -144,6 +144,7 @@ export interface BaseConfig {
       admiralsQuarters: { address: string }
       fleetCommanderRewardsManagerFactory: { address: string }
       institutionalVaultRegistry?: { address: string }
+      roundsVaultRegistry?: { address: string }
       daoTipJar?: { address: string }
     }
     bridge?: {
@@ -399,4 +400,5 @@ export interface FleetDeployment {
 // Extend CoreContracts to include InstitutionalVaultRegistry for networks
 export interface CoreContracts extends CoreContractsBase {
   institutionalVaultRegistry?: { address: Address }
+  roundsVaultRegistry?: { address: Address }
 }
