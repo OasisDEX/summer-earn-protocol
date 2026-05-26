@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 
 import { ExchangeRateDisplay } from '@/components/rounds/ExchangeRateDisplay'
@@ -22,6 +22,15 @@ interface Props {
 
 export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
   const { address } = useAccount()
+  // wagmi resolves the connected address only on the client (from
+  // wallet/localStorage state), so SSR sees `undefined` while a returning
+  // user's hydrated client sees the real address. Gate the
+  // connection-dependent branch behind a post-mount flag so SSR + the first
+  // client render both produce the same skeleton, then swap to the real
+  // content after hydration.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   const { receipts, loading } = useUserReceipts({
     chainId: institution.chainId,
     initialData: initialReceipts,
@@ -45,6 +54,7 @@ export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
         receipts={inputReceipts}
         loading={loading}
         connected={!!address}
+        mounted={mounted}
       />
       <ReceiptGroup
         institution={institution}
@@ -53,6 +63,7 @@ export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
         receipts={outputReceipts}
         loading={loading}
         connected={!!address}
+        mounted={mounted}
       />
     </>
   )
@@ -65,6 +76,7 @@ function ReceiptGroup({
   receipts,
   loading,
   connected,
+  mounted,
 }: {
   institution: Institution
   title: string
@@ -72,6 +84,7 @@ function ReceiptGroup({
   receipts: SubgraphReceipt[]
   loading: boolean
   connected: boolean
+  mounted: boolean
 }) {
   return (
     <Card className="mt-6">
@@ -82,7 +95,9 @@ function ReceiptGroup({
         </div>
       </CardHeader>
 
-      {!connected ? (
+      {!mounted ? (
+        <div className="h-24 animate-pulse rounded-lg bg-[var(--surface-2)]" />
+      ) : !connected ? (
         <div className="text-sm text-[var(--text-3)]">Connect a wallet to view your receipts.</div>
       ) : loading ? (
         <div className="h-24 animate-pulse rounded-lg bg-[var(--surface-2)]" />
