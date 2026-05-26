@@ -73,8 +73,12 @@ contract MockChainlinkFeed {
         dec = _dec;
     }
 
-    function setPrice(int256 _price) external { price = _price; }
-    function setDecimals(uint8 _dec) external { dec = _dec; }
+    function setPrice(int256 _price) external {
+        price = _price;
+    }
+    function setDecimals(uint8 _dec) external {
+        dec = _dec;
+    }
 
     function latestRoundData()
         external
@@ -84,7 +88,9 @@ contract MockChainlinkFeed {
         return (1, price, block.timestamp, block.timestamp, 1);
     }
 
-    function decimals() external view returns (uint8) { return dec; }
+    function decimals() external view returns (uint8) {
+        return dec;
+    }
 }
 
 /// @notice Variant of MockEnsoRouter that pulls less than the configured
@@ -1157,8 +1163,8 @@ contract DCAStrategyManagerIntegrationTest is Test {
     MockEnsoRouter public ensoRouter;
     ProtocolAccessManager public accessManager;
     HarborCommand public harborCommand;
-    MockChainlinkFeed public inFeedMock;   // USDC/USD
-    MockChainlinkFeed public outFeedMock;  // ETH/USD
+    MockChainlinkFeed public inFeedMock; // USDC/USD
+    MockChainlinkFeed public outFeedMock; // ETH/USD
 
     address public constant PERMIT2 =
         0x000000000022D473030F116dDEE9F6B43aC78BA3;
@@ -1256,8 +1262,8 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.stopPrank();
 
         ensoRouter = new MockEnsoRouter();
-        inFeedMock  = new MockChainlinkFeed(int256(1e8),     8); // USDC/USD  1.00 @ 8 dec
-        outFeedMock = new MockChainlinkFeed(int256(3000e8),  8); // ETH/USD 3000.00 @ 8 dec
+        inFeedMock = new MockChainlinkFeed(int256(1e8), 8); // USDC/USD  1.00 @ 8 dec
+        outFeedMock = new MockChainlinkFeed(int256(3000e8), 8); // ETH/USD 3000.00 @ 8 dec
 
         vm.startPrank(governor);
         dcaManager = new DCAStrategyManager(
@@ -2098,7 +2104,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
     ) internal {
         vm.mockCall(
             address(inFeedMock),
-            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encodeWithSelector(
+                AggregatorV3Interface.latestRoundData.selector
+            ),
             abi.encode(uint80(1), inPrice, uint256(0), inUpdatedAt, uint80(1))
         );
         vm.mockCall(
@@ -2108,7 +2116,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
         vm.mockCall(
             address(outFeedMock),
-            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encodeWithSelector(
+                AggregatorV3Interface.latestRoundData.selector
+            ),
             abi.encode(uint80(1), outPrice, uint256(0), outUpdatedAt, uint80(1))
         );
         vm.mockCall(
@@ -2125,7 +2135,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.warp(block.timestamp + 7 days);
 
         // in-feed is stale: updatedAt is one second beyond the staleness window.
-        uint256 staleUpdatedAt = block.timestamp - ChainlinkOracleUtils.MAX_ORACLE_STALENESS - 1;
+        uint256 staleUpdatedAt = block.timestamp -
+            ChainlinkOracleUtils.MAX_ORACLE_STALENESS -
+            1;
         _mockOraclesWithUpdatedAt(
             int256(1e8),
             int256(3000e8),
@@ -2153,7 +2165,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.warp(block.timestamp + 7 days);
 
         // out-feed is stale; in-feed is fresh.
-        uint256 staleUpdatedAt = block.timestamp - ChainlinkOracleUtils.MAX_ORACLE_STALENESS - 1;
+        uint256 staleUpdatedAt = block.timestamp -
+            ChainlinkOracleUtils.MAX_ORACLE_STALENESS -
+            1;
         _mockOraclesWithUpdatedAt(
             int256(1e8),
             int256(3000e8),
@@ -2182,7 +2196,8 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         vm.warp(block.timestamp + 7 days);
 
-        uint256 exactBoundary = block.timestamp - ChainlinkOracleUtils.MAX_ORACLE_STALENESS;
+        uint256 exactBoundary = block.timestamp -
+            ChainlinkOracleUtils.MAX_ORACLE_STALENESS;
         _mockOraclesWithUpdatedAt(
             int256(1e8),
             int256(3000e8),

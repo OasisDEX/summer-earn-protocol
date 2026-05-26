@@ -41,7 +41,10 @@ abstract contract HarborCommandConsumer {
      * @param vault  The FleetCommander to check.
      * @param label  Human-readable label for the vault role ("source", "target", …).
      */
-    modifier onlyActiveFleetCommander(IFleetCommander vault, string memory label) {
+    modifier onlyActiveFleetCommander(
+        IFleetCommander vault,
+        string memory label
+    ) {
         if (!HARBOR_COMMAND.activeFleetCommanders(address(vault))) {
             revert InactiveFleetCommander(address(vault), label);
         }
