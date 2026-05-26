@@ -121,7 +121,9 @@ function VaultControls({
             disabled={!canKeeper || keeper.pending.nextRound}
             loading={keeper.pending.nextRound}
             onClick={() => keeper.nextRound()}
-            title={!canKeeper ? 'Requires KEEPER_ROLE on this vault or SUPER_KEEPER_ROLE' : undefined}
+            title={
+              !canKeeper ? 'Requires KEEPER_ROLE on this vault or SUPER_KEEPER_ROLE' : undefined
+            }
           >
             Close current round (nextRound)
           </Button>
@@ -220,15 +222,18 @@ function VaultControls({
             </Field>
             <div>
               <div className="mb-2 text-xs text-[var(--text-3)]">
-                Emergency rollback (active when a round is stuck in settlement). Use only when
-                the off-chain settlement cannot succeed.
+                Emergency rollback (active when a round is stuck in settlement). Use only when the
+                off-chain settlement cannot succeed.
               </div>
               {settling.length === 0 ? (
                 <div className="text-sm text-[var(--text-3)]">Nothing to rollback.</div>
               ) : (
                 <div className="divide-y divide-[var(--border-faint)]">
                   {settling.map((r) => (
-                    <div key={`rb-${r.id}`} className="flex items-center justify-between py-2 text-sm">
+                    <div
+                      key={`rb-${r.id}`}
+                      className="flex items-center justify-between py-2 text-sm"
+                    >
                       <span className="font-mono text-[var(--text-3)]">#{r.roundId}</span>
                       <Button
                         size="sm"

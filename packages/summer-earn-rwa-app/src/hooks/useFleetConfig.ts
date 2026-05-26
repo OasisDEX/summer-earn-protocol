@@ -25,7 +25,8 @@ export function useFleetConfig({ fleetAddress, chainId }: UseFleetConfigProps) {
     },
   })
 
-  const stakingRewardsManagerAddress = (fleetConfig as { stakingRewardsManager?: string })?.stakingRewardsManager
+  const stakingRewardsManagerAddress = (fleetConfig as { stakingRewardsManager?: string })
+    ?.stakingRewardsManager
 
   return {
     fleetConfig,

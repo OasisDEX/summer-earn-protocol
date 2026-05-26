@@ -15,8 +15,7 @@ export function RebalanceHistory({ rebalances }: Props) {
         <div key={rb.id} className="flex items-center justify-between gap-4 py-3 text-sm">
           <div>
             <div>
-              {(rb.from.name ?? rb.from.id.slice(0, 8))} →{' '}
-              {(rb.to.name ?? rb.to.id.slice(0, 8))}
+              {rb.from.name ?? rb.from.id.slice(0, 8)} → {rb.to.name ?? rb.to.id.slice(0, 8)}
             </div>
             <div className="mt-1 font-mono text-xs text-[var(--text-3)]">
               {formatUnixDate(BigInt(rb.timestamp))}

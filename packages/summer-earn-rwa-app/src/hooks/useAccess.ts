@@ -28,9 +28,7 @@ export function useAccess({ institution, fleet, account }: UseAccessProps) {
 
   const keeperFleetRole = generateContractSpecificRole('KEEPER_ROLE', fleetAddr)
   const curatorFleetRole = generateContractSpecificRole('CURATOR_ROLE', fleetAddr)
-  const keeperInputRole = inputRv
-    ? generateContractSpecificRole('KEEPER_ROLE', inputRv)
-    : undefined
+  const keeperInputRole = inputRv ? generateContractSpecificRole('KEEPER_ROLE', inputRv) : undefined
   const keeperOutputRole = outputRv
     ? generateContractSpecificRole('KEEPER_ROLE', outputRv)
     : undefined
@@ -112,9 +110,7 @@ export function useAccess({ institution, fleet, account }: UseAccessProps) {
   const isWhitelistManager = results[i++]?.result as boolean | undefined
   const isFleetKeeper = results[i++]?.result as boolean | undefined
   const isCurator = results[i++]?.result as boolean | undefined
-  const isInputKeeper = keeperInputRole
-    ? (results[i++]?.result as boolean | undefined)
-    : undefined
+  const isInputKeeper = keeperInputRole ? (results[i++]?.result as boolean | undefined) : undefined
   const isOutputKeeper = keeperOutputRole
     ? (results[i++]?.result as boolean | undefined)
     : undefined

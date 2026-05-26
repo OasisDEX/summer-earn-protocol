@@ -17,5 +17,9 @@ const SHORT: Record<RoundStateLabel, string> = {
 
 export function RoundStateBadge({ state, short }: Props) {
   if (!state) return <Pill variant="neutral">—</Pill>
-  return <Pill variant={pillVariantForRound(state)}>{short ? SHORT[state] : humanRoundState(state)}</Pill>
+  return (
+    <Pill variant={pillVariantForRound(state)}>
+      {short ? SHORT[state] : humanRoundState(state)}
+    </Pill>
+  )
 }

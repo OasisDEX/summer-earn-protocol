@@ -40,8 +40,7 @@ const FRIENDLY_REVERT_LABELS: Record<string, string> = {
   Whitelist_BatchTooLarge: 'Whitelist batch is capped at 200 entries per call.',
 
   // OZ AccessControl
-  AccessControlUnauthorizedAccount:
-    'Your wallet does not hold the role required for this action.',
+  AccessControlUnauthorizedAccount: 'Your wallet does not hold the role required for this action.',
 }
 
 function friendlyRevertLabel(error: unknown): string | undefined {

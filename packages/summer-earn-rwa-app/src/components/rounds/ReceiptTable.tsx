@@ -29,9 +29,7 @@ export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
 
   // Both Input and Output rounds-vaults under this fleet (a user might hold receipts in either).
   const vaultsForThisFleet = new Set(
-    [fleet.roundsVaultInput, fleet.roundsVaultOutput]
-      .filter(Boolean)
-      .map((a) => a!.toLowerCase()),
+    [fleet.roundsVaultInput, fleet.roundsVaultOutput].filter(Boolean).map((a) => a!.toLowerCase()),
   )
   const filtered = receipts.filter((r) => vaultsForThisFleet.has(r.vault.id.toLowerCase()))
 

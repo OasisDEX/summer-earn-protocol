@@ -53,15 +53,11 @@ export function InstitutionOverviewBody({ institution }: Props) {
                   <div className="text-right text-xs text-[var(--text-3)]">
                     <div>
                       Input round{' '}
-                      <span className="font-mono text-[var(--text)]">
-                        {inputRound ?? '—'}
-                      </span>
+                      <span className="font-mono text-[var(--text)]">{inputRound ?? '—'}</span>
                     </div>
                     <div>
                       Output round{' '}
-                      <span className="font-mono text-[var(--text)]">
-                        {outputRound ?? '—'}
-                      </span>
+                      <span className="font-mono text-[var(--text)]">{outputRound ?? '—'}</span>
                     </div>
                   </div>
                 </div>

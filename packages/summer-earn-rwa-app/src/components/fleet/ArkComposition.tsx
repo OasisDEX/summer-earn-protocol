@@ -16,8 +16,7 @@ export function ArkComposition({ arks, totalAssets, assetDecimals, assetSymbol }
   return (
     <div className="divide-y divide-[var(--border-faint)]">
       {arks.map((ark) => {
-        const pct =
-          totalAssets > 0n ? Number((ark.totalAssets * 10_000n) / totalAssets) / 100 : 0
+        const pct = totalAssets > 0n ? Number((ark.totalAssets * 10_000n) / totalAssets) / 100 : 0
         return (
           <div key={ark.address} className="flex items-center justify-between gap-4 py-4">
             <div>
@@ -31,9 +30,7 @@ export function ArkComposition({ arks, totalAssets, assetDecimals, assetSymbol }
               <div className="font-mono text-sm text-[var(--text)]">
                 {formatDecimalOutput(ark.totalAssets, assetDecimals)} {assetSymbol}
               </div>
-              <div className="mt-1 font-mono text-xs text-[var(--text-3)]">
-                {pct.toFixed(2)}%
-              </div>
+              <div className="mt-1 font-mono text-xs text-[var(--text-3)]">{pct.toFixed(2)}%</div>
               <div className="mt-1">
                 <Progress value={Math.round(pct)} total={100} showLabel={false} />
               </div>

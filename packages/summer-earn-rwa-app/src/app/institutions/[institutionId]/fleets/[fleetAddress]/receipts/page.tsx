@@ -36,10 +36,12 @@ export default async function ReceiptsPage({ params }: PageProps) {
       <div className="page">
         <h1 className="h1">Your receipts</h1>
         <p className="mt-2 text-sm text-[var(--text-3)]">
-          Cancel during an open round to get your deposit back 1:1. Once the keeper closes the
-          round you must wait for settlement, then claim the exchange asset at the settled rate.
+          Cancel during an open round to get your deposit back 1:1. Once the keeper closes the round
+          you must wait for settlement, then claim the exchange asset at the settled rate.
         </p>
-        <Suspense fallback={<div className="mt-8 h-64 animate-pulse rounded-lg bg-[var(--surface)]" />}>
+        <Suspense
+          fallback={<div className="mt-8 h-64 animate-pulse rounded-lg bg-[var(--surface)]" />}
+        >
           <ReceiptTable institution={inst} fleet={fleet} initialReceipts={[]} />
         </Suspense>
       </div>

@@ -42,7 +42,9 @@ export default async function FleetPage({ params }: PageProps) {
         actions={<ConnectButton />}
       />
       <div className="page">
-        <Suspense fallback={<div className="mt-8 h-40 animate-pulse rounded-lg bg-[var(--surface)]" />}>
+        <Suspense
+          fallback={<div className="mt-8 h-40 animate-pulse rounded-lg bg-[var(--surface)]" />}
+        >
           <FleetDetailBody
             institution={inst}
             fleet={fleet}

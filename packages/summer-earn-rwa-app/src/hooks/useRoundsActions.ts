@@ -21,7 +21,9 @@ export function useRoundsActions({ roundsVaultAddress, chainId, owner }: UseRoun
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['rounds', chainId, roundsVaultAddress] })
-    queryClient.invalidateQueries({ queryKey: ['rounds-vault-current', chainId, roundsVaultAddress] })
+    queryClient.invalidateQueries({
+      queryKey: ['rounds-vault-current', chainId, roundsVaultAddress],
+    })
     queryClient.invalidateQueries({ queryKey: ['user-receipts', chainId] })
     queryClient.invalidateQueries({ queryKey: ['fleetInfo', chainId] })
   }

@@ -1,11 +1,6 @@
 export const REBALANCES_FOR_FLEET = /* GraphQL */ `
   query RebalancesForFleet($fleet: String!, $first: Int = 25) {
-    rebalances(
-      first: $first
-      where: { vault: $fleet }
-      orderBy: timestamp
-      orderDirection: desc
-    ) {
+    rebalances(first: $first, where: { vault: $fleet }, orderBy: timestamp, orderDirection: desc) {
       id
       hash
       timestamp

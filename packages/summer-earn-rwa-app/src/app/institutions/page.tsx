@@ -26,8 +26,8 @@ export default async function InstitutionsPage() {
                   <div>
                     <div className="h2">{inst.displayName}</div>
                     <div className="mt-1 font-mono text-xs text-[var(--text-3)]">
-                      {inst.fleets.length} fleet{inst.fleets.length === 1 ? '' : 's'} ·
-                      chainId {inst.chainId}
+                      {inst.fleets.length} fleet{inst.fleets.length === 1 ? '' : 's'} · chainId{' '}
+                      {inst.chainId}
                     </div>
                   </div>
                   <Pill variant="active">Active</Pill>

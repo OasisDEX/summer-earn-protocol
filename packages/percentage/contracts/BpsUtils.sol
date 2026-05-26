@@ -19,10 +19,7 @@ library BpsUtils {
      * @param bps The basis points to add (must not exceed BPS_100)
      * @return The amount after the increase
      */
-    function addBps(
-        uint256 amount,
-        BPS bps
-    ) internal pure returns (uint256) {
+    function addBps(uint256 amount, BPS bps) internal pure returns (uint256) {
         return applyBps(amount, BPS_100 + bps);
     }
 
@@ -49,10 +46,7 @@ library BpsUtils {
      * @param bps The basis points to apply
      * @return The portion of amount represented by bps
      */
-    function applyBps(
-        uint256 amount,
-        BPS bps
-    ) internal pure returns (uint256) {
+    function applyBps(uint256 amount, BPS bps) internal pure returns (uint256) {
         return (amount * BPS.unwrap(bps)) / BPS_FACTOR;
     }
 

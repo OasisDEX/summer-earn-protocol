@@ -104,9 +104,7 @@ export function findInstitutionByFleet(
   return undefined
 }
 
-export function findFleetByRoundsVault(
-  roundsVaultAddress: string,
-):
+export function findFleetByRoundsVault(roundsVaultAddress: string):
   | {
       institution: Institution
       fleet: InstitutionFleet

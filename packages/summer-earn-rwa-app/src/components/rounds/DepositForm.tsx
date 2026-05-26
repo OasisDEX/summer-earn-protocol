@@ -15,7 +15,7 @@ import { useErc20Approval } from '@/hooks/useErc20Approval'
 import { useRoundsActions } from '@/hooks/useRoundsActions'
 import { useRoundsVaultState } from '@/hooks/useRoundsVaultState'
 import { useTokenAllowance } from '@/hooks/useTokenAllowance'
-import { formatDecimalOutput, MAX_UINT256,parseDecimalInput } from '@/lib/format'
+import { formatDecimalOutput, MAX_UINT256, parseDecimalInput } from '@/lib/format'
 
 interface Props {
   institution: Institution
@@ -62,10 +62,7 @@ export function DepositForm({
   })
 
   const [amount, setAmount] = useState('')
-  const parsedAmount = useMemo(
-    () => parseDecimalInput(amount, decimals ?? 18),
-    [amount, decimals],
-  )
+  const parsedAmount = useMemo(() => parseDecimalInput(amount, decimals ?? 18), [amount, decimals])
 
   const isOpen = roundState === 'OPENED'
   const isAllowed = access.isDepositorWhitelisted
@@ -107,8 +104,8 @@ export function DepositForm({
         </div>
       ) : !isAllowed ? (
         <div className="mt-6 rounded-md border border-dashed border-[var(--warning)] p-4 text-sm text-[var(--warning)]">
-          This wallet is not on the institution whitelist for this fleet. Contact your
-          institution administrator to be added (or wait for the whitelist manager to call{' '}
+          This wallet is not on the institution whitelist for this fleet. Contact your institution
+          administrator to be added (or wait for the whitelist manager to call{' '}
           <span className="font-mono">setWhitelisted</span>).
         </div>
       ) : (
