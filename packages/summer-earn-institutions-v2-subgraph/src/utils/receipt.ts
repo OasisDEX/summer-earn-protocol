@@ -142,15 +142,62 @@ export function markExchangeAssetRedemption(
   let round = getOrCreateRound(vault, roundId, event.block)
   let user = getOrCreateAccount(owner.toHexString())
   let receipt = getOrCreateReceipt(vault, round, user, event.block)
-  receipt.totalRedeemedForExchangeAsset =
-    receipt.totalRedeemedForExchangeAsset.plus(receiptAmount)
+  receipt.totalRedeemedForExchangeAsset = receipt.totalRedeemedForExchangeAsset.plus(receiptAmount)
   receipt.exchangeAssetReceived = receipt.exchangeAssetReceived.plus(exchangeAmount)
   receipt.lastUpdated = event.block.timestamp
   receipt.lastUpdatedBlock = event.block.number
   receipt.save()
 
-  vault.cumulativeExchangeAssetWithdrawn = vault.cumulativeExchangeAssetWithdrawn.plus(
-    exchangeAmount,
-  )
+  vault.cumulativeExchangeAssetWithdrawn =
+    vault.cumulativeExchangeAssetWithdrawn.plus(exchangeAmount)
   vault.save()
+}
+
+/**
+ * Attribute a batched exchange-asset redemption per-id, mirroring the contract's
+ * per-id `mulDiv(receiptAmount, base, quote)` against each round's settled rate
+ * (stored on the Round entity from RoundSettled). Rounding dust between the sum
+ * of per-id amounts and the event's total is folded onto the last row so the
+ * vault's cumulative counter still equals the on-chain transfer.
+ */
+export function markExchangeAssetRedemptionBatch(
+  vaultAddr: Address,
+  owner: Address,
+  ids: BigInt[],
+  amounts: BigInt[],
+  totalExchangeAsset: BigInt,
+  event: ethereum.Event,
+): void {
+  let vault = getRoundsVaultByAddress(vaultAddr)
+  if (vault == null) return
+
+  let computed = new Array<BigInt>(ids.length)
+  let sumComputed = BigIntConstants.ZERO
+  for (let i = 0; i < ids.length; i++) {
+    let round = getOrCreateRound(vault, ids[i], event.block)
+    let base = round.exchangeRateBase
+    let quote = round.exchangeRateQuote
+    let part: BigInt
+    if (base === null || quote === null || quote.equals(BigIntConstants.ZERO)) {
+      log.warning('Exchange-asset batch redemption on unsettled round {} for vault {}', [
+        ids[i].toString(),
+        vaultAddr.toHexString(),
+      ])
+      part = BigIntConstants.ZERO
+    } else {
+      part = amounts[i].times(base).div(quote)
+    }
+    computed[i] = part
+    sumComputed = sumComputed.plus(part)
+  }
+
+  let dust = totalExchangeAsset.minus(sumComputed)
+  if (dust.notEqual(BigIntConstants.ZERO) && computed.length > 0) {
+    let lastIdx = computed.length - 1
+    computed[lastIdx] = computed[lastIdx].plus(dust)
+  }
+
+  for (let i = 0; i < ids.length; i++) {
+    markExchangeAssetRedemption(vaultAddr, owner, ids[i], amounts[i], computed[i], event)
+  }
 }
