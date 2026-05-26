@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 
-import {Permit2Consumer} from "../../../src/contracts/DCA/Permit2Consumer.sol";
+import {Permit2Consumer} from "../../../src/utils/Permit2Consumer.sol";
 import {IPermit2} from "../../../src/interfaces/permit2/IPermit2.sol";
 
 /// @notice Minimal mock that records the last `transferFrom` call and can be

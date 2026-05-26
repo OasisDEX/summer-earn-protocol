@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IHarborCommand} from "../../interfaces/IHarborCommand.sol";
-import {IFleetCommander} from "../../interfaces/IFleetCommander.sol";
+import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 
 /**
  * @title HarborCommandConsumer

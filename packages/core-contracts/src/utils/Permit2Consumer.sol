@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IPermit2} from "../../interfaces/permit2/IPermit2.sol";
+import {IPermit2} from "../interfaces/permit2/IPermit2.sol";
 
 /**
  * @title Permit2Consumer

@@ -6,10 +6,10 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {Permit2Consumer} from "./Permit2Consumer.sol";
-import {EnsoRouterSwapper} from "./EnsoRouterSwapper.sol";
-import {HarborCommandConsumer} from "./HarborCommandConsumer.sol";
-import {ChainlinkOracleUtils, ChainlinkOraclePrice} from "./ChainlinkOracleUtils.sol";
+import {Permit2Consumer} from "../../utils/Permit2Consumer.sol";
+import {EnsoRouterSwapper} from "../../utils/EnsoRouterSwapper.sol";
+import {HarborCommandConsumer} from "../../utils/HarborCommandConsumer.sol";
+import {ChainlinkOracleUtils, ChainlinkOraclePrice} from "../../utils/ChainlinkOracleUtils.sol";
 import {BPS, BPS_100} from "@summerfi/percentage-solidity/contracts/BPS.sol";
 import {BpsUtils} from "@summerfi/percentage-solidity/contracts/BpsUtils.sol";
 

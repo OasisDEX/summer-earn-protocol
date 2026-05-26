@@ -6,10 +6,10 @@ import {DCAStrategyManager} from "../../../src/contracts/DCA/DCAStrategyManager.
 import {IDCAStrategyManager} from "../../../src/interfaces/arks/IDCAStrategyManager.sol";
 import {IDCAStrategyManagerErrors} from "../../../src/errors/arks/IDCAStrategyManagerErrors.sol";
 import {IDCAStrategyManagerEvents} from "../../../src/events/arks/IDCAStrategyManagerEvents.sol";
-import {EnsoRouterSwapper} from "../../../src/contracts/DCA/EnsoRouterSwapper.sol";
-import {HarborCommandConsumer} from "../../../src/contracts/DCA/HarborCommandConsumer.sol";
-import {ChainlinkOracleUtils} from "../../../src/contracts/DCA/ChainlinkOracleUtils.sol";
-import {Permit2Consumer} from "../../../src/contracts/DCA/Permit2Consumer.sol";
+import {EnsoRouterSwapper} from "../../../src/utils/EnsoRouterSwapper.sol";
+import {HarborCommandConsumer} from "../../../src/utils/HarborCommandConsumer.sol";
+import {ChainlinkOracleUtils} from "../../../src/utils/ChainlinkOracleUtils.sol";
+import {Permit2Consumer} from "../../../src/utils/Permit2Consumer.sol";
 import {IFleetCommander} from "../../../src/interfaces/IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
