@@ -119,9 +119,7 @@ function VaultRoundsCard({
               </span>
             </div>
           ))}
-          {rounds.length === 0 && (
-            <div className="py-2 text-[var(--text-3)]">No rounds yet.</div>
-          )}
+          {rounds.length === 0 && <div className="py-2 text-[var(--text-3)]">No rounds yet.</div>}
         </div>
       </div>
     </Card>

@@ -10,10 +10,7 @@ import type { Institution, InstitutionFleet } from '@/config/institutions'
 import { useAccess } from '@/hooks/useAccess'
 import { useFleetArks } from '@/hooks/useFleetArks'
 import { useFleetInfo } from '@/hooks/useFleetInfo'
-import {
-  type RebalanceLeg,
-  useFleetRebalanceActions,
-} from '@/hooks/useFleetRebalanceActions'
+import { type RebalanceLeg, useFleetRebalanceActions } from '@/hooks/useFleetRebalanceActions'
 import { formatDecimalOutput, parseDecimalInput } from '@/lib/format'
 
 interface Props {
@@ -24,8 +21,14 @@ interface Props {
 export function RebalancePanel({ institution, fleet }: Props) {
   const { address } = useAccount()
   const access = useAccess({ institution, fleet, account: address })
-  const { arks } = useFleetArks({ fleetAddress: fleet.fleetCommander, chainId: institution.chainId })
-  const { fleetInfo } = useFleetInfo({ address: fleet.fleetCommander, chainId: institution.chainId })
+  const { arks } = useFleetArks({
+    fleetAddress: fleet.fleetCommander,
+    chainId: institution.chainId,
+  })
+  const { fleetInfo } = useFleetInfo({
+    address: fleet.fleetCommander,
+    chainId: institution.chainId,
+  })
   const rebalance = useFleetRebalanceActions({
     fleetAddress: fleet.fleetCommander,
     chainId: institution.chainId,

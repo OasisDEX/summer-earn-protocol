@@ -15,7 +15,9 @@ export function useKeeperActions({ roundsVaultAddress, chainId }: UseKeeperActio
   const queryClient = useQueryClient()
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['rounds', chainId, roundsVaultAddress] })
-    queryClient.invalidateQueries({ queryKey: ['rounds-vault-current', chainId, roundsVaultAddress] })
+    queryClient.invalidateQueries({
+      queryKey: ['rounds-vault-current', chainId, roundsVaultAddress],
+    })
   }
 
   const nextRound = useTxToast({

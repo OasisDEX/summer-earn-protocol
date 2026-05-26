@@ -3,10 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-interface Tab {
-  href: string
-  label: string
-}
+import type { Tab } from './adminTabs.config'
 
 interface Props {
   tabs: Tab[]
@@ -35,14 +32,4 @@ export function AdminTabs({ tabs }: Props) {
       })}
     </div>
   )
-}
-
-export function buildAdminTabs(institutionSlug: string, fleetAddress: string): Tab[] {
-  const root = `/institutions/${institutionSlug}/fleets/${fleetAddress}/admin`
-  return [
-    { href: `${root}/whitelist`, label: 'Whitelist' },
-    { href: `${root}/rounds`, label: 'Rounds' },
-    { href: `${root}/roles`, label: 'Roles' },
-    { href: `${root}/rebalance`, label: 'Rebalance' },
-  ]
 }

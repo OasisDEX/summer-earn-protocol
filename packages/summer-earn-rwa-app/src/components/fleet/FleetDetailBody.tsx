@@ -39,12 +39,8 @@ export function FleetDetailBody({
     chainId: institution.chainId,
   })
 
-  const tvl = fleetInfo
-    ? formatLargeNumber(fleetInfo.totalAssets, fleetInfo.assetDecimals)
-    : '—'
-  const cap = fleetInfo
-    ? formatLargeNumber(fleetInfo.depositCap, fleetInfo.assetDecimals)
-    : '—'
+  const tvl = fleetInfo ? formatLargeNumber(fleetInfo.totalAssets, fleetInfo.assetDecimals) : '—'
+  const cap = fleetInfo ? formatLargeNumber(fleetInfo.depositCap, fleetInfo.assetDecimals) : '—'
   const buffer = fleetInfo
     ? formatDecimalOutput(fleetInfo.minimumBufferBalance, fleetInfo.assetDecimals)
     : '—'
@@ -54,15 +50,11 @@ export function FleetDetailBody({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="h1">{fleet.label}</h1>
-          <p className="mt-1 font-mono text-xs text-[var(--text-3)]">
-            {fleet.fleetCommander}
-          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--text-3)]">{fleet.fleetCommander}</p>
         </div>
         <div className="flex gap-2">
           {fleet.roundsVaultInput && (
-            <Link
-              href={`/institutions/${institution.slug}/fleets/${fleet.fleetCommander}/deposit`}
-            >
+            <Link href={`/institutions/${institution.slug}/fleets/${fleet.fleetCommander}/deposit`}>
               <Button>Deposit</Button>
             </Link>
           )}
@@ -73,21 +65,21 @@ export function FleetDetailBody({
               <Button variant="secondary">Withdraw</Button>
             </Link>
           )}
-          <Link
-            href={`/institutions/${institution.slug}/fleets/${fleet.fleetCommander}/receipts`}
-          >
+          <Link href={`/institutions/${institution.slug}/fleets/${fleet.fleetCommander}/receipts`}>
             <Button variant="ghost">Receipts</Button>
           </Link>
-          <Link
-            href={`/institutions/${institution.slug}/fleets/${fleet.fleetCommander}/admin`}
-          >
+          <Link href={`/institutions/${institution.slug}/fleets/${fleet.fleetCommander}/admin`}>
             <Button variant="ghost">Admin</Button>
           </Link>
         </div>
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
-        <Stat label="TVL" value={`${tvl} ${fleetInfo?.assetSymbol ?? ''}`} sub={loading ? 'loading…' : undefined} />
+        <Stat
+          label="TVL"
+          value={`${tvl} ${fleetInfo?.assetSymbol ?? ''}`}
+          sub={loading ? 'loading…' : undefined}
+        />
         <Stat label="Deposit cap" value={`${cap} ${fleetInfo?.assetSymbol ?? ''}`} />
         <Stat label="Minimum buffer" value={`${buffer} ${fleetInfo?.assetSymbol ?? ''}`} />
       </div>

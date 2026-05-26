@@ -54,7 +54,8 @@ export function WhitelistManagerPanel({ institution, fleet }: Props) {
           <div>
             <CardTitle>Whitelist controls</CardTitle>
             <CardSub>
-              Context = FleetCommander {fleet.fleetCommander.slice(0, 10)}…{fleet.fleetCommander.slice(-4)}
+              Context = FleetCommander {fleet.fleetCommander.slice(0, 10)}…
+              {fleet.fleetCommander.slice(-4)}
             </CardSub>
           </div>
           {access.isWhitelistOpen ? (
@@ -66,8 +67,8 @@ export function WhitelistManagerPanel({ institution, fleet }: Props) {
 
         {disabled && (
           <div className="mb-6 rounded-md border border-dashed border-[var(--warning)] p-3 text-xs text-[var(--warning)]">
-            Connected wallet lacks WHITELIST_MANAGER_ROLE — actions below will fail. Ask a
-            governor to grant the role via the Roles tab.
+            Connected wallet lacks WHITELIST_MANAGER_ROLE — actions below will fail. Ask a governor
+            to grant the role via the Roles tab.
           </div>
         )}
 
@@ -76,7 +77,9 @@ export function WhitelistManagerPanel({ institution, fleet }: Props) {
             variant={access.isWhitelistOpen ? 'danger' : 'secondary'}
             disabled={disabled || actions.pending.open}
             loading={actions.pending.open}
-            onClick={() => actions.setWhitelistOpen(!access.isWhitelistOpen).then(() => access.refetch())}
+            onClick={() =>
+              actions.setWhitelistOpen(!access.isWhitelistOpen).then(() => access.refetch())
+            }
           >
             {access.isWhitelistOpen ? 'Close whitelist' : 'Open whitelist to all'}
           </Button>
@@ -136,7 +139,9 @@ export function WhitelistManagerPanel({ institution, fleet }: Props) {
           <Field
             label="Addresses (newline or comma separated)"
             hint={`Parsed: ${batchAddrs.length} valid${batchErrors.length ? `, ${batchErrors.length} invalid` : ''}`}
-            error={batchErrors.length ? `Skipping: ${batchErrors.slice(0, 3).join(', ')}…` : undefined}
+            error={
+              batchErrors.length ? `Skipping: ${batchErrors.slice(0, 3).join(', ')}…` : undefined
+            }
           >
             <textarea
               value={batch}
@@ -149,12 +154,18 @@ export function WhitelistManagerPanel({ institution, fleet }: Props) {
           <div className="flex gap-2">
             <Button
               disabled={
-                disabled || batchAddrs.length === 0 || batchAddrs.length > 200 || actions.pending.batch
+                disabled ||
+                batchAddrs.length === 0 ||
+                batchAddrs.length > 200 ||
+                actions.pending.batch
               }
               loading={actions.pending.batch}
               onClick={() =>
                 actions
-                  .setWhitelistedBatch(batchAddrs, batchAddrs.map(() => true))
+                  .setWhitelistedBatch(
+                    batchAddrs,
+                    batchAddrs.map(() => true),
+                  )
                   .then(() => setBatch(''))
               }
             >
@@ -163,11 +174,17 @@ export function WhitelistManagerPanel({ institution, fleet }: Props) {
             <Button
               variant="danger"
               disabled={
-                disabled || batchAddrs.length === 0 || batchAddrs.length > 200 || actions.pending.batch
+                disabled ||
+                batchAddrs.length === 0 ||
+                batchAddrs.length > 200 ||
+                actions.pending.batch
               }
               onClick={() =>
                 actions
-                  .setWhitelistedBatch(batchAddrs, batchAddrs.map(() => false))
+                  .setWhitelistedBatch(
+                    batchAddrs,
+                    batchAddrs.map(() => false),
+                  )
                   .then(() => setBatch(''))
               }
             >

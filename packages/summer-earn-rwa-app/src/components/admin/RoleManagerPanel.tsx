@@ -101,7 +101,11 @@ export function RoleManagerPanel({ institution, fleet, institutionSubgraphId }: 
             </select>
           </Field>
           <Field label="Account">
-            <TextInput value={account} onChange={(e) => setAccount(e.target.value)} placeholder="0x…" />
+            <TextInput
+              value={account}
+              onChange={(e) => setAccount(e.target.value)}
+              placeholder="0x…"
+            />
           </Field>
         </div>
 
@@ -112,7 +116,9 @@ export function RoleManagerPanel({ institution, fleet, institutionSubgraphId }: 
             disabled={disabled || !accountValid || actions.pending.grant}
             loading={actions.pending.grant}
             onClick={() =>
-              actions.grantRole(targetHash, account.trim() as `0x${string}`).then(() => setAccount(''))
+              actions
+                .grantRole(targetHash, account.trim() as `0x${string}`)
+                .then(() => setAccount(''))
             }
           >
             Grant
@@ -136,7 +142,8 @@ export function RoleManagerPanel({ institution, fleet, institutionSubgraphId }: 
           <div>
             <CardTitle>Active role grants</CardTitle>
             <CardSub>
-              From v2 subgraph · {institutionSubgraphId ? 'institution scope' : 'institutionId unknown'}
+              From v2 subgraph ·{' '}
+              {institutionSubgraphId ? 'institution scope' : 'institutionId unknown'}
             </CardSub>
           </div>
         </CardHeader>
@@ -156,11 +163,12 @@ export function RoleManagerPanel({ institution, fleet, institutionSubgraphId }: 
                 <div>
                   <div className="font-medium text-sm">{r.name}</div>
                   <div className="font-mono text-[var(--text-3)]">{r.owner}</div>
-                  {r.targetContract && r.targetContract !== '0x0000000000000000000000000000000000000000' && (
-                    <div className="font-mono text-[var(--text-4)]">
-                      target {shortAddress(r.targetContract)}
-                    </div>
-                  )}
+                  {r.targetContract &&
+                    r.targetContract !== '0x0000000000000000000000000000000000000000' && (
+                      <div className="font-mono text-[var(--text-4)]">
+                        target {shortAddress(r.targetContract)}
+                      </div>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Pill variant="active" dot={false}>

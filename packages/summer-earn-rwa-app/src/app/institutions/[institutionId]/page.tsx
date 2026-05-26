@@ -21,10 +21,7 @@ export default async function InstitutionPage({ params }: PageProps) {
   return (
     <>
       <Topbar
-        crumbs={[
-          { href: '/institutions', label: 'Institutions' },
-          { label: loaded.displayName },
-        ]}
+        crumbs={[{ href: '/institutions', label: 'Institutions' }, { label: loaded.displayName }]}
         actions={<ConnectButton />}
       />
       <div className="page">
@@ -33,7 +30,9 @@ export default async function InstitutionPage({ params }: PageProps) {
           chainId {loaded.chainId} · ProtocolAccessManagerV2{' '}
           <span className="font-mono text-xs">{loaded.protocolAccessManager}</span>
         </p>
-        <Suspense fallback={<div className="mt-8 h-40 animate-pulse rounded-lg bg-[var(--surface)]" />}>
+        <Suspense
+          fallback={<div className="mt-8 h-40 animate-pulse rounded-lg bg-[var(--surface)]" />}
+        >
           <InstitutionOverviewBody institution={loaded} />
         </Suspense>
       </div>
