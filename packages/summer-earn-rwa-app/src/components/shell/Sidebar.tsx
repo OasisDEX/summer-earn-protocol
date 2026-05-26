@@ -7,6 +7,7 @@ import { useAccount, useBalance, useDisconnect } from 'wagmi'
 import { base } from 'wagmi/chains'
 
 import { INSTITUTIONS } from '@/config/institutions'
+import { useMounted } from '@/hooks/useMounted'
 import { shortAddress } from '@/lib/format'
 
 interface NavItem {
@@ -28,6 +29,11 @@ export function Sidebar() {
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
   const balance = useBalance({ address, chainId: base.id })
+  // The bottom card switches between "connected" (address + balance + Disconnect)
+  // and "Connect wallet". The decision depends on wagmi state which only
+  // resolves on the client — match the SSR "Connect wallet" output until
+  // after mount to keep hydration consistent.
+  const mounted = useMounted()
 
   return (
     <aside className="sticky top-0 flex h-screen flex-col gap-6 border-r border-[var(--border-faint)] bg-[rgba(8,8,12,0.6)] px-4 py-6 backdrop-blur-[20px]">
@@ -97,7 +103,7 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto rounded-lg border border-[var(--border-faint)] bg-[var(--surface)] p-3.5 text-sm">
-        {isConnected && address ? (
+        {mounted && isConnected && address ? (
           <>
             <div className="flex items-center gap-2 font-mono text-xs text-[var(--text-2)]">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--lime)]" />

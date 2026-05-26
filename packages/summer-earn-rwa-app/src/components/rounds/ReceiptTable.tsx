@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAccount } from 'wagmi'
 
 import { ExchangeRateDisplay } from '@/components/rounds/ExchangeRateDisplay'
@@ -8,6 +8,7 @@ import { RoundStateBadge } from '@/components/rounds/RoundStateBadge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/Card'
 import type { Institution, InstitutionFleet } from '@/config/institutions'
+import { useMounted } from '@/hooks/useMounted'
 import { useRoundsActions } from '@/hooks/useRoundsActions'
 import { useUserReceipts } from '@/hooks/useUserReceipts'
 import { formatDecimalOutput } from '@/lib/format'
@@ -28,8 +29,7 @@ export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
   // connection-dependent branch behind a post-mount flag so SSR + the first
   // client render both produce the same skeleton, then swap to the real
   // content after hydration.
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  const mounted = useMounted()
 
   const { receipts, loading } = useUserReceipts({
     chainId: institution.chainId,
