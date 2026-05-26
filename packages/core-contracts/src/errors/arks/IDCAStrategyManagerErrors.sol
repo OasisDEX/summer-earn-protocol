@@ -14,19 +14,6 @@ interface IDCAStrategyManagerErrors {
         uint256 blockTimestamp
     );
 
-    error PriceGuardViolation(
-        uint256 strategyId,
-        uint256 price,
-        uint256 limitPrice,
-        bool isAbove
-    );
-
-    error InsufficientFunds(
-        uint256 strategyId,
-        uint256 available,
-        uint256 required
-    );
-
     error SwapOutputBelowMinOut(
         uint256 strategyId,
         uint256 minOut,
@@ -37,11 +24,11 @@ interface IDCAStrategyManagerErrors {
 
     error UnauthorizedAccess(uint256 strategyId, address caller);
 
-    error InvalidInterval(uint256 interval);
-
     error InvalidSlippage(uint256 slippageBps);
 
     error ZeroTradeAmount();
+
+    error InvalidOwner();
 
     error SameAsset(address asset);
 

@@ -8,7 +8,7 @@ import {IDCAStrategyManagerErrors} from "../../../src/errors/arks/IDCAStrategyMa
 import {IDCAStrategyManagerEvents} from "../../../src/events/arks/IDCAStrategyManagerEvents.sol";
 import {EnsoRouterSwapper} from "../../../src/contracts/DCA/EnsoRouterSwapper.sol";
 import {HarborCommandConsumer} from "../../../src/contracts/DCA/HarborCommandConsumer.sol";
-import {ChainlinkPriceConsumer} from "../../../src/contracts/DCA/ChainlinkPriceConsumer.sol";
+import {ChainlinkOracleUtils} from "../../../src/contracts/DCA/ChainlinkOracleUtils.sol";
 import {IFleetCommander} from "../../../src/interfaces/IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -310,8 +310,8 @@ contract DCAStrategyManagerTest is Test {
         vm.stopPrank();
     }
 
-    function test_CheckUpkeep_ReturnsFalseOnMaxTrades() public {
-        // maxTrades = 0 means tradesExecuted (0) >= maxTrades from the get-go.
+    function test_CheckUpkeep_ReturnsTrueWithUnlimitedMaxTrades() public {
+        // maxTrades = 0 means unlimited; upkeep must still be true when ready.
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
         config.maxTrades = 0;
         vm.prank(strategyOwner);
@@ -320,10 +320,7 @@ contract DCAStrategyManagerTest is Test {
         vm.warp(block.timestamp + 7 days);
 
         (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
-        assertFalse(
-            upkeepNeeded,
-            "Upkeep should be false when maxTrades reached"
-        );
+        assertTrue(upkeepNeeded, "Upkeep should be true when maxTrades is unlimited (0)");
     }
 
     function test_CheckUpkeep_ReturnsFalseOnEndDatePassed() public {
@@ -1290,7 +1287,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
         vm.prank(keeper);
-        vm.expectRevert(ChainlinkPriceConsumer.OraclePriceZero.selector);
+        vm.expectRevert(ChainlinkOracleUtils.ChainlinkOraclePriceZero.selector);
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
@@ -1371,6 +1368,24 @@ contract DCAStrategyManagerIntegrationTest is Test {
             upkeepNeeded,
             "Upkeep must be false when execution price is outside guardrails"
         );
+    }
+
+    function test_CheckUpkeep_ReturnsFalseAfterMaxTradesReached() public {
+        // Execute the one allowed trade so the strategy auto-completes, then
+        // verify that checkUpkeep correctly returns false.
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        cfg.maxTrades = 1;
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        vm.warp(block.timestamp + 7 days);
+        vm.prank(keeper);
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+
+        vm.warp(block.timestamp + 7 days);
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, cfg);
+        assertFalse(upkeepNeeded, "Upkeep should be false after maxTrades exhausted");
     }
 
     function _createStrategy(uint256 endDate) internal returns (uint256) {

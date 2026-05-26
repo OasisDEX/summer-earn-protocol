@@ -115,3 +115,5 @@ myenv
 **/terraform.tfvars
 *.tfvars
 .antigravitycli
+
+.claude/

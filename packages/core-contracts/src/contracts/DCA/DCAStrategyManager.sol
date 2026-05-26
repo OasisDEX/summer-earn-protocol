@@ -4,14 +4,13 @@ pragma solidity 0.8.28;
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {Permit2Consumer} from "./Permit2Consumer.sol";
 import {EnsoRouterSwapper} from "./EnsoRouterSwapper.sol";
 import {HarborCommandConsumer} from "./HarborCommandConsumer.sol";
 import {ChainlinkPriceConsumer} from "./ChainlinkPriceConsumer.sol";
+import {ChainlinkOracleUtils, ChainlinkOraclePrice} from "./ChainlinkOracleUtils.sol";
 import {BPS, BPS_100} from "@summerfi/percentage-solidity/contracts/BPS.sol";
 import {BpsUtils} from "@summerfi/percentage-solidity/contracts/BpsUtils.sol";
 
@@ -19,8 +18,23 @@ import {IDCAStrategyManager} from "../../interfaces/arks/IDCAStrategyManager.sol
 import {IDCAStrategyManagerErrors} from "../../errors/arks/IDCAStrategyManagerErrors.sol";
 import {IDCAStrategyManagerEvents} from "../../events/arks/IDCAStrategyManagerEvents.sol";
 import {IFleetCommander} from "../../interfaces/IFleetCommander.sol";
-import {AggregatorV3Interface} from "../../interfaces/external/Chainlink/AggregatorV3Interface.sol";
 
+/**
+ * @title DCAStrategyManager
+ * @notice Manages user-owned dollar-cost-averaging strategies executed by a
+ *         permissioned keeper.
+ *
+ * @dev The contract holds no funds. Each execution pulls exactly `tradeAmount`
+ *      source-vault shares from the strategy owner via Permit2 AllowanceTransfer,
+ *      routes them through the Enso aggregator, deposits the proceeds into the
+ *      target FleetCommander, and forwards the resulting shares to the owner —
+ *      all in a single atomic transaction.
+ *
+ *      Ownership is proven statelessly: every owner-gated function accepts the
+ *      full `StrategyConfig` calldata and verifies that its keccak256 hash
+ *      matches the stored commitment, then checks `msg.sender == config.owner`.
+ *      There is no separate `_strategyOwners` mapping.
+ */
 contract DCAStrategyManager is
     IDCAStrategyManager,
     IDCAStrategyManagerErrors,
@@ -38,21 +52,37 @@ contract DCAStrategyManager is
     /*//////////////////////////////////////////////////////////////
                               CONSTANTS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Minimum allowed interval between executions (1 day).
     uint256 private constant _MIN_INTERVAL = 1 days;
-    uint256 private constant _PRICE_PRECISION = 1e18;
 
     /*//////////////////////////////////////////////////////////////
                               STATE VARIALES
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Monotonically-increasing counter used to assign the next strategy ID.
     uint256 private _nextStrategyId;
+
+    /// @notice Maps each strategy ID to its current commitment hash (keccak256 of its config).
     mapping(uint256 strategyId => bytes32 commitmentHash)
-        private _strategyCommitments;
+        public strategyCommitments;
+
+    /// @notice Maps each strategy ID to its mutable runtime state.
     mapping(uint256 strategyId => StrategyState state) private _strategyStates;
-    mapping(bytes32 commitmentHash => bool) private _activeCommitments;
+
+    /// @notice Tracks which commitment hashes are currently active, preventing duplicate strategies.
+    mapping(bytes32 commitmentHash => bool) public activeCommitments;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @param _accessManager Address of the ProtocolAccessManager (governs keeper roles).
+     * @param _ensoRouter Address of the Enso aggregator router used for all swaps.
+     * @param _harborCommand Address of the HarborCommand registry for FleetCommander validation.
+     * @param _permit2 Address of the Uniswap Permit2 singleton used for allowance pulls.
+     */
     constructor(
         address _accessManager,
         address _ensoRouter,
@@ -63,19 +93,23 @@ contract DCAStrategyManager is
         Permit2Consumer(_permit2)
         EnsoRouterSwapper(_ensoRouter)
         HarborCommandConsumer(_harborCommand)
-    {}
+    {
+        // Empty on purpose
+    }
 
     /*//////////////////////////////////////////////////////////////
                               MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Reverts if `config` does not match the stored commitment for
-    ///      `strategyId` or if the caller is not `config.owner`.
+    /**
+     * @dev Reverts if `config` does not match the stored commitment for
+     *      `strategyId` or if the caller is not `config.owner`.
+     */
     modifier onlyStrategyOwner(
         uint256 strategyId,
         StrategyConfig calldata config
     ) {
-        if (_commitmentHash(config) != _strategyCommitments[strategyId]) {
+        if (_commitmentHash(config) != strategyCommitments[strategyId]) {
             revert CommitmentMismatch(strategyId);
         }
         if (_msgSender() != config.owner) {
@@ -87,22 +121,26 @@ contract DCAStrategyManager is
     /*//////////////////////////////////////////////////////////////
                               STRATEGY MANAGEMENT
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
     function createStrategy(
         StrategyConfig calldata config
     )
         external
-        onlyActiveFleetCommander(address(config.sourceVault), "source")
-        onlyActiveFleetCommander(address(config.targetVault), "target")
+        onlyActiveFleetCommander(config.sourceVault, "source")
+        onlyActiveFleetCommander(config.targetVault, "target")
         returns (uint256 strategyId)
     {
         _validateStrategyConfig(config);
 
         bytes32 commitment = _commitmentHash(config);
-        if (_activeCommitments[commitment]) revert DuplicateStrategy();
+        if (activeCommitments[commitment]) revert DuplicateStrategy();
 
         strategyId = _nextStrategyId++;
-        _activeCommitments[commitment] = true;
-        _strategyCommitments[strategyId] = commitment;
+        activeCommitments[commitment] = true;
+        strategyCommitments[strategyId] = commitment;
 
         uint256 hourAligned = _hourAlignedTimestamp();
         _strategyStates[strategyId] = StrategyState({
@@ -115,6 +153,9 @@ contract DCAStrategyManager is
         emit StrategyCreated(strategyId, config);
     }
 
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
     function editStrategy(
         uint256 strategyId,
         StrategyConfig calldata oldConfig,
@@ -122,8 +163,8 @@ contract DCAStrategyManager is
     )
         external
         onlyStrategyOwner(strategyId, oldConfig)
-        onlyActiveFleetCommander(address(newConfig.sourceVault), "source")
-        onlyActiveFleetCommander(address(newConfig.targetVault), "target")
+        onlyActiveFleetCommander(newConfig.sourceVault, "source")
+        onlyActiveFleetCommander(newConfig.targetVault, "target")
     {
         // Ownership transfer via edit is disallowed — the commitment is the
         // ownership proof, so changing config.owner would silently re-key
@@ -135,25 +176,29 @@ contract DCAStrategyManager is
 
         bytes32 oldCommitment = _commitmentHash(oldConfig);
         bytes32 newCommitment = _commitmentHash(newConfig);
-        if (_activeCommitments[newCommitment]) revert DuplicateStrategy();
+        if (activeCommitments[newCommitment]) revert DuplicateStrategy();
 
         if (newCommitment != oldCommitment) {
-            _activeCommitments[oldCommitment] = false;
-            _activeCommitments[newCommitment] = true;
-            _strategyCommitments[strategyId] = newCommitment;
+            activeCommitments[oldCommitment] = false;
+            activeCommitments[newCommitment] = true;
+            strategyCommitments[strategyId] = newCommitment;
         }
 
-        StrategyState storage state = _strategyState(strategyId);
+        StrategyState storage state = _strategyStates[strategyId];
+        // Last sheduled time is already hour aligned
         state.nextTriggerAt = state.lastScheduledAt + newConfig.interval;
 
         emit StrategyEdited(strategyId, newConfig);
     }
 
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
     function pauseStrategy(
         uint256 strategyId,
         StrategyConfig calldata config
     ) external onlyStrategyOwner(strategyId, config) {
-        StrategyState storage state = _strategyState(strategyId);
+        StrategyState storage state = _strategyStates[strategyId];
         if (state.status != Status.ACTIVE) {
             revert StrategyNotActive(strategyId);
         }
@@ -163,26 +208,33 @@ contract DCAStrategyManager is
         emit StrategyPaused(strategyId, state.nextTriggerAt);
     }
 
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
     function resumeStrategy(
         uint256 strategyId,
         StrategyConfig calldata config
     ) external onlyStrategyOwner(strategyId, config) {
-        StrategyState storage state = _strategyState(strategyId);
+        StrategyState storage state = _strategyStates[strategyId];
         if (state.status != Status.PAUSED) {
             revert StrategyNotActive(strategyId);
         }
 
         state.status = Status.ACTIVE;
+        // @audit Should this be hour aligned?
         state.nextTriggerAt = block.timestamp + config.interval;
 
         emit StrategyResumed(strategyId, state.nextTriggerAt);
     }
 
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
     function cancelStrategy(
         uint256 strategyId,
         StrategyConfig calldata config
     ) external onlyStrategyOwner(strategyId, config) {
-        StrategyState storage state = _strategyState(strategyId);
+        StrategyState storage state = _strategyStates[strategyId];
         if (state.status == Status.CANCELLED) {
             revert StrategyNotActive(strategyId);
         }
@@ -192,25 +244,28 @@ contract DCAStrategyManager is
         emit StrategyCancelled(strategyId);
     }
 
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
     function executeStrategy(
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData
     ) external onlyKeeper nonReentrant {
-        bytes32 storedCommitment = _strategyCommitments[strategyId];
+        bytes32 storedCommitment = strategyCommitments[strategyId];
         if (_commitmentHash(config) != storedCommitment) {
             revert CommitmentMismatch(strategyId);
         }
 
-        StrategyState storage state = _strategyState(strategyId);
+        StrategyState storage state = _strategyStates[strategyId];
         if (state.status != Status.ACTIVE) {
             revert StrategyNotActive(strategyId);
         }
 
-        if (state.tradesExecuted >= config.maxTrades) {
+        if (config.maxTrades > 0 && state.tradesExecuted >= config.maxTrades) {
             revert TerminalStateReached(strategyId, "max_trades");
         }
-        if (block.timestamp >= config.endDate) {
+        if (config.endDate > 0 && block.timestamp >= config.endDate) {
             revert TerminalStateReached(strategyId, "end_date");
         }
 
@@ -222,47 +277,57 @@ contract DCAStrategyManager is
             );
         }
 
-        _executeSwap(strategyId, config, ensoData, state);
+        _executeStrategy(strategyId, config, ensoData, state);
     }
 
     /*//////////////////////////////////////////////////////////////
                               VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    function strategyCommitments(
-        uint256 strategyId
-    ) external view returns (bytes32) {
-        return _strategyCommitments[strategyId];
-    }
 
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
     function strategyStates(
         uint256 strategyId
     ) external view returns (StrategyState memory) {
         return _strategyStates[strategyId];
     }
 
-    function activeCommitments(
-        bytes32 commitment
-    ) external view returns (bool) {
-        return _activeCommitments[commitment];
-    }
-
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
     function checkUpkeep(
         uint256 strategyId,
         StrategyConfig calldata config
     ) external view returns (bool upkeepNeeded, bytes memory performData) {
         performData = "";
-        StrategyState storage state = _strategyState(strategyId);
-
-        if (state.status != Status.ACTIVE) return (false, performData);
-        if (block.timestamp < state.nextTriggerAt) return (false, performData);
-        if (state.tradesExecuted >= config.maxTrades) {
+        if (_commitmentHash(config) != strategyCommitments[strategyId]) {
             return (false, performData);
         }
-        if (block.timestamp >= config.endDate) return (false, performData);
+        StrategyState storage state = _strategyStates[strategyId];
+
+        if (state.status != Status.ACTIVE) {
+            return (false, performData);
+        }
+        if (block.timestamp < state.nextTriggerAt) {
+            return (false, performData);
+        }
+        if (config.maxTrades > 0 && state.tradesExecuted >= config.maxTrades) {
+            return (false, performData);
+        }
+        if (config.endDate > 0 && block.timestamp >= config.endDate) {
+            return (false, performData);
+        }
 
         if (config.maxPrice > 0 || config.minPrice > 0) {
-            (uint256 inPrice, uint256 outPrice) = _getOraclePrices(config);
-            uint256 executionPrice = _executionPrice(config, inPrice, outPrice);
+            (
+                ChainlinkOraclePrice memory inPrice,
+                ChainlinkOraclePrice memory outPrice
+            ) = _getChainlinkOraclePrices(config);
+            uint256 executionPrice = _calculateExecutionPrice(
+                inPrice,
+                outPrice
+            );
             if (config.maxPrice > 0 && executionPrice > config.maxPrice) {
                 return (false, performData);
             }
@@ -278,33 +343,44 @@ contract DCAStrategyManager is
                               INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _strategyState(
-        uint256 strategyId
-    ) internal view returns (StrategyState storage) {
-        return _strategyStates[strategyId];
-    }
-
-    /// @dev Rounds `block.timestamp` up to the next whole hour boundary.
+    /**
+     * @dev Rounds `block.timestamp` up to the next whole hour boundary.
+     */
     function _hourAlignedTimestamp() internal view returns (uint256) {
         return ((block.timestamp + 3599) / 3600) * 3600;
     }
 
+    /**
+     * @dev Returns the commitment hash for `config` — keccak256(abi.encode(config)).
+     */
     function _commitmentHash(
         StrategyConfig calldata config
     ) internal pure returns (bytes32) {
         return keccak256(abi.encode(config));
     }
 
+    /**
+     * @dev Validates the fields of `config` that are independent of vault registry
+     *      checks (those are enforced by the `onlyActiveFleetCommander` modifier).
+     *      Reverts with `InvalidOwner`, `SameAsset`, `IntervalTooShort`,
+     *      `InvalidSlippage`, `ZeroTradeAmount`, or `InvalidFeedAddress` on the
+     *      first failing field.
+     */
     function _validateStrategyConfig(
         StrategyConfig calldata config
-    ) internal view {
+    ) internal pure {
+        if (config.owner == address(0)) revert InvalidOwner();
+        if (address(config.sourceVault) == address(config.targetVault)) revert SameAsset(address(config.sourceVault));
+        if (config.inAsset == config.outAsset) revert SameAsset(address(config.inAsset));
         if (config.interval < _MIN_INTERVAL) {
             revert IntervalTooShort(config.interval, _MIN_INTERVAL);
         }
         if (!BpsUtils.isBpsInRange(BPS.wrap(config.slippageBps))) {
             revert InvalidSlippage(config.slippageBps);
         }
-        if (config.tradeAmount == 0) revert ZeroTradeAmount();
+        if (config.tradeAmount == 0) {
+            revert ZeroTradeAmount();
+        }
         if (
             config.inAssetFeed == address(0) ||
             config.outAssetFeed == address(0)
@@ -313,16 +389,38 @@ contract DCAStrategyManager is
         }
     }
 
-    function _executeSwap(
+    /**
+     * @dev Fetches oracle prices, enforces price-guard bounds, pulls funds from
+     *      the owner via Permit2, then delegates to `_executeSwap`.
+     *      Reverts with `PriceAboveCeiling` or `PriceBelowFloor` when the
+     *      current execution price falls outside the strategy's configured bounds.
+     */
+    function _executeStrategy(
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData,
         StrategyState storage state
     ) internal {
-        // _getOraclePrices reverts with OraclePriceZero on raw <= 0.
-        (uint256 inPrice, uint256 outPrice) = _getOraclePrices(config);
+        // Convert source shares → inAssets, then derive expectedOutAssets and
+        // oracle prices in one call. Prices are returned for reuse in the guard.
+        // This spends more gas for a failing call but makes the architecture more
+        // readable
+        uint256 inAssets = config.sourceVault.convertToAssets(
+            config.tradeAmount
+        );
+        (
+            uint256 expectedOutAssets,
+            ChainlinkOraclePrice memory inPrice,
+            ChainlinkOraclePrice memory outPrice
+        ) = ChainlinkOracleUtils.convertAmount(
+                inAssets,
+                config.inAsset,
+                config.inAssetFeed,
+                config.outAsset,
+                config.outAssetFeed
+            );
 
-        uint256 executionPrice = _executionPrice(config, inPrice, outPrice);
+        uint256 executionPrice = _calculateExecutionPrice(inPrice, outPrice);
         if (config.maxPrice > 0 && executionPrice > config.maxPrice) {
             revert PriceAboveCeiling(executionPrice, config.maxPrice);
         }
@@ -330,29 +428,37 @@ contract DCAStrategyManager is
             revert PriceBelowFloor(executionPrice, config.minPrice);
         }
 
+        uint256 expectedOutShares = config.targetVault.previewDeposit(
+            expectedOutAssets
+        );
+        uint256 minOut = expectedOutShares.subtractBps(
+            BPS.wrap(config.slippageBps)
+        );
+
         _pullFunds(
             config.owner,
             address(config.sourceVault),
             config.tradeAmount
         );
 
-        _executeSwapCore(
-            strategyId,
-            config,
-            ensoData,
-            state,
-            inPrice,
-            outPrice
-        );
+        _executeSwap(strategyId, config, ensoData, state, minOut);
     }
 
-    function _executeSwapCore(
+    /**
+     * @dev Performs the CEI sequence for a single DCA trade:
+     *      1. Effects — advance `tradesExecuted`, `lastScheduledAt`, `nextTriggerAt`.
+     *      2. Interactions — route source shares through Enso, verify `minOut`,
+     *         transfer target shares to the owner.
+     *      3. Emit `ExecutionCompleted` and, if terminal, `StrategyCompleted`.
+     *      Reverts with `SwapOutputBelowMinOut` when the received target shares
+     *      fall below the slippage-adjusted minimum.
+     */
+    function _executeSwap(
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData,
         StrategyState storage state,
-        uint256 inPrice,
-        uint256 outPrice
+        uint256 minOut
     ) internal {
         // Effects: write state before any external interaction.
         uint256 nextTriggerAt = block.timestamp + config.interval;
@@ -371,7 +477,6 @@ contract DCAStrategyManager is
             address(this)
         ) - targetSharesBefore;
 
-        uint256 minOut = _calculateMinOut(config, inPrice, outPrice);
         if (swappedAmount < minOut) {
             revert SwapOutputBelowMinOut(strategyId, minOut, swappedAmount);
         }
@@ -389,69 +494,41 @@ contract DCAStrategyManager is
             nextTriggerAt
         );
 
-        if (tradesExecuted >= config.maxTrades) {
+        if (config.maxTrades > 0 && tradesExecuted >= config.maxTrades) {
             state.status = Status.COMPLETED;
             emit StrategyCompleted(strategyId, "max_trades");
-        } else if (nextTriggerAt >= config.endDate) {
+        } else if (config.endDate > 0 && nextTriggerAt >= config.endDate) {
             state.status = Status.COMPLETED;
             emit StrategyCompleted(strategyId, "end_date");
         }
     }
 
-    function _getOraclePrices(
+    /**
+     * @dev Fetches both oracle prices for the strategy's asset pair as `ChainlinkOraclePrice`
+     *      structs (value + decimals bundled) by calling `_getPrice` on each feed.
+     */
+    function _getChainlinkOraclePrices(
         StrategyConfig calldata config
-    ) internal view returns (uint256 inPrice, uint256 outPrice) {
+    )
+        internal
+        view
+        returns (
+            ChainlinkOraclePrice memory inPrice,
+            ChainlinkOraclePrice memory outPrice
+        )
+    {
         inPrice = _getPrice(config.inAssetFeed);
         outPrice = _getPrice(config.outAssetFeed);
     }
 
-    /// @dev 1e18-scaled out/in execution price (inAsset units per 1 outAsset).
-    function _executionPrice(
-        StrategyConfig calldata config,
-        uint256 inPrice,
-        uint256 outPrice
-    ) internal view returns (uint256) {
-        uint8 inOracleDec = AggregatorV3Interface(config.inAssetFeed)
-            .decimals();
-        uint8 outOracleDec = AggregatorV3Interface(config.outAssetFeed)
-            .decimals();
-        return
-            Math.mulDiv(
-                outPrice,
-                10 ** uint256(inOracleDec) * _PRICE_PRECISION,
-                inPrice * 10 ** uint256(outOracleDec)
-            );
-    }
-
-    function _calculateMinOut(
-        StrategyConfig calldata config,
-        uint256 inPrice,
-        uint256 outPrice
-    ) internal view returns (uint256 minOut) {
-        uint256 inAssets = config.sourceVault.convertToAssets(
-            config.tradeAmount
-        );
-
-        uint8 inAssetDec = IERC20Metadata(address(config.inAsset)).decimals();
-        uint8 outAssetDec = IERC20Metadata(address(config.outAsset)).decimals();
-        uint8 inOracleDec = AggregatorV3Interface(config.inAssetFeed)
-            .decimals();
-        uint8 outOracleDec = AggregatorV3Interface(config.outAssetFeed)
-            .decimals();
-
-        uint256 numScale = 10 ** (uint256(outOracleDec) + uint256(outAssetDec));
-        uint256 denScale = 10 ** (uint256(inOracleDec) + uint256(inAssetDec));
-
-        uint256 expectedOutAssets = Math.mulDiv(
-            inAssets * inPrice,
-            numScale,
-            outPrice * denScale
-        );
-
-        uint256 expectedOutShares = config.targetVault.previewDeposit(
-            expectedOutAssets
-        );
-
-        minOut = expectedOutShares.subtractBps(BPS.wrap(config.slippageBps));
+    /**
+     * @dev Returns the 1e18-scaled out/in execution-price ratio
+     *      (how many `outAsset` units equal one `inAsset` unit at current oracle prices).
+     */
+    function _calculateExecutionPrice(
+        ChainlinkOraclePrice memory inPrice,
+        ChainlinkOraclePrice memory outPrice
+    ) internal pure returns (uint256) {
+        return ChainlinkOracleUtils.crossRate(outPrice, inPrice);
     }
 }

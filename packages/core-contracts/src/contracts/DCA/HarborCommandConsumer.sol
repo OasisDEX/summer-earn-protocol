@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IHarborCommand} from "../../interfaces/IHarborCommand.sol";
+import {IFleetCommander} from "../../interfaces/IFleetCommander.sol";
 
 /**
  * @title HarborCommandConsumer
@@ -37,12 +38,12 @@ abstract contract HarborCommandConsumer {
     /**
      * @dev Reverts with `InactiveFleetCommander` when `vault` is not an active
      *      FleetCommander according to the HarborCommand registry.
-     * @param vault  The vault address to check.
+     * @param vault  The FleetCommander to check.
      * @param label  Human-readable label for the vault role ("source", "target", …).
      */
-    modifier onlyActiveFleetCommander(address vault, string memory label) {
-        if (!HARBOR_COMMAND.activeFleetCommanders(vault)) {
-            revert InactiveFleetCommander(vault, label);
+    modifier onlyActiveFleetCommander(IFleetCommander vault, string memory label) {
+        if (!HARBOR_COMMAND.activeFleetCommanders(address(vault))) {
+            revert InactiveFleetCommander(address(vault), label);
         }
         _;
     }
