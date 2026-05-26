@@ -476,8 +476,6 @@ templates:
         - ReceiptTransfer
         - Account
         - Token
-        - RoundsVaultDailySnapshot
-        - RoundsVaultHourlySnapshot
       abis:
         - name: RoundsVaultInput
           file: ./abis/RoundsVaultInput.abi.json
@@ -498,6 +496,10 @@ templates:
           handler: handleAssetsDeposited
         - event: DepositWithReceipt(indexed address,indexed address,uint256,uint256)
           handler: handleDepositWithReceipt
+        - event: RedeemReceipt(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleRedeemReceipt
+        - event: RedeemReceiptBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
+          handler: handleRedeemReceiptBatch
         - event: WithdrawExchangeAsset(indexed address,indexed address,indexed address,uint256,uint256,uint256)
           handler: handleWithdrawExchangeAsset
         - event: WithdrawExchangeAssetBatch(indexed address,indexed address,indexed address,uint256,uint256[],uint256[])
@@ -523,8 +525,6 @@ templates:
         - ReceiptTransfer
         - Account
         - Token
-        - RoundsVaultDailySnapshot
-        - RoundsVaultHourlySnapshot
       abis:
         - name: RoundsVaultOutput
           file: ./abis/RoundsVaultOutput.abi.json
@@ -545,6 +545,10 @@ templates:
           handler: handleSharesRedeemed
         - event: DepositWithReceipt(indexed address,indexed address,uint256,uint256)
           handler: handleDepositWithReceipt
+        - event: RedeemReceipt(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleRedeemReceipt
+        - event: RedeemReceiptBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
+          handler: handleRedeemReceiptBatch
         - event: WithdrawExchangeAsset(indexed address,indexed address,indexed address,uint256,uint256,uint256)
           handler: handleWithdrawExchangeAsset
         - event: WithdrawExchangeAssetBatch(indexed address,indexed address,indexed address,uint256,uint256[],uint256[])

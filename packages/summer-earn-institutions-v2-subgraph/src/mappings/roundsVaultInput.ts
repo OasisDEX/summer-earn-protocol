@@ -4,6 +4,8 @@ import {
   DepositWithReceipt,
   EmergencyRoundRolledBack,
   MinPositionSizeUpdated,
+  RedeemReceipt,
+  RedeemReceiptBatch,
   RoundAdvanced,
   RoundRetried,
   RoundSettled,
@@ -26,6 +28,8 @@ import {
   applyReceiptTransfer,
   markExchangeAssetRedemption,
   markExchangeAssetRedemptionBatch,
+  markUnderlyingRedemption,
+  markUnderlyingRedemptionBatch,
 } from '../utils/receipt'
 
 export function handleRoundAdvanced(event: RoundAdvanced): void {
@@ -58,13 +62,33 @@ export function handleDepositWithReceipt(event: DepositWithReceipt): void {
   applyDepositWithReceipt(event.address, event.params.id, event.params.assets, event)
 }
 
+export function handleRedeemReceipt(event: RedeemReceipt): void {
+  markUnderlyingRedemption(
+    event.address,
+    event.params.owner,
+    event.params.id,
+    event.params.amount,
+    event,
+  )
+}
+
+export function handleRedeemReceiptBatch(event: RedeemReceiptBatch): void {
+  let ids = event.params.ids
+  let amounts = event.params.amounts
+  if (ids.length != amounts.length) {
+    log.warning('RedeemReceiptBatch len mismatch on {}', [event.address.toHexString()])
+    return
+  }
+  markUnderlyingRedemptionBatch(event.address, event.params.owner, ids, amounts, event)
+}
+
 export function handleAssetsDeposited(event: AssetsDeposited): void {
   let vault = getRoundsVaultByAddress(event.address)
   if (vault == null) return
   let round = loadRound(vault.id, event.params.roundId)
   if (round == null) return
-  round.inputAssetsDeposited = event.params.assets
-  round.inputSharesReceived = event.params.shares
+  round.settledUnderlyingAmount = event.params.assets
+  round.settledExchangeAmount = event.params.shares
   round.save()
 }
 
