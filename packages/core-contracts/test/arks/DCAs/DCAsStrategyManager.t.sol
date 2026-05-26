@@ -9,6 +9,7 @@ import {IDCAStrategyManagerEvents} from "../../../src/events/arks/IDCAStrategyMa
 import {EnsoRouterSwapper} from "../../../src/contracts/DCA/EnsoRouterSwapper.sol";
 import {HarborCommandConsumer} from "../../../src/contracts/DCA/HarborCommandConsumer.sol";
 import {ChainlinkOracleUtils} from "../../../src/contracts/DCA/ChainlinkOracleUtils.sol";
+import {Permit2Consumer} from "../../../src/contracts/DCA/Permit2Consumer.sol";
 import {IFleetCommander} from "../../../src/interfaces/IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -667,6 +668,441 @@ contract DCAStrategyManagerTest is Test {
                 endDate: block.timestamp + 365 days,
                 maxTrades: 100
             });
+    }
+
+    // =========================================================
+    // createStrategy — additional validation paths
+    // =========================================================
+
+    function test_CreateStrategy_RevertsOnInvalidOwner() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.owner = address(0);
+        vm.prank(strategyOwner);
+        vm.expectRevert(IDCAStrategyManagerErrors.InvalidOwner.selector);
+        dcaManager.createStrategy(config);
+    }
+
+    function test_CreateStrategy_RevertsOnSameVault() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.targetVault = config.sourceVault;
+        vm.prank(strategyOwner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.SameAsset.selector,
+                address(config.sourceVault)
+            )
+        );
+        dcaManager.createStrategy(config);
+    }
+
+    function test_CreateStrategy_RevertsOnSameAsset() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.outAsset = config.inAsset;
+        vm.prank(strategyOwner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.SameAsset.selector,
+                address(config.inAsset)
+            )
+        );
+        dcaManager.createStrategy(config);
+    }
+
+    function test_CreateStrategy_EmitsStrategyCreated() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        // Check strategyId (topic1) only; config struct data omitted.
+        vm.expectEmit(true, false, false, false, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyCreated(0, config);
+        dcaManager.createStrategy(config);
+    }
+
+    function test_CreateStrategy_InitialStateIsCorrect() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        uint256 expectedHourAligned = ((block.timestamp + 3599) / 3600) * 3600;
+        IDCAStrategyManager.StrategyState memory state = dcaManager.strategyStates(strategyId);
+
+        assertEq(uint8(state.status), uint8(IDCAStrategyManager.Status.ACTIVE));
+        assertEq(state.tradesExecuted, 0);
+        assertEq(state.lastScheduledAt, expectedHourAligned);
+        assertEq(state.nextTriggerAt, expectedHourAligned + config.interval);
+    }
+
+    function test_CreateStrategy_AcceptsZeroSlippage() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.slippageBps = 0;
+        vm.prank(strategyOwner);
+        dcaManager.createStrategy(config);
+    }
+
+    function test_CreateStrategy_AcceptsMaxSlippage() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.slippageBps = 10_000;
+        vm.prank(strategyOwner);
+        dcaManager.createStrategy(config);
+    }
+
+    // =========================================================
+    // editStrategy — additional paths
+    // =========================================================
+
+    function test_EditStrategy_RevertsOnCommitmentMismatch() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        IDCAStrategyManager.StrategyConfig memory wrong = _defaultConfig();
+        wrong.tradeAmount = 9999;
+        IDCAStrategyManager.StrategyConfig memory newConfig = _defaultConfig();
+        newConfig.interval = 14 days;
+
+        vm.prank(strategyOwner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.CommitmentMismatch.selector,
+                strategyId
+            )
+        );
+        dcaManager.editStrategy(strategyId, wrong, newConfig);
+    }
+
+    function test_EditStrategy_RevertsOnSameConfig() public {
+        // Editing to the exact same config must revert with DuplicateStrategy:
+        // the commitment is already active, so the new hash collides.
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        vm.prank(strategyOwner);
+        vm.expectRevert(IDCAStrategyManagerErrors.DuplicateStrategy.selector);
+        dcaManager.editStrategy(strategyId, config, config);
+    }
+
+    function test_EditStrategy_EmitsStrategyEdited() public {
+        IDCAStrategyManager.StrategyConfig memory oldConfig = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(oldConfig);
+
+        IDCAStrategyManager.StrategyConfig memory newConfig = _defaultConfig();
+        newConfig.interval = 14 days;
+
+        vm.prank(strategyOwner);
+        vm.expectEmit(true, false, false, false, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyEdited(strategyId, newConfig);
+        dcaManager.editStrategy(strategyId, oldConfig, newConfig);
+    }
+
+    function test_EditStrategy_WorksWhenPaused() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        dcaManager.pauseStrategy(strategyId, config);
+
+        IDCAStrategyManager.StrategyConfig memory newConfig = _defaultConfig();
+        newConfig.interval = 14 days;
+        dcaManager.editStrategy(strategyId, config, newConfig);
+        vm.stopPrank();
+
+        IDCAStrategyManager.StrategyState memory state = dcaManager.strategyStates(strategyId);
+        assertEq(state.nextTriggerAt, state.lastScheduledAt + 14 days);
+    }
+
+    // =========================================================
+    // pauseStrategy — additional paths
+    // =========================================================
+
+    function test_PauseStrategy_RevertsWhenAlreadyPaused() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        dcaManager.pauseStrategy(strategyId, config);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.StrategyNotActive.selector,
+                strategyId
+            )
+        );
+        dcaManager.pauseStrategy(strategyId, config);
+        vm.stopPrank();
+    }
+
+    function test_PauseStrategy_EmitsStrategyPaused() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        uint256 expectedNextTriggerAt = dcaManager.strategyStates(strategyId).nextTriggerAt;
+
+        vm.prank(strategyOwner);
+        vm.expectEmit(true, false, false, true, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyPaused(strategyId, expectedNextTriggerAt);
+        dcaManager.pauseStrategy(strategyId, config);
+    }
+
+    // =========================================================
+    // resumeStrategy — all paths
+    // =========================================================
+
+    function test_ResumeStrategy_RevertsForNonOwner() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        vm.prank(strategyOwner);
+        dcaManager.pauseStrategy(strategyId, config);
+
+        address attacker = address(0xBAD);
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.UnauthorizedAccess.selector,
+                strategyId,
+                attacker
+            )
+        );
+        dcaManager.resumeStrategy(strategyId, config);
+    }
+
+    function test_ResumeStrategy_RevertsOnCommitmentMismatch() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        vm.prank(strategyOwner);
+        dcaManager.pauseStrategy(strategyId, config);
+
+        IDCAStrategyManager.StrategyConfig memory wrong = _defaultConfig();
+        wrong.tradeAmount = 9999;
+
+        vm.prank(strategyOwner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.CommitmentMismatch.selector,
+                strategyId
+            )
+        );
+        dcaManager.resumeStrategy(strategyId, wrong);
+    }
+
+    function test_ResumeStrategy_RevertsWhenActive() public {
+        // resumeStrategy requires PAUSED; calling it on an ACTIVE strategy must fail.
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        vm.prank(strategyOwner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.StrategyNotActive.selector,
+                strategyId
+            )
+        );
+        dcaManager.resumeStrategy(strategyId, config);
+    }
+
+    function test_ResumeStrategy_RevertsWhenCancelled() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        dcaManager.cancelStrategy(strategyId, config);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.StrategyNotActive.selector,
+                strategyId
+            )
+        );
+        dcaManager.resumeStrategy(strategyId, config);
+        vm.stopPrank();
+    }
+
+    function test_ResumeStrategy_SetsNextTriggerAt() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        dcaManager.pauseStrategy(strategyId, config);
+
+        vm.warp(block.timestamp + 30 days);
+        dcaManager.resumeStrategy(strategyId, config);
+        vm.stopPrank();
+
+        IDCAStrategyManager.StrategyState memory state = dcaManager.strategyStates(strategyId);
+        assertEq(uint8(state.status), uint8(IDCAStrategyManager.Status.ACTIVE));
+        assertEq(state.nextTriggerAt, block.timestamp + config.interval);
+    }
+
+    function test_ResumeStrategy_EmitsStrategyResumed() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        dcaManager.pauseStrategy(strategyId, config);
+
+        vm.expectEmit(true, false, false, true, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyResumed(
+            strategyId,
+            block.timestamp + config.interval
+        );
+        dcaManager.resumeStrategy(strategyId, config);
+        vm.stopPrank();
+    }
+
+    // =========================================================
+    // cancelStrategy — additional paths
+    // =========================================================
+
+    function test_CancelStrategy_RevertsForNonOwner() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        address attacker = address(0xBAD);
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.UnauthorizedAccess.selector,
+                strategyId,
+                attacker
+            )
+        );
+        dcaManager.cancelStrategy(strategyId, config);
+    }
+
+    function test_CancelStrategy_RevertsOnCommitmentMismatch() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        IDCAStrategyManager.StrategyConfig memory wrong = _defaultConfig();
+        wrong.tradeAmount = 9999;
+
+        vm.prank(strategyOwner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.CommitmentMismatch.selector,
+                strategyId
+            )
+        );
+        dcaManager.cancelStrategy(strategyId, wrong);
+    }
+
+    function test_CancelStrategy_RevertsOnDoubleCancel() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        dcaManager.cancelStrategy(strategyId, config);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.StrategyNotActive.selector,
+                strategyId
+            )
+        );
+        dcaManager.cancelStrategy(strategyId, config);
+        vm.stopPrank();
+    }
+
+    function test_CancelStrategy_WorksWhenPaused() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        dcaManager.pauseStrategy(strategyId, config);
+        dcaManager.cancelStrategy(strategyId, config);
+        vm.stopPrank();
+
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.CANCELLED)
+        );
+    }
+
+    function test_CancelStrategy_EmitsStrategyCancelled() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        vm.prank(strategyOwner);
+        vm.expectEmit(true, false, false, false, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyCancelled(strategyId);
+        dcaManager.cancelStrategy(strategyId, config);
+    }
+
+    // =========================================================
+    // checkUpkeep — additional paths
+    // =========================================================
+
+    function test_CheckUpkeep_ReturnsFalseWhenPaused() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        dcaManager.pauseStrategy(strategyId, config);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 7 days);
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertFalse(upkeepNeeded, "Upkeep must be false when PAUSED");
+    }
+
+    function test_CheckUpkeep_ReturnsFalseWhenCancelled() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        dcaManager.cancelStrategy(strategyId, config);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 7 days);
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertFalse(upkeepNeeded, "Upkeep must be false when CANCELLED");
+    }
+
+    function test_CheckUpkeep_ReturnsFalseOnWrongCommitment() public {
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(_defaultConfig());
+
+        vm.warp(block.timestamp + 7 days);
+
+        IDCAStrategyManager.StrategyConfig memory wrong = _defaultConfig();
+        wrong.tradeAmount = 9999;
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, wrong);
+        assertFalse(upkeepNeeded, "Upkeep must be false when commitment does not match");
+    }
+
+    // =========================================================
+    // Constructor guard checks
+    // =========================================================
+
+    function test_Constructor_RevertsOnZeroRouter() public {
+        vm.expectRevert(EnsoRouterSwapper.InvalidRouterAddress.selector);
+        new DCAStrategyManager(
+            address(accessManager),
+            address(0),
+            address(harborCommand),
+            PERMIT2
+        );
+    }
+
+    function test_Constructor_RevertsOnZeroPermit2() public {
+        vm.expectRevert(Permit2Consumer.InvalidPermit2Address.selector);
+        new DCAStrategyManager(
+            address(accessManager),
+            ENSO_ROUTER,
+            address(harborCommand),
+            address(0)
+        );
+    }
+
+    function test_Constructor_RevertsOnZeroHarborCommand() public {
+        vm.expectRevert(HarborCommandConsumer.InvalidHarborCommandAddress.selector);
+        new DCAStrategyManager(
+            address(accessManager),
+            ENSO_ROUTER,
+            address(0),
+            PERMIT2
+        );
     }
 }
 
@@ -1418,5 +1854,210 @@ contract DCAStrategyManagerIntegrationTest is Test {
                 endDate: endDate,
                 maxTrades: 100
             });
+    }
+
+    // =========================================================
+    // executeStrategy — additional paths
+    // =========================================================
+
+    function test_Execute_RevertsWhenPaused() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(endDate);
+
+        vm.prank(strategyOwner);
+        dcaManager.pauseStrategy(strategyId, config);
+
+        vm.warp(block.timestamp + 7 days);
+
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.StrategyNotActive.selector,
+                strategyId
+            )
+        );
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
+    }
+
+    function test_Execute_SucceedsAfterResume() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(endDate);
+
+        vm.startPrank(strategyOwner);
+        dcaManager.pauseStrategy(strategyId, config);
+        vm.warp(block.timestamp + 30 days);
+        dcaManager.resumeStrategy(strategyId, config);
+        vm.stopPrank();
+
+        // After resume: nextTriggerAt = block.timestamp + interval. Warp past it.
+        vm.warp(block.timestamp + 7 days + 1);
+        _mockOracles(int256(1e8), int256(3000e8));
+
+        uint256 sharesBefore = IERC20(address(targetFleet)).balanceOf(strategyOwner);
+        vm.prank(keeper);
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
+
+        assertGt(
+            IERC20(address(targetFleet)).balanceOf(strategyOwner),
+            sharesBefore,
+            "Owner should receive target shares after resume + execute"
+        );
+    }
+
+    function test_Execute_MultipleExecutionsIncrementTradesExecuted() public {
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        cfg.maxTrades = 3;
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        for (uint256 i = 1; i <= 3; i++) {
+            vm.warp(block.timestamp + 7 days);
+            vm.prank(keeper);
+            dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+            assertEq(dcaManager.strategyStates(strategyId).tradesExecuted, i);
+        }
+
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.COMPLETED),
+            "Strategy should be COMPLETED after maxTrades executions"
+        );
+    }
+
+    function test_Execute_EmitsExecutionCompleted() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+
+        vm.warp(block.timestamp + 7 days);
+
+        // Only pin strategyId (topic1); outAmount and nextTriggerAt are dynamic.
+        vm.prank(keeper);
+        vm.expectEmit(true, false, false, false, address(dcaManager));
+        emit IDCAStrategyManagerEvents.ExecutionCompleted(strategyId, 0, 0, 0, 0);
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
+    function test_Execute_RevertsOnAmountOverflowsUint160() public {
+        // tradeAmount above uint160 max is accepted by createStrategy but must
+        // revert with AmountOverflowsUint160 when _pullFunds is reached.
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        cfg.tradeAmount = uint256(type(uint160).max) + 1;
+
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        vm.warp(block.timestamp + 7 days);
+        _mockOracles(int256(1e8), int256(3000e8));
+
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Permit2Consumer.AmountOverflowsUint160.selector,
+                cfg.tradeAmount
+            )
+        );
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
+    function test_Execute_RevertsOnOutOraclePriceZero() public {
+        // Complement to test_Execute_RevertsOnOraclePriceZero which tests the
+        // in-asset feed. This test covers the out-asset feed returning 0.
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        vm.warp(block.timestamp + 7 days);
+        _mockOracles(int256(1e8), int256(0)); // out-asset feed returns 0
+
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        vm.prank(keeper);
+        vm.expectRevert(ChainlinkOracleUtils.ChainlinkOraclePriceZero.selector);
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
+    function test_Execute_TerminalStateReached_EndDateInPast() public {
+        // Strategy is ACTIVE but its endDate is already in the past (no execution
+        // has occurred). The pre-flight endDate guard must revert with
+        // TerminalStateReached("end_date") rather than StrategyNotActive.
+        uint256 endDate = block.timestamp + 1 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        // Warp past both endDate and nextTriggerAt (hourAligned + 7 days).
+        vm.warp(block.timestamp + 8 days);
+        _mockOracles(int256(1e8), int256(3000e8));
+
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.TerminalStateReached.selector,
+                strategyId,
+                bytes32("end_date")
+            )
+        );
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
+    function test_Execute_TerminalStateReached_AfterEditLoweringMaxTrades() public {
+        // After executing 2 trades on a maxTrades=3 strategy, the owner edits
+        // it down to maxTrades=2. On the next keeper call the status is still
+        // ACTIVE but tradesExecuted(2) >= maxTrades(2), so the pre-flight
+        // guard must revert with TerminalStateReached("max_trades").
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        cfg.maxTrades = 3;
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        for (uint256 i = 0; i < 2; i++) {
+            vm.warp(block.timestamp + 7 days);
+            vm.prank(keeper);
+            dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+        }
+        assertEq(dcaManager.strategyStates(strategyId).tradesExecuted, 2);
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.ACTIVE)
+        );
+
+        IDCAStrategyManager.StrategyConfig memory newCfg = _buildConfig(endDate);
+        newCfg.maxTrades = 2;
+        vm.prank(strategyOwner);
+        dcaManager.editStrategy(strategyId, cfg, newCfg);
+
+        vm.warp(block.timestamp + 7 days);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.TerminalStateReached.selector,
+                strategyId,
+                bytes32("max_trades")
+            )
+        );
+        dcaManager.executeStrategy(strategyId, newCfg, hex"deadbeef");
+    }
+
+    // =========================================================
+    // checkUpkeep — additional paths
+    // =========================================================
+
+    function test_CheckUpkeep_ReturnsFalseWhenPriceBelowFloor() public {
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        // executionPrice = 3000e18; floor = 4000e18 → price is below the floor.
+        cfg.minPrice = uint256(4000e18);
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        vm.warp(block.timestamp + 7 days);
+        _mockOracles(int256(1e8), int256(3000e8));
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, cfg);
+        assertFalse(upkeepNeeded, "Upkeep must be false when price is below minPrice floor");
     }
 }
