@@ -6,6 +6,9 @@ import {DCAStrategyManager} from "../../../src/contracts/DCA/DCAStrategyManager.
 import {IDCAStrategyManager} from "../../../src/interfaces/arks/IDCAStrategyManager.sol";
 import {IDCAStrategyManagerErrors} from "../../../src/errors/arks/IDCAStrategyManagerErrors.sol";
 import {IDCAStrategyManagerEvents} from "../../../src/events/arks/IDCAStrategyManagerEvents.sol";
+import {EnsoRouterSwapper} from "../../../src/contracts/DCA/EnsoRouterSwapper.sol";
+import {HarborCommandConsumer} from "../../../src/contracts/DCA/HarborCommandConsumer.sol";
+import {ChainlinkPriceConsumer} from "../../../src/contracts/DCA/ChainlinkPriceConsumer.sol";
 import {IFleetCommander} from "../../../src/interfaces/IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -281,8 +284,9 @@ contract DCAStrategyManagerTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                DCAStrategyManager.InvalidSourceVault.selector,
-                address(rogue)
+                HarborCommandConsumer.InactiveFleetCommander.selector,
+                address(rogue),
+                "source"
             )
         );
         dcaManager.createStrategy(config);
@@ -297,8 +301,9 @@ contract DCAStrategyManagerTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                DCAStrategyManager.InvalidTargetVault.selector,
-                address(rogue)
+                HarborCommandConsumer.InactiveFleetCommander.selector,
+                address(rogue),
+                "target"
             )
         );
         dcaManager.createStrategy(config);
@@ -887,12 +892,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IDCAStrategyManagerErrors.EmptyEnsoData.selector,
-                strategyId
-            )
-        );
+        vm.expectRevert(EnsoRouterSwapper.EmptySwapData.selector);
         dcaManager.executeStrategy(strategyId, config, "");
     }
 
@@ -1290,7 +1290,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
         vm.prank(keeper);
-        vm.expectRevert(IDCAStrategyManagerErrors.OraclePriceZero.selector);
+        vm.expectRevert(ChainlinkPriceConsumer.OraclePriceZero.selector);
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
@@ -1351,12 +1351,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
         vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                DCAStrategyManager.SwapFailed.selector,
-                strategyId
-            )
-        );
+        vm.expectRevert(EnsoRouterSwapper.SwapFailed.selector);
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 

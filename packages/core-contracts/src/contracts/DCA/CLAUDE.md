@@ -42,9 +42,15 @@ in the same tx.
 ## Files
 
 - `DCAStrategyManager.sol` — contract.
+- `EnsoRouterSwapper.sol` — abstract base that owns `ENSO_ROUTER`,
+  `InvalidRouterAddress`, and `_ensoSwap(tokenIn, amountIn, data)`. Any
+  future contract needing Enso routing can inherit this instead of
+  copy-pasting the approve → call → reset-allowance pattern.
+- `Permit2Consumer.sol` — abstract base for Permit2 `AllowanceTransfer` pulls.
 - `../../interfaces/arks/IDCAStrategyManager.sol` — `Status` enum,
   `StrategyConfig` struct, `StrategyState` struct, function signatures.
-- `../../errors/arks/IDCAStrategyManagerErrors.sol` — all user-facing reverts.
+- `../../errors/arks/IDCAStrategyManagerErrors.sol` — all user-facing reverts
+  (note: `InvalidRouterAddress` lives in `EnsoRouterSwapper`, not here).
 - `../../events/arks/IDCAStrategyManagerEvents.sol` — `StrategyCreated`,
   `StrategyEdited`, `StrategyPaused`, `StrategyResumed`, `StrategyCancelled`,
   `StrategyCompleted`, `ExecutionCompleted`.
@@ -113,6 +119,10 @@ jq '.abi' out/DCAStrategyManager.sol/DCAStrategyManager.json \
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-05-26 — claude — extracted Enso approve → call → reset-allowance
+  pattern into `EnsoRouterSwapper` abstract contract; `DCAStrategyManager`
+  now inherits it. `InvalidRouterAddress` moved from `IDCAStrategyManagerErrors`
+  to `EnsoRouterSwapper`. No ABI or wire-format changes.
 - 2026-05-21 — claude — `maxPrice` / `minPrice` are now bounds on the
   1e18-scaled out/in execution-price ratio (out-asset denominated in
   in-asset). Added `_executionPrice` helper; `_executeSwap` and `checkUpkeep`
