@@ -9,7 +9,6 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 import {Permit2Consumer} from "./Permit2Consumer.sol";
 import {EnsoRouterSwapper} from "./EnsoRouterSwapper.sol";
 import {HarborCommandConsumer} from "./HarborCommandConsumer.sol";
-import {ChainlinkPriceConsumer} from "./ChainlinkPriceConsumer.sol";
 import {ChainlinkOracleUtils, ChainlinkOraclePrice} from "./ChainlinkOracleUtils.sol";
 import {BPS, BPS_100} from "@summerfi/percentage-solidity/contracts/BPS.sol";
 import {BpsUtils} from "@summerfi/percentage-solidity/contracts/BpsUtils.sol";
@@ -43,8 +42,7 @@ contract DCAStrategyManager is
     ProtocolAccessManaged,
     Permit2Consumer,
     EnsoRouterSwapper,
-    HarborCommandConsumer,
-    ChainlinkPriceConsumer
+    HarborCommandConsumer
 {
     using SafeERC20 for IERC20;
     using BpsUtils for uint256;
@@ -55,6 +53,9 @@ contract DCAStrategyManager is
 
     /// @notice Minimum allowed interval between executions (1 day).
     uint256 private constant _MIN_INTERVAL = 1 days;
+
+    /// @notice Maximum allowed slippage in BPS (50%).
+    BPS private constant _MAX_SLIPPAGE_BPS = BPS.wrap(5000);
 
     /*//////////////////////////////////////////////////////////////
                               STATE VARIALES
@@ -118,6 +119,16 @@ contract DCAStrategyManager is
         _;
     }
 
+    /**
+     * @dev Reverts if the caller is not `config.owner`.
+     */
+    modifier ownerOnlySender(StrategyConfig calldata config) {
+        if (_msgSender() != config.owner) {
+            revert UnauthorizedOwner(config.owner, _msgSender());
+        }
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                               STRATEGY MANAGEMENT
     //////////////////////////////////////////////////////////////*/
@@ -129,6 +140,7 @@ contract DCAStrategyManager is
         StrategyConfig calldata config
     )
         external
+        ownerOnlySender(config)
         onlyActiveFleetCommander(config.sourceVault, "source")
         onlyActiveFleetCommander(config.targetVault, "target")
         returns (uint256 strategyId)
@@ -166,6 +178,14 @@ contract DCAStrategyManager is
         onlyActiveFleetCommander(newConfig.sourceVault, "source")
         onlyActiveFleetCommander(newConfig.targetVault, "target")
     {
+        StrategyState storage state = _strategyStates[strategyId];
+
+        if (
+            state.status == Status.CANCELLED || state.status == Status.COMPLETED
+        ) {
+            revert StrategyNotActive(strategyId);
+        }
+
         // Ownership transfer via edit is disallowed — the commitment is the
         // ownership proof, so changing config.owner would silently re-key
         // authorization. Force-cancel + recreate instead.
@@ -184,7 +204,6 @@ contract DCAStrategyManager is
             strategyCommitments[strategyId] = newCommitment;
         }
 
-        StrategyState storage state = _strategyStates[strategyId];
         // Last sheduled time is already hour aligned
         state.nextTriggerAt = state.lastScheduledAt + newConfig.interval;
 
@@ -235,7 +254,9 @@ contract DCAStrategyManager is
         StrategyConfig calldata config
     ) external onlyStrategyOwner(strategyId, config) {
         StrategyState storage state = _strategyStates[strategyId];
-        if (state.status == Status.CANCELLED) {
+        if (
+            state.status == Status.CANCELLED || state.status == Status.COMPLETED
+        ) {
             revert StrategyNotActive(strategyId);
         }
 
@@ -320,11 +341,11 @@ contract DCAStrategyManager is
         }
 
         if (config.maxPrice > 0 || config.minPrice > 0) {
-            (
-                ChainlinkOraclePrice memory inPrice,
-                ChainlinkOraclePrice memory outPrice
-            ) = _getChainlinkOraclePrices(config);
-            uint256 executionPrice = _calculateExecutionPrice(
+            ChainlinkOraclePrice memory inPrice = ChainlinkOracleUtils
+                ._getPrice(config.inAssetFeed);
+            ChainlinkOraclePrice memory outPrice = ChainlinkOracleUtils
+                ._getPrice(config.outAssetFeed);
+            uint256 executionPrice = ChainlinkOracleUtils.crossRate(
                 inPrice,
                 outPrice
             );
@@ -370,12 +391,14 @@ contract DCAStrategyManager is
         StrategyConfig calldata config
     ) internal pure {
         if (config.owner == address(0)) revert InvalidOwner();
-        if (address(config.sourceVault) == address(config.targetVault)) revert SameAsset(address(config.sourceVault));
-        if (config.inAsset == config.outAsset) revert SameAsset(address(config.inAsset));
+        if (address(config.sourceVault) == address(config.targetVault))
+            revert SameAsset(address(config.sourceVault));
+        if (config.inAsset == config.outAsset)
+            revert SameAsset(address(config.inAsset));
         if (config.interval < _MIN_INTERVAL) {
             revert IntervalTooShort(config.interval, _MIN_INTERVAL);
         }
-        if (!BpsUtils.isBpsInRange(BPS.wrap(config.slippageBps))) {
+        if (BPS.wrap(config.slippageBps) > _MAX_SLIPPAGE_BPS) {
             revert InvalidSlippage(config.slippageBps);
         }
         if (config.tradeAmount == 0) {
@@ -420,7 +443,10 @@ contract DCAStrategyManager is
                 config.outAssetFeed
             );
 
-        uint256 executionPrice = _calculateExecutionPrice(inPrice, outPrice);
+        uint256 executionPrice = ChainlinkOracleUtils.crossRate(
+            inPrice,
+            outPrice
+        );
         if (config.maxPrice > 0 && executionPrice > config.maxPrice) {
             revert PriceAboveCeiling(executionPrice, config.maxPrice);
         }
@@ -501,34 +527,5 @@ contract DCAStrategyManager is
             state.status = Status.COMPLETED;
             emit StrategyCompleted(strategyId, "end_date");
         }
-    }
-
-    /**
-     * @dev Fetches both oracle prices for the strategy's asset pair as `ChainlinkOraclePrice`
-     *      structs (value + decimals bundled) by calling `_getPrice` on each feed.
-     */
-    function _getChainlinkOraclePrices(
-        StrategyConfig calldata config
-    )
-        internal
-        view
-        returns (
-            ChainlinkOraclePrice memory inPrice,
-            ChainlinkOraclePrice memory outPrice
-        )
-    {
-        inPrice = _getPrice(config.inAssetFeed);
-        outPrice = _getPrice(config.outAssetFeed);
-    }
-
-    /**
-     * @dev Returns the 1e18-scaled out/in execution-price ratio
-     *      (how many `outAsset` units equal one `inAsset` unit at current oracle prices).
-     */
-    function _calculateExecutionPrice(
-        ChainlinkOraclePrice memory inPrice,
-        ChainlinkOraclePrice memory outPrice
-    ) internal pure returns (uint256) {
-        return ChainlinkOracleUtils.crossRate(outPrice, inPrice);
     }
 }

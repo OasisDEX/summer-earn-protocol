@@ -25,16 +25,29 @@ struct ChainlinkOraclePrice {
  * @notice Pure/view math helpers for computations that involve two independent
  *         Chainlink USD price feeds.
  *
- * @dev Pair with `ChainlinkPriceConsumer` to read single prices, or call
- *      `convertAmount` to fetch both prices and perform the conversion in one
- *      shot, receiving the prices back for reuse.
+ * @dev Call `_getPrice` to read a single price, or call `convertAmount` to
+ *      fetch both prices and perform the conversion in one shot, receiving
+ *      the prices back for reuse.
  */
 library ChainlinkOracleUtils {
     /// @notice Scaling factor applied to cross-rate results (1e18).
     uint256 internal constant PRECISION = 1e18;
 
+    /// @notice Maximum age (in seconds) of a Chainlink round before it is
+    ///         considered stale. Set to 24 hours to accommodate feeds with
+    ///         a 24-hour heartbeat (e.g. USDC/USD on Ethereum mainnet).
+    uint256 internal constant MAX_ORACLE_STALENESS = 86400;
+
     /// @notice Reverts when a Chainlink feed returns a non-positive price.
     error ChainlinkOraclePriceZero();
+
+    /// @notice Reverts when a Chainlink feed's last update is older than
+    ///         `MAX_ORACLE_STALENESS` seconds.
+    error ChainlinkOracleStalePrice(
+        address feed,
+        uint256 updatedAt,
+        uint256 currentTime
+    );
 
     /**
      * @notice Computes the cross-rate between two assets whose prices are
@@ -44,22 +57,22 @@ library ChainlinkOracleUtils {
      *      Collapsed into a single `mulDiv` to prevent intermediate rounding.
      *      Result is always scaled to `PRECISION` (1e18).
      *
-     * @param outPrice  ChainlinkOraclePrice for the out-asset/USD feed.
      * @param inPrice   ChainlinkOraclePrice for the in-asset/USD feed.
+     * @param outPrice  ChainlinkOraclePrice for the out-asset/USD feed.
      * @return          Cross-rate scaled by `PRECISION`
      *                  (outAsset units per inAsset unit × 1e18).
      */
     function crossRate(
-        ChainlinkOraclePrice memory outPrice,
-        ChainlinkOraclePrice memory inPrice
+        ChainlinkOraclePrice memory inPrice,
+        ChainlinkOraclePrice memory outPrice
     ) internal pure returns (uint256) {
-        uint256 inOracleScale  = 10 ** uint256(inPrice.decimals);
+        uint256 inOracleScale = 10 ** uint256(inPrice.decimals);
         uint256 outOracleScale = 10 ** uint256(outPrice.decimals);
         return
             Math.mulDiv(
                 outPrice.value * inOracleScale, // outPrice normalised to inFeed precision
                 PRECISION,
-                inPrice.value * outOracleScale  // inPrice normalised to outFeed precision
+                inPrice.value * outOracleScale // inPrice normalised to outFeed precision
             );
     }
 
@@ -103,20 +116,44 @@ library ChainlinkOracleUtils {
             ChainlinkOraclePrice memory outPrice
         )
     {
-        (, int256 rawIn, , , ) = AggregatorV3Interface(inFeed).latestRoundData();
-        if (rawIn <= 0) revert ChainlinkOraclePriceZero();
-        inPrice = ChainlinkOraclePrice({value: uint256(rawIn), decimals: AggregatorV3Interface(inFeed).decimals()});
+        // Each _getPrice call is a separate stack frame, keeping convertAmount
+        // within the EVM's 16-slot stack limit despite the many local variables.
+        inPrice = _getPrice(inFeed);
+        outPrice = _getPrice(outFeed);
 
-        (, int256 rawOut, , , ) = AggregatorV3Interface(outFeed).latestRoundData();
-        if (rawOut <= 0) revert ChainlinkOraclePriceZero();
-        outPrice = ChainlinkOraclePrice({value: uint256(rawOut), decimals: AggregatorV3Interface(outFeed).decimals()});
-
-        uint8 inAssetDec  = IERC20Metadata(address(inAsset)).decimals();
+        uint8 inAssetDec = IERC20Metadata(address(inAsset)).decimals();
         uint8 outAssetDec = IERC20Metadata(address(outAsset)).decimals();
 
         // Combined scale factors for each side (oracle decimals + asset decimals).
-        uint256 inNorm  = 10 ** (uint256(inPrice.decimals)  + uint256(inAssetDec));
-        uint256 outNorm = 10 ** (uint256(outPrice.decimals) + uint256(outAssetDec));
-        outAmount = Math.mulDiv(inAmount * inPrice.value, outNorm, outPrice.value * inNorm);
+        uint256 inNorm = 10 **
+            (uint256(inPrice.decimals) + uint256(inAssetDec));
+        uint256 outNorm = 10 **
+            (uint256(outPrice.decimals) + uint256(outAssetDec));
+        outAmount = Math.mulDiv(
+            inAmount * inPrice.value,
+            outNorm,
+            outPrice.value * inNorm
+        );
+    }
+
+    /**
+     * @dev Reads a single Chainlink feed, validates the price is positive, and
+     *      validates the round is not older than `MAX_ORACLE_STALENESS`.
+     *      Extracted into its own frame to keep `convertAmount` within the EVM
+     *      16-slot stack limit.
+     */
+    function _getPrice(
+        address feed
+    ) internal view returns (ChainlinkOraclePrice memory price) {
+        (, int256 raw, , uint256 updatedAt, ) = AggregatorV3Interface(feed)
+            .latestRoundData();
+        if (raw <= 0) revert ChainlinkOraclePriceZero();
+        if (block.timestamp - updatedAt > MAX_ORACLE_STALENESS) {
+            revert ChainlinkOracleStalePrice(feed, updatedAt, block.timestamp);
+        }
+        price = ChainlinkOraclePrice({
+            value: uint256(raw),
+            decimals: AggregatorV3Interface(feed).decimals()
+        });
     }
 }

@@ -61,6 +61,32 @@ contract MockEnsoRouter {
     receive() external payable {}
 }
 
+/// @notice Minimal Chainlink AggregatorV3Interface mock. Returns `block.timestamp`
+/// as `updatedAt` on every call so tests that warp forward never hit the
+/// staleness check without explicitly overriding the feed via vm.mockCall.
+contract MockChainlinkFeed {
+    int256 public price;
+    uint8 public dec;
+
+    constructor(int256 _price, uint8 _dec) {
+        price = _price;
+        dec = _dec;
+    }
+
+    function setPrice(int256 _price) external { price = _price; }
+    function setDecimals(uint8 _dec) external { dec = _dec; }
+
+    function latestRoundData()
+        external
+        view
+        returns (uint80, int256, uint256, uint256, uint80)
+    {
+        return (1, price, block.timestamp, block.timestamp, 1);
+    }
+
+    function decimals() external view returns (uint8) { return dec; }
+}
+
 /// @notice Variant of MockEnsoRouter that pulls less than the configured
 /// srcAmount, simulating a router that doesn't consume the full approval.
 contract MockEnsoRouterUnderpull {
@@ -321,7 +347,10 @@ contract DCAStrategyManagerTest is Test {
         vm.warp(block.timestamp + 7 days);
 
         (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
-        assertTrue(upkeepNeeded, "Upkeep should be true when maxTrades is unlimited (0)");
+        assertTrue(
+            upkeepNeeded,
+            "Upkeep should be true when maxTrades is unlimited (0)"
+        );
     }
 
     function test_CheckUpkeep_ReturnsFalseOnEndDatePassed() public {
@@ -375,6 +404,8 @@ contract DCAStrategyManagerTest is Test {
 
         IDCAStrategyManager.StrategyConfig memory config2 = _defaultConfig();
         config2.owner = address(0x2222);
+
+        vm.startPrank(config2.owner);
         uint256 strategyId2 = dcaManager.createStrategy(config2);
 
         assertEq(strategyId2, 1, "Second strategy should have id 1");
@@ -677,7 +708,7 @@ contract DCAStrategyManagerTest is Test {
     function test_CreateStrategy_RevertsOnInvalidOwner() public {
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
         config.owner = address(0);
-        vm.prank(strategyOwner);
+        vm.prank(config.owner);
         vm.expectRevert(IDCAStrategyManagerErrors.InvalidOwner.selector);
         dcaManager.createStrategy(config);
     }
@@ -723,7 +754,8 @@ contract DCAStrategyManagerTest is Test {
         uint256 strategyId = dcaManager.createStrategy(config);
 
         uint256 expectedHourAligned = ((block.timestamp + 3599) / 3600) * 3600;
-        IDCAStrategyManager.StrategyState memory state = dcaManager.strategyStates(strategyId);
+        IDCAStrategyManager.StrategyState memory state = dcaManager
+            .strategyStates(strategyId);
 
         assertEq(uint8(state.status), uint8(IDCAStrategyManager.Status.ACTIVE));
         assertEq(state.tradesExecuted, 0);
@@ -740,7 +772,7 @@ contract DCAStrategyManagerTest is Test {
 
     function test_CreateStrategy_AcceptsMaxSlippage() public {
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
-        config.slippageBps = 10_000;
+        config.slippageBps = 5_000;
         vm.prank(strategyOwner);
         dcaManager.createStrategy(config);
     }
@@ -806,7 +838,8 @@ contract DCAStrategyManagerTest is Test {
         dcaManager.editStrategy(strategyId, config, newConfig);
         vm.stopPrank();
 
-        IDCAStrategyManager.StrategyState memory state = dcaManager.strategyStates(strategyId);
+        IDCAStrategyManager.StrategyState memory state = dcaManager
+            .strategyStates(strategyId);
         assertEq(state.nextTriggerAt, state.lastScheduledAt + 14 days);
     }
 
@@ -835,11 +868,16 @@ contract DCAStrategyManagerTest is Test {
         vm.prank(strategyOwner);
         uint256 strategyId = dcaManager.createStrategy(config);
 
-        uint256 expectedNextTriggerAt = dcaManager.strategyStates(strategyId).nextTriggerAt;
+        uint256 expectedNextTriggerAt = dcaManager
+            .strategyStates(strategyId)
+            .nextTriggerAt;
 
         vm.prank(strategyOwner);
         vm.expectEmit(true, false, false, true, address(dcaManager));
-        emit IDCAStrategyManagerEvents.StrategyPaused(strategyId, expectedNextTriggerAt);
+        emit IDCAStrategyManagerEvents.StrategyPaused(
+            strategyId,
+            expectedNextTriggerAt
+        );
         dcaManager.pauseStrategy(strategyId, config);
     }
 
@@ -928,7 +966,8 @@ contract DCAStrategyManagerTest is Test {
         dcaManager.resumeStrategy(strategyId, config);
         vm.stopPrank();
 
-        IDCAStrategyManager.StrategyState memory state = dcaManager.strategyStates(strategyId);
+        IDCAStrategyManager.StrategyState memory state = dcaManager
+            .strategyStates(strategyId);
         assertEq(uint8(state.status), uint8(IDCAStrategyManager.Status.ACTIVE));
         assertEq(state.nextTriggerAt, block.timestamp + config.interval);
     }
@@ -1068,7 +1107,10 @@ contract DCAStrategyManagerTest is Test {
         wrong.tradeAmount = 9999;
 
         (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, wrong);
-        assertFalse(upkeepNeeded, "Upkeep must be false when commitment does not match");
+        assertFalse(
+            upkeepNeeded,
+            "Upkeep must be false when commitment does not match"
+        );
     }
 
     // =========================================================
@@ -1096,7 +1138,9 @@ contract DCAStrategyManagerTest is Test {
     }
 
     function test_Constructor_RevertsOnZeroHarborCommand() public {
-        vm.expectRevert(HarborCommandConsumer.InvalidHarborCommandAddress.selector);
+        vm.expectRevert(
+            HarborCommandConsumer.InvalidHarborCommandAddress.selector
+        );
         new DCAStrategyManager(
             address(accessManager),
             ENSO_ROUTER,
@@ -1113,11 +1157,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
     MockEnsoRouter public ensoRouter;
     ProtocolAccessManager public accessManager;
     HarborCommand public harborCommand;
+    MockChainlinkFeed public inFeedMock;   // USDC/USD
+    MockChainlinkFeed public outFeedMock;  // ETH/USD
 
-    address public constant ETH_USD_FEED =
-        0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
-    address public constant USDC_USD_FEED =
-        0x789190466E21a8b78b8027866CBBDc151542A26C;
     address public constant PERMIT2 =
         0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
@@ -1214,6 +1256,8 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.stopPrank();
 
         ensoRouter = new MockEnsoRouter();
+        inFeedMock  = new MockChainlinkFeed(int256(1e8),     8); // USDC/USD  1.00 @ 8 dec
+        outFeedMock = new MockChainlinkFeed(int256(3000e8),  8); // ETH/USD 3000.00 @ 8 dec
 
         vm.startPrank(governor);
         dcaManager = new DCAStrategyManager(
@@ -1257,17 +1301,15 @@ contract DCAStrategyManagerIntegrationTest is Test {
             MOCK_WETH_OUT,
             targetFleet
         );
-
-        _mockOracles(1e8, 3000e8);
     }
 
-    /// @dev Mock the Chainlink price feeds at the constant addresses. The
-    /// real proxy at USDC_USD_FEED gates `latestRoundData` with an access
-    /// list that excludes contract callers; mocking sidesteps both the
-    /// access check and any fork-time-of-day flakiness in the oracle
-    /// price. Default: 8 decimals like production mainnet feeds.
+    /// @dev Sets the price (and optionally decimals) on the MockChainlinkFeed
+    /// contracts. The feeds return `block.timestamp` as `updatedAt` on every
+    /// call, so tests never go stale after a vm.warp unless they explicitly
+    /// override via vm.mockCall.
     function _mockOracles(int256 inPrice, int256 outPrice) internal {
-        _mockOracles(inPrice, outPrice, 8, 8);
+        inFeedMock.setPrice(inPrice);
+        outFeedMock.setPrice(outPrice);
     }
 
     function _mockOracles(
@@ -1276,42 +1318,10 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint8 inDec,
         uint8 outDec
     ) internal {
-        vm.mockCall(
-            USDC_USD_FEED,
-            abi.encodeWithSelector(
-                AggregatorV3Interface.latestRoundData.selector
-            ),
-            abi.encode(
-                uint80(1),
-                inPrice,
-                uint256(block.timestamp),
-                uint256(block.timestamp),
-                uint80(1)
-            )
-        );
-        vm.mockCall(
-            USDC_USD_FEED,
-            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
-            abi.encode(inDec)
-        );
-        vm.mockCall(
-            ETH_USD_FEED,
-            abi.encodeWithSelector(
-                AggregatorV3Interface.latestRoundData.selector
-            ),
-            abi.encode(
-                uint80(1),
-                outPrice,
-                uint256(block.timestamp),
-                uint256(block.timestamp),
-                uint80(1)
-            )
-        );
-        vm.mockCall(
-            ETH_USD_FEED,
-            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
-            abi.encode(outDec)
-        );
+        inFeedMock.setPrice(inPrice);
+        inFeedMock.setDecimals(inDec);
+        outFeedMock.setPrice(outPrice);
+        outFeedMock.setDecimals(outDec);
     }
 
     function test_Execute_RevertsOnEmptyEnsoData() public {
@@ -1577,7 +1587,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 strategyId = newManager.createStrategy(createConfig);
 
         vm.warp(block.timestamp + 7 days);
-        _mockOracles(int256(1e8), int256(3000e8));
 
         IDCAStrategyManager.StrategyConfig memory execConfig = _buildConfig(
             endDate
@@ -1677,7 +1686,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 strategyId = dcaManager.createStrategy(cfg);
 
         vm.warp(block.timestamp + 7 days);
-        _mockOracles(int256(1e8), int256(3000e8));
 
         vm.prank(keeper);
         vm.expectRevert(
@@ -1700,7 +1708,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 strategyId = dcaManager.createStrategy(cfg);
 
         vm.warp(block.timestamp + 7 days);
-        _mockOracles(int256(1e8), int256(3000e8));
 
         vm.prank(keeper);
         vm.expectRevert(
@@ -1742,7 +1749,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
 
         vm.warp(block.timestamp + 7 days);
-        _mockOracles(int256(1e8), int256(3000e8));
 
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
         vm.prank(keeper);
@@ -1775,7 +1781,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 strategyId = _createStrategy(endDate);
 
         vm.warp(block.timestamp + 7 days);
-        _mockOracles(int256(1e8), int256(3000e8));
 
         // Replace the router bytecode with `0xfd` (REVERT) so any call lands
         // on success=false. Simpler than vm.mockCallRevert which has ambiguous
@@ -1797,7 +1802,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 strategyId = dcaManager.createStrategy(cfg);
 
         vm.warp(block.timestamp + 7 days);
-        _mockOracles(int256(1e8), int256(3000e8));
 
         (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, cfg);
         assertFalse(
@@ -1821,7 +1825,10 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         vm.warp(block.timestamp + 7 days);
         (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, cfg);
-        assertFalse(upkeepNeeded, "Upkeep should be false after maxTrades exhausted");
+        assertFalse(
+            upkeepNeeded,
+            "Upkeep should be false after maxTrades exhausted"
+        );
     }
 
     function _createStrategy(uint256 endDate) internal returns (uint256) {
@@ -1844,8 +1851,8 @@ contract DCAStrategyManagerIntegrationTest is Test {
                 targetVault: targetFleet,
                 inAsset: IERC20(USDC_ADDRESS),
                 outAsset: IERC20(WETH_ADDRESS),
-                inAssetFeed: USDC_USD_FEED,
-                outAssetFeed: ETH_USD_FEED,
+                inAssetFeed: address(inFeedMock),
+                outAssetFeed: address(outFeedMock),
                 tradeAmount: 100e6,
                 interval: 7 days,
                 slippageBps: 50,
@@ -1863,7 +1870,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
     function test_Execute_RevertsWhenPaused() public {
         uint256 endDate = block.timestamp + 365 days;
         uint256 strategyId = _createStrategy(endDate);
-        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            endDate
+        );
 
         vm.prank(strategyOwner);
         dcaManager.pauseStrategy(strategyId, config);
@@ -1883,7 +1892,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
     function test_Execute_SucceedsAfterResume() public {
         uint256 endDate = block.timestamp + 365 days;
         uint256 strategyId = _createStrategy(endDate);
-        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            endDate
+        );
 
         vm.startPrank(strategyOwner);
         dcaManager.pauseStrategy(strategyId, config);
@@ -1893,9 +1904,10 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         // After resume: nextTriggerAt = block.timestamp + interval. Warp past it.
         vm.warp(block.timestamp + 7 days + 1);
-        _mockOracles(int256(1e8), int256(3000e8));
 
-        uint256 sharesBefore = IERC20(address(targetFleet)).balanceOf(strategyOwner);
+        uint256 sharesBefore = IERC20(address(targetFleet)).balanceOf(
+            strategyOwner
+        );
         vm.prank(keeper);
         dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
 
@@ -1937,7 +1949,13 @@ contract DCAStrategyManagerIntegrationTest is Test {
         // Only pin strategyId (topic1); outAmount and nextTriggerAt are dynamic.
         vm.prank(keeper);
         vm.expectEmit(true, false, false, false, address(dcaManager));
-        emit IDCAStrategyManagerEvents.ExecutionCompleted(strategyId, 0, 0, 0, 0);
+        emit IDCAStrategyManagerEvents.ExecutionCompleted(
+            strategyId,
+            0,
+            0,
+            0,
+            0
+        );
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
@@ -1952,7 +1970,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 strategyId = dcaManager.createStrategy(cfg);
 
         vm.warp(block.timestamp + 7 days);
-        _mockOracles(int256(1e8), int256(3000e8));
 
         vm.prank(keeper);
         vm.expectRevert(
@@ -1990,7 +2007,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         // Warp past both endDate and nextTriggerAt (hourAligned + 7 days).
         vm.warp(block.timestamp + 8 days);
-        _mockOracles(int256(1e8), int256(3000e8));
 
         vm.prank(keeper);
         vm.expectRevert(
@@ -2003,7 +2019,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
-    function test_Execute_TerminalStateReached_AfterEditLoweringMaxTrades() public {
+    function test_Execute_TerminalStateReached_AfterEditLoweringMaxTrades()
+        public
+    {
         // After executing 2 trades on a maxTrades=3 strategy, the owner edits
         // it down to maxTrades=2. On the next keeper call the status is still
         // ACTIVE but tradesExecuted(2) >= maxTrades(2), so the pre-flight
@@ -2025,7 +2043,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
             uint8(IDCAStrategyManager.Status.ACTIVE)
         );
 
-        IDCAStrategyManager.StrategyConfig memory newCfg = _buildConfig(endDate);
+        IDCAStrategyManager.StrategyConfig memory newCfg = _buildConfig(
+            endDate
+        );
         newCfg.maxTrades = 2;
         vm.prank(strategyOwner);
         dcaManager.editStrategy(strategyId, cfg, newCfg);
@@ -2055,9 +2075,123 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 strategyId = dcaManager.createStrategy(cfg);
 
         vm.warp(block.timestamp + 7 days);
-        _mockOracles(int256(1e8), int256(3000e8));
 
         (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, cfg);
-        assertFalse(upkeepNeeded, "Upkeep must be false when price is below minPrice floor");
+        assertFalse(
+            upkeepNeeded,
+            "Upkeep must be false when price is below minPrice floor"
+        );
+    }
+
+    // =========================================================
+    // Chainlink oracle staleness checks
+    // =========================================================
+
+    /// @dev Overrides `updatedAt` for both feeds via vm.mockCall, bypassing
+    /// the MockChainlinkFeed contract's dynamic block.timestamp return. Used
+    /// only in staleness-specific tests.
+    function _mockOraclesWithUpdatedAt(
+        int256 inPrice,
+        int256 outPrice,
+        uint256 inUpdatedAt,
+        uint256 outUpdatedAt
+    ) internal {
+        vm.mockCall(
+            address(inFeedMock),
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(uint80(1), inPrice, uint256(0), inUpdatedAt, uint80(1))
+        );
+        vm.mockCall(
+            address(inFeedMock),
+            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
+            abi.encode(uint8(8))
+        );
+        vm.mockCall(
+            address(outFeedMock),
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(uint80(1), outPrice, uint256(0), outUpdatedAt, uint80(1))
+        );
+        vm.mockCall(
+            address(outFeedMock),
+            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
+            abi.encode(uint8(8))
+        );
+    }
+
+    function test_Execute_RevertsOnStaleInFeed() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        vm.warp(block.timestamp + 7 days);
+
+        // in-feed is stale: updatedAt is one second beyond the staleness window.
+        uint256 staleUpdatedAt = block.timestamp - ChainlinkOracleUtils.MAX_ORACLE_STALENESS - 1;
+        _mockOraclesWithUpdatedAt(
+            int256(1e8),
+            int256(3000e8),
+            staleUpdatedAt,
+            block.timestamp
+        );
+
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ChainlinkOracleUtils.ChainlinkOracleStalePrice.selector,
+                address(inFeedMock),
+                staleUpdatedAt,
+                block.timestamp
+            )
+        );
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
+    function test_Execute_RevertsOnStaleOutFeed() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        vm.warp(block.timestamp + 7 days);
+
+        // out-feed is stale; in-feed is fresh.
+        uint256 staleUpdatedAt = block.timestamp - ChainlinkOracleUtils.MAX_ORACLE_STALENESS - 1;
+        _mockOraclesWithUpdatedAt(
+            int256(1e8),
+            int256(3000e8),
+            block.timestamp,
+            staleUpdatedAt
+        );
+
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ChainlinkOracleUtils.ChainlinkOracleStalePrice.selector,
+                address(outFeedMock),
+                staleUpdatedAt,
+                block.timestamp
+            )
+        );
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
+    function test_Execute_SucceedsWhenFeedsAreExactlyAtStalenessLimit() public {
+        // updatedAt == block.timestamp - MAX_ORACLE_STALENESS should NOT revert
+        // (boundary: > staleness reverts, == staleness is still fresh).
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        vm.warp(block.timestamp + 7 days);
+
+        uint256 exactBoundary = block.timestamp - ChainlinkOracleUtils.MAX_ORACLE_STALENESS;
+        _mockOraclesWithUpdatedAt(
+            int256(1e8),
+            int256(3000e8),
+            exactBoundary,
+            exactBoundary
+        );
+
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        vm.prank(keeper);
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 }

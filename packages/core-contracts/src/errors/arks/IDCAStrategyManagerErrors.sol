@@ -43,6 +43,9 @@ interface IDCAStrategyManagerErrors {
     ///         transfer via edit is disallowed; cancel and recreate instead).
     error UnauthorizedAccess(uint256 strategyId, address caller);
 
+    /// @notice Reverts when the caller is not creating the strategy for themselves.
+    error UnauthorizedOwner(address caller, address owner);
+
     /// @notice Reverts when `config.slippageBps` is outside the valid BPS range [0, 10_000].
     error InvalidSlippage(uint256 slippageBps);
 
