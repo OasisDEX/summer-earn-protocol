@@ -2,9 +2,9 @@
 // packages/summer-earn-institutions-v2-subgraph/schema.graphql). BigInt
 // fields arrive as strings — consumers convert with BigInt(...).
 
-export type RoundState = 'OPENED' | 'IN_SETTLEMENT' | 'SETTLED' | 'ROLLED_BACK'
+export type RoundState = 'OPENED' | 'IN_SETTLEMENT' | 'SETTLED'
 export type RoundsVaultFlavor = 'INPUT' | 'OUTPUT'
-export type TransferKind = 'MINT' | 'BURN' | 'TRANSFER' | 'REDEEM'
+export type TransferKind = 'MINT' | 'BURN' | 'TRANSFER'
 export type RoleAction = 'GRANT_ROLE' | 'REVOKE_ROLE'
 
 export interface SubgraphToken {
@@ -27,11 +27,14 @@ export interface SubgraphRound {
   exchangeRateBase?: string | null
   exchangeRateQuote?: string | null
   exchangeRateDecimal?: string | null
-  totalReceiptSupplyAtClose?: string | null
-  inputAssetsDeposited?: string | null
-  inputSharesReceived?: string | null
-  outputSharesRedeemed?: string | null
-  outputAssetsReturned?: string | null
+  // Live ERC-1155 supply mirror — equals on-chain totalSupply(roundId).
+  receiptSupply: string
+  depositsQueued: string
+  depositsRedeemed: string
+  exchangeAssetWithdrawn: string
+  // Set at settlement; INPUT flavor: assets in / shares out, OUTPUT flavor: shares in / assets out.
+  settledUnderlyingAmount?: string | null
+  settledExchangeAmount?: string | null
   retriedCount: string
   rolledBack: boolean
 }
@@ -43,10 +46,6 @@ export interface SubgraphRoundsVault {
   exchangeAssetToken: SubgraphToken
   currentRound: string
   minPositionSize: string
-  cumulativeDepositsQueued: string
-  cumulativeExchangeAssetWithdrawn: string
-  currentRoundReceiptSupply: string
-  pendingSettlementAmount: string
   createdAt: string
   createdAtBlock: string
   pair?: {
@@ -76,6 +75,9 @@ export interface SubgraphReceipt {
   totalBurned: string
   totalRedeemedForExchangeAsset: string
   exchangeAssetReceived: string
+  // Underlying returned via queue-cancel `redeem` (OPENED-phase) — paired with
+  // `exchangeAssetReceived` which covers SETTLED-phase redemptions.
+  underlyingRedeemed: string
   lastUpdated: string
   lastUpdatedBlock: string
   round: SubgraphRound

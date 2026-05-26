@@ -8,6 +8,7 @@ import { RoundStateBadge } from '@/components/rounds/RoundStateBadge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/Card'
 import type { Institution, InstitutionFleet } from '@/config/institutions'
+import { useMounted } from '@/hooks/useMounted'
 import { useRoundsActions } from '@/hooks/useRoundsActions'
 import { useUserReceipts } from '@/hooks/useUserReceipts'
 import { formatDecimalOutput } from '@/lib/format'
@@ -17,14 +18,20 @@ import type { SubgraphReceipt } from '@/lib/subgraph/types'
 interface Props {
   institution: Institution
   fleet: InstitutionFleet
-  initialReceipts: SubgraphReceipt[]
 }
 
-export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
+export function ReceiptTable({ institution, fleet }: Props) {
   const { address } = useAccount()
+  // wagmi resolves the connected address only on the client (from
+  // wallet/localStorage state), so SSR sees `undefined` while a returning
+  // user's hydrated client sees the real address. Gate the
+  // connection-dependent branch behind a post-mount flag so SSR + the first
+  // client render both produce the same skeleton, then swap to the real
+  // content after hydration.
+  const mounted = useMounted()
+
   const { receipts, loading } = useUserReceipts({
     chainId: institution.chainId,
-    initialData: initialReceipts,
   })
 
   // Both Input and Output rounds-vaults under this fleet (a user might hold receipts in either).
@@ -45,6 +52,7 @@ export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
         receipts={inputReceipts}
         loading={loading}
         connected={!!address}
+        mounted={mounted}
       />
       <ReceiptGroup
         institution={institution}
@@ -53,6 +61,7 @@ export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
         receipts={outputReceipts}
         loading={loading}
         connected={!!address}
+        mounted={mounted}
       />
     </>
   )
@@ -65,6 +74,7 @@ function ReceiptGroup({
   receipts,
   loading,
   connected,
+  mounted,
 }: {
   institution: Institution
   title: string
@@ -72,6 +82,7 @@ function ReceiptGroup({
   receipts: SubgraphReceipt[]
   loading: boolean
   connected: boolean
+  mounted: boolean
 }) {
   return (
     <Card className="mt-6">
@@ -82,7 +93,9 @@ function ReceiptGroup({
         </div>
       </CardHeader>
 
-      {!connected ? (
+      {!mounted ? (
+        <div className="h-24 animate-pulse rounded-lg bg-[var(--surface-2)]" />
+      ) : !connected ? (
         <div className="text-sm text-[var(--text-3)]">Connect a wallet to view your receipts.</div>
       ) : loading ? (
         <div className="h-24 animate-pulse rounded-lg bg-[var(--surface-2)]" />

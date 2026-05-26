@@ -93,10 +93,6 @@ export const INSTITUTION_DETAIL = /* GraphQL */ `
             flavor
             currentRound
             minPositionSize
-            cumulativeDepositsQueued
-            cumulativeExchangeAssetWithdrawn
-            currentRoundReceiptSupply
-            pendingSettlementAmount
             createdAt
             underlyingToken {
               id
@@ -114,10 +110,6 @@ export const INSTITUTION_DETAIL = /* GraphQL */ `
             flavor
             currentRound
             minPositionSize
-            cumulativeDepositsQueued
-            cumulativeExchangeAssetWithdrawn
-            currentRoundReceiptSupply
-            pendingSettlementAmount
             createdAt
             underlyingToken {
               id

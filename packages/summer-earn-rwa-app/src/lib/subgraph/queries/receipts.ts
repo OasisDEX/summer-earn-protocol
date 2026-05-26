@@ -9,6 +9,7 @@ export const ACCOUNT_RECEIPTS = /* GraphQL */ `
         totalBurned
         totalRedeemedForExchangeAsset
         exchangeAssetReceived
+        underlyingRedeemed
         lastUpdated
         round {
           id
@@ -60,6 +61,7 @@ export const RECEIPTS_BY_VAULT = /* GraphQL */ `
       totalBurned
       totalRedeemedForExchangeAsset
       exchangeAssetReceived
+      underlyingRedeemed
       lastUpdated
       round {
         id

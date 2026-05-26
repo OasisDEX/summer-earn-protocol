@@ -12,6 +12,7 @@ import { Pill } from '@/components/ui/Pill'
 import type { Institution, InstitutionFleet } from '@/config/institutions'
 import { useAccess } from '@/hooks/useAccess'
 import { useErc20Approval } from '@/hooks/useErc20Approval'
+import { useMounted } from '@/hooks/useMounted'
 import { useRoundsActions } from '@/hooks/useRoundsActions'
 import { useRoundsVaultState } from '@/hooks/useRoundsVaultState'
 import { useTokenAllowance } from '@/hooks/useTokenAllowance'
@@ -38,6 +39,10 @@ export function DepositForm({
   description,
 }: Props) {
   const { address } = useAccount()
+  // wagmi resolves `address` only on the client. The form branches on
+  // `!address` (connect-wallet prompt vs the real form), so until after
+  // mount we render the "Connect your wallet" branch to match the server.
+  const mounted = useMounted()
   const access = useAccess({ institution, fleet, account: address })
   const { currentRound, roundState, minPositionSize } = useRoundsVaultState({
     roundsVaultAddress,
@@ -98,7 +103,7 @@ export function DepositForm({
         <span className="font-mono text-[var(--text)]">{currentRound?.toString() ?? '—'}</span>
       </div>
 
-      {!address ? (
+      {!mounted || !address ? (
         <div className="mt-6 rounded-md border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-2)]">
           Connect your wallet to continue.
         </div>

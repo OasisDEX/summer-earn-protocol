@@ -75,7 +75,23 @@ function VaultControls({
   const canGovernor = access.isGovernor
 
   const settling = useMemo(() => rounds.filter((r) => r.state === 'IN_SETTLEMENT'), [rounds])
-  const rolledBack = useMemo(() => rounds.filter((r) => r.state === 'ROLLED_BACK'), [rounds])
+  // Post-rollback rounds: state is OPENED again, rolledBack flag preserves the
+  // history, and they're never the live current round (a fresh round is opened
+  // by nextRound with rolledBack=false).
+  const rolledBack = useMemo(
+    () =>
+      rounds.filter(
+        (r) => r.state === 'OPENED' && r.rolledBack && r.roundId !== currentRound?.toString(),
+      ),
+    [rounds, currentRound],
+  )
+  const pendingSettlement = useMemo(
+    () =>
+      rounds
+        .filter((r) => r.state === 'OPENED' || r.state === 'IN_SETTLEMENT')
+        .reduce((acc, r) => acc + BigInt(r.receiptSupply), 0n),
+    [rounds],
+  )
   const [batchPicked, setBatchPicked] = useState<Set<string>>(new Set())
 
   const [minStr, setMinStr] = useState('')
@@ -111,7 +127,7 @@ function VaultControls({
           <div className="text-xs text-[var(--text-3)]">Pending settlement amount</div>
           <div className="mt-1 font-mono text-lg">
             {roundsVault
-              ? `${formatDecimalOutput(BigInt(roundsVault.pendingSettlementAmount), roundsVault.underlyingToken.decimals)} ${roundsVault.underlyingToken.symbol}`
+              ? `${formatDecimalOutput(pendingSettlement, roundsVault.underlyingToken.decimals)} ${roundsVault.underlyingToken.symbol}`
               : '—'}
           </div>
         </div>
