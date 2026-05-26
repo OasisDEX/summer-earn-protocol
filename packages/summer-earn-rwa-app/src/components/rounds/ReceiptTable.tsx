@@ -18,10 +18,9 @@ import type { SubgraphReceipt } from '@/lib/subgraph/types'
 interface Props {
   institution: Institution
   fleet: InstitutionFleet
-  initialReceipts: SubgraphReceipt[]
 }
 
-export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
+export function ReceiptTable({ institution, fleet }: Props) {
   const { address } = useAccount()
   // wagmi resolves the connected address only on the client (from
   // wallet/localStorage state), so SSR sees `undefined` while a returning
@@ -33,7 +32,6 @@ export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
 
   const { receipts, loading } = useUserReceipts({
     chainId: institution.chainId,
-    initialData: initialReceipts,
   })
 
   // Both Input and Output rounds-vaults under this fleet (a user might hold receipts in either).
