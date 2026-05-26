@@ -33,11 +33,6 @@ interface IDCAStrategyManagerErrors {
         uint256 actualOut
     );
 
-    /// @notice Reverts when `executeStrategy` is called on a strategy that has already
-    ///         reached a terminal condition before the trade runs: `maxTrades` exhausted
-    ///         or `endDate` passed. `reason` is `"max_trades"` or `"end_date"`.
-    error TerminalStateReached(uint256 strategyId, bytes32 reason);
-
     /// @notice Reverts when the caller is not `config.owner` on an owner-gated function,
     ///         or when `editStrategy` attempts to change `config.owner` (ownership
     ///         transfer via edit is disallowed; cancel and recreate instead).

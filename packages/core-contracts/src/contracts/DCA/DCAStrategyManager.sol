@@ -284,10 +284,15 @@ contract DCAStrategyManager is
         }
 
         if (config.maxTrades > 0 && state.tradesExecuted >= config.maxTrades) {
-            revert TerminalStateReached(strategyId, "max_trades");
+            // This should never happened though
+            state.status = Status.COMPLETED;
+            emit StrategyCompleted(strategyId, "max_trades");
+            return;
         }
         if (config.endDate > 0 && block.timestamp >= config.endDate) {
-            revert TerminalStateReached(strategyId, "end_date");
+            state.status = Status.COMPLETED;
+            emit StrategyCompleted(strategyId, "end_date");
+            return;
         }
 
         if (block.timestamp < state.nextTriggerAt) {

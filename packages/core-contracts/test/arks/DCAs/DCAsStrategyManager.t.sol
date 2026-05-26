@@ -1638,8 +1638,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
             "Strategy should auto-transition to COMPLETED on maxTrades"
         );
 
-        // A follow-up keeper call should now hit StrategyNotActive, not
-        // TerminalStateReached.
+        // A follow-up keeper call should now hit StrategyNotActive (status is COMPLETED).
         vm.warp(block.timestamp + 7 days);
         vm.prank(keeper);
         vm.expectRevert(
@@ -2002,10 +2001,10 @@ contract DCAStrategyManagerIntegrationTest is Test {
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
-    function test_Execute_TerminalStateReached_EndDateInPast() public {
+    function test_Execute_CompletesWhenEndDateInPast() public {
         // Strategy is ACTIVE but its endDate is already in the past (no execution
-        // has occurred). The pre-flight endDate guard must revert with
-        // TerminalStateReached("end_date") rather than StrategyNotActive.
+        // has occurred). The pre-flight endDate guard must emit StrategyCompleted
+        // and return gracefully rather than reverting.
         uint256 endDate = block.timestamp + 1 days;
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
         vm.prank(strategyOwner);
@@ -2014,24 +2013,27 @@ contract DCAStrategyManagerIntegrationTest is Test {
         // Warp past both endDate and nextTriggerAt (hourAligned + 7 days).
         vm.warp(block.timestamp + 8 days);
 
-        vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IDCAStrategyManagerErrors.TerminalStateReached.selector,
-                strategyId,
-                bytes32("end_date")
-            )
+        vm.expectEmit(true, false, false, true, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyCompleted(
+            strategyId,
+            "end_date"
         );
+
+        vm.prank(keeper);
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.COMPLETED),
+            "Strategy should be COMPLETED when endDate is in the past"
+        );
     }
 
-    function test_Execute_TerminalStateReached_AfterEditLoweringMaxTrades()
-        public
-    {
+    function test_Execute_CompletesAfterEditLoweringMaxTrades() public {
         // After executing 2 trades on a maxTrades=3 strategy, the owner edits
         // it down to maxTrades=2. On the next keeper call the status is still
         // ACTIVE but tradesExecuted(2) >= maxTrades(2), so the pre-flight
-        // guard must revert with TerminalStateReached("max_trades").
+        // guard must emit StrategyCompleted and return gracefully.
         uint256 endDate = block.timestamp + 365 days;
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
         cfg.maxTrades = 3;
@@ -2057,15 +2059,21 @@ contract DCAStrategyManagerIntegrationTest is Test {
         dcaManager.editStrategy(strategyId, cfg, newCfg);
 
         vm.warp(block.timestamp + 7 days);
-        vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IDCAStrategyManagerErrors.TerminalStateReached.selector,
-                strategyId,
-                bytes32("max_trades")
-            )
+
+        vm.expectEmit(true, false, false, true, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyCompleted(
+            strategyId,
+            "max_trades"
         );
+
+        vm.prank(keeper);
         dcaManager.executeStrategy(strategyId, newCfg, hex"deadbeef");
+
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.COMPLETED),
+            "Strategy should be COMPLETED when tradesExecuted >= maxTrades"
+        );
     }
 
     // =========================================================
