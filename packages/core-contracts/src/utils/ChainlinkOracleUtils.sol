@@ -60,7 +60,8 @@ library ChainlinkOracleUtils {
      * @param inPrice   ChainlinkOraclePrice for the in-asset/USD feed.
      * @param outPrice  ChainlinkOraclePrice for the out-asset/USD feed.
      * @return          Cross-rate scaled by `PRECISION`
-     *                  (outAsset units per inAsset unit × 1e18).
+     *                  (inAsset units per outAsset unit × 1e18,
+     *                   i.e. the price of the outAsset denominated in inAsset).
      */
     function crossRate(
         ChainlinkOraclePrice memory inPrice,
