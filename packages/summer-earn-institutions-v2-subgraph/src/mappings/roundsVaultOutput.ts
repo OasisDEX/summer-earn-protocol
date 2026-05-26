@@ -1,4 +1,4 @@
-import { BigInt, log } from '@graphprotocol/graph-ts'
+import { log } from '@graphprotocol/graph-ts'
 import {
   DepositWithReceipt,
   EmergencyRoundRolledBack,
@@ -13,7 +13,6 @@ import {
   WithdrawExchangeAssetBatch,
 } from '../../generated/templates/RoundsVaultOutputTemplate/RoundsVaultOutput'
 import { getRoundsVaultByAddress } from '../common/initializers'
-import { BigIntConstants } from '../common/constants'
 import {
   applyDepositWithReceipt,
   applyEmergencyRollback,
@@ -23,7 +22,11 @@ import {
   applyRoundSettled,
   loadRound,
 } from '../utils/lifecycle'
-import { applyReceiptTransfer, markExchangeAssetRedemption } from '../utils/receipt'
+import {
+  applyReceiptTransfer,
+  markExchangeAssetRedemption,
+  markExchangeAssetRedemptionBatch,
+} from '../utils/receipt'
 
 export function handleRoundAdvanced(event: RoundAdvanced): void {
   applyRoundAdvanced(event.address, event.params.roundId, event)
@@ -80,28 +83,17 @@ export function handleWithdrawExchangeAssetBatch(event: WithdrawExchangeAssetBat
   let ids = event.params.receiptIds
   let amounts = event.params.receiptAmounts
   if (ids.length != amounts.length) {
-    log.warning('WithdrawExchangeAssetBatch len mismatch on {}', [
-      event.address.toHexString(),
-    ])
+    log.warning('WithdrawExchangeAssetBatch len mismatch on {}', [event.address.toHexString()])
     return
   }
-  let total = event.params.exchangeAssetAmount
-  for (let i = 0; i < ids.length; i++) {
-    let exchangeForThisRow: BigInt
-    if (i == 0) {
-      exchangeForThisRow = total
-    } else {
-      exchangeForThisRow = BigIntConstants.ZERO
-    }
-    markExchangeAssetRedemption(
-      event.address,
-      event.params.owner,
-      ids[i],
-      amounts[i],
-      exchangeForThisRow,
-      event,
-    )
-  }
+  markExchangeAssetRedemptionBatch(
+    event.address,
+    event.params.owner,
+    ids,
+    amounts,
+    event.params.exchangeAssetAmount,
+    event,
+  )
 }
 
 export function handleTransferSingle(event: TransferSingle): void {
