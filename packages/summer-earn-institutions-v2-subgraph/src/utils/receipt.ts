@@ -18,22 +18,19 @@ export class TransferKindStr {
   static TRANSFER(): string {
     return 'TRANSFER'
   }
-  static REDEEM(): string {
-    return 'REDEEM'
-  }
 }
 
 /**
  * Apply a single ERC-1155 receipt transfer:
- *   - update per-user receipt balance + mint/burn counters
- *   - update vault-level `currentRoundReceiptSupply` and `pendingSettlementAmount`
- *     denormalized counters (rules described inline)
+ *   - update per-user Receipt balance and mint/burn counters
+ *   - update per-round `receiptSupply` (live mirror of on-chain totalSupply)
  *   - emit an immutable ReceiptTransfer row
  *
  * Mints always target the current OPENED round (see RoundsVaultBase._getMintId).
  * Burns happen via:
- *   - `redeem`            on a still-OPENED round  → decrement pending
- *   - `redeemExchangeAsset` on a SETTLED round     → no pending change
+ *   - `redeem`              on an OPENED round  (post-rollback is also OPENED)
+ *   - `redeemExchangeAsset` on a SETTLED round
+ * In all cases supply decreases by `amount`, so this branch is uniform.
  */
 export function applyReceiptTransfer(
   vaultAddr: Address,
@@ -82,27 +79,13 @@ export function applyReceiptTransfer(
     receiverReceipt.save()
   }
 
-  // Vault-level supply counters
   if (isMint) {
-    vault.currentRoundReceiptSupply = vault.currentRoundReceiptSupply.plus(amount)
-    vault.pendingSettlementAmount = vault.pendingSettlementAmount.plus(amount)
+    round.receiptSupply = round.receiptSupply.plus(amount)
+    round.save()
   } else if (isBurn) {
-    // Only OPENED-state burns reduce pending; SETTLED-state burns are
-    // already excluded (RoundSettled subtracted the supply once).
-    if (round.state == 'OPENED') {
-      if (roundId.equals(vault.currentRound)) {
-        vault.currentRoundReceiptSupply = vault.currentRoundReceiptSupply.minus(amount)
-      }
-      vault.pendingSettlementAmount = vault.pendingSettlementAmount.minus(amount)
-    }
+    round.receiptSupply = round.receiptSupply.minus(amount)
+    round.save()
   }
-  if (vault.currentRoundReceiptSupply.lt(BigIntConstants.ZERO)) {
-    vault.currentRoundReceiptSupply = BigIntConstants.ZERO
-  }
-  if (vault.pendingSettlementAmount.lt(BigIntConstants.ZERO)) {
-    vault.pendingSettlementAmount = BigIntConstants.ZERO
-  }
-  vault.save()
 
   let transferId =
     event.transaction.hash.toHexString() +
@@ -122,6 +105,53 @@ export function applyReceiptTransfer(
   transfer.timestamp = event.block.timestamp
   transfer.txHash = event.transaction.hash
   transfer.save()
+}
+
+/**
+ * Mark an already-burned receipt amount as having been queue-cancel-redeemed
+ * (OPENED-phase `redeem`), returning underlying 1:1 to the user. Called from
+ * RedeemReceipt handlers AFTER applyReceiptTransfer has already booked the
+ * burn. The 1:1 invariant comes from ERC4626MultiToken._redeem:
+ *   _burn(owner, id, amount);
+ *   safeTransfer(_asset, receiver, amount);
+ * so the underlying returned equals the receipt amount burned.
+ */
+export function markUnderlyingRedemption(
+  vaultAddr: Address,
+  owner: Address,
+  roundId: BigInt,
+  amount: BigInt,
+  event: ethereum.Event,
+): void {
+  let vault = getRoundsVaultByAddress(vaultAddr)
+  if (vault == null) return
+  let round = getOrCreateRound(vault, roundId, event.block)
+  let user = getOrCreateAccount(owner.toHexString())
+  let receipt = getOrCreateReceipt(vault, round, user, event.block)
+  receipt.underlyingRedeemed = receipt.underlyingRedeemed.plus(amount)
+  receipt.lastUpdated = event.block.timestamp
+  receipt.lastUpdatedBlock = event.block.number
+  receipt.save()
+
+  round.depositsRedeemed = round.depositsRedeemed.plus(amount)
+  round.save()
+}
+
+/**
+ * Apply a batched queue-cancel redemption. Per-id underlying returned equals
+ * per-id receipt `amount` (no rate, no dust — the contract does a single
+ * safeTransfer(sum(amounts)) so summing per-id is exact).
+ */
+export function markUnderlyingRedemptionBatch(
+  vaultAddr: Address,
+  owner: Address,
+  ids: BigInt[],
+  amounts: BigInt[],
+  event: ethereum.Event,
+): void {
+  for (let i = 0; i < ids.length; i++) {
+    markUnderlyingRedemption(vaultAddr, owner, ids[i], amounts[i], event)
+  }
 }
 
 /**
@@ -148,9 +178,8 @@ export function markExchangeAssetRedemption(
   receipt.lastUpdatedBlock = event.block.number
   receipt.save()
 
-  vault.cumulativeExchangeAssetWithdrawn =
-    vault.cumulativeExchangeAssetWithdrawn.plus(exchangeAmount)
-  vault.save()
+  round.exchangeAssetWithdrawn = round.exchangeAssetWithdrawn.plus(exchangeAmount)
+  round.save()
 }
 
 /**
@@ -158,7 +187,7 @@ export function markExchangeAssetRedemption(
  * per-id `mulDiv(receiptAmount, base, quote)` against each round's settled rate
  * (stored on the Round entity from RoundSettled). Rounding dust between the sum
  * of per-id amounts and the event's total is folded onto the last row so the
- * vault's cumulative counter still equals the on-chain transfer.
+ * cumulative counters still equal the on-chain transfer.
  */
 export function markExchangeAssetRedemptionBatch(
   vaultAddr: Address,

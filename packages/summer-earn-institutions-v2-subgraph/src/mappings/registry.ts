@@ -8,16 +8,9 @@ import {
   RoundsVaultPairUpdated,
 } from '../../generated/RoundsVaultRegistry/RoundsVaultRegistry'
 import { RoundsVault, RoundsVaultPair, Vault } from '../../generated/schema'
-import {
-  RoundsVaultInputTemplate,
-  RoundsVaultOutputTemplate,
-} from '../../generated/templates'
+import { RoundsVaultInputTemplate, RoundsVaultOutputTemplate } from '../../generated/templates'
 import { ADDRESS_ZERO, BigIntConstants } from '../common/constants'
-import {
-  getOrCreateRound,
-  getOrCreateToken,
-  getOrCreateVault,
-} from '../common/initializers'
+import { getOrCreateRound, getOrCreateToken, getOrCreateVault } from '../common/initializers'
 
 export function handleRoundsVaultPairRegistered(event: RoundsVaultPairRegistered): void {
   const pairId = event.params.pairId.toHexString()
@@ -37,23 +30,13 @@ export function handleRoundsVaultPairRegistered(event: RoundsVaultPairRegistered
   pair.lastUpdated = event.block.timestamp
 
   if (event.params.inputVault.notEqual(ADDRESS_ZERO)) {
-    const inputVault = createRoundsVault(
-      event.params.inputVault,
-      pair,
-      'INPUT',
-      event.block,
-    )
+    const inputVault = createRoundsVault(event.params.inputVault, pair, 'INPUT', event.block)
     pair.inputVault = inputVault.id
     RoundsVaultInputTemplate.create(event.params.inputVault)
   }
 
   if (event.params.outputVault.notEqual(ADDRESS_ZERO)) {
-    const outputVault = createRoundsVault(
-      event.params.outputVault,
-      pair,
-      'OUTPUT',
-      event.block,
-    )
+    const outputVault = createRoundsVault(event.params.outputVault, pair, 'OUTPUT', event.block)
     pair.outputVault = outputVault.id
     RoundsVaultOutputTemplate.create(event.params.outputVault)
   }
@@ -72,12 +55,7 @@ export function handleRoundsVaultPairUpdated(event: RoundsVaultPairUpdated): voi
   if (event.params.inputVault.notEqual(ADDRESS_ZERO)) {
     const existing = pair.inputVault
     if (existing == null || existing != event.params.inputVault.toHexString()) {
-      const inputVault = createRoundsVault(
-        event.params.inputVault,
-        pair,
-        'INPUT',
-        event.block,
-      )
+      const inputVault = createRoundsVault(event.params.inputVault, pair, 'INPUT', event.block)
       pair.inputVault = inputVault.id
       RoundsVaultInputTemplate.create(event.params.inputVault)
     }
@@ -86,12 +64,7 @@ export function handleRoundsVaultPairUpdated(event: RoundsVaultPairUpdated): voi
   if (event.params.outputVault.notEqual(ADDRESS_ZERO)) {
     const existing = pair.outputVault
     if (existing == null || existing != event.params.outputVault.toHexString()) {
-      const outputVault = createRoundsVault(
-        event.params.outputVault,
-        pair,
-        'OUTPUT',
-        event.block,
-      )
+      const outputVault = createRoundsVault(event.params.outputVault, pair, 'OUTPUT', event.block)
       pair.outputVault = outputVault.id
       RoundsVaultOutputTemplate.create(event.params.outputVault)
     }
@@ -139,10 +112,6 @@ function createRoundsVault(
   vault.flavor = flavor
   vault.currentRound = BigIntConstants.ZERO
   vault.minPositionSize = BigIntConstants.ZERO
-  vault.cumulativeDepositsQueued = BigIntConstants.ZERO
-  vault.cumulativeExchangeAssetWithdrawn = BigIntConstants.ZERO
-  vault.currentRoundReceiptSupply = BigIntConstants.ZERO
-  vault.pendingSettlementAmount = BigIntConstants.ZERO
   vault.createdAt = block.timestamp
   vault.createdAtBlock = block.number
 
