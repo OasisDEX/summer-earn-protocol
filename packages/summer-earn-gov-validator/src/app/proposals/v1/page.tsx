@@ -1,26 +1,14 @@
+import { Suspense } from 'react'
+import { connection } from 'next/server'
+
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ProposalsList } from '@/components/ProposalsList'
-import { fetchAllProposals } from '@/services/subgraph'
+import { ProposalsListSkeleton } from '@/components/ProposalsListSkeleton'
+import { getProposalsCached } from '@/services/subgraph-cached'
 import { TransformedProposal } from '@/types/governance'
 import { transformProposal } from '@/utils/proposal-transformer'
 
-// Revalidate every 60 seconds (ISR)
-export const revalidate = 60
-
-async function getV1Proposals(): Promise<TransformedProposal[]> {
-  try {
-    // Fetch proposals where governor is NOT the V2 governor
-    const v1Proposals = await fetchAllProposals({ isV1: true })
-    return v1Proposals.map((p) => transformProposal(p))
-  } catch (error) {
-    console.error('Error fetching V1 proposals:', error)
-    return []
-  }
-}
-
-export default async function V1ProposalsPage() {
-  const proposals = await getV1Proposals()
-
+export default function V1ProposalsPage() {
   return (
     <DashboardLayout activeTab="proposals">
       <div className="mb-6">
@@ -29,7 +17,24 @@ export default async function V1ProposalsPage() {
           V1 Archive
         </div>
       </div>
-      <ProposalsList initialProposals={proposals} detailPrefix="/proposal/v1" />
+      <Suspense fallback={<ProposalsListSkeleton />}>
+        <V1ProposalsListServer />
+      </Suspense>
     </DashboardLayout>
   )
+}
+
+async function V1ProposalsListServer() {
+  await connection()
+
+  let proposals: TransformedProposal[]
+  try {
+    const raw = await getProposalsCached({ isV1: true })
+    proposals = raw.map(transformProposal)
+  } catch (error) {
+    console.error('Error fetching V1 proposals:', error)
+    proposals = []
+  }
+
+  return <ProposalsList initialProposals={proposals} detailPrefix="/proposal/v1" />
 }

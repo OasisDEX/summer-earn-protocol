@@ -13,19 +13,19 @@ export const ABI_FETCHER_CONFIG: Record<
   { type: AbiFetcherType; apiUrl?: string; apiKeyEnv?: string }
 > = {
   '8453': {
-    type: AbiFetcherType.Blockscout,
-    apiUrl: 'https://api.blockscout.com/v2/api?chainId=8453&',
-    apiKeyEnv: 'BLOCKSCOUT_API_KEY',
+    type: AbiFetcherType.Etherscan,
+    apiUrl: 'https://api.etherscan.io/v2/api?chainid=8453&',
+    apiKeyEnv: 'ETHERSCAN_API_KEY',
   },
   '42161': {
-    type: AbiFetcherType.Blockscout,
-    apiUrl: 'https://api.blockscout.com/v2/api?chainId=42161&',
-    apiKeyEnv: 'BLOCKSCOUT_API_KEY',
+    type: AbiFetcherType.Etherscan,
+    apiUrl: 'https://api.etherscan.io/v2/api?chainid=42161&',
+    apiKeyEnv: 'ETHERSCAN_API_KEY',
   },
   '1': {
-    type: AbiFetcherType.Blockscout,
-    apiUrl: 'https://api.blockscout.com/v2/api?chainId=1&',
-    apiKeyEnv: 'BLOCKSCOUT_API_KEY',
+    type: AbiFetcherType.Etherscan,
+    apiUrl: 'https://api.etherscan.io/v2/api?chainid=1&',
+    apiKeyEnv: 'ETHERSCAN_API_KEY',
   },
   '146': {
     type: AbiFetcherType.Etherscan,

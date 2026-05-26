@@ -1,28 +1,41 @@
+import { Suspense } from 'react'
 import { formatUnits } from 'ethers'
+import { connection } from 'next/server'
 
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { DelegatesList } from '@/components/DelegatesList'
+import { ProposalsListSkeleton } from '@/components/ProposalsListSkeleton'
 import { resolveEnsNames } from '@/services/ens'
-import { fetchDelegates } from '@/services/subgraph'
+import { getDelegatesCached } from '@/services/subgraph-cached'
 import { Delegate } from '@/types/governance'
 
 import delegatesData from '../../../delegates.json'
-
-// Revalidate every hour
-export const revalidate = 3600
 
 function resolveDelegateInfo(address: string) {
   const nodes = delegatesData.data.delegates.nodes
   return nodes.find((node) => node.account.address.toLowerCase() === address.toLowerCase())?.account
 }
 
-async function getDelegates(): Promise<Delegate[]> {
+export default function DelegatesPage() {
+  return (
+    <DashboardLayout activeTab="delegates">
+      <Suspense fallback={<ProposalsListSkeleton />}>
+        <DelegatesListServer />
+      </Suspense>
+    </DashboardLayout>
+  )
+}
+
+async function DelegatesListServer() {
+  await connection()
+
+  let delegates: Delegate[]
   try {
-    const subgraphDelegates = await fetchDelegates()
+    const subgraphDelegates = await getDelegatesCached()
     const addresses = subgraphDelegates.map((d) => d.id)
     const ensMap = await resolveEnsNames(addresses)
 
-    return subgraphDelegates.map((d) => {
+    delegates = subgraphDelegates.map((d) => {
       const address = d.id.toLowerCase()
       const tallyInfo = resolveDelegateInfo(address)
       const ensName = ensMap[address] || `${d.id.slice(0, 6)}...${d.id.slice(-4)}`
@@ -41,16 +54,8 @@ async function getDelegates(): Promise<Delegate[]> {
     })
   } catch (error) {
     console.error('Error fetching delegates for UI:', error)
-    return []
+    delegates = []
   }
-}
 
-export default async function DelegatesPage() {
-  const delegates = await getDelegates()
-
-  return (
-    <DashboardLayout activeTab="delegates">
-      <DelegatesList initialDelegates={delegates} />
-    </DashboardLayout>
-  )
+  return <DelegatesList initialDelegates={delegates} />
 }

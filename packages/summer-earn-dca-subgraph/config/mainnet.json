@@ -1,0 +1,11 @@
+{
+  "network": "mainnet",
+  "dca-strategy-manager-address": "0x0000000000000000000000000000000000000000",
+  "dca-strategy-manager-start-block": 0,
+  "feed-start-block": 0,
+  "usdc-feed-proxy": "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6",
+  "eth-feed-proxy": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+  "enable-grafting": false,
+  "grafting-base": "",
+  "grafting-block": "0"
+}
