@@ -1,7 +1,8 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 
-import { AdminTabs, buildAdminTabs } from '@/components/admin/AdminTabs'
+import { AdminTabs } from '@/components/admin/AdminTabs'
+import { buildAdminTabs } from '@/components/admin/adminTabs.config'
 import { RoundsControlPanel } from '@/components/admin/RoundsControlPanel'
 import { ConnectButton } from '@/components/ConnectButton'
 import { Topbar } from '@/components/shell/Topbar'

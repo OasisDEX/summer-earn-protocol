@@ -1,7 +1,8 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 
-import { AdminTabs, buildAdminTabs } from '@/components/admin/AdminTabs'
+import { AdminTabs } from '@/components/admin/AdminTabs'
+import { buildAdminTabs } from '@/components/admin/adminTabs.config'
 import { RoleManagerPanel } from '@/components/admin/RoleManagerPanel'
 import { ConnectButton } from '@/components/ConnectButton'
 import { Topbar } from '@/components/shell/Topbar'

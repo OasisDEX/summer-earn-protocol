@@ -1191,6 +1191,18 @@ importers:
         specifier: 4.2.0
         version: 4.2.0
 
+  packages/summer-earn-institutions-v2-subgraph:
+    devDependencies:
+      '@graphprotocol/graph-cli':
+        specifier: 0.96.0
+        version: 0.96.0(@types/node@25.6.2)(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@3.25.76)
+      '@graphprotocol/graph-ts':
+        specifier: 0.35.1
+        version: 0.35.1
+      mustache:
+        specifier: 4.2.0
+        version: 4.2.0
+
   packages/summer-earn-interface:
     dependencies:
       '@reown/appkit':
