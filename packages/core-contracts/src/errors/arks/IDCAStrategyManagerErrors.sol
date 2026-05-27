@@ -41,11 +41,15 @@ interface IDCAStrategyManagerErrors {
     /// @notice Reverts when the caller is not creating the strategy for themselves.
     error UnauthorizedOwner(address caller, address owner);
 
-    /// @notice Reverts when `config.slippageBps` is outside the valid BPS range [0, 10_000].
+    /// @notice Reverts when `config.slippageBps` exceeds the protocol cap (50%, i.e. 5_000 BPS).
     error InvalidSlippage(uint256 slippageBps);
 
     /// @notice Reverts when `config.tradeAmount` is zero.
     error ZeroTradeAmount();
+
+    /// @notice Reverts when `config.maxTrades` is zero. Zero is NOT a sentinel for
+    ///         "unlimited"; a positive trade cap is required.
+    error ZeroMaxTrades();
 
     /// @notice Reverts when `config.owner` is the zero address.
     error InvalidOwner();
@@ -56,6 +60,12 @@ interface IDCAStrategyManagerErrors {
 
     /// @notice Reverts when `config.interval` is below the contract minimum (1 day).
     error IntervalTooShort(uint256 provided, uint256 minimum);
+
+    /// @notice Reverts when `config.interval` is above the contract maximum (90 days).
+    error IntervalTooLong(uint256 provided, uint256 maximum);
+
+    /// @notice Reverts when `depositAndCreate` is called with `assetAmount == 0`.
+    error ZeroDeposit();
 
     /// @notice Reverts when `config.inAssetFeed` or `config.outAssetFeed` is the zero address.
     error InvalidFeedAddress();

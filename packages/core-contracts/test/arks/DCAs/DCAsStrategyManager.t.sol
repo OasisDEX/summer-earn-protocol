@@ -21,6 +21,7 @@ import {toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.s
 import {HarborCommand} from "../../../src/contracts/HarborCommand.sol";
 import {FleetCommanderRewardsManagerFactory} from "../../../src/contracts/FleetCommanderRewardsManagerFactory.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {IPermit2} from "../../../src/interfaces/permit2/IPermit2.sol";
 import {AggregatorV3Interface} from "../../../src/interfaces/external/Chainlink/AggregatorV3Interface.sol";
 
@@ -268,6 +269,37 @@ contract DCAStrategyManagerTest is Test {
         vm.stopPrank();
     }
 
+    function test_CreateStrategy_RevertsIfIntervalTooLong() public {
+        vm.startPrank(strategyOwner);
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.interval = 91 days;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.IntervalTooLong.selector,
+                uint256(91 days),
+                uint256(90 days)
+            )
+        );
+        dcaManager.createStrategy(config);
+        vm.stopPrank();
+    }
+
+    function test_CreateStrategy_AcceptsNinetyDayInterval() public {
+        vm.startPrank(strategyOwner);
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.interval = 90 days;
+
+        // 90 days is the inclusive upper bound — must not revert.
+        uint256 strategyId = dcaManager.createStrategy(config);
+        assertGt(
+            uint256(dcaManager.strategyStates(strategyId).nextTriggerAt),
+            0,
+            "90-day interval must be accepted by _validateStrategyConfig"
+        );
+        vm.stopPrank();
+    }
+
     function test_CreateStrategy_RevertsOnInvalidSlippage() public {
         vm.startPrank(strategyOwner);
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
@@ -343,20 +375,14 @@ contract DCAStrategyManagerTest is Test {
         vm.stopPrank();
     }
 
-    function test_CheckUpkeep_ReturnsTrueWithUnlimitedMaxTrades() public {
-        // maxTrades = 0 means unlimited; upkeep must still be true when ready.
+    function test_CreateStrategy_RevertsOnZeroMaxTrades() public {
+        // maxTrades = 0 is NOT a sentinel for "unlimited" — it must be rejected.
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
         config.maxTrades = 0;
+
         vm.prank(strategyOwner);
-        uint256 strategyId = dcaManager.createStrategy(config);
-
-        vm.warp(block.timestamp + 7 days);
-
-        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
-        assertTrue(
-            upkeepNeeded,
-            "Upkeep should be true when maxTrades is unlimited (0)"
-        );
+        vm.expectRevert(IDCAStrategyManagerErrors.ZeroMaxTrades.selector);
+        dcaManager.createStrategy(config);
     }
 
     function test_CheckUpkeep_ReturnsFalseOnEndDatePassed() public {
@@ -752,6 +778,97 @@ contract DCAStrategyManagerTest is Test {
         vm.expectEmit(true, false, false, false, address(dcaManager));
         emit IDCAStrategyManagerEvents.StrategyCreated(0, config);
         dcaManager.createStrategy(config);
+    }
+
+    function test_DepositAndCreate_DepositsAndCreates() public {
+        uint256 depositAmount = 1_000e6;
+        deal(USDC_ADDRESS, strategyOwner, depositAmount);
+
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+
+        vm.startPrank(strategyOwner);
+        IERC20(USDC_ADDRESS).approve(address(dcaManager), depositAmount);
+
+        uint256 sharesBefore = usdcFleet.balanceOf(strategyOwner);
+        uint256 strategyId = dcaManager.depositAndCreate(config, depositAmount);
+        uint256 sharesAfter = usdcFleet.balanceOf(strategyOwner);
+        vm.stopPrank();
+
+        // Strategy was created.
+        assertEq(strategyId, 0, "first strategy gets id 0");
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.ACTIVE)
+        );
+
+        // Shares went directly to the user, not the manager.
+        assertGt(sharesAfter, sharesBefore, "user must receive source-vault shares");
+        assertEq(
+            usdcFleet.balanceOf(address(dcaManager)),
+            0,
+            "manager must not hold any source-vault shares after depositAndCreate"
+        );
+
+        // No leftover ERC20 allowance to the source vault.
+        assertEq(
+            IERC20(USDC_ADDRESS).allowance(address(dcaManager), address(usdcFleet)),
+            0,
+            "manager's USDC allowance to source vault must be reset to 0"
+        );
+
+        // No leftover USDC sitting in the manager.
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(address(dcaManager)),
+            0,
+            "manager must not hold any USDC after depositAndCreate"
+        );
+    }
+
+    function test_DepositAndCreate_RevertsOnZeroDeposit() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        vm.expectRevert(IDCAStrategyManagerErrors.ZeroDeposit.selector);
+        dcaManager.depositAndCreate(config, 0);
+    }
+
+    function test_DepositAndCreate_RevertsForNonOwnerSender() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        address impostor = address(0xBEEF);
+        deal(USDC_ADDRESS, impostor, 100e6);
+
+        vm.startPrank(impostor);
+        IERC20(USDC_ADDRESS).approve(address(dcaManager), 100e6);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.UnauthorizedOwner.selector,
+                strategyOwner,
+                impostor
+            )
+        );
+        dcaManager.depositAndCreate(config, 100e6);
+        vm.stopPrank();
+    }
+
+    function test_DepositAndCreate_RevertsOnInactiveSourceVault() public {
+        // Decommission the source vault, then attempt deposit-and-create.
+        vm.prank(governor);
+        harborCommand.decommissionFleetCommander(address(usdcFleet));
+
+        deal(USDC_ADDRESS, strategyOwner, 100e6);
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+
+        vm.startPrank(strategyOwner);
+        IERC20(USDC_ADDRESS).approve(address(dcaManager), 100e6);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                HarborCommandConsumer.InactiveFleetCommander.selector,
+                address(usdcFleet),
+                "source"
+            )
+        );
+        dcaManager.depositAndCreate(config, 100e6);
+        vm.stopPrank();
     }
 
     function test_CreateStrategy_InitialStateIsCorrect() public {
@@ -1951,7 +2068,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         vm.warp(block.timestamp + 7 days);
 
-        // Only pin strategyId (topic1); outAmount and nextTriggerAt are dynamic.
+        // Only pin strategyId (topic1); other fields are dynamic.
         vm.prank(keeper);
         vm.expectEmit(true, false, false, false, address(dcaManager));
         emit IDCAStrategyManagerEvents.ExecutionCompleted(
@@ -1959,9 +2076,65 @@ contract DCAStrategyManagerIntegrationTest is Test {
             0,
             0,
             0,
+            0,
+            0,
             0
         );
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
+    function test_Execute_EmitsExecutionCompletedWithAssetAmounts() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+
+        vm.warp(block.timestamp + 7 days);
+
+        uint256 expectedInAssets = sourceFleet.convertToAssets(cfg.tradeAmount);
+
+        vm.recordLogs();
+        vm.prank(keeper);
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 sig = keccak256(
+            "ExecutionCompleted(uint256,uint256,uint256,uint256,uint256,uint256,uint256)"
+        );
+        bool found;
+        for (uint256 i; i < logs.length; i++) {
+            if (
+                logs[i].topics.length > 0 &&
+                logs[i].topics[0] == sig &&
+                logs[i].emitter == address(dcaManager)
+            ) {
+                (
+                    uint256 tradesExecuted,
+                    uint256 inShares,
+                    uint256 outShares,
+                    uint256 inAssets,
+                    uint256 outAssets,
+                    uint256 nextTriggerAt
+                ) = abi.decode(
+                        logs[i].data,
+                        (uint256, uint256, uint256, uint256, uint256, uint256)
+                    );
+
+                assertEq(tradesExecuted, 1);
+                assertEq(inShares, cfg.tradeAmount, "inShares must equal tradeAmount");
+                assertGt(outShares, 0, "outShares must be non-zero on a successful swap");
+                assertEq(
+                    inAssets,
+                    expectedInAssets,
+                    "inAssets must equal sourceVault.convertToAssets(tradeAmount)"
+                );
+                assertGt(outAssets, 0, "outAssets must be non-zero post-swap");
+                assertGt(nextTriggerAt, block.timestamp, "next trigger is in the future");
+
+                found = true;
+                break;
+            }
+        }
+        assertTrue(found, "ExecutionCompleted log not emitted");
     }
 
     function test_Execute_RevertsOnAmountOverflowsUint160() public {

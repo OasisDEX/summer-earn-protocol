@@ -52,7 +52,8 @@ interface IDCAStrategyManager {
         uint256 minPrice;
         /// @notice Unix timestamp after which no further executions are permitted.
         uint256 endDate;
-        /// @notice Maximum number of executions before the strategy auto-completes. 0 = unlimited.
+        /// @notice Maximum number of executions before the strategy auto-completes.
+        ///         Must be >= 1; zero is rejected at validation.
         uint256 maxTrades;
     }
 
@@ -83,6 +84,29 @@ interface IDCAStrategyManager {
      */
     function createStrategy(
         StrategyConfig calldata config
+    ) external returns (uint256 strategyId);
+
+    /**
+     * @notice Deposits `assetAmount` of `config.inAsset` into `config.sourceVault`
+     *         on behalf of the caller, then creates a DCA strategy in the same
+     *         transaction.
+     * @dev The deposit goes through the manager only momentarily — the caller
+     *      pre-approves the manager for `config.inAsset`, the manager pulls the
+     *      assets, approves `config.sourceVault`, and calls
+     *      `sourceVault.deposit(assetAmount, msg.sender)` so the resulting
+     *      source-vault shares land in the caller's wallet directly.
+     *      The Permit2 sub-allowance for future keeper-driven pulls must still
+     *      be granted by the caller separately (`Permit2.approve` or `permit`).
+     *      Reverts with `ZeroDeposit` if `assetAmount == 0`.
+     *      All `createStrategy` validations also apply.
+     * @param config Fully populated strategy configuration.
+     * @param assetAmount Underlying-asset amount to deposit into `config.sourceVault`
+     *                    (denominated in `config.inAsset` native decimals).
+     * @return strategyId The newly assigned strategy identifier.
+     */
+    function depositAndCreate(
+        StrategyConfig calldata config,
+        uint256 assetAmount
     ) external returns (uint256 strategyId);
 
     /**
@@ -155,9 +179,11 @@ interface IDCAStrategyManager {
      *      Advances `nextTriggerAt` and increments `tradesExecuted`. Transitions
      *      the strategy to COMPLETED when `maxTrades` is reached or
      *      `nextTriggerAt >= endDate` after the trade.
+     *      If `maxTrades` or `endDate` is already exceeded on entry, transitions
+     *      the strategy to COMPLETED and emits `StrategyCompleted` without
+     *      reverting (no trade is performed).
      *      Reverts with `CommitmentMismatch` if `config` does not match the stored commitment.
      *      Reverts with `StrategyNotActive` if the strategy is not ACTIVE.
-     *      Reverts with `TerminalStateReached` if `maxTrades` or `endDate` is already exceeded.
      *      Reverts with `ExecutionWindowNotReached` if called before `nextTriggerAt`.
      * @param strategyId Identifier of the strategy to execute.
      * @param config Exact current configuration (commitment proof).

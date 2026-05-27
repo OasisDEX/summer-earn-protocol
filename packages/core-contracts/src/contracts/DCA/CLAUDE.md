@@ -33,11 +33,16 @@ Cross-linked siblings (keep mental sync):
 ---
 
 User-owned dollar-cost-averaging strategies executed by a permissioned keeper.
-The contract holds **no funds**: the source vault is a FleetCommander share
-token; every execution pulls exactly `tradeAmount` shares from the user via
-Permit2 `AllowanceTransfer`, routes them through Enso, deposits the proceeds
-into the target FleetCommander, and forwards the resulting shares to the user
-in the same tx.
+The contract holds **no funds** across transactions: the source vault is a
+FleetCommander share token; every execution pulls exactly `tradeAmount`
+shares from the user via Permit2 `AllowanceTransfer`, routes them through
+Enso, deposits the proceeds into the target FleetCommander, and forwards the
+resulting shares to the user in the same tx.
+
+A convenience entry point `depositAndCreate(config, assetAmount)` lets a user
+deposit the underlying `inAsset` into `config.sourceVault` and register the
+strategy in one transaction; the resulting source-vault shares go directly to
+`msg.sender`, not to this contract.
 
 ## Files
 
@@ -119,6 +124,24 @@ jq '.abi' out/DCAStrategyManager.sol/DCAStrategyManager.json \
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-05-27 — claude — product alignment + DRY pass.
+  Validation: `_MAX_INTERVAL = 90 days` cap (new `IntervalTooLong` error);
+  `maxTrades == 0` rejected (new `ZeroMaxTrades` error); `maxTrades >= 1` is
+  now a contract invariant and the `config.maxTrades > 0 &&` short-circuits
+  in `executeStrategy` / `checkUpkeep` / `_executeSwap` are dropped.
+  New entrypoint `depositAndCreate(config, assetAmount)` pulls `inAsset` from
+  `msg.sender` (standard ERC20 allowance) and deposits to `config.sourceVault`
+  with `receiver = msg.sender` in one tx; new `ZeroDeposit` error.
+  `ExecutionCompleted` event extended with `inAssets` / `outAssets` and
+  renamed `inAmount`/`outAmount` → `inShares`/`outShares` — ABI break,
+  subgraph + app + keeper need regenerated ABIs.
+  Internal restructure: `_executeStrategy` now owns trade-summary event
+  emission AND the terminal-state transition (event order
+  `ExecutionCompleted` → `StrategyCompleted` preserved); `_executeSwap` is
+  pure swap mechanics. Extracted DRY helpers `_createStrategy`,
+  `_depositToFleetCommander`, `_requireNonTerminal`, `_markCompleted`.
+  Comment/natspec cleanup pass: removed AI-style narrative comments, dropped
+  resolved `@audit` TODO on `resumeStrategy`, fixed stale revert lists.
 - 2026-05-26 — claude — extracted Enso approve → call → reset-allowance
   pattern into `EnsoRouterSwapper` abstract contract; `DCAStrategyManager`
   now inherits it. `InvalidRouterAddress` moved from `IDCAStrategyManagerErrors`
