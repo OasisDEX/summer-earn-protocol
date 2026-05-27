@@ -850,7 +850,8 @@ sequenceDiagram
 
     Note over K,WT: T0: lock + dispatch
     K->>IV: nextRound()
-    IV->>IV: roundState[N] = InSettlement; _roundNumber = N+1
+    IV->>IV: roundState[N] = InSettlement
+    IV->>IV: _roundNumber = N+1
     K->>FC: rebalance(buffer -> WT, amount)
     FC->>WT: _board(amount)
     WT->>WT: cachedShareBalance snapshot; USDC -> custodian
@@ -889,7 +890,8 @@ sequenceDiagram
     OV->>OV: mint ERC1155 id=M amount=n_shares
 
     Note over K,WT: T0
-    K->>OV: nextRound()        ; M -> InSettlement, M+1 opens
+    K->>OV: nextRound()
+    Note right of OV: M→InSettlement, M+1 opens
     K->>WT: requestWithdrawal(amount)
     WT->>WT: shares -> custodian; pendingWithdrawalShares += s
 
