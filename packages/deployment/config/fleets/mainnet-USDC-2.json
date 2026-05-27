@@ -297,6 +297,13 @@
         "protocol": "Morpho_V2",
         "vaultName": "Sky_USDC_Risk_Capital_V2"
       }
+    },
+    {
+      "type": "OriginUSDArk"
+      "params": {
+        "asset": "USDC",
+        "protocol": "Origin"
+      }
     }
   ]
 }
