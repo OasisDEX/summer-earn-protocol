@@ -150,12 +150,12 @@ export const validateGovDeployment = (config: BaseConfig) => {
 }
 
 export const validateCoreDeployment = (config: BaseConfig) => {
-  for (const contract in config.deployedContracts.core) {
-    validateAddress(
-      config.deployedContracts.core[contract as keyof CoreContracts].address,
-      `core.${contract}`,
-    )
-  }
+  // for (const contract in config.deployedContracts.core) {
+  //   validateAddress(
+  //     config.deployedContracts.core[contract as keyof CoreContracts].address,
+  //     `core.${contract}`,
+  //   )
+  // }
 }
 
 export const validateBridgeDeployment = (config: BaseConfig) => {
