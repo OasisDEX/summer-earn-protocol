@@ -136,7 +136,7 @@ abstract contract RoundsVaultBase is
      */
 
     /**
-     *     @inheritdoc IRoundsVaultBase
+     * @inheritdoc IRoundsVaultBase
      */
     function nextRound() external onlyKeeper {
         uint256 closingRound = _roundNumber;
@@ -170,7 +170,7 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @inheritdoc IRoundsVaultBase
+     * @inheritdoc IRoundsVaultBase
      */
     function setRoundSettledBatch(
         uint256[] memory roundIds
@@ -247,7 +247,7 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @inheritdoc IERC4626MultiToken
+     * @inheritdoc IERC4626MultiToken
      */
     function deposit(
         uint256 assets,
@@ -268,7 +268,7 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @inheritdoc IERC4626MultiToken
+     * @inheritdoc IERC4626MultiToken
      */
     function redeem(
         uint256 id,
@@ -323,7 +323,7 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @inheritdoc IRoundsVaultBase
+     * @inheritdoc IRoundsVaultBase
      */
     function redeemExchangeAsset(
         uint256 id,
@@ -385,9 +385,9 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @inheritdoc IERC1155
+     * @inheritdoc IERC1155
      *
-     *     @dev Gate the function so only whitelisted addresses can transfer receipts
+     * @dev Gate the function so only whitelisted addresses can transfer receipts
      */
     function safeTransferFrom(
         address from,
@@ -401,9 +401,9 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @inheritdoc IERC1155
+     * @inheritdoc IERC1155
      *
-     *     @dev Gate the function so only whitelisted addresses can transfer receipts in batch
+     * @dev Gate the function so only whitelisted addresses can transfer receipts in batch
      */
     function safeBatchTransferFrom(
         address from,
@@ -419,14 +419,14 @@ abstract contract RoundsVaultBase is
     // VIEW FUNCTIONS
 
     /**
-     *     @inheritdoc IRoundsVaultBase
+     * @inheritdoc IRoundsVaultBase
      */
     function getCurrentRound() public view override returns (uint256) {
         return _roundNumber;
     }
 
     /**
-     *     @inheritdoc IRoundsVaultBase
+     * @inheritdoc IRoundsVaultBase
      */
     function exchangeAsset() public view override returns (address) {
         return _exchangeAsset;
@@ -443,7 +443,7 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @inheritdoc IRoundsVaultBase
+     * @inheritdoc IRoundsVaultBase
      */
     function getExchangeRate(uint256 round) public view returns (Price memory) {
         return _exchangeRateByRound[round];
@@ -507,7 +507,7 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @inheritdoc ERC4626MultiToken
+     * @inheritdoc ERC4626MultiToken
      */
     function _getMintId() internal view virtual override returns (uint256) {
         return _roundNumber;
@@ -612,12 +612,12 @@ abstract contract RoundsVaultBase is
             revert CallerCannotRedeem(caller, owner, id, amount);
         }
 
-        // If _asset is ERC777, `transfer` can trigger a reentrancy AFTER the transfer happens through the
+        // If _exchangeAsset is ERC777, `transfer` can trigger a reentrancy AFTER the transfer happens through the
         // `tokensReceived` hook. On the other hand, the `tokensToSend` hook, that is triggered before the transfer,
         // calls the vault, which is assumed not malicious.
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
-        // shares are burned and after the assets are transferred, which is a valid state.
+        // receipt tokens are burned and after the exchange asset is transferred, which is a valid state.
         _burn(owner, id, amount);
 
         exchangeAmount = _exchangeRateByRound[id].quote(amount);
@@ -668,12 +668,12 @@ abstract contract RoundsVaultBase is
             revert CallerCannotRedeemBatch(caller, owner, ids, amounts);
         }
 
-        // If _asset is ERC777, `transfer` can trigger a reentrancy AFTER the transfer happens through the
+        // If _exchangeAsset is ERC777, `transfer` can trigger a reentrancy AFTER the transfer happens through the
         // `tokensReceived` hook. On the other hand, the `tokensToSend` hook, that is triggered before the transfer,
         // calls the vault, which is assumed not malicious.
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
-        // shares are burned and after the assets are transferred, which is a valid state.
+        // receipt tokens are burned and after the exchange asset is transferred, which is a valid state.
         _burnBatch(owner, ids, amounts);
 
         for (uint256 i = 0; i < ids.length; i++) {

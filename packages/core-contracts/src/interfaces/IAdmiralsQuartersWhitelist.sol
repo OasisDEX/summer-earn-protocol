@@ -34,7 +34,8 @@ interface IAdmiralsQuartersWhitelist is
     /**
      * @notice Enters a FleetCommander by depositing tokens
      * @param fleetCommander The address of the FleetCommander contract
-     * @param assets The amount of inputToken to be deposited (0 for all)
+     * @param assets The amount of the FleetCommander's underlying asset to deposit (0 means use
+     *               the contract's full balance of the underlying)
      * @param receiver The address to receive the shares
      * @return shares The number of shares received from the FleetCommander
      * @dev Emits a FleetEntered event
@@ -46,29 +47,21 @@ interface IAdmiralsQuartersWhitelist is
     ) external payable returns (uint256 shares);
 
     /**
-     * @notice Enters a FleetCommander by depositing tokens using permit2
+     * @notice Enters a FleetCommander by depositing tokens using Permit2 witness transfers
      * @param owner The address of the token owner
      * @param fleetCommander The address of the FleetCommander contract
-     * @param assets The amount of inputToken to be deposited (0 for all)
+     * @param assets The exact amount of the FleetCommander's underlying to deposit; must equal
+     *               `permitData.permitted.amount` (passing `0` is not supported unless the
+     *               signature itself was issued for `0`)
+     * @param _referralCode Reserved for ABI parity with the public (non-whitelist) variant. This
+     *                     implementation ignores the value on-chain and substitutes `bytes32(0)`
+     *                     into the witness payload. SDKs and frontends MUST sign with a zero-value
+     *                     referral for signature compatibility.
      * @param receiver The address to receive the shares
      * @param permitData The permit2 data
      * @param signature The signature for permit2
      * @return shares The number of shares received from the FleetCommander
      * @dev Emits a FleetEntered event
-     */
-
-    /**
-     * @notice Enters a FleetCommander by depositing tokens using permit2
-     * @param owner The address of the token owner
-     * @param fleetCommander The address of the FleetCommander contract
-     * @param assets The amount of inputToken to be deposited (0 for all)
-     * @param _referralCode Reserved for referral code parity. This implementation ignores the referral code
-     *          and internally utilizes bytes32(0) for the witness hash.
-     *          SDKs and frontends must sign with a zero-value referral for signature compatibility.
-     * @param receiver The address to receive the shares
-     * @param permitData The permit2 data
-     * @param signature The signature for permit2
-     * @return shares The number of shares received from the FleetCommander
      */
     function enterFleetWithPermit2(
         address owner,
@@ -81,10 +74,11 @@ interface IAdmiralsQuartersWhitelist is
     ) external payable returns (uint256 shares);
 
     /**
-     * @notice Exits a FleetCommander by withdrawing tokens
+     * @notice Exits a FleetCommander by withdrawing the underlying asset
      * @param fleetCommander The address of the FleetCommander contract
-     * @param assets The amount of shares to withdraw (0 for all)
-     * @return shares The amount of assets received from the FleetCommander
+     * @param assets The amount of the FleetCommander's underlying asset to withdraw (0 withdraws
+     *               the caller's full share balance)
+     * @return shares The number of FleetCommander shares burnt to satisfy the withdrawal
      * @dev Emits a FleetExited event
      */
     function exitFleet(
@@ -96,7 +90,7 @@ interface IAdmiralsQuartersWhitelist is
      * @notice Performs a token swap using 1inch Router
      * @param fromToken The token to swap from
      * @param toToken The token to swap to
-     * @param amount The amount of fromToken to swap
+     * @param assets The amount of fromToken to swap
      * @param minTokensReceived The minimum amount of toToken to receive after the swap
      * @param swapCalldata The calldata for the 1inch swap
      * @return swappedAmount The amount of toToken received after the swap
@@ -105,16 +99,20 @@ interface IAdmiralsQuartersWhitelist is
     function swap(
         IERC20 fromToken,
         IERC20 toToken,
-        uint256 amount,
+        uint256 assets,
         uint256 minTokensReceived,
         bytes calldata swapCalldata
     ) external payable returns (uint256 swappedAmount);
 
     /**
-     * @notice Allows the owner to rescue any ERC20 tokens sent to the contract by mistake
-     * @param token The address of the ERC20 token to rescue
+     * @notice Allows the owner to rescue ERC20 tokens or native ETH sent to the contract by mistake
+     * @dev When `token` equals `NATIVE_PSEUDO_ADDRESS`, the contract forwards native ETH (using
+     *      the contract's full ETH balance when `amount == 0`); otherwise it forwards `amount` of
+     *      the ERC20.
+     * @param token The address of the ERC20 token to rescue, or `NATIVE_PSEUDO_ADDRESS` for ETH
      * @param to The address to send the rescued tokens to
-     * @param amount The amount of tokens to rescue
+     * @param amount The amount of tokens to rescue (ignored for native ETH when `0`, which sends
+     *               the full balance)
      * @dev Can only be called by the contract owner
      * @dev Emits a TokensRescued event
      */
@@ -141,12 +139,12 @@ interface IAdmiralsQuartersWhitelist is
      * type(uint256).max))
      * @dev approval requires small buffer due to constant accrual of interest
      * @param aToken The address of the Aave aToken
-     * @param amount The amount of tokens to import
+     * @param assets The amount of aToken to import
      * @dev Emits an AavePositionImported event
      */
     function moveFromAaveToAdmiralsQuarters(
         address aToken,
-        uint256 amount
+        uint256 assets
     ) external;
 
     /**
@@ -156,12 +154,12 @@ interface IAdmiralsQuartersWhitelist is
      * @dev needs approval from the user to withdraw on their behalf (e.g. cUSDC.allow(address(admiralsQuarters),true))
      *
      * @param cToken The address of the Compound cToken
-     * @param amount The amount of tokens to import
+     * @param assets The amount of cToken balance to import
      * @dev Emits a CompoundPositionImported event
      */
     function moveFromCompoundToAdmiralsQuarters(
         address cToken,
-        uint256 amount
+        uint256 assets
     ) external;
 
     /**

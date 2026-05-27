@@ -354,6 +354,8 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IERC4626
+    /// @dev Note: parameter named `owner` historically; semantically the recipient
+    ///      (matches ERC-4626 `receiver`). Signature preserved for upstream compatibility.
     function maxDeposit(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit) {
@@ -368,6 +370,8 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IERC4626
+    /// @dev Note: parameter named `owner` historically; semantically the recipient
+    ///      (matches ERC-4626 `receiver`). Signature preserved for upstream compatibility.
     function maxMint(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxMint) {
@@ -921,7 +925,10 @@ contract FleetCommanderWhitelist is
     /**
      * @notice Validates the asset reallocation data for correctness and consistency
      * @dev This function checks various conditions of the rebalance operations:
-     *      - Number of operations is within limits
+     *      - Number of operations does not exceed `config.maxRebalanceOperations`
+     *        (reverts `FleetCommanderRebalanceTooManyOperations`).
+     *      - `rebalanceData.length > 0` — empty arrays are rejected with
+     *        `FleetCommanderRebalanceNoOperations`.
      * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
      */
     function _validateReallocateAllAssets(
@@ -1005,7 +1012,7 @@ contract FleetCommanderWhitelist is
      * @param shares The number of shares to redeem
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
-     * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
      * @custom:error FleetCommanderZeroAmount Thrown when the withdrawal amount is zero
      */
     function _validateBufferWithdraw(
@@ -1036,7 +1043,7 @@ contract FleetCommanderWhitelist is
      * @param shares The number of shares to redeem
      * @param owner The address of the owner of the shares
      * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
-     * @custom:error IERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
      * @custom:error FleetCommanderZeroAmount Thrown when the redemption amount is zero
      */
     function _validateBufferRedeem(
@@ -1065,7 +1072,7 @@ contract FleetCommanderWhitelist is
      * @param assets The amount of assets to deposit
      * @param owner The address of the account making the deposit
      * @custom:error FleetCommanderZeroAmount Thrown when the deposit amount is zero
-     * @custom:error IERC4626ExceededMaxDeposit Thrown when the deposit amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxDeposit Thrown when the deposit amount exceeds the maximum allowed
      */
     function _validateDeposit(uint256 assets, address owner) internal view {
         if (assets == 0) {
@@ -1083,7 +1090,7 @@ contract FleetCommanderWhitelist is
      * @param shares The number of shares to mint
      * @param owner The address of the account minting the shares
      * @custom:error FleetCommanderZeroAmount Thrown when the mint amount is zero
-     * @custom:error IERC4626ExceededMaxMint Thrown when the mint amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxMint Thrown when the mint amount exceeds the maximum allowed
      */
     function _validateMint(uint256 shares, address owner) internal view {
         if (shares == 0) {
@@ -1104,7 +1111,7 @@ contract FleetCommanderWhitelist is
      * @param shares The amount of shares to redeem
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
-     * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
      * @custom:error FleetCommanderZeroAmount Thrown when the withdrawal amount is zero
      */
     function _validateWithdrawFromArks(
@@ -1136,7 +1143,7 @@ contract FleetCommanderWhitelist is
      * @param shares The amount of shares to redeem
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
-     * @custom:error IERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
      * @custom:error FleetCommanderZeroAmount Thrown when the redemption amount is zero
      */
     function _validateRedeemFromArks(
@@ -1169,9 +1176,12 @@ contract FleetCommanderWhitelist is
 
     /**
      * @notice Checks if the max functions are blocked
-     * @dev This function checks if the contract is paused, if the caller has operator role, or if the operator gateway
-     * is closed and the caller is not whitelisted
-     * @param account The address to check
+     * @dev Returns true when the contract is paused. Otherwise, when the caller (`_msgSender()`)
+     *      holds the operator role the gate is open (returns false). In the remaining case the
+     *      check is the disjunction (logical OR): the operator gateway is closed OR `account`
+     *      (the address passed in, not the caller) is not whitelisted. Note the distinction:
+     *      the operator-role check is on the caller, while the whitelist check is on `account`.
+     * @param account The address to check against the whitelist
      * @return True if the max functions are blocked, false otherwise
      */
     function _isMaxFunctionBlocked(

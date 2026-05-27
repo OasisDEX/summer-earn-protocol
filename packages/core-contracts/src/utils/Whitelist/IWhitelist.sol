@@ -27,6 +27,7 @@ interface IWhitelist is IWhitelistEvents {
     /**
      * @notice Returns whether the whitelist for `context` is globally open (every account passes).
      * @param context The context to check
+     * @return True if every account is implicitly whitelisted for `context`.
      */
     function isWhitelistOpen(address context) external view returns (bool);
 }

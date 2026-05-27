@@ -73,7 +73,7 @@ contract ProtocolAccessManagerV2 is
     }
 
     /**
-     * @inheritdoc IERC165
+     * @inheritdoc ProtocolAccessManager
      */
     function supportsInterface(
         bytes4 interfaceId
@@ -152,6 +152,7 @@ contract ProtocolAccessManagerV2 is
     }
 
     /// @inheritdoc IProtocolAccessManagerV2
+    /// @dev Note: reverts with `Whitelist_LengthMismatch` if either array is empty.
     function setWhitelistedBatch(
         address context,
         address[] calldata accounts,

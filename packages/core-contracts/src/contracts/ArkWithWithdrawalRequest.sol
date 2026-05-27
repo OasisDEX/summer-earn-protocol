@@ -24,7 +24,11 @@ import {Constants} from "@summerfi/constants/Constants.sol";
  *         buffer ark. Adds a whitelisted-router swap utility for exits that route through a DEX
  *         aggregator.
  *
- * @dev Concrete subclasses must still implement the abstract hooks defined on `Ark`. Slippage on
+ * @dev Concrete subclasses must still implement the abstract hooks defined on `Ark` (`_board`,
+ *      `_disembark`, `_withdrawableTotalAssets`, `_harvest`, `_validateBoardData`,
+ *      `_validateDisembarkData`) AND the async-withdrawal hooks declared on
+ *      `IArkWithWithdrawalRequest` (`requestWithdrawal`, `claimWithdrawal`, `withdrawUsingSwap`,
+ *      `isWithdrawalClaimRequired`, `withdrawalRequestId`, `assetsInWithdrawalQueue`). Slippage on
  *      the internal `_swap` helper is bounded by `MAX_SLIPPAGE` and configured by the curator.
  */
 abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
@@ -58,9 +62,9 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         slippage = _slippage;
     }
 
-    /*//////////////////////////////////////////////////////////////
-                                MODIFIERS
-    //////////////////////////////////////////////////////////////*/
+    // ============================================================
+    //                       EXTERNAL FUNCTIONS
+    // ============================================================
 
     /// @inheritdoc IArkWithWithdrawalRequest
     function sweep()
@@ -80,7 +84,9 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         address bufferArk = address(
             IFleetCommander(config.commander).bufferArk()
         );
-        // to keep compatibility with the subgraph
+        // @dev First-position arg is `msg.sender` (the keeper) here, NOT the FleetCommander
+        //      address that the `Disembarked` event's `commander` parameter nominally represents.
+        //      Preserved as-is for subgraph compatibility with the original event signature.
         emit Disembarked(msg.sender, address(asset), sweptAmounts[0]);
 
         if (sweptAmounts[0] > 0 && address(this) != bufferArk) {
@@ -144,6 +150,7 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
      * @param amountIn   Amount of sellToken to sell
      * @param amountOutMin Minimum acceptable output — MUST NOT come from keeper input
      * @param swapCalldata Calldata forwarded to the router
+     * @return amountOut Actual buy-token amount received (>= amountOutMin).
      */
     function _swap(
         address sellToken,
@@ -173,6 +180,7 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
 
     /// @dev Forwards `amount` of the configured asset to the FleetCommander's buffer ark. Used by
     ///      subclass sweep/claim flows after off-chain settlement returns the underlying.
+    /// @param amount Asset amount to forward to the buffer ark.
     function _boardToBufferArk(uint256 amount) internal {
         address bufferArk = IFleetCommander(config.commander).bufferArk();
         IERC20(address(config.asset)).forceApprove(bufferArk, amount);

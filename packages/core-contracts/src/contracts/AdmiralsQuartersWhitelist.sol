@@ -73,14 +73,33 @@ contract AdmiralsQuartersWhitelist is
     using SafeERC20 for IERC20;
     using SafeERC20 for IAToken;
 
+    /// @notice Address of the 1inch aggregator router used by `swap` to execute on-chain trades.
     address public immutable ONE_INCH_ROUTER;
+    /// @notice Sentinel address used to represent the chain's native token (e.g. ETH) in token
+    ///         arguments. When supplied, the contract wraps/unwraps via `WRAPPED_NATIVE`.
     address public immutable NATIVE_PSEUDO_ADDRESS =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    /// @notice Address of the wrapped-native token (e.g. WETH) used to wrap incoming native ETH and
+    ///         unwrap outgoing native ETH transfers.
     address public immutable WRAPPED_NATIVE;
 
+    /// @notice Canonical Uniswap Permit2 contract address used by `enterFleetWithPermit2` to pull
+    ///         tokens from signers via witness-bound transfers.
     address public constant PERMIT2 =
         0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
+    /**
+     * @notice EIP-712 witness payload bound to a Permit2 signature in `enterFleetWithPermit2`.
+     * @dev The witness is hashed with `_FLEET_DEPOSIT_TYPEHASH` and supplied to
+     *      `ISignatureTransfer.permitWitnessTransferFrom`, ensuring the signed token transfer can
+     *      only be consumed by a deposit into the exact `fleetCommander`/`receiver` pair specified
+     *      by the signer.
+     * @param fleetCommander The FleetCommander the signed transfer authorizes a deposit into.
+     * @param receiver The address that will receive the FleetCommander shares.
+     * @param referralCode Referral code bound into the witness. This whitelisted variant ignores
+     *                    referral tracking on-chain and always substitutes `bytes32(0)`; signers
+     *                    MUST use `bytes32(0)` here for signature verification to succeed.
+     */
     struct FleetDepositWitness {
         address fleetCommander;
         address receiver;
@@ -191,14 +210,19 @@ contract AdmiralsQuartersWhitelist is
      * @notice Permit2 variant of `enterFleet`. Pulls `assets` of the FleetCommander's underlying
      *         from `owner` via a Permit2 witness-transfer signature and deposits into
      *         `fleetCommander` for `receiver`.
-     * @dev The contract has no `@inheritdoc` because its signature differs from the public-fleet
-     *      `IAdmiralsQuartersWhitelist` variant: the institutional build does not propagate the
-     *      referral code on-chain. The provided `referralCode` argument is therefore ignored and
-     *      `bytes32(0)` is substituted into the witness payload. Off-chain signers MUST use
-     *      `bytes32(0)` for the referral field or Permit2 signature verification will fail.
+     * @dev This function intentionally omits `@inheritdoc` because its signature differs from the
+     *      public (non-whitelist) `IAdmiralsQuarters.enterFleetWithPermit2` variant: the
+     *      institutional build does not propagate the referral code on-chain. The supplied
+     *      `referralCode` argument is therefore ignored and `bytes32(0)` is substituted into the
+     *      witness payload. Off-chain signers MUST use `bytes32(0)` for the referral field or
+     *      Permit2 signature verification will fail.
      * @param owner The account whose Permit2 nonce is consumed and whose underlying is pulled
      * @param fleetCommander The target FleetCommander to deposit into; must pass `_validateFleetCommander`
-     * @param assets The amount of FleetCommander underlying to deposit
+     * @param assets The exact amount of FleetCommander underlying to deposit; must equal
+     *               `permitData.permitted.amount` (passing `0` is not supported unless the
+     *               signature itself was issued for `0`)
+     * @param referralCode Reserved for ABI parity with the public variant; ignored on-chain
+     *                    (off-chain signers must pass `bytes32(0)`)
      * @param receiver The recipient of the FleetCommander shares
      * @param permitData Permit2 `PermitTransferFrom` payload signed by `owner`
      * @param signature `owner`'s signature over `permitData` and the witness payload
@@ -208,7 +232,7 @@ contract AdmiralsQuartersWhitelist is
         address owner,
         address fleetCommander,
         uint256 assets,
-        bytes calldata /* referralCode */,
+        bytes calldata referralCode,
         address receiver,
         ISignatureTransfer.PermitTransferFrom calldata permitData,
         bytes calldata signature
@@ -415,7 +439,10 @@ contract AdmiralsQuartersWhitelist is
     }
 
     /**
-     * @dev Required to receive ETH when unwrapping WETH
+     * @notice Accepts native ETH transfers into the contract.
+     * @dev Required so that `IWETH.withdraw` (called from `withdrawTokens`) can return unwrapped
+     *      ETH to this contract before it is forwarded to the caller. Should not be used to fund
+     *      the contract directly; stranded ETH must be reclaimed via `rescueTokens`.
      */
     receive() external payable {}
 

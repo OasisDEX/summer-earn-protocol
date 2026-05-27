@@ -71,17 +71,18 @@ contract RoundsVaultOutput is
     // gated by `onlyKeeper` on `setRoundSettled` / `setRoundSettledBatch`. The Keeper is a trusted
     // role. Even if a Keeper attempted to re-enter `setRoundSettled` for the same round, the round
     // state is flipped to `Settled` before `_operate` runs, so the second call would revert on
-    // `InvalidRoundState`. And the round's frozen Fleet shares have already been redeemed against
-    // the target FleetCommander, leaving this contract with nothing to move on a re-entrant pass.
+    // `InvalidRoundState`. And the round's frozen target vault shares have already been redeemed
+    // against the target ERC-4626 vault, leaving this contract with nothing to move on a re-entrant
+    // pass.
     function _operate(
-        uint256 shares,
+        uint256 amount,
         uint256 roundId
-    ) internal override returns (uint256) {
-        if (shares == 0) return 0;
+    ) internal override returns (uint256 outputAmount) {
+        if (amount == 0) return 0;
 
-        uint256 assets = _redeemFromTarget(shares);
+        uint256 assets = _redeemFromTarget(amount);
 
-        emit SharesRedeemed(roundId, _msgSender(), shares, assets);
+        emit SharesRedeemed(roundId, _msgSender(), amount, assets);
 
         return assets;
     }

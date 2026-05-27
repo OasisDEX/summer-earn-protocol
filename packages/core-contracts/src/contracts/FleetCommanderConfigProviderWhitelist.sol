@@ -51,6 +51,17 @@ contract FleetCommanderConfigProviderWhitelist is
     /// @notice If true, whitelist-restricted transfers are enabled for this fleet's tokens
     bool public transfersEnabled;
 
+    /**
+     * @notice Wires this Whitelist-enabled fleet configuration provider together with its
+     *         access manager, configuration manager, and a freshly deployed BufferArk, and
+     *         seeds the initial `FleetConfigWhitelist` state from the supplied parameters.
+     * @dev Inherits `ProtocolAccessManagedV2` (access control), `FleetCommanderPausable`
+     *      (pause/governance timing) and `ConfigurationManaged` (protocol-wide config).
+     *      The BufferArk is deployed in-constructor with unbounded caps and registered as
+     *      the fleet's buffer; `stakingRewardsManager` is intentionally set to `address(0)`
+     *      as it is not used in the Whitelist variant.
+     * @param params The aggregated initialization parameters; see {FleetCommanderWhitelistParams}.
+     */
     constructor(
         FleetCommanderWhitelistParams memory params
     )
@@ -264,8 +275,7 @@ contract FleetCommanderConfigProviderWhitelist is
      * - Registers this contract as the ark's FleetCommander
      * - Adds the ark to the list of active arks
      * @custom:effects
-     * - Modifies isArkActiveOrBufferArk mapping
-     * - Updates the arks array
+     * - Adds the ark to `_activeArks`
      * - Emits an ArkAdded event
      * @custom:security-considerations
      * - Ensures no duplicate arks are added
@@ -294,12 +304,10 @@ contract FleetCommanderConfigProviderWhitelist is
      * - Checks if the ark is currently active
      * - Locates and removes the ark from the active arks list
      * - Validates that the ark can be safely removed
-     * - Marks the ark as inactive
      * - Unregisters this contract as the ark's FleetCommander
      * - Revokes the COMMANDER_ROLE for this contract on the ark
      * @custom:effects
-     * - Modifies the isArkActiveOrBufferArk mapping
-     * - Updates the arks array
+     * - Removes the ark from `_activeArks`
      * - Changes the ark's FleetCommander status
      * - Revokes a role in the access manager
      * - Emits an ArkRemoved event

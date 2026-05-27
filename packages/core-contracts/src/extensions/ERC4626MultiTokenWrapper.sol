@@ -44,6 +44,9 @@ abstract contract ERC4626MultiTokenWrapper is
     /**
      * CONSTRUCTOR
      *
+     * @notice Wires the wrapper to a target ERC-4626 vault and configures the asset this
+     *         wrapper accepts on `deposit`, along with the ERC-1155 receipt metadata URI.
+     *
      * @param proxiedVault The target ERC-4626 vault to wrap.
      * @param underlyingAsset The asset this wrapper accepts on `deposit`. Configure as
      *                        `proxiedVault.asset()` for an Input-style wrapper or
@@ -66,20 +69,20 @@ abstract contract ERC4626MultiTokenWrapper is
     }
 
     /**
-     * @notice Redeems `amount` of this wrapper's accumulated balance (target vault shares) from the
-     *         target vault, paying out the target vault's underlying to this contract.
+     * @dev Redeems `amount` of this wrapper's accumulated balance (target vault shares) from the
+     *      target vault, paying out the target vault's underlying to this contract.
      * @param amount The amount of target vault shares to redeem
-     * @return The amount of underlying asset paid back by the target vault
+     * @return assets The amount of underlying asset paid back by the target vault
      */
     function _redeemFromTarget(uint256 amount) internal returns (uint256) {
         return _proxiedVault.redeem(amount, address(this), address(this));
     }
 
     /**
-     * @notice Deposits `amount` of this wrapper's accumulated balance (target vault's underlying)
-     *         into the target vault, receiving target vault shares to this contract.
+     * @dev Deposits `amount` of this wrapper's accumulated balance (target vault's underlying)
+     *      into the target vault, receiving target vault shares to this contract.
      * @param amount The amount of underlying asset to deposit
-     * @return The amount of target vault shares minted to this contract
+     * @return shares The amount of target vault shares minted to this contract
      */
     function _depositOnTarget(uint256 amount) internal returns (uint256) {
         SafeERC20.forceApprove(IERC20(asset()), address(_proxiedVault), amount);

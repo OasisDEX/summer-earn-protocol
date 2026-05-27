@@ -50,8 +50,10 @@ interface IProtocolAccessManagerV2 {
 
     /**
      * @notice Revokes the contract-specific Operator role for `fleetCommanderAddress` from `account`.
-     * @dev Restricted to the Governor role.
-     * @param fleetCommanderAddress The contract the Operator role is scoped to
+     * @dev Despite the parameter name, the Operator role is contract-scoped — it applies to any
+     *      contract that exposes `hasOperatorRole(account)` against itself (see
+     *      `ProtocolAccessManagedV2`), not just Fleets. Restricted to the Governor role.
+     * @param fleetCommanderAddress The contract the Operator role is scoped to (typically a Fleet)
      * @param account The account to revoke the role from
      */
     function revokeOperatorRole(
@@ -63,12 +65,14 @@ interface IProtocolAccessManagerV2 {
      * @notice Grants `WHITELIST_MANAGER_ROLE` to `account`.
      * @dev Whitelist managers may call `setWhitelisted`, `setWhitelistedBatch`, and
      *      `setWhitelistOpen`. Restricted to the Governor role.
+     * @param account The account to grant the role to.
      */
     function grantWhitelistManagerRole(address account) external;
 
     /**
      * @notice Revokes `WHITELIST_MANAGER_ROLE` from `account`.
      * @dev Restricted to the Governor role.
+     * @param account The account to revoke the role from.
      */
     function revokeWhitelistManagerRole(address account) external;
 
@@ -89,7 +93,7 @@ interface IProtocolAccessManagerV2 {
      *         load of the `_isWhitelistOpen[context]` flag.
      * @param context The context the check is scoped to
      * @param accounts Accounts to check
-     * @return Array of statuses aligned with `accounts`.
+     * @return statuses Array of statuses aligned with `accounts`.
      */
     function areWhitelisted(
         address context,
@@ -99,6 +103,7 @@ interface IProtocolAccessManagerV2 {
     /**
      * @notice Returns whether `context`'s whitelist has been globally opened.
      * @param context The context to check
+     * @return True if `context`'s whitelist is globally open.
      */
     function isWhitelistOpen(address context) external view returns (bool);
 
@@ -108,7 +113,7 @@ interface IProtocolAccessManagerV2 {
      *      `WHITELIST_MANAGER_ROLE`.
      * @param context The context the record is scoped to
      * @param account The account to update
-     * @param allowed The new status
+     * @param allowed The new status (`true` for whitelisted, `false` to remove the record).
      */
     function setWhitelisted(
         address context,

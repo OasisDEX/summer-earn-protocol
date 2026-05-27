@@ -19,8 +19,13 @@ import {Whitelist} from "../utils/Whitelist/Whitelist.sol";
  *        sender is not careful about sending transactions invoking {multicall}; e.g. a relay that
  *        filters function selectors won't filter calls nested within `multicall`.
  *      - Since OZ 5.0.1 and 4.9.4, the implementation forwards the trailing `_contextSuffixLength`
- *        bytes of `msg.data` to subcalls when `msg.sender != _msgSender()`, so this contract is
- *        safe to use with `ERC2771Context`.
+ *        bytes of `msg.data` to subcalls when `msg.sender != _msgSender()`.
+ *
+ * @dev WARNING: this contract is NOT safe to use behind an ERC-2771 trusted forwarder. On `multicall`
+ *      entry, `_setCaller(msg.sender)` stashes the forwarder address into transient storage, while
+ *      `onlyMulticall` compares `_getCaller()` against `_msgSender()` (which unwraps to the end
+ *      user). The two values will never match when invoked via a forwarder, so any `onlyMulticall`
+ *      gated subcall will revert with `NotMulticall()`. Use direct calls only.
  *
  * @dev Whitelist behavior:
  *      - This contract inherits from `Whitelist` but does NOT gate `multicall` itself; the entry
@@ -78,6 +83,8 @@ abstract contract ProtectedMulticallWhitelist is Context, Whitelist {
 
     /// @dev Inner loop of `multicall`. `delegatecall`s each payload against `address(this)`,
     ///      appending the ERC-2771 context suffix when the call is going through a forwarder.
+    /// @param data Array of ABI-encoded calldata payloads to execute in order
+    /// @return results Array of raw return data per call, aligned with `data`
     function _multicall(
         bytes[] calldata data
     ) internal returns (bytes[] memory results) {

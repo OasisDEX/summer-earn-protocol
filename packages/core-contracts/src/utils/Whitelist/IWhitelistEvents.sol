@@ -6,7 +6,7 @@ pragma solidity 0.8.28;
  *
  * @notice Legacy event surface inherited by `IWhitelist`. Maintained for ABI compatibility; the
  *         authoritative whitelist mutation event is emitted by the central access manager
- *         (`IProtocolAccessManagerV2.WhitelistStatusUpdated(context, account, allowed)`) since the
+ *         (`IProtocolAccessManagerV2.WhitelistStatusUpdated(context, account, isWhitelisted)`) since the
  *         inheriting `Whitelist` helper delegates all state to that contract.
  */
 interface IWhitelistEvents {
