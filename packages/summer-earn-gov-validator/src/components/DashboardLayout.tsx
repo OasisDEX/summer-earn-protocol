@@ -1,4 +1,4 @@
-'use client'
+import { Suspense } from 'react'
 
 import { BottomNavBar, CreateProposalFAB } from './BottomNavBar'
 import { SideNavBar } from './SideNavBar'
@@ -12,12 +12,18 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex flex-col min-h-screen">
-      <TopNavBar />
+      <Suspense fallback={null}>
+        <TopNavBar />
+      </Suspense>
       <div className="flex flex-1">
-        <SideNavBar />
+        <Suspense fallback={null}>
+          <SideNavBar />
+        </Suspense>
         <main className="flex-1 min-w-0 p-6 lg:p-10 mb-20 lg:mb-0">{children}</main>
       </div>
-      <BottomNavBar />
+      <Suspense fallback={null}>
+        <BottomNavBar />
+      </Suspense>
       <CreateProposalFAB />
     </div>
   )

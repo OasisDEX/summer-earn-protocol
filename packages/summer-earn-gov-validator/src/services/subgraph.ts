@@ -64,10 +64,7 @@ export async function fetchAllProposals(
   params: { isV1: boolean } = { isV1: false },
 ): Promise<ProposalWithCrossChain[]> {
   const { isV1 } = params
-  const fetchOptions = { next: { revalidate: 60 } } as RequestInit
-  const baseClient = new GraphQLClient(SUBGRAPH_ENDPOINTS.base, {
-    fetch: (url, options) => fetch(url, { ...options, ...fetchOptions }),
-  })
+  const baseClient = new GraphQLClient(SUBGRAPH_ENDPOINTS.base)
   let where = {}
   if (isV1) {
     where = { governor_not: '0x4ceee1b6289624d381383c1bb42b118d5f2c3274' }
@@ -118,9 +115,7 @@ export async function fetchAllProposals(
   const crossChainProposalsPromises = Object.entries(SATELLITE_SUBGRAPH_ENDPOINTS).map(
     async ([chain, endpoint]) => {
       try {
-        const client = new GraphQLClient(endpoint, {
-          fetch: (url, options) => fetch(url, { ...options, ...fetchOptions }),
-        })
+        const client = new GraphQLClient(endpoint)
         const result = await client.request<CrossChainProposalsResponse>(
           CROSS_CHAIN_PROPOSALS_QUERY,
         )

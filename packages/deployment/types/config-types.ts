@@ -148,6 +148,9 @@ export interface BaseConfig {
       roundsVaultRegistry?: { address: string }
       daoTipJar?: { address: string }
     }
+    dca?: {
+      dcaStrategyManager: { address: string }
+    }
     bridge?: {
       bridgeRouter: { address: string }
       bridgeQueue: { address: string }
@@ -165,6 +168,7 @@ export interface BaseConfig {
     chainId: string
     initialSupply: string
     swapProvider: string
+    ensoRouter: string
     tipRate: string
     foundation: string
     merklDistributor: string

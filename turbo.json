@@ -51,8 +51,7 @@
     },
     "test": {
       "dependsOn": [
-        "^prebuild",
-        "^build"
+        "^prebuild"
       ],
       "inputs": [
         "src/**/*.sol",
@@ -120,14 +119,12 @@
     },
     "coverage": {
       "dependsOn": [
-        "^prebuild",
-        "^build"
+        "^prebuild"
       ]
     },
     "coverage:lcov": {
       "dependsOn": [
-        "^prebuild",
-        "^build"
+        "^prebuild"
       ],
       "inputs": [
         "src/**/*.sol",
@@ -135,11 +132,7 @@
         "foundry.toml",
         "package.json"
       ],
-      "outputs": [
-        "lcov.info",
-        "out/**",
-        "cache_forge/**"
-      ]
+      "outputs": []
     }
   },
   "futureFlags": {

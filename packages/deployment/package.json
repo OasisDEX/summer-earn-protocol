@@ -33,6 +33,7 @@
     "deploy:buy-and-burn": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-buy-and-burn.ts --network $NETWORK",
     "deploy:aq": "hardhat run scripts/redeploy-admirals-quarters.ts --network $NETWORK",
     "deploy:raft": "hardhat run scripts/redeploy-raft.ts --network $NETWORK",
+    "deploy:dca": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-dca-strategy-manager.ts --network $NETWORK",
     "gov:setup-aq": "hardhat run scripts/governance/setup-admirals-quarters.ts --network $NETWORK",
     "gov:setup-raft": "hardhat run scripts/governance/setup-raft.ts --network $NETWORK",
     "gov:sweep-ark-on-arbitrum": "hardhat run scripts/governance/sweep-ark-on-arbitrum.ts --network $NETWORK",

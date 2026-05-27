@@ -164,5 +164,8 @@
   "staging_ExtDemoCorp_v2_FleetWhitelist_extDemo_2_USDC_base#FleetCommanderWhitelist": "0xB5A07af4302fA0D2bBb389b4481055eD3F576B73",
   "staging_ExtDemoCorp_v2_RoundsVaultInput_extDemo_2_USDC_base#RoundsVaultInput": "0xa5BB66ED32EA16B282b0bBf827b325C564C05Cd1",
   "staging_ExtDemoCorp_v2_RoundsVaultOutput_extDemo_2_USDC_base#RoundsVaultOutput": "0x39B9dd2440Fc4ff138643E3a86A486487F3cfc22",
-  "staging_extDemo_2_USDC_base_SkyUsds_usdc_8453#SkyUsdsPsm3Ark": "0x50CbB1759370ae82a9B8488c7D3e91Fe11A4A5B0"
+  "staging_extDemo_2_USDC_base_SkyUsds_usdc_8453#SkyUsdsPsm3Ark": "0x50CbB1759370ae82a9B8488c7D3e91Fe11A4A5B0",
+  "DCAStrategyManagerModule_v1#DCAStrategyManager": "0x9407a57C1Ebe92cB7fc6CB68705e34371A33735A",
+  "DCAStrategyManagerModule_v2#DCAStrategyManager": "0x48459d7F83E918472BB4827eEd14FE387a30FdA0",
+  "DCAStrategyManagerModule_v3#DCAStrategyManager": "0xc7de5CFE86ebEfb80b01014549D6eB0041Af9c72"
 }

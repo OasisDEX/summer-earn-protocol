@@ -1,0 +1,44 @@
+import { getInstitutionsV2SubgraphUrl } from '@/config/chains'
+import { time } from '@/lib/perf'
+import type { ChainId } from '@/types/chain'
+
+interface GqlResponse<T> {
+  data?: T
+  errors?: Array<{ message: string }>
+}
+
+function operationName(query: string): string {
+  const match = /\b(?:query|mutation|subscription)\s+(\w+)/.exec(query)
+  return match?.[1] ?? 'anonymous'
+}
+
+export async function gqlFetch<T>(
+  chainId: ChainId,
+  query: string,
+  variables: Record<string, unknown> = {},
+): Promise<T> {
+  const url = getInstitutionsV2SubgraphUrl(chainId)
+  const label = `subgraph:${operationName(query)}`
+
+  return time(label, async () => {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables }),
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Subgraph request failed: ${response.status} ${response.statusText}`)
+    }
+
+    const body = (await response.json()) as GqlResponse<T>
+    if (body.errors && body.errors.length > 0) {
+      throw new Error(`Subgraph error: ${body.errors.map((e) => e.message).join('; ')}`)
+    }
+    if (!body.data) {
+      throw new Error('Subgraph returned no data')
+    }
+    return body.data
+  })
+}

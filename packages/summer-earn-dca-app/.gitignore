@@ -1,0 +1,11 @@
+node_modules
+.next
+.turbo
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+coverage
+# next-agents-md
+.next-docs/

@@ -1,0 +1,26 @@
+[
+  {
+    "type": "function",
+    "name": "decimals",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint8" }]
+  },
+  {
+    "type": "function",
+    "name": "description",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "string" }]
+  },
+  {
+    "type": "event",
+    "name": "AnswerUpdated",
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "current", "type": "int256" },
+      { "indexed": true, "name": "roundId", "type": "uint256" },
+      { "indexed": false, "name": "updatedAt", "type": "uint256" }
+    ]
+  }
+]

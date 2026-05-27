@@ -168,7 +168,7 @@ export function ProposalsList({
           </h1>
           <p className="text-on-surface-variant max-w-xl">
             Shape the future of Lazy Summer DAO. Cast your vote on active protocol upgrades and
-            treasury allocations.
+            treasury allocations now.
           </p>
         </div>
         <div className="flex gap-3">

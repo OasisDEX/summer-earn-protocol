@@ -1,29 +1,34 @@
+import { Suspense } from 'react'
+import { connection } from 'next/server'
+
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ProposalsList } from '@/components/ProposalsList'
-import { fetchAllProposals } from '@/services/subgraph'
+import { ProposalsListSkeleton } from '@/components/ProposalsListSkeleton'
+import { getProposalsCached } from '@/services/subgraph-cached'
 import { TransformedProposal } from '@/types/governance'
 import { transformProposal } from '@/utils/proposal-transformer'
 
-// Revalidate every 60 seconds (ISR)
-export const revalidate = 60
-
-async function getProposals(): Promise<TransformedProposal[]> {
-  try {
-    const proposalsWithCrossChain = await fetchAllProposals()
-    return proposalsWithCrossChain.map((p) => transformProposal(p))
-  } catch (error) {
-    console.error('Error fetching proposals:', error)
-    // Return empty array on error - could also throw or return fallback
-    return []
-  }
-}
-
-export default async function ProposalsPage() {
-  const proposals = await getProposals()
-
+export default function ProposalsPage() {
   return (
     <DashboardLayout activeTab="proposals">
-      <ProposalsList initialProposals={proposals} />
+      <Suspense fallback={<ProposalsListSkeleton />}>
+        <ProposalsListServer />
+      </Suspense>
     </DashboardLayout>
   )
+}
+
+async function ProposalsListServer() {
+  await connection()
+
+  let proposals: TransformedProposal[]
+  try {
+    const raw = await getProposalsCached()
+    proposals = raw.map(transformProposal)
+  } catch (error) {
+    console.error('Error fetching proposals:', error)
+    proposals = []
+  }
+
+  return <ProposalsList initialProposals={proposals} />
 }

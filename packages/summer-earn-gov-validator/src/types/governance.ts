@@ -30,6 +30,10 @@ export interface ProposalAction {
   method: string
   args: Record<string, unknown>
   isValid: boolean
+  /** Pre-encoded calldata from imported proposal JSON (bypasses ABI encoding) */
+  rawCalldata?: string
+  /** Raw value in wei from imported proposal JSON */
+  rawValue?: string
 }
 
 export interface Vote {
