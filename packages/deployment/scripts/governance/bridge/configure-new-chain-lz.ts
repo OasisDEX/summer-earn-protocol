@@ -157,16 +157,26 @@ async function createRouteConfiguration(
   )
 
   // Encode ULN receive config for DVNs
-  const dvnAddresses = [dvns.lzLabs as Address, dvns.secondDvn as Address].sort()
+  // NEW: 3-DVN model when thirdDvn is set, 2-DVN fallback otherwise
+  const hasThirdDvn = !!(dvns.thirdDvn && dvns.thirdDvn.length > 0)
 
-  const ulnConfig = {
-    confirmations: 15n, // Keep as bigint - this is a uint64
-    requiredDVNCount: 2,
-    optionalDVNCount: 0,
-    optionalDVNThreshold: 0,
-    requiredDVNs: dvnAddresses,
-    optionalDVNs: [] as readonly Address[],
-  }
+  const ulnConfig = hasThirdDvn
+    ? {
+        confirmations: 15n, // Keep as bigint - this is a uint64
+        requiredDVNCount: 1,       // lzLabs is always required
+        optionalDVNCount: 2,       // secondDvn + thirdDvn (Nethermind)
+        optionalDVNThreshold: 1,   // any 1 of the 2 optional must verify
+        requiredDVNs: ([dvns.lzLabs as Address] as Address[]).sort() as readonly Address[],
+        optionalDVNs: ([dvns.secondDvn as Address, dvns.thirdDvn as Address] as Address[]).sort() as readonly Address[],
+      }
+    : {
+        confirmations: 15n, // Keep as bigint - this is a uint64
+        requiredDVNCount: 2,
+        optionalDVNCount: 0,
+        optionalDVNThreshold: 0,
+        requiredDVNs: ([dvns.lzLabs as Address, dvns.secondDvn as Address] as Address[]).sort() as readonly Address[],
+        optionalDVNs: [] as readonly Address[],
+      }
 
   // Encode ULN Config (CONFIG_TYPE_ULN = 2)
   const encodedUlnConfig = encodeAbiParameters(
