@@ -336,7 +336,11 @@ contract AdmiralsQuartersWhitelistTest is
         vm.stopPrank();
 
         uint256 shares = usdcFleet.balanceOf(user1);
-        assertGt(shares, 0, "User1 should receive shares when receiver is zero");
+        assertGt(
+            shares,
+            0,
+            "User1 should receive shares when receiver is zero"
+        );
     }
 
     function test_EnterFleet_RevertsInvalidFleetCommander() public {

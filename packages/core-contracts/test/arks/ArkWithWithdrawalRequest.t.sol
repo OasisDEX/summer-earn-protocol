@@ -12,9 +12,12 @@ contract USDTLikeMock is MockERC20 {
     constructor() {
         initialize("USDT", "USDT", 6);
     }
-    
+
     // USDT-like approve that reverts if modifying a non-zero allowance to a non-zero amount
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+    function approve(
+        address spender,
+        uint256 amount
+    ) public virtual override returns (bool) {
         if (amount != 0 && _allowance[msg.sender][spender] != 0) {
             revert("USDT: approve from non-zero to non-zero");
         }
@@ -36,7 +39,10 @@ contract MockRouter {
 }
 
 contract MockArkWithWithdrawalRequest is ArkWithWithdrawalRequest {
-    constructor(ArkParams memory params, uint256 slippage) ArkWithWithdrawalRequest(params, slippage) {}
+    constructor(
+        ArkParams memory params,
+        uint256 slippage
+    ) ArkWithWithdrawalRequest(params, slippage) {}
 
     function setCommander(address _commander) external {
         config.commander = _commander;
@@ -50,7 +56,15 @@ contract MockArkWithWithdrawalRequest is ArkWithWithdrawalRequest {
         uint256 amountOutMin,
         bytes memory swapCalldata
     ) external returns (uint256) {
-        return _swap(sellToken, buyToken, router, amountIn, amountOutMin, swapCalldata);
+        return
+            _swap(
+                sellToken,
+                buyToken,
+                router,
+                amountIn,
+                amountOutMin,
+                swapCalldata
+            );
     }
 
     function expose_boardToBufferArk(uint256 amount) external {
@@ -64,18 +78,33 @@ contract MockArkWithWithdrawalRequest is ArkWithWithdrawalRequest {
     // Abstract overrides
     function _board(uint256, bytes calldata) internal override {}
     function _disembark(uint256, bytes calldata) internal override {}
-    function _harvest(bytes calldata) internal override returns (address[] memory, uint256[] memory) {
+    function _harvest(
+        bytes calldata
+    ) internal override returns (address[] memory, uint256[] memory) {
         return (new address[](0), new uint256[](0));
     }
     function _validateBoardData(bytes calldata) internal override {}
     function _validateDisembarkData(bytes calldata) internal override {}
-    function _withdrawableTotalAssets() internal view override returns (uint256) { return 0; }
-    function assetsInWithdrawalQueue() external view returns (uint256) { return 0; }
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return 0;
+    }
+    function assetsInWithdrawalQueue() external view returns (uint256) {
+        return 0;
+    }
     function claimWithdrawal() external {}
-    function isWithdrawalClaimRequired() external view returns (bool) { return false; }
+    function isWithdrawalClaimRequired() external view returns (bool) {
+        return false;
+    }
     function requestWithdrawal(uint256) external {}
     function withdrawUsingSwap(uint256, bytes calldata) external {}
-    function withdrawalRequestId() external view returns (uint256) { return 0; }
+    function withdrawalRequestId() external view returns (uint256) {
+        return 0;
+    }
 }
 
 contract ArkWithWithdrawalRequestTest is ArkTestBase {
@@ -84,21 +113,24 @@ contract ArkWithWithdrawalRequestTest is ArkTestBase {
     USDTLikeMock public sellToken;
     MockRouter public router;
     address public testBufferArk;
-    
+
     function setUp() public {
         initializeCoreContracts();
 
         asset = new USDTLikeMock();
         sellToken = new USDTLikeMock();
-        
-        (address _commander, address _bufferArk) = setupFleetCommanderWithBufferArk(address(asset), "Fleet");
+
+        (
+            address _commander,
+            address _bufferArk
+        ) = setupFleetCommanderWithBufferArk(address(asset), "Fleet");
         testBufferArk = _bufferArk;
         router = new MockRouter(address(sellToken), address(asset));
-        
+
         ArkParams memory params = ArkParams({
             name: "Mock Ark",
             details: "Details",
-            accessManager: address(accessManager), 
+            accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(asset),
             depositCap: type(uint256).max,
@@ -107,26 +139,26 @@ contract ArkWithWithdrawalRequestTest is ArkTestBase {
             requiresKeeperData: false,
             maxDepositPercentageOfTVL: Percentage.wrap(0)
         });
-        
+
         ark = new MockArkWithWithdrawalRequest(params, 0); // slippage = 0
-        
+
         // Register Ark with ConfigurationManager so we can bypass some checks?
         // Let's just manually set commander.
         ark.setCommander(_commander);
-        
+
         // Give router some assets
-        asset.mint(address(router), 1000000); 
+        asset.mint(address(router), 1000000);
     }
-    
+
     function test_ForceApprove_Swap() public {
         ark.expose_whitelistRouter(address(router), true);
         sellToken.mint(address(ark), 1000);
-        
+
         // Pre-approve the router to simulate non-zero allowance
         vm.startPrank(address(ark));
         sellToken.approve(address(router), 1);
         vm.stopPrank();
-        
+
         // Ensure that our USDT mock reverts on naive approve
         vm.startPrank(address(ark));
         vm.expectRevert("USDT: approve from non-zero to non-zero");
@@ -134,22 +166,33 @@ contract ArkWithWithdrawalRequestTest is ArkTestBase {
         vm.stopPrank();
 
         // expose_swap uses forceApprove, so it should succeed!
-        bytes memory swapCalldata = abi.encodeWithSelector(MockRouter.swap.selector, 500, 500);
-        ark.expose_swap(address(sellToken), address(asset), address(router), 500, 500, swapCalldata);
-        
+        bytes memory swapCalldata = abi.encodeWithSelector(
+            MockRouter.swap.selector,
+            500,
+            500
+        );
+        ark.expose_swap(
+            address(sellToken),
+            address(asset),
+            address(router),
+            500,
+            500,
+            swapCalldata
+        );
+
         assertEq(asset.balanceOf(address(ark)), 500);
     }
-    
+
     function test_ForceApprove_BoardToBufferArk() public {
         asset.mint(address(ark), 1000);
-        
+
         address _bufferArk = testBufferArk;
-        
+
         // Pre-approve the bufferArk to simulate non-zero allowance
         vm.startPrank(address(ark));
         asset.approve(_bufferArk, 1);
         vm.stopPrank();
-        
+
         // Ensure mock reverts on naive approve
         vm.startPrank(address(ark));
         vm.expectRevert("USDT: approve from non-zero to non-zero");
@@ -157,7 +200,11 @@ contract ArkWithWithdrawalRequestTest is ArkTestBase {
         vm.stopPrank();
 
         // Mock board call so it doesn't revert with CallerIsNotAuthorizedToBoard
-        vm.mockCall(_bufferArk, abi.encodeWithSignature("board(uint256,bytes)"), "");
+        vm.mockCall(
+            _bufferArk,
+            abi.encodeWithSignature("board(uint256,bytes)"),
+            ""
+        );
 
         // Should succeed because of forceApprove
         ark.expose_boardToBufferArk(1000);

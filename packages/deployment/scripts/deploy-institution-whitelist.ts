@@ -56,9 +56,9 @@ async function main() {
   const registeredInstitution = await registry.read.institutions([institutionBytes32])
   const addressessMatch =
     registeredInstitution[0] ===
-    institutionConfig.deployedContracts.core.configurationManager?.address &&
+      institutionConfig.deployedContracts.core.configurationManager?.address &&
     registeredInstitution[1] ===
-    institutionConfig.deployedContracts.gov.protocolAccessManager?.address &&
+      institutionConfig.deployedContracts.gov.protocolAccessManager?.address &&
     registeredInstitution[2] === institutionConfig.deployedContracts.core.admiralsQuarters?.address
 
   if (exists && addressessMatch) {
@@ -126,7 +126,6 @@ async function main() {
     const owner = (await registry.read.owner()) as string
     const deployers = await hre.viem.getWalletClients()
     for (const deployer of deployers) {
-
       if (owner.toLowerCase() !== deployer.account.address.toLowerCase()) {
         console.log(
           kleur.yellow(
@@ -138,14 +137,17 @@ async function main() {
 
       console.log(kleur.cyan('Registering institution in InstitutionalVaultRegistry V2...'))
       const publicClient = await hre.viem.getPublicClient()
-      const hash = await registry.write.addInstitution([
-        institutionBytes32,
-        {
-          configurationManager: deployed.configurationManager.address,
-          protocolAccessManager: deployed.protocolAccessManager.address,
-          admiralsQuarters: deployed.admiralsQuarters.address,
-        },
-      ], { account: deployer.account })
+      const hash = await registry.write.addInstitution(
+        [
+          institutionBytes32,
+          {
+            configurationManager: deployed.configurationManager.address,
+            protocolAccessManager: deployed.protocolAccessManager.address,
+            admiralsQuarters: deployed.admiralsQuarters.address,
+          },
+        ],
+        { account: deployer.account },
+      )
       await publicClient.waitForTransactionReceipt({ hash })
       console.log(kleur.green().bold('Institution successfully registered in registry V2.'))
     }

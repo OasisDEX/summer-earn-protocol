@@ -454,9 +454,7 @@ const PROTOCOL_ACCESS_MANAGER_V2_ABI = parseAbi([
 
 const FLEET_COMMANDER_ABI = parseAbi(['function addArk(address ark)'])
 
-const HARBOR_COMMAND_ABI = parseAbi([
-  'function enlistFleetCommander(address fleetCommander)',
-])
+const HARBOR_COMMAND_ABI = parseAbi(['function enlistFleetCommander(address fleetCommander)'])
 
 export function buildGrantOperatorRoleAction(
   pam: Address,
@@ -539,10 +537,7 @@ export function buildAddArkAction(fleet: Address, ark: Address): GovernorAction 
   }
 }
 
-export function buildEnlistFleetAction(
-  harborCommand: Address,
-  fleet: Address,
-): GovernorAction {
+export function buildEnlistFleetAction(harborCommand: Address, fleet: Address): GovernorAction {
   return {
     description: `enlistFleetCommander(${fleet}) on HarborCommand ${harborCommand}`,
     to: harborCommand,

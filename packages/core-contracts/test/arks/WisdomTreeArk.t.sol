@@ -438,7 +438,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         );
     }
 
-
     function test_RevertBoardWhenPendingDepositNonMoneyMarket() public {
         uint256 amount = 1000 * 1e6;
         deal(USDC_ADDRESS, commander, amount * 2);
@@ -487,10 +486,10 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         vm.startPrank(keeper);
         ark.clearPendingDeposit();
-        
+
         // 2. Request first withdrawal successfully
         ark.requestWithdrawal(amount);
-        
+
         // 3. Try to request another withdrawal while one is already pending
         vm.expectRevert(WisdomTreeArk.PendingWithdrawalActive.selector);
         ark.requestWithdrawal(amount);
@@ -834,7 +833,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             "Cache should update to the exact actual shares"
         );
     }
-
 
     function test_EmergencyClearPendingDeposit_RescuesDeadlock() public {
         uint256 amount = 1200000 * 1e6; // $1.2M USDC -> 20 shares

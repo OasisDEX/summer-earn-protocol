@@ -732,15 +732,17 @@ contract FleetCommanderWhitelistTest is
     function test_SetPerformanceFeeRate_UsesSuperTotalSupply() public {
         vm.prank(governor);
         whitelistFleet.setFeeType(IFlexibleTipper.FeeType.PERFORMANCE);
-        
+
         vm.prank(governor);
-        whitelistFleet.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(5));
+        whitelistFleet.setPerformanceFeeRate(
+            PercentageUtils.fromIntegerPercentage(5)
+        );
 
         uint256 initialSupply = whitelistFleet.totalSupply();
 
         // Simulate some time and yield
         vm.warp(block.timestamp + 365 days);
-        
+
         // mock token yield into the buffer ark to generate performance fee
         mockToken.mint(address(whitelistFleet.bufferArk()), 10 * 10 ** 6);
 
@@ -748,14 +750,16 @@ contract FleetCommanderWhitelistTest is
             whitelistFleet.tipJar(),
             initialSupply
         );
-        
+
         uint256 initialTipJarBalance = whitelistFleet.balanceOf(
             whitelistFleet.tipJar()
         );
 
         vm.startPrank(governor);
         // Change fee rate to trigger accrual
-        whitelistFleet.setPerformanceFeeRate(PercentageUtils.fromIntegerPercentage(10));
+        whitelistFleet.setPerformanceFeeRate(
+            PercentageUtils.fromIntegerPercentage(10)
+        );
         vm.stopPrank();
 
         uint256 finalTipJarBalance = whitelistFleet.balanceOf(

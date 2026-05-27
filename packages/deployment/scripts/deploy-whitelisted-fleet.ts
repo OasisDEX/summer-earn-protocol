@@ -352,9 +352,9 @@ async function main() {
   const additionalRouindsVaultsInfo =
     isRoundsVault && fleetDefinition.roundsVaultInput && fleetDefinition.roundsVaultOutput
       ? ({
-        roundsVaultInput: fleetDefinition.roundsVaultInput,
-        roundsVaultOutput: fleetDefinition.roundsVaultOutput,
-      } as const)
+          roundsVaultInput: fleetDefinition.roundsVaultInput,
+          roundsVaultOutput: fleetDefinition.roundsVaultOutput,
+        } as const)
       : undefined
 
   console.log(additionalRouindsVaultsInfo)
@@ -392,7 +392,10 @@ async function main() {
     target: Address,
     account: Address,
   ): Promise<boolean> => {
-    const role = (await protocolAccessManager.read.generateRole([roleName, target])) as `0x${string}`
+    const role = (await protocolAccessManager.read.generateRole([
+      roleName,
+      target,
+    ])) as `0x${string}`
     return (await protocolAccessManager.read.hasRole([role, account])) as boolean
   }
 
@@ -405,7 +408,9 @@ async function main() {
     action: GovernorAction,
   ) => {
     if (await accountHasContractRole(roleName, target, account)) {
-      console.log(kleur.gray(`[skip] ${label}: already granted (target=${target}, account=${account})`))
+      console.log(
+        kleur.gray(`[skip] ${label}: already granted (target=${target}, account=${account})`),
+      )
       return
     }
     await batch.runOrQueue(action)
@@ -583,7 +588,9 @@ async function main() {
 
     if (pairAlreadyExists) {
       console.log(
-        kleur.gray(`[skip] registerPair(target=${fleetAddress}): pair already exists in RoundsVaultRegistry`),
+        kleur.gray(
+          `[skip] registerPair(target=${fleetAddress}): pair already exists in RoundsVaultRegistry`,
+        ),
       )
     } else {
       // registerPair is gated by RoundsVaultRegistry's Ownable owner — NOT the institution PAM governor —
@@ -600,12 +607,7 @@ async function main() {
         data: encodeFunctionData({
           abi: ROUNDS_VAULT_REGISTRY_ABI,
           functionName: 'registerPair',
-          args: [
-            institutionIdBytes32,
-            fleetAddress,
-            deployedInputVault,
-            deployedOutputVault,
-          ],
+          args: [institutionIdBytes32, fleetAddress, deployedInputVault, deployedOutputVault],
         }),
         value: 0n,
       }
@@ -659,10 +661,12 @@ async function main() {
     )
     const written = await batch.writeSafeBatch(outRel, Number(chainId))
     console.log(
-      kleur.yellow().bold(
-        `${pendingActions.length} governor actions captured for Safe. Import into the Safe UI ` +
-        `(Apps → Transaction Builder → Load): ${written}`,
-      ),
+      kleur
+        .yellow()
+        .bold(
+          `${pendingActions.length} governor actions captured for Safe. Import into the Safe UI ` +
+            `(Apps → Transaction Builder → Load): ${written}`,
+        ),
     )
   } else {
     console.log(kleur.green().bold('All deployment + governor actions executed on-chain.'))

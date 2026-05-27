@@ -71,9 +71,7 @@ contract RoundsVaultRegistry is Ownable, IRoundsVaultRegistry {
     }
 
     /// @inheritdoc IRoundsVaultRegistry
-    function pairIdAt(
-        uint256 index
-    ) external view override returns (bytes32) {
+    function pairIdAt(uint256 index) external view override returns (bytes32) {
         return _pairIds[index];
     }
 
@@ -96,8 +94,16 @@ contract RoundsVaultRegistry is Ownable, IRoundsVaultRegistry {
         bytes32 pairId = getPairId(targetVault);
         if (exists(pairId)) revert PairAlreadyExists(pairId);
 
-        _validateVault(inputVault, targetVault, IRoundsVaultBaseEnums.BaseVaultType.Input);
-        _validateVault(outputVault, targetVault, IRoundsVaultBaseEnums.BaseVaultType.Output);
+        _validateVault(
+            inputVault,
+            targetVault,
+            IRoundsVaultBaseEnums.BaseVaultType.Input
+        );
+        _validateVault(
+            outputVault,
+            targetVault,
+            IRoundsVaultBaseEnums.BaseVaultType.Output
+        );
 
         _pairs[pairId] = RoundsVaultPair({
             inputVault: inputVault,
@@ -128,7 +134,11 @@ contract RoundsVaultRegistry is Ownable, IRoundsVaultRegistry {
         RoundsVaultPair storage pair = _pairs[pairId];
         if (pair.targetVault == address(0)) revert PairNotFound(pairId);
 
-        _validateVault(inputVault, pair.targetVault, IRoundsVaultBaseEnums.BaseVaultType.Input);
+        _validateVault(
+            inputVault,
+            pair.targetVault,
+            IRoundsVaultBaseEnums.BaseVaultType.Input
+        );
         pair.inputVault = inputVault;
 
         emit RoundsVaultPairUpdated(pairId, pair.inputVault, pair.outputVault);
@@ -144,16 +154,18 @@ contract RoundsVaultRegistry is Ownable, IRoundsVaultRegistry {
         RoundsVaultPair storage pair = _pairs[pairId];
         if (pair.targetVault == address(0)) revert PairNotFound(pairId);
 
-        _validateVault(outputVault, pair.targetVault, IRoundsVaultBaseEnums.BaseVaultType.Output);
+        _validateVault(
+            outputVault,
+            pair.targetVault,
+            IRoundsVaultBaseEnums.BaseVaultType.Output
+        );
         pair.outputVault = outputVault;
 
         emit RoundsVaultPairUpdated(pairId, pair.inputVault, pair.outputVault);
     }
 
     /// @inheritdoc IRoundsVaultRegistry
-    function clearInputVault(
-        bytes32 pairId
-    ) external override onlyOwner {
+    function clearInputVault(bytes32 pairId) external override onlyOwner {
         RoundsVaultPair storage pair = _pairs[pairId];
         if (pair.targetVault == address(0)) revert PairNotFound(pairId);
         if (pair.outputVault == address(0)) revert UpdateWouldEmptyPair(pairId);
@@ -163,9 +175,7 @@ contract RoundsVaultRegistry is Ownable, IRoundsVaultRegistry {
     }
 
     /// @inheritdoc IRoundsVaultRegistry
-    function clearOutputVault(
-        bytes32 pairId
-    ) external override onlyOwner {
+    function clearOutputVault(bytes32 pairId) external override onlyOwner {
         RoundsVaultPair storage pair = _pairs[pairId];
         if (pair.targetVault == address(0)) revert PairNotFound(pairId);
         if (pair.inputVault == address(0)) revert UpdateWouldEmptyPair(pairId);
@@ -175,9 +185,7 @@ contract RoundsVaultRegistry is Ownable, IRoundsVaultRegistry {
     }
 
     /// @inheritdoc IRoundsVaultRegistry
-    function deactivatePair(
-        bytes32 pairId
-    ) external override onlyOwner {
+    function deactivatePair(bytes32 pairId) external override onlyOwner {
         RoundsVaultPair storage pair = _pairs[pairId];
         if (pair.targetVault == address(0)) revert PairNotFound(pairId);
         if (!pair.active) revert PairStateUnchanged(pairId);
@@ -187,9 +195,7 @@ contract RoundsVaultRegistry is Ownable, IRoundsVaultRegistry {
     }
 
     /// @inheritdoc IRoundsVaultRegistry
-    function reactivatePair(
-        bytes32 pairId
-    ) external override onlyOwner {
+    function reactivatePair(bytes32 pairId) external override onlyOwner {
         RoundsVaultPair storage pair = _pairs[pairId];
         if (pair.targetVault == address(0)) revert PairNotFound(pairId);
         if (pair.active) revert PairStateUnchanged(pairId);

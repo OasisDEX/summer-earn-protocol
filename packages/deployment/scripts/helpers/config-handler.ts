@@ -98,7 +98,7 @@ export function getInstitutionConfigByNetwork(
     for (const k of Object.keys(deployed.gov)) {
       const addressObj = deployed.gov[k]
       if (addressObj?.address) {
-        ; (mergedConfig.deployedContracts.gov as any)[k] = { address: addressObj.address }
+        ;(mergedConfig.deployedContracts.gov as any)[k] = { address: addressObj.address }
       }
     }
   }
@@ -107,7 +107,7 @@ export function getInstitutionConfigByNetwork(
     for (const k of Object.keys(deployed.core)) {
       const addressObj = deployed.core[k]
       if (addressObj?.address) {
-        ; (mergedConfig.deployedContracts.core as any)[k] = { address: addressObj.address }
+        ;(mergedConfig.deployedContracts.core as any)[k] = { address: addressObj.address }
       }
     }
   }

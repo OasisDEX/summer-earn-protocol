@@ -304,7 +304,6 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
         _clearPendingDeposit(pendingDepositAssets);
     }
 
-
     /**
      * @inheritdoc IArkWithWithdrawalRequest
      * @notice Calculates the equivalent shares for the requested `amount` and sends them to the `custodianWallet`.
