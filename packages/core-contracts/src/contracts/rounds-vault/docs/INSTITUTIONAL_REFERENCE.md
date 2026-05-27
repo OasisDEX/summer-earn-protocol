@@ -1,4 +1,4 @@
-# Institutional Fleet & Rounds Vault — Technical Reference
+# Institutional Fleet & Rounds Vault — Technical Reference [WIP]
 
 > Single authoritative reference for the institutional FleetCommander, its two
 > entry/exit paths (**AdmiralsQuartersWhitelist** and **RoundsVault**), the T+1
@@ -1151,3 +1151,5 @@ when a sub-call left tokens in AQ without a `withdrawTokens` after it.
 *Where this document and a contract's NatSpec disagree, the contract is
 authoritative. Treat this reference as a navigation aid that explains how the
 pieces fit together, not as a replacement for reading the contracts.*
+
+Last update: 2026-05-27
