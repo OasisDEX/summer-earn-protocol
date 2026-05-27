@@ -203,12 +203,12 @@ abstract contract ERC4626MultiToken is
             revert CallerCannotRedeem(caller, owner, id, amount);
         }
 
-        // @audit If _asset is ERC777, `transfer` can trigger trigger a reentrancy AFTER the transfer happens through the
+        // @audit If _asset is ERC777, `transfer` can trigger a reentrancy AFTER the transfer happens through the
         // `tokensReceived` hook. On the other hand, the `tokensToSend` hook, that is triggered before the transfer,
         // calls the vault, which is assumed not malicious.
         //
-        // Conclusion: we need to do the Setransfer after the burn so that any reentrancy would happen after the
-        // shares are burned and after the assets are transfered, which is a valid state.
+        // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
+        // shares are burned and after the assets are transferred, which is a valid state.
         _burn(owner, id, amount);
         SafeERC20.safeTransfer(_asset, receiver, amount);
 
@@ -230,12 +230,12 @@ abstract contract ERC4626MultiToken is
             revert CallerCannotRedeemBatch(caller, owner, ids, amounts);
         }
 
-        // If _asset is ERC777, `transfer` can trigger trigger a reentrancy AFTER the transfer happens through the
+        // If _asset is ERC777, `transfer` can trigger a reentrancy AFTER the transfer happens through the
         // `tokensReceived` hook. On the other hand, the `tokensToSend` hook, that is triggered before the transfer,
         // calls the vault, which is assumed not malicious.
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
-        // shares are burned and after the assets are transfered, which is a valid state.
+        // shares are burned and after the assets are transferred, which is a valid state.
         _burnBatch(owner, ids, amounts);
         SafeERC20.safeTransfer(_asset, receiver, totalAmount);
 

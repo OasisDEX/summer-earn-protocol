@@ -5,16 +5,19 @@ import {IWhitelistEvents} from "./IWhitelistEvents.sol";
 
 /**
  * @title IWhitelist
- * @notice Interface for the Whitelist contract
- * @dev This contract provides a whitelist utility that delegates to a per-context central logic.
- *      Use `onlyWhitelisted(context, account)` to gate functions.
+ *
+ * @notice Public surface of the `Whitelist` helper. Inheriting contracts gate user-facing functions
+ *         with `onlyWhitelisted(context, account)`; state lives in the central
+ *         `ProtocolAccessManagerV2` and is keyed by a `context` address (typically the vault
+ *         performing the check, e.g. the Fleet).
  */
 interface IWhitelist is IWhitelistEvents {
     /**
-     * @notice Checks if an account is whitelisted for a specific context
-     * @param context The context for which the account status is checked
+     * @notice Returns whether `account` may interact with `context`.
+     * @param context The context the check is scoped to (usually a vault address)
      * @param account The account to check
-     * @return True if the account is whitelisted or if the whitelist for the context is set to open mode
+     * @return `true` if `account` is explicitly whitelisted for `context`, or if `context`'s
+     *         whitelist is globally open (`isWhitelistOpen(context) == true`).
      */
     function isWhitelisted(
         address context,
@@ -22,7 +25,7 @@ interface IWhitelist is IWhitelistEvents {
     ) external view returns (bool);
 
     /**
-     * @notice Returns true if the whitelist for a specific context is globally open
+     * @notice Returns whether the whitelist for `context` is globally open (every account passes).
      * @param context The context to check
      */
     function isWhitelistOpen(address context) external view returns (bool);

@@ -15,28 +15,42 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 import {Constants} from "@summerfi/constants/Constants.sol";
 
 /**
- * @title Ark
+ * @title ArkWithWithdrawalRequest
  * @author SummerFi
- * @notice This contract implements the core functionality for the Ark system,
- *         handling asset boarding, disembarking, and harvesting operations.
- * @dev This is an abstract contract that should be inherited by specific Ark implementations.
- *      Inheriting contracts must implement the abstract functions defined here.
+ *
+ * @notice Abstract base for Arks whose withdrawal path is asynchronous: a `requestWithdrawal` step
+ *         initiates the off-chain settlement, and a separate `sweep` (or `claimWithdrawal`) step
+ *         brings the underlying asset back to this Ark and forwards it to the FleetCommander's
+ *         buffer ark. Adds a whitelisted-router swap utility for exits that route through a DEX
+ *         aggregator.
+ *
+ * @dev Concrete subclasses must still implement the abstract hooks defined on `Ark`. Slippage on
+ *      the internal `_swap` helper is bounded by `MAX_SLIPPAGE` and configured by the curator.
  */
 abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
     using SafeERC20 for IERC20;
 
-    /// @notice The slippage for the swap
+    /// @notice Current slippage tolerance applied to `_swap`-bound exits, in basis points of
+    ///         `SLIPPAGE_BASE`.
     uint256 public slippage;
-    /// @notice base fee to apply to the amount
+    /// @notice Denominator for `slippage` (10_000 = 100%).
     uint256 public constant SLIPPAGE_BASE = 10000;
+    /// @notice Hard cap on `slippage` (1_000 / 10_000 = 10%).
     uint256 public constant MAX_SLIPPAGE = 1000; // 10%
-    /// @notice whitelisted routers
+    /// @notice DEX-aggregator routers approved for `_swap`. Mutated by the curator via
+    ///         `whitelistRouter`.
     mapping(address router => bool isWhitelisted) public whitelistedRouters;
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Wires the ark with its standard `ArkParams` and the initial swap-slippage tolerance.
+     * @param _params Standard ark configuration (asset, commander, deposit caps, etc.).
+     * @param _slippage Initial `_swap` slippage in basis points of `SLIPPAGE_BASE`. Must be
+     *                  `<= MAX_SLIPPAGE`.
+     */
     constructor(ArkParams memory _params, uint256 _slippage) Ark(_params) {
         if (_slippage > MAX_SLIPPAGE) {
             revert SlippageTooHigh();
@@ -87,9 +101,10 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
     }
 
     /**
-     * @notice Applies slippage to the amount
-     * @param amount The amount to apply slippage to
-     * @return amountWithSlippage The amount after applying slippage
+     * @notice Subtracts `slippage` basis points from `amount`, used to derive a safe
+     *         `amountOutMin` for `_swap`.
+     * @param amount The fair-value amount the swap should return on the happy path
+     * @return amountWithSlippage `amount * (SLIPPAGE_BASE - slippage) / SLIPPAGE_BASE`
      */
     function _applySlippage(
         uint256 amount
@@ -156,6 +171,8 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         emit Swapped(sellToken, router, amountIn, swapCalldata);
     }
 
+    /// @dev Forwards `amount` of the configured asset to the FleetCommander's buffer ark. Used by
+    ///      subclass sweep/claim flows after off-chain settlement returns the underlying.
     function _boardToBufferArk(uint256 amount) internal {
         address bufferArk = IFleetCommander(config.commander).bufferArk();
         IERC20(address(config.asset)).forceApprove(bufferArk, amount);

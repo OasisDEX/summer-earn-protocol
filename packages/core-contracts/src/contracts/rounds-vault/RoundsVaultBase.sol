@@ -22,20 +22,25 @@ import {IRoundsVaultBaseErrors} from "../../interfaces/rounds-vault/IRoundsVault
 import {IRoundsVaultBaseEvents} from "../../interfaces/rounds-vault/IRoundsVaultBaseEvents.sol";
 
 /**
- *     @title RoundsVaultBase
+ * @title RoundsVaultBase
  *
- *     @notice Provides a way of investing in a target tokenized vault that has investment periods in
- *     which the vault is locked.  During these locked periods, the vault does not accept deposits, so
- *     investors need to be on the lookout for the unlocked period to deposit their funds.
+ * @notice Abstract base that batches user activity into discrete rounds and only moves funds in or
+ *         out of a target ERC-4626 vault when the keeper closes and settles each round. Lets users
+ *         interact at any block even when the target vault settles asynchronously (e.g. T+0/T+1
+ *         against an off-chain NAV strike).
  *
- *     @dev See { IRoundsVaultBase} for more details.
+ * @dev Public ABI is described by `IRoundsVaultBase`. Concrete subclasses (`RoundsVaultInput` and
+ *      `RoundsVaultOutput`) pick a `BaseVaultType` at construction and implement the two virtual
+ *      hooks `_operate` (the settlement trade) and `_getFallbackExchangeRate` (the rate used when
+ *      a round was empty). Typical `_operate` implementations call `_depositOnTarget` or
+ *      `_redeemFromTarget` to move funds in or out of the target vault.
  *
- *     @dev Here the `_operate` function is defined as a pure virtual function. This is because the
- *     specific logic when moving to the next round is left to the derived contracts. Typically they
- *     will use the `_redeemFromTarget` or `_depositOnTarget` functions to move the funds in or out
- *     of this vault.
+ * @dev Access control: round-state transitions (`nextRound`, `setRoundSettled[Batch]`, `retryRound`)
+ *      are keeper-gated; `emergencyRollbackRound` and `setMinPositionSize` are governor-gated. User
+ *      flows (`deposit`, `redeem[Batch]`, `redeemExchangeAsset[Batch]`, ERC-1155 transfers) require
+ *      every involved party (caller/owner/receiver) to be whitelisted on the target vault context.
  *
- *     @author Roberto Cano <robercano>
+ * @author Roberto Cano <robercano>
  */
 abstract contract RoundsVaultBase is
     ProtocolAccessManagedV2,
@@ -52,23 +57,30 @@ abstract contract RoundsVaultBase is
      * STORAGE
      */
 
-    uint256 private _roundNumber; /// The current round number, starting from 0 for the first round
-    mapping(uint256 => Price) private _exchangeRateByRound; /// The shares exchange rate at the end of each round
-    /// @notice The address of the asset that users will receive when redeeming their receipts.
-    /// For an Input Vault, this is the shares of the target vault.
-    /// For an Output Vault, this is the underlying asset of the target vault.
+    /// @notice The currently open round number; starts at 0 and is incremented by `nextRound`.
+    uint256 private _roundNumber;
+
+    /// @notice Per-round settlement exchange rate, snapshotted by `_setRoundSettled`.
+    /// @dev Rounds that have not been settled read back the zero-valued `Price`.
+    mapping(uint256 => Price) private _exchangeRateByRound;
+
+    /// @notice The ERC-20 token paid out when exchanging a settled-round receipt.
+    /// @dev For an Input vault this is the target vault's share token; for an Output vault this is
+    ///      the target vault's underlying asset.
     address private _exchangeAsset;
 
-    /// @notice Tracks the current progression phase of each round.
-    /// @dev Used to ensure users can only redeem assets for rounds that are fully `Settled`.
+    /// @notice Lifecycle state of each round id (see `IRoundsVaultBaseEnums.RoundState`).
+    /// @dev Default value `NotOpened` for any id the contract has never written. The constructor
+    ///      seeds `roundState[0] = Opened` so round 0 is usable from deployment.
     mapping(uint256 => RoundState) public roundState;
 
-    /// @notice The minimum aggregate position size for a user to enter or exit
+    /// @notice Minimum aggregate position size, in target-vault assets, that a user must maintain
+    ///         to enter or exit. `0` disables the check.
     uint256 public minPositionSize;
 
-    /// @notice The type of the vault (Input or Output) which determines the underlying asset and the exchange asset
-    /// Input: Underlying = proxiedVault.asset(), ExchangeAsset = proxiedVault (the shares)
-    /// Output: Underlying = proxiedVault (the shares), ExchangeAsset = proxiedVault.asset()
+    /// @notice Vault flavor configured at construction. Determines the deposit and exchange assets.
+    /// @dev `Input`:  deposit asset = proxiedVault.asset(), exchange asset = proxiedVault (shares).
+    ///      `Output`: deposit asset = proxiedVault (shares), exchange asset = proxiedVault.asset().
     BaseVaultType public immutable VAULT_TYPE;
 
     /**
@@ -76,18 +88,23 @@ abstract contract RoundsVaultBase is
      */
 
     /**
-     *     @param proxiedERC4626Vault The address of the ERC4626 vault that this vault will be accepting deposits for
-     *                                and will be moving funds in and out of it on each round
-     *     @param _vaultType The type of the vault (Input or Output) which determines the underlying asset and the
-     * exchange asset
-     *                      Input: Underlying = proxiedVault.asset(), ExchangeAsset = proxiedVault (the shares)
-     *                      Output: Underlying = proxiedVault (the shares), ExchangeAsset = proxiedVault.asset()
-     *     @param accessManager The address of the Protocol Access Manager contract that provides information
-     *                          about the different roles in the protocol, including the Keeper role that is the only
-     *                          one allowed to call the `nextRound` function
-     *     @param receiptsURI The URI of the ERC-1155 receipts that will be emitted when depositing the underlying
-     *
-     *     @dev It is assumed that the shares token is the same as the vault token as per the 4626 OZ implementation
+     * @notice Wires the rounds-vault to a target ERC-4626 vault and the protocol access manager.
+     * @dev Opens round 0 (`roundState[0] = Opened`) so the contract is usable immediately after
+     *      deployment. Assumes the target ERC-4626 vault uses itself as its own share token, per
+     *      the OpenZeppelin reference implementation.
+     * @param proxiedERC4626Vault The target ERC-4626 vault this rounds-vault wraps. Funds move in
+     *                            and out of it once per round, via `_operate`.
+     * @param _vaultType The vault flavor (`Input` or `Output`). Determines the deposit/exchange asset
+     *                   pair:
+     *                     - `Input`:  deposit asset = `proxiedERC4626Vault.asset()`,
+     *                                 exchange asset = `proxiedERC4626Vault` (its shares);
+     *                     - `Output`: deposit asset = `proxiedERC4626Vault` (its shares),
+     *                                 exchange asset = `proxiedERC4626Vault.asset()`.
+     * @param accessManager The `ProtocolAccessManagerV2` instance that brokers Keeper/Governor roles
+     *                      and the whitelist. The Keeper role is required for `nextRound`,
+     *                      `setRoundSettled[Batch]` and `retryRound`; the Governor role is required
+     *                      for `emergencyRollbackRound` and `setMinPositionSize`.
+     * @param receiptsURI The ERC-1155 metadata URI for round receipts minted on deposit.
      */
     constructor(
         address proxiedERC4626Vault,
@@ -180,18 +197,23 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     * @dev Implementation of the Whitelist proxy adapter's virtual hook.
+     * @dev Wires the inherited `Whitelist` helper to the same `ProtocolAccessManagerV2` instance
+     *      configured for `ProtocolAccessManagedV2`, so all whitelist checks flow through one
+     *      authority.
      */
     function _getAccessManager() internal view override returns (address) {
         return address(_accessManager);
     }
 
     /**
-     * @dev Validates that both outgoing and incoming parties meet the minimum aggregate position size.
-     *      Runs post-flight (`_;` first) to inspect the final exact on-chain balances.
-     * @param outgoing The address reducing their position (use `address(0)` sentinel for deposits).
-     *                 For self-operations, allows a full exit (0 balance remaining) without reverting.
-     * @param incoming The address increasing their position (skips if self or address(this)).
+     * @dev Validates that both outgoing and incoming parties meet the minimum aggregate position
+     *      size, post-flight (`_;` first) so the check sees the final on-chain balances.
+     * @param outgoing The address whose position is decreasing. Use `address(0)` to skip the check
+     *                 on that side (e.g. for deposits into an Input vault, where the depositor's
+     *                 position grows, no party is "outgoing"). For self-operations (`outgoing ==
+     *                 incoming`), a full exit (zero remaining aggregate balance) is allowed.
+     * @param incoming The address whose position is increasing. Skipped if it equals `outgoing` (the
+     *                 self case), if it is `address(0)`, or if it is `address(this)`.
      */
     modifier validateMinPosition(address outgoing, address incoming) {
         _;
@@ -269,10 +291,10 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @inheritdoc IERC4626MultiToken
+     * @inheritdoc IERC4626MultiToken
      *
-     *     @dev Left for completion and compatibility with the VaultDeferredOperation contract, but it is not possible
-     *     to redeem receipts for different rounds here, only for the current round.
+     * @dev All `ids` must equal the currently open round. To exchange settled-round receipts for the
+     *      exchange asset, use `redeemExchangeAssetBatch` instead.
      */
     function redeemBatch(
         uint256[] memory ids,
@@ -322,15 +344,12 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @inheritdoc IRoundsVaultBase
+     * @inheritdoc IRoundsVaultBase
      *
-     *     @dev TODO: The user must be prevented from redeeming receipts partially as this could cause a cumulative
-     * rounding error
-     *     in the amount of shares redeemed by the user. If for example the share price is 0.8 shares/asset and the user
-     *     tries to redeem exactly 1 wei asset, the user would receive 0 shares. Doing this repeatedly would burn away
-     * all
-     *     the receipt unit without ever getting any shares from the target vault. Forcing the user to redeem the full
-     *     amount ensures that the behaviour is consistent with depositing the shares directly in the target vault
+     * @dev Partial redemptions are allowed, but each `(id, amount)` pair is converted using the
+     *      round's snapshotted rate and integer multiplication; redeeming a very small amount against
+     *      a sub-unit rate can therefore truncate to zero exchange asset for that line. Callers that
+     *      want exact-trade semantics should redeem each receipt in full.
      */
     function redeemExchangeAssetBatch(
         uint256[] calldata ids,
@@ -431,9 +450,15 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     * @dev Validates that the user has at least the minimum position size in the target vault.
-     *      - Output Vault receipts (withdrawal queue) are treated as 0 (already gone).
-     *      - Input Vault receipts (deposit queue) are treated as assets.
+     * @dev Reverts with `RoundsVaultPositionTooSmall` if the user's aggregate post-flight position
+     *      is non-zero but below `_minPositionSize`. For Input flavor, open receipts are counted
+     *      1:1 as assets (they represent capital queued to be deposited); for Output flavor receipts
+     *      are treated as 0 (they represent capital already on the way out). Both flavors additionally
+     *      count any target-vault shares the user holds, converted to assets via `convertToAssets`.
+     * @param user The address being evaluated
+     * @param isInputVault `true` for Input flavor, `false` for Output flavor
+     * @param _minPositionSize The minimum aggregate position size, in target-vault assets
+     * @param targetVault The target ERC-4626 vault address
      */
     function _validateAggregateAssets(
         address user,
@@ -464,7 +489,10 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     * @notice Helper function to mark an Opened round as InSettlement
+     * @notice Helper that moves an `Opened` round to `InSettlement`. Used both by `nextRound`
+     *         (closing the current round) and `retryRound` (re-attempting a previously rolled-back
+     *         past round).
+     * @param roundId The id of the round to transition
      */
     function _startSettlement(uint256 roundId) internal {
         if (roundState[roundId] != RoundState.Opened) {
@@ -486,14 +514,14 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @notice Function to execute the deposit/redeem logic for a frozen amount
-     *
-     *     @param amount The exact amount to be settled
-     *     @param roundId The id of the round to be settled
-     *     @return outputAmount The exact amount received after the trade
-     *
-     *     @dev The child contract must implement this function to execute the deposit/redeem logic
-     *     for the frozen amount. Typically it will call `_redeemFromTarget` or `_depositOnTarget`.
+     * @notice Settlement hook: executes the actual deposit-into or redeem-from the target vault for
+     *         a round's frozen liability.
+     * @dev Implementations are expected to call `_depositOnTarget` (Input flavor) or
+     *      `_redeemFromTarget` (Output flavor) and return the exact amount the target vault paid
+     *      back, so the caller can snapshot the per-round exchange rate from real execution.
+     * @param amount The exact amount frozen for the round (deposit asset for Input, shares for Output)
+     * @param roundId The id of the round being settled
+     * @return outputAmount The exact amount the target vault returned after the settlement trade
      */
     function _operate(
         uint256 amount,
@@ -501,9 +529,9 @@ abstract contract RoundsVaultBase is
     ) internal virtual returns (uint256 outputAmount);
 
     /**
-     *     @notice Retrieves the exchange rate between the underlying asset and the exchange asset for
-     *     the current round. Whether the rate is underlying/exchange or exchange/underlying depends on
-     *     the specific implentation of the derived contract
+     * @notice Returns the exchange rate used when a round had no deposits at settlement time.
+     * @dev Implementations typically derive the rate from the target vault's `previewDeposit`
+     *      (Input) or `previewRedeem` (Output) so empty rounds still snapshot a sensible price.
      */
     function _getFallbackExchangeRate()
         internal
@@ -512,7 +540,12 @@ abstract contract RoundsVaultBase is
         returns (Price memory);
 
     /**
-     * @notice Helper function to mark a round as settled
+     * @notice Helper that runs the actual settlement: flips the round state to `Settled` first
+     *         (so any reentry sees a terminal state), then calls `_operate` against the frozen
+     *         total supply, and finally snapshots the per-round exchange rate from the real result.
+     *         Empty rounds (no receipts minted) fall back to `_getFallbackExchangeRate()`.
+     * @dev Reverts unless `roundState[roundId] == InSettlement`.
+     * @param roundId The id of the round to settle
      */
     function _setRoundSettled(uint256 roundId) internal {
         if (roundState[roundId] != RoundState.InSettlement) {
@@ -549,13 +582,18 @@ abstract contract RoundsVaultBase is
     // PRIVATES
 
     /**
-     *     @notice Checks if the receipt corresponds to any previous round, and if so, it calculates how many shares
-     *             the user should receive based on the receipt's round share price and the amount of deposited tokens
-     *
-     *     @param id The id of the receipt to be redeemed
-     *     @param amount The amount of the receipt to be redeemed
-     *     @param receiver The address that will receive the underlying tokens
-     *     @param owner The address that owns the receipt, in case the caller is not the owner
+     * @notice Burns receipts for a settled round and pays out the matching exchange-asset amount.
+     * @dev Caller authorization (must be the owner or an operator approved by the owner) is checked
+     *      here; round-state and id-validity checks live in the public entry point. Follows CEI:
+     *      burn first, compute the payout, then transfer — the ERC-1155 `_burn` debits the owner's
+     *      balance up front so a reentrant `tokensReceived` (ERC-777) callback on `safeTransfer`
+     *      cannot drain.
+     * @param caller The address that invoked the redemption
+     * @param receiver The address that receives the exchange asset
+     * @param owner The address whose receipts are burned
+     * @param id The round id being exchanged
+     * @param amount The number of receipts to burn
+     * @return exchangeAmount The amount of exchange asset paid to `receiver`
      */
 
     // @audit This function follows the CEI pattern to avoid out-of-order execution. The only
@@ -579,7 +617,7 @@ abstract contract RoundsVaultBase is
         // calls the vault, which is assumed not malicious.
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
-        // shares are burned and after the assets are transfered, which is a valid state.
+        // shares are burned and after the assets are transferred, which is a valid state.
         _burn(owner, id, amount);
 
         exchangeAmount = _exchangeRateByRound[id].quote(amount);
@@ -601,14 +639,17 @@ abstract contract RoundsVaultBase is
     }
 
     /**
-     *     @notice Checks if the receipt corresponds to any previous round, and if so, it calculates how many shares
-     *             the user should receive based on the receipt's round share price and the amount of deposited tokens
-     *
-     *     @param caller The address that is calling the function
-     *     @param receiver The address that will receive the exchange asset tokens
-     *     @param owner The address that owns the receipt, in case the caller is not the owner
-     *     @param ids The ids of the receipts to be redeemed
-     *     @param amounts The amounts of the receipts to be redeemed
+     * @notice Batch variant of `_redeemExchangeAsset`. Burns receipts for several settled rounds in
+     *         one call and pays out the cumulative exchange-asset amount.
+     * @dev Caller authorization is checked here; round-state and id-validity checks live in the
+     *      public entry point. Follows the same CEI ordering as `_redeemExchangeAsset` — the batch
+     *      burn debits owner balances before the single trailing `safeTransfer`.
+     * @param caller The address that invoked the redemption
+     * @param receiver The address that receives the exchange asset
+     * @param owner The address whose receipts are burned
+     * @param ids The round ids being exchanged
+     * @param amounts The receipts burned per round id (aligned with `ids`)
+     * @return exchangeAmount The total exchange asset paid to `receiver`
      */
 
     // @audit This function follows the CEI pattern to avoid out-of-order execution. The only
@@ -627,12 +668,12 @@ abstract contract RoundsVaultBase is
             revert CallerCannotRedeemBatch(caller, owner, ids, amounts);
         }
 
-        // If _asset is ERC777, `transfer` can trigger trigger a reentrancy AFTER the transfer happens through the
+        // If _asset is ERC777, `transfer` can trigger a reentrancy AFTER the transfer happens through the
         // `tokensReceived` hook. On the other hand, the `tokensToSend` hook, that is triggered before the transfer,
         // calls the vault, which is assumed not malicious.
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
-        // shares are burned and after the assets are transfered, which is a valid state.
+        // shares are burned and after the assets are transferred, which is a valid state.
         _burnBatch(owner, ids, amounts);
 
         for (uint256 i = 0; i < ids.length; i++) {

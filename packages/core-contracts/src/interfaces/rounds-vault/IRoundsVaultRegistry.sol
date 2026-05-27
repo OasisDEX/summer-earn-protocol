@@ -10,8 +10,12 @@ import {IRoundsVaultRegistryEvents} from "./IRoundsVaultRegistryEvents.sol";
  *         FleetCommanders. The companion subgraph spawns per-vault data sources off of this contract's
  *         events, so the event shape is part of the public contract.
  *
- * @dev    Pairs are keyed by `keccak256(targetVault)` because every FleetCommander has at most one
- *         active rounds-vault pair at any time. Deactivation is soft to preserve history for indexers.
+ * @dev Pairs are keyed by `keccak256(targetVault)` because every FleetCommander has at most one
+ *      active rounds-vault pair at any time. Deactivation is soft to preserve history for indexers.
+ *
+ * @dev Mutator functions are `onlyOwner` (OpenZeppelin `Ownable`). The registry is shared across
+ *      institutions (each institution operates its own `ProtocolAccessManagerV2`), so the owner is
+ *      expected to be the protocol multisig — distinct from any per-fleet Governor role.
  */
 interface IRoundsVaultRegistry is
     IRoundsVaultRegistryErrors,
@@ -62,9 +66,16 @@ interface IRoundsVaultRegistry is
 
     /**
      * @notice Register a new rounds-vault pair for `targetVault`.
-     * @dev    Reverts if a pair already exists for this target, if `targetVault` is zero, if both
-     *         input and output are zero, or if either provided vault's `vault()` view does not match
-     *         `targetVault`. Governor-gated.
+     * @dev Reverts if a pair already exists for this target, if `targetVault` is zero, if both
+     *      input and output are zero, or if either provided vault's `vault()` view does not match
+     *      `targetVault` or its `VAULT_TYPE()` does not match its slot. Owner-gated.
+     * @param institutionId Caller-defined tag used to group pairs by institution off-chain.
+     * @param targetVault The FleetCommander both rounds-vaults wrap. Must be non-zero.
+     * @param inputVault The Input-flavor rounds-vault address, or `address(0)` if only the Output
+     *                   side is being registered.
+     * @param outputVault The Output-flavor rounds-vault address, or `address(0)` if only the Input
+     *                    side is being registered. At least one of `inputVault` / `outputVault` must
+     *                    be non-zero.
      */
     function registerPair(
         bytes32 institutionId,
@@ -79,34 +90,34 @@ interface IRoundsVaultRegistry is
      *         - `UseClearInsteadOfZero(pairId)` if `inputVault == address(0)` (use `clearInputVault` instead).
      *         - `TargetMismatch` if `inputVault.vault() != pair.targetVault`.
      *         - `VaultFlavorMismatch` if `inputVault.VAULT_TYPE() != Input`.
-     *         Emits `RoundsVaultPairUpdated` with the post-change values. Governor-gated.
+     *         Emits `RoundsVaultPairUpdated` with the post-change values. Owner-gated.
      */
     function setInputVault(bytes32 pairId, address inputVault) external;
 
     /**
      * @notice Set or replace the output-flavor vault for an existing pair.
      * @dev    Same validation rules as `setInputVault` but requires `VAULT_TYPE == Output`.
-     *         Governor-gated.
+     *         Owner-gated.
      */
     function setOutputVault(bytes32 pairId, address outputVault) external;
 
     /**
      * @notice Drop the input vault from a pair.
      * @dev    Reverts with `UpdateWouldEmptyPair(pairId)` if the output side is also empty.
-     *         Emits `RoundsVaultPairUpdated`. Governor-gated.
+     *         Emits `RoundsVaultPairUpdated`. Owner-gated.
      */
     function clearInputVault(bytes32 pairId) external;
 
     /**
      * @notice Drop the output vault from a pair.
      * @dev    Reverts with `UpdateWouldEmptyPair(pairId)` if the input side is also empty.
-     *         Emits `RoundsVaultPairUpdated`. Governor-gated.
+     *         Emits `RoundsVaultPairUpdated`. Owner-gated.
      */
     function clearOutputVault(bytes32 pairId) external;
 
-    /// @notice Mark a pair inactive without removing it. Governor-gated.
+    /// @notice Mark a pair inactive without removing it. Owner-gated.
     function deactivatePair(bytes32 pairId) external;
 
-    /// @notice Re-enable a previously-deactivated pair. Governor-gated.
+    /// @notice Re-enable a previously-deactivated pair. Owner-gated.
     function reactivatePair(bytes32 pairId) external;
 }

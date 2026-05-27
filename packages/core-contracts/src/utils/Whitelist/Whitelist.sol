@@ -84,7 +84,7 @@ abstract contract Whitelist is IWhitelist {
     }
 
     /**
-     * @notice Reverts with NotWhitelisted if `account` is not whitelisted in `context`.
+     * @notice Reverts with `NotWhitelisted` if `account1` is not whitelisted for `context`.
      */
     function _revertIfNotWhitelisted(
         address context,
@@ -94,8 +94,11 @@ abstract contract Whitelist is IWhitelist {
             revert NotWhitelisted(context, account1);
         }
     }
+
     /**
-     * @notice Reverts with NotWhitelisted if `account` is not whitelisted in `context`.
+     * @notice Reverts with `NotWhitelisted` if either `account1` or `account2` is not whitelisted
+     *         for `context`. Performs the check via the batch overload so the access manager is
+     *         queried once per call.
      */
     function _revertIfNotWhitelisted(
         address context,
@@ -109,7 +112,9 @@ abstract contract Whitelist is IWhitelist {
     }
 
     /**
-     * @notice Reverts with NotWhitelisted if `account` is not whitelisted in `context`.
+     * @notice Reverts with `NotWhitelisted` if any of `account1`/`account2`/`account3` is not
+     *         whitelisted for `context`. Used by FleetCommander exit paths and rounds-vault
+     *         redemptions where caller, owner and receiver must all be whitelisted.
      */
     function _revertIfNotWhitelisted(
         address context,
@@ -123,9 +128,12 @@ abstract contract Whitelist is IWhitelist {
         accounts[2] = account3;
         _revertIfNotWhitelisted(context, accounts);
     }
+
     /**
-     * @notice Reverts if any of the `accounts` is not whitelisted in `context`.
-     * @dev Optimized with a single external batch call relative to `context`.
+     * @notice Reverts with `NotWhitelisted` for the first account in `accounts` that is not
+     *         whitelisted for `context`.
+     * @dev Resolves to a single external batch call against the access manager, then iterates the
+     *      returned status array.
      */
     function _revertIfNotWhitelisted(
         address context,

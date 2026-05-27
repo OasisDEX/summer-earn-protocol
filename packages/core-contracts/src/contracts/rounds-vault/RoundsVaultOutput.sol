@@ -13,11 +13,12 @@ import {IRoundsVaultOutputEvents} from "../../interfaces/rounds-vault/IRoundsVau
 
 /**
     @title RoundsVaultOutput
-    @notice The RoundsVaultOutput contract allows users to deposit shares from the target vault into
-    this contract while the  target vault is locked, and receipts are minted to the users for this deposits. Upon
-    round completion, the shares are redeemed in the target vault and the corresponding funds are collected.
 
-    Users can then exchange their receipts from previous rounds for the corresponding funds held in this vault.
+    @notice Output flavor of `RoundsVaultBase`. Users deposit target vault shares and receive
+    ERC-1155 receipts for the current round. When the keeper closes and settles the round, the
+    frozen shares are redeemed from the target vault and the resulting underlying asset (e.g. USDC)
+    is credited as the round's exchange asset. Holders of past-round receipts can then redeem them
+    for that underlying at the round's snapshotted rate.
 
     @author Roberto Cano <robercano>
  */
@@ -31,14 +32,15 @@ contract RoundsVaultOutput is
      */
 
     /**
-        @param targetVault The address of the target vault for which this input vault is managing deposits. This vault will
-                           be moving funds in and out of the target vault on each round
-        @param accessManager The address of the Protocol Access Manager contract that provides information
-                             about the different roles in the protocol, including the Keeper role that is the only
-                             one allowed to call the `nextRound` function
-        @param receiptsURI The URI of the ERC-1155 receipts that will be emitted when depositing the underlying
-
-        @dev For an output vault the underlying asset is the same as the target vault, this is, the shares
+     * @notice Wires the Output-flavor rounds-vault to its target ERC-4626 vault and the protocol
+     *         access manager.
+     * @dev For an Output vault the deposit asset is the target vault itself (its shares); the
+     *      exchange asset (returned by `redeemExchangeAsset`) is the target vault's underlying.
+     * @param targetVault The target ERC-4626 vault this Output vault wraps; settlement redeems from
+     *                    this vault each round.
+     * @param accessManager The `ProtocolAccessManagerV2` instance that gates keeper and governor
+     *                      entry points (e.g. only the keeper may call `nextRound`).
+     * @param receiptsURI The ERC-1155 metadata URI for round receipts minted on deposit.
      */
     constructor(
         address targetVault,
@@ -60,8 +62,11 @@ contract RoundsVaultOutput is
      */
 
     /**
-        @inheritdoc RoundsVaultBase
-    */
+     * @inheritdoc RoundsVaultBase
+     * @dev Redeems the round's frozen target-vault shares back to the target vault's underlying
+     *      asset and returns that amount. The underlying stays in this contract and backs
+     *      `redeemExchangeAsset` payouts for the round.
+     */
     // @audit Re-entrancy posture: `_operate` is only reachable via `_setRoundSettled`, which is
     // gated by `onlyKeeper` on `setRoundSettled` / `setRoundSettledBatch`. The Keeper is a trusted
     // role. Even if a Keeper attempted to re-enter `setRoundSettled` for the same round, the round
@@ -82,14 +87,11 @@ contract RoundsVaultOutput is
     }
 
     /**
-        @inheritdoc RoundsVaultBase
-
-        @dev The exchange rate is given by the `previewRedeem` function on the target vault. The exchange rate is
-        calculated for 1 full share
-
-        @dev This function can only be called while the target vault is unlocked
-
-        @dev The fallback exchange rate is calculated for 1 full token
+     * @inheritdoc RoundsVaultBase
+     *
+     * @dev Derives the rate from the target vault's `previewRedeem` for one full unit of shares, so
+     *      empty rounds still snapshot a sensible price aligned with what a synchronous redeem
+     *      would have produced at settlement time.
      */
     function _getFallbackExchangeRate()
         internal

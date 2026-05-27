@@ -41,8 +41,9 @@ contract FleetCommanderWhitelist is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the FleetCommander contract
-     * @param params FleetCommanderParams struct containing initialization parameters
+     * @notice Initializes the FleetCommander contract.
+     * @param params `FleetCommanderWhitelistParams` struct containing the asset, name/symbol,
+     *               buffer-ark address, fee parameters, gateway state, and access-manager wiring.
      */
     constructor(
         FleetCommanderWhitelistParams memory params
@@ -87,11 +88,10 @@ contract FleetCommanderWhitelist is
         _collectTipPost();
     }
     /**
-     * @dev Modifier to cache ark data for deposit operations.
-     * @notice This modifier retrieves ark data before the function execution,
-     *         allows the modified function to run, and then flushes the cache.
-     * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
-     *         those calls migh be gas expensive for some arks.
+     * @notice Caches deposit-side ark data into transient storage for the duration of the call.
+     * @dev Pre-fetches ark totals up front so the subsequent `totalAssets` / cap checks read from
+     *      transient storage instead of re-calling each ark — those external calls can be gas-
+     *      expensive on some arks. The cache is torn down by the outermost `flushCacheOnExit`.
      */
     modifier useCache() {
         _useCachePre();
@@ -99,11 +99,9 @@ contract FleetCommanderWhitelist is
     }
 
     /**
-     * @dev Modifier to cache withdrawable ark data for withdraw operations.
-     * @notice This modifier retrieves withdrawable ark data before the function execution,
-     *         allows the modified function to run, and then flushes the cache.
-     * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
-     *         those calls migh be gas expensive for some arks.
+     * @notice Caches withdraw-side ark data into transient storage for the duration of the call.
+     * @dev Same rationale as `useCache` but limited to arks that allow synchronous withdrawal, so
+     *      `_forceDisembarkFromSortedArks` can iterate them without re-calling each ark.
      */
     modifier useWithdrawCache() {
         _useWithdrawCachePre();
@@ -111,9 +109,9 @@ contract FleetCommanderWhitelist is
     }
 
     /**
-     * @dev Modifier to flush the cache.
-     * @notice This must be attached to the outermost external/public function
-     *         where cache is initialized to guarantee teardown.
+     * @notice Flushes the transient-storage cache after the wrapped call completes.
+     * @dev Must be attached to the outermost external/public function that initialized the cache
+     *      (`useCache` / `useWithdrawCache`) so the cache is always torn down on the way out.
      */
     modifier flushCacheOnExit() {
         _;
@@ -317,17 +315,15 @@ contract FleetCommanderWhitelist is
                         PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IERC20
     /**
-     * @dev Overrides the totalSupply function to include the tip shares
-     * @dev This is done to ensure that the totalSupply is always accurate, even when tips are being accrued
-     * @dev This is done by checking if the _isCollectingTip flag is set, and if it is, return the totalSupply
-     * @dev If the _isCollectingTip flag is not set, then we need to accrue the tips and return the totalSupply + the
-     * previewTip
-     * @dev when collecting fee we require totalSupply to be the pre tip totalSupply, after the tip is collected the
-     * totalSupply will include the tip shares
-     * @dev when called in view functions we need to return the totalSupply + the previewTip
-     * @return uint256 The total supply of the FleetCommander, including tip shares
+     * @inheritdoc IERC20
+     * @dev Overridden to fold the pending tip shares into the reported total supply, so external
+     *      integrators always see an honest share count. The check on `_isCollectingTip` makes the
+     *      function reentrancy-safe when the contract is mid-tip: while collecting, the parent
+     *      `super.totalSupply()` is returned (pre-tip) to avoid recursion through `previewTip`;
+     *      outside of tip collection, the function adds the previewed tip. After the tip is
+     *      collected, `super.totalSupply()` itself already includes the freshly minted tip shares.
+     * @return The total supply of the FleetCommander, including tip shares
      */
     function totalSupply()
         public
