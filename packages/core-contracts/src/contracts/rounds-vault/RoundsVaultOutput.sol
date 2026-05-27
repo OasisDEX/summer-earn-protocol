@@ -62,11 +62,12 @@ contract RoundsVaultOutput is
     /**
         @inheritdoc RoundsVaultBase
     */
-    // @audit This function is protected for re-entrancy by two mechanisms: only the Operator can call
-    // _nextRound which is the function that in turn calls this function, and the Operator is a trusted
-    // entity. Also, even if the operator would call nextRound in a re-entrancy attack, the funds are being
-    // moved from this contract to the InvestmentVault contract and no more funds would be left, leading
-    // the following code to be a no-op
+    // @audit Re-entrancy posture: `_operate` is only reachable via `_setRoundSettled`, which is
+    // gated by `onlyKeeper` on `setRoundSettled` / `setRoundSettledBatch`. The Keeper is a trusted
+    // role. Even if a Keeper attempted to re-enter `setRoundSettled` for the same round, the round
+    // state is flipped to `Settled` before `_operate` runs, so the second call would revert on
+    // `InvalidRoundState`. And the round's frozen Fleet shares have already been redeemed against
+    // the target FleetCommander, leaving this contract with nothing to move on a re-entrant pass.
     function _operate(
         uint256 shares,
         uint256 roundId
