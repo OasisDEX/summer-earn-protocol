@@ -6,6 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {IAllowanceTransfer, ISignatureTransfer} from "../../interfaces/permit2/IPermit2.sol";
 import {Permit2Consumer} from "../../utils/Permit2Consumer.sol";
 import {EnsoRouterSwapper} from "../../utils/EnsoRouterSwapper.sol";
 import {HarborCommandConsumer} from "../../utils/HarborCommandConsumer.sol";
@@ -166,7 +167,80 @@ contract DCAStrategyManager is
 
         strategyId = _createStrategy(config);
 
-        _depositToFleetCommander(
+        IERC20 inAsset = IERC20(address(config.inAsset));
+        inAsset.safeTransferFrom(_msgSender(), address(this), assetAmount);
+        _depositPulledAsset(
+            config.sourceVault,
+            inAsset,
+            _msgSender(),
+            assetAmount
+        );
+    }
+
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
+    function createStrategyWithPermit2(
+        StrategyConfig calldata config,
+        IAllowanceTransfer.PermitSingle calldata permitSingle,
+        bytes calldata signature
+    )
+        external
+        ownerOnlySender(config)
+        onlyActiveFleetCommander(config.sourceVault, "source")
+        onlyActiveFleetCommander(config.targetVault, "target")
+        returns (uint256 strategyId)
+    {
+        address expectedToken = address(config.sourceVault);
+        if (permitSingle.details.token != expectedToken) {
+            revert InvalidPermit2Token(
+                expectedToken,
+                permitSingle.details.token
+            );
+        }
+
+        strategyId = _createStrategy(config);
+
+        _applyPermit2Allowance(_msgSender(), permitSingle, signature);
+    }
+
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
+    function depositAndCreateWithPermit2(
+        StrategyConfig calldata config,
+        uint256 assetAmount,
+        Permit2DepositBundle calldata permits
+    )
+        external
+        ownerOnlySender(config)
+        onlyActiveFleetCommander(config.sourceVault, "source")
+        onlyActiveFleetCommander(config.targetVault, "target")
+        returns (uint256 strategyId)
+    {
+        if (assetAmount == 0) revert ZeroDeposit();
+        if (permits.shares.details.token != address(config.sourceVault)) {
+            revert InvalidPermit2Token(
+                address(config.sourceVault),
+                permits.shares.details.token
+            );
+        }
+
+        strategyId = _createStrategy(config);
+
+        // Set the recurring sub-allowance for keeper-driven pulls.
+        _applyPermit2Allowance(_msgSender(), permits.shares, permits.sharesSig);
+
+        // Pull the one-shot `inAsset` deposit via SignatureTransfer and deposit
+        // it into `sourceVault` with shares routed to the user.
+        _pullFundsWithPermit2(
+            _msgSender(),
+            address(config.inAsset),
+            assetAmount,
+            permits.inAsset,
+            permits.inAssetSig
+        );
+        _depositPulledAsset(
             config.sourceVault,
             IERC20(address(config.inAsset)),
             _msgSender(),
@@ -364,21 +438,19 @@ contract DCAStrategyManager is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Pulls `assetAmount` of `inAsset` from `depositor`, deposits it into
-     *      `sourceVault` with the resulting shares routed straight to
-     *      `depositor`, and resets the manager's allowance to 0 for hygiene.
-     *      The manager never holds either the underlying asset or the resulting
-     *      shares across transactions.
+     * @dev Approves `sourceVault` for `assetAmount` of `inAsset` already held
+     *      by this contract, deposits with `shareReceiver` as the recipient,
+     *      and resets the allowance to 0 for hygiene. Caller is responsible
+     *      for pulling the assets into this contract beforehand.
      */
-    function _depositToFleetCommander(
+    function _depositPulledAsset(
         IFleetCommander sourceVault,
         IERC20 inAsset,
-        address depositor,
+        address shareReceiver,
         uint256 assetAmount
     ) internal {
-        inAsset.safeTransferFrom(depositor, address(this), assetAmount);
         inAsset.forceApprove(address(sourceVault), assetAmount);
-        sourceVault.deposit(assetAmount, depositor);
+        sourceVault.deposit(assetAmount, shareReceiver);
         inAsset.forceApprove(address(sourceVault), 0);
     }
 

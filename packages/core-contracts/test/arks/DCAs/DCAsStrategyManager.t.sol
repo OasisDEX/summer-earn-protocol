@@ -22,7 +22,7 @@ import {HarborCommand} from "../../../src/contracts/HarborCommand.sol";
 import {FleetCommanderRewardsManagerFactory} from "../../../src/contracts/FleetCommanderRewardsManagerFactory.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {IPermit2} from "../../../src/interfaces/permit2/IPermit2.sol";
+import {IPermit2, IAllowanceTransfer, ISignatureTransfer} from "../../../src/interfaces/permit2/IPermit2.sol";
 import {AggregatorV3Interface} from "../../../src/interfaces/external/Chainlink/AggregatorV3Interface.sol";
 
 /// @notice Test-only mock that stands in for the Enso router. On any call it
@@ -2389,5 +2389,596 @@ contract DCAStrategyManagerIntegrationTest is Test {
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
         vm.prank(keeper);
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
+    // =========================================================
+    // Permit2-signature entrypoints
+    // =========================================================
+
+    uint256 private constant _SIGNER_PK = 0xA11CE;
+
+    bytes32 private constant _PERMIT_DETAILS_TYPEHASH =
+        keccak256(
+            "PermitDetails(address token,uint160 amount,uint48 expiration,uint48 nonce)"
+        );
+    bytes32 private constant _PERMIT_SINGLE_TYPEHASH =
+        keccak256(
+            "PermitSingle(PermitDetails details,address spender,uint256 sigDeadline)PermitDetails(address token,uint160 amount,uint48 expiration,uint48 nonce)"
+        );
+    bytes32 private constant _TOKEN_PERMISSIONS_TYPEHASH =
+        keccak256("TokenPermissions(address token,uint256 amount)");
+    bytes32 private constant _PERMIT_TRANSFER_FROM_TYPEHASH =
+        keccak256(
+            "PermitTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline)TokenPermissions(address token,uint256 amount)"
+        );
+
+    function _signPermit2Single(
+        IAllowanceTransfer.PermitSingle memory permitSingle,
+        uint256 privateKey
+    ) internal view returns (bytes memory) {
+        bytes32 detailsHash = keccak256(
+            abi.encode(
+                _PERMIT_DETAILS_TYPEHASH,
+                permitSingle.details.token,
+                permitSingle.details.amount,
+                permitSingle.details.expiration,
+                permitSingle.details.nonce
+            )
+        );
+        bytes32 structHash = keccak256(
+            abi.encode(
+                _PERMIT_SINGLE_TYPEHASH,
+                detailsHash,
+                permitSingle.spender,
+                permitSingle.sigDeadline
+            )
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                IPermit2(PERMIT2).DOMAIN_SEPARATOR(),
+                structHash
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
+        return abi.encodePacked(r, s, v);
+    }
+
+    function _signPermit2Transfer(
+        ISignatureTransfer.PermitTransferFrom memory permit,
+        address spender,
+        uint256 privateKey
+    ) internal view returns (bytes memory) {
+        bytes32 structHash = keccak256(
+            abi.encode(
+                _PERMIT_TRANSFER_FROM_TYPEHASH,
+                keccak256(
+                    abi.encode(
+                        _TOKEN_PERMISSIONS_TYPEHASH,
+                        permit.permitted.token,
+                        permit.permitted.amount
+                    )
+                ),
+                spender,
+                permit.nonce,
+                permit.deadline
+            )
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                IPermit2(PERMIT2).DOMAIN_SEPARATOR(),
+                structHash
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
+        return abi.encodePacked(r, s, v);
+    }
+
+    /// @dev Sets up a signer-backed user with USDC, source-vault shares, and
+    /// the one-time approvals required for both Permit2 paths. Returns the
+    /// signer address.
+    function _setupSigner() internal returns (address signer) {
+        signer = vm.addr(_SIGNER_PK);
+
+        deal(USDC_ADDRESS, signer, 10000e6);
+
+        vm.startPrank(signer);
+        // Standard one-time ERC20 approvals to Permit2.
+        IERC20(USDC_ADDRESS).approve(PERMIT2, type(uint256).max);
+        IERC20(address(sourceFleet)).approve(PERMIT2, type(uint256).max);
+        // Deposit some USDC into the source vault so the signer holds shares
+        // (used by createStrategyWithPermit and the keeper-execution path).
+        IERC20(USDC_ADDRESS).approve(address(sourceFleet), type(uint256).max);
+        sourceFleet.deposit(1000e6, signer);
+        vm.stopPrank();
+    }
+
+    function _buildConfigFor(
+        address ownerAddr,
+        uint256 endDate
+    ) internal view returns (IDCAStrategyManager.StrategyConfig memory) {
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        cfg.owner = ownerAddr;
+        return cfg;
+    }
+
+    function test_CreateStrategyWithPermit2_HappyPath() public {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer
+            .PermitSingle({
+                details: IAllowanceTransfer.PermitDetails({
+                    token: address(sourceFleet),
+                    amount: type(uint160).max,
+                    expiration: type(uint48).max,
+                    nonce: 0
+                }),
+                spender: address(dcaManager),
+                sigDeadline: block.timestamp + 1 hours
+            });
+        bytes memory sig = _signPermit2Single(permitSingle, _SIGNER_PK);
+
+        vm.prank(signer);
+        uint256 strategyId = dcaManager.createStrategyWithPermit2(
+            cfg,
+            permitSingle,
+            sig
+        );
+
+        assertEq(strategyId, 0, "first strategy gets id 0");
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.ACTIVE)
+        );
+        (uint160 allowanceAmount, uint48 allowanceExpiration, ) = IPermit2(
+            PERMIT2
+        ).allowance(signer, address(sourceFleet), address(dcaManager));
+        assertEq(allowanceAmount, type(uint160).max, "sub-allowance set");
+        assertEq(
+            allowanceExpiration,
+            type(uint48).max,
+            "expiration as signed"
+        );
+    }
+
+    function test_CreateStrategyWithPermit2_AllowsKeeperToPull() public {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer
+            .PermitSingle({
+                details: IAllowanceTransfer.PermitDetails({
+                    token: address(sourceFleet),
+                    amount: type(uint160).max,
+                    expiration: type(uint48).max,
+                    nonce: 0
+                }),
+                spender: address(dcaManager),
+                sigDeadline: block.timestamp + 1 hours
+            });
+        bytes memory sig = _signPermit2Single(permitSingle, _SIGNER_PK);
+
+        vm.prank(signer);
+        uint256 strategyId = dcaManager.createStrategyWithPermit2(
+            cfg,
+            permitSingle,
+            sig
+        );
+
+        // Pre-fund the mock router for this signer's swap, since _setupUser
+        // wired it only for `strategyOwner`-sourced shares.
+        deal(WETH_ADDRESS, address(ensoRouter), 100 ether);
+        ensoRouter.setSwap(
+            IERC20(address(sourceFleet)),
+            100e6,
+            IERC20(WETH_ADDRESS),
+            MOCK_WETH_OUT,
+            targetFleet
+        );
+
+        vm.warp(block.timestamp + 7 days);
+        uint256 sharesBefore = IERC20(address(targetFleet)).balanceOf(signer);
+        vm.prank(keeper);
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+        assertGt(
+            IERC20(address(targetFleet)).balanceOf(signer),
+            sharesBefore,
+            "keeper pulled via the Permit2-set sub-allowance"
+        );
+    }
+
+    function test_CreateStrategyWithPermit2_RevertsOnWrongSpender() public {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer
+            .PermitSingle({
+                details: IAllowanceTransfer.PermitDetails({
+                    token: address(sourceFleet),
+                    amount: type(uint160).max,
+                    expiration: type(uint48).max,
+                    nonce: 0
+                }),
+                spender: address(0xBEEF),
+                sigDeadline: block.timestamp + 1 hours
+            });
+        bytes memory sig = _signPermit2Single(permitSingle, _SIGNER_PK);
+
+        vm.prank(signer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Permit2Consumer.InvalidPermit2Spender.selector,
+                address(dcaManager),
+                address(0xBEEF)
+            )
+        );
+        dcaManager.createStrategyWithPermit2(cfg, permitSingle, sig);
+    }
+
+    function test_CreateStrategyWithPermit2_RevertsOnWrongToken() public {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer
+            .PermitSingle({
+                details: IAllowanceTransfer.PermitDetails({
+                    token: USDC_ADDRESS,
+                    amount: type(uint160).max,
+                    expiration: type(uint48).max,
+                    nonce: 0
+                }),
+                spender: address(dcaManager),
+                sigDeadline: block.timestamp + 1 hours
+            });
+        bytes memory sig = _signPermit2Single(permitSingle, _SIGNER_PK);
+
+        vm.prank(signer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Permit2Consumer.InvalidPermit2Token.selector,
+                address(sourceFleet),
+                USDC_ADDRESS
+            )
+        );
+        dcaManager.createStrategyWithPermit2(cfg, permitSingle, sig);
+    }
+
+    function test_CreateStrategyWithPermit2_SurvivesFrontrunOfPermit() public {
+        // If a mempool searcher lifts the user's signed PermitSingle and
+        // submits PERMIT2.permit themselves, the user's createStrategyWithPermit2
+        // call should still succeed (the sub-allowance is live, so the silent
+        // try/catch path inside _applyPermit2Allowance allows it through).
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer
+            .PermitSingle({
+                details: IAllowanceTransfer.PermitDetails({
+                    token: address(sourceFleet),
+                    amount: type(uint160).max,
+                    expiration: type(uint48).max,
+                    nonce: 0
+                }),
+                spender: address(dcaManager),
+                sigDeadline: block.timestamp + 1 hours
+            });
+        bytes memory sig = _signPermit2Single(permitSingle, _SIGNER_PK);
+
+        // Front-run: any address submits the signed permit directly.
+        vm.prank(address(0xF20E));
+        IPermit2(PERMIT2).permit(signer, permitSingle, sig);
+
+        // User's tx now reaches PERMIT2.permit with a stale nonce — internal
+        // try/catch must verify the existing allowance and let the flow
+        // continue without reverting.
+        vm.prank(signer);
+        uint256 strategyId = dcaManager.createStrategyWithPermit2(
+            cfg,
+            permitSingle,
+            sig
+        );
+        assertEq(strategyId, 0, "frontrun must not block strategy creation");
+    }
+
+    function test_DepositAndCreateWithPermit2_HappyPath() public {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+        uint256 depositAmount = 500e6;
+
+        IDCAStrategyManager.Permit2DepositBundle memory permits = IDCAStrategyManager
+            .Permit2DepositBundle({
+                inAsset: ISignatureTransfer.PermitTransferFrom({
+                    permitted: ISignatureTransfer.TokenPermissions({
+                        token: IERC20(USDC_ADDRESS),
+                        amount: depositAmount
+                    }),
+                    nonce: 1,
+                    deadline: block.timestamp + 1 hours
+                }),
+                inAssetSig: bytes(""),
+                shares: IAllowanceTransfer.PermitSingle({
+                    details: IAllowanceTransfer.PermitDetails({
+                        token: address(sourceFleet),
+                        amount: type(uint160).max,
+                        expiration: type(uint48).max,
+                        nonce: 0
+                    }),
+                    spender: address(dcaManager),
+                    sigDeadline: block.timestamp + 1 hours
+                }),
+                sharesSig: bytes("")
+            });
+        permits.inAssetSig = _signPermit2Transfer(
+            permits.inAsset,
+            address(dcaManager),
+            _SIGNER_PK
+        );
+        permits.sharesSig = _signPermit2Single(permits.shares, _SIGNER_PK);
+
+        uint256 sharesBefore = sourceFleet.balanceOf(signer);
+        uint256 usdcBefore = IERC20(USDC_ADDRESS).balanceOf(signer);
+
+        vm.prank(signer);
+        uint256 strategyId = dcaManager.depositAndCreateWithPermit2(
+            cfg,
+            depositAmount,
+            permits
+        );
+
+        assertEq(strategyId, 0);
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.ACTIVE)
+        );
+        assertGt(
+            sourceFleet.balanceOf(signer),
+            sharesBefore,
+            "user received source-vault shares"
+        );
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(signer),
+            usdcBefore - depositAmount,
+            "user's USDC debited"
+        );
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(address(dcaManager)),
+            0,
+            "manager holds no USDC"
+        );
+        (uint160 allowanceAmount, , ) = IPermit2(PERMIT2).allowance(
+            signer,
+            address(sourceFleet),
+            address(dcaManager)
+        );
+        assertEq(
+            allowanceAmount,
+            type(uint160).max,
+            "shares sub-allowance set"
+        );
+    }
+
+    function test_DepositAndCreateWithPermit2_RevertsOnSharesSpenderMismatch()
+        public
+    {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+        uint256 depositAmount = 500e6;
+
+        IDCAStrategyManager.Permit2DepositBundle memory permits;
+        permits.inAsset = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: IERC20(USDC_ADDRESS),
+                amount: depositAmount
+            }),
+            nonce: 1,
+            deadline: block.timestamp + 1 hours
+        });
+        permits.shares = IAllowanceTransfer.PermitSingle({
+            details: IAllowanceTransfer.PermitDetails({
+                token: address(sourceFleet),
+                amount: type(uint160).max,
+                expiration: type(uint48).max,
+                nonce: 0
+            }),
+            // Wrong spender — not the manager.
+            spender: address(0xBEEF),
+            sigDeadline: block.timestamp + 1 hours
+        });
+        permits.inAssetSig = _signPermit2Transfer(
+            permits.inAsset,
+            address(dcaManager),
+            _SIGNER_PK
+        );
+        permits.sharesSig = _signPermit2Single(permits.shares, _SIGNER_PK);
+
+        vm.prank(signer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Permit2Consumer.InvalidPermit2Spender.selector,
+                address(dcaManager),
+                address(0xBEEF)
+            )
+        );
+        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits);
+    }
+
+    function test_DepositAndCreateWithPermit2_RevertsOnSharesTokenMismatch()
+        public
+    {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+        uint256 depositAmount = 500e6;
+
+        IDCAStrategyManager.Permit2DepositBundle memory permits;
+        permits.inAsset = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: IERC20(USDC_ADDRESS),
+                amount: depositAmount
+            }),
+            nonce: 1,
+            deadline: block.timestamp + 1 hours
+        });
+        // Wrong shares token — points at USDC, not the source-vault share token.
+        permits.shares = IAllowanceTransfer.PermitSingle({
+            details: IAllowanceTransfer.PermitDetails({
+                token: USDC_ADDRESS,
+                amount: type(uint160).max,
+                expiration: type(uint48).max,
+                nonce: 0
+            }),
+            spender: address(dcaManager),
+            sigDeadline: block.timestamp + 1 hours
+        });
+        permits.inAssetSig = _signPermit2Transfer(
+            permits.inAsset,
+            address(dcaManager),
+            _SIGNER_PK
+        );
+        permits.sharesSig = _signPermit2Single(permits.shares, _SIGNER_PK);
+
+        vm.prank(signer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Permit2Consumer.InvalidPermit2Token.selector,
+                address(sourceFleet),
+                USDC_ADDRESS
+            )
+        );
+        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits);
+    }
+
+    function test_DepositAndCreateWithPermit2_RevertsOnInAssetTokenMismatch()
+        public
+    {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+        uint256 depositAmount = 500e6;
+
+        IDCAStrategyManager.Permit2DepositBundle memory permits;
+        // Wrong inAsset token — points at WETH instead of USDC.
+        permits.inAsset = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: IERC20(WETH_ADDRESS),
+                amount: depositAmount
+            }),
+            nonce: 1,
+            deadline: block.timestamp + 1 hours
+        });
+        permits.shares = IAllowanceTransfer.PermitSingle({
+            details: IAllowanceTransfer.PermitDetails({
+                token: address(sourceFleet),
+                amount: type(uint160).max,
+                expiration: type(uint48).max,
+                nonce: 0
+            }),
+            spender: address(dcaManager),
+            sigDeadline: block.timestamp + 1 hours
+        });
+        permits.inAssetSig = _signPermit2Transfer(
+            permits.inAsset,
+            address(dcaManager),
+            _SIGNER_PK
+        );
+        permits.sharesSig = _signPermit2Single(permits.shares, _SIGNER_PK);
+
+        vm.prank(signer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Permit2Consumer.InvalidPermit2Token.selector,
+                USDC_ADDRESS,
+                WETH_ADDRESS
+            )
+        );
+        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits);
+    }
+
+    function test_DepositAndCreateWithPermit2_RevertsOnInAssetAmountMismatch()
+        public
+    {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+        uint256 depositAmount = 500e6;
+
+        IDCAStrategyManager.Permit2DepositBundle memory permits;
+        // Signed amount differs from requested amount by 1 wei.
+        permits.inAsset = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: IERC20(USDC_ADDRESS),
+                amount: depositAmount + 1
+            }),
+            nonce: 1,
+            deadline: block.timestamp + 1 hours
+        });
+        permits.shares = IAllowanceTransfer.PermitSingle({
+            details: IAllowanceTransfer.PermitDetails({
+                token: address(sourceFleet),
+                amount: type(uint160).max,
+                expiration: type(uint48).max,
+                nonce: 0
+            }),
+            spender: address(dcaManager),
+            sigDeadline: block.timestamp + 1 hours
+        });
+        permits.inAssetSig = _signPermit2Transfer(
+            permits.inAsset,
+            address(dcaManager),
+            _SIGNER_PK
+        );
+        permits.sharesSig = _signPermit2Single(permits.shares, _SIGNER_PK);
+
+        vm.prank(signer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Permit2Consumer.InvalidPermit2Amount.selector,
+                depositAmount,
+                depositAmount + 1
+            )
+        );
+        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits);
+    }
+
+    function test_DepositAndCreateWithPermit2_RevertsOnZeroDeposit() public {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+        IDCAStrategyManager.Permit2DepositBundle memory permits; // all zeroed
+
+        vm.prank(signer);
+        vm.expectRevert(IDCAStrategyManagerErrors.ZeroDeposit.selector);
+        dcaManager.depositAndCreateWithPermit2(cfg, 0, permits);
     }
 }
