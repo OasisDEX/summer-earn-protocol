@@ -1,0 +1,61 @@
+{
+  "base": {
+    "deployedContracts": {
+      "gov": {
+        "protocolAccessManager": {
+          "address": "0x0eF127ce2ae77e7a08Dc4Bb460e6E888E86D0459"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0xFde5101e748824488D458D41DB59a33C6C46907c"
+        },
+        "configurationManager": {
+          "address": "0x40998DbBA04E0b85Ec2851ce77198E664Be1dcAE"
+        },
+        "harborCommand": {
+          "address": "0x43fff3FB7e97b4d2bAE41fA899dD0E49Be0497c2"
+        },
+        "admiralsQuarters": {
+          "address": "0x9E74A42EfBEfb2360B948DA27292346321e7bA9E"
+        },
+        "raft": {
+          "address": "0x318c9C76f8d2Be642f01A873A93aDcB63fBcb5E4"
+        }
+      }
+    },
+    "fleets": {
+      "extDemo_USDC_base": {
+        "fleetCommander": "0xd40Ac82b840AF6fbb5B3BE41eC820b5ff1199dF1",
+        "bufferArk": "0xE67cB1112d0AAc376EC01807F2EA551b981232E4",
+        "arks": [
+          "0xC64D773717843D3dd4f71286ceD490073586Db6e"
+        ],
+        "roundsVaultInput": "0xcA50F64f2693b6DB0ef676cf14Dce52C183bc178",
+        "roundsVaultOutput": "0xB379b432b7819B3b3c4E0b7e6bE3A3f780815e82"
+      },
+      "extDemo_2_USDC_base": {
+        "fleetCommander": "0xB5A07af4302fA0D2bBb389b4481055eD3F576B73",
+        "bufferArk": "0xcC1a3b8b61745307C0BafDc2e3132dC5D4270F06",
+        "arks": [
+          "0x50CbB1759370ae82a9B8488c7D3e91Fe11A4A5B0"
+        ],
+        "roundsVaultInput": "0xa5BB66ED32EA16B282b0bBf827b325C564C05Cd1",
+        "roundsVaultOutput": "0x39B9dd2440Fc4ff138643E3a86A486487F3cfc22"
+      }
+    },
+    "treasury": "0x0f0fA89471259433b6955827226f19999D93c568",
+    "governor": [
+      "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "guardian": [
+      "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
+      "0x0f0fA89471259433b6955827226f19999D93c568"
+    ],
+    "superKeeper": "0x0f0fA89471259433b6955827226f19999D93c568",
+    "whitelistManagers": [
+      "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA"
+    ]
+  }
+}

@@ -84,6 +84,20 @@ contract AdmiralsQuartersWhitelist is
     address public constant PERMIT2 =
         0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
+    struct FleetDepositWitness {
+        address fleetCommander;
+        address receiver;
+        bytes32 referralCode;
+    }
+
+    bytes32 internal constant _FLEET_DEPOSIT_TYPEHASH =
+        keccak256(
+            "FleetDepositWitness(address fleetCommander,address receiver,bytes32 referralCode)"
+        );
+
+    string internal constant _WITNESS_TYPE_STRING =
+        "FleetDepositWitness witness)FleetDepositWitness(address fleetCommander,address receiver,bytes32 referralCode)TokenPermissions(address token,uint256 amount)";
+
     constructor(
         address _oneInchRouter,
         address _configurationManager,
@@ -146,6 +160,8 @@ contract AdmiralsQuartersWhitelist is
         uint256 assets,
         address receiver
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        receiver = receiver == address(0) ? _msgSender() : receiver;
+
         _revertIfNotWhitelisted(fleetCommander, receiver, _msgSender());
         _validateFleetCommander(fleetCommander);
 
@@ -154,7 +170,7 @@ contract AdmiralsQuartersWhitelist is
 
         uint256 balance = fleetAsset.balanceOf(address(this));
         assets = assets == 0 ? balance : assets;
-        receiver = receiver == address(0) ? _msgSender() : receiver;
+
         if (assets > balance) revert InsufficientOutputAmount();
 
         fleetAsset.forceApprove(address(fleet), assets);
@@ -163,79 +179,59 @@ contract AdmiralsQuartersWhitelist is
         emit FleetEntered(_msgSender(), fleetCommander, assets, shares);
     }
 
-    /// @inheritdoc IAdmiralsQuartersWhitelist
-    function enterFleetWithPermit(
-        address owner,
-        address fleetCommander,
-        uint256 assets,
-        bytes calldata referralCode,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
-        _validateFleetCommander(fleetCommander);
-        IFleetCommander fleet = IFleetCommander(fleetCommander);
-        IERC20 fleetAsset = IERC20(fleet.asset());
-
-        IERC20Permit(address(fleetAsset)).permit(
-            owner,
-            address(this),
-            assets,
-            deadline,
-            v,
-            r,
-            s
-        );
-        fleetAsset.safeTransferFrom(owner, address(this), assets);
-
-        fleetAsset.forceApprove(address(fleet), assets);
-        if (referralCode.length == 0) {
-            shares = fleet.deposit(assets, owner);
-            emit FleetEntered(owner, fleetCommander, assets, shares);
-        } else {
-            shares = fleet.deposit(assets, owner, referralCode);
-            emit FleetEnteredWithReferral(
-                owner,
-                fleetCommander,
-                assets,
-                shares,
-                referralCode
-            );
-        }
-    }
-
-    /// @inheritdoc IAdmiralsQuartersWhitelist
+    /**
+     * @notice Enters a FleetCommander by depositing tokens using permit2.
+     * @dev This whitelisted implementation does not support referral tracking. To maintain
+     *      interface parity with the public version and ensure signature compatibility,
+     *      the referral parameter is accepted but internally hardcoded to bytes32(0)
+     *      within the witness payload.
+     *
+     *      IMPORTANT: Off-chain signature generation must use bytes32(0) for the referral
+     *      field to match the on-chain witness construction.
+     */
     function enterFleetWithPermit2(
         address owner,
         address fleetCommander,
         uint256 assets,
+        bytes calldata /* referralCode */,
         address receiver,
         ISignatureTransfer.PermitTransferFrom calldata permitData,
         bytes calldata signature
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
         _revertIfNotWhitelisted(fleetCommander, receiver, owner);
         _validateFleetCommander(fleetCommander);
+
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         IERC20 fleetAsset = IERC20(fleet.asset());
+
         if (permitData.permitted.token != fleetAsset) revert InvalidToken();
         if (permitData.permitted.amount != assets) revert InvalidAmount();
-        ISignatureTransfer(PERMIT2).permitTransferFrom(
+
+        ISignatureTransfer(PERMIT2).permitWitnessTransferFrom(
             permitData,
             ISignatureTransfer.SignatureTransferDetails({
                 to: address(this),
                 requestedAmount: assets
             }),
             owner,
+            keccak256(
+                abi.encode(
+                    _FLEET_DEPOSIT_TYPEHASH,
+                    address(fleet),
+                    receiver,
+                    // The whitelisted protocol variant does not utilize referral tracking.
+                    // We utilize a zero-sentinel (bytes32(0)) in the witness payload to maintain
+                    // architectural consistency and signature verification compatibility.
+                    bytes32(0)
+                )
+            ),
+            _WITNESS_TYPE_STRING,
             signature
         );
 
-        assets = assets == 0 ? fleetAsset.balanceOf(address(this)) : assets;
-        receiver = receiver == address(0) ? owner : receiver;
-
         fleetAsset.forceApprove(address(fleet), assets);
-        shares = fleet.deposit(assets, receiver);
 
+        shares = fleet.deposit(assets, receiver);
         emit FleetEntered(owner, fleetCommander, assets, shares);
     }
 
@@ -351,6 +347,7 @@ contract AdmiralsQuartersWhitelist is
             revert InvalidFleetCommander();
         }
     }
+
     function _isFleetCommander(address account) internal view returns (bool) {
         return IHarborCommand(harborCommand()).activeFleetCommanders(account);
     }
@@ -462,6 +459,8 @@ contract AdmiralsQuartersWhitelist is
         address vault,
         uint256 shares
     ) external onlyMulticall nonReentrant {
+        _validateToken(IERC20(vault));
+
         IERC4626 vaultToken = IERC4626(vault);
 
         // Get actual shares if 0 was passed
