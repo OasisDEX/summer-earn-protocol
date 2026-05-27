@@ -8,16 +8,21 @@ import {ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
 
 /**
  * @title ProtocolAccessManagedV2
- * @notice Extends ProtocolAccessManaged to enforce IProtocolAccessManagerV2 support.
- * @dev Used by unified FleetCommander, AQ, and Rounds Vault which require V2 features (Whitelisting).
- * Arks and legacy components should continue to use the base ProtocolAccessManaged.
+ *
+ * @notice Variant of `ProtocolAccessManaged` that enforces the configured access manager actually
+ *         implements `IProtocolAccessManagerV2`. Inheritors gain the contract-specific Operator
+ *         role hook (`hasOperatorRole`, `onlyOperator`) used by institutional FleetCommander, AQ,
+ *         and rounds-vault contracts. Arks and legacy components continue to inherit from the
+ *         base `ProtocolAccessManaged`.
  */
 abstract contract ProtocolAccessManagedV2 is ProtocolAccessManaged {
     /**
-     * @notice Initializes the ProtocolAccessManagedV2 contract
-     * @param accessManager Address of the ProtocolAccessManager contract
-     * @dev The base ProtocolAccessManaged constructor already checked for V1 and address(0).
-     * Now we strictly enforce that this AM also supports the V2 interface.
+     * @notice Wires this contract to the provided V2 access manager and validates support via
+     *         ERC-165 introspection.
+     * @dev The base `ProtocolAccessManaged` constructor has already checked that `accessManager`
+     *      is non-zero and supports the V1 interface. This constructor additionally requires the
+     *      V2 interface so that whitelist/operator features are guaranteed to work.
+     * @param accessManager Address of the `ProtocolAccessManagerV2` instance.
      */
     constructor(address accessManager) ProtocolAccessManaged(accessManager) {
         if (
@@ -29,15 +34,15 @@ abstract contract ProtocolAccessManagedV2 is ProtocolAccessManaged {
         }
     }
 
-    /**
-     * @notice Modifier to restrict access to operators only
-     * @dev Modifier to check that the caller has the Operator role.
-     */
+    /// @notice Restricts the wrapped function to callers that hold the contract-specific Operator
+    ///         role (`OPERATOR_ROLE` scoped to `address(this)`).
     modifier onlyOperator() {
         _revertIfNotOperator(_msgSender());
         _;
     }
 
+    /// @dev Reverts with `CallerIsNotOperator(account)` if `account` does not hold the Operator
+    ///      role on this contract. Helper for `onlyOperator` and ad-hoc checks.
     function _revertIfNotOperator(address account) internal view {
         if (!hasOperatorRole(account)) {
             revert CallerIsNotOperator(account);
@@ -45,9 +50,12 @@ abstract contract ProtocolAccessManagedV2 is ProtocolAccessManaged {
     }
 
     /**
-     * @notice Checks if an account has the Operator role
+     * @notice Returns whether `account` holds the Operator role for this contract.
+     * @dev Resolves to `_accessManager.hasRole(generateRole(OPERATOR_ROLE, address(this)), account)`.
+     *      Used by inheriting contracts (e.g. FleetCommanderWhitelist) to let bundler/proxy
+     *      contracts bypass user-side gateways.
      * @param account The address to check
-     * @return bool True if the account has the Operator role
+     * @return `true` if `account` holds the Operator role for this contract.
      */
     function hasOperatorRole(address account) public view returns (bool) {
         return

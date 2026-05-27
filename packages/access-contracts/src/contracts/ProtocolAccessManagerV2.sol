@@ -9,9 +9,29 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title ProtocolAccessManagerV2
- * @notice This contract extends ProtocolAccessManager with a new Operator role and Whitelisting logic.
- * @dev Replaces the original ProtocolAccessManager for new Fleet variants (Whitelist/Institution)
- *      that require restricted entry/exit gateways.
+ *
+ * @notice Extends `ProtocolAccessManager` with a per-contract `OPERATOR_ROLE`, a global
+ *         `WHITELIST_MANAGER_ROLE`, and a per-context whitelist used to gate user interaction
+ *         with institutional Fleet variants.
+ *
+ * @dev Role hierarchy:
+ *      - Governor bootstraps every other role (including the Whitelist Manager) and is the only
+ *        role that can grant or revoke contract-specific Operator roles.
+ *      - Whitelist Manager owns mutations on the per-context whitelist (`setWhitelisted`,
+ *        `setWhitelistedBatch`, `setWhitelistOpen`).
+ *      - Operator (per contract, scoped via `generateRole(OPERATOR_ROLE, contract)`) is consulted
+ *        by inheriting contracts (`ProtocolAccessManagedV2.hasOperatorRole`) and lets bundlers
+ *        (e.g. AdmiralsQuartersWhitelist, RoundsVaultInput/Output) bypass a Fleet's user-side
+ *        gateway when invoking it.
+ *
+ * @dev Whitelist semantics: `isWhitelisted(context, account)` returns `true` when either the
+ *      context's whitelist has been globally opened (`setWhitelistOpen(context, true)`) or when
+ *      the explicit `(context, account)` mapping is set. The context is typically the Fleet
+ *      address performing the check — granting one whitelist record unblocks every entry path
+ *      that uses that Fleet as its context.
+ *
+ * @dev Replaces `ProtocolAccessManager` for institutional Fleet variants; legacy components keep
+ *      using the V1 manager.
  */
 contract ProtocolAccessManagerV2 is
     IProtocolAccessManagerV2,
@@ -21,12 +41,12 @@ contract ProtocolAccessManagerV2 is
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Maximum number of accounts that can be whitelisted in a single batch.
-     */
+    /// @notice Hard cap on the number of accounts a single `setWhitelistedBatch` call may touch.
+    ///         Prevents unbounded loops and keeps per-call gas predictable.
     uint256 public constant MAX_WHITELIST_BATCH_SIZE = 200;
 
-    /// @notice Role identifier for whitelist managers who can update the global whitelist status
+    /// @notice Role identifier for the global Whitelist Manager who may mutate the per-context
+    ///         whitelist (`setWhitelisted`, `setWhitelistedBatch`, `setWhitelistOpen`).
     bytes32 public constant WHITELIST_MANAGER_ROLE =
         keccak256("WHITELIST_MANAGER_ROLE");
 
@@ -34,22 +54,26 @@ contract ProtocolAccessManagerV2 is
                                   STATE
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Internal mapping for whitelist status: context => account => allowed.
+    /// @dev Per-context, per-account whitelist record. Reads go through `isWhitelisted` /
+    ///      `areWhitelisted`, which also consider the context's global-open flag.
     mapping(address => mapping(address => bool)) private _whitelisted;
 
-    /// @dev Internal mapping for "Whitelist Open" status: context => isOpen.
+    /// @dev Per-context flag that, when `true`, makes every account read as whitelisted for
+    ///      that context regardless of the explicit `_whitelisted` record.
     mapping(address => bool) private _isWhitelistOpen;
 
     /**
-     * @notice Initializes the ProtocolAccessManagerV2 contract
-     * @param governor Address of the initial governor
+     * @notice Initializes the access manager with `governor` as the initial Governor and seeds it
+     *         with the `WHITELIST_MANAGER_ROLE` so the deployment can immediately manage whitelist
+     *         state before any other Whitelist Manager is granted.
+     * @param governor Initial Governor address (typically the protocol multisig).
      */
     constructor(address governor) ProtocolAccessManager(governor) {
         _grantRole(WHITELIST_MANAGER_ROLE, governor);
     }
 
     /**
-     * @inheritdoc IERC165
+     * @inheritdoc ProtocolAccessManager
      */
     function supportsInterface(
         bytes4 interfaceId
@@ -128,6 +152,7 @@ contract ProtocolAccessManagerV2 is
     }
 
     /// @inheritdoc IProtocolAccessManagerV2
+    /// @dev Note: reverts with `Whitelist_LengthMismatch` if either array is empty.
     function setWhitelistedBatch(
         address context,
         address[] calldata accounts,
@@ -156,10 +181,11 @@ contract ProtocolAccessManagerV2 is
     }
 
     /**
-     * @dev Idempotent internal setter for whitelist status
-     * @param context The context for which to update the status
+     * @dev Idempotent setter: only writes and emits `WhitelistStatusUpdated` when the value
+     *      actually changes. Used by both single and batch entry points.
+     * @param context The context (e.g. a Fleet address) the status is scoped to
      * @param account The account to update
-     * @param allowed The new status
+     * @param allowed The new status (`true` to whitelist, `false` to remove)
      */
     function _setWhitelisted(
         address context,

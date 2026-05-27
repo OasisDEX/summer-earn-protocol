@@ -5,38 +5,43 @@ import {IProtocolAccessManager} from "./IProtocolAccessManager.sol";
 
 /**
  * @title IProtocolAccessManagerV2
- * @notice Defines system roles and provides role based remote-access control for
- *         contracts that inherit from ProtocolAccessManaged contract, including V2 features like Whitelisting.
+ *
+ * @notice Public surface of `ProtocolAccessManagerV2`. Extends the V1 manager with a per-context
+ *         whitelist and a contract-specific Operator role used by institutional Fleet variants.
  */
 interface IProtocolAccessManagerV2 {
-    /// @notice Emitted when the whitelist status of an account is updated in a context
+    /// @notice Emitted when an account's explicit whitelist record for `context` changes.
+    /// @param context The context (e.g. a Fleet address) the status is scoped to
+    /// @param account The account whose status changed
+    /// @param isWhitelisted The new status (`true` for whitelisted, `false` for removed)
     event WhitelistStatusUpdated(
         address indexed context,
         address indexed account,
         bool isWhitelisted
     );
 
-    /// @notice Emitted when the whitelist open status of a context is updated
+    /// @notice Emitted when the global-open flag for `context` changes.
+    /// @param context The context the flag is scoped to
+    /// @param isOpen `true` if every account now reads as whitelisted for `context`
     event WhitelistOpenUpdated(address indexed context, bool isOpen);
 
-    /**
-     * @notice Thrown when the length of the accounts array and the allowed array do not match.
-     */
+    /// @notice Reverts when `setWhitelistedBatch` is called with mismatched `accounts` and
+    ///         `allowed` array lengths.
     error Whitelist_LengthMismatch();
 
-    /**
-     * @notice Thrown when the batch size exceeds the maximum allowed (200).
-     */
+    /// @notice Reverts when `setWhitelistedBatch` is called with more accounts than
+    ///         `MAX_WHITELIST_BATCH_SIZE` (currently 200).
     error Whitelist_BatchTooLarge();
 
     /**
-     * @notice Grants the Operator role to a given account
-     * @param fleetCommanderAddress The address of the fleet commander to grant the role for
-     * @param account The account to which the Operator role will be granted
-     *
-     * @dev The operator role is used to restrict usage of a particular contract to a particular
-     *      address. In the context of the fleet commander, only the Operator could deposit and
-     *      withdraw for example
+     * @notice Grants the contract-specific Operator role for `fleetCommanderAddress` to `account`.
+     * @dev Despite the parameter name, the Operator role is scoped to any contract that exposes
+     *      `hasOperatorRole(account)` against itself — typically a Fleet, but also AdmiralsQuarters
+     *      and the rounds vaults. Inheriting contracts (via `ProtocolAccessManagedV2`) use the role
+     *      to let trusted bundler/proxy contracts bypass user-side gateways. Restricted to the
+     *      Governor role.
+     * @param fleetCommanderAddress The contract the Operator role is scoped to (typically a Fleet)
+     * @param account The account to grant the role to
      */
     function grantOperatorRole(
         address fleetCommanderAddress,
@@ -44,9 +49,12 @@ interface IProtocolAccessManagerV2 {
     ) external;
 
     /**
-     * @notice Revokes the Operator role from a given account
-     * @param fleetCommanderAddress The address of the fleet commander to revoke the role for
-     * @param account The account from which the Operator role will be revoked
+     * @notice Revokes the contract-specific Operator role for `fleetCommanderAddress` from `account`.
+     * @dev Despite the parameter name, the Operator role is contract-scoped — it applies to any
+     *      contract that exposes `hasOperatorRole(account)` against itself (see
+     *      `ProtocolAccessManagedV2`), not just Fleets. Restricted to the Governor role.
+     * @param fleetCommanderAddress The contract the Operator role is scoped to (typically a Fleet)
+     * @param account The account to revoke the role from
      */
     function revokeOperatorRole(
         address fleetCommanderAddress,
@@ -54,22 +62,26 @@ interface IProtocolAccessManagerV2 {
     ) external;
 
     /**
-     * @notice Grants the WHITELIST_MANAGER_ROLE to an account
-     * @param account The address of the account to grant the role to
+     * @notice Grants `WHITELIST_MANAGER_ROLE` to `account`.
+     * @dev Whitelist managers may call `setWhitelisted`, `setWhitelistedBatch`, and
+     *      `setWhitelistOpen`. Restricted to the Governor role.
+     * @param account The account to grant the role to.
      */
     function grantWhitelistManagerRole(address account) external;
 
     /**
-     * @notice Revokes the WHITELIST_MANAGER_ROLE from an account
-     * @param account The address of the account to revoke the role from
+     * @notice Revokes `WHITELIST_MANAGER_ROLE` from `account`.
+     * @dev Restricted to the Governor role.
+     * @param account The account to revoke the role from.
      */
     function revokeWhitelistManagerRole(address account) external;
 
     /**
-     * @notice Returns whether an account is whitelisted in a given context
-     * @param context The context (e.g. fleet address) to check against
+     * @notice Returns whether `account` is allowed to interact with `context`.
+     * @param context The context (typically a Fleet address) the check is scoped to
      * @param account The account to check
-     * @return bool True if whitelisted (or if context is globally open)
+     * @return `true` when either `context`'s whitelist is globally open or `account` has an
+     *         explicit whitelist record for `context`.
      */
     function isWhitelisted(
         address context,
@@ -77,10 +89,11 @@ interface IProtocolAccessManagerV2 {
     ) external view returns (bool);
 
     /**
-     * @notice Returns whether multiple accounts are whitelisted in a given context
-     * @param context The context (e.g. fleet address) to check against
-     * @param accounts Array of accounts to check
-     * @return bool[] Array of whitelist statuses
+     * @notice Batch variant of `isWhitelisted`: returns the per-account status array under a single
+     *         load of the `_isWhitelistOpen[context]` flag.
+     * @param context The context the check is scoped to
+     * @param accounts Accounts to check
+     * @return statuses Array of statuses aligned with `accounts`.
      */
     function areWhitelisted(
         address context,
@@ -88,17 +101,19 @@ interface IProtocolAccessManagerV2 {
     ) external view returns (bool[] memory);
 
     /**
-     * @notice Returns whether the whitelist for a given context is globally open
+     * @notice Returns whether `context`'s whitelist has been globally opened.
      * @param context The context to check
-     * @return bool True if open
+     * @return True if `context`'s whitelist is globally open.
      */
     function isWhitelistOpen(address context) external view returns (bool);
 
     /**
-     * @notice Sets the whitelist status of an account in a given context
-     * @param context The context to update
+     * @notice Sets `account`'s explicit whitelist record for `context`.
+     * @dev Idempotent — no event is emitted when the status is unchanged. Restricted to
+     *      `WHITELIST_MANAGER_ROLE`.
+     * @param context The context the record is scoped to
      * @param account The account to update
-     * @param allowed The new status
+     * @param allowed The new status (`true` for whitelisted, `false` to remove the record).
      */
     function setWhitelisted(
         address context,
@@ -107,10 +122,11 @@ interface IProtocolAccessManagerV2 {
     ) external;
 
     /**
-     * @notice Sets the whitelist status of multiple accounts in a batch within a context
-     * @param context The context to update
-     * @param accounts Array of accounts to update
-     * @param allowed Array of statuses corresponding to the accounts
+     * @notice Batch variant of `setWhitelisted`. Reverts on length mismatch or when the batch
+     *         exceeds `MAX_WHITELIST_BATCH_SIZE`. Restricted to `WHITELIST_MANAGER_ROLE`.
+     * @param context The context the records are scoped to
+     * @param accounts Accounts to update
+     * @param allowed Per-account statuses, aligned with `accounts`
      */
     function setWhitelistedBatch(
         address context,
@@ -119,7 +135,8 @@ interface IProtocolAccessManagerV2 {
     ) external;
 
     /**
-     * @notice Sets the whitelist open status for a given context
+     * @notice Sets the global-open flag for `context`. When `true`, every account reads as
+     *         whitelisted for `context`. Restricted to `WHITELIST_MANAGER_ROLE`.
      * @param context The context to update
      * @param isOpen The new open status
      */

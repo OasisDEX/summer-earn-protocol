@@ -41,8 +41,9 @@ contract FleetCommanderWhitelist is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the FleetCommander contract
-     * @param params FleetCommanderParams struct containing initialization parameters
+     * @notice Initializes the FleetCommander contract.
+     * @param params `FleetCommanderWhitelistParams` struct containing the asset, name/symbol,
+     *               buffer-ark address, fee parameters, gateway state, and access-manager wiring.
      */
     constructor(
         FleetCommanderWhitelistParams memory params
@@ -87,11 +88,10 @@ contract FleetCommanderWhitelist is
         _collectTipPost();
     }
     /**
-     * @dev Modifier to cache ark data for deposit operations.
-     * @notice This modifier retrieves ark data before the function execution,
-     *         allows the modified function to run, and then flushes the cache.
-     * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
-     *         those calls migh be gas expensive for some arks.
+     * @notice Caches deposit-side ark data into transient storage for the duration of the call.
+     * @dev Pre-fetches ark totals up front so the subsequent `totalAssets` / cap checks read from
+     *      transient storage instead of re-calling each ark — those external calls can be gas-
+     *      expensive on some arks. The cache is torn down by the outermost `flushCacheOnExit`.
      */
     modifier useCache() {
         _useCachePre();
@@ -99,11 +99,9 @@ contract FleetCommanderWhitelist is
     }
 
     /**
-     * @dev Modifier to cache withdrawable ark data for withdraw operations.
-     * @notice This modifier retrieves withdrawable ark data before the function execution,
-     *         allows the modified function to run, and then flushes the cache.
-     * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
-     *         those calls migh be gas expensive for some arks.
+     * @notice Caches withdraw-side ark data into transient storage for the duration of the call.
+     * @dev Same rationale as `useCache` but limited to arks that allow synchronous withdrawal, so
+     *      `_forceDisembarkFromSortedArks` can iterate them without re-calling each ark.
      */
     modifier useWithdrawCache() {
         _useWithdrawCachePre();
@@ -111,9 +109,9 @@ contract FleetCommanderWhitelist is
     }
 
     /**
-     * @dev Modifier to flush the cache.
-     * @notice This must be attached to the outermost external/public function
-     *         where cache is initialized to guarantee teardown.
+     * @notice Flushes the transient-storage cache after the wrapped call completes.
+     * @dev Must be attached to the outermost external/public function that initialized the cache
+     *      (`useCache` / `useWithdrawCache`) so the cache is always torn down on the way out.
      */
     modifier flushCacheOnExit() {
         _;
@@ -317,17 +315,15 @@ contract FleetCommanderWhitelist is
                         PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IERC20
     /**
-     * @dev Overrides the totalSupply function to include the tip shares
-     * @dev This is done to ensure that the totalSupply is always accurate, even when tips are being accrued
-     * @dev This is done by checking if the _isCollectingTip flag is set, and if it is, return the totalSupply
-     * @dev If the _isCollectingTip flag is not set, then we need to accrue the tips and return the totalSupply + the
-     * previewTip
-     * @dev when collecting fee we require totalSupply to be the pre tip totalSupply, after the tip is collected the
-     * totalSupply will include the tip shares
-     * @dev when called in view functions we need to return the totalSupply + the previewTip
-     * @return uint256 The total supply of the FleetCommander, including tip shares
+     * @inheritdoc IERC20
+     * @dev Overridden to fold the pending tip shares into the reported total supply, so external
+     *      integrators always see an honest share count. The check on `_isCollectingTip` makes the
+     *      function reentrancy-safe when the contract is mid-tip: while collecting, the parent
+     *      `super.totalSupply()` is returned (pre-tip) to avoid recursion through `previewTip`;
+     *      outside of tip collection, the function adds the previewed tip. After the tip is
+     *      collected, `super.totalSupply()` itself already includes the freshly minted tip shares.
+     * @return The total supply of the FleetCommander, including tip shares
      */
     function totalSupply()
         public
@@ -358,6 +354,8 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IERC4626
+    /// @dev Note: parameter named `owner` historically; semantically the recipient
+    ///      (matches ERC-4626 `receiver`). Signature preserved for upstream compatibility.
     function maxDeposit(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit) {
@@ -372,6 +370,8 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IERC4626
+    /// @dev Note: parameter named `owner` historically; semantically the recipient
+    ///      (matches ERC-4626 `receiver`). Signature preserved for upstream compatibility.
     function maxMint(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxMint) {
@@ -925,7 +925,10 @@ contract FleetCommanderWhitelist is
     /**
      * @notice Validates the asset reallocation data for correctness and consistency
      * @dev This function checks various conditions of the rebalance operations:
-     *      - Number of operations is within limits
+     *      - Number of operations does not exceed `config.maxRebalanceOperations`
+     *        (reverts `FleetCommanderRebalanceTooManyOperations`).
+     *      - `rebalanceData.length > 0` — empty arrays are rejected with
+     *        `FleetCommanderRebalanceNoOperations`.
      * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
      */
     function _validateReallocateAllAssets(
@@ -1009,7 +1012,7 @@ contract FleetCommanderWhitelist is
      * @param shares The number of shares to redeem
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
-     * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
      * @custom:error FleetCommanderZeroAmount Thrown when the withdrawal amount is zero
      */
     function _validateBufferWithdraw(
@@ -1040,7 +1043,7 @@ contract FleetCommanderWhitelist is
      * @param shares The number of shares to redeem
      * @param owner The address of the owner of the shares
      * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
-     * @custom:error IERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
      * @custom:error FleetCommanderZeroAmount Thrown when the redemption amount is zero
      */
     function _validateBufferRedeem(
@@ -1069,7 +1072,7 @@ contract FleetCommanderWhitelist is
      * @param assets The amount of assets to deposit
      * @param owner The address of the account making the deposit
      * @custom:error FleetCommanderZeroAmount Thrown when the deposit amount is zero
-     * @custom:error IERC4626ExceededMaxDeposit Thrown when the deposit amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxDeposit Thrown when the deposit amount exceeds the maximum allowed
      */
     function _validateDeposit(uint256 assets, address owner) internal view {
         if (assets == 0) {
@@ -1087,7 +1090,7 @@ contract FleetCommanderWhitelist is
      * @param shares The number of shares to mint
      * @param owner The address of the account minting the shares
      * @custom:error FleetCommanderZeroAmount Thrown when the mint amount is zero
-     * @custom:error IERC4626ExceededMaxMint Thrown when the mint amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxMint Thrown when the mint amount exceeds the maximum allowed
      */
     function _validateMint(uint256 shares, address owner) internal view {
         if (shares == 0) {
@@ -1108,7 +1111,7 @@ contract FleetCommanderWhitelist is
      * @param shares The amount of shares to redeem
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
-     * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
      * @custom:error FleetCommanderZeroAmount Thrown when the withdrawal amount is zero
      */
     function _validateWithdrawFromArks(
@@ -1140,7 +1143,7 @@ contract FleetCommanderWhitelist is
      * @param shares The amount of shares to redeem
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
-     * @custom:error IERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
+     * @custom:error ERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
      * @custom:error FleetCommanderZeroAmount Thrown when the redemption amount is zero
      */
     function _validateRedeemFromArks(
@@ -1173,9 +1176,12 @@ contract FleetCommanderWhitelist is
 
     /**
      * @notice Checks if the max functions are blocked
-     * @dev This function checks if the contract is paused, if the caller has operator role, or if the operator gateway
-     * is closed and the caller is not whitelisted
-     * @param account The address to check
+     * @dev Returns true when the contract is paused. Otherwise, when the caller (`_msgSender()`)
+     *      holds the operator role the gate is open (returns false). In the remaining case the
+     *      check is the disjunction (logical OR): the operator gateway is closed OR `account`
+     *      (the address passed in, not the caller) is not whitelisted. Note the distinction:
+     *      the operator-role check is on the caller, while the whitelist check is on `account`.
+     * @param account The address to check against the whitelist
      * @return True if the max functions are blocked, false otherwise
      */
     function _isMaxFunctionBlocked(

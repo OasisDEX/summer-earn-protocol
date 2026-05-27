@@ -12,9 +12,7 @@ import {IProtocolAccessManagerV2} from "@summerfi/access-contracts/interfaces/IP
  *      Inheriting contracts must implement `_getAccessManager()`.
  */
 abstract contract Whitelist is IWhitelist {
-    /**
-     * MODIFIERS
-     */
+    // ----- MODIFIERS -----
 
     /**
      * @notice Ensures `account` is whitelisted in `context`, otherwise reverts.
@@ -26,21 +24,18 @@ abstract contract Whitelist is IWhitelist {
         _;
     }
 
-    /**
-     * VIRTUAL HOOK
-     */
+    // ----- VIRTUAL HOOK -----
 
     /**
      * @notice Returns the address of the access manager to delegate to.
      * @dev Must be implemented by the inheriting contract.
+     * @return The address of the `IProtocolAccessManagerV2` instance that owns the whitelist state.
      */
     function _getAccessManager() internal view virtual returns (address);
 
-    /**
-     * PUBLIC FUNCTIONS
-     */
+    // ----- PUBLIC FUNCTIONS -----
 
-    ///@inheritdoc IWhitelist
+    /// @inheritdoc IWhitelist
     function isWhitelisted(
         address context,
         address account
@@ -48,19 +43,19 @@ abstract contract Whitelist is IWhitelist {
         return _isWhitelisted(context, account);
     }
 
-    ///@inheritdoc IWhitelist
+    /// @inheritdoc IWhitelist
     function isWhitelistOpen(
         address context
     ) public view virtual returns (bool) {
         return _isWhitelistOpen(context);
     }
 
-    /**
-     * INTERNAL VIEW / VALIDATION
-     */
+    // ----- INTERNAL VIEW / VALIDATION -----
 
     /**
      * @notice Returns true if the whitelist for a specific context is globally open
+     * @param context The context whose whitelist openness is being queried.
+     * @return True if every account is implicitly whitelisted for `context`.
      */
     function _isWhitelistOpen(address context) internal view returns (bool) {
         return
@@ -71,6 +66,9 @@ abstract contract Whitelist is IWhitelist {
 
     /**
      * @notice Returns true if `account` is whitelisted in `context`.
+     * @param context The context the check is scoped to.
+     * @param account The account being checked.
+     * @return True if `account` is whitelisted (explicitly or via an open whitelist) for `context`.
      */
     function _isWhitelisted(
         address context,
@@ -84,7 +82,9 @@ abstract contract Whitelist is IWhitelist {
     }
 
     /**
-     * @notice Reverts with NotWhitelisted if `account` is not whitelisted in `context`.
+     * @notice Reverts with `NotWhitelisted` if `account1` is not whitelisted for `context`.
+     * @param context The context the check is scoped to.
+     * @param account1 The account whose whitelist status must hold.
      */
     function _revertIfNotWhitelisted(
         address context,
@@ -94,8 +94,14 @@ abstract contract Whitelist is IWhitelist {
             revert NotWhitelisted(context, account1);
         }
     }
+
     /**
-     * @notice Reverts with NotWhitelisted if `account` is not whitelisted in `context`.
+     * @notice Reverts with `NotWhitelisted` if either `account1` or `account2` is not whitelisted
+     *         for `context`. Performs the check via the batch overload so the access manager is
+     *         queried once per call.
+     * @param context The context the check is scoped to.
+     * @param account1 The first account whose whitelist status must hold.
+     * @param account2 The second account whose whitelist status must hold.
      */
     function _revertIfNotWhitelisted(
         address context,
@@ -109,7 +115,13 @@ abstract contract Whitelist is IWhitelist {
     }
 
     /**
-     * @notice Reverts with NotWhitelisted if `account` is not whitelisted in `context`.
+     * @notice Reverts with `NotWhitelisted` if any of `account1`/`account2`/`account3` is not
+     *         whitelisted for `context`. Used by FleetCommander exit paths and rounds-vault
+     *         redemptions where caller, owner and receiver must all be whitelisted.
+     * @param context The context the check is scoped to.
+     * @param account1 The first account whose whitelist status must hold.
+     * @param account2 The second account whose whitelist status must hold.
+     * @param account3 The third account whose whitelist status must hold.
      */
     function _revertIfNotWhitelisted(
         address context,
@@ -123,9 +135,15 @@ abstract contract Whitelist is IWhitelist {
         accounts[2] = account3;
         _revertIfNotWhitelisted(context, accounts);
     }
+
     /**
-     * @notice Reverts if any of the `accounts` is not whitelisted in `context`.
-     * @dev Optimized with a single external batch call relative to `context`.
+     * @notice Reverts with `NotWhitelisted` for the first account in `accounts` that is not
+     *         whitelisted for `context`.
+     * @dev Resolves to a single external batch call against the access manager, then iterates the
+     *      returned status array.
+     * @dev Assumes `areWhitelisted` returns a status array of identical length to the input.
+     * @param context The context the check is scoped to.
+     * @param accounts The accounts whose whitelist status must all hold.
      */
     function _revertIfNotWhitelisted(
         address context,

@@ -10,13 +10,15 @@ import {IRoundsVaultRegistry} from "../../interfaces/rounds-vault/IRoundsVaultRe
 /**
  * @title RoundsVaultRegistry
  * @notice On-chain registry of (input, output, target) tuples for institutional rounds vaults.
- * @dev    Authoritative discovery point for the rounds-vaults subgraph. Owned by a single account
- *         (typically the protocol multisig) because the registry is shared across institutions
- *         while each institution operates its own ProtocolAccessManager.
  *
- *         Pairs are keyed by `keccak256(targetVault)` rather than an external id, because every
- *         FleetCommander has at most one rounds-vault pair at any time. Soft-deactivation preserves
- *         indexer history; a redeployed vault is registered as a new pair against a new target.
+ * @dev Authoritative discovery point for the rounds-vaults subgraph. Mutators are `onlyOwner`
+ *      (OpenZeppelin `Ownable`). The owner is expected to be the protocol multisig because the
+ *      registry is shared across institutions while each institution operates its own
+ *      `ProtocolAccessManagerV2`.
+ *
+ * @dev Pairs are keyed by `keccak256(targetVault)` rather than an external id, because every
+ *      FleetCommander has at most one rounds-vault pair at any time. Soft-deactivation preserves
+ *      indexer history; a redeployed vault is registered as a new pair against a new target.
  */
 contract RoundsVaultRegistry is Ownable, IRoundsVaultRegistry {
     /*//////////////////////////////////////////////////////////////
@@ -30,6 +32,12 @@ contract RoundsVaultRegistry is Ownable, IRoundsVaultRegistry {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Deploys the registry with `owner` as the sole address authorized to register, update,
+     *         clear, deactivate, or reactivate pairs. The owner can transfer ownership via the
+     *         inherited `Ownable` interface.
+     * @param owner Initial owner of the registry (typically the protocol multisig).
+     */
     constructor(address owner) Ownable(owner) {}
 
     /*//////////////////////////////////////////////////////////////

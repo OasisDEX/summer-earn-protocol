@@ -22,7 +22,7 @@ import {IERC4626MultiTokenErrors} from "../interfaces/extensions/ERC4626MultiTok
     the correct id to be used for minting. The function is not marked as `view` to allow for any scheme of
     ids, including generating a new id on each minting operation
 
-    @dev See { IERC4626MultiToken }
+    @dev See `IERC4626MultiToken`
     
     @dev This contract is a copy-paste of OpenZeppelin's `ERC4626.sol` with some modifications to
     support the ERC-1155 receipts.
@@ -59,17 +59,17 @@ abstract contract ERC4626MultiToken is
      * EXTERNAL/PUBLIC FUNCTIONS
      */
 
-    /** @dev See {IERC4626MultiToken-asset} */
+    /// @inheritdoc IERC4626MultiToken
     function asset() public view virtual override returns (address) {
         return address(_asset);
     }
 
-    /** @dev See {IERC4626MultiToken-totalAssets} */
+    /// @inheritdoc IERC4626MultiToken
     function totalAssets() public view virtual override returns (uint256) {
         return _asset.balanceOf(address(this));
     }
 
-    /** @dev See {IERC4626MultiToken-maxDeposit} */
+    /// @inheritdoc IERC4626MultiToken
     function maxDeposit(
         address
     ) public view virtual override returns (uint256) {
@@ -77,7 +77,7 @@ abstract contract ERC4626MultiToken is
     }
 
     /**
-     * @dev See {IERC4626MultiToken-maxRedeem}
+     * @inheritdoc IERC4626MultiToken
      * @notice Returns the total balance of all receipt IDs owned by the account.
      * @dev WARNING: Standard ERC4626 routers may expect this to return the amount withdrawable
      *      in a single operation. In this multi-token implementation, it represents the aggregate
@@ -90,7 +90,7 @@ abstract contract ERC4626MultiToken is
         return balanceOfAll(owner);
     }
 
-    /** @dev See {IERC4626MultiToken-deposit} */
+    /// @inheritdoc IERC4626MultiToken
     function deposit(
         uint256 assets,
         address receiver
@@ -108,7 +108,7 @@ abstract contract ERC4626MultiToken is
         return assets;
     }
 
-    /** @dev See {IVaultWithReceipts-redeem} */
+    /// @inheritdoc IERC4626MultiToken
     function redeem(
         uint256 id,
         uint256 amount,
@@ -130,7 +130,7 @@ abstract contract ERC4626MultiToken is
         return amount;
     }
 
-    /** @dev See {IVaultWithReceipts-redeemBatch} */
+    /// @inheritdoc IERC4626MultiToken
     function redeemBatch(
         uint256[] memory ids,
         uint256[] memory amounts,
@@ -147,7 +147,7 @@ abstract contract ERC4626MultiToken is
         }
 
         // Emit a single error if the total amount to redeem exceeds the max allowed for the redeemer by the owner of the shares
-        // The round id is left to 0
+        // The full ids array is forwarded to the error for visibility
         if (totalAmount > maxRedeem(owner)) {
             revert MaxRedeemBatchExceeded(
                 _msgSender(),
@@ -176,12 +176,12 @@ abstract contract ERC4626MultiToken is
         uint256 amount,
         uint256 id
     ) private {
-        // @audit If _asset is ERC777, `transferFrom` can trigger a reenterancy BEFORE the transfer happens through the
-        // `tokensToSend` hook. On the other hand, the `tokenReceived` hook, that is triggered after the transfer,
+        // @audit If _asset is ERC777, `transferFrom` can trigger a reentrancy BEFORE the transfer happens through the
+        // `tokensToSend` hook. On the other hand, the `tokensReceived` hook, that is triggered after the transfer,
         // calls the vault, which is assumed not malicious.
         //
         // Conclusion: we need to do the transfer before we mint so that any reentrancy would happen before the
-        // assets are transfered and before the shares are minted, which is a valid state.
+        // assets are transferred and before the shares are minted, which is a valid state.
         // slither-disable-next-line reentrancy-no-eth
         SafeERC20.safeTransferFrom(_asset, caller, address(this), amount);
         _mint(receiver, id, amount, "");
@@ -203,12 +203,12 @@ abstract contract ERC4626MultiToken is
             revert CallerCannotRedeem(caller, owner, id, amount);
         }
 
-        // @audit If _asset is ERC777, `transfer` can trigger trigger a reentrancy AFTER the transfer happens through the
+        // @audit If _asset is ERC777, `transfer` can trigger a reentrancy AFTER the transfer happens through the
         // `tokensReceived` hook. On the other hand, the `tokensToSend` hook, that is triggered before the transfer,
         // calls the vault, which is assumed not malicious.
         //
-        // Conclusion: we need to do the Setransfer after the burn so that any reentrancy would happen after the
-        // shares are burned and after the assets are transfered, which is a valid state.
+        // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
+        // shares are burned and after the assets are transferred, which is a valid state.
         _burn(owner, id, amount);
         SafeERC20.safeTransfer(_asset, receiver, amount);
 
@@ -230,12 +230,12 @@ abstract contract ERC4626MultiToken is
             revert CallerCannotRedeemBatch(caller, owner, ids, amounts);
         }
 
-        // If _asset is ERC777, `transfer` can trigger trigger a reentrancy AFTER the transfer happens through the
+        // If _asset is ERC777, `transfer` can trigger a reentrancy AFTER the transfer happens through the
         // `tokensReceived` hook. On the other hand, the `tokensToSend` hook, that is triggered before the transfer,
         // calls the vault, which is assumed not malicious.
         //
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
-        // shares are burned and after the assets are transfered, which is a valid state.
+        // shares are burned and after the assets are transferred, which is a valid state.
         _burnBatch(owner, ids, amounts);
         SafeERC20.safeTransfer(_asset, receiver, totalAmount);
 
@@ -245,7 +245,7 @@ abstract contract ERC4626MultiToken is
     /**
         @notice Returns the Id to be used for minting the receipt
 
-        @dev This function must be overriden by the child contract to implement any desired strategy
+        @dev This function must be overridden by the child contract to implement any desired strategy
 
         @dev Not marked as `view` to allow the derived contract to modify the state inside it, in case
         a different id is desired for each minting operation
