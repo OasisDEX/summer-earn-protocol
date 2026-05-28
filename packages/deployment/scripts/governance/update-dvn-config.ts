@@ -142,7 +142,12 @@ async function readOnChainUlnConfig(
       requiredDVNs: decoded.requiredDVNs as readonly Address[],
       optionalDVNs: decoded.optionalDVNs as readonly Address[],
     }
-  } catch {
+  } catch (err) {
+    console.warn(
+      `[update-dvn-config] failed to read ULN config (oApp=${oApp} lib=${lib} remoteEid=${remoteEid}): ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    )
     return null
   }
 }

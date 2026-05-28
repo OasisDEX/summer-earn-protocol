@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSwitchChain } from 'wagmi'
 
 import { GlassCard } from '../../../components/GlassCard'
@@ -72,6 +72,13 @@ export function SubmitEditsModal({ pending, authorizations, onClose }: Props) {
   const [started, setStarted] = useState(false)
   const done = started && !running
 
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // focus dialog on mount for screen readers / keyboard users
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
+
   // close on Escape (only when not running)
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -100,11 +107,21 @@ export function SubmitEditsModal({ pending, authorizations, onClose }: Props) {
         if (!running) onClose()
       }}
     >
-      <div className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="w-full max-w-2xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="submit-edits-title"
+        tabIndex={-1}
+        ref={dialogRef}
+      >
         <GlassCard>
           <header className="mb-4 flex items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-white">Submit edits directly</h3>
+              <h3 id="submit-edits-title" className="text-lg font-semibold text-white">
+                Submit edits directly
+              </h3>
               <p className="text-xs text-slate-400 mt-1">
                 {authorizedCount} authorized
                 {skippedCount > 0 ? ` · ${skippedCount} skipped (not authorized)` : ''}

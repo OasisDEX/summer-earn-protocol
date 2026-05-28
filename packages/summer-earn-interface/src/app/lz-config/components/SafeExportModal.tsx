@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { isAddress } from 'viem'
 
 import { GlassCard } from '../../../components/GlassCard'
@@ -17,6 +17,12 @@ const inputCls =
 
 export function SafeExportModal({ pending, onClose }: Props) {
   const [safeAddress, setSafeAddress] = useState<string>('')
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // focus dialog on mount for screen readers / keyboard users
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
 
   // close on Escape
   useEffect(() => {
@@ -59,10 +65,15 @@ export function SafeExportModal({ pending, onClose }: Props) {
       <div
         className="w-full max-w-lg"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="safe-export-title"
+        tabIndex={-1}
+        ref={dialogRef}
       >
         <GlassCard>
           <header className="mb-4 flex items-center justify-between gap-4">
-            <h3 className="text-lg font-semibold text-white">
+            <h3 id="safe-export-title" className="text-lg font-semibold text-white">
               Export Safe Transaction Builder JSON
             </h3>
             <button

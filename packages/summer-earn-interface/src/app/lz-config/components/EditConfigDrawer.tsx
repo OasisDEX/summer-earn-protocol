@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { type Address, type Hex, isAddress, isHex } from 'viem'
 
 import { useOAppAdmin } from '../hooks/useOAppAdmin'
@@ -258,6 +258,13 @@ export function EditConfigDrawer({
 
   // submission error (e.g. missing send lib for setSendConfig)
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const dialogRef = useRef<HTMLElement>(null)
+
+  // focus dialog on mount for screen readers / keyboard users
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
 
   // close on Escape
   useEffect(() => {
@@ -590,13 +597,18 @@ export function EditConfigDrawer({
       <aside
         className="absolute top-0 right-0 h-full w-full md:w-[640px] bg-charcoal-900 border-l border-white/10 overflow-y-auto"
         style={{ backgroundColor: 'rgb(15 23 42)' }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-config-title"
+        tabIndex={-1}
+        ref={dialogRef}
       >
         <header className="sticky top-0 bg-charcoal-900 border-b border-white/10 px-5 py-4 flex items-center justify-between gap-4 z-10">
           <div>
             <div className="text-xs uppercase tracking-wider text-slate-500">
               Edit route
             </div>
-            <h3 className="text-base font-semibold text-white">
+            <h3 id="edit-config-title" className="text-base font-semibold text-white">
               {oApp} · {sourceChain} → <span className="capitalize">{remoteChain}</span>
               {eid ? <span className="text-slate-500 ml-2 text-xs">eid {eid}</span> : null}
             </h3>
