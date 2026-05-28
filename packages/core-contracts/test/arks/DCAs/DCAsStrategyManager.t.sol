@@ -2144,6 +2144,53 @@ contract DCAStrategyManagerIntegrationTest is Test {
         dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
     }
 
+    function test_Execute_RevertsWhenSourceVaultDecommissioned() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            endDate
+        );
+
+        vm.warp(block.timestamp + 7 days);
+
+        // Governance decommissions the source vault after creation.
+        vm.prank(governor);
+        harborCommand.decommissionFleetCommander(address(sourceFleet));
+
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                HarborCommandConsumer.InactiveFleetCommander.selector,
+                address(sourceFleet),
+                "source"
+            )
+        );
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
+    }
+
+    function test_Execute_RevertsWhenTargetVaultDecommissioned() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            endDate
+        );
+
+        vm.warp(block.timestamp + 7 days);
+
+        vm.prank(governor);
+        harborCommand.decommissionFleetCommander(address(targetFleet));
+
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                HarborCommandConsumer.InactiveFleetCommander.selector,
+                address(targetFleet),
+                "target"
+            )
+        );
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
+    }
+
     function test_Execute_SucceedsAfterResume() public {
         uint256 endDate = block.timestamp + 365 days;
         uint256 strategyId = _createStrategy(endDate);

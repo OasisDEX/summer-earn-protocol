@@ -343,7 +343,13 @@ contract DCAStrategyManager is
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData
-    ) external onlyKeeper nonReentrant {
+    )
+        external
+        onlyKeeper
+        nonReentrant
+        onlyActiveFleetCommander(config.sourceVault, "source")
+        onlyActiveFleetCommander(config.targetVault, "target")
+    {
         bytes32 storedCommitment = strategyCommitments[strategyId];
         if (_commitmentHash(config) != storedCommitment) {
             revert CommitmentMismatch(strategyId);
