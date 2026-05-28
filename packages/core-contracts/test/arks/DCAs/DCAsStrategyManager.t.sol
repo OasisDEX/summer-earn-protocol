@@ -1905,6 +1905,89 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
     }
 
+    function test_Execute_EmitsActualConsumedSharesOnUnderspend() public {
+        // When the router underspends, the ExecutionCompleted event must
+        // report the actual consumed shares/assets, not the full tradeAmount.
+        MockEnsoRouterUnderpull underpull = new MockEnsoRouterUnderpull();
+        deal(WETH_ADDRESS, address(underpull), 100 ether);
+        uint256 routerPull = 50e6;
+        uint256 tradeAmount = 100e6;
+        underpull.setSwap(
+            IERC20(address(sourceFleet)),
+            routerPull,
+            IERC20(WETH_ADDRESS),
+            MOCK_WETH_OUT,
+            targetFleet
+        );
+
+        vm.startPrank(governor);
+        DCAStrategyManager newManager = new DCAStrategyManager(
+            address(accessManager),
+            address(underpull),
+            address(harborCommand),
+            PERMIT2
+        );
+        accessManager.grantKeeperRole(address(newManager), keeper);
+        vm.stopPrank();
+
+        vm.startPrank(strategyOwner);
+        IPermit2(PERMIT2).approve(
+            address(sourceFleet),
+            address(newManager),
+            type(uint160).max,
+            type(uint48).max
+        );
+        vm.stopPrank();
+
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        require(cfg.tradeAmount == tradeAmount, "fixture invariant");
+
+        vm.prank(strategyOwner);
+        uint256 strategyId = newManager.createStrategy(cfg);
+
+        vm.warp(block.timestamp + 7 days);
+
+        uint256 expectedInAssets = sourceFleet.convertToAssets(routerPull);
+
+        vm.recordLogs();
+        vm.prank(keeper);
+        newManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+
+        _assertExecutionCompletedActuals(
+            address(newManager),
+            routerPull,
+            expectedInAssets
+        );
+    }
+
+    function _assertExecutionCompletedActuals(
+        address manager,
+        uint256 expectedInShares,
+        uint256 expectedInAssets
+    ) internal view {
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 sig = keccak256(
+            "ExecutionCompleted(uint256,uint256,uint256,uint256,uint256,uint256,uint256)"
+        );
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (
+                logs[i].topics.length > 0 &&
+                logs[i].topics[0] == sig &&
+                logs[i].emitter == manager
+            ) {
+                (, uint256 inShares, , uint256 inAssets, , ) = abi.decode(
+                    logs[i].data,
+                    (uint256, uint256, uint256, uint256, uint256, uint256)
+                );
+                assertEq(inShares, expectedInShares, "inShares actual");
+                assertEq(inAssets, expectedInAssets, "inAssets actual");
+                return;
+            }
+        }
+        revert("ExecutionCompleted event not found");
+    }
+
     function test_Execute_AutoCompletesOnMaxTrades() public {
         // Build a one-shot strategy via _buildConfig and override maxTrades=1.
         uint256 endDate = block.timestamp + 365 days;

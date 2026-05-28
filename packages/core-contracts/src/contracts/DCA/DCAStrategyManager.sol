@@ -635,19 +635,18 @@ contract DCAStrategyManager is
         bytes calldata ensoData,
         StrategyState storage state
     ) internal {
-        uint256 inAssets = config.sourceVault.convertToAssets(
-            config.tradeAmount
-        );
-
         // Scoped to free stack slots before destructuring `_executeSwap`'s returns.
         uint256 minOut;
         {
+            uint256 intendedInAssets = config.sourceVault.convertToAssets(
+                config.tradeAmount
+            );
             (
                 uint256 expectedOutAssets,
                 ChainlinkOraclePrice memory inPrice,
                 ChainlinkOraclePrice memory outPrice
             ) = ChainlinkOracleUtils.convertAmount(
-                    inAssets,
+                    intendedInAssets,
                     config.inAsset,
                     config.inAssetFeed,
                     config.outAsset,
@@ -687,7 +686,8 @@ contract DCAStrategyManager is
             uint256 swappedAmount,
             uint256 outAssets,
             uint256 nextTriggerAt,
-            uint248 tradesExecuted
+            uint248 tradesExecuted,
+            uint256 actualInShares
         ) = _executeSwap(
                 strategyId,
                 config,
@@ -700,9 +700,9 @@ contract DCAStrategyManager is
         emit ExecutionCompleted(
             strategyId,
             tradesExecuted,
-            config.tradeAmount,
+            actualInShares,
             swappedAmount,
-            inAssets,
+            config.sourceVault.convertToAssets(actualInShares),
             outAssets,
             nextTriggerAt
         );
@@ -741,7 +741,8 @@ contract DCAStrategyManager is
             uint256 swappedAmount,
             uint256 outAssets,
             uint256 nextTriggerAt,
-            uint248 tradesExecuted
+            uint248 tradesExecuted,
+            uint256 actualInShares
         )
     {
         // Effects.
@@ -753,14 +754,19 @@ contract DCAStrategyManager is
 
         IERC20 targetShares = IERC20(address(config.targetVault));
         IERC20 sourceShares = IERC20(address(config.sourceVault));
-        uint256 targetSharesBefore = targetShares.balanceOf(address(this));
 
         // Interactions.
-        _ensoSwap(address(config.sourceVault), config.tradeAmount, ensoData);
-
-        swappedAmount =
-            targetShares.balanceOf(address(this)) -
-            targetSharesBefore;
+        {
+            uint256 targetSharesBefore = targetShares.balanceOf(address(this));
+            _ensoSwap(
+                address(config.sourceVault),
+                config.tradeAmount,
+                ensoData
+            );
+            swappedAmount =
+                targetShares.balanceOf(address(this)) -
+                targetSharesBefore;
+        }
 
         if (swappedAmount < minOut) {
             revert SwapOutputBelowMinOut(strategyId, minOut, swappedAmount);
@@ -769,13 +775,17 @@ contract DCAStrategyManager is
         targetShares.safeTransfer(config.owner, swappedAmount);
 
         // Refund any source-vault shares the router didn't consume.
-        uint256 sourceSharesAfter = sourceShares.balanceOf(address(this));
-        if (sourceSharesAfter > sourceSharesBaseline) {
-            sourceShares.safeTransfer(
-                config.owner,
-                sourceSharesAfter - sourceSharesBaseline
-            );
+        uint256 residue;
+        {
+            uint256 sourceSharesAfter = sourceShares.balanceOf(address(this));
+            if (sourceSharesAfter > sourceSharesBaseline) {
+                residue = sourceSharesAfter - sourceSharesBaseline;
+            }
         }
+        if (residue > 0) {
+            sourceShares.safeTransfer(config.owner, residue);
+        }
+        actualInShares = config.tradeAmount - residue;
 
         outAssets = config.targetVault.convertToAssets(swappedAmount);
     }
