@@ -236,5 +236,6 @@
   "staging_extDemo_USDC_mainnet_WisdomTree_WTGXX_usdc_1#WisdomTreeArk": "0xccd07C6c3eCAe85b8Bd8623047C6380d304f2193",
   "staging_extDemo_USDC_mainnet_WisdomTree_WTSIX_usdc_1#WisdomTreeArk": "0xEEc23130C702c1bDBC20743673D9E13D851e6F04",
   "AdmiralsQuartersModule_20260410T141537361#AdmiralsQuarters": "0xf5A69789Bf5e62A43C47E4c8d857b8DAE14d4ab0",
-  "AdmiralsQuartersModule_20260422T081512059#AdmiralsQuarters": "0x09124a25756223Eb7A523A0377cc83Dc8D22e1bE"
+  "AdmiralsQuartersModule_20260422T081512059#AdmiralsQuarters": "0x09124a25756223Eb7A523A0377cc83Dc8D22e1bE",
+  "LazyVault_HigherRisk_USDC_OriginUSD_usdc_1_gov#OriginUSDArk": "0x1C354B455bEf33744397A561dC518A2a9F4f5bab"
 }
