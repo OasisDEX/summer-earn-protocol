@@ -1,4 +1,4 @@
-import { Address, encodeFunctionData, type Hex } from 'viem'
+import { Address, encodeFunctionData, getAddress, type Hex } from 'viem'
 
 import { getEndpoint } from './configReader'
 import { encodeExecutorConfig, encodeUlnConfig } from './encodeDecode'
@@ -142,7 +142,9 @@ export function buildSafeTxJsonByChain(
     const txs = chainEdits.map((edit) => {
       const { to, data } = editToTx(edit, endpoint)
       return {
-        to,
+        // The Safe Apps Transaction Builder rejects non-EIP-55 `to` addresses
+        // on import, and our index.json keeps addresses lowercased.
+        to: getAddress(to),
         value: '0',
         data,
         contractMethod: null,

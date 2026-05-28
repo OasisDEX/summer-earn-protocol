@@ -105,14 +105,16 @@ export function evaluateRoute({
   for (const which of ['sendUln', 'receiveUln'] as const) {
     const u = onChain?.[which]
     if (!u) continue
+    // Total DVNs that MUST attest for a message = all required + at least
+    // `optionalDVNThreshold` of the optional pool (capped by optionalDVNCount).
     const totalCovered = u.requiredDVNCount + Math.min(u.optionalDVNCount, u.optionalDVNThreshold)
-    if (u.requiredDVNCount < 2 && u.optionalDVNThreshold < 1) {
+    if (totalCovered < 2) {
       recs.push({
         id: `${which}-low-dvn`,
         severity: 'error',
-        message: `${which === 'sendUln' ? 'Send' : 'Receive'} ULN has fewer than 2 attesting DVNs (required=${u.requiredDVNCount}, optionalThreshold=${u.optionalDVNThreshold}).`,
+        message: `${which === 'sendUln' ? 'Send' : 'Receive'} ULN has fewer than 2 attesting DVNs (required=${u.requiredDVNCount}, optionalCount=${u.optionalDVNCount}, optionalThreshold=${u.optionalDVNThreshold}).`,
       })
-    } else if (totalCovered < 2) {
+    } else if (totalCovered < 3) {
       recs.push({
         id: `${which}-thin`,
         severity: 'warn',

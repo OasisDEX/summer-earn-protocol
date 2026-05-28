@@ -33,7 +33,10 @@ export function LzConfigDashboard() {
   const [oApp, setOApp] = useState<OAppKind>('SummerToken')
   const [selectedRemote, setSelectedRemote] = useState<ChainName | null>(null)
 
-  const [pending, setPending] = useState<PendingEdit[]>([])
+  // Each pending edit carries a stable `_id` so the cart's React keys survive
+  // mid-list removals. The id is private to the cart UI; downstream consumers
+  // (Safe export, direct submit) still treat the entries as plain PendingEdits.
+  const [pending, setPending] = useState<(PendingEdit & { _id: string })[]>([])
   const [editingRemote, setEditingRemote] = useState<ChainName | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [submitOpen, setSubmitOpen] = useState(false)
@@ -116,7 +119,8 @@ export function LzConfigDashboard() {
           desired={getDesiredRouteConfig(sourceChain, editingRemote, oApp)}
           onClose={() => setEditingRemote(null)}
           onSubmit={(edits) => {
-            setPending((prev) => [...prev, ...edits])
+            const withIds = edits.map((e) => ({ ...e, _id: crypto.randomUUID() }))
+            setPending((prev) => [...prev, ...withIds])
             setEditingRemote(null)
           }}
         />

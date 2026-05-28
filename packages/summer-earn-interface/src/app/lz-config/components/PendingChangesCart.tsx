@@ -6,8 +6,13 @@ import { GlassCard } from '../../../components/GlassCard'
 import type { EditAuthResult } from '../hooks/useEditAuthorizations'
 import type { ChainName, PendingEdit } from '../lib/types'
 
+// The dashboard tags each cart entry with a stable `_id` so React keys
+// survive mid-list removals. The cart accepts plain PendingEdits to keep
+// callers flexible, but uses the id when present.
+type CartEntry = PendingEdit & { _id?: string }
+
 interface Props {
-  pending: PendingEdit[]
+  pending: CartEntry[]
   authorizations: EditAuthResult[]
   onRemove: (index: number) => void
   onClear: () => void
@@ -35,7 +40,7 @@ function describeEdit(e: PendingEdit): string {
 }
 
 interface GroupedItem {
-  edit: PendingEdit
+  edit: CartEntry
   originalIndex: number
 }
 
@@ -92,7 +97,7 @@ export function PendingChangesCart({
                   const auth = authorizations[originalIndex]
                   return (
                     <li
-                      key={originalIndex}
+                      key={edit._id ?? `idx-${originalIndex}`}
                       className="flex items-center justify-between gap-2 text-xs text-slate-300 bg-white/[0.02] border border-white/5 rounded-lg px-2 py-1.5"
                     >
                       <div className="min-w-0 flex-1">

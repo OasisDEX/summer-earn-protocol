@@ -181,10 +181,10 @@ async function createRouteConfiguration(
       optionalDVNThreshold: 1,
       requiredDVNs: (
         [dvns.lzLabs as Address, dvns.thirdDvn as Address] as Address[]
-      ).sort() as readonly Address[],
+      ).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) as readonly Address[],
       optionalDVNs: (
         [dvns.secondDvn as Address, dvns.horizen as Address] as Address[]
-      ).sort() as readonly Address[],
+      ).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) as readonly Address[],
     }
   } else if (hasThirdDvn) {
     // 3-DVN fallback: LZ Labs required + 1-of-2 optional (secondDvn / thirdDvn).
@@ -195,10 +195,10 @@ async function createRouteConfiguration(
       requiredDVNCount: 1,
       optionalDVNCount: 2,
       optionalDVNThreshold: 1,
-      requiredDVNs: ([dvns.lzLabs as Address] as Address[]).sort() as readonly Address[],
+      requiredDVNs: ([dvns.lzLabs as Address] as Address[]).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) as readonly Address[],
       optionalDVNs: (
         [dvns.secondDvn as Address, dvns.thirdDvn as Address] as Address[]
-      ).sort() as readonly Address[],
+      ).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) as readonly Address[],
     }
   } else {
     // 2-of-2 strict — last-resort fallback when neither thirdDvn nor horizen is set.
@@ -209,7 +209,7 @@ async function createRouteConfiguration(
       optionalDVNThreshold: 0,
       requiredDVNs: (
         [dvns.lzLabs as Address, dvns.secondDvn as Address] as Address[]
-      ).sort() as readonly Address[],
+      ).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) as readonly Address[],
       optionalDVNs: [] as readonly Address[],
     }
   }
