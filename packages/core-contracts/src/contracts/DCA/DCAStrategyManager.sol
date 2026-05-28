@@ -624,6 +624,9 @@ contract DCAStrategyManager is
             );
         }
 
+        uint256 sourceSharesBaseline = IERC20(address(config.sourceVault))
+            .balanceOf(address(this));
+
         _pullFunds(
             config.owner,
             address(config.sourceVault),
@@ -635,7 +638,14 @@ contract DCAStrategyManager is
             uint256 outAssets,
             uint256 nextTriggerAt,
             uint248 tradesExecuted
-        ) = _executeSwap(strategyId, config, ensoData, state, minOut);
+        ) = _executeSwap(
+                strategyId,
+                config,
+                ensoData,
+                state,
+                minOut,
+                sourceSharesBaseline
+            );
 
         emit ExecutionCompleted(
             strategyId,
@@ -657,17 +667,24 @@ contract DCAStrategyManager is
     /**
      * @dev CEI sequence for the swap mechanics of a single DCA trade: advance
      *      state, route source shares through Enso, verify `minOut`, transfer
-     *      target shares to the owner. Lifecycle decisions (terminal-state
-     *      transition, event emission) are handled by the caller.
-     *      Reverts with `SwapOutputBelowMinOut` when received shares are below
-     *      the slippage-adjusted minimum.
+     *      target shares to the owner, refund any unused source shares. Lifecycle
+     *      decisions (terminal-state transition, event emission) are handled by
+     *      the caller. Reverts with `SwapOutputBelowMinOut` when received shares
+     *      are below the slippage-adjusted minimum.
+     *
+     *      `sourceSharesBaseline` is the manager's source-vault share balance
+     *      captured by the caller before pulling funds. Any source shares left
+     *      in the contract above this baseline after the Enso call are returned
+     *      to `config.owner` — defending the "no funds held between txs"
+     *      invariant against routers that underspend the approval.
      */
     function _executeSwap(
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData,
         StrategyState storage state,
-        uint256 minOut
+        uint256 minOut,
+        uint256 sourceSharesBaseline
     )
         internal
         returns (
@@ -685,6 +702,7 @@ contract DCAStrategyManager is
         tradesExecuted = state.tradesExecuted;
 
         IERC20 targetShares = IERC20(address(config.targetVault));
+        IERC20 sourceShares = IERC20(address(config.sourceVault));
         uint256 targetSharesBefore = targetShares.balanceOf(address(this));
 
         // Interactions.
@@ -699,6 +717,15 @@ contract DCAStrategyManager is
         }
 
         targetShares.safeTransfer(config.owner, swappedAmount);
+
+        // Refund any source-vault shares the router didn't consume.
+        uint256 sourceSharesAfter = sourceShares.balanceOf(address(this));
+        if (sourceSharesAfter > sourceSharesBaseline) {
+            sourceShares.safeTransfer(
+                config.owner,
+                sourceSharesAfter - sourceSharesBaseline
+            );
+        }
 
         outAssets = config.targetVault.convertToAssets(swappedAmount);
     }

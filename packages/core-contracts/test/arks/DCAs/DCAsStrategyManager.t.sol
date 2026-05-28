@@ -1769,6 +1769,76 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
     }
 
+    function test_Execute_RefundsUnusedSourceSharesWhenRouterUnderspends()
+        public
+    {
+        // Router pulls 50e6 of the approved 100e6. The remaining 50e6 must be
+        // refunded to the strategy owner instead of stranded in the manager.
+        MockEnsoRouterUnderpull underpull = new MockEnsoRouterUnderpull();
+        deal(WETH_ADDRESS, address(underpull), 100 ether);
+        uint256 routerPull = 50e6;
+        uint256 tradeAmount = 100e6;
+        underpull.setSwap(
+            IERC20(address(sourceFleet)),
+            routerPull,
+            IERC20(WETH_ADDRESS),
+            MOCK_WETH_OUT,
+            targetFleet
+        );
+
+        vm.startPrank(governor);
+        DCAStrategyManager newManager = new DCAStrategyManager(
+            address(accessManager),
+            address(underpull),
+            address(harborCommand),
+            PERMIT2
+        );
+        accessManager.grantKeeperRole(address(newManager), keeper);
+        vm.stopPrank();
+
+        vm.startPrank(strategyOwner);
+        IPermit2(PERMIT2).approve(
+            address(sourceFleet),
+            address(newManager),
+            type(uint160).max,
+            type(uint48).max
+        );
+        vm.stopPrank();
+
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        require(cfg.tradeAmount == tradeAmount, "fixture invariant");
+
+        vm.prank(strategyOwner);
+        uint256 strategyId = newManager.createStrategy(cfg);
+
+        vm.warp(block.timestamp + 7 days);
+
+        uint256 ownerSharesBefore = IERC20(address(sourceFleet)).balanceOf(
+            strategyOwner
+        );
+
+        vm.prank(keeper);
+        newManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+
+        uint256 ownerSharesAfter = IERC20(address(sourceFleet)).balanceOf(
+            strategyOwner
+        );
+
+        // Owner is only debited what the router actually consumed.
+        assertEq(
+            ownerSharesBefore - ownerSharesAfter,
+            routerPull,
+            "Owner must lose only the consumed source shares"
+        );
+        // Manager holds no residual source shares.
+        assertEq(
+            IERC20(address(sourceFleet)).balanceOf(address(newManager)),
+            0,
+            "Manager must not strand unused source shares"
+        );
+    }
+
     function test_Execute_AutoCompletesOnMaxTrades() public {
         // Build a one-shot strategy via _buildConfig and override maxTrades=1.
         uint256 endDate = block.timestamp + 365 days;
