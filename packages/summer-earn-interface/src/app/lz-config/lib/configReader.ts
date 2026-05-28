@@ -68,8 +68,12 @@ export function getDesiredUln(sourceChain: ChainName, remoteChain: ChainName): U
       requiredDVNCount: 2,
       optionalDVNCount: 2,
       optionalDVNThreshold: 1,
-      requiredDVNs: ([dvns.lzLabs, dvns.thirdDvn] as Address[]).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) as readonly Address[],
-      optionalDVNs: ([dvns.secondDvn, dvns.horizen] as Address[]).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) as readonly Address[],
+      requiredDVNs: ([dvns.lzLabs, dvns.thirdDvn] as Address[]).sort((a, b) =>
+        a.toLowerCase().localeCompare(b.toLowerCase()),
+      ) as readonly Address[],
+      optionalDVNs: ([dvns.secondDvn, dvns.horizen] as Address[]).sort((a, b) =>
+        a.toLowerCase().localeCompare(b.toLowerCase()),
+      ) as readonly Address[],
     }
   }
   if (hasThirdDvn) {
@@ -81,8 +85,12 @@ export function getDesiredUln(sourceChain: ChainName, remoteChain: ChainName): U
       requiredDVNCount: 1,
       optionalDVNCount: 2,
       optionalDVNThreshold: 1,
-      requiredDVNs: ([dvns.lzLabs] as Address[]).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) as readonly Address[],
-      optionalDVNs: ([dvns.secondDvn, dvns.thirdDvn] as Address[]).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) as readonly Address[],
+      requiredDVNs: ([dvns.lzLabs] as Address[]).sort((a, b) =>
+        a.toLowerCase().localeCompare(b.toLowerCase()),
+      ) as readonly Address[],
+      optionalDVNs: ([dvns.secondDvn, dvns.thirdDvn] as Address[]).sort((a, b) =>
+        a.toLowerCase().localeCompare(b.toLowerCase()),
+      ) as readonly Address[],
     }
   }
   // 2-of-2 strict — last-resort fallback when neither thirdDvn nor horizen is set.
@@ -91,7 +99,9 @@ export function getDesiredUln(sourceChain: ChainName, remoteChain: ChainName): U
     requiredDVNCount: 2,
     optionalDVNCount: 0,
     optionalDVNThreshold: 0,
-    requiredDVNs: ([dvns.lzLabs, dvns.secondDvn] as Address[]).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) as readonly Address[],
+    requiredDVNs: ([dvns.lzLabs, dvns.secondDvn] as Address[]).sort((a, b) =>
+      a.toLowerCase().localeCompare(b.toLowerCase()),
+    ) as readonly Address[],
     optionalDVNs: [] as readonly Address[],
   }
 }
