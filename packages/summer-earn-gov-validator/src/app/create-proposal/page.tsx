@@ -90,6 +90,17 @@ interface ArgumentFieldProps {
   labelPrefix?: string
 }
 
+type GasSeverity = 'ok' | 'warning' | 'critical'
+const GAS_SEVERITY_ORDER: Record<GasSeverity | 'idle', number> = {
+  idle: 0,
+  ok: 1,
+  warning: 2,
+  critical: 3,
+}
+
+const bigIntSafeReplacer = (_key: string, value: unknown): unknown =>
+  typeof value === 'bigint' ? value.toString() : value
+
 const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
   param,
   value,
@@ -199,7 +210,7 @@ export default function CreateProposalPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { results, isSimulating, triggerSimulation } = useSimulation()
+  const { results, isSimulating, triggerSimulation, setResults } = useSimulation()
   const [actions, setActions] = useState<ProposalAction[]>([
     {
       id: Math.random().toString(36).substr(2, 9),
@@ -216,7 +227,102 @@ export default function CreateProposalPage() {
   const [failedAbiFetchIds, setFailedAbiFetchIds] = useState<Set<string>>(new Set())
   const [isDecodingImport, setIsDecodingImport] = useState(false)
   const [decodeErrors, setDecodeErrors] = useState<Record<string, string>>({})
+  // Per‑destination LayerZero executor gas limit (encoded into `_options`).
+  // Stored as strings so the input stays controllable; parsed to bigint on use.
+  // Once the proposal is queued in the timelock these values are frozen, so
+  // we surface a warning below if simulated gasUsed approaches them.
+  const DEFAULT_LZ_GAS_LIMIT = '500000'
+  const [lzGasLimits, setLzGasLimits] = useState<Record<string, string>>({})
   const descriptionRef = React.useRef<HTMLTextAreaElement>(null)
+
+  const satelliteChainIds = useMemo(
+    () => Array.from(new Set(actions.map((a) => a.chainId).filter((id) => id !== HUB_CHAIN_ID))),
+    [actions],
+  )
+
+  // Expected sim targets = hub + every chain referenced by an action. Used by
+  // the simulation gate so we validate against the chains we *expected*, not
+  // just the ones that happened to show up in `results`.
+  const expectedChainIds = useMemo(
+    () => Array.from(new Set([HUB_CHAIN_ID, ...actions.map((a) => a.chainId)])),
+    [actions],
+  )
+
+  const parseLzGas = (raw: string | undefined): bigint => {
+    if (!raw) return BigInt(DEFAULT_LZ_GAS_LIMIT)
+    const cleaned = raw.replace(/[_,\s]/g, '')
+    if (!/^\d+$/.test(cleaned)) return BigInt(DEFAULT_LZ_GAS_LIMIT)
+    try {
+      return BigInt(cleaned)
+    } catch {
+      return BigInt(DEFAULT_LZ_GAS_LIMIT)
+    }
+  }
+
+  // Signature of the inputs that feed simulation. Any change invalidates the
+  // previous run so the user cannot edit actions after a green simulation and
+  // submit with stale results.
+  const actionsSignature = useMemo(
+    () =>
+      JSON.stringify(
+        {
+          actions: actions.map((a) => ({
+            chainId: a.chainId,
+            target: a.target,
+            method: a.method,
+            args: a.args,
+            rawCalldata: a.rawCalldata ?? null,
+            rawValue: a.rawValue ?? null,
+          })),
+          lzGasLimits,
+        },
+        bigIntSafeReplacer,
+      ),
+    [actions, lzGasLimits],
+  )
+
+  // Signature captured at the last triggerSimulation call. The gate compares
+  // it against the live actionsSignature so even within the one-render window
+  // before the invalidation effect runs, stale results don't count.
+  const lastSimSignatureRef = React.useRef<string | null>(null)
+
+  useEffect(() => {
+    setResults({})
+    lastSimSignatureRef.current = null
+    // intentionally only re-run on actionsSignature change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionsSignature])
+
+  const simulationPassed =
+    lastSimSignatureRef.current === actionsSignature &&
+    expectedChainIds.every((cid) => results[cid]?.status === 'success')
+
+  interface GasInsight {
+    chainId: string
+    encodedGas: bigint
+    gasUsed?: number
+    ratio?: number
+    severity: GasSeverity | 'idle'
+  }
+
+  const gasInsights: GasInsight[] = useMemo(() => {
+    return satelliteChainIds.map((cid) => {
+      const encodedGas = parseLzGas(lzGasLimits[cid])
+      const gasUsed = results[cid]?.gasUsed
+      if (gasUsed === undefined || results[cid]?.status !== 'success') {
+        return { chainId: cid, encodedGas, severity: 'idle' }
+      }
+      const encodedGasNum = Number(encodedGas)
+      const ratio = encodedGasNum === 0 ? Number.POSITIVE_INFINITY : gasUsed / encodedGasNum
+      const severity: GasSeverity = ratio >= 1 ? 'critical' : ratio >= 0.7 ? 'warning' : 'ok'
+      return { chainId: cid, encodedGas, gasUsed, ratio, severity }
+    })
+  }, [satelliteChainIds, lzGasLimits, results])
+
+  const worstGasSeverity: GasSeverity | 'idle' = gasInsights.reduce<GasSeverity | 'idle'>(
+    (acc, i) => (GAS_SEVERITY_ORDER[i.severity] > GAS_SEVERITY_ORDER[acc] ? i.severity : acc),
+    'idle',
+  )
 
   const insertMarkdown = (prefix: string, suffix: string = '') => {
     const textarea = descriptionRef.current
@@ -346,7 +452,7 @@ export default function CreateProposalPage() {
           throw new Error(`Chain ${chainId} not found in CHAINS config`)
         }
         const dstDescription = `SIPX.Y.Z Cross-Chain Actions for ${chainInfo?.name}`
-        const lzOptions = constructLzOptions(500000n)
+        const lzOptions = constructLzOptions(parseLzGas(lzGasLimits[chainId]))
 
         hubTargets.push(HUB_GOVERNOR_ADDRESS)
         hubValues.push(0n)
@@ -678,6 +784,9 @@ export default function CreateProposalPage() {
       }
     })
 
+    // Capture the signature of the inputs we're simulating. simulationPassed
+    // only goes true again when the live actionsSignature still matches this.
+    lastSimSignatureRef.current = actionsSignature
     await triggerSimulation(simActions)
   }
 
@@ -764,9 +873,24 @@ export default function CreateProposalPage() {
               </button>
               <button
                 onClick={handlePropose}
-                disabled={!isEligible || !title || isSubmitting}
+                disabled={
+                  !isEligible || !title || isSubmitting || isSimulating || !simulationPassed
+                }
+                title={
+                  isSimulating
+                    ? 'Simulation running…'
+                    : !simulationPassed
+                      ? lastSimSignatureRef.current !== actionsSignature
+                        ? 'Run simulation against the current actions before submitting'
+                        : 'Simulation has reverts or errors — fix and re-simulate before submitting'
+                      : worstGasSeverity === 'critical'
+                        ? 'Warning: simulated gas exceeds encoded _options gas on at least one chain'
+                        : worstGasSeverity === 'warning'
+                          ? 'Warning: less than 30% gas headroom on at least one chain'
+                          : undefined
+                }
                 className={`px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg ${
-                  isEligible && title
+                  isEligible && title && simulationPassed && !isSimulating
                     ? 'bg-primary text-on-primary hover:brightness-110 shadow-primary/20'
                     : 'bg-surface-container-highest text-on-surface-variant cursor-not-allowed grayscale'
                 }`}
@@ -780,6 +904,123 @@ export default function CreateProposalPage() {
               </button>
             </div>
           </div>
+
+          {/* Cross-Chain Gas Limits */}
+          {satelliteChainIds.length > 0 && (
+            <section className="mb-10 space-y-6">
+              <div className="flex items-center gap-3">
+                <Settings className="text-primary" size={20} />
+                <h2 className="text-xl font-bold">LayerZero Gas Limits</h2>
+              </div>
+              <p className="text-xs text-on-surface-variant max-w-3xl">
+                Executor gas limit baked into <code className="font-mono">_options</code> per
+                destination. Frozen at queue time — once the proposal is in the timelock you
+                can&apos;t bump it. Re-run the simulation after editing.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {gasInsights.map((insight) => {
+                  const chain = CHAINS.find((c) => c.id === insight.chainId)
+                  const severity = insight.severity
+                  const badge =
+                    severity === 'critical'
+                      ? { label: 'OVER LIMIT', className: 'text-error border-error/30 bg-error/10' }
+                      : severity === 'warning'
+                        ? {
+                            label: 'TIGHT',
+                            className: 'text-warning border-warning/30 bg-warning/10',
+                          }
+                        : severity === 'ok'
+                          ? {
+                              label: 'OK',
+                              className: 'text-success border-success/30 bg-success/10',
+                            }
+                          : {
+                              label: 'NOT SIMULATED',
+                              className:
+                                'text-on-surface-variant border-outline-variant bg-surface-container-low',
+                            }
+                  const ratioPct =
+                    insight.ratio !== undefined
+                      ? Number.isFinite(insight.ratio)
+                        ? Math.round(insight.ratio * 100)
+                        : Infinity
+                      : null
+                  return (
+                    <div
+                      key={insight.chainId}
+                      className={`p-5 rounded-2xl border bg-surface-container-lowest space-y-3 ${
+                        severity === 'critical'
+                          ? 'border-error/40'
+                          : severity === 'warning'
+                            ? 'border-warning/40'
+                            : 'border-outline-variant'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-sm">{chain?.name ?? insight.chainId}</span>
+                        <span
+                          className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${badge.className}`}
+                        >
+                          {badge.label}
+                        </span>
+                      </div>
+                      <label className="block">
+                        <span className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase ml-1">
+                          Executor Gas
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={lzGasLimits[insight.chainId] ?? DEFAULT_LZ_GAS_LIMIT}
+                          onChange={(e) =>
+                            setLzGasLimits((prev) => ({
+                              ...prev,
+                              [insight.chainId]: e.target.value,
+                            }))
+                          }
+                          className="mt-1 w-full bg-surface-container-low border border-outline-variant rounded-xl p-3 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                          placeholder={DEFAULT_LZ_GAS_LIMIT}
+                        />
+                      </label>
+                      <div className="flex justify-between text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">
+                        <span>Simulated Gas</span>
+                        <span className="font-mono text-on-surface">
+                          {insight.gasUsed !== undefined ? insight.gasUsed.toLocaleString() : '—'}
+                        </span>
+                      </div>
+                      {ratioPct !== null && (
+                        <div className="flex justify-between text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">
+                          <span>Headroom</span>
+                          <span
+                            className={`font-mono ${
+                              severity === 'critical'
+                                ? 'text-error'
+                                : severity === 'warning'
+                                  ? 'text-warning'
+                                  : 'text-success'
+                            }`}
+                          >
+                            {ratioPct === Infinity ? '∞' : ratioPct}% used
+                          </span>
+                        </div>
+                      )}
+                      {severity === 'critical' && (
+                        <p className="text-[10px] text-error">
+                          Simulated execution exceeds encoded gas. Raise the limit before
+                          submitting.
+                        </p>
+                      )}
+                      {severity === 'warning' && (
+                        <p className="text-[10px] text-warning">
+                          Less than 30% headroom. Consider raising the limit before submitting.
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
 
           {/* Simulation Center */}
           <section className="mb-10 space-y-6">
