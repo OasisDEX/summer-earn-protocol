@@ -116,3 +116,4 @@ myenv
 **/terraform.tfvars
 *.tfvars
 .next-docs
+.claude
