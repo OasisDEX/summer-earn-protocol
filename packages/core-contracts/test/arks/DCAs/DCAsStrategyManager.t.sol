@@ -1136,6 +1136,44 @@ contract DCAStrategyManagerTest is Test {
         assertEq(state.nextTriggerAt, block.timestamp + config.interval);
     }
 
+    function test_ResumeStrategy_UpdatesLastScheduledAt() public {
+        // Pre-fix regression: after pause + long delay + resume + edit, the
+        // edit recomputed nextTriggerAt from the stale pre-pause lastScheduledAt,
+        // placing it in the past and re-opening the strategy immediately.
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        dcaManager.pauseStrategy(strategyId, config);
+
+        vm.warp(block.timestamp + 30 days);
+        dcaManager.resumeStrategy(strategyId, config);
+
+        IDCAStrategyManager.StrategyState memory afterResume = dcaManager
+            .strategyStates(strategyId);
+        assertEq(
+            afterResume.lastScheduledAt,
+            block.timestamp,
+            "resume must anchor lastScheduledAt to the resume moment"
+        );
+
+        // Edit immediately after resume: nextTriggerAt should be in the future.
+        // (Build newCfg from a fresh _defaultConfig() because memory-struct
+        // assignment in Solidity is by reference — aliasing `config` would
+        // mutate it and break the commitment check.)
+        IDCAStrategyManager.StrategyConfig memory newCfg = _defaultConfig();
+        newCfg.maxTrades = config.maxTrades + 1;
+        dcaManager.editStrategy(strategyId, config, newCfg);
+        vm.stopPrank();
+
+        IDCAStrategyManager.StrategyState memory afterEdit = dcaManager
+            .strategyStates(strategyId);
+        assertGt(
+            afterEdit.nextTriggerAt,
+            block.timestamp,
+            "edit-after-resume must not warp nextTriggerAt into the past"
+        );
+    }
+
     function test_ResumeStrategy_EmitsStrategyResumed() public {
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
         vm.startPrank(strategyOwner);

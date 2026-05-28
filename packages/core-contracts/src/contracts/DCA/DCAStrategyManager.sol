@@ -316,6 +316,7 @@ contract DCAStrategyManager is
         }
 
         state.status = Status.ACTIVE;
+        state.lastScheduledAt = block.timestamp;
         state.nextTriggerAt = block.timestamp + config.interval;
 
         emit StrategyResumed(strategyId, state.nextTriggerAt);
