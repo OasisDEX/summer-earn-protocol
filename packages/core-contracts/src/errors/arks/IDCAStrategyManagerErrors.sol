@@ -33,6 +33,11 @@ interface IDCAStrategyManagerErrors {
         uint256 actualOut
     );
 
+    /// @notice Reverts when `targetVault.previewDeposit(expectedOutAssets)` returns
+    ///         zero. With zero expected output, `minOut = 0` and the slippage floor
+    ///         is silently disabled — this guard refuses to execute such trades.
+    error ZeroExpectedOutShares();
+
     /// @notice Reverts when the caller is not `config.owner` on an owner-gated function,
     ///         or when `editStrategy` attempts to change `config.owner` (ownership
     ///         transfer via edit is disallowed; cancel and recreate instead).

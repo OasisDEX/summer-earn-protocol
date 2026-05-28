@@ -619,6 +619,7 @@ contract DCAStrategyManager is
             uint256 expectedOutShares = config.targetVault.previewDeposit(
                 expectedOutAssets
             );
+            if (expectedOutShares == 0) revert ZeroExpectedOutShares();
             minOut = expectedOutShares.subtractBps(
                 BPS.wrap(config.slippageBps)
             );

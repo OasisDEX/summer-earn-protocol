@@ -1993,6 +1993,28 @@ contract DCAStrategyManagerIntegrationTest is Test {
         dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
     }
 
+    function test_Execute_RevertsOnZeroExpectedOutShares() public {
+        // Force targetVault.previewDeposit to return 0 — without the guard,
+        // minOut would collapse to 0 and the swap could deliver zero shares.
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        vm.warp(block.timestamp + 7 days);
+
+        vm.mockCall(
+            address(targetFleet),
+            abi.encodeWithSignature("previewDeposit(uint256)"),
+            abi.encode(uint256(0))
+        );
+
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        vm.prank(keeper);
+        vm.expectRevert(
+            IDCAStrategyManagerErrors.ZeroExpectedOutShares.selector
+        );
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
     function test_Execute_RevertsOnExecutionWindowNotReached() public {
         uint256 endDate = block.timestamp + 365 days;
         uint256 strategyId = _createStrategy(endDate);
