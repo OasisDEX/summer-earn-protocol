@@ -10,7 +10,9 @@ import { PendingChangesCart } from './components/PendingChangesCart'
 import { RouteDetailPanel } from './components/RouteDetailPanel'
 import { RouteMatrix } from './components/RouteMatrix'
 import { SafeExportModal } from './components/SafeExportModal'
+import { SubmitEditsModal } from './components/SubmitEditsModal'
 import { useDvnMetadata } from './hooks/useDvnMetadata'
+import { useEditAuthorizations } from './hooks/useEditAuthorizations'
 import { useOAppAdmin } from './hooks/useOAppAdmin'
 import {
   getDesiredRouteConfig,
@@ -34,6 +36,9 @@ export function LzConfigDashboard() {
   const [pending, setPending] = useState<PendingEdit[]>([])
   const [editingRemote, setEditingRemote] = useState<ChainName | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
+  const [submitOpen, setSubmitOpen] = useState(false)
+
+  const authorizations = useEditAuthorizations(pending)
 
   const remotes = useMemo(() => listRemoteChainsWithDvns(sourceChain), [sourceChain])
   const endpoint = getEndpoint(sourceChain)
@@ -120,14 +125,24 @@ export function LzConfigDashboard() {
       {pending.length > 0 && (
         <PendingChangesCart
           pending={pending}
+          authorizations={authorizations}
           onRemove={(i) => setPending((prev) => prev.filter((_, idx) => idx !== i))}
           onClear={() => setPending([])}
           onExport={() => setExportOpen(true)}
+          onSubmit={() => setSubmitOpen(true)}
         />
       )}
 
       {exportOpen && (
         <SafeExportModal pending={pending} onClose={() => setExportOpen(false)} />
+      )}
+
+      {submitOpen && (
+        <SubmitEditsModal
+          pending={pending}
+          authorizations={authorizations}
+          onClose={() => setSubmitOpen(false)}
+        />
       )}
     </div>
   )

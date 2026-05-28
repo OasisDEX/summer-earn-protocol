@@ -26,7 +26,7 @@ export interface SafeBuilderJson {
   }>
 }
 
-function editToTx(edit: PendingEdit, endpoint: Address): { to: Address; data: Hex } {
+export function editToTx(edit: PendingEdit, endpoint: Address): { to: Address; data: Hex } {
   switch (edit.kind) {
     case 'setPeer': {
       const data = encodeFunctionData({
@@ -95,7 +95,7 @@ function editToTx(edit: PendingEdit, endpoint: Address): { to: Address; data: He
   }
 }
 
-function describeEdit(e: PendingEdit): string {
+export function describeEdit(e: PendingEdit): string {
   switch (e.kind) {
     case 'setPeer':
       return `setPeer on ${e.oApp} (${e.sourceChain} -> ${e.remoteChain}, eid=${e.eid})`

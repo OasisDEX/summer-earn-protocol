@@ -3,13 +3,16 @@
 import { useMemo } from 'react'
 
 import { GlassCard } from '../../../components/GlassCard'
+import type { EditAuthResult } from '../hooks/useEditAuthorizations'
 import type { ChainName, PendingEdit } from '../lib/types'
 
 interface Props {
   pending: PendingEdit[]
+  authorizations: EditAuthResult[]
   onRemove: (index: number) => void
   onClear: () => void
   onExport: () => void
+  onSubmit: () => void
 }
 
 function describeEdit(e: PendingEdit): string {
@@ -24,6 +27,10 @@ function describeEdit(e: PendingEdit): string {
       return `setSendConfig · ${e.oApp} · ${e.sourceChain} → ${e.remoteChain}`
     case 'setReceiveConfig':
       return `setReceiveConfig · ${e.oApp} · ${e.sourceChain} → ${e.remoteChain}`
+    case 'setDelegate':
+      return `setDelegate · ${e.oApp} · ${e.sourceChain}`
+    case 'setEnforcedOptions':
+      return `setEnforcedOptions · ${e.oApp} · ${e.sourceChain}`
   }
 }
 
@@ -32,7 +39,14 @@ interface GroupedItem {
   originalIndex: number
 }
 
-export function PendingChangesCart({ pending, onRemove, onClear, onExport }: Props) {
+export function PendingChangesCart({
+  pending,
+  authorizations,
+  onRemove,
+  onClear,
+  onExport,
+  onSubmit,
+}: Props) {
   const grouped = useMemo(() => {
     const map = new Map<ChainName, GroupedItem[]>()
     pending.forEach((edit, originalIndex) => {
@@ -42,6 +56,11 @@ export function PendingChangesCart({ pending, onRemove, onClear, onExport }: Pro
     })
     return Array.from(map.entries())
   }, [pending])
+
+  const authorizedCount = useMemo(
+    () => authorizations.filter((a) => a.canSubmit).length,
+    [authorizations],
+  )
 
   return (
     <div className="fixed bottom-4 right-4 z-30 w-[420px] max-w-[90vw]">
@@ -71,34 +90,69 @@ export function PendingChangesCart({ pending, onRemove, onClear, onExport }: Pro
                 </span>
               </div>
               <ul className="space-y-1">
-                {items.map(({ edit, originalIndex }) => (
-                  <li
-                    key={originalIndex}
-                    className="flex items-center justify-between gap-2 text-xs text-slate-300 bg-white/[0.02] border border-white/5 rounded-lg px-2 py-1.5"
-                  >
-                    <span className="truncate">{describeEdit(edit)}</span>
-                    <button
-                      type="button"
-                      onClick={() => onRemove(originalIndex)}
-                      className="text-slate-500 hover:text-red-400 transition-colors text-base leading-none px-1"
-                      aria-label="Remove edit"
+                {items.map(({ edit, originalIndex }) => {
+                  const auth = authorizations[originalIndex]
+                  return (
+                    <li
+                      key={originalIndex}
+                      className="flex items-center justify-between gap-2 text-xs text-slate-300 bg-white/[0.02] border border-white/5 rounded-lg px-2 py-1.5"
                     >
-                      ×
-                    </button>
-                  </li>
-                ))}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate">{describeEdit(edit)}</div>
+                        {auth && !auth.canSubmit && auth.reason ? (
+                          <div className="text-[10px] text-slate-500 truncate">
+                            {auth.reason}
+                          </div>
+                        ) : null}
+                      </div>
+                      {auth?.canSubmit ? (
+                        <span
+                          className="text-[10px] text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded px-1.5 py-0.5"
+                          title="Connected wallet is authorized to submit this edit"
+                        >
+                          auth
+                        </span>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => onRemove(originalIndex)}
+                        className="text-slate-500 hover:text-red-400 transition-colors text-base leading-none px-1"
+                        aria-label="Remove edit"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={onExport}
-          className="w-full mt-3 px-4 py-2 text-sm rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
-        >
-          Export Safe transactions
-        </button>
+        <div className="mt-3 space-y-2">
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={authorizedCount === 0}
+            className={`w-full px-4 py-2 text-sm rounded-lg transition-colors ${
+              authorizedCount === 0
+                ? 'bg-white/5 text-slate-500 cursor-not-allowed'
+                : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+            }`}
+          >
+            Submit directly
+          </button>
+          <div className="text-[11px] text-slate-500 -mt-1">
+            Submits {authorizedCount} of {pending.length} edits authorized for your wallet.
+          </div>
+          <button
+            type="button"
+            onClick={onExport}
+            className="w-full px-4 py-2 text-sm rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+          >
+            Export Safe transactions
+          </button>
+        </div>
       </GlassCard>
     </div>
   )
