@@ -850,15 +850,18 @@ sequenceDiagram
 
     Note over K,WT: T0: lock + dispatch
     K->>IV: nextRound()
-    IV->>IV: roundState[N] = InSettlement; _roundNumber = N+1
+    IV->>IV: roundState[N] = InSettlement
+    IV->>IV: _roundNumber = N+1
     K->>FC: rebalance(buffer -> WT, amount)
     FC->>WT: _board(amount)
-    WT->>WT: cachedShareBalance snapshot; USDC -> custodian
+    WT->>WT: cachedShareBalance snapshot
+    WT->>WT: USDC -> custodian
     WT-->>WT: pendingDepositAssets += amount
 
     Note over K,WT: T1: WT settles off-chain
     K->>WT: clearPendingDeposit()
-    WT->>WT: _validateReceivedShares; pending = 0
+    WT->>WT: _validateReceivedShares
+    WT->>WT: pending = 0
 
     Note over K,IV: T1: settle round N
     K->>IV: setRoundSettled(N)
@@ -868,7 +871,8 @@ sequenceDiagram
 
     Note over U,IV: T1+: user exchanges
     U->>IV: redeemExchangeAsset(N, amt, U, U)
-    IV->>IV: burn ERC1155 id=N; compute amt * rate_N
+    IV->>IV: burn ERC1155 id=N
+    IV->>IV: compute amt * rate_N
     IV->>U: send Fleet shares
 ```
 
@@ -889,18 +893,23 @@ sequenceDiagram
     OV->>OV: mint ERC1155 id=M amount=n_shares
 
     Note over K,WT: T0
-    K->>OV: nextRound()        ; M -> InSettlement, M+1 opens
+    K->>OV: nextRound()
+    Note right of OV: M to InSettlement, M+1 opens
     K->>WT: requestWithdrawal(amount)
-    WT->>WT: shares -> custodian; pendingWithdrawalShares += s
+    WT->>WT: shares -> custodian
+    WT->>WT: pendingWithdrawalShares += s
 
     Note over K,WT: T1: USDC returns off-chain
     K->>WT: sweep()
-    WT->>WT: slippage check; USDC -> BufferArk; pending = 0
+    WT->>WT: slippage check
+    WT->>WT: USDC -> BufferArk
+    WT->>WT: pending = 0
 
     Note over K,OV: T1: settle round M
     K->>OV: setRoundSettled(M)
     OV->>FC: _redeemFromTarget(frozenShares) -> fleet.redeem
-    OV->>OV: rate_M = toPrice(outUSDC, frozenShares); state = Settled
+    OV->>OV: rate_M = toPrice(outUSDC, frozenShares)
+    OV->>OV: state = Settled
 
     Note over U,OV: T1+
     U->>OV: redeemExchangeAsset(M, amt, U, U)
