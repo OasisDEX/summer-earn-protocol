@@ -428,25 +428,10 @@ contract DCAStrategyManager is
         }
 
         if (config.maxPrice > 0 || config.minPrice > 0) {
-            // Read prices via the external wrapper so a stale-or-zero feed
-            // surfaces as `(false, "")` instead of a revert that off-chain
-            // keepers must catch separately.
-            ChainlinkOraclePrice memory inPrice;
-            ChainlinkOraclePrice memory outPrice;
-            try this.priceFromFeed(config.inAssetFeed) returns (
-                ChainlinkOraclePrice memory _in
-            ) {
-                inPrice = _in;
-            } catch {
-                return (false, performData);
-            }
-            try this.priceFromFeed(config.outAssetFeed) returns (
-                ChainlinkOraclePrice memory _out
-            ) {
-                outPrice = _out;
-            } catch {
-                return (false, performData);
-            }
+            ChainlinkOraclePrice memory inPrice = ChainlinkOracleUtils
+                ._getPrice(config.inAssetFeed);
+            ChainlinkOraclePrice memory outPrice = ChainlinkOracleUtils
+                ._getPrice(config.outAssetFeed);
             uint256 executionPrice = ChainlinkOracleUtils.crossRate(
                 inPrice,
                 outPrice
@@ -460,19 +445,6 @@ contract DCAStrategyManager is
         }
 
         upkeepNeeded = true;
-    }
-
-    /**
-     * @notice External view wrapper around `ChainlinkOracleUtils._getPrice`.
-     * @dev Exists so `checkUpkeep` can guard oracle reads with try/catch
-     *      (Solidity try/catch only works on `this.<external>()` calls).
-     *      Reverts with `ChainlinkOracleUtils.ChainlinkOraclePriceZero` or
-     *      `ChainlinkOracleUtils.ChainlinkOracleStalePrice` on bad data.
-     */
-    function priceFromFeed(
-        address feed
-    ) external view returns (ChainlinkOraclePrice memory) {
-        return ChainlinkOracleUtils._getPrice(feed);
     }
 
     /*//////////////////////////////////////////////////////////////

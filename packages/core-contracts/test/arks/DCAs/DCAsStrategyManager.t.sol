@@ -2131,40 +2131,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
     }
 
-    function test_CheckUpkeep_ReturnsFalseOnStaleOracle() public {
-        // Pre-fix: a stale feed reverted out of checkUpkeep, forcing off-chain
-        // keepers to wrap the call in try/catch. Now the contract returns
-        // (false, "") so keepers see "skip" not "error".
-        uint256 endDate = block.timestamp + 365 days;
-        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
-        cfg.maxPrice = uint256(5000e18);
-        vm.prank(strategyOwner);
-        uint256 strategyId = dcaManager.createStrategy(cfg);
-
-        vm.warp(block.timestamp + 7 days);
-
-        // Make the in-feed stale by mocking an updatedAt far in the past.
-        vm.mockCall(
-            address(inFeedMock),
-            abi.encodeWithSelector(
-                AggregatorV3Interface.latestRoundData.selector
-            ),
-            abi.encode(
-                uint80(1),
-                int256(1e8),
-                uint256(0),
-                uint256(1),
-                uint80(1)
-            )
-        );
-
-        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, cfg);
-        assertFalse(
-            upkeepNeeded,
-            "Stale oracle must yield (false, '') not a revert"
-        );
-    }
-
     function test_CheckUpkeep_ReturnsFalseAfterMaxTradesReached() public {
         // Execute the one allowed trade so the strategy auto-completes, then
         // verify that checkUpkeep correctly returns false.
