@@ -165,8 +165,10 @@ export function handleExecutionCompleted(event: ExecutionCompleted): void {
   const execId = s.id + '-' + event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
   const exec = new Execution(execId)
   exec.strategy = s.id
-  exec.amountIn = event.params.inAmount
-  exec.amountOut = event.params.outAmount
+  exec.inAssets = event.params.inAssets
+  exec.outAssets = event.params.outAssets
+  exec.inShares = event.params.inShares
+  exec.outShares = event.params.outShares
   exec.tradesExecutedAfter = event.params.tradesExecuted
   exec.executionTimestamp = event.block.timestamp
   exec.blockNumber = event.block.number
@@ -178,8 +180,8 @@ export function handleExecutionCompleted(event: ExecutionCompleted): void {
   s.nextTriggerAt = event.params.nextTriggerAt
   s.lastScheduledAt = event.block.timestamp
 
-  s.totalInAssetSwapped = s.totalInAssetSwapped.plus(event.params.inAmount)
-  s.totalOutAssetReceived = s.totalOutAssetReceived.plus(event.params.outAmount)
+  s.totalInAssetSwapped = s.totalInAssetSwapped.plus(event.params.inAssets)
+  s.totalOutAssetReceived = s.totalOutAssetReceived.plus(event.params.outAssets)
 
   // Recalculate status to check if it has reached maxTrades or endDate
   updateStrategyStatus(s, event.block.timestamp)
