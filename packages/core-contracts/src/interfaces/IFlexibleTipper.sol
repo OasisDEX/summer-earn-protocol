@@ -71,6 +71,11 @@ interface IFlexibleTipper is ITipper {
      */
     error PerformanceFeeRateTooHigh();
 
+    /**
+     * @notice Thrown when attempting to set the performance fee rate to zero
+     */
+    error PerformanceFeeRateCannotBeZero();
+
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/

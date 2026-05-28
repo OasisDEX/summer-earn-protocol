@@ -51,10 +51,6 @@ export const FLEET_DETAIL = /* GraphQL */ `
           flavor
           currentRound
           minPositionSize
-          cumulativeDepositsQueued
-          cumulativeExchangeAssetWithdrawn
-          currentRoundReceiptSupply
-          pendingSettlementAmount
           underlyingToken {
             id
             symbol
@@ -71,10 +67,6 @@ export const FLEET_DETAIL = /* GraphQL */ `
           flavor
           currentRound
           minPositionSize
-          cumulativeDepositsQueued
-          cumulativeExchangeAssetWithdrawn
-          currentRoundReceiptSupply
-          pendingSettlementAmount
           underlyingToken {
             id
             symbol

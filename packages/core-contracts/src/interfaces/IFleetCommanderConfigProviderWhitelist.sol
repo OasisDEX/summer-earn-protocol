@@ -94,7 +94,7 @@ interface IFleetCommanderConfigProviderWhitelist is
     function setMinimumBufferBalance(uint256 newMinimumBalance) external;
 
     /**
-     * @dev Sets the minimum number of allowe rebalance operations.
+     * @dev Sets the maximum number of allowed rebalance operations.
      * @param newMaxRebalanceOperations The new maximum allowed rebalance operations.
      */
     function setMaxRebalanceOperations(
@@ -103,7 +103,7 @@ interface IFleetCommanderConfigProviderWhitelist is
 
     /**
      * @notice Sets the maxRebalanceOutflow for an Ark
-     * @dev Only callable by the governor
+     * @dev Only callable by the curator
      * @param ark The address of the Ark
      * @param newMaxRebalanceOutflow The new maxRebalanceOutflow value
      */
@@ -114,7 +114,7 @@ interface IFleetCommanderConfigProviderWhitelist is
 
     /**
      * @notice Sets the maxRebalanceInflow for an Ark
-     * @dev Only callable by the governor
+     * @dev Only callable by the curator
      * @param ark The address of the Ark
      * @param newMaxRebalanceInflow The new maxRebalanceInflow value
      */

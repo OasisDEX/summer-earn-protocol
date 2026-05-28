@@ -69,8 +69,10 @@ interface IFleetCommanderWhitelist is
 
     /**
      * @notice Withdraws a specified amount of assets from the FleetCommander
-     * @dev This function first attempts to withdraw from the buffer. If the buffer doesn't have enough assets,
-     *      it will withdraw from the arks. It also handles the case where the maximum possible amount is requested.
+     * @dev Routing is either-or, not partial fallback: if the requested `assets` fits entirely
+     *      within the current buffer balance, the full amount is satisfied from the buffer;
+     *      otherwise the entire request is disembarked from the arks (the buffer is not partially
+     *      drained alongside the arks). Also handles the case where the maximum possible amount is requested.
      * @param assets The amount of assets to withdraw. If set to type(uint256).max, it will withdraw the maximum
      * possible amount.
      * @param receiver The address that will receive the withdrawn assets
@@ -85,8 +87,10 @@ interface IFleetCommanderWhitelist is
 
     /**
      * @notice Redeems a specified amount of shares from the FleetCommander
-     * @dev This function first attempts to redeem from the buffer. If the buffer doesn't have enough assets,
-     *      it will redeem from the arks. It also handles the case where the maximum possible amount is requested.
+     * @dev Routing is either-or, not partial fallback: if the requested `shares` (converted to assets)
+     *      fits entirely within the current buffer balance, the full redemption is served from the buffer;
+     *      otherwise the entire redemption is disembarked from the arks (the buffer is not partially
+     *      drained alongside the arks). Also handles the case where the maximum possible amount is requested.
      * @param shares The number of shares to redeem. If set to type(uint256).max, it will redeem all shares owned by the
      * owner.
      * @param receiver The address that will receive the redeemed assets
@@ -140,6 +144,7 @@ interface IFleetCommanderWhitelist is
 
     /**
      * @notice Accrues and distributes tips
+     * @dev Only callable by accounts with the Keeper role (`onlyKeeper`); also gated by `whenNotPaused`.
      * @return uint256 The amount of tips accrued
      */
     function tip() external returns (uint256);
@@ -160,7 +165,9 @@ interface IFleetCommanderWhitelist is
      *      - type(uint256).max is only allowed when moving TO the buffer
      *      - When withdrawing FROM buffer, total amount cannot reduce balance below minFundsBufferBalance
      * @dev The number of operations in a single rebalance call is limited to MAX_REBALANCE_OPERATIONS
-     * @dev Rebalance is subject to a cooldown period between calls
+     * @dev Cooldown enforcement is intentionally not applied in the whitelist variant — see
+     *      docs/INSTITUTIONAL_REFERENCE.md for rationale. The base FleetCommander variant uses
+     *      `CooldownEnforcer`; this contract does not inherit it.
      * @dev Only callable by accounts with the Keeper role
      */
     function rebalance(RebalanceData[] calldata data) external;
@@ -186,25 +193,27 @@ interface IFleetCommanderWhitelist is
     /**
      * @notice Pauses the FleetCommander
      * @dev This function is used to pause the FleetCommander in case of critical issues or emergencies
-     * @dev Only callable by the guardian or governor
+     * @dev Only callable by the governor
      */
     function pause() external;
 
     /**
      * @notice Unpauses the FleetCommander
      * @dev This function is used to resume normal operations after a pause
-     * @dev Only callable by the guardian or governor
+     * @dev Only callable by the governor
      */
     function unpause() external;
 
     /**
      * @notice Sets the fee type for the FleetCommander
+     * @dev Only callable by the governor (`onlyGovernor`); also gated by `whenNotPaused`.
      * @param newFeeType The new fee type to set
      */
     function setFeeType(IFlexibleTipper.FeeType newFeeType) external;
 
     /**
      * @notice Sets the performance fee rate for the FleetCommander
+     * @dev Only callable by the governor (`onlyGovernor`); also gated by `whenNotPaused`.
      * @param newRate The new performance fee rate to set
      */
     function setPerformanceFeeRate(Percentage newRate) external;

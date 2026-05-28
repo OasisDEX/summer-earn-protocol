@@ -11,7 +11,6 @@ const SHORT: Record<RoundStateLabel, string> = {
   OPENED: 'Open',
   IN_SETTLEMENT: 'Settling',
   SETTLED: 'Settled',
-  ROLLED_BACK: 'Rolled back',
   NOT_OPENED: '—',
 }
 

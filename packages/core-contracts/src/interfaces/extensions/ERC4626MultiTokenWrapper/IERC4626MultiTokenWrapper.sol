@@ -4,19 +4,20 @@ pragma solidity 0.8.28;
 import "../ERC4626MultiToken/IERC4626MultiToken.sol";
 
 /**
- * @notice Interface of the ERC4626 "Tokenized Vault Standard", modified to emit ERC-1155 share tokens
- *         When depositing, the user of this contract must indicate for which id they are depositing. The
- *         emitted ERC-1155 token will be minted used that id, thus generating a receipt for the deposit
+ * @title IERC4626MultiTokenWrapper
  *
- * @dev The `withdraw` function, along with the `previewWithdraw` and `maxWithdraw` functions
- *      have been removed because the only way to implement them is to support enumeration
- *      for the ERC-1155 tokens, which is quite heavy in gas costs.
+ * @notice Variant of ERC-4626 that mints ERC-1155 receipts instead of a fungible share token. The
+ *         id chosen by the implementation (typically a round number) is the natural key for
+ *         attaching extra per-deposit state — e.g. a per-round exchange rate when capital is moved
+ *         into the wrapped target vault on a settlement tick.
+ *
+ * @dev `withdraw`, `previewWithdraw`, and `maxWithdraw` from ERC-4626 are intentionally omitted —
+ *      implementing them would require enumerating ERC-1155 ids per account, which is prohibitively
+ *      expensive in gas. Users redeem by id via `redeem` / `redeemBatch` instead.
  *
  * @author Roberto Cano <robercano>
  */
 interface IERC4626MultiTokenWrapper is IERC4626MultiToken {
-    /**
-     * @dev Returns the target vault for which this vault is accepting deposits
-     */
+    /// @notice Returns the address of the target ERC-4626 vault this wrapper batches deposits for.
     function vault() external view returns (address vaultAddress);
 }

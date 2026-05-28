@@ -56,7 +56,7 @@ interface IERC4626MultiToken is IERC1155FullSupply {
     ) external view returns (uint256 maxAssets);
 
     /**
-     * @dev Mints shares Vault shares with the given id to receiver by depositing exactly amount of underlying tokens.
+     * @dev Mints Vault shares with the given id to receiver by depositing exactly amount of underlying tokens.
      *
      * - MUST emit the Deposit event.
      * - MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the

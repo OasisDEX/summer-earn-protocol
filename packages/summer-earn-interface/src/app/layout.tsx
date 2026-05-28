@@ -44,6 +44,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 </Link>
                 <div className="flex items-center space-x-6">
+                  <Link
+                    href="/lz-config"
+                    className="hidden md:inline-block text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                  >
+                    LZ Config
+                  </Link>
                   <div className="hidden md:flex items-center bg-black/40 p-1 rounded-lg border border-white/5">
                     <EnvironmentSelector />
                   </div>

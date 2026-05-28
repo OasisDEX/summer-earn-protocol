@@ -67,8 +67,8 @@ interface IAdmiralsQuartersEvents {
      * @dev Emitted when a user exits a fleet, withdrawing their tokens.
      * @param user The address of the user who exited the fleet.
      * @param fleetCommander The address of the FleetCommander contract.
-     * @param withdrawnAmount The amount of shares withdrawn from the fleet.
-     * @param outputAmount The amount of tokens received in return.
+     * @param withdrawnAmount The amount of the FleetCommander's underlying asset withdrawn.
+     * @param outputAmount The number of FleetCommander shares burnt to satisfy the withdrawal.
      */
     event FleetExited(
         address indexed user,
@@ -156,7 +156,8 @@ interface IAdmiralsQuartersEvents {
      * @dev Emitted when a user's erc4626 position is imported.
      * @param user The address of the user whose position is imported.
      * @param vault The address of the vault being imported.
-     * @param amount The amount of tokens being imported.
+     * @param amount The amount of ERC4626 vault shares being imported (redeemed for the
+     *               vault's underlying held by this contract).
      */
     event ERC4626PositionImported(
         address indexed user,

@@ -25,45 +25,42 @@ import {Whitelist} from "../utils/Whitelist/Whitelist.sol";
 import {ISignatureTransfer} from "../interfaces/permit2/IPermit2.sol";
 
 /**
- * @title AdmiralsQuarters
- * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
- *      with integrated swapping functionality using 1inch Router.whi
- * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas
- * efficiency.
- * @notice Whitelist gating: Specific operations are gated by explicit context-aware whitelists.
- * - Fleet operations (`enterFleet`, `exitFleet`) are gated by whitelisting against the
- *   target `fleetCommander` address as the context.
- * - `depositTokens` and `withdrawTokens` are currently open and do not enforce context-specific
- *   whitelists directly, though they are still protected by reentrancy guards.
+ * @title AdmiralsQuartersWhitelist
  *
- * @dev How to use this contract:
- * 1. Deposit tokens: Use `depositTokens` to deposit ERC20 tokens into the contract.
- * 2. Withdraw tokens: Use `withdrawTokens` to withdraw deposited tokens.
- * 3. Enter a fleet: Use `enterFleet` to deposit tokens into a FleetCommander contract.
- * 4. Exit a fleet: Use `exitFleet` to withdraw tokens from a FleetCommander contract.
- * 5. Swap tokens: Use `swap` to exchange one token for another using the 1inch Router.
- * 6. Rescue tokens: Contract owner can use `rescueTokens` to withdraw any tokens stuck in the contract.
+ * @notice Whitelisted bundler for institutional FleetCommanders. Lets a whitelisted user atomically
+ *         pull tokens from another protocol (Aave V3, Compound V3, ERC-4626), optionally swap via
+ *         1inch, and deposit into a target FleetCommander — all in a single multicall transaction.
+ *         A Permit2 entry path is also provided.
  *
- * @dev Multicall functionality:
- * This contract inherits from OpenZeppelin's Multicall, allowing multiple function calls to be batched into a single
- * transaction.
- * To use Multicall:
- * 1. Encode each function call you want to make as calldata.
- * 2. Pack these encoded function calls into an array of bytes.
- * 3. Call the `multicall` function with this array as the argument.
+ * @notice Whitelist gating: every fleet-touching entry point (`enterFleet`, `enterFleetWithPermit2`,
+ *         `exitFleet`) checks the caller, owner, and receiver against the target FleetCommander
+ *         context before invoking the fleet. The other entry points (`depositTokens`,
+ *         `withdrawTokens`, `swap`, `claimMerkleRewards`, `moveFromAaveToAdmiralsQuarters`,
+ *         `moveFromCompoundToAdmiralsQuarters`, `moveFromERC4626ToAdmiralsQuarters`) are not
+ *         context-gated themselves — they only move tokens between the caller and this contract's
+ *         transient balance. Composing them into a fleet entry/exit forces the whitelist check at
+ *         the fleet step.
  *
- * Example Multicall usage:
- * bytes[] memory calls = new bytes[](2);
- * calls[0] = abi.encodeWithSelector(this.depositTokens.selector, tokenAddress, amount);
- * calls[1] = abi.encodeWithSelector(this.enterFleet.selector, fleetCommanderAddress, tokenAddress, amount);
- * (bool[] memory successes, bytes[] memory results) = this.multicall(calls);
+ * @notice Reentrancy: every external entry point uses OpenZeppelin's transient-storage
+ *         `nonReentrant` modifier. The `onlyMulticall` modifier additionally requires sensitive
+ *         entry points to be invoked from within a top-level `multicall(bytes[])`, so external
+ *         callers cannot reach them standalone.
+ *
+ * @dev Typical multicall usage:
+ *      ```
+ *      bytes[] memory calls = new bytes[](2);
+ *      calls[0] = abi.encodeCall(this.depositTokens, (tokenAddress, amount));
+ *      calls[1] = abi.encodeCall(this.enterFleet, (fleetCommander, amount, receiver));
+ *      this.multicall(calls);
+ *      ```
  *
  * @dev Security considerations:
- * - All external functions are protected against reentrancy attacks.
- * - The contract uses OpenZeppelin's SafeERC20 for safe token transfers.
- * - Only the contract owner can rescue tokens.
- * - Ensure that the 1inch Router address provided in the constructor is correct and trusted.
- * - Since there is no data exchange between calls - make sure all the tokens are returned to the user
+ * - All external entry points use transient-storage `nonReentrant`.
+ * - Only the contract owner (Ownable, not the Governor role) can call `rescueTokens`.
+ * - The 1inch Router address provided in the constructor must be trusted; this contract performs
+ *   raw calls to it with caller-supplied calldata.
+ * - Tokens stranded between calls in a `multicall` (e.g. a swap that does not feed into a final
+ *   `enterFleet` / `withdrawTokens`) remain in this contract until the owner rescues them.
  */
 contract AdmiralsQuartersWhitelist is
     Ownable,
@@ -76,14 +73,58 @@ contract AdmiralsQuartersWhitelist is
     using SafeERC20 for IERC20;
     using SafeERC20 for IAToken;
 
+    /// @notice Address of the 1inch aggregator router used by `swap` to execute on-chain trades.
     address public immutable ONE_INCH_ROUTER;
+    /// @notice Sentinel address used to represent the chain's native token (e.g. ETH) in token
+    ///         arguments. When supplied, the contract wraps/unwraps via `WRAPPED_NATIVE`.
     address public immutable NATIVE_PSEUDO_ADDRESS =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    /// @notice Address of the wrapped-native token (e.g. WETH) used to wrap incoming native ETH and
+    ///         unwrap outgoing native ETH transfers.
     address public immutable WRAPPED_NATIVE;
 
+    /// @notice Canonical Uniswap Permit2 contract address used by `enterFleetWithPermit2` to pull
+    ///         tokens from signers via witness-bound transfers.
     address public constant PERMIT2 =
         0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
+    /**
+     * @notice EIP-712 witness payload bound to a Permit2 signature in `enterFleetWithPermit2`.
+     * @dev The witness is hashed with `_FLEET_DEPOSIT_TYPEHASH` and supplied to
+     *      `ISignatureTransfer.permitWitnessTransferFrom`, ensuring the signed token transfer can
+     *      only be consumed by a deposit into the exact `fleetCommander`/`receiver` pair specified
+     *      by the signer.
+     * @param fleetCommander The FleetCommander the signed transfer authorizes a deposit into.
+     * @param receiver The address that will receive the FleetCommander shares.
+     * @param referralCode Referral code bound into the witness. This whitelisted variant ignores
+     *                    referral tracking on-chain and always substitutes `bytes32(0)`; signers
+     *                    MUST use `bytes32(0)` here for signature verification to succeed.
+     */
+    struct FleetDepositWitness {
+        address fleetCommander;
+        address receiver;
+        bytes32 referralCode;
+    }
+
+    bytes32 internal constant _FLEET_DEPOSIT_TYPEHASH =
+        keccak256(
+            "FleetDepositWitness(address fleetCommander,address receiver,bytes32 referralCode)"
+        );
+
+    string internal constant _WITNESS_TYPE_STRING =
+        "FleetDepositWitness witness)FleetDepositWitness(address fleetCommander,address receiver,bytes32 referralCode)TokenPermissions(address token,uint256 amount)";
+
+    /**
+     * @notice Wires the bundler to its 1inch router, configuration manager, protocol access
+     *         manager, and wrapped-native token. Sets the deployer as the Ownable owner.
+     * @param _oneInchRouter Address of the 1inch aggregator router used by `swap`.
+     * @param _configurationManager `ConfigurationManaged` source that exposes `harborCommand()`
+     *                              used to validate FleetCommander addresses.
+     * @param _protocolAccessManager `ProtocolAccessManagerV2` instance that brokers the whitelist
+     *                               and role hierarchy.
+     * @param _wrappedNative Wrapped-native (e.g. WETH) used when callers route in/out of native ETH
+     *                       via `NATIVE_PSEUDO_ADDRESS`.
+     */
     constructor(
         address _oneInchRouter,
         address _configurationManager,
@@ -146,6 +187,8 @@ contract AdmiralsQuartersWhitelist is
         uint256 assets,
         address receiver
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        receiver = receiver == address(0) ? _msgSender() : receiver;
+
         _revertIfNotWhitelisted(fleetCommander, receiver, _msgSender());
         _validateFleetCommander(fleetCommander);
 
@@ -154,7 +197,7 @@ contract AdmiralsQuartersWhitelist is
 
         uint256 balance = fleetAsset.balanceOf(address(this));
         assets = assets == 0 ? balance : assets;
-        receiver = receiver == address(0) ? _msgSender() : receiver;
+
         if (assets > balance) revert InsufficientOutputAmount();
 
         fleetAsset.forceApprove(address(fleet), assets);
@@ -163,79 +206,71 @@ contract AdmiralsQuartersWhitelist is
         emit FleetEntered(_msgSender(), fleetCommander, assets, shares);
     }
 
-    /// @inheritdoc IAdmiralsQuartersWhitelist
-    function enterFleetWithPermit(
-        address owner,
-        address fleetCommander,
-        uint256 assets,
-        bytes calldata referralCode,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
-        _validateFleetCommander(fleetCommander);
-        IFleetCommander fleet = IFleetCommander(fleetCommander);
-        IERC20 fleetAsset = IERC20(fleet.asset());
-
-        IERC20Permit(address(fleetAsset)).permit(
-            owner,
-            address(this),
-            assets,
-            deadline,
-            v,
-            r,
-            s
-        );
-        fleetAsset.safeTransferFrom(owner, address(this), assets);
-
-        fleetAsset.forceApprove(address(fleet), assets);
-        if (referralCode.length == 0) {
-            shares = fleet.deposit(assets, owner);
-            emit FleetEntered(owner, fleetCommander, assets, shares);
-        } else {
-            shares = fleet.deposit(assets, owner, referralCode);
-            emit FleetEnteredWithReferral(
-                owner,
-                fleetCommander,
-                assets,
-                shares,
-                referralCode
-            );
-        }
-    }
-
-    /// @inheritdoc IAdmiralsQuartersWhitelist
+    /**
+     * @notice Permit2 variant of `enterFleet`. Pulls `assets` of the FleetCommander's underlying
+     *         from `owner` via a Permit2 witness-transfer signature and deposits into
+     *         `fleetCommander` for `receiver`.
+     * @dev This function intentionally omits `@inheritdoc` because its signature differs from the
+     *      public (non-whitelist) `IAdmiralsQuarters.enterFleetWithPermit2` variant: the
+     *      institutional build does not propagate the referral code on-chain. The supplied
+     *      `referralCode` argument is therefore ignored and `bytes32(0)` is substituted into the
+     *      witness payload. Off-chain signers MUST use `bytes32(0)` for the referral field or
+     *      Permit2 signature verification will fail.
+     * @param owner The account whose Permit2 nonce is consumed and whose underlying is pulled
+     * @param fleetCommander The target FleetCommander to deposit into; must pass `_validateFleetCommander`
+     * @param assets The exact amount of FleetCommander underlying to deposit; must equal
+     *               `permitData.permitted.amount` (passing `0` is not supported unless the
+     *               signature itself was issued for `0`)
+     * @param referralCode Reserved for ABI parity with the public variant; ignored on-chain
+     *                    (off-chain signers must pass `bytes32(0)`)
+     * @param receiver The recipient of the FleetCommander shares
+     * @param permitData Permit2 `PermitTransferFrom` payload signed by `owner`
+     * @param signature `owner`'s signature over `permitData` and the witness payload
+     * @return shares The FleetCommander shares minted to `receiver`
+     */
     function enterFleetWithPermit2(
         address owner,
         address fleetCommander,
         uint256 assets,
+        bytes calldata referralCode,
         address receiver,
         ISignatureTransfer.PermitTransferFrom calldata permitData,
         bytes calldata signature
     ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
         _revertIfNotWhitelisted(fleetCommander, receiver, owner);
         _validateFleetCommander(fleetCommander);
+
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         IERC20 fleetAsset = IERC20(fleet.asset());
+
         if (permitData.permitted.token != fleetAsset) revert InvalidToken();
         if (permitData.permitted.amount != assets) revert InvalidAmount();
-        ISignatureTransfer(PERMIT2).permitTransferFrom(
+
+        ISignatureTransfer(PERMIT2).permitWitnessTransferFrom(
             permitData,
             ISignatureTransfer.SignatureTransferDetails({
                 to: address(this),
                 requestedAmount: assets
             }),
             owner,
+            keccak256(
+                abi.encode(
+                    _FLEET_DEPOSIT_TYPEHASH,
+                    address(fleet),
+                    receiver,
+                    // The whitelisted protocol variant does not utilize referral tracking.
+                    // We utilize a zero-sentinel (bytes32(0)) in the witness payload to maintain
+                    // architectural consistency and signature verification compatibility.
+                    bytes32(0)
+                )
+            ),
+            _WITNESS_TYPE_STRING,
             signature
         );
 
-        assets = assets == 0 ? fleetAsset.balanceOf(address(this)) : assets;
-        receiver = receiver == address(0) ? owner : receiver;
-
         fleetAsset.forceApprove(address(fleet), assets);
-        shares = fleet.deposit(assets, receiver);
 
+        shares = fleet.deposit(assets, receiver);
         emit FleetEntered(owner, fleetCommander, assets, shares);
     }
 
@@ -308,20 +343,23 @@ contract AdmiralsQuartersWhitelist is
     /// ADMIN
 
     /**
-     * @dev Implementation of the Whitelist proxy adapter's virtual hook.
+     * @dev Wires the inherited `Whitelist` helper to the same `ProtocolAccessManagerV2` instance
+     *      configured for `ProtocolAccessManagedV2`.
      */
     function _getAccessManager() internal view override returns (address) {
         return address(_accessManager);
     }
 
     /**
-     * @dev Internal function to perform a token swap using 1inch
+     * @dev Performs a raw call to the 1inch router with caller-supplied calldata. The output amount
+     *      is measured as the post-call balance delta of `toToken`, then asserted against
+     *      `minTokensReceived` to bound slippage.
      * @param fromToken The token to swap from
      * @param toToken The token to swap to
-     * @param assets The amount of fromToken to swap
-     * @param minTokensReceived The minimum amount of toToken to receive after the swap
-     * @param swapCalldata The 1inch swap calldata
-     * @return swappedAmount The amount of toToken received from the swap
+     * @param assets The amount of `fromToken` approved for the router
+     * @param minTokensReceived The minimum acceptable amount of `toToken` received
+     * @param swapCalldata The pre-built 1inch swap calldata
+     * @return swappedAmount The actual amount of `toToken` received by this contract
      */
     function _swap(
         IERC20 fromToken,
@@ -346,24 +384,34 @@ contract AdmiralsQuartersWhitelist is
         }
     }
 
+    /// @dev Reverts with `InvalidFleetCommander` unless `fleetCommander` is registered as active in
+    ///      `HarborCommand`. Prevents callers from routing funds into arbitrary addresses.
     function _validateFleetCommander(address fleetCommander) internal view {
         if (!_isFleetCommander(fleetCommander)) {
             revert InvalidFleetCommander();
         }
     }
+
+    /// @dev Returns whether `account` is a FleetCommander currently registered with `HarborCommand`.
     function _isFleetCommander(address account) internal view returns (bool) {
         return IHarborCommand(harborCommand()).activeFleetCommanders(account);
     }
 
+    /// @dev Rejects the zero address and any address that is itself a registered FleetCommander —
+    ///      a FleetCommander's share token should never be used as a generic ERC-20 input here.
     function _validateToken(IERC20 token) internal view {
         if (address(token) == address(0) || _isFleetCommander(address(token)))
             revert InvalidToken();
     }
 
+    /// @dev Rejects zero amounts.
     function _validateAmount(uint256 amount) internal pure {
         if (amount == 0) revert ZeroAmount();
     }
 
+    /// @dev Validates that the caller's declared native-token amount matches `msg.value` and that
+    ///      the contract holds enough native balance to forward it (defends against accounting
+    ///      mismatches when chained inside a multicall).
     function _validateNativeAmount(
         uint256 amount,
         uint256 msgValue
@@ -391,17 +439,22 @@ contract AdmiralsQuartersWhitelist is
     }
 
     /**
-     * @dev Required to receive ETH when unwrapping WETH
+     * @notice Accepts native ETH transfers into the contract.
+     * @dev Required so that `IWETH.withdraw` (called from `withdrawTokens`) can return unwrapped
+     *      ETH to this contract before it is forwarded to the caller. Should not be used to fund
+     *      the contract directly; stranded ETH must be reclaimed via `rescueTokens`.
      */
     receive() external payable {}
 
     /**
-     * @dev Claims rewards from merkle distributor
+     * @notice Forwards a Merkle-rewards claim to a `SummerRewardsRedeemer`.
+     * @dev Reverts with `InvalidRewardsRedeemer` if `rewardsRedeemer == address(0)`. The redeemer
+     *      address is supplied per call rather than baked in, so multiple distributors are supported.
      * @param user Address to claim rewards for
-     * @param indices Array of merkle proof indices
-     * @param amounts Array of merkle proof amounts
-     * @param proofs Array of merkle proof data
-     * @param rewardsRedeemer Address of the rewards redeemer contract
+     * @param indices Merkle leaf indices being claimed
+     * @param amounts Reward amounts matching `indices`
+     * @param proofs Merkle proofs matching `indices`
+     * @param rewardsRedeemer Address of the `ISummerRewardsRedeemer` contract to call
      */
     function _claimMerkleRewards(
         address user,
@@ -462,6 +515,8 @@ contract AdmiralsQuartersWhitelist is
         address vault,
         uint256 shares
     ) external onlyMulticall nonReentrant {
+        _validateToken(IERC20(vault));
+
         IERC4626 vaultToken = IERC4626(vault);
 
         // Get actual shares if 0 was passed

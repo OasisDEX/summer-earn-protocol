@@ -157,15 +157,63 @@ async function createRouteConfiguration(
   )
 
   // Encode ULN receive config for DVNs
-  const dvnAddresses = [dvns.lzLabs as Address, dvns.secondDvn as Address].sort()
+  // Three-tier model:
+  //   - 4 DVNs available: LZ "2-of-3 redundant" (X=2 required + N=2 optional threshold=1)
+  //   - 3 DVNs available: LZ named "2-of-3" (X=2 required + N=1 optional threshold=1)
+  //   - 2 DVNs available: 2-of-2 strict fallback
+  const hasFourDvns = !!(
+    dvns.thirdDvn &&
+    dvns.thirdDvn.length > 0 &&
+    dvns.horizen &&
+    dvns.horizen.length > 0
+  )
+  const hasThirdDvn = !!(dvns.thirdDvn && dvns.thirdDvn.length > 0)
 
-  const ulnConfig = {
-    confirmations: 15n, // Keep as bigint - this is a uint64
-    requiredDVNCount: 2,
-    optionalDVNCount: 0,
-    optionalDVNThreshold: 0,
-    requiredDVNs: dvnAddresses,
-    optionalDVNs: [] as readonly Address[],
+  let ulnConfig
+  if (hasFourDvns) {
+    // LZ "2-of-3 redundant": X=2 required + N=2 optional threshold=1.
+    // Required: LZ Labs + Nethermind (slots: lzLabs + thirdDvn).
+    // Optional: Deutsche Telekom + Horizen (slots: secondDvn + horizen).
+    ulnConfig = {
+      confirmations: 15n,
+      requiredDVNCount: 2,
+      optionalDVNCount: 2,
+      optionalDVNThreshold: 1,
+      requiredDVNs: ([dvns.lzLabs as Address, dvns.thirdDvn as Address] as Address[]).sort((a, b) =>
+        a.toLowerCase().localeCompare(b.toLowerCase()),
+      ) as readonly Address[],
+      optionalDVNs: ([dvns.secondDvn as Address, dvns.horizen as Address] as Address[]).sort(
+        (a, b) => a.toLowerCase().localeCompare(b.toLowerCase()),
+      ) as readonly Address[],
+    }
+  } else if (hasThirdDvn) {
+    // 3-DVN fallback: LZ Labs required + 1-of-2 optional (secondDvn / thirdDvn).
+    // True 2-of-3 with LZ Labs as a fixed attestor — tolerates one optional DVN
+    // outage, instead of the strict 3-of-3 we'd get with all DVNs required.
+    ulnConfig = {
+      confirmations: 15n,
+      requiredDVNCount: 1,
+      optionalDVNCount: 2,
+      optionalDVNThreshold: 1,
+      requiredDVNs: ([dvns.lzLabs as Address] as Address[]).sort((a, b) =>
+        a.toLowerCase().localeCompare(b.toLowerCase()),
+      ) as readonly Address[],
+      optionalDVNs: ([dvns.secondDvn as Address, dvns.thirdDvn as Address] as Address[]).sort(
+        (a, b) => a.toLowerCase().localeCompare(b.toLowerCase()),
+      ) as readonly Address[],
+    }
+  } else {
+    // 2-of-2 strict — last-resort fallback when neither thirdDvn nor horizen is set.
+    ulnConfig = {
+      confirmations: 15n,
+      requiredDVNCount: 2,
+      optionalDVNCount: 0,
+      optionalDVNThreshold: 0,
+      requiredDVNs: ([dvns.lzLabs as Address, dvns.secondDvn as Address] as Address[]).sort(
+        (a, b) => a.toLowerCase().localeCompare(b.toLowerCase()),
+      ) as readonly Address[],
+      optionalDVNs: [] as readonly Address[],
+    }
   }
 
   // Encode ULN Config (CONFIG_TYPE_ULN = 2)

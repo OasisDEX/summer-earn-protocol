@@ -6,15 +6,18 @@ import "./IRoundsVaultBase.sol";
 /**
     @title IRoundsVaultInput
 
-    @notice The IRoundsInputVault contract allows users to deposit funds into this contract while the
-    target vault is locked, and receipts are minted to the users for this deposits. Upon round completion, the
-    funds are transferred to the target vault and the corresponding shares are collected.
+    @notice Marker interface for the Input flavor of `RoundsVaultBase`. Users deposit the target
+    vault's underlying asset and receive ERC-1155 receipts. Once the keeper settles the round, the
+    target-vault shares produced by the settlement deposit become the exchange asset that holders of
+    past-round receipts can redeem against.
 
-    Users can then exchange their receipts from previous rounds for the corresponding shares held in this vault.
+    @dev The function surface is identical to `IRoundsVaultBase`; this interface exists so consumers
+    can statically distinguish Input-flavor vaults from Output-flavor vaults (`IRoundsVaultOutput`).
+    Flavor-specific behavior lives in `RoundsVaultInput`'s `_operate` and `_getFallbackExchangeRate`.
 
     @author Roberto Cano <robercano>
  */
 interface IRoundsVaultInput is IRoundsVaultBase {
-    // Empty on purpose, as the interface is the same as the IRoundsVaultBase
-    // The main changes are in the implementation itself
+    // Empty on purpose: the public ABI is fully described by IRoundsVaultBase. Flavor-specific
+    // behavior is in the implementation's `_operate` and `_getFallbackExchangeRate` overrides.
 }

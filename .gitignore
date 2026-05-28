@@ -97,7 +97,8 @@ broadcast
 cache_forge/
 **/cache_forge/
 .cursorignore
-**/docs/superpowers
+.antigravitycli/
+**/docs/superpowers/
 
 SYSTEM_PROMPT.md
 myenv
@@ -114,7 +115,12 @@ myenv
 **/.terraform.lock.hcl
 **/terraform.tfvars
 *.tfvars
+
 .antigravitycli
 
 .x-ray/
 docs/superstate/
+
+.next-docs
+.claude
+
