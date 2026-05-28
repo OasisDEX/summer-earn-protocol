@@ -210,13 +210,13 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         shareToken.initialize("USTB", "USTB", 6);
         shareToken.setSupportedStablecoin(USDC_ADDRESS, address(0x5555));
 
+        oracle = new MockSuperstateOracle(8, 10 * 1e8); // 1 share = 10 USDC
+
         subscribeContract = new MockSuperstateSubscribe(USDC_ADDRESS, address(oracle));
         redeemContract = new MockSuperstateRedeem(
             address(shareToken),
             USDC_ADDRESS
         );
-
-        oracle = new MockSuperstateOracle(8, 10 * 1e8); // 1 share = 10 USDC
 
         params = ArkParams({
             name: "USDC Superstate Subscribe Ark",

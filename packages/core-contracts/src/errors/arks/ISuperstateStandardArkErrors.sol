@@ -12,12 +12,6 @@ interface ISuperstateStandardArkErrors {
         Percentage newSlippage,
         Percentage maxSlippage
     );
-    error InvalidSweepSlippage(Percentage newSlippage, Percentage maxSlippage);
-    error InsufficientAssetsReturned(
-        uint256 receivedAssets,
-        uint256 expectedShares,
-        uint256 receivedShares
-    );
     error SharesNotArrived(uint256 expectedShares, uint256 actualNewShares);
     error NotAllowlisted();
     error InsufficientYield();

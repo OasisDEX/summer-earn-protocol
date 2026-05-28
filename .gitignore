@@ -115,3 +115,6 @@ myenv
 **/terraform.tfvars
 *.tfvars
 .antigravitycli
+
+.x-ray/
+docs/superstate/

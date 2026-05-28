@@ -7,10 +7,6 @@ interface ISuperstateStandardArkEvents {
     event RedemptionExecuted(uint256 shareAmount, uint256 expectedUsdc);
     event PendingDepositCleared(uint256 amountCleared);
     event ArkIsFrozenUpdated(bool isFrozen, uint256 frozenTotalAssets);
-    event SweepSlippageUpdated(
-        Percentage oldSweepSlippage,
-        Percentage newSweepSlippage
-    );
     event DepositSlippageUpdated(
         Percentage oldDepositSlippage,
         Percentage newDepositSlippage
