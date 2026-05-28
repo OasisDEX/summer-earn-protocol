@@ -50,6 +50,7 @@ import { useSimulation } from '@/hooks/useSimulation'
 import { DeploymentConfig } from '@/types/deployment'
 import { AbiInput, AbiItem, ProposalAction } from '@/types/governance'
 import { Action } from '@/types/tenderly'
+import { constructLzOptions } from '@/utils/layerzero-options'
 
 // --- Types ---
 
@@ -345,7 +346,7 @@ export default function CreateProposalPage() {
           throw new Error(`Chain ${chainId} not found in CHAINS config`)
         }
         const dstDescription = `SIPX.Y.Z Cross-Chain Actions for ${chainInfo?.name}`
-        const lzOptions = '0x0003010011030000000000000000000000000007a120' as Hex // ~500k gas
+        const lzOptions = constructLzOptions(500000n)
 
         hubTargets.push(HUB_GOVERNOR_ADDRESS)
         hubValues.push(0n)

@@ -18,6 +18,7 @@
     "@aws-sdk/client-dynamodb": "^3.1030.0",
     "@aws-sdk/client-ssm": "^3.1030.0",
     "@aws-sdk/lib-dynamodb": "^3.1030.0",
+    "@layerzerolabs/lz-v2-utilities": "^2.3.39",
     "@next/env": "^16.2.4",
     "@reown/appkit": "1.8.19",
     "@reown/appkit-adapter-wagmi": "1.8.19",
