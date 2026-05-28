@@ -91,44 +91,65 @@ export function useOnChainRouteState(
       const effSendLib = sendLib ?? fallbackSend
       const receiveLib = receivePair?.[0] ?? fallbackReceive
 
-      const [sendUlnRaw, executorRaw, recvUlnRaw] = await Promise.all([
-        effSendLib
-          ? tryRead(
-              () =>
-                // @ts-ignore - viem readContract / abi-as-const authorizationList mismatch
-                client.readContract({
-                  address: endpoint,
-                  abi: LZ_ENDPOINT_ABI,
-                  functionName: 'getConfig',
-                  args: [oAppAddress, effSendLib as Address, remoteEid, CONFIG_TYPE_ULN],
-                }) as Promise<Hex>,
-            )
-          : Promise.resolve(null),
-        effSendLib
-          ? tryRead(
-              () =>
-                // @ts-ignore - viem readContract / abi-as-const authorizationList mismatch
-                client.readContract({
-                  address: endpoint,
-                  abi: LZ_ENDPOINT_ABI,
-                  functionName: 'getConfig',
-                  args: [oAppAddress, effSendLib as Address, remoteEid, CONFIG_TYPE_EXECUTOR],
-                }) as Promise<Hex>,
-            )
-          : Promise.resolve(null),
-        receiveLib
-          ? tryRead(
-              () =>
-                // @ts-ignore - viem readContract / abi-as-const authorizationList mismatch
-                client.readContract({
-                  address: endpoint,
-                  abi: LZ_ENDPOINT_ABI,
-                  functionName: 'getConfig',
-                  args: [oAppAddress, receiveLib as Address, remoteEid, CONFIG_TYPE_ULN],
-                }) as Promise<Hex>,
-            )
-          : Promise.resolve(null),
-      ])
+      const [sendUlnRaw, executorRaw, recvUlnRaw, enfSendRaw, enfSendAndCallRaw] =
+        await Promise.all([
+          effSendLib
+            ? tryRead(
+                () =>
+                  // @ts-ignore - viem readContract / abi-as-const authorizationList mismatch
+                  client.readContract({
+                    address: endpoint,
+                    abi: LZ_ENDPOINT_ABI,
+                    functionName: 'getConfig',
+                    args: [oAppAddress, effSendLib as Address, remoteEid, CONFIG_TYPE_ULN],
+                  }) as Promise<Hex>,
+              )
+            : Promise.resolve(null),
+          effSendLib
+            ? tryRead(
+                () =>
+                  // @ts-ignore - viem readContract / abi-as-const authorizationList mismatch
+                  client.readContract({
+                    address: endpoint,
+                    abi: LZ_ENDPOINT_ABI,
+                    functionName: 'getConfig',
+                    args: [oAppAddress, effSendLib as Address, remoteEid, CONFIG_TYPE_EXECUTOR],
+                  }) as Promise<Hex>,
+              )
+            : Promise.resolve(null),
+          receiveLib
+            ? tryRead(
+                () =>
+                  // @ts-ignore - viem readContract / abi-as-const authorizationList mismatch
+                  client.readContract({
+                    address: endpoint,
+                    abi: LZ_ENDPOINT_ABI,
+                    functionName: 'getConfig',
+                    args: [oAppAddress, receiveLib as Address, remoteEid, CONFIG_TYPE_ULN],
+                  }) as Promise<Hex>,
+              )
+            : Promise.resolve(null),
+          tryRead(
+            () =>
+              // @ts-ignore - viem readContract / abi-as-const authorizationList mismatch
+              client.readContract({
+                address: oAppAddress,
+                abi: OAPP_ABI,
+                functionName: 'enforcedOptions',
+                args: [remoteEid, 1],
+              }) as Promise<Hex>,
+          ),
+          tryRead(
+            () =>
+              // @ts-ignore - viem readContract / abi-as-const authorizationList mismatch
+              client.readContract({
+                address: oAppAddress,
+                abi: OAPP_ABI,
+                functionName: 'enforcedOptions',
+                args: [remoteEid, 2],
+              }) as Promise<Hex>,
+          ),
+        ])
 
       return {
         peerBytes32: peer ?? null,
@@ -137,6 +158,10 @@ export function useOnChainRouteState(
         sendUln: decodeUlnConfig(sendUlnRaw),
         receiveUln: decodeUlnConfig(recvUlnRaw),
         executor: decodeExecutorConfig(executorRaw),
+        enforced: {
+          send: enfSendRaw ?? null,
+          sendAndCall: enfSendAndCallRaw ?? null,
+        },
       }
     },
   })

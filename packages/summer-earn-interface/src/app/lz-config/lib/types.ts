@@ -67,6 +67,32 @@ export interface OnChainRouteConfig {
   sendUln: UlnConfig | null // null = no explicit config
   receiveUln: UlnConfig | null
   executor: ExecutorConfig | null
+  enforced: EnforcedOptionsState | null
+}
+
+export interface OAppAdminState {
+  owner: Address | null
+  delegate: Address | null
+}
+
+export interface EnforcedOptionsState {
+  send: Hex | null // null = read failed; '0x' = explicitly empty
+  sendAndCall: Hex | null
+}
+
+export interface DvnInfo {
+  address: Address
+  canonicalName: string
+  deprecated: boolean
+  lzReadCompatible?: boolean
+}
+
+export type DvnSeverity = 'info' | 'warn' | 'error'
+
+export interface Recommendation {
+  id: string
+  severity: DvnSeverity
+  message: string
 }
 
 export interface RouteState {
@@ -130,4 +156,18 @@ export type PendingEdit =
       eid: number
       receiveLib: Address
       uln: UlnConfig
+    }
+  | {
+      kind: 'setDelegate'
+      sourceChain: ChainName
+      oApp: OAppKind
+      oAppAddress: Address
+      delegate: Address
+    }
+  | {
+      kind: 'setEnforcedOptions'
+      sourceChain: ChainName
+      oApp: OAppKind
+      oAppAddress: Address
+      entries: { eid: number; msgType: number; options: Hex }[]
     }

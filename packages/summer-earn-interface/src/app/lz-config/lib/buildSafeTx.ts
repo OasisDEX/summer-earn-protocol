@@ -76,6 +76,22 @@ function editToTx(edit: PendingEdit, endpoint: Address): { to: Address; data: He
       })
       return { to: endpoint, data }
     }
+    case 'setDelegate': {
+      const data = encodeFunctionData({
+        abi: OAPP_ABI,
+        functionName: 'setDelegate',
+        args: [edit.delegate],
+      })
+      return { to: edit.oAppAddress, data }
+    }
+    case 'setEnforcedOptions': {
+      const data = encodeFunctionData({
+        abi: OAPP_ABI,
+        functionName: 'setEnforcedOptions',
+        args: [edit.entries],
+      })
+      return { to: edit.oAppAddress, data }
+    }
   }
 }
 
@@ -91,6 +107,10 @@ function describeEdit(e: PendingEdit): string {
       return `setSendConfig (ULN+Executor) on ${e.oApp} (${e.sourceChain} -> ${e.remoteChain})`
     case 'setReceiveConfig':
       return `setReceiveConfig (ULN) on ${e.oApp} (${e.sourceChain} -> ${e.remoteChain})`
+    case 'setDelegate':
+      return `setDelegate → ${e.delegate} (${e.sourceChain}, ${e.oApp})`
+    case 'setEnforcedOptions':
+      return `setEnforcedOptions ${e.entries.length} entry/entries (${e.sourceChain}, ${e.oApp})`
   }
 }
 
