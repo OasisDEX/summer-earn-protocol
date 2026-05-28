@@ -2911,6 +2911,77 @@ contract DCAStrategyManagerIntegrationTest is Test {
         dcaManager.createStrategyWithPermit2(cfg, permitSingle, sig);
     }
 
+    function test_CreateStrategyWithPermit2_RevertsOnInsufficientAllowance()
+        public
+    {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+        // tradeAmount × maxTrades = 100e6 × 100 = 1e10. Sign for half.
+        uint160 signedAmount = uint160(cfg.tradeAmount * cfg.maxTrades) / 2;
+
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer
+            .PermitSingle({
+                details: IAllowanceTransfer.PermitDetails({
+                    token: address(sourceFleet),
+                    amount: signedAmount,
+                    expiration: type(uint48).max,
+                    nonce: 0
+                }),
+                spender: address(dcaManager),
+                sigDeadline: block.timestamp + 1 hours
+            });
+        bytes memory sig = _signPermit2Single(permitSingle, _SIGNER_PK);
+
+        vm.prank(signer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.Permit2AllowanceInsufficient.selector,
+                signedAmount,
+                cfg.tradeAmount * cfg.maxTrades
+            )
+        );
+        dcaManager.createStrategyWithPermit2(cfg, permitSingle, sig);
+    }
+
+    function test_CreateStrategyWithPermit2_RevertsOnExpirationTooEarly()
+        public
+    {
+        address signer = _setupSigner();
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            endDate
+        );
+        // Sign with an expiration well before endDate.
+        uint48 expiration = uint48(block.timestamp + 30 days);
+
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer
+            .PermitSingle({
+                details: IAllowanceTransfer.PermitDetails({
+                    token: address(sourceFleet),
+                    amount: type(uint160).max,
+                    expiration: expiration,
+                    nonce: 0
+                }),
+                spender: address(dcaManager),
+                sigDeadline: block.timestamp + 1 hours
+            });
+        bytes memory sig = _signPermit2Single(permitSingle, _SIGNER_PK);
+
+        vm.prank(signer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.Permit2ExpirationTooEarly.selector,
+                expiration,
+                endDate
+            )
+        );
+        dcaManager.createStrategyWithPermit2(cfg, permitSingle, sig);
+    }
+
     function test_CreateStrategyWithPermit2_SurvivesFrontrunOfPermit() public {
         // If a mempool searcher lifts the user's signed PermitSingle and
         // submits PERMIT2.permit themselves, the user's createStrategyWithPermit2

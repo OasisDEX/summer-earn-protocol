@@ -198,6 +198,7 @@ contract DCAStrategyManager is
                 permitSingle.details.token
             );
         }
+        _requirePermit2CoversStrategy(config, permitSingle);
 
         strategyId = _createStrategy(config);
 
@@ -225,6 +226,7 @@ contract DCAStrategyManager is
                 permits.shares.details.token
             );
         }
+        _requirePermit2CoversStrategy(config, permits.shares);
 
         strategyId = _createStrategy(config);
 
@@ -443,6 +445,34 @@ contract DCAStrategyManager is
     /*//////////////////////////////////////////////////////////////
                               INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Reverts unless the Permit2 sub-allowance signed by the owner can
+     *      cover the worst-case keeper spend (`tradeAmount * maxTrades`) and,
+     *      when `endDate > 0`, remains valid until that date. Catches obvious
+     *      misconfigurations at create-time instead of mid-strategy reverts.
+     */
+    function _requirePermit2CoversStrategy(
+        StrategyConfig calldata config,
+        IAllowanceTransfer.PermitSingle calldata permitSingle
+    ) internal pure {
+        uint256 requiredAmount = config.tradeAmount * config.maxTrades;
+        if (uint256(permitSingle.details.amount) < requiredAmount) {
+            revert Permit2AllowanceInsufficient(
+                permitSingle.details.amount,
+                requiredAmount
+            );
+        }
+        if (
+            config.endDate > 0 &&
+            uint256(permitSingle.details.expiration) < config.endDate
+        ) {
+            revert Permit2ExpirationTooEarly(
+                permitSingle.details.expiration,
+                config.endDate
+            );
+        }
+    }
 
     /**
      * @dev Approves `sourceVault` for `assetAmount` of `inAsset` already held

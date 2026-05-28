@@ -95,4 +95,12 @@ interface IDCAStrategyManagerErrors {
     ///         and `minPrice > maxPrice`. Such a configuration is unsatisfiable and
     ///         would leave the strategy permanently un-executable.
     error InvalidPriceBounds(uint256 minPrice, uint256 maxPrice);
+
+    /// @notice Reverts when the Permit2 sub-allowance signed by the owner does not
+    ///         cover the worst-case total spend (`tradeAmount * maxTrades`).
+    error Permit2AllowanceInsufficient(uint160 signed, uint256 required);
+
+    /// @notice Reverts when the Permit2 sub-allowance expiration is earlier than
+    ///         the strategy's `endDate`. Only enforced when `endDate > 0`.
+    error Permit2ExpirationTooEarly(uint48 expiration, uint256 endDate);
 }
