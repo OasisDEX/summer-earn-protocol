@@ -118,23 +118,32 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
-            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "secondDvn": "0xc2a0c36f5939a14966705c7cec813163faeea1f0",
+            "thirdDvn": "0xcd37CA043f8479064e10635020c65FfC005d36f6",
+            "horizen": "0xa7b5189bca84cd304d8553977c7c614329750d99"
           },
           "hyperliquid": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
-            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "secondDvn": "0xc2a0c36f5939a14966705c7cec813163faeea1f0",
+            "thirdDvn": "0xcd37CA043f8479064e10635020c65FfC005d36f6",
+            "horizen": "0xa7b5189bca84cd304d8553977c7c614329750d99"
           },
           "arbitrum": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
-            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "secondDvn": "0xc2a0c36f5939a14966705c7cec813163faeea1f0",
+            "thirdDvn": "0xcd37CA043f8479064e10635020c65FfC005d36f6",
+            "horizen": "0xa7b5189bca84cd304d8553977c7c614329750d99"
           },
           "mainnet": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
-            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "secondDvn": "0xc2a0c36f5939a14966705c7cec813163faeea1f0",
+            "thirdDvn": "0xcd37CA043f8479064e10635020c65FfC005d36f6",
+            "horizen": "0xa7b5189bca84cd304d8553977c7c614329750d99"
           },
           "monad": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
-            "secondDvn": "0xcdf31d62140204c08853b547e64707110fbc6680"
+            "secondDvn": "0xc2a0c36f5939a14966705c7cec813163faeea1f0",
+            "thirdDvn": "0xcd37CA043f8479064e10635020c65FfC005d36f6"
           }
         }
       }
@@ -397,23 +406,32 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
-            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+            "secondDvn": "0xeae839784e5f6c79bbaf34b6023a2f62e134ab39",
+            "thirdDvn": "0xa7b5189bcA84Cd304D8553977c7C614329750d99",
+            "horizen": "0x19670df5e16bea2ba9b9e68b48c054c5baea06b8"
           },
           "hyperliquid": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
-            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+            "secondDvn": "0xeae839784e5f6c79bbaf34b6023a2f62e134ab39",
+            "thirdDvn": "0xa7b5189bcA84Cd304D8553977c7C614329750d99",
+            "horizen": "0x19670df5e16bea2ba9b9e68b48c054c5baea06b8"
           },
           "base": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
-            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+            "secondDvn": "0xeae839784e5f6c79bbaf34b6023a2f62e134ab39",
+            "thirdDvn": "0xa7b5189bcA84Cd304D8553977c7C614329750d99",
+            "horizen": "0x19670df5e16bea2ba9b9e68b48c054c5baea06b8"
           },
           "mainnet": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
-            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+            "secondDvn": "0xeae839784e5f6c79bbaf34b6023a2f62e134ab39",
+            "thirdDvn": "0xa7b5189bcA84Cd304D8553977c7C614329750d99",
+            "horizen": "0x19670df5e16bea2ba9b9e68b48c054c5baea06b8"
           },
           "monad": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
-            "secondDvn": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+            "secondDvn": "0xeae839784e5f6c79bbaf34b6023a2f62e134ab39",
+            "thirdDvn": "0xa7b5189bcA84Cd304D8553977c7C614329750d99"
           }
         }
       }
@@ -659,23 +677,32 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
-            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+            "secondDvn": "0x373a6e5c0c4e89e24819f00aa37ea370917aaff4",
+            "thirdDvn": "0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5",
+            "horizen": "0x380275805876ff19055ea900cdb2b46a94ecf20d"
           },
           "hyperliquid": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
-            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+            "secondDvn": "0x373a6e5c0c4e89e24819f00aa37ea370917aaff4",
+            "thirdDvn": "0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5",
+            "horizen": "0x380275805876ff19055ea900cdb2b46a94ecf20d"
           },
           "arbitrum": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
-            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+            "secondDvn": "0x373a6e5c0c4e89e24819f00aa37ea370917aaff4",
+            "thirdDvn": "0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5",
+            "horizen": "0x380275805876ff19055ea900cdb2b46a94ecf20d"
           },
           "base": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
-            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+            "secondDvn": "0x373a6e5c0c4e89e24819f00aa37ea370917aaff4",
+            "thirdDvn": "0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5",
+            "horizen": "0x380275805876ff19055ea900cdb2b46a94ecf20d"
           },
           "monad": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
-            "secondDvn": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+            "secondDvn": "0x373a6e5c0c4e89e24819f00aa37ea370917aaff4",
+            "thirdDvn": "0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5"
           }
         }
       }
@@ -1113,23 +1140,32 @@
         "dvns": {
           "base": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xde79818c75649773fc462e9d3134b23b81741481",
+            "thirdDvn": "0x05aaefdf9db6e0f7d27fa3b6ee099edb33da029e",
+            "horizen": "0x54dd79f5ce72b51fcbbcb170dd01e32034323565"
           },
           "arbitrum": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xde79818c75649773fc462e9d3134b23b81741481",
+            "thirdDvn": "0x05aaefdf9db6e0f7d27fa3b6ee099edb33da029e",
+            "horizen": "0x54dd79f5ce72b51fcbbcb170dd01e32034323565"
           },
           "mainnet": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xde79818c75649773fc462e9d3134b23b81741481",
+            "thirdDvn": "0x05aaefdf9db6e0f7d27fa3b6ee099edb33da029e",
+            "horizen": "0x54dd79f5ce72b51fcbbcb170dd01e32034323565"
           },
           "monad": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xde79818c75649773fc462e9d3134b23b81741481",
+            "thirdDvn": "0x05aaefdf9db6e0f7d27fa3b6ee099edb33da029e"
           },
           "hyperliquid": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
-            "secondDvn": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+            "secondDvn": "0xde79818c75649773fc462e9d3134b23b81741481",
+            "thirdDvn": "0x05aaefdf9db6e0f7d27fa3b6ee099edb33da029e",
+            "horizen": "0x54dd79f5ce72b51fcbbcb170dd01e32034323565"
           }
         }
       }
@@ -1417,23 +1453,32 @@
         "dvns": {
           "sonic": {
             "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
-            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
+            "secondDvn": "0x32ffd21260172518a8844fec76a88c8f239c384b",
+            "thirdDvn": "0x8e49ef1dfae17e547ca0e7526ffda81fbaca810a",
+            "horizen": "0xbb83ecf372cbb6daa629ea9a9a53bec6d601f229"
           },
           "mainnet": {
             "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
-            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
+            "secondDvn": "0x32ffd21260172518a8844fec76a88c8f239c384b",
+            "thirdDvn": "0x8e49ef1dfae17e547ca0e7526ffda81fbaca810a",
+            "horizen": "0xbb83ecf372cbb6daa629ea9a9a53bec6d601f229"
           },
           "arbitrum": {
             "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
-            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
+            "secondDvn": "0x32ffd21260172518a8844fec76a88c8f239c384b",
+            "thirdDvn": "0x8e49ef1dfae17e547ca0e7526ffda81fbaca810a",
+            "horizen": "0xbb83ecf372cbb6daa629ea9a9a53bec6d601f229"
           },
           "base": {
             "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
-            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
+            "secondDvn": "0x32ffd21260172518a8844fec76a88c8f239c384b",
+            "thirdDvn": "0x8e49ef1dfae17e547ca0e7526ffda81fbaca810a",
+            "horizen": "0xbb83ecf372cbb6daa629ea9a9a53bec6d601f229"
           },
           "monad": {
             "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",
-            "secondDvn": "0xae016a939935d6fe6185900d4c7c7c9b27366cac"
+            "secondDvn": "0x32ffd21260172518a8844fec76a88c8f239c384b",
+            "thirdDvn": "0x8e49ef1dfae17e547ca0e7526ffda81fbaca810a"
           }
         }
       }

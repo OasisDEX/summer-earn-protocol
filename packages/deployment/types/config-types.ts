@@ -184,6 +184,8 @@ export interface BaseConfig {
         [key: string]: {
           lzLabs: string
           secondDvn: string
+          thirdDvn?: string // Optional: Nethermind or other reliable DVN; address varies per chain
+          horizen?: string // Optional: Horizen Labs DVN — fourth DVN slot
         }
       }
     }
