@@ -43,6 +43,13 @@ interface ISuperstateToken {
     ) external view returns (SupportedStablecoin memory);
 
     /**
+     * @notice Initiates an off-chain redemption of Superstate Fund Tokens.
+     * @dev Burns the caller's fund tokens and triggers off-chain USDC settlement (T+1/T+2).
+     * @param amount The amount of fund tokens to redeem.
+     */
+    function offchainRedeem(uint256 amount) external;
+
+    /**
      * @notice Returns the oracle configured for this Superstate token.
      * @dev Used during deployment of SuperstateSubscribeArk to validate that the passed
      *      oracle address matches the one the token contract itself is configured with.

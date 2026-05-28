@@ -4,7 +4,6 @@ export function createSuperstateArkModule(moduleName: string) {
   return buildModule(moduleName, (m) => {
     const shareToken = m.getParameter<string>('shareToken')
     const superstateSubscribe = m.getParameter<string>('superstateSubscribe')
-    const superstateRedeem = m.getParameter<string>('superstateRedeem')
     const oracle = m.getParameter<string>('oracle')
     const sweepSlippage = m.getParameter<string>('sweepSlippage')
     const depositSlippage = m.getParameter<string>('depositSlippage')
@@ -22,7 +21,6 @@ export function createSuperstateArkModule(moduleName: string) {
     const ark = m.contract('SuperstateArk', [
       shareToken,
       superstateSubscribe,
-      superstateRedeem,
       oracle,
       sweepSlippage,
       depositSlippage,

@@ -120,6 +120,8 @@ contract MockSuperstateSubscribe is ISuperstateToken {
     function superstateOracle() external view override returns (address) {
         return _superstateOracle;
     }
+
+    function offchainRedeem(uint256) external override {}
 }
 
 contract MockSuperstateRedeem is ISuperstateRedeem {
@@ -175,6 +177,8 @@ contract MockSuperstateToken is MockERC20, ISuperstateToken {
     function superstateOracle() external pure override returns (address) {
         return address(0);
     }
+
+    function offchainRedeem(uint256) external override {}
 }
 
 contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {

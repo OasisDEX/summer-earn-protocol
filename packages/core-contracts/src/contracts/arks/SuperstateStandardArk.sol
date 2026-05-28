@@ -11,6 +11,7 @@ import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 import {AggregatorV3Interface} from "../../interfaces/external/Chainlink/AggregatorV3Interface.sol";
 import {IArk} from "../../interfaces/IArk.sol";
 import {ISuperstateStandardArk} from "../../interfaces/arks/ISuperstateStandardArk.sol";
+import {ISuperstateToken} from "../../interfaces/superstate/ISuperstateToken.sol";
 
 /**
  * @title SuperstateStandardArk
@@ -65,9 +66,6 @@ contract SuperstateStandardArk is
     /// @notice The Superstate Deposit address
     address public immutable DEPOSIT_ADDRESS;
 
-    /// @notice The Superstate Redeem address
-    address public immutable REDEEM_ADDRESS;
-
     /// @notice Superstate/Chainlink price feed: price of 1 Superstate share denominated in USDC
     AggregatorV3Interface public immutable ORACLE;
 
@@ -97,7 +95,6 @@ contract SuperstateStandardArk is
     constructor(
         address _shareToken,
         address _depositAddress,
-        address _redeemAddress,
         address _oracle,
         Percentage _sweepSlippage,
         Percentage _depositSlippage,
@@ -109,7 +106,6 @@ contract SuperstateStandardArk is
 
         SHARE_TOKEN = IERC20Metadata(_shareToken);
         DEPOSIT_ADDRESS = _depositAddress;
-        REDEEM_ADDRESS = _redeemAddress;
         ORACLE = AggregatorV3Interface(_oracle);
 
         if (_sweepSlippage > MAX_SWEEP_SLIPPAGE) {
@@ -214,10 +210,7 @@ contract SuperstateStandardArk is
 
         pendingWithdrawalShares += sharesToRedeem;
 
-        address target = REDEEM_ADDRESS == address(0)
-            ? DEPOSIT_ADDRESS
-            : REDEEM_ADDRESS;
-        SHARE_TOKEN.safeTransfer(target, sharesToRedeem);
+        ISuperstateToken(address(SHARE_TOKEN)).offchainRedeem(sharesToRedeem);
 
         emit RedemptionExecuted(sharesToRedeem, amount);
         emit WithdrawalRequested(amount, 0);

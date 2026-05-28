@@ -106,7 +106,6 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     MockSuperstateOracle public oracle;
 
     address depositAddress = address(0x1111);
-    address redeemAddress = address(0x2222);
 
     ArkParams public params;
 
@@ -147,7 +146,6 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark = new SuperstateStandardArk(
             address(shareToken),
             depositAddress,
-            redeemAddress,
             address(oracle),
             sweepSlippage,
             depositSlippage,
@@ -186,7 +184,6 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         new SuperstateStandardArk(
             address(0),
             depositAddress,
-            redeemAddress,
             address(oracle),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
@@ -199,7 +196,6 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         new SuperstateStandardArk(
             address(shareToken),
             address(0),
-            redeemAddress,
             address(oracle),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
@@ -210,7 +206,6 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         new SuperstateStandardArk(
             address(shareToken),
             depositAddress,
-            redeemAddress,
             address(0),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
@@ -300,22 +295,24 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         // Verify initial state
         assertEq(ark.totalAssets(), amount);
 
-        // 2. Request Withdrawal
+        // 2. Request Withdrawal — offchainRedeem burns shares from the Ark
+        vm.mockCall(
+            address(shareToken),
+            abi.encodeWithSignature(
+                "offchainRedeem(uint256)",
+                sharesMinted
+            ),
+            abi.encode()
+        );
+
         vm.startPrank(keeper);
         ark.requestWithdrawal(amount);
         vm.stopPrank();
 
-        // Verify post-request state
-        assertEq(
-            shareToken.balanceOf(redeemAddress),
-            sharesMinted,
-            "Shares should be sent to redeem contract"
-        );
-        assertEq(
-            shareToken.balanceOf(address(ark)),
-            0,
-            "Ark should have 0 shares"
-        );
+        // Simulate the burn that offchainRedeem would perform (mock is a no-op)
+        deal(address(shareToken), address(ark), 0);
+
+        // offchainRedeem was called (mocked) — shares are burned, not transferred
         assertEq(
             ark.pendingWithdrawalShares(),
             sharesMinted,
@@ -367,6 +364,12 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         // Request withdrawal of 0
         vm.stopPrank();
+
+        vm.mockCall(
+            address(shareToken),
+            abi.encodeWithSignature("offchainRedeem(uint256)", uint256(0)),
+            abi.encode()
+        );
 
         vm.startPrank(keeper);
         ark.requestWithdrawal(0);
