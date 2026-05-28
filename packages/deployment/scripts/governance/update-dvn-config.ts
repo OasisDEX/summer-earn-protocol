@@ -180,7 +180,11 @@ async function updateDvnConfig(useBummerConfig = false) {
     // -----------------------------------------------------------------------
     let chainConfig: BaseConfig
     try {
-      chainConfig = getConfigByNetwork(chain, { common: true, gov: true }, useBummerConfig) as BaseConfig
+      chainConfig = getConfigByNetwork(
+        chain,
+        { common: true, gov: true },
+        useBummerConfig,
+      ) as BaseConfig
     } catch {
       console.log(kleur.yellow(`[${chain}] Skipping — no config`))
       continue
@@ -240,7 +244,11 @@ async function updateDvnConfig(useBummerConfig = false) {
         // Get remoteEid from remote chain's config
         let remoteChainConfig: BaseConfig
         try {
-          remoteChainConfig = getConfigByNetwork(remoteChain, { common: true }, useBummerConfig) as BaseConfig
+          remoteChainConfig = getConfigByNetwork(
+            remoteChain,
+            { common: true },
+            useBummerConfig,
+          ) as BaseConfig
         } catch {
           console.log(kleur.yellow(`[${chain}->${remoteChain}] Skipping — no remote config`))
           continue
@@ -261,8 +269,10 @@ async function updateDvnConfig(useBummerConfig = false) {
         //   - 2 DVNs available: 2-of-2 strict fallback
         // -----------------------------------------------------------------------
         const hasFourDvns = !!(
-          dvns.thirdDvn && dvns.thirdDvn.length > 0 &&
-          dvns.horizen && dvns.horizen.length > 0
+          dvns.thirdDvn &&
+          dvns.thirdDvn.length > 0 &&
+          dvns.horizen &&
+          dvns.horizen.length > 0
         )
         const hasThirdDvn = !!(dvns.thirdDvn && dvns.thirdDvn.length > 0)
 
@@ -359,9 +369,7 @@ async function updateDvnConfig(useBummerConfig = false) {
             receiveNeedsUpdate,
           })
         } else {
-          console.log(
-            kleur.green(`[${chain}->${remoteChain}] ${oApp.name}: up to date`),
-          )
+          console.log(kleur.green(`[${chain}->${remoteChain}] ${oApp.name}: up to date`))
         }
       }
     }
@@ -376,11 +384,13 @@ async function updateDvnConfig(useBummerConfig = false) {
   }
 
   console.log(
-    kleur.yellow().bold(
-      `\nFound ${diffs.length} config(s) that need updating across ${
-        new Set(diffs.map((d) => d.chain)).size
-      } chain(s).`,
-    ),
+    kleur
+      .yellow()
+      .bold(
+        `\nFound ${diffs.length} config(s) that need updating across ${
+          new Set(diffs.map((d) => d.chain)).size
+        } chain(s).`,
+      ),
   )
 
   // -------------------------------------------------------------------------
@@ -442,18 +452,12 @@ async function updateDvnConfig(useBummerConfig = false) {
           ]
         : [],
     receiveConfigParams:
-      phase === 'receive'
-        ? [{ eid: diff.remoteEid, configType: 2, config: diff.encodedUln }]
-        : [],
+      phase === 'receive' ? [{ eid: diff.remoteEid, configType: 2, config: diff.encodedUln }] : [],
   })
 
-  const hubChainConfigs = phaseDiffs
-    .filter((d) => d.chain === hubChain)
-    .map(toProposalConfig)
+  const hubChainConfigs = phaseDiffs.filter((d) => d.chain === hubChain).map(toProposalConfig)
 
-  const nonHubChainConfigs = phaseDiffs
-    .filter((d) => d.chain !== hubChain)
-    .map(toProposalConfig)
+  const nonHubChainConfigs = phaseDiffs.filter((d) => d.chain !== hubChain).map(toProposalConfig)
 
   console.log(
     kleur.cyan(

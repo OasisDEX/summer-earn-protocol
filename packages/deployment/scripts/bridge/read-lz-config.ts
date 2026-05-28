@@ -172,7 +172,9 @@ async function main() {
     try {
       config = getConfigByNetwork(chain, { common: true, gov: true }, useBummerConfig) as BaseConfig
     } catch (err) {
-      console.log(kleur.yellow(`[WARN] Could not load config for ${chain}: ${(err as Error).message}`))
+      console.log(
+        kleur.yellow(`[WARN] Could not load config for ${chain}: ${(err as Error).message}`),
+      )
       continue
     }
 
@@ -186,7 +188,11 @@ async function main() {
     try {
       client = (await getChainPublicClient(chain)) as PublicClient
     } catch (err) {
-      console.log(kleur.yellow(`[WARN] Could not create public client for ${chain}: ${(err as Error).message}`))
+      console.log(
+        kleur.yellow(
+          `[WARN] Could not create public client for ${chain}: ${(err as Error).message}`,
+        ),
+      )
       continue
     }
 
@@ -251,7 +257,13 @@ async function main() {
         }
 
         // Read send ULN config
-        const sendUlnConfig = await readUlnConfig(client, endpointAddr, oAppAddr, sendUln, remoteEid)
+        const sendUlnConfig = await readUlnConfig(
+          client,
+          endpointAddr,
+          oAppAddr,
+          sendUln,
+          remoteEid,
+        )
         if (sendUlnConfig) {
           console.log(`      Send ULN:    ${kleur.cyan(formatUlnConfig(sendUlnConfig))}`)
         } else {
@@ -296,23 +308,31 @@ async function main() {
   const noReceiveConfig = allRoutes.filter((r) => r.receiveUln === null)
   const noPeer = allRoutes.filter((r) => r.peer === null)
 
-  console.log(kleur.bold().yellow(`\nRoutes with NO explicit send ULN config (${noSendConfig.length}):`))
+  console.log(
+    kleur.bold().yellow(`\nRoutes with NO explicit send ULN config (${noSendConfig.length}):`),
+  )
   if (noSendConfig.length === 0) {
     console.log(kleur.green('  (none)'))
   } else {
     for (const r of noSendConfig) {
-      console.log(kleur.yellow(`  ${r.chain} -> ${r.remoteChain}  [${r.oAppName}]  oApp=${r.oAppAddress}`))
+      console.log(
+        kleur.yellow(`  ${r.chain} -> ${r.remoteChain}  [${r.oAppName}]  oApp=${r.oAppAddress}`),
+      )
     }
   }
 
   console.log(
-    kleur.bold().yellow(`\nRoutes with NO explicit receive ULN config (${noReceiveConfig.length}):`),
+    kleur
+      .bold()
+      .yellow(`\nRoutes with NO explicit receive ULN config (${noReceiveConfig.length}):`),
   )
   if (noReceiveConfig.length === 0) {
     console.log(kleur.green('  (none)'))
   } else {
     for (const r of noReceiveConfig) {
-      console.log(kleur.yellow(`  ${r.chain} -> ${r.remoteChain}  [${r.oAppName}]  oApp=${r.oAppAddress}`))
+      console.log(
+        kleur.yellow(`  ${r.chain} -> ${r.remoteChain}  [${r.oAppName}]  oApp=${r.oAppAddress}`),
+      )
     }
   }
 
@@ -321,7 +341,9 @@ async function main() {
     console.log(kleur.green('  (none)'))
   } else {
     for (const r of noPeer) {
-      console.log(kleur.red(`  ${r.chain} -> ${r.remoteChain}  [${r.oAppName}]  oApp=${r.oAppAddress}`))
+      console.log(
+        kleur.red(`  ${r.chain} -> ${r.remoteChain}  [${r.oAppName}]  oApp=${r.oAppAddress}`),
+      )
     }
   }
 

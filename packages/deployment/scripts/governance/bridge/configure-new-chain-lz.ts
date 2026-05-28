@@ -162,8 +162,10 @@ async function createRouteConfiguration(
   //   - 3 DVNs available: LZ named "2-of-3" (X=2 required + N=1 optional threshold=1)
   //   - 2 DVNs available: 2-of-2 strict fallback
   const hasFourDvns = !!(
-    dvns.thirdDvn && dvns.thirdDvn.length > 0 &&
-    dvns.horizen && dvns.horizen.length > 0
+    dvns.thirdDvn &&
+    dvns.thirdDvn.length > 0 &&
+    dvns.horizen &&
+    dvns.horizen.length > 0
   )
   const hasThirdDvn = !!(dvns.thirdDvn && dvns.thirdDvn.length > 0)
 
@@ -177,8 +179,12 @@ async function createRouteConfiguration(
       requiredDVNCount: 2,
       optionalDVNCount: 2,
       optionalDVNThreshold: 1,
-      requiredDVNs: ([dvns.lzLabs as Address, dvns.thirdDvn as Address] as Address[]).sort() as readonly Address[],
-      optionalDVNs: ([dvns.secondDvn as Address, dvns.horizen as Address] as Address[]).sort() as readonly Address[],
+      requiredDVNs: (
+        [dvns.lzLabs as Address, dvns.thirdDvn as Address] as Address[]
+      ).sort() as readonly Address[],
+      optionalDVNs: (
+        [dvns.secondDvn as Address, dvns.horizen as Address] as Address[]
+      ).sort() as readonly Address[],
     }
   } else if (hasThirdDvn) {
     // LZ named "2-of-3" (X=2 + N=1 threshold=1, effectively 3-of-3) — fallback when no Horizen.
@@ -187,7 +193,9 @@ async function createRouteConfiguration(
       requiredDVNCount: 2,
       optionalDVNCount: 1,
       optionalDVNThreshold: 1,
-      requiredDVNs: ([dvns.lzLabs as Address, dvns.thirdDvn as Address] as Address[]).sort() as readonly Address[],
+      requiredDVNs: (
+        [dvns.lzLabs as Address, dvns.thirdDvn as Address] as Address[]
+      ).sort() as readonly Address[],
       optionalDVNs: ([dvns.secondDvn as Address] as Address[]).sort() as readonly Address[],
     }
   } else {
@@ -197,7 +205,9 @@ async function createRouteConfiguration(
       requiredDVNCount: 2,
       optionalDVNCount: 0,
       optionalDVNThreshold: 0,
-      requiredDVNs: ([dvns.lzLabs as Address, dvns.secondDvn as Address] as Address[]).sort() as readonly Address[],
+      requiredDVNs: (
+        [dvns.lzLabs as Address, dvns.secondDvn as Address] as Address[]
+      ).sort() as readonly Address[],
       optionalDVNs: [] as readonly Address[],
     }
   }
