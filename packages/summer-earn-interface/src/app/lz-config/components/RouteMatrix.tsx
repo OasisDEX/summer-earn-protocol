@@ -323,11 +323,7 @@ function RouteMatrixRow({
         })
   // When the underlying RPC read failed, surface that as an error rec instead of
   // letting the empty `recs` array render as a green "✓".
-  const worst: DvnSeverity | null = error
-    ? 'error'
-    : recs.length > 0
-      ? recs[0].severity
-      : null
+  const worst: DvnSeverity | null = error ? 'error' : recs.length > 0 ? recs[0].severity : null
   const recsCount = error ? 1 : recs.length
 
   return (
