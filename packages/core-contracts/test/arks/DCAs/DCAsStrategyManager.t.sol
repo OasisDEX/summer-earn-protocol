@@ -771,6 +771,34 @@ contract DCAStrategyManagerTest is Test {
         dcaManager.createStrategy(config);
     }
 
+    function test_CreateStrategy_RevertsOnInvalidPriceBounds() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.minPrice = 2000e18;
+        config.maxPrice = 1000e18;
+        vm.prank(strategyOwner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.InvalidPriceBounds.selector,
+                uint256(2000e18),
+                uint256(1000e18)
+            )
+        );
+        dcaManager.createStrategy(config);
+    }
+
+    function test_CreateStrategy_AcceptsEqualMinMaxPrice() public {
+        // min == max is the boundary case; allowed (forces a single price point).
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.minPrice = 1500e18;
+        config.maxPrice = 1500e18;
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        assertGt(
+            uint256(dcaManager.strategyStates(strategyId).nextTriggerAt),
+            0
+        );
+    }
+
     function test_CreateStrategy_RevertsOnInAssetVaultMismatch() public {
         // sourceVault = usdcFleet (asset = USDC). Set inAsset to DAI so the
         // mismatch fires after the SameAsset check (outAsset is WETH).

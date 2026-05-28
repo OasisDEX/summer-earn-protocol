@@ -579,6 +579,13 @@ contract DCAStrategyManager is
         ) {
             revert InvalidFeedAddress();
         }
+        if (
+            config.maxPrice > 0 &&
+            config.minPrice > 0 &&
+            config.minPrice > config.maxPrice
+        ) {
+            revert InvalidPriceBounds(config.minPrice, config.maxPrice);
+        }
     }
 
     /**

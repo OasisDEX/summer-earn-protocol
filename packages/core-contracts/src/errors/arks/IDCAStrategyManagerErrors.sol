@@ -90,4 +90,9 @@ interface IDCAStrategyManagerErrors {
     /// @notice Reverts when the current oracle execution price is below `config.minPrice`.
     ///         `executionPrice` is the 1e18-scaled out/in ratio.
     error PriceBelowFloor(uint256 executionPrice, uint256 minPrice);
+
+    /// @notice Reverts when both `config.maxPrice` and `config.minPrice` are non-zero
+    ///         and `minPrice > maxPrice`. Such a configuration is unsatisfiable and
+    ///         would leave the strategy permanently un-executable.
+    error InvalidPriceBounds(uint256 minPrice, uint256 maxPrice);
 }
