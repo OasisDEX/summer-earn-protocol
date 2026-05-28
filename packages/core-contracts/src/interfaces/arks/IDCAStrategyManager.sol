@@ -47,9 +47,16 @@ interface IDCAStrategyManager {
         uint256 interval;
         /// @notice Maximum acceptable slippage expressed in basis points (0–10 000).
         uint256 slippageBps;
-        /// @notice Ceiling on the out/in execution-price ratio scaled to ChainlinkOracleUtils.PRECISION. 0 = no ceiling.
+        /// @notice Ceiling on the execution price expressed as `inAsset` units per
+        ///         `outAsset` unit, scaled to ChainlinkOracleUtils.PRECISION (1e18) —
+        ///         i.e. the price of the out-asset denominated in the in-asset, as
+        ///         returned by `ChainlinkOracleUtils.crossRate`. 0 = no ceiling.
+        ///         Example: buying ETH (out) with USDC (in), `maxPrice = 5000e18`
+        ///         means "abort if 1 ETH costs more than 5000 USDC at oracle".
         uint256 maxPrice;
-        /// @notice Floor on the out/in execution-price ratio scaled to ChainlinkOracleUtils.PRECISION. 0 = no floor.
+        /// @notice Floor on the execution price expressed as `inAsset` units per
+        ///         `outAsset` unit, scaled to ChainlinkOracleUtils.PRECISION (1e18) —
+        ///         same convention as `maxPrice`. 0 = no floor.
         uint256 minPrice;
         /// @notice Unix timestamp after which no further executions are permitted.
         uint256 endDate;

@@ -84,11 +84,13 @@ interface IDCAStrategyManagerErrors {
     error InvalidFeedAddress();
 
     /// @notice Reverts when the current oracle execution price exceeds `config.maxPrice`.
-    ///         `executionPrice` is the 1e18-scaled out/in ratio.
+    ///         `executionPrice` is the 1e18-scaled price of `outAsset` denominated
+    ///         in `inAsset` (inAsset units per outAsset unit).
     error PriceAboveCeiling(uint256 executionPrice, uint256 maxPrice);
 
     /// @notice Reverts when the current oracle execution price is below `config.minPrice`.
-    ///         `executionPrice` is the 1e18-scaled out/in ratio.
+    ///         `executionPrice` is the 1e18-scaled price of `outAsset` denominated
+    ///         in `inAsset` (inAsset units per outAsset unit).
     error PriceBelowFloor(uint256 executionPrice, uint256 minPrice);
 
     /// @notice Reverts when both `config.maxPrice` and `config.minPrice` are non-zero
