@@ -5,7 +5,7 @@ import type { Address, Hex } from 'viem'
 
 import { GlassCard } from '../../../components/GlassCard'
 import type { DvnMetadata } from '../hooks/useDvnMetadata'
-import { lookupDvn,useDvnMetadata } from '../hooks/useDvnMetadata'
+import { lookupDvn, useDvnMetadata } from '../hooks/useDvnMetadata'
 import { useOAppAdmin } from '../hooks/useOAppAdmin'
 import { useOnChainRouteState } from '../hooks/useOnChainRouteState'
 import { getDesiredRouteConfig } from '../lib/configReader'
@@ -25,11 +25,7 @@ function sameAddrCI(a: string | null | undefined, b: string | null | undefined):
   return a.toLowerCase() === b.toLowerCase()
 }
 
-function ulnFieldDiffer(
-  a: UlnConfig | null,
-  b: UlnConfig | null,
-  field: keyof UlnConfig,
-): boolean {
+function ulnFieldDiffer(a: UlnConfig | null, b: UlnConfig | null, field: keyof UlnConfig): boolean {
   if (!a || !b) return Boolean(a) !== Boolean(b)
   const av = a[field]
   const bv = b[field]
@@ -59,9 +55,7 @@ function Row({
           {label} (desired)
         </div>
         <div
-          className={`font-mono text-xs break-all ${
-            differ ? 'text-amber-300' : 'text-slate-300'
-          }`}
+          className={`font-mono text-xs break-all ${differ ? 'text-amber-300' : 'text-slate-300'}`}
         >
           {desired ?? '—'}
         </div>
@@ -71,9 +65,7 @@ function Row({
           {label} (on-chain)
         </div>
         <div
-          className={`font-mono text-xs break-all ${
-            differ ? 'text-amber-300' : 'text-slate-300'
-          }`}
+          className={`font-mono text-xs break-all ${differ ? 'text-amber-300' : 'text-slate-300'}`}
         >
           {actual ?? '—'}
         </div>
@@ -298,8 +290,7 @@ export function RouteDetailPanel({ sourceChain, oApp, remoteChain, onEdit }: Pro
   const actualPeerB32 = onChain?.peerBytes32 ?? null
   const actualPeerAddr = actualPeerB32 ? bytes32ToAddress(actualPeerB32) : null
 
-  const peerDiffer =
-    (desiredPeerB32 ?? '').toLowerCase() !== (actualPeerB32 ?? '').toLowerCase()
+  const peerDiffer = (desiredPeerB32 ?? '').toLowerCase() !== (actualPeerB32 ?? '').toLowerCase()
   const sendLibDiffer = !sameAddrCI(desired?.sendLib, onChain?.sendLib)
   const recvLibDiffer = !sameAddrCI(desired?.receiveLib, onChain?.receiveLib)
   const executorAddrDiffer = !sameAddrCI(

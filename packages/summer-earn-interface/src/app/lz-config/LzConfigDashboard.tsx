@@ -133,9 +133,7 @@ export function LzConfigDashboard() {
         />
       )}
 
-      {exportOpen && (
-        <SafeExportModal pending={pending} onClose={() => setExportOpen(false)} />
-      )}
+      {exportOpen && <SafeExportModal pending={pending} onClose={() => setExportOpen(false)} />}
 
       {submitOpen && (
         <SubmitEditsModal

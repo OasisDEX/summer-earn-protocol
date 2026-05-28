@@ -50,7 +50,10 @@ export function SafeExportModal({ pending, onClose }: Props) {
   function handleDownload() {
     if (downloadDisabled) return
     const built = buildSafeTxJsonByChain(pending, trimmedSafe)
-    for (const [chain, json] of Object.entries(built) as [ChainName, ReturnType<typeof buildSafeTxJsonByChain>[ChainName]][]) {
+    for (const [chain, json] of Object.entries(built) as [
+      ChainName,
+      ReturnType<typeof buildSafeTxJsonByChain>[ChainName],
+    ][]) {
       if (!json) continue
       downloadSafeTxJson(`safe-tx-${chain}-${json.createdAt}.json`, json)
     }

@@ -4,12 +4,7 @@ import type { Address, Hex } from 'viem'
 
 import { getEid, getEndpoint, getOAppAddress } from '../lib/configReader'
 import { decodeExecutorConfig, decodeUlnConfig } from '../lib/encodeDecode'
-import {
-  CONFIG_TYPE_EXECUTOR,
-  CONFIG_TYPE_ULN,
-  LZ_ENDPOINT_ABI,
-  OAPP_ABI,
-} from '../lib/lzAbi'
+import { CONFIG_TYPE_EXECUTOR, CONFIG_TYPE_ULN, LZ_ENDPOINT_ABI, OAPP_ABI } from '../lib/lzAbi'
 import { ChainName, OAppKind, OnChainRouteConfig } from '../lib/types'
 import { useLzPublicClient } from './usePublicClient'
 
@@ -41,7 +36,7 @@ export function useOnChainRouteState(
       // ULN/Executor reads against that lib — substituting a static fallback
       // would fabricate drift when the OApp has overridden its libs.
 
-      const tryRead = async <T,>(fn: () => Promise<T>): Promise<T | null> => {
+      const tryRead = async <T>(fn: () => Promise<T>): Promise<T | null> => {
         try {
           return await fn()
         } catch {

@@ -23,15 +23,7 @@ interface Props {
   onOAppChange: (o: OAppKind) => void
 }
 
-function Pill({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean
-  label: string
-  onClick: () => void
-}) {
+function Pill({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -47,12 +39,7 @@ function Pill({
   )
 }
 
-export function ChainAndOAppPicker({
-  sourceChain,
-  onChainChange,
-  oApp,
-  onOAppChange,
-}: Props) {
+export function ChainAndOAppPicker({ sourceChain, onChainChange, oApp, onOAppChange }: Props) {
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>

@@ -21,7 +21,7 @@ export function useOAppAdmin(sourceChain: ChainName, oApp: OAppKind) {
     staleTime: STALE_TIME_MS,
     queryFn: async () => {
       if (!client || !endpoint || !oAppAddress) throw new Error('not ready')
-      const tryRead = async <T,>(fn: () => Promise<T>): Promise<T | null> => {
+      const tryRead = async <T>(fn: () => Promise<T>): Promise<T | null> => {
         try {
           return await fn()
         } catch {

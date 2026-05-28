@@ -41,7 +41,7 @@ export function useEditAuthorizations(edits: PendingEdit[]): EditAuthResult[] {
         if (!endpoint || !oAppAddress) throw new Error('not ready')
         const client = makePublicClient(chain)
         if (!client) throw new Error('no client')
-        const tryRead = async <T,>(fn: () => Promise<T>): Promise<T | null> => {
+        const tryRead = async <T>(fn: () => Promise<T>): Promise<T | null> => {
           try {
             return await fn()
           } catch {

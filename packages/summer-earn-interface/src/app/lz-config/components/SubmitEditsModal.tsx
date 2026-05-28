@@ -158,9 +158,7 @@ export function SubmitEditsModal({ pending, authorizations, onClose }: Props) {
                         <div className="text-slate-500 text-[11px] mt-0.5">{auth.reason}</div>
                       ) : null}
                       {r?.error ? (
-                        <div className="text-red-400 text-[11px] mt-0.5 break-words">
-                          {r.error}
-                        </div>
+                        <div className="text-red-400 text-[11px] mt-0.5 break-words">{r.error}</div>
                       ) : null}
                       {r?.txHash && explorer ? (
                         <a

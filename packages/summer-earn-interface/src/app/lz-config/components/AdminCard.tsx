@@ -63,9 +63,7 @@ export function AdminCard({ sourceChain, oApp }: Props) {
   return (
     <GlassCard>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-          OApp Admin
-        </h3>
+        <h3 className="text-sm font-semibold text-white uppercase tracking-wider">OApp Admin</h3>
         <span className="text-xs text-slate-500">
           {sourceChain} · {oApp}
         </span>

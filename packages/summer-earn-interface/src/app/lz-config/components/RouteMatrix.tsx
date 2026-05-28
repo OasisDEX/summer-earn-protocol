@@ -171,10 +171,7 @@ function addressStatusFn(desired: Address | null, onChain: Address | null): Stat
   return sameAddrCI(desired, onChain) ? 'ok' : 'drift'
 }
 
-function executorStatusFn(
-  desired: ExecutorConfig | null,
-  onChain: ExecutorConfig | null,
-): Status {
+function executorStatusFn(desired: ExecutorConfig | null, onChain: ExecutorConfig | null): Status {
   if (!desired) return 'na'
   if (!onChain) return 'unset'
   if (desired.maxMessageSize !== onChain.maxMessageSize) return 'drift'
@@ -264,11 +261,7 @@ function RouteMatrixRow({
   admin: OAppAdminState | null
 }) {
   const desired = getDesiredRouteConfig(sourceChain, remoteChain, oApp)
-  const {
-    data: onChain,
-    isLoading,
-    error,
-  } = useOnChainRouteState(sourceChain, oApp, remoteChain)
+  const { data: onChain, isLoading, error } = useOnChainRouteState(sourceChain, oApp, remoteChain)
   const errorMessage = error instanceof Error ? error.message : error ? String(error) : undefined
 
   const peer: Status = error

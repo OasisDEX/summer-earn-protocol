@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import { createPublicClient, type PublicClient } from 'viem'
 
-import { CHAIN_RPC_URLS, createRpcTransport,VIEM_CHAIN_ENTITIES } from '../../../config/chains'
+import { CHAIN_RPC_URLS, createRpcTransport, VIEM_CHAIN_ENTITIES } from '../../../config/chains'
 import { CHAIN_NAME_TO_ID, ChainName } from '../lib/types'
 
 export function makePublicClient(chain: ChainName): PublicClient | null {

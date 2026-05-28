@@ -1,13 +1,7 @@
 import type { Address } from 'viem'
 
 import configJson from '../../../config/deployment/index.json'
-import type {
-  ChainName,
-  DesiredRouteConfig,
-  ExecutorConfig,
-  OAppKind,
-  UlnConfig,
-} from './types'
+import type { ChainName, DesiredRouteConfig, ExecutorConfig, OAppKind, UlnConfig } from './types'
 
 // Loose typing: the JSON is treated as `any` (matches existing pattern in src/utils/configAddresses.ts)
 const configData: any = configJson
@@ -50,10 +44,7 @@ export function getOAppAddress(chain: ChainName, kind: OAppKind): Address | null
   }
 }
 
-export function getDesiredUln(
-  sourceChain: ChainName,
-  remoteChain: ChainName,
-): UlnConfig | null {
+export function getDesiredUln(sourceChain: ChainName, remoteChain: ChainName): UlnConfig | null {
   const dvns = configData[sourceChain]?.common?.layerZero?.dvns?.[remoteChain]
   if (!dvns || !dvns.lzLabs || !dvns.secondDvn) return null
 

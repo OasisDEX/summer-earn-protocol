@@ -243,7 +243,9 @@ export function EditConfigDrawer({
   const [enforcedExpanded, setEnforcedExpanded] = useState(false)
   const [includeEnforcedSend, setIncludeEnforcedSend] = useState(false)
   const [includeEnforcedSendAndCall, setIncludeEnforcedSendAndCall] = useState(false)
-  const [enforcedSendInput, setEnforcedSendInput] = useState<string>(onChain?.enforced?.send ?? '0x')
+  const [enforcedSendInput, setEnforcedSendInput] = useState<string>(
+    onChain?.enforced?.send ?? '0x',
+  )
   const [enforcedSendAndCallInput, setEnforcedSendAndCallInput] = useState<string>(
     onChain?.enforced?.sendAndCall ?? '0x',
   )
@@ -321,10 +323,7 @@ export function EditConfigDrawer({
     }
   }, [includeReceiveLib, gracePeriodInput])
 
-  const sendUlnParsed = useMemo<UlnParseResult>(
-    () => parseUlnFormState(sendUlnForm),
-    [sendUlnForm],
-  )
+  const sendUlnParsed = useMemo<UlnParseResult>(() => parseUlnFormState(sendUlnForm), [sendUlnForm])
   const receiveUlnParsed = useMemo<UlnParseResult>(
     () => parseUlnFormState(receiveUlnForm),
     [receiveUlnForm],
@@ -430,11 +429,7 @@ export function EditConfigDrawer({
 
   // Peer / lib / config edits need a per-route eid; delegate is OApp-scoped only.
   const needsRouteEid =
-    includePeer ||
-    includeSendLib ||
-    includeReceiveLib ||
-    includeSendConfig ||
-    includeReceiveConfig
+    includePeer || includeSendLib || includeReceiveLib || includeSendConfig || includeReceiveConfig
   const submitDisabled =
     !anyIncluded || hasAnyError || !oAppAddress || (needsRouteEid && remoteEid == null)
 
@@ -605,9 +600,7 @@ export function EditConfigDrawer({
       >
         <header className="sticky top-0 bg-charcoal-900 border-b border-white/10 px-5 py-4 flex items-center justify-between gap-4 z-10">
           <div>
-            <div className="text-xs uppercase tracking-wider text-slate-500">
-              Edit route
-            </div>
+            <div className="text-xs uppercase tracking-wider text-slate-500">Edit route</div>
             <h3 id="edit-config-title" className="text-base font-semibold text-white">
               {oApp} · {sourceChain} → <span className="capitalize">{remoteChain}</span>
               {eid ? <span className="text-slate-500 ml-2 text-xs">eid {eid}</span> : null}
@@ -630,16 +623,12 @@ export function EditConfigDrawer({
 
           {!desired ? (
             <div className="text-amber-300 text-xs mb-3 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-              No desired config in <code>config/index.json</code> for this route. Defaults are
-              empty — please fill the fields manually.
+              No desired config in <code>config/index.json</code> for this route. Defaults are empty
+              — please fill the fields manually.
             </div>
           ) : null}
 
-          <SectionToggle
-            title="Set peer"
-            included={includePeer}
-            onToggle={setIncludePeer}
-          >
+          <SectionToggle title="Set peer" included={includePeer} onToggle={setIncludePeer}>
             <Field label="Peer address (remote OApp)" error={peerError}>
               <input
                 type="text"
@@ -787,8 +776,7 @@ export function EditConfigDrawer({
               <div className="text-red-400 text-xs mb-3">{enforcedEidMissing}</div>
             ) : (
               <div className="text-xs text-slate-500 mb-3">
-                Remote eid:{' '}
-                <span className="font-mono text-slate-300">{remoteEid ?? '—'}</span>
+                Remote eid: <span className="font-mono text-slate-300">{remoteEid ?? '—'}</span>
               </div>
             )}
 

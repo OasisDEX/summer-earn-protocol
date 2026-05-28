@@ -66,9 +66,7 @@ export function PendingChangesCart({
     <div className="fixed bottom-4 right-4 z-30 w-[420px] max-w-[90vw]">
       <GlassCard>
         <header className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-semibold text-white">
-            Pending changes ({pending.length})
-          </h4>
+          <h4 className="text-sm font-semibold text-white">Pending changes ({pending.length})</h4>
           <button
             type="button"
             onClick={onClear}
@@ -100,9 +98,7 @@ export function PendingChangesCart({
                       <div className="min-w-0 flex-1">
                         <div className="truncate">{describeEdit(edit)}</div>
                         {auth && !auth.canSubmit && auth.reason ? (
-                          <div className="text-[10px] text-slate-500 truncate">
-                            {auth.reason}
-                          </div>
+                          <div className="text-[10px] text-slate-500 truncate">{auth.reason}</div>
                         ) : null}
                       </div>
                       {auth?.canSubmit ? (

@@ -96,8 +96,7 @@ export function evaluateRoute({
       recs.push({
         id: 'receive-lib-default',
         severity: 'warn',
-        message:
-          'Receive library uses the endpoint default. Pin explicitly via setReceiveLibrary.',
+        message: 'Receive library uses the endpoint default. Pin explicitly via setReceiveLibrary.',
       })
     }
   }
