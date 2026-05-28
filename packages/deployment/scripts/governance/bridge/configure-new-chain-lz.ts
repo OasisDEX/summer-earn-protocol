@@ -187,16 +187,18 @@ async function createRouteConfiguration(
       ).sort() as readonly Address[],
     }
   } else if (hasThirdDvn) {
-    // LZ named "2-of-3" (X=2 + N=1 threshold=1, effectively 3-of-3) — fallback when no Horizen.
+    // 3-DVN fallback: LZ Labs required + 1-of-2 optional (secondDvn / thirdDvn).
+    // True 2-of-3 with LZ Labs as a fixed attestor — tolerates one optional DVN
+    // outage, instead of the strict 3-of-3 we'd get with all DVNs required.
     ulnConfig = {
       confirmations: 15n,
-      requiredDVNCount: 2,
-      optionalDVNCount: 1,
+      requiredDVNCount: 1,
+      optionalDVNCount: 2,
       optionalDVNThreshold: 1,
-      requiredDVNs: (
-        [dvns.lzLabs as Address, dvns.thirdDvn as Address] as Address[]
+      requiredDVNs: ([dvns.lzLabs as Address] as Address[]).sort() as readonly Address[],
+      optionalDVNs: (
+        [dvns.secondDvn as Address, dvns.thirdDvn as Address] as Address[]
       ).sort() as readonly Address[],
-      optionalDVNs: ([dvns.secondDvn as Address] as Address[]).sort() as readonly Address[],
     }
   } else {
     // 2-of-2 strict — last-resort fallback when neither thirdDvn nor horizen is set.

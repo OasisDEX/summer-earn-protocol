@@ -321,7 +321,14 @@ function RouteMatrixRow({
           admin,
           dvnMetadata,
         })
-  const worst: DvnSeverity | null = recs.length > 0 ? recs[0].severity : null
+  // When the underlying RPC read failed, surface that as an error rec instead of
+  // letting the empty `recs` array render as a green "✓".
+  const worst: DvnSeverity | null = error
+    ? 'error'
+    : recs.length > 0
+      ? recs[0].severity
+      : null
+  const recsCount = error ? 1 : recs.length
 
   return (
     <tr
@@ -358,7 +365,7 @@ function RouteMatrixRow({
         <EnforcedPill status={enfSC} title={errorMessage} />
       </td>
       <td className="py-3 px-3">
-        <RecsBadge count={recs.length} worst={worst} isLoading={isLoading} />
+        <RecsBadge count={recsCount} worst={worst} isLoading={isLoading} />
       </td>
       <td className="py-3 px-3 text-slate-500">{isSelected ? '▾' : '▸'}</td>
     </tr>

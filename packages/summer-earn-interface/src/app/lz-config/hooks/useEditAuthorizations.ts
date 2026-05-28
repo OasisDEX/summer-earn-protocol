@@ -75,6 +75,14 @@ export function useEditAuthorizations(edits: PendingEdit[]): EditAuthResult[] {
     })),
   })
 
+  // Build a stable, primitive signature of the query results so the memo
+  // recomputes when any underlying owner/delegate actually changes. Using
+  // `.join('|')` on the raw objects would collapse to `[object Object]` and
+  // never invalidate.
+  const queriesSignature = queries
+    .map((q) => `${q.data?.owner ?? ''}|${q.data?.delegate ?? ''}`)
+    .join(',')
+
   const adminByPair = useMemo(() => {
     const map = new Map<string, { owner: Address | null; delegate: Address | null }>()
     uniquePairs.forEach((p, i) => {
@@ -83,7 +91,7 @@ export function useEditAuthorizations(edits: PendingEdit[]): EditAuthResult[] {
     })
     return map
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uniquePairs, queries.map((q) => q.data).join('|')])
+  }, [uniquePairs, queriesSignature])
 
   return edits.map((e) => {
     const admin = adminByPair.get(pairKey(e.sourceChain, e.oApp))
