@@ -1,13 +1,17 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import type { Address } from 'viem'
+import type { Address, Hex } from 'viem'
 
 import { GlassCard } from '../../../components/GlassCard'
+import type { DvnMetadata } from '../hooks/useDvnMetadata'
+import { lookupDvn,useDvnMetadata } from '../hooks/useDvnMetadata'
+import { useOAppAdmin } from '../hooks/useOAppAdmin'
 import { useOnChainRouteState } from '../hooks/useOnChainRouteState'
 import { getDesiredRouteConfig } from '../lib/configReader'
 import { addressToBytes32, bytes32ToAddress } from '../lib/encodeDecode'
-import type { ChainName, OAppKind, UlnConfig } from '../lib/types'
+import { evaluateRoute } from '../lib/recommendations'
+import type { ChainName, OAppKind, Recommendation, UlnConfig } from '../lib/types'
 
 interface Props {
   sourceChain: ChainName
@@ -82,12 +86,45 @@ function fmtAddr(a: Address | null | undefined): string {
   return a ?? '—'
 }
 
-function fmtList(arr: readonly string[] | undefined): ReactNode {
+function DvnAddrLine({
+  address,
+  metadata,
+  chain,
+}: {
+  address: string
+  metadata: DvnMetadata | undefined
+  chain: ChainName
+}) {
+  const info = lookupDvn(metadata, chain, address)
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1.5">
+      <span>{address}</span>
+      {info && (
+        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-white/5 text-slate-300 border-white/10">
+          {info.canonicalName}
+        </span>
+      )}
+      {info?.deprecated && (
+        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-red-500/15 text-red-300 border-red-500/30">
+          deprecated
+        </span>
+      )}
+    </span>
+  )
+}
+
+function fmtDvnList(
+  arr: readonly string[] | undefined,
+  metadata: DvnMetadata | undefined,
+  chain: ChainName,
+): ReactNode {
   if (!arr || arr.length === 0) return '—'
   return (
-    <ul className="space-y-0.5">
+    <ul className="space-y-1">
       {arr.map((x) => (
-        <li key={x}>{x}</li>
+        <li key={x}>
+          <DvnAddrLine address={x} metadata={metadata} chain={chain} />
+        </li>
       ))}
     </ul>
   )
@@ -97,10 +134,14 @@ function UlnSection({
   title,
   desired,
   actual,
+  metadata,
+  sourceChain,
 }: {
   title: string
   desired: UlnConfig | null
   actual: UlnConfig | null
+  metadata: DvnMetadata | undefined
+  sourceChain: ChainName
 }) {
   return (
     <div className="pt-4">
@@ -131,16 +172,103 @@ function UlnSection({
       />
       <Row
         label="requiredDVNs"
-        desired={fmtList(desired?.requiredDVNs)}
-        actual={fmtList(actual?.requiredDVNs)}
+        desired={fmtDvnList(desired?.requiredDVNs, metadata, sourceChain)}
+        actual={fmtDvnList(actual?.requiredDVNs, metadata, sourceChain)}
         differ={ulnFieldDiffer(desired, actual, 'requiredDVNs')}
       />
       <Row
         label="optionalDVNs"
-        desired={fmtList(desired?.optionalDVNs)}
-        actual={fmtList(actual?.optionalDVNs)}
+        desired={fmtDvnList(desired?.optionalDVNs, metadata, sourceChain)}
+        actual={fmtDvnList(actual?.optionalDVNs, metadata, sourceChain)}
         differ={ulnFieldDiffer(desired, actual, 'optionalDVNs')}
       />
+    </div>
+  )
+}
+
+function EnforcedValue({ value }: { value: Hex | null | undefined }) {
+  if (value === null || value === undefined) {
+    return <span className="font-mono text-xs text-slate-500">—</span>
+  }
+  if (value === '0x') {
+    return <span className="text-xs font-semibold text-red-300">No options set</span>
+  }
+  return <span className="font-mono text-xs text-slate-300 break-all">{value}</span>
+}
+
+function EnforcedSection({
+  send,
+  sendAndCall,
+}: {
+  send: Hex | null | undefined
+  sendAndCall: Hex | null | undefined
+}) {
+  return (
+    <div className="pt-4">
+      <h4 className="text-sm font-semibold text-white mb-2">Enforced Options</h4>
+      <div className="space-y-2">
+        <div className="grid grid-cols-[200px,1fr] items-start gap-3 py-1 border-b border-white/5">
+          <span className="text-xs uppercase tracking-wider text-slate-500">
+            Message Type 1 (SEND)
+          </span>
+          <EnforcedValue value={send} />
+        </div>
+        <div className="grid grid-cols-[200px,1fr] items-start gap-3 py-1">
+          <span className="text-xs uppercase tracking-wider text-slate-500">
+            Message Type 2 (SEND_AND_CALL)
+          </span>
+          <EnforcedValue value={sendAndCall} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const SEVERITY_STYLES: Record<
+  Recommendation['severity'],
+  { icon: string; rowClass: string; iconClass: string }
+> = {
+  error: {
+    icon: '✕',
+    rowClass: 'border-red-500/30 bg-red-500/5',
+    iconClass: 'text-red-300',
+  },
+  warn: {
+    icon: '⚠',
+    rowClass: 'border-amber-500/30 bg-amber-500/5',
+    iconClass: 'text-amber-300',
+  },
+  info: {
+    icon: 'ℹ',
+    rowClass: 'border-white/10 bg-white/5',
+    iconClass: 'text-slate-400',
+  },
+}
+
+function RecommendationsSection({ recs }: { recs: Recommendation[] }) {
+  return (
+    <div className="pt-4">
+      <h4 className="text-sm font-semibold text-white mb-2">Recommendations</h4>
+      {recs.length === 0 ? (
+        <div className="text-xs text-emerald-300 px-3 py-2 rounded border border-emerald-500/30 bg-emerald-500/5">
+          ✓ No issues detected on this route.
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {recs.map((r) => {
+            const s = SEVERITY_STYLES[r.severity]
+            return (
+              <li
+                key={r.id}
+                className={`flex items-start gap-2 px-3 py-2 rounded border ${s.rowClass}`}
+              >
+                <span className={`font-bold leading-tight ${s.iconClass}`}>{s.icon}</span>
+                <span className="text-xs text-slate-300">{r.message}</span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }
@@ -148,6 +276,8 @@ function UlnSection({
 export function RouteDetailPanel({ sourceChain, oApp, remoteChain, onEdit }: Props) {
   const desired = getDesiredRouteConfig(sourceChain, remoteChain, oApp)
   const { data: onChain, isLoading, error } = useOnChainRouteState(sourceChain, oApp, remoteChain)
+  const { data: admin } = useOAppAdmin(sourceChain, oApp)
+  const { data: dvnMetadata } = useDvnMetadata()
 
   if (isLoading) {
     return (
@@ -178,6 +308,14 @@ export function RouteDetailPanel({ sourceChain, oApp, remoteChain, onEdit }: Pro
   )
   const executorSizeDiffer =
     (desired?.executor.maxMessageSize ?? null) !== (onChain?.executor?.maxMessageSize ?? null)
+
+  const recs = evaluateRoute({
+    sourceChain,
+    desired,
+    onChain: onChain ?? null,
+    admin: admin ?? null,
+    dvnMetadata,
+  })
 
   return (
     <GlassCard>
@@ -240,12 +378,23 @@ export function RouteDetailPanel({ sourceChain, oApp, remoteChain, onEdit }: Pro
         title="Send ULN config"
         desired={desired?.uln ?? null}
         actual={onChain?.sendUln ?? null}
+        metadata={dvnMetadata}
+        sourceChain={sourceChain}
       />
       <UlnSection
         title="Receive ULN config"
         desired={desired?.uln ?? null}
         actual={onChain?.receiveUln ?? null}
+        metadata={dvnMetadata}
+        sourceChain={sourceChain}
       />
+
+      <EnforcedSection
+        send={onChain?.enforced?.send}
+        sendAndCall={onChain?.enforced?.sendAndCall}
+      />
+
+      <RecommendationsSection recs={recs} />
     </GlassCard>
   )
 }

@@ -3,13 +3,20 @@
 import type { Address, Hex } from 'viem'
 
 import { GlassCard } from '../../../components/GlassCard'
+import type { DvnMetadata } from '../hooks/useDvnMetadata'
+import { useDvnMetadata } from '../hooks/useDvnMetadata'
+import { useOAppAdmin } from '../hooks/useOAppAdmin'
 import { useOnChainRouteState } from '../hooks/useOnChainRouteState'
 import { getDesiredRouteConfig } from '../lib/configReader'
 import { addressToBytes32 } from '../lib/encodeDecode'
+import { evaluateRoute } from '../lib/recommendations'
 import type {
   ChainName,
   DesiredRouteConfig,
+  DvnSeverity,
+  EnforcedOptionsState,
   ExecutorConfig,
+  OAppAdminState,
   OAppKind,
   UlnConfig,
 } from '../lib/types'
@@ -38,6 +45,82 @@ function StatusPill({ status }: { status: Status }) {
       className={`inline-block px-2 py-0.5 text-xs font-semibold rounded border ${STATUS_CLASS[status]}`}
     >
       {STATUS_LABEL[status]}
+    </span>
+  )
+}
+
+type EnforcedStatus = 'ok' | 'empty' | 'notread' | 'loading'
+
+const ENFORCED_LABEL: Record<EnforcedStatus, string> = {
+  ok: 'OK',
+  empty: 'EMPTY',
+  notread: 'NOT READ',
+  loading: '…',
+}
+
+const ENFORCED_CLASS: Record<EnforcedStatus, string> = {
+  ok: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  empty: 'bg-red-500/15 text-red-300 border-red-500/30',
+  notread: 'bg-white/5 text-slate-500 border-white/10',
+  loading: 'bg-white/5 text-slate-500 border-white/10 animate-pulse',
+}
+
+function EnforcedPill({ status }: { status: EnforcedStatus }) {
+  return (
+    <span
+      className={`inline-block px-2 py-0.5 text-xs font-semibold rounded border ${ENFORCED_CLASS[status]}`}
+    >
+      {ENFORCED_LABEL[status]}
+    </span>
+  )
+}
+
+function enforcedStatusFor(value: Hex | null | undefined): EnforcedStatus {
+  if (value === null || value === undefined) return 'notread'
+  if (value === '0x') return 'empty'
+  return 'ok'
+}
+
+function RecsBadge({
+  count,
+  worst,
+  isLoading,
+}: {
+  count: number
+  worst: DvnSeverity | null
+  isLoading: boolean
+}) {
+  if (isLoading) {
+    return (
+      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-white/5 text-slate-500 border-white/10 animate-pulse">
+        …
+      </span>
+    )
+  }
+  if (count === 0 || worst === null) {
+    return (
+      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+        ✓
+      </span>
+    )
+  }
+  if (worst === 'error') {
+    return (
+      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-red-500/15 text-red-300 border-red-500/30">
+        {count} ✕
+      </span>
+    )
+  }
+  if (worst === 'warn') {
+    return (
+      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-amber-500/15 text-amber-300 border-amber-500/30">
+        {count} ⚠
+      </span>
+    )
+  }
+  return (
+    <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-white/5 text-slate-300 border-white/10">
+      {count} ℹ
     </span>
   )
 }
@@ -107,6 +190,10 @@ export function RouteMatrix({
   selectedRemote,
   onSelect,
 }: RouteMatrixProps) {
+  // Fire shared queries once at the matrix level so all rows share the result.
+  const { data: dvnMetadata } = useDvnMetadata()
+  const { data: admin } = useOAppAdmin(sourceChain, oApp)
+
   return (
     <GlassCard>
       <div className="overflow-x-auto">
@@ -120,13 +207,16 @@ export function RouteMatrix({
               <th className="text-left py-2 px-3">Send Lib</th>
               <th className="text-left py-2 px-3">Receive Lib</th>
               <th className="text-left py-2 px-3">Executor</th>
+              <th className="text-left py-2 px-3">Enf SEND</th>
+              <th className="text-left py-2 px-3">Enf S+C</th>
+              <th className="text-left py-2 px-3">Recs</th>
               <th className="py-2 px-3" />
             </tr>
           </thead>
           <tbody>
             {remotes.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-6 text-center text-slate-500">
+                <td colSpan={11} className="py-6 text-center text-slate-500">
                   No remote routes configured for this source chain.
                 </td>
               </tr>
@@ -139,6 +229,8 @@ export function RouteMatrix({
                 remoteChain={remote}
                 isSelected={remote === selectedRemote}
                 onClick={() => onSelect(remote)}
+                dvnMetadata={dvnMetadata}
+                admin={admin ?? null}
               />
             ))}
           </tbody>
@@ -154,12 +246,16 @@ function RouteMatrixRow({
   remoteChain,
   isSelected,
   onClick,
+  dvnMetadata,
+  admin,
 }: {
   sourceChain: ChainName
   oApp: OAppKind
   remoteChain: ChainName
   isSelected: boolean
   onClick: () => void
+  dvnMetadata: DvnMetadata | undefined
+  admin: OAppAdminState | null
 }) {
   const desired = getDesiredRouteConfig(sourceChain, remoteChain, oApp)
   const { data: onChain, isLoading } = useOnChainRouteState(sourceChain, oApp, remoteChain)
@@ -182,6 +278,29 @@ function RouteMatrixRow({
   const exec: Status = isLoading
     ? 'loading'
     : executorStatusFn(desired?.executor ?? null, onChain?.executor ?? null)
+
+  const enforced: EnforcedOptionsState | null = onChain?.enforced ?? null
+  const enfSend: EnforcedStatus = isLoading
+    ? 'loading'
+    : enforced
+      ? enforcedStatusFor(enforced.send)
+      : 'notread'
+  const enfSC: EnforcedStatus = isLoading
+    ? 'loading'
+    : enforced
+      ? enforcedStatusFor(enforced.sendAndCall)
+      : 'notread'
+
+  const recs = isLoading
+    ? []
+    : evaluateRoute({
+        sourceChain,
+        desired,
+        onChain: onChain ?? null,
+        admin,
+        dvnMetadata,
+      })
+  const worst: DvnSeverity | null = recs.length > 0 ? recs[0].severity : null
 
   return (
     <tr
@@ -208,6 +327,15 @@ function RouteMatrixRow({
       </td>
       <td className="py-3 px-3">
         <StatusPill status={exec} />
+      </td>
+      <td className="py-3 px-3">
+        <EnforcedPill status={enfSend} />
+      </td>
+      <td className="py-3 px-3">
+        <EnforcedPill status={enfSC} />
+      </td>
+      <td className="py-3 px-3">
+        <RecsBadge count={recs.length} worst={worst} isLoading={isLoading} />
       </td>
       <td className="py-3 px-3 text-slate-500">{isSelected ? '▾' : '▸'}</td>
     </tr>

@@ -3,12 +3,15 @@
 import { useMemo, useState } from 'react'
 
 import { StatCard } from '../../components/StatCard'
+import { AdminCard } from './components/AdminCard'
 import { ChainAndOAppPicker } from './components/ChainAndOAppPicker'
 import { EditConfigDrawer } from './components/EditConfigDrawer'
 import { PendingChangesCart } from './components/PendingChangesCart'
 import { RouteDetailPanel } from './components/RouteDetailPanel'
 import { RouteMatrix } from './components/RouteMatrix'
 import { SafeExportModal } from './components/SafeExportModal'
+import { useDvnMetadata } from './hooks/useDvnMetadata'
+import { useOAppAdmin } from './hooks/useOAppAdmin'
 import {
   getDesiredRouteConfig,
   getEid,
@@ -36,6 +39,10 @@ export function LzConfigDashboard() {
   const endpoint = getEndpoint(sourceChain)
   const eid = getEid(sourceChain)
   const oAppAddress = getOAppAddress(sourceChain, oApp)
+
+  // Warm shared queries so children can read from the React Query cache.
+  useDvnMetadata()
+  useOAppAdmin(sourceChain, oApp)
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
@@ -68,6 +75,10 @@ export function LzConfigDashboard() {
         <StatCard label="EID" value={String(eid || '—')} />
         <StatCard label="OApp" value={shortenAddress(oAppAddress)} />
         <StatCard label="Routes configured" value={String(remotes.length)} highlight />
+      </section>
+
+      <section className="mb-8">
+        <AdminCard sourceChain={sourceChain} oApp={oApp} />
       </section>
 
       <section className="mb-8">
