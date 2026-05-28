@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { type Address, isAddress } from 'viem'
+import { type Address, type Hex, isAddress, isHex } from 'viem'
 
+import { useOAppAdmin } from '../hooks/useOAppAdmin'
 import { useOnChainRouteState } from '../hooks/useOnChainRouteState'
+import { getEid } from '../lib/configReader'
 import { addressToBytes32 } from '../lib/encodeDecode'
 import type {
   ChainName,
@@ -195,6 +197,7 @@ export function EditConfigDrawer({
   onSubmit,
 }: Props) {
   const { data: onChain, isLoading } = useOnChainRouteState(sourceChain, oApp, remoteChain)
+  const { data: admin } = useOAppAdmin(sourceChain, oApp)
 
   // peer
   const [includePeer, setIncludePeer] = useState(false)
@@ -225,6 +228,34 @@ export function EditConfigDrawer({
     ulnToFormState(desired?.uln ?? null),
   )
 
+  // delegate
+  const [includeDelegate, setIncludeDelegate] = useState(false)
+  const [delegateInput, setDelegateInput] = useState<string>('')
+  const [delegatePrefilled, setDelegatePrefilled] = useState(false)
+  useEffect(() => {
+    if (!delegatePrefilled && admin?.delegate) {
+      setDelegateInput(admin.delegate)
+      setDelegatePrefilled(true)
+    }
+  }, [admin?.delegate, delegatePrefilled])
+
+  // enforced options
+  const [enforcedExpanded, setEnforcedExpanded] = useState(false)
+  const [includeEnforcedSend, setIncludeEnforcedSend] = useState(false)
+  const [includeEnforcedSendAndCall, setIncludeEnforcedSendAndCall] = useState(false)
+  const [enforcedSendInput, setEnforcedSendInput] = useState<string>(onChain?.enforced?.send ?? '0x')
+  const [enforcedSendAndCallInput, setEnforcedSendAndCallInput] = useState<string>(
+    onChain?.enforced?.sendAndCall ?? '0x',
+  )
+  const [enforcedPrefilled, setEnforcedPrefilled] = useState(false)
+  useEffect(() => {
+    if (!enforcedPrefilled && onChain?.enforced) {
+      if (onChain.enforced.send) setEnforcedSendInput(onChain.enforced.send)
+      if (onChain.enforced.sendAndCall) setEnforcedSendAndCallInput(onChain.enforced.sendAndCall)
+      setEnforcedPrefilled(true)
+    }
+  }, [onChain?.enforced, enforcedPrefilled])
+
   // submission error (e.g. missing send lib for setSendConfig)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -238,6 +269,14 @@ export function EditConfigDrawer({
   }, [onClose])
 
   const eid = useMemo(() => desired?.eid ?? null, [desired])
+  const remoteEid = useMemo(() => {
+    if (eid != null) return eid
+    try {
+      return getEid(remoteChain)
+    } catch {
+      return null
+    }
+  }, [eid, remoteChain])
 
   // validation
   const peerError = useMemo<string | null>(() => {
@@ -317,6 +356,35 @@ export function EditConfigDrawer({
     return (onChain?.receiveLib ?? desired?.receiveLib ?? null) as Address | null
   }, [includeReceiveLib, receiveLibInput, onChain, desired])
 
+  const delegateError = useMemo<string | null>(() => {
+    if (!includeDelegate) return null
+    const v = delegateInput.trim()
+    if (!v) return 'delegate address required'
+    if (!isAddress(v)) return 'invalid address'
+    return null
+  }, [includeDelegate, delegateInput])
+
+  const enforcedSendError = useMemo<string | null>(() => {
+    if (!includeEnforcedSend) return null
+    const v = enforcedSendInput.trim()
+    if (!v) return 'options bytes required (use 0x for empty)'
+    if (!isHex(v)) return 'must be hex (0x…)'
+    return null
+  }, [includeEnforcedSend, enforcedSendInput])
+
+  const enforcedSendAndCallError = useMemo<string | null>(() => {
+    if (!includeEnforcedSendAndCall) return null
+    const v = enforcedSendAndCallInput.trim()
+    if (!v) return 'options bytes required (use 0x for empty)'
+    if (!isHex(v)) return 'must be hex (0x…)'
+    return null
+  }, [includeEnforcedSendAndCall, enforcedSendAndCallInput])
+
+  const enforcedEidMissing =
+    (includeEnforcedSend || includeEnforcedSendAndCall) && remoteEid == null
+      ? 'cannot determine remote EID for enforced options'
+      : null
+
   const sendConfigLibMissing =
     includeSendConfig && !resolvedSendLib
       ? 'cannot determine send library — enable "Set send library" or wait for on-chain state'
@@ -327,7 +395,14 @@ export function EditConfigDrawer({
       : null
 
   const anyIncluded =
-    includePeer || includeSendLib || includeReceiveLib || includeSendConfig || includeReceiveConfig
+    includePeer ||
+    includeSendLib ||
+    includeReceiveLib ||
+    includeSendConfig ||
+    includeReceiveConfig ||
+    includeDelegate ||
+    includeEnforcedSend ||
+    includeEnforcedSendAndCall
 
   const hasAnyError = Boolean(
     peerError ||
@@ -339,21 +414,36 @@ export function EditConfigDrawer({
       executorAddrError ||
       executorSizeError ||
       sendConfigLibMissing ||
-      receiveConfigLibMissing,
+      receiveConfigLibMissing ||
+      delegateError ||
+      enforcedSendError ||
+      enforcedSendAndCallError ||
+      enforcedEidMissing,
   )
 
+  // Peer / lib / config edits need a per-route eid; delegate is OApp-scoped only.
+  const needsRouteEid =
+    includePeer ||
+    includeSendLib ||
+    includeReceiveLib ||
+    includeSendConfig ||
+    includeReceiveConfig
   const submitDisabled =
-    !anyIncluded || hasAnyError || !eid || !oAppAddress
+    !anyIncluded || hasAnyError || !oAppAddress || (needsRouteEid && !eid)
 
   function handleSubmit() {
     setSubmitError(null)
-    if (!eid || !oAppAddress) {
-      setSubmitError('Missing remote EID or OApp address; cannot build edits.')
+    if (!oAppAddress) {
+      setSubmitError('Missing OApp address; cannot build edits.')
+      return
+    }
+    if (needsRouteEid && !eid) {
+      setSubmitError('Missing remote EID for route-scoped edits.')
       return
     }
     const edits: PendingEdit[] = []
 
-    if (includePeer && !peerError) {
+    if (includePeer && !peerError && eid != null) {
       edits.push({
         kind: 'setPeer',
         sourceChain,
@@ -365,7 +455,7 @@ export function EditConfigDrawer({
       })
     }
 
-    if (includeSendLib && !sendLibError) {
+    if (includeSendLib && !sendLibError && eid != null) {
       edits.push({
         kind: 'setSendLibrary',
         sourceChain,
@@ -377,7 +467,7 @@ export function EditConfigDrawer({
       })
     }
 
-    if (includeReceiveLib && !receiveLibError && !gracePeriodError) {
+    if (includeReceiveLib && !receiveLibError && !gracePeriodError && eid != null) {
       edits.push({
         kind: 'setReceiveLibrary',
         sourceChain,
@@ -390,7 +480,13 @@ export function EditConfigDrawer({
       })
     }
 
-    if (includeSendConfig && !sendUlnError && !executorAddrError && !executorSizeError) {
+    if (
+      includeSendConfig &&
+      !sendUlnError &&
+      !executorAddrError &&
+      !executorSizeError &&
+      eid != null
+    ) {
       if (!resolvedSendLib) {
         setSubmitError(
           'Cannot include Set send config without a send library. Either enable "Set send library" with a valid address or wait for on-chain state to load.',
@@ -414,7 +510,7 @@ export function EditConfigDrawer({
       })
     }
 
-    if (includeReceiveConfig && !receiveUlnError) {
+    if (includeReceiveConfig && !receiveUlnError && eid != null) {
       if (!resolvedReceiveLib) {
         setSubmitError(
           'Cannot include Set receive config without a receive library. Either enable "Set receive library" with a valid address or wait for on-chain state to load.',
@@ -431,6 +527,48 @@ export function EditConfigDrawer({
         receiveLib: resolvedReceiveLib,
         uln: receiveUlnParsed.uln!,
       })
+    }
+
+    if (includeDelegate && !delegateError) {
+      edits.push({
+        kind: 'setDelegate',
+        sourceChain,
+        oApp,
+        oAppAddress,
+        delegate: delegateInput.trim() as Address,
+      })
+    }
+
+    if (
+      (includeEnforcedSend || includeEnforcedSendAndCall) &&
+      !enforcedSendError &&
+      !enforcedSendAndCallError &&
+      remoteEid != null
+    ) {
+      const entries: { eid: number; msgType: number; options: Hex }[] = []
+      if (includeEnforcedSend) {
+        entries.push({
+          eid: remoteEid,
+          msgType: 1,
+          options: enforcedSendInput.trim() as Hex,
+        })
+      }
+      if (includeEnforcedSendAndCall) {
+        entries.push({
+          eid: remoteEid,
+          msgType: 2,
+          options: enforcedSendAndCallInput.trim() as Hex,
+        })
+      }
+      if (entries.length > 0) {
+        edits.push({
+          kind: 'setEnforcedOptions',
+          sourceChain,
+          oApp,
+          oAppAddress,
+          entries,
+        })
+      }
     }
 
     if (edits.length === 0) {
@@ -600,6 +738,109 @@ export function EditConfigDrawer({
               error={receiveUlnError}
               idPrefix="receive"
             />
+          </SectionToggle>
+
+          <SectionToggle
+            title="Set delegate"
+            included={includeDelegate}
+            onToggle={setIncludeDelegate}
+          >
+            <div className="text-xs text-slate-500 mb-3">
+              Delegate is OApp-scoped (not remote-specific). Current on-chain delegate:{' '}
+              <span className="font-mono text-slate-300">{admin?.delegate ?? '—'}</span>
+            </div>
+            <Field label="Delegate address" error={delegateError}>
+              <input
+                type="text"
+                value={delegateInput}
+                onChange={(e) => setDelegateInput(e.target.value)}
+                placeholder="0x…"
+                className={inputCls}
+              />
+            </Field>
+          </SectionToggle>
+
+          <SectionToggle
+            title="Set enforced options"
+            included={enforcedExpanded || includeEnforcedSend || includeEnforcedSendAndCall}
+            onToggle={(v) => {
+              setEnforcedExpanded(v)
+              if (!v) {
+                setIncludeEnforcedSend(false)
+                setIncludeEnforcedSendAndCall(false)
+              }
+            }}
+          >
+            {enforcedEidMissing ? (
+              <div className="text-red-400 text-xs mb-3">{enforcedEidMissing}</div>
+            ) : (
+              <div className="text-xs text-slate-500 mb-3">
+                Remote eid:{' '}
+                <span className="font-mono text-slate-300">{remoteEid ?? '—'}</span>
+              </div>
+            )}
+
+            <div className="mb-4 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+              <label className="flex items-center gap-3 cursor-pointer mb-2">
+                <input
+                  type="checkbox"
+                  checked={includeEnforcedSend}
+                  onChange={(e) => setIncludeEnforcedSend(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="text-sm font-medium text-white">Message Type 1 (SEND)</span>
+                <span className="ml-auto text-xs uppercase tracking-wider text-slate-500">
+                  {includeEnforcedSend ? 'included' : 'skip'}
+                </span>
+              </label>
+              {includeEnforcedSend ? (
+                <Field label="Options bytes (Type 3 encoded)" error={enforcedSendError}>
+                  <textarea
+                    value={enforcedSendInput}
+                    onChange={(e) => setEnforcedSendInput(e.target.value)}
+                    rows={2}
+                    className={`${inputCls} font-mono`}
+                    placeholder="0x…"
+                  />
+                  <div className="text-xs text-slate-500 mt-1">
+                    ? These are the Type 3 options bytes — paste from the LZ options encoder. Use{' '}
+                    <code>0x</code> to explicitly clear.
+                  </div>
+                </Field>
+              ) : null}
+            </div>
+
+            <div className="mb-1 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+              <label className="flex items-center gap-3 cursor-pointer mb-2">
+                <input
+                  type="checkbox"
+                  checked={includeEnforcedSendAndCall}
+                  onChange={(e) => setIncludeEnforcedSendAndCall(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="text-sm font-medium text-white">
+                  Message Type 2 (SEND_AND_CALL)
+                </span>
+                <span className="ml-auto text-xs uppercase tracking-wider text-slate-500">
+                  {includeEnforcedSendAndCall ? 'included' : 'skip'}
+                </span>
+              </label>
+              {includeEnforcedSendAndCall ? (
+                <Field label="Options bytes (Type 3 encoded)" error={enforcedSendAndCallError}>
+                  <textarea
+                    value={enforcedSendAndCallInput}
+                    onChange={(e) => setEnforcedSendAndCallInput(e.target.value)}
+                    rows={2}
+                    className={`${inputCls} font-mono`}
+                    placeholder="0x…"
+                  />
+                  <div className="text-xs text-slate-500 mt-1">
+                    ? These are the Type 3 options bytes — paste from the LZ options encoder. Use{' '}
+                    <code>0x</code> to explicitly clear.
+                  </div>
+                </Field>
+              ) : null}
+            </div>
           </SectionToggle>
 
           {submitError ? (
