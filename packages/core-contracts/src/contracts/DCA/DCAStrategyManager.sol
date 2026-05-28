@@ -142,6 +142,7 @@ contract DCAStrategyManager is
         StrategyConfig calldata config
     )
         external
+        nonReentrant
         ownerOnlySender(config)
         onlyActiveFleetCommander(config.sourceVault, "source")
         onlyActiveFleetCommander(config.targetVault, "target")
@@ -158,6 +159,7 @@ contract DCAStrategyManager is
         uint256 assetAmount
     )
         external
+        nonReentrant
         ownerOnlySender(config)
         onlyActiveFleetCommander(config.sourceVault, "source")
         onlyActiveFleetCommander(config.targetVault, "target")
@@ -186,6 +188,7 @@ contract DCAStrategyManager is
         bytes calldata signature
     )
         external
+        nonReentrant
         ownerOnlySender(config)
         onlyActiveFleetCommander(config.sourceVault, "source")
         onlyActiveFleetCommander(config.targetVault, "target")
@@ -214,6 +217,7 @@ contract DCAStrategyManager is
         Permit2DepositBundle calldata permits
     )
         external
+        nonReentrant
         ownerOnlySender(config)
         onlyActiveFleetCommander(config.sourceVault, "source")
         onlyActiveFleetCommander(config.targetVault, "target")
@@ -259,6 +263,7 @@ contract DCAStrategyManager is
         StrategyConfig calldata newConfig
     )
         external
+        nonReentrant
         onlyStrategyOwner(strategyId, oldConfig)
         onlyActiveFleetCommander(newConfig.sourceVault, "source")
         onlyActiveFleetCommander(newConfig.targetVault, "target")
@@ -294,7 +299,7 @@ contract DCAStrategyManager is
     function pauseStrategy(
         uint256 strategyId,
         StrategyConfig calldata config
-    ) external onlyStrategyOwner(strategyId, config) {
+    ) external nonReentrant onlyStrategyOwner(strategyId, config) {
         StrategyState storage state = _strategyStates[strategyId];
         if (state.status != Status.ACTIVE) {
             revert StrategyNotActive(strategyId);
@@ -311,7 +316,7 @@ contract DCAStrategyManager is
     function resumeStrategy(
         uint256 strategyId,
         StrategyConfig calldata config
-    ) external onlyStrategyOwner(strategyId, config) {
+    ) external nonReentrant onlyStrategyOwner(strategyId, config) {
         StrategyState storage state = _strategyStates[strategyId];
         if (state.status != Status.PAUSED) {
             revert StrategyNotActive(strategyId);
@@ -330,7 +335,7 @@ contract DCAStrategyManager is
     function cancelStrategy(
         uint256 strategyId,
         StrategyConfig calldata config
-    ) external onlyStrategyOwner(strategyId, config) {
+    ) external nonReentrant onlyStrategyOwner(strategyId, config) {
         StrategyState storage state = _strategyStates[strategyId];
         _requireNonTerminal(strategyId, state.status);
 
