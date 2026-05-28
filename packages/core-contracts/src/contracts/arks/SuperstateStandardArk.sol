@@ -15,26 +15,24 @@ import {ISuperstateToken} from "../../interfaces/superstate/ISuperstateToken.sol
 
 /**
  * @title SuperstateStandardArk
- * @notice Integration contract for programmatically interacting with Superstate's Tokenized Funds (like USCC).
- * @dev
- * **Allowlist Requirements:**
- * Superstate funds are regulated securities. The address interacting with the Superstate Subscribe/Redeem
- * contracts (this Ark) MUST be on the Superstate on-chain Allowlist. If not, transaction calls will revert.
+ * @notice Ark for asynchronous interaction with Superstate Tokenized Funds (USTB, USCC).
+ * @dev All operations settle off-chain with T+1/T+2 delays, managed via pending state and a Keeper.
  *
- * **Timing Nuances & Settlement:**
- * - USTB (Short Duration US Gov Securities): Processes nearly instantly during US market hours.
- * - USCC (Crypto Carry Fund): Operates on a T+1 NAV strike and T+2 mint/payout schedule.
+ * **Lifecycle:**
+ *   1. Board:    USDC is transferred to `DEPOSIT_ADDRESS` (the fund token contract). Superstate
+ *                mints fund tokens off-chain. The amount is tracked in `pendingDepositAssets`.
+ *   2. Clear:    Keeper calls `clearPendingDeposit()` once fund tokens arrive at this contract.
+ *   3. Withdraw: Keeper calls `requestWithdrawal()` which burns fund tokens via
+ *                `SHARE_TOKEN.offchainRedeem()`. Superstate delivers USDC off-chain.
+ *   4. Sweep:    Keeper calls `sweep()` once USDC arrives, forwarding it to the buffer ark.
  *
- * Because of the T+1/T+2 delays with USCC (and occasionally USTB), this contract utilizes a pending deposit
- * and pending withdrawal architecture (based on WisdomTreeArk) to account for asynchronous settlement.
- * Deposits and Withdrawals are initiated, and a Keeper clears them once the actual assets/shares arrive.
+ * **Allowlist:**
+ *   This contract MUST be on the Superstate on-chain AllowList for the target fund.
+ *   Calls to `offchainRedeem()` will revert if the caller is not allowlisted.
  *
- *   USTB
- *     Subscribe Address:  0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e
- *     Redemption Address: 0x4c21B7577C8FE8b0B0669165ee7C8f67fa1454Cf
- *   USCC
- *     Subscribe Address:  0x14d60E7FDC0D71d8611742720E4C50E7a974020c
- *     Redemption Address: 0x14d60E7FDC0D71d8611742720E4C50E7a974020c
+ * **Freeze:**
+ *   The keeper can freeze the ark via `setArkFrozen()`, locking `totalAssets()` to a snapshot
+ *   value and preventing new boards or withdrawals.
  */
 contract SuperstateStandardArk is
     ArkWithWithdrawalRequest,
@@ -49,11 +47,15 @@ contract SuperstateStandardArk is
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Default slippage tolerance (%) for swap-based withdrawals (unused, required by base)
     uint256 public constant DEFAULT_SWAP_SLIPPAGE = 2;
+    /// @notice Maximum allowed sweep slippage (50%)
     Percentage public constant MAX_SWEEP_SLIPPAGE =
         Percentage.wrap(PERCENTAGE_FACTOR / 2);
+    /// @notice Maximum allowed deposit slippage (50%)
     Percentage public constant MAX_DEPOSIT_SLIPPAGE =
         Percentage.wrap(PERCENTAGE_FACTOR / 2);
+    /// @notice Oracle price is considered stale after this duration
     uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 hours;
 
     /*//////////////////////////////////////////////////////////////
@@ -63,15 +65,19 @@ contract SuperstateStandardArk is
     /// @notice The Superstate fund token contract (USTB or USCC)
     IERC20Metadata public immutable SHARE_TOKEN;
 
-    /// @notice The Superstate Deposit address
+    /// @notice Address to which USDC is sent during boarding (typically the fund token contract)
     address public immutable DEPOSIT_ADDRESS;
 
     /// @notice Superstate/Chainlink price feed: price of 1 Superstate share denominated in USDC
     AggregatorV3Interface public immutable ORACLE;
 
+    /// @notice Decimals used by the oracle price feed
     uint8 public immutable ORACLE_DECIMALS;
+    /// @notice Decimals of the base asset (e.g. USDC = 6)
     uint8 public immutable ASSET_DECIMALS;
+    /// @notice Decimals of the fund share token (e.g. USCC = 6)
     uint8 public immutable SHARE_DECIMALS;
+    /// @notice 1 unit of the base asset in its smallest denomination (10 ** ASSET_DECIMALS)
     uint256 public immutable ONE_ASSET;
 
     /// @notice Validated USDC amounts subscribed, awaiting minting of fund tokens (handles T+1/T+2 delays)
@@ -83,15 +89,27 @@ contract SuperstateStandardArk is
     /// @notice Expected returning USDC amount equivalent to redeemed shares (handles T+1/T+2 delays)
     uint256 public pendingWithdrawalShares;
 
+    /// @notice When true, totalAssets() returns a frozen snapshot and board/withdraw are blocked
     bool public isArkFrozen;
+    /// @notice Slippage tolerance when validating USDC returned during sweep
     Percentage public sweepSlippage;
+    /// @notice Slippage tolerance when validating shares received after a deposit clears
     Percentage public depositSlippage;
+    /// @notice Snapshot of totalAssets() taken when the ark was frozen
     uint256 private _frozenTotalAssets;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @param _shareToken  The Superstate fund token (e.g. USTB or USCC)
+     * @param _depositAddress  Address to send USDC to during boarding (typically the fund token contract)
+     * @param _oracle  Price feed returning the price of 1 fund share in base-asset terms
+     * @param _sweepSlippage  Tolerance for USDC-vs-shares mismatch during sweep
+     * @param _depositSlippage  Tolerance for shares-received validation during clearPendingDeposit
+     * @param _params  Standard Ark initialization parameters
+     */
     constructor(
         address _shareToken,
         address _depositAddress,
@@ -198,8 +216,9 @@ contract SuperstateStandardArk is
 
     /**
      * @inheritdoc IArkWithWithdrawalRequest
-     * @notice Queries the on-chain Oracle to calculate expected USDC, and burns fund tokens via Redeem function.
-     *      Ensures the resulting USDC is routed back to the caller's whitelisted Payout Destination (tracked via pendingWithdrawalShares).
+     * @notice Converts the requested asset amount to shares via the oracle, then calls
+     *         `offchainRedeem()` on the fund token to burn them. The burned shares are tracked
+     *         in `pendingWithdrawalShares` until Superstate delivers USDC and the keeper sweeps.
      */
     function requestWithdrawal(
         uint256 amount
@@ -334,6 +353,10 @@ contract SuperstateStandardArk is
 
     /**
      * @inheritdoc Ark
+     * @dev Transfers USDC to `DEPOSIT_ADDRESS` and records the amount as pending.
+     *      Only one pending deposit can be active at a time. The share balance is
+     *      snapshotted into `cachedShareBalance` so that `totalAssets()` does not
+     *      double-count while the deposit is pending.
      */
     function _board(
         uint256 amount,
@@ -399,6 +422,10 @@ contract SuperstateStandardArk is
      */
     function _validateDisembarkData(bytes calldata) internal override {}
 
+    /**
+     * @dev Clears `pendingWithdrawalShares`, transfers USDC to the buffer ark,
+     *      and emits Disembarked + ArkSwept events.
+     */
     function _sweep(
         uint256 amountToSweep
     )
@@ -432,12 +459,14 @@ contract SuperstateStandardArk is
                             ORACLE HELPERS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Converts fund-token shares to base-asset amount using the oracle price.
     function _sharesToAssets(uint256 shares) internal view returns (uint256) {
         if (shares == 0) return 0;
         Price memory assetPerSharePrice = _fetchOracleAssetPerSharePrice();
         return assetPerSharePrice.invert().quote(shares);
     }
 
+    /// @dev Converts base-asset amount to fund-token shares using the oracle price.
     function _assetsToShares(
         uint256 assetAmount
     ) internal view returns (uint256) {
@@ -446,6 +475,7 @@ contract SuperstateStandardArk is
         return assetPerSharePrice.quote(assetAmount);
     }
 
+    /// @dev Reads the oracle and constructs a Price(share → asset). Reverts on stale or non-positive data.
     function _fetchOracleAssetPerSharePrice()
         internal
         view
@@ -467,12 +497,14 @@ contract SuperstateStandardArk is
             );
     }
 
+    /// @dev Decrements `pendingDepositAssets` and refreshes `cachedShareBalance`.
     function _clearPendingDeposit(uint256 amountCleared) internal {
         pendingDepositAssets -= amountCleared;
         cachedShareBalance = SHARE_TOKEN.balanceOf(address(this));
         emit PendingDepositCleared(amountCleared);
     }
 
+    /// @dev Reverts if newly arrived shares are below the expected amount minus deposit slippage.
     function _validateReceivedShares(uint256 amount) internal view {
         if (amount > pendingDepositAssets) revert InsufficientPendingDeposit();
         uint256 currentShares = SHARE_TOKEN.balanceOf(address(this));

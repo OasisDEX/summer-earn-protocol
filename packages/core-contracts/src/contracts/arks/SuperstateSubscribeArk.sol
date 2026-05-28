@@ -21,18 +21,28 @@ import {ISuperstateSubscribeArk} from "../../interfaces/arks/ISuperstateSubscrib
 
 /**
  * @title SuperstateSubscribeArk
- * @notice Integration contract for programmatically interacting with Superstate's Tokenized Funds (like USTB).
- * @dev
- * **Allowlist Requirements:**
- * Superstate funds are regulated securities. The address interacting with the Superstate Subscribe/Redeem
- * contracts (this Ark) MUST be on the Superstate on-chain Allowlist. If not, transaction calls will revert.
+ * @notice Ark for synchronous interaction with Superstate Tokenized Funds (primarily USTB).
+ * @dev Unlike SuperstateStandardArk, this contract calls `subscribe()` on-chain during boarding
+ *      to mint fund tokens immediately, and attempts synchronous redemption via the RedemptionIdle
+ *      contract during disembarkation.
  *
- * **Timing Nuances & Settlement:**
- * - USTB (Short Duration US Gov Securities): Processes nearly instantly during US market hours.
- *   This Ark tries synchronous redemption via the `RedemptionIdle` contract first. If that fails
- *   (e.g. market is closed), it falls back to an off-chain async redemption path identical to
- *   SuperstateStandardArk: shares are transferred to the redeem address, and the keeper calls
- *   `sweep()` once USDC arrives.
+ * **Lifecycle:**
+ *   1. Board:     Approves USDC to `SUPERSTATE_SUBSCRIBE` and calls `subscribe()`, which pulls
+ *                 USDC and mints fund tokens to this contract in the same transaction.
+ *   2. Disembark: Attempts synchronous redemption via `SUPERSTATE_REDEEM.redeem()` (or `withdraw()`).
+ *                 If that reverts (e.g. market closed, insufficient idle USDC), falls back to the
+ *                 async path: shares are transferred to the redeem contract and the keeper calls
+ *                 `sweep()` once USDC arrives.
+ *   3. Keeper:    Can call `requestWithdrawal()` to explicitly use the async path, bypassing the
+ *                 synchronous attempt.
+ *
+ * **Allowlist:**
+ *   This contract MUST be on the Superstate on-chain AllowList for the target fund.
+ *   Both `subscribe()` and fund-token transfers check the allowlist.
+ *
+ * **Oracle:**
+ *   The constructor validates that `_oracle` matches `SUPERSTATE_SUBSCRIBE.superstateOracle()`
+ *   to ensure price consistency between the fund contract and this Ark.
  */
 contract SuperstateSubscribeArk is
     ArkWithWithdrawalRequest,
@@ -47,7 +57,9 @@ contract SuperstateSubscribeArk is
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Oracle price is considered stale after this duration
     uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 hours;
+    /// @notice Default slippage tolerance (%) for swap-based withdrawals (unused, required by base)
     uint256 public constant DEFAULT_SWAP_SLIPPAGE = 2;
 
     /*//////////////////////////////////////////////////////////////
@@ -66,12 +78,16 @@ contract SuperstateSubscribeArk is
     /// @notice Superstate/Chainlink price feed: price of 1 Superstate share denominated in USDC
     AggregatorV3Interface public immutable ORACLE;
 
+    /// @notice Decimals used by the oracle price feed
     uint8 public immutable ORACLE_DECIMALS;
+    /// @notice Decimals of the base asset (e.g. USDC = 6)
     uint8 public immutable ASSET_DECIMALS;
+    /// @notice Decimals of the fund share token (e.g. USTB = 6)
     uint8 public immutable SHARE_DECIMALS;
+    /// @notice 1 unit of the base asset in its smallest denomination (10 ** ASSET_DECIMALS)
     uint256 public immutable ONE_ASSET;
 
-    /// @notice Expected returning USDC amount equivalent to redeemed shares (handles async fallback)
+    /// @notice Shares sent to the redeem contract via the async fallback, awaiting USDC settlement
     uint256 public pendingWithdrawalShares;
 
     /*//////////////////////////////////////////////////////////////
@@ -87,6 +103,13 @@ contract SuperstateSubscribeArk is
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @param _shareToken  The Superstate fund token (e.g. USTB)
+     * @param _superstateSubscribe  Contract exposing `subscribe()` (typically the token proxy itself)
+     * @param _superstateRedeem  Contract exposing `redeem()` / `withdraw()` (e.g. RedemptionIdle)
+     * @param _oracle  Price feed for the fund token; must match `_superstateSubscribe.superstateOracle()`
+     * @param _params  Standard Ark initialization parameters
+     */
     constructor(
         address _shareToken,
         address _superstateSubscribe,
@@ -208,6 +231,7 @@ contract SuperstateSubscribeArk is
                           INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Approves USDC to the subscribe contract and calls `subscribe()` to mint fund tokens synchronously.
     function _board(uint256 amount, bytes calldata) internal override {
         IERC20Metadata(address(config.asset)).forceApprove(
             address(SUPERSTATE_SUBSCRIBE),
@@ -296,6 +320,11 @@ contract SuperstateSubscribeArk is
 
     function _validateDisembarkData(bytes calldata) internal override {}
 
+    /**
+     * @dev Returns the maximum synchronously withdrawable amount, capped by USDC
+     *      available in the RedemptionIdle contract. Excludes shares already in
+     *      the async withdrawal queue.
+     */
     function _withdrawableTotalAssets()
         internal
         view
@@ -309,11 +338,11 @@ contract SuperstateSubscribeArk is
         uint256 theoreticalWithdrawableAssets = totalAssets() -
             assetsInWithdrawalQueue();
 
-        // Cannot withdraw more than it is available in the redemption contract
         return
             Math.min(balanceRedemptionContract, theoreticalWithdrawableAssets);
     }
 
+    /// @dev No yield farming — returns empty arrays.
     function _harvest(
         bytes calldata
     )
@@ -330,12 +359,14 @@ contract SuperstateSubscribeArk is
                             ORACLE HELPERS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Converts fund-token shares to base-asset amount using the oracle price.
     function _sharesToAssets(uint256 shares) internal view returns (uint256) {
         if (shares == 0) return 0;
         Price memory assetPerSharePrice = _fetchOracleAssetPerSharePrice();
         return assetPerSharePrice.invert().quote(shares);
     }
 
+    /// @dev Converts base-asset amount to fund-token shares using the oracle price.
     function _assetsToShares(
         uint256 assetAmount
     ) internal view returns (uint256) {
@@ -344,6 +375,7 @@ contract SuperstateSubscribeArk is
         return assetPerSharePrice.quote(assetAmount);
     }
 
+    /// @dev Reads the oracle and constructs a Price(share → asset). Reverts on stale or non-positive data.
     function _fetchOracleAssetPerSharePrice()
         internal
         view
