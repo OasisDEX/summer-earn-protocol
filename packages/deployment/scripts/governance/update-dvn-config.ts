@@ -250,30 +250,59 @@ async function updateDvnConfig(useBummerConfig = false) {
 
         // -----------------------------------------------------------------------
         // Build desired ULN config
+        // Three-tier model:
+        //   - 4 DVNs available: LZ "2-of-3 redundant" (X=2 required + N=2 optional threshold=1)
+        //   - 3 DVNs available: LZ named "2-of-3" (X=2 required + N=1 optional threshold=1)
+        //   - 2 DVNs available: 2-of-2 strict fallback
         // -----------------------------------------------------------------------
+        const hasFourDvns = !!(
+          dvns.thirdDvn && dvns.thirdDvn.length > 0 &&
+          dvns.horizen && dvns.horizen.length > 0
+        )
         const hasThirdDvn = !!(dvns.thirdDvn && dvns.thirdDvn.length > 0)
 
-        const desiredUln: UlnConfig = hasThirdDvn
-          ? {
-              confirmations: 15n,
-              requiredDVNCount: 1,
-              optionalDVNCount: 2,
-              optionalDVNThreshold: 1,
-              requiredDVNs: ([dvns.lzLabs as Address] as Address[]).sort() as readonly Address[],
-              optionalDVNs: (
-                [dvns.secondDvn as Address, dvns.thirdDvn as Address] as Address[]
-              ).sort() as readonly Address[],
-            }
-          : {
-              confirmations: 15n,
-              requiredDVNCount: 2,
-              optionalDVNCount: 0,
-              optionalDVNThreshold: 0,
-              requiredDVNs: (
-                [dvns.lzLabs as Address, dvns.secondDvn as Address] as Address[]
-              ).sort() as readonly Address[],
-              optionalDVNs: [] as readonly Address[],
-            }
+        let desiredUln: UlnConfig
+        if (hasFourDvns) {
+          // LZ "2-of-3 redundant": X=2 required + N=2 optional threshold=1.
+          // Required: LZ Labs + Nethermind (slots: lzLabs + thirdDvn).
+          // Optional: Deutsche Telekom + Horizen (slots: secondDvn + horizen).
+          desiredUln = {
+            confirmations: 15n,
+            requiredDVNCount: 2,
+            optionalDVNCount: 2,
+            optionalDVNThreshold: 1,
+            requiredDVNs: (
+              [dvns.lzLabs as Address, dvns.thirdDvn as Address] as Address[]
+            ).sort() as readonly Address[],
+            optionalDVNs: (
+              [dvns.secondDvn as Address, dvns.horizen as Address] as Address[]
+            ).sort() as readonly Address[],
+          }
+        } else if (hasThirdDvn) {
+          // LZ named "2-of-3" (X=2 + N=1 threshold=1, effectively 3-of-3) — fallback when no Horizen.
+          desiredUln = {
+            confirmations: 15n,
+            requiredDVNCount: 2,
+            optionalDVNCount: 1,
+            optionalDVNThreshold: 1,
+            requiredDVNs: (
+              [dvns.lzLabs as Address, dvns.thirdDvn as Address] as Address[]
+            ).sort() as readonly Address[],
+            optionalDVNs: ([dvns.secondDvn as Address] as Address[]).sort() as readonly Address[],
+          }
+        } else {
+          // 2-of-2 strict — last-resort fallback when neither thirdDvn nor horizen is set.
+          desiredUln = {
+            confirmations: 15n,
+            requiredDVNCount: 2,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: (
+              [dvns.lzLabs as Address, dvns.secondDvn as Address] as Address[]
+            ).sort() as readonly Address[],
+            optionalDVNs: [] as readonly Address[],
+          }
+        }
 
         // Encode desired ULN
         const encodedUln = encodeAbiParameters(ULN_CONFIG_ENCODE_PARAMS, [desiredUln])

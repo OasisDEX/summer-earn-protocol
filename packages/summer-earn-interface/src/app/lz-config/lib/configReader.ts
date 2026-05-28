@@ -57,18 +57,42 @@ export function getDesiredUln(
   const dvns = configData[sourceChain]?.common?.layerZero?.dvns?.[remoteChain]
   if (!dvns || !dvns.lzLabs || !dvns.secondDvn) return null
 
-  const hasThird = typeof dvns.thirdDvn === 'string' && dvns.thirdDvn.length > 0
+  // Three-tier model:
+  //   - 4 DVNs available: LZ "2-of-3 redundant" (X=2 required + N=2 optional threshold=1)
+  //   - 3 DVNs available: LZ named "2-of-3" (X=2 required + N=1 optional threshold=1)
+  //   - 2 DVNs available: 2-of-2 strict fallback
+  const hasFourDvns =
+    typeof dvns.thirdDvn === 'string' &&
+    dvns.thirdDvn.length > 0 &&
+    typeof dvns.horizen === 'string' &&
+    dvns.horizen.length > 0
+  const hasThirdDvn = typeof dvns.thirdDvn === 'string' && dvns.thirdDvn.length > 0
 
-  if (hasThird) {
+  if (hasFourDvns) {
+    // LZ "2-of-3 redundant": X=2 required + N=2 optional threshold=1.
+    // Required: LZ Labs + Nethermind (slots: lzLabs + thirdDvn).
+    // Optional: Deutsche Telekom + Horizen (slots: secondDvn + horizen).
     return {
       confirmations: DEFAULT_CONFIRMATIONS,
-      requiredDVNCount: 1,
+      requiredDVNCount: 2,
       optionalDVNCount: 2,
       optionalDVNThreshold: 1,
-      requiredDVNs: [dvns.lzLabs as Address].sort() as readonly Address[],
-      optionalDVNs: ([dvns.secondDvn, dvns.thirdDvn] as Address[]).sort() as readonly Address[],
+      requiredDVNs: ([dvns.lzLabs, dvns.thirdDvn] as Address[]).sort() as readonly Address[],
+      optionalDVNs: ([dvns.secondDvn, dvns.horizen] as Address[]).sort() as readonly Address[],
     }
   }
+  if (hasThirdDvn) {
+    // LZ named "2-of-3" (X=2 + N=1 threshold=1, effectively 3-of-3) — fallback when no Horizen.
+    return {
+      confirmations: DEFAULT_CONFIRMATIONS,
+      requiredDVNCount: 2,
+      optionalDVNCount: 1,
+      optionalDVNThreshold: 1,
+      requiredDVNs: ([dvns.lzLabs, dvns.thirdDvn] as Address[]).sort() as readonly Address[],
+      optionalDVNs: ([dvns.secondDvn] as Address[]).sort() as readonly Address[],
+    }
+  }
+  // 2-of-2 strict — last-resort fallback when neither thirdDvn nor horizen is set.
   return {
     confirmations: DEFAULT_CONFIRMATIONS,
     requiredDVNCount: 2,
