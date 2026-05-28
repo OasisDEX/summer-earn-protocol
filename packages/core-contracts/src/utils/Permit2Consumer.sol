@@ -135,10 +135,7 @@ abstract contract Permit2Consumer {
         bytes calldata signature
     ) internal {
         if (permitSingle.spender != address(this)) {
-            revert InvalidPermit2Spender(
-                address(this),
-                permitSingle.spender
-            );
+            revert InvalidPermit2Spender(address(this), permitSingle.spender);
         }
         try PERMIT2.permit(owner, permitSingle, signature) {} catch {
             (uint160 amount, , ) = PERMIT2.allowance(

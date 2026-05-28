@@ -771,6 +771,40 @@ contract DCAStrategyManagerTest is Test {
         dcaManager.createStrategy(config);
     }
 
+    function test_CreateStrategy_RevertsOnInAssetVaultMismatch() public {
+        // sourceVault = usdcFleet (asset = USDC). Set inAsset to DAI so the
+        // mismatch fires after the SameAsset check (outAsset is WETH).
+        address dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.inAsset = IERC20(dai);
+        vm.prank(strategyOwner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.InAssetVaultMismatch.selector,
+                USDC_ADDRESS,
+                dai
+            )
+        );
+        dcaManager.createStrategy(config);
+    }
+
+    function test_CreateStrategy_RevertsOnOutAssetVaultMismatch() public {
+        // targetVault = wethFleet (asset = WETH). Set outAsset to DAI so the
+        // mismatch fires after the SameAsset check (inAsset is USDC).
+        address dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.outAsset = IERC20(dai);
+        vm.prank(strategyOwner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.OutAssetVaultMismatch.selector,
+                WETH_ADDRESS,
+                dai
+            )
+        );
+        dcaManager.createStrategy(config);
+    }
+
     function test_CreateStrategy_EmitsStrategyCreated() public {
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
         vm.prank(strategyOwner);
@@ -802,7 +836,11 @@ contract DCAStrategyManagerTest is Test {
         );
 
         // Shares went directly to the user, not the manager.
-        assertGt(sharesAfter, sharesBefore, "user must receive source-vault shares");
+        assertGt(
+            sharesAfter,
+            sharesBefore,
+            "user must receive source-vault shares"
+        );
         assertEq(
             usdcFleet.balanceOf(address(dcaManager)),
             0,
@@ -811,7 +849,10 @@ contract DCAStrategyManagerTest is Test {
 
         // No leftover ERC20 allowance to the source vault.
         assertEq(
-            IERC20(USDC_ADDRESS).allowance(address(dcaManager), address(usdcFleet)),
+            IERC20(USDC_ADDRESS).allowance(
+                address(dcaManager),
+                address(usdcFleet)
+            ),
             0,
             "manager's USDC allowance to source vault must be reset to 0"
         );
@@ -2120,15 +2161,27 @@ contract DCAStrategyManagerIntegrationTest is Test {
                     );
 
                 assertEq(tradesExecuted, 1);
-                assertEq(inShares, cfg.tradeAmount, "inShares must equal tradeAmount");
-                assertGt(outShares, 0, "outShares must be non-zero on a successful swap");
+                assertEq(
+                    inShares,
+                    cfg.tradeAmount,
+                    "inShares must equal tradeAmount"
+                );
+                assertGt(
+                    outShares,
+                    0,
+                    "outShares must be non-zero on a successful swap"
+                );
                 assertEq(
                     inAssets,
                     expectedInAssets,
                     "inAssets must equal sourceVault.convertToAssets(tradeAmount)"
                 );
                 assertGt(outAssets, 0, "outAssets must be non-zero post-swap");
-                assertGt(nextTriggerAt, block.timestamp, "next trigger is in the future");
+                assertGt(
+                    nextTriggerAt,
+                    block.timestamp,
+                    "next trigger is in the future"
+                );
 
                 found = true;
                 break;
@@ -2539,11 +2592,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
             PERMIT2
         ).allowance(signer, address(sourceFleet), address(dcaManager));
         assertEq(allowanceAmount, type(uint160).max, "sub-allowance set");
-        assertEq(
-            allowanceExpiration,
-            type(uint48).max,
-            "expiration as signed"
-        );
+        assertEq(allowanceExpiration, type(uint48).max, "expiration as signed");
     }
 
     function test_CreateStrategyWithPermit2_AllowsKeeperToPull() public {
@@ -2705,8 +2754,8 @@ contract DCAStrategyManagerIntegrationTest is Test {
         );
         uint256 depositAmount = 500e6;
 
-        IDCAStrategyManager.Permit2DepositBundle memory permits = IDCAStrategyManager
-            .Permit2DepositBundle({
+        IDCAStrategyManager.Permit2DepositBundle
+            memory permits = IDCAStrategyManager.Permit2DepositBundle({
                 inAsset: ISignatureTransfer.PermitTransferFrom({
                     permitted: ISignatureTransfer.TokenPermissions({
                         token: IERC20(USDC_ADDRESS),

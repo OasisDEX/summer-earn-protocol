@@ -58,6 +58,14 @@ interface IDCAStrategyManagerErrors {
     ///         `config.inAsset == config.outAsset`.
     error SameAsset(address asset);
 
+    /// @notice Reverts when `config.inAsset` does not match `config.sourceVault.asset()`.
+    ///         The slippage floor relies on the oracle pricing the correct underlying.
+    error InAssetVaultMismatch(address expected, address actual);
+
+    /// @notice Reverts when `config.outAsset` does not match `config.targetVault.asset()`.
+    ///         The slippage floor relies on the oracle pricing the correct underlying.
+    error OutAssetVaultMismatch(address expected, address actual);
+
     /// @notice Reverts when `config.interval` is below the contract minimum (1 day).
     error IntervalTooShort(uint256 provided, uint256 minimum);
 

@@ -537,12 +537,20 @@ contract DCAStrategyManager is
      */
     function _validateStrategyConfig(
         StrategyConfig calldata config
-    ) internal pure {
+    ) internal view {
         if (config.owner == address(0)) revert InvalidOwner();
         if (address(config.sourceVault) == address(config.targetVault))
             revert SameAsset(address(config.sourceVault));
         if (config.inAsset == config.outAsset)
             revert SameAsset(address(config.inAsset));
+        address expectedIn = config.sourceVault.asset();
+        if (address(config.inAsset) != expectedIn) {
+            revert InAssetVaultMismatch(expectedIn, address(config.inAsset));
+        }
+        address expectedOut = config.targetVault.asset();
+        if (address(config.outAsset) != expectedOut) {
+            revert OutAssetVaultMismatch(expectedOut, address(config.outAsset));
+        }
         if (config.interval < _MIN_INTERVAL) {
             revert IntervalTooShort(config.interval, _MIN_INTERVAL);
         }
