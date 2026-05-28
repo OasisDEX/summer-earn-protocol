@@ -291,6 +291,17 @@ contract DCAStrategyManager is
         state.nextTriggerAt = state.lastScheduledAt + newConfig.interval;
 
         emit StrategyEdited(strategyId, newConfig);
+
+        // Auto-complete if the edit already satisfies a terminal condition;
+        // mirrors the pre-flight checks in `executeStrategy` so a keeper-less
+        // strategy doesn't get stranded as ACTIVE.
+        if (state.tradesExecuted >= newConfig.maxTrades) {
+            _markCompleted(strategyId, state, "max_trades");
+        } else if (
+            newConfig.endDate > 0 && block.timestamp >= newConfig.endDate
+        ) {
+            _markCompleted(strategyId, state, "end_date");
+        }
     }
 
     /**

@@ -593,6 +593,30 @@ contract DCAStrategyManagerTest is Test {
         vm.stopPrank();
     }
 
+    function test_EditStrategy_AutoCompletesWhenEndDatePast() public {
+        // Edit moves endDate into the past — strategy must auto-complete
+        // since the keeper would never invoke executeStrategy again.
+        IDCAStrategyManager.StrategyConfig memory oldConfig = _defaultConfig();
+        vm.startPrank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(oldConfig);
+
+        IDCAStrategyManager.StrategyConfig memory newConfig = _defaultConfig();
+        newConfig.endDate = block.timestamp - 1;
+
+        vm.expectEmit(true, false, false, true, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyCompleted(
+            strategyId,
+            "end_date"
+        );
+        dcaManager.editStrategy(strategyId, oldConfig, newConfig);
+        vm.stopPrank();
+
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.COMPLETED)
+        );
+    }
+
     function test_EditStrategy_RevertsOnOwnershipTransfer() public {
         IDCAStrategyManager.StrategyConfig memory oldConfig = _defaultConfig();
         vm.startPrank(strategyOwner);
@@ -2545,9 +2569,9 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
     function test_Execute_CompletesAfterEditLoweringMaxTrades() public {
         // After executing 2 trades on a maxTrades=3 strategy, the owner edits
-        // it down to maxTrades=2. On the next keeper call the status is still
-        // ACTIVE but tradesExecuted(2) >= maxTrades(2), so the pre-flight
-        // guard must emit StrategyCompleted and return gracefully.
+        // it down to maxTrades=2. `editStrategy` itself must auto-complete
+        // since the keeper would otherwise never bring the strategy to its
+        // terminal state.
         uint256 endDate = block.timestamp + 365 days;
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
         cfg.maxTrades = 3;
@@ -2569,25 +2593,31 @@ contract DCAStrategyManagerIntegrationTest is Test {
             endDate
         );
         newCfg.maxTrades = 2;
-        vm.prank(strategyOwner);
-        dcaManager.editStrategy(strategyId, cfg, newCfg);
-
-        vm.warp(block.timestamp + 7 days);
 
         vm.expectEmit(true, false, false, true, address(dcaManager));
         emit IDCAStrategyManagerEvents.StrategyCompleted(
             strategyId,
             "max_trades"
         );
-
-        vm.prank(keeper);
-        dcaManager.executeStrategy(strategyId, newCfg, hex"deadbeef");
+        vm.prank(strategyOwner);
+        dcaManager.editStrategy(strategyId, cfg, newCfg);
 
         assertEq(
             uint8(dcaManager.strategyStates(strategyId).status),
             uint8(IDCAStrategyManager.Status.COMPLETED),
-            "Strategy should be COMPLETED when tradesExecuted >= maxTrades"
+            "edit lowering maxTrades to <= tradesExecuted must auto-complete"
         );
+
+        // Subsequent keeper call must revert — strategy is terminal.
+        vm.warp(block.timestamp + 7 days);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.StrategyNotActive.selector,
+                strategyId
+            )
+        );
+        dcaManager.executeStrategy(strategyId, newCfg, hex"deadbeef");
     }
 
     // =========================================================
