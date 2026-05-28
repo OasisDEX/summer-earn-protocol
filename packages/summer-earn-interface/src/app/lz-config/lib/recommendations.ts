@@ -167,6 +167,12 @@ export function evaluateRoute({
         severity: 'warn',
         message: 'No enforced options set for SEND (msgType 1).',
       })
+    } else if (sendAndCallEmpty) {
+      recs.push({
+        id: 'enforced-send-and-call-empty',
+        severity: 'warn',
+        message: 'No enforced options set for SEND_AND_CALL (msgType 2).',
+      })
     }
   }
 

@@ -429,7 +429,7 @@ export function EditConfigDrawer({
     includeSendConfig ||
     includeReceiveConfig
   const submitDisabled =
-    !anyIncluded || hasAnyError || !oAppAddress || (needsRouteEid && !eid)
+    !anyIncluded || hasAnyError || !oAppAddress || (needsRouteEid && remoteEid == null)
 
   function handleSubmit() {
     setSubmitError(null)
@@ -437,44 +437,44 @@ export function EditConfigDrawer({
       setSubmitError('Missing OApp address; cannot build edits.')
       return
     }
-    if (needsRouteEid && !eid) {
+    if (needsRouteEid && remoteEid == null) {
       setSubmitError('Missing remote EID for route-scoped edits.')
       return
     }
     const edits: PendingEdit[] = []
 
-    if (includePeer && !peerError && eid != null) {
+    if (includePeer && !peerError && remoteEid != null) {
       edits.push({
         kind: 'setPeer',
         sourceChain,
         oApp,
         oAppAddress,
         remoteChain,
-        eid,
+        eid: remoteEid,
         peerBytes32: addressToBytes32(peerInput.trim() as Address),
       })
     }
 
-    if (includeSendLib && !sendLibError && eid != null) {
+    if (includeSendLib && !sendLibError && remoteEid != null) {
       edits.push({
         kind: 'setSendLibrary',
         sourceChain,
         oApp,
         oAppAddress,
         remoteChain,
-        eid,
+        eid: remoteEid,
         lib: sendLibInput.trim() as Address,
       })
     }
 
-    if (includeReceiveLib && !receiveLibError && !gracePeriodError && eid != null) {
+    if (includeReceiveLib && !receiveLibError && !gracePeriodError && remoteEid != null) {
       edits.push({
         kind: 'setReceiveLibrary',
         sourceChain,
         oApp,
         oAppAddress,
         remoteChain,
-        eid,
+        eid: remoteEid,
         lib: receiveLibInput.trim() as Address,
         gracePeriod: BigInt(gracePeriodInput.trim() || '0'),
       })
@@ -485,7 +485,7 @@ export function EditConfigDrawer({
       !sendUlnError &&
       !executorAddrError &&
       !executorSizeError &&
-      eid != null
+      remoteEid != null
     ) {
       if (!resolvedSendLib) {
         setSubmitError(
@@ -503,14 +503,14 @@ export function EditConfigDrawer({
         oApp,
         oAppAddress,
         remoteChain,
-        eid,
+        eid: remoteEid,
         sendLib: resolvedSendLib,
         executor,
         uln: sendUlnParsed.uln!,
       })
     }
 
-    if (includeReceiveConfig && !receiveUlnError && eid != null) {
+    if (includeReceiveConfig && !receiveUlnError && remoteEid != null) {
       if (!resolvedReceiveLib) {
         setSubmitError(
           'Cannot include Set receive config without a receive library. Either enable "Set receive library" with a valid address or wait for on-chain state to load.',
@@ -523,7 +523,7 @@ export function EditConfigDrawer({
         oApp,
         oAppAddress,
         remoteChain,
-        eid,
+        eid: remoteEid,
         receiveLib: resolvedReceiveLib,
         uln: receiveUlnParsed.uln!,
       })

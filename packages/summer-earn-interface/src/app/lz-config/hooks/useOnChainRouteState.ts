@@ -2,13 +2,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { Address, Hex } from 'viem'
 
-import {
-  getEid,
-  getEndpoint,
-  getOAppAddress,
-  getReceiveLib,
-  getSendLib,
-} from '../lib/configReader'
+import { getEid, getEndpoint, getOAppAddress } from '../lib/configReader'
 import { decodeExecutorConfig, decodeUlnConfig } from '../lib/encodeDecode'
 import {
   CONFIG_TYPE_EXECUTOR,
@@ -42,10 +36,10 @@ export function useOnChainRouteState(
         throw new Error('not ready')
       }
 
-      // Use the configured libs as a fallback when reading send/receive config —
-      // but we resolve the *actual* libraries via getSendLibrary / getReceiveLibrary
-      const fallbackSend = getSendLib(sourceChain)
-      const fallbackReceive = getReceiveLib(sourceChain)
+      // Resolve the *actual* libraries via getSendLibrary / getReceiveLibrary.
+      // If either read reverts (returns null below) we deliberately skip the
+      // ULN/Executor reads against that lib — substituting a static fallback
+      // would fabricate drift when the OApp has overridden its libs.
 
       const tryRead = async <T,>(fn: () => Promise<T>): Promise<T | null> => {
         try {
@@ -88,8 +82,8 @@ export function useOnChainRouteState(
         ),
       ])
 
-      const effSendLib = sendLib ?? fallbackSend
-      const receiveLib = receivePair?.[0] ?? fallbackReceive
+      const effSendLib: Address | null = sendLib ?? null
+      const receiveLib: Address | null = receivePair?.[0] ?? null
 
       const [sendUlnRaw, executorRaw, recvUlnRaw, enfSendRaw, enfSendAndCallRaw] =
         await Promise.all([

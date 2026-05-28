@@ -21,7 +21,7 @@ import type {
   UlnConfig,
 } from '../lib/types'
 
-type Status = 'ok' | 'drift' | 'unset' | 'na' | 'loading'
+type Status = 'ok' | 'drift' | 'unset' | 'na' | 'loading' | 'error'
 
 const STATUS_LABEL: Record<Status, string> = {
   ok: 'OK',
@@ -29,6 +29,7 @@ const STATUS_LABEL: Record<Status, string> = {
   unset: 'NOT SET',
   na: 'n/a',
   loading: '…',
+  error: 'RPC ERR',
 }
 
 const STATUS_CLASS: Record<Status, string> = {
@@ -37,11 +38,13 @@ const STATUS_CLASS: Record<Status, string> = {
   unset: 'bg-red-500/15 text-red-300 border-red-500/30',
   na: 'bg-white/5 text-slate-500 border-white/10',
   loading: 'bg-white/5 text-slate-500 border-white/10 animate-pulse',
+  error: 'bg-red-500/15 text-red-300 border-red-500/30',
 }
 
-function StatusPill({ status }: { status: Status }) {
+function StatusPill({ status, title }: { status: Status; title?: string }) {
   return (
     <span
+      title={title}
       className={`inline-block px-2 py-0.5 text-xs font-semibold rounded border ${STATUS_CLASS[status]}`}
     >
       {STATUS_LABEL[status]}
@@ -49,13 +52,14 @@ function StatusPill({ status }: { status: Status }) {
   )
 }
 
-type EnforcedStatus = 'ok' | 'empty' | 'notread' | 'loading'
+type EnforcedStatus = 'ok' | 'empty' | 'notread' | 'loading' | 'error'
 
 const ENFORCED_LABEL: Record<EnforcedStatus, string> = {
   ok: 'OK',
   empty: 'EMPTY',
   notread: 'NOT READ',
   loading: '…',
+  error: 'RPC ERR',
 }
 
 const ENFORCED_CLASS: Record<EnforcedStatus, string> = {
@@ -63,11 +67,13 @@ const ENFORCED_CLASS: Record<EnforcedStatus, string> = {
   empty: 'bg-red-500/15 text-red-300 border-red-500/30',
   notread: 'bg-white/5 text-slate-500 border-white/10',
   loading: 'bg-white/5 text-slate-500 border-white/10 animate-pulse',
+  error: 'bg-red-500/15 text-red-300 border-red-500/30',
 }
 
-function EnforcedPill({ status }: { status: EnforcedStatus }) {
+function EnforcedPill({ status, title }: { status: EnforcedStatus; title?: string }) {
   return (
     <span
+      title={title}
       className={`inline-block px-2 py-0.5 text-xs font-semibold rounded border ${ENFORCED_CLASS[status]}`}
     >
       {ENFORCED_LABEL[status]}
@@ -258,48 +264,70 @@ function RouteMatrixRow({
   admin: OAppAdminState | null
 }) {
   const desired = getDesiredRouteConfig(sourceChain, remoteChain, oApp)
-  const { data: onChain, isLoading } = useOnChainRouteState(sourceChain, oApp, remoteChain)
+  const {
+    data: onChain,
+    isLoading,
+    error,
+  } = useOnChainRouteState(sourceChain, oApp, remoteChain)
+  const errorMessage = error instanceof Error ? error.message : error ? String(error) : undefined
 
-  const peer: Status = isLoading
-    ? 'loading'
-    : peerStatus(desired, (onChain?.peerBytes32 ?? null) as Hex | null)
-  const sendUln: Status = isLoading
-    ? 'loading'
-    : ulnStatusFn(desired?.uln ?? null, onChain?.sendUln ?? null)
-  const recvUln: Status = isLoading
-    ? 'loading'
-    : ulnStatusFn(desired?.uln ?? null, onChain?.receiveUln ?? null)
-  const sendLib: Status = isLoading
-    ? 'loading'
-    : addressStatusFn(desired?.sendLib ?? null, onChain?.sendLib ?? null)
-  const recvLib: Status = isLoading
-    ? 'loading'
-    : addressStatusFn(desired?.receiveLib ?? null, onChain?.receiveLib ?? null)
-  const exec: Status = isLoading
-    ? 'loading'
-    : executorStatusFn(desired?.executor ?? null, onChain?.executor ?? null)
+  const peer: Status = error
+    ? 'error'
+    : isLoading
+      ? 'loading'
+      : peerStatus(desired, (onChain?.peerBytes32 ?? null) as Hex | null)
+  const sendUln: Status = error
+    ? 'error'
+    : isLoading
+      ? 'loading'
+      : ulnStatusFn(desired?.uln ?? null, onChain?.sendUln ?? null)
+  const recvUln: Status = error
+    ? 'error'
+    : isLoading
+      ? 'loading'
+      : ulnStatusFn(desired?.uln ?? null, onChain?.receiveUln ?? null)
+  const sendLib: Status = error
+    ? 'error'
+    : isLoading
+      ? 'loading'
+      : addressStatusFn(desired?.sendLib ?? null, onChain?.sendLib ?? null)
+  const recvLib: Status = error
+    ? 'error'
+    : isLoading
+      ? 'loading'
+      : addressStatusFn(desired?.receiveLib ?? null, onChain?.receiveLib ?? null)
+  const exec: Status = error
+    ? 'error'
+    : isLoading
+      ? 'loading'
+      : executorStatusFn(desired?.executor ?? null, onChain?.executor ?? null)
 
   const enforced: EnforcedOptionsState | null = onChain?.enforced ?? null
-  const enfSend: EnforcedStatus = isLoading
-    ? 'loading'
-    : enforced
-      ? enforcedStatusFor(enforced.send)
-      : 'notread'
-  const enfSC: EnforcedStatus = isLoading
-    ? 'loading'
-    : enforced
-      ? enforcedStatusFor(enforced.sendAndCall)
-      : 'notread'
+  const enfSend: EnforcedStatus = error
+    ? 'error'
+    : isLoading
+      ? 'loading'
+      : enforced
+        ? enforcedStatusFor(enforced.send)
+        : 'notread'
+  const enfSC: EnforcedStatus = error
+    ? 'error'
+    : isLoading
+      ? 'loading'
+      : enforced
+        ? enforcedStatusFor(enforced.sendAndCall)
+        : 'notread'
 
-  const recs = isLoading
-    ? []
-    : evaluateRoute({
-        sourceChain,
-        desired,
-        onChain: onChain ?? null,
-        admin,
-        dvnMetadata,
-      })
+  const recs =
+    error || isLoading
+      ? []
+      : evaluateRoute({
+          sourceChain,
+          desired,
+          onChain: onChain ?? null,
+          admin,
+          dvnMetadata,
+        })
   const worst: DvnSeverity | null = recs.length > 0 ? recs[0].severity : null
 
   return (
@@ -309,30 +337,32 @@ function RouteMatrixRow({
         isSelected ? 'bg-primary/5' : 'hover:bg-white/5'
       }`}
     >
-      <td className="py-3 px-3 capitalize text-white font-medium">{remoteChain}</td>
-      <td className="py-3 px-3">
-        <StatusPill status={peer} />
+      <td className="py-3 px-3 capitalize text-white font-medium" title={errorMessage}>
+        {remoteChain}
       </td>
       <td className="py-3 px-3">
-        <StatusPill status={sendUln} />
+        <StatusPill status={peer} title={errorMessage} />
       </td>
       <td className="py-3 px-3">
-        <StatusPill status={recvUln} />
+        <StatusPill status={sendUln} title={errorMessage} />
       </td>
       <td className="py-3 px-3">
-        <StatusPill status={sendLib} />
+        <StatusPill status={recvUln} title={errorMessage} />
       </td>
       <td className="py-3 px-3">
-        <StatusPill status={recvLib} />
+        <StatusPill status={sendLib} title={errorMessage} />
       </td>
       <td className="py-3 px-3">
-        <StatusPill status={exec} />
+        <StatusPill status={recvLib} title={errorMessage} />
       </td>
       <td className="py-3 px-3">
-        <EnforcedPill status={enfSend} />
+        <StatusPill status={exec} title={errorMessage} />
       </td>
       <td className="py-3 px-3">
-        <EnforcedPill status={enfSC} />
+        <EnforcedPill status={enfSend} title={errorMessage} />
+      </td>
+      <td className="py-3 px-3">
+        <EnforcedPill status={enfSC} title={errorMessage} />
       </td>
       <td className="py-3 px-3">
         <RecsBadge count={recs.length} worst={worst} isLoading={isLoading} />

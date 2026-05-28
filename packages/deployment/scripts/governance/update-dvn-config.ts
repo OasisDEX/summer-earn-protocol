@@ -429,11 +429,17 @@ async function updateDvnConfig(useBummerConfig = false) {
     lzEndpointAddress: diff.lzEndpointAddress,
     sendLibraryAddress: diff.sendLibAddress,
     receiveLibraryAddress: diff.receiveLibAddress,
-    sendConfigParams: [
-      { eid: diff.remoteEid, configType: 1, config: diff.encodedExecutor },
-      { eid: diff.remoteEid, configType: 2, config: diff.encodedUln },
-    ],
-    receiveConfigParams: [{ eid: diff.remoteEid, configType: 2, config: diff.encodedUln }],
+    sendConfigParams:
+      phase === 'send'
+        ? [
+            { eid: diff.remoteEid, configType: 1, config: diff.encodedExecutor },
+            { eid: diff.remoteEid, configType: 2, config: diff.encodedUln },
+          ]
+        : [],
+    receiveConfigParams:
+      phase === 'receive'
+        ? [{ eid: diff.remoteEid, configType: 2, config: diff.encodedUln }]
+        : [],
   })
 
   const hubChainConfigs = phaseDiffs

@@ -133,7 +133,11 @@ export function buildSafeTxJsonByChain(
 
   for (const [chain, chainEdits] of Object.entries(byChain) as [ChainName, PendingEdit[]][]) {
     const endpoint = getEndpoint(chain)
-    if (!endpoint) continue
+    if (!endpoint) {
+      throw new Error(
+        `Missing LayerZero endpoint for chain "${chain}" — cannot build Safe transaction batch.`,
+      )
+    }
 
     const txs = chainEdits.map((edit) => {
       const { to, data } = editToTx(edit, endpoint)
