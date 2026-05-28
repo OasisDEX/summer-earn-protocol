@@ -13,6 +13,7 @@ interface Props {
   sourceChain: ChainName
   oApp: OAppKind
   remoteChain: ChainName
+  onEdit?: () => void
 }
 
 function sameAddrCI(a: string | null | undefined, b: string | null | undefined): boolean {
@@ -144,7 +145,7 @@ function UlnSection({
   )
 }
 
-export function RouteDetailPanel({ sourceChain, oApp, remoteChain }: Props) {
+export function RouteDetailPanel({ sourceChain, oApp, remoteChain, onEdit }: Props) {
   const desired = getDesiredRouteConfig(sourceChain, remoteChain, oApp)
   const { data: onChain, isLoading, error } = useOnChainRouteState(sourceChain, oApp, remoteChain)
 
@@ -186,11 +187,15 @@ export function RouteDetailPanel({ sourceChain, oApp, remoteChain }: Props) {
         </h3>
         <button
           type="button"
-          disabled
-          className="px-4 py-2 text-sm rounded-lg bg-white/5 text-slate-500 cursor-not-allowed"
-          title="Editing coming next"
+          onClick={onEdit}
+          disabled={!onEdit}
+          className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+            onEdit
+              ? 'bg-primary/20 text-primary hover:bg-primary/30'
+              : 'bg-white/5 text-slate-500 cursor-not-allowed'
+          }`}
         >
-          Edit route (coming next)
+          Edit route
         </button>
       </header>
 

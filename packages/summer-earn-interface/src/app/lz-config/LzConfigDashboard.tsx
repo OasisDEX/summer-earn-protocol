@@ -4,15 +4,19 @@ import { useMemo, useState } from 'react'
 
 import { StatCard } from '../../components/StatCard'
 import { ChainAndOAppPicker } from './components/ChainAndOAppPicker'
+import { EditConfigDrawer } from './components/EditConfigDrawer'
+import { PendingChangesCart } from './components/PendingChangesCart'
 import { RouteDetailPanel } from './components/RouteDetailPanel'
 import { RouteMatrix } from './components/RouteMatrix'
+import { SafeExportModal } from './components/SafeExportModal'
 import {
+  getDesiredRouteConfig,
   getEid,
   getEndpoint,
   getOAppAddress,
   listRemoteChainsWithDvns,
 } from './lib/configReader'
-import type { ChainName, OAppKind } from './lib/types'
+import type { ChainName, OAppKind, PendingEdit } from './lib/types'
 
 function shortenAddress(addr: string | null): string {
   if (!addr) return '—'
@@ -24,6 +28,10 @@ export function LzConfigDashboard() {
   const [oApp, setOApp] = useState<OAppKind>('SummerToken')
   const [selectedRemote, setSelectedRemote] = useState<ChainName | null>(null)
 
+  const [pending, setPending] = useState<PendingEdit[]>([])
+  const [editingRemote, setEditingRemote] = useState<ChainName | null>(null)
+  const [exportOpen, setExportOpen] = useState(false)
+
   const remotes = useMemo(() => listRemoteChainsWithDvns(sourceChain), [sourceChain])
   const endpoint = getEndpoint(sourceChain)
   const eid = getEid(sourceChain)
@@ -34,10 +42,9 @@ export function LzConfigDashboard() {
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">LayerZero Config Explorer</h1>
         <p className="text-slate-400 max-w-3xl">
-          Read-only view of LZ ULN configuration. Compare on-chain state vs the desired
-          configuration in{' '}
-          <code className="bg-white/5 px-1 py-0.5 rounded text-xs">config/index.json</code>.
-          Editing &amp; Safe transaction export are coming next.
+          Compare on-chain LZ ULN configuration vs the desired configuration in{' '}
+          <code className="bg-white/5 px-1 py-0.5 rounded text-xs">config/index.json</code>, stage
+          edits and export them as Safe Transaction Builder JSON files.
         </p>
       </header>
 
@@ -79,15 +86,38 @@ export function LzConfigDashboard() {
             sourceChain={sourceChain}
             oApp={oApp}
             remoteChain={selectedRemote}
+            onEdit={oAppAddress ? () => setEditingRemote(selectedRemote) : undefined}
           />
         </section>
       )}
 
-      <section className="mt-4">
-        <div className="glass p-4 rounded-xl text-sm text-slate-400">
-          Editing not yet enabled — edit drawer + Safe export coming next.
-        </div>
-      </section>
+      {editingRemote && oAppAddress && (
+        <EditConfigDrawer
+          sourceChain={sourceChain}
+          oApp={oApp}
+          oAppAddress={oAppAddress}
+          remoteChain={editingRemote}
+          desired={getDesiredRouteConfig(sourceChain, editingRemote, oApp)}
+          onClose={() => setEditingRemote(null)}
+          onSubmit={(edits) => {
+            setPending((prev) => [...prev, ...edits])
+            setEditingRemote(null)
+          }}
+        />
+      )}
+
+      {pending.length > 0 && (
+        <PendingChangesCart
+          pending={pending}
+          onRemove={(i) => setPending((prev) => prev.filter((_, idx) => idx !== i))}
+          onClear={() => setPending([])}
+          onExport={() => setExportOpen(true)}
+        />
+      )}
+
+      {exportOpen && (
+        <SafeExportModal pending={pending} onClose={() => setExportOpen(false)} />
+      )}
     </div>
   )
 }
