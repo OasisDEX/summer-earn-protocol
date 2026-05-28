@@ -6,6 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {IAllowanceTransfer, ISignatureTransfer} from "../../interfaces/permit2/IPermit2.sol";
 import {Permit2Consumer} from "../../utils/Permit2Consumer.sol";
 import {EnsoRouterSwapper} from "../../utils/EnsoRouterSwapper.sol";
 import {HarborCommandConsumer} from "../../utils/HarborCommandConsumer.sol";
@@ -166,7 +167,82 @@ contract DCAStrategyManager is
 
         strategyId = _createStrategy(config);
 
-        _depositToFleetCommander(
+        IERC20 inAsset = IERC20(address(config.inAsset));
+        inAsset.safeTransferFrom(_msgSender(), address(this), assetAmount);
+        _depositPulledAsset(
+            config.sourceVault,
+            inAsset,
+            _msgSender(),
+            assetAmount
+        );
+    }
+
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
+    function createStrategyWithPermit2(
+        StrategyConfig calldata config,
+        IAllowanceTransfer.PermitSingle calldata permitSingle,
+        bytes calldata signature
+    )
+        external
+        ownerOnlySender(config)
+        onlyActiveFleetCommander(config.sourceVault, "source")
+        onlyActiveFleetCommander(config.targetVault, "target")
+        returns (uint256 strategyId)
+    {
+        address expectedToken = address(config.sourceVault);
+        if (permitSingle.details.token != expectedToken) {
+            revert InvalidPermit2Token(
+                expectedToken,
+                permitSingle.details.token
+            );
+        }
+        _requirePermit2CoversStrategy(config, permitSingle);
+
+        strategyId = _createStrategy(config);
+
+        _applyPermit2Allowance(_msgSender(), permitSingle, signature);
+    }
+
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
+    function depositAndCreateWithPermit2(
+        StrategyConfig calldata config,
+        uint256 assetAmount,
+        Permit2DepositBundle calldata permits
+    )
+        external
+        ownerOnlySender(config)
+        onlyActiveFleetCommander(config.sourceVault, "source")
+        onlyActiveFleetCommander(config.targetVault, "target")
+        returns (uint256 strategyId)
+    {
+        if (assetAmount == 0) revert ZeroDeposit();
+        if (permits.shares.details.token != address(config.sourceVault)) {
+            revert InvalidPermit2Token(
+                address(config.sourceVault),
+                permits.shares.details.token
+            );
+        }
+        _requirePermit2CoversStrategy(config, permits.shares);
+
+        strategyId = _createStrategy(config);
+
+        // Set the recurring sub-allowance for keeper-driven pulls.
+        _applyPermit2Allowance(_msgSender(), permits.shares, permits.sharesSig);
+
+        // Pull the one-shot `inAsset` deposit via SignatureTransfer and deposit
+        // it into `sourceVault` with shares routed to the user.
+        _pullFundsWithPermit2(
+            _msgSender(),
+            address(config.inAsset),
+            assetAmount,
+            permits.inAsset,
+            permits.inAssetSig
+        );
+        _depositPulledAsset(
             config.sourceVault,
             IERC20(address(config.inAsset)),
             _msgSender(),
@@ -242,6 +318,7 @@ contract DCAStrategyManager is
         }
 
         state.status = Status.ACTIVE;
+        state.lastScheduledAt = block.timestamp;
         state.nextTriggerAt = block.timestamp + config.interval;
 
         emit StrategyResumed(strategyId, state.nextTriggerAt);
@@ -269,7 +346,13 @@ contract DCAStrategyManager is
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData
-    ) external onlyKeeper nonReentrant {
+    )
+        external
+        onlyKeeper
+        nonReentrant
+        onlyActiveFleetCommander(config.sourceVault, "source")
+        onlyActiveFleetCommander(config.targetVault, "target")
+    {
         bytes32 storedCommitment = strategyCommitments[strategyId];
         if (_commitmentHash(config) != storedCommitment) {
             revert CommitmentMismatch(strategyId);
@@ -340,10 +423,25 @@ contract DCAStrategyManager is
         }
 
         if (config.maxPrice > 0 || config.minPrice > 0) {
-            ChainlinkOraclePrice memory inPrice = ChainlinkOracleUtils
-                ._getPrice(config.inAssetFeed);
-            ChainlinkOraclePrice memory outPrice = ChainlinkOracleUtils
-                ._getPrice(config.outAssetFeed);
+            // Read prices via the external wrapper so a stale-or-zero feed
+            // surfaces as `(false, "")` instead of a revert that off-chain
+            // keepers must catch separately.
+            ChainlinkOraclePrice memory inPrice;
+            ChainlinkOraclePrice memory outPrice;
+            try this.priceFromFeed(config.inAssetFeed) returns (
+                ChainlinkOraclePrice memory _in
+            ) {
+                inPrice = _in;
+            } catch {
+                return (false, performData);
+            }
+            try this.priceFromFeed(config.outAssetFeed) returns (
+                ChainlinkOraclePrice memory _out
+            ) {
+                outPrice = _out;
+            } catch {
+                return (false, performData);
+            }
             uint256 executionPrice = ChainlinkOracleUtils.crossRate(
                 inPrice,
                 outPrice
@@ -359,26 +457,65 @@ contract DCAStrategyManager is
         upkeepNeeded = true;
     }
 
+    /**
+     * @notice External view wrapper around `ChainlinkOracleUtils._getPrice`.
+     * @dev Exists so `checkUpkeep` can guard oracle reads with try/catch
+     *      (Solidity try/catch only works on `this.<external>()` calls).
+     *      Reverts with `ChainlinkOracleUtils.ChainlinkOraclePriceZero` or
+     *      `ChainlinkOracleUtils.ChainlinkOracleStalePrice` on bad data.
+     */
+    function priceFromFeed(
+        address feed
+    ) external view returns (ChainlinkOraclePrice memory) {
+        return ChainlinkOracleUtils._getPrice(feed);
+    }
+
     /*//////////////////////////////////////////////////////////////
                               INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Pulls `assetAmount` of `inAsset` from `depositor`, deposits it into
-     *      `sourceVault` with the resulting shares routed straight to
-     *      `depositor`, and resets the manager's allowance to 0 for hygiene.
-     *      The manager never holds either the underlying asset or the resulting
-     *      shares across transactions.
+     * @dev Reverts unless the Permit2 sub-allowance signed by the owner can
+     *      cover the worst-case keeper spend (`tradeAmount * maxTrades`) and,
+     *      when `endDate > 0`, remains valid until that date. Catches obvious
+     *      misconfigurations at create-time instead of mid-strategy reverts.
      */
-    function _depositToFleetCommander(
+    function _requirePermit2CoversStrategy(
+        StrategyConfig calldata config,
+        IAllowanceTransfer.PermitSingle calldata permitSingle
+    ) internal pure {
+        uint256 requiredAmount = config.tradeAmount * config.maxTrades;
+        if (uint256(permitSingle.details.amount) < requiredAmount) {
+            revert Permit2AllowanceInsufficient(
+                permitSingle.details.amount,
+                requiredAmount
+            );
+        }
+        if (
+            config.endDate > 0 &&
+            uint256(permitSingle.details.expiration) < config.endDate
+        ) {
+            revert Permit2ExpirationTooEarly(
+                permitSingle.details.expiration,
+                config.endDate
+            );
+        }
+    }
+
+    /**
+     * @dev Approves `sourceVault` for `assetAmount` of `inAsset` already held
+     *      by this contract, deposits with `shareReceiver` as the recipient,
+     *      and resets the allowance to 0 for hygiene. Caller is responsible
+     *      for pulling the assets into this contract beforehand.
+     */
+    function _depositPulledAsset(
         IFleetCommander sourceVault,
         IERC20 inAsset,
-        address depositor,
+        address shareReceiver,
         uint256 assetAmount
     ) internal {
-        inAsset.safeTransferFrom(depositor, address(this), assetAmount);
         inAsset.forceApprove(address(sourceVault), assetAmount);
-        sourceVault.deposit(assetAmount, depositor);
+        sourceVault.deposit(assetAmount, shareReceiver);
         inAsset.forceApprove(address(sourceVault), 0);
     }
 
@@ -465,12 +602,20 @@ contract DCAStrategyManager is
      */
     function _validateStrategyConfig(
         StrategyConfig calldata config
-    ) internal pure {
+    ) internal view {
         if (config.owner == address(0)) revert InvalidOwner();
         if (address(config.sourceVault) == address(config.targetVault))
             revert SameAsset(address(config.sourceVault));
         if (config.inAsset == config.outAsset)
             revert SameAsset(address(config.inAsset));
+        address expectedIn = config.sourceVault.asset();
+        if (address(config.inAsset) != expectedIn) {
+            revert InAssetVaultMismatch(expectedIn, address(config.inAsset));
+        }
+        address expectedOut = config.targetVault.asset();
+        if (address(config.outAsset) != expectedOut) {
+            revert OutAssetVaultMismatch(expectedOut, address(config.outAsset));
+        }
         if (config.interval < _MIN_INTERVAL) {
             revert IntervalTooShort(config.interval, _MIN_INTERVAL);
         }
@@ -491,6 +636,13 @@ contract DCAStrategyManager is
             config.outAssetFeed == address(0)
         ) {
             revert InvalidFeedAddress();
+        }
+        if (
+            config.maxPrice > 0 &&
+            config.minPrice > 0 &&
+            config.minPrice > config.maxPrice
+        ) {
+            revert InvalidPriceBounds(config.minPrice, config.maxPrice);
         }
     }
 
@@ -539,10 +691,14 @@ contract DCAStrategyManager is
             uint256 expectedOutShares = config.targetVault.previewDeposit(
                 expectedOutAssets
             );
+            if (expectedOutShares == 0) revert ZeroExpectedOutShares();
             minOut = expectedOutShares.subtractBps(
                 BPS.wrap(config.slippageBps)
             );
         }
+
+        uint256 sourceSharesBaseline = IERC20(address(config.sourceVault))
+            .balanceOf(address(this));
 
         _pullFunds(
             config.owner,
@@ -555,7 +711,14 @@ contract DCAStrategyManager is
             uint256 outAssets,
             uint256 nextTriggerAt,
             uint248 tradesExecuted
-        ) = _executeSwap(strategyId, config, ensoData, state, minOut);
+        ) = _executeSwap(
+                strategyId,
+                config,
+                ensoData,
+                state,
+                minOut,
+                sourceSharesBaseline
+            );
 
         emit ExecutionCompleted(
             strategyId,
@@ -577,17 +740,24 @@ contract DCAStrategyManager is
     /**
      * @dev CEI sequence for the swap mechanics of a single DCA trade: advance
      *      state, route source shares through Enso, verify `minOut`, transfer
-     *      target shares to the owner. Lifecycle decisions (terminal-state
-     *      transition, event emission) are handled by the caller.
-     *      Reverts with `SwapOutputBelowMinOut` when received shares are below
-     *      the slippage-adjusted minimum.
+     *      target shares to the owner, refund any unused source shares. Lifecycle
+     *      decisions (terminal-state transition, event emission) are handled by
+     *      the caller. Reverts with `SwapOutputBelowMinOut` when received shares
+     *      are below the slippage-adjusted minimum.
+     *
+     *      `sourceSharesBaseline` is the manager's source-vault share balance
+     *      captured by the caller before pulling funds. Any source shares left
+     *      in the contract above this baseline after the Enso call are returned
+     *      to `config.owner` — defending the "no funds held between txs"
+     *      invariant against routers that underspend the approval.
      */
     function _executeSwap(
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData,
         StrategyState storage state,
-        uint256 minOut
+        uint256 minOut,
+        uint256 sourceSharesBaseline
     )
         internal
         returns (
@@ -605,6 +775,7 @@ contract DCAStrategyManager is
         tradesExecuted = state.tradesExecuted;
 
         IERC20 targetShares = IERC20(address(config.targetVault));
+        IERC20 sourceShares = IERC20(address(config.sourceVault));
         uint256 targetSharesBefore = targetShares.balanceOf(address(this));
 
         // Interactions.
@@ -619,6 +790,15 @@ contract DCAStrategyManager is
         }
 
         targetShares.safeTransfer(config.owner, swappedAmount);
+
+        // Refund any source-vault shares the router didn't consume.
+        uint256 sourceSharesAfter = sourceShares.balanceOf(address(this));
+        if (sourceSharesAfter > sourceSharesBaseline) {
+            sourceShares.safeTransfer(
+                config.owner,
+                sourceSharesAfter - sourceSharesBaseline
+            );
+        }
 
         outAssets = config.targetVault.convertToAssets(swappedAmount);
     }

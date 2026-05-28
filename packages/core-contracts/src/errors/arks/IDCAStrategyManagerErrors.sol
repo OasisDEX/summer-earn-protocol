@@ -33,6 +33,11 @@ interface IDCAStrategyManagerErrors {
         uint256 actualOut
     );
 
+    /// @notice Reverts when `targetVault.previewDeposit(expectedOutAssets)` returns
+    ///         zero. With zero expected output, `minOut = 0` and the slippage floor
+    ///         is silently disabled — this guard refuses to execute such trades.
+    error ZeroExpectedOutShares();
+
     /// @notice Reverts when the caller is not `config.owner` on an owner-gated function,
     ///         or when `editStrategy` attempts to change `config.owner` (ownership
     ///         transfer via edit is disallowed; cancel and recreate instead).
@@ -58,6 +63,14 @@ interface IDCAStrategyManagerErrors {
     ///         `config.inAsset == config.outAsset`.
     error SameAsset(address asset);
 
+    /// @notice Reverts when `config.inAsset` does not match `config.sourceVault.asset()`.
+    ///         The slippage floor relies on the oracle pricing the correct underlying.
+    error InAssetVaultMismatch(address expected, address actual);
+
+    /// @notice Reverts when `config.outAsset` does not match `config.targetVault.asset()`.
+    ///         The slippage floor relies on the oracle pricing the correct underlying.
+    error OutAssetVaultMismatch(address expected, address actual);
+
     /// @notice Reverts when `config.interval` is below the contract minimum (1 day).
     error IntervalTooShort(uint256 provided, uint256 minimum);
 
@@ -71,10 +84,25 @@ interface IDCAStrategyManagerErrors {
     error InvalidFeedAddress();
 
     /// @notice Reverts when the current oracle execution price exceeds `config.maxPrice`.
-    ///         `executionPrice` is the 1e18-scaled out/in ratio.
+    ///         `executionPrice` is the 1e18-scaled price of `outAsset` denominated
+    ///         in `inAsset` (inAsset units per outAsset unit).
     error PriceAboveCeiling(uint256 executionPrice, uint256 maxPrice);
 
     /// @notice Reverts when the current oracle execution price is below `config.minPrice`.
-    ///         `executionPrice` is the 1e18-scaled out/in ratio.
+    ///         `executionPrice` is the 1e18-scaled price of `outAsset` denominated
+    ///         in `inAsset` (inAsset units per outAsset unit).
     error PriceBelowFloor(uint256 executionPrice, uint256 minPrice);
+
+    /// @notice Reverts when both `config.maxPrice` and `config.minPrice` are non-zero
+    ///         and `minPrice > maxPrice`. Such a configuration is unsatisfiable and
+    ///         would leave the strategy permanently un-executable.
+    error InvalidPriceBounds(uint256 minPrice, uint256 maxPrice);
+
+    /// @notice Reverts when the Permit2 sub-allowance signed by the owner does not
+    ///         cover the worst-case total spend (`tradeAmount * maxTrades`).
+    error Permit2AllowanceInsufficient(uint160 signed, uint256 required);
+
+    /// @notice Reverts when the Permit2 sub-allowance expiration is earlier than
+    ///         the strategy's `endDate`. Only enforced when `endDate > 0`.
+    error Permit2ExpirationTooEarly(uint48 expiration, uint256 endDate);
 }

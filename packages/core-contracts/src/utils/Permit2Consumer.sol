@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IPermit2} from "../interfaces/permit2/IPermit2.sol";
+import {IPermit2, IAllowanceTransfer, ISignatureTransfer} from "../interfaces/permit2/IPermit2.sol";
 
 /**
  * @title Permit2Consumer
@@ -57,6 +57,34 @@ abstract contract Permit2Consumer {
     error InvalidPermit2Address();
 
     /**
+     * @notice Reverts when a Permit2 message names a `spender` other than this
+     *         contract. Protects users from accidentally signing approvals that
+     *         empower the wrong relayer.
+     */
+    error InvalidPermit2Spender(address expected, address actual);
+
+    /**
+     * @notice Reverts when a Permit2 message's `token` does not match the token
+     *         the caller intends to consume.
+     */
+    error InvalidPermit2Token(address expected, address actual);
+
+    /**
+     * @notice Reverts when a Permit2 SignatureTransfer message's `amount` does
+     *         not match the amount the caller intends to pull.
+     */
+    error InvalidPermit2Amount(uint256 expected, uint256 actual);
+
+    /**
+     * @notice Reverts when `_applyPermit2Allowance`'s underlying `PERMIT2.permit`
+     *         call fails AND the (token, spender) sub-allowance is still below
+     *         the amount the owner signed for. Allows mempool front-runs that
+     *         result in the signed sub-allowance being live to proceed
+     *         silently; rejects every other permit failure mode.
+     */
+    error Permit2AllowanceNotSet(uint160 required, uint160 actual);
+
+    /**
      * @param _permit2 Address of the deployed Permit2 singleton. Must be non-zero.
      */
     constructor(address _permit2) {
@@ -84,5 +112,83 @@ abstract contract Permit2Consumer {
         if (amount > type(uint160).max) revert AmountOverflowsUint160(amount);
         PERMIT2.transferFrom(owner, address(this), uint160(amount), token);
         return amount;
+    }
+
+    /**
+     * @notice Applies an `AllowanceTransfer.PermitSingle` signed by `owner`,
+     *         setting (or refreshing) the (token, this, amount, expiration)
+     *         sub-allowance inside Permit2.
+     * @dev Reverts `InvalidPermit2Spender` if `permitSingle.spender` is not this
+     *      contract. The `PERMIT2.permit` call is wrapped in try/catch so a
+     *      mempool front-run that lifts and submits the user's signed permit
+     *      independently (causing the in-tx call to fail with `InvalidNonce`)
+     *      does not abort the caller — provided the resulting sub-allowance is
+     *      at least what was signed for. Any other failure mode falls through
+     *      to `Permit2AllowanceNotSet`.
+     * @param owner The address that signed `permitSingle`.
+     * @param permitSingle The PermitSingle data the owner signed.
+     * @param signature EIP-712 signature over `permitSingle`.
+     */
+    function _applyPermit2Allowance(
+        address owner,
+        IAllowanceTransfer.PermitSingle calldata permitSingle,
+        bytes calldata signature
+    ) internal {
+        if (permitSingle.spender != address(this)) {
+            revert InvalidPermit2Spender(address(this), permitSingle.spender);
+        }
+        try PERMIT2.permit(owner, permitSingle, signature) {} catch {
+            (uint160 amount, , ) = PERMIT2.allowance(
+                owner,
+                permitSingle.details.token,
+                address(this)
+            );
+            if (amount < permitSingle.details.amount) {
+                revert Permit2AllowanceNotSet(
+                    permitSingle.details.amount,
+                    amount
+                );
+            }
+        }
+    }
+
+    /**
+     * @notice Pulls `amount` of `token` from `owner` using a Permit2
+     *         `SignatureTransfer.permitTransferFrom` one-shot signature.
+     * @dev Validates that the signed `token` and `amount` match the caller's
+     *      intent (revert `InvalidPermit2Token` / `InvalidPermit2Amount` on
+     *      mismatch). Recipient is always `address(this)`.
+     * @param owner The address that signed `permitData`.
+     * @param token The expected `permitData.permitted.token`.
+     * @param amount The expected `permitData.permitted.amount` and the amount
+     *               requested for transfer.
+     * @param permitData The PermitTransferFrom data the owner signed.
+     * @param signature EIP-712 signature over `permitData`.
+     */
+    function _pullFundsWithPermit2(
+        address owner,
+        address token,
+        uint256 amount,
+        ISignatureTransfer.PermitTransferFrom calldata permitData,
+        bytes calldata signature
+    ) internal {
+        if (address(permitData.permitted.token) != token) {
+            revert InvalidPermit2Token(
+                token,
+                address(permitData.permitted.token)
+            );
+        }
+        if (permitData.permitted.amount != amount) {
+            revert InvalidPermit2Amount(amount, permitData.permitted.amount);
+        }
+        PERMIT2.permitTransferFrom(
+            permitData,
+            ISignatureTransfer.SignatureTransferDetails({
+                to: address(this),
+                requestedAmount: amount
+            }),
+            owner,
+            signature
+        );
     }
 }
