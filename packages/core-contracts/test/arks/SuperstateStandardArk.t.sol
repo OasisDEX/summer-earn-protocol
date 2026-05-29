@@ -615,4 +615,412 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             "cachedShareBalance hard-resets to live balance"
         );
     }
+
+    function test_EmergencyClearPendingDeposit_RevertsIfAmountExceedsPending()
+        public
+    {
+        // No pending deposit; any positive amount must revert
+        vm.prank(governor);
+        vm.expectRevert(
+            ISuperstateStandardArkErrors.InsufficientPendingDeposit.selector
+        );
+        ark.emergencyClearPendingDeposit(1);
+    }
+
+    /* L9 cap regression — requestWithdrawal clamps sharesToRedeem to available balance */
+
+    function test_RequestWithdrawal_CapsAtShareBalance() public {
+        uint256 sharesAvailable = 1e6;
+        shareToken.mint(address(ark), sharesAvailable);
+
+        // _assetsToShares(1000 USDC) = 100 shares — far above the 1-share balance
+        vm.mockCall(
+            address(shareToken),
+            abi.encodeWithSignature("offchainRedeem(uint256)"),
+            abi.encode()
+        );
+
+        uint256 amount = 1000 * 1e6;
+        vm.prank(keeper);
+        ark.requestWithdrawal(amount);
+
+        assertEq(
+            ark.pendingWithdrawalShares(),
+            sharesAvailable,
+            "pendingWithdrawalShares must be capped at the share balance"
+        );
+    }
+
+    /* Oracle failure paths */
+
+    function test_RequestWithdrawal_RevertsIfOraclePriceNonPositive() public {
+        shareToken.mint(address(ark), 1e6);
+        oracle.setAnswer(0);
+        vm.prank(keeper);
+        vm.expectRevert(ISuperstateArkErrors.OraclePriceNotPositive.selector);
+        ark.requestWithdrawal(1e6);
+    }
+
+    function test_RequestWithdrawal_RevertsIfOracleStale() public {
+        shareToken.mint(address(ark), 1e6);
+        oracle.setRoundData(
+            1,
+            10 * 1e8,
+            block.timestamp - 24 hours - 1,
+            1
+        );
+        vm.prank(keeper);
+        vm.expectRevert(ISuperstateArkErrors.StaleOraclePrice.selector);
+        ark.requestWithdrawal(1e6);
+    }
+
+    function test_TotalAssets_RevertsIfOracleStale_WhenSharesPresent() public {
+        shareToken.mint(address(ark), 1e6);
+        oracle.setRoundData(
+            1,
+            10 * 1e8,
+            block.timestamp - 24 hours - 1,
+            1
+        );
+        vm.expectRevert(ISuperstateArkErrors.StaleOraclePrice.selector);
+        ark.totalAssets();
+    }
+
+    function test_TotalAssets_DoesNotTouchOracleWhenEmpty() public view {
+        // With zero shares and zero pending, totalAssets should short-circuit to 0 without reading the oracle
+        assertEq(ark.totalAssets(), 0);
+    }
+
+    function test_ClearPendingDeposit_RevertsIfOracleNonPositive() public {
+        uint256 amount = 10 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        shareToken.mint(address(ark), 1e6);
+        oracle.setAnswer(-1);
+
+        vm.prank(keeper);
+        vm.expectRevert(ISuperstateArkErrors.OraclePriceNotPositive.selector);
+        ark.clearPendingDeposit();
+    }
+
+    /* Slippage cap setters */
+
+    function test_SetSweepSlippage_RevertsAboveMax() public {
+        Percentage above = Percentage.wrap(PERCENTAGE_FACTOR / 2 + 1);
+        Percentage maxP = ark.MAX_SWEEP_SLIPPAGE();
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISuperstateArkErrors.InvalidSweepSlippage.selector,
+                above,
+                maxP
+            )
+        );
+        ark.setSweepSlippage(above);
+    }
+
+    function test_SetSweepSlippage_AcceptsExactMax() public {
+        Percentage atMax = ark.MAX_SWEEP_SLIPPAGE();
+        vm.prank(keeper);
+        ark.setSweepSlippage(atMax);
+        assertEq(
+            Percentage.unwrap(ark.sweepSlippage()),
+            Percentage.unwrap(atMax)
+        );
+    }
+
+    function test_SetSweepSlippage_RevertsIfNotKeeper() public {
+        vm.expectRevert();
+        ark.setSweepSlippage(Percentage.wrap(0));
+    }
+
+    function test_SetDepositSlippage_RevertsAboveMax() public {
+        Percentage above = Percentage.wrap(PERCENTAGE_FACTOR / 2 + 1);
+        Percentage maxP = ark.MAX_DEPOSIT_SLIPPAGE();
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISuperstateArkErrors.InvalidDepositSlippage.selector,
+                above,
+                maxP
+            )
+        );
+        ark.setDepositSlippage(above);
+    }
+
+    function test_SetDepositSlippage_AcceptsExactMax() public {
+        Percentage atMax = ark.MAX_DEPOSIT_SLIPPAGE();
+        vm.prank(keeper);
+        ark.setDepositSlippage(atMax);
+        assertEq(
+            Percentage.unwrap(ark.depositSlippage()),
+            Percentage.unwrap(atMax)
+        );
+    }
+
+    function test_SetDepositSlippage_RevertsIfNotKeeper() public {
+        vm.expectRevert();
+        ark.setDepositSlippage(Percentage.wrap(0));
+    }
+
+    function test_Constructor_RevertsIfSweepSlippageAboveMax() public {
+        Percentage above = Percentage.wrap(PERCENTAGE_FACTOR / 2 + 1);
+        vm.expectRevert();
+        new SuperstateStandardArk(
+            address(shareToken),
+            depositAddress,
+            address(oracle),
+            above,
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            params
+        );
+    }
+
+    function test_Constructor_RevertsIfDepositSlippageAboveMax() public {
+        Percentage above = Percentage.wrap(PERCENTAGE_FACTOR / 2 + 1);
+        vm.expectRevert();
+        new SuperstateStandardArk(
+            address(shareToken),
+            depositAddress,
+            address(oracle),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            above,
+            params
+        );
+    }
+
+    /* setArkFrozen paths */
+
+    function test_SetArkFrozen_SnapshotsLiveTotalAssetsWithSentinel() public {
+        shareToken.mint(address(ark), 1e6); // 1 share = 10 USDC at mock price
+        uint256 live = ark.totalAssets();
+        assertEq(live, 10 * 1e6);
+
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+
+        assertEq(
+            ark.totalAssets(),
+            live,
+            "sentinel must capture live totalAssets()"
+        );
+    }
+
+    function test_SetArkFrozen_UsesExplicitValue() public {
+        uint256 explicitValue = 12345 * 1e6;
+        vm.prank(keeper);
+        ark.setArkFrozen(true, explicitValue);
+        assertEq(ark.totalAssets(), explicitValue);
+    }
+
+    function test_SetArkFrozen_TotalAssetsLockedDespiteOracleMove() public {
+        shareToken.mint(address(ark), 1e6);
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+        uint256 frozen = ark.totalAssets();
+
+        oracle.setAnswer(100 * 1e8); // 10x price move
+        assertEq(
+            ark.totalAssets(),
+            frozen,
+            "frozen totalAssets must ignore oracle moves"
+        );
+    }
+
+    function test_SetArkFrozen_RefreezeUpdatesSnapshot() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true, 100);
+        assertEq(ark.totalAssets(), 100);
+
+        vm.prank(keeper);
+        ark.setArkFrozen(true, 200);
+        assertEq(ark.totalAssets(), 200);
+    }
+
+    function test_SetArkFrozen_RevertsIfNotKeeper() public {
+        vm.expectRevert();
+        ark.setArkFrozen(true, type(uint256).max);
+    }
+
+    /* Sweep slippage boundary */
+
+    function test_Sweep_PassesAtExactSlippageBoundary() public {
+        uint256 amount = 10 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e6;
+        shareToken.mint(address(ark), sharesMinted);
+
+        vm.mockCall(
+            address(shareToken),
+            abi.encodeWithSignature("offchainRedeem(uint256)"),
+            abi.encode()
+        );
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        // Slippage band: pendingMinusSlippage = 1e6 * 0.995 = 995_000 shares.
+        // returnedShares = returnedAssets / 10 (mock price). For returnedShares == 995_000, returnedAssets = 9_950_000.
+        uint256 returned = 995 * 1e4; // 9.95 USDC — exactly at boundary
+        deal(USDC_ADDRESS, address(ark), returned);
+
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        vm.prank(keeper);
+        ark.sweep();
+        assertEq(ark.pendingWithdrawalShares(), 0);
+    }
+
+    function test_Sweep_RevertsJustBelowSlippageBoundary() public {
+        uint256 amount = 10 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e6;
+        shareToken.mint(address(ark), sharesMinted);
+
+        vm.mockCall(
+            address(shareToken),
+            abi.encodeWithSignature("offchainRedeem(uint256)"),
+            abi.encode()
+        );
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        // 9.94 USDC — one unit below the 9.95 boundary
+        deal(USDC_ADDRESS, address(ark), 994 * 1e4);
+
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        vm.prank(keeper);
+        vm.expectRevert();
+        ark.sweep();
+    }
+
+    /* Fuzz tests */
+
+    function testFuzz_SharesAssetsRoundTrip(uint256 amount) public {
+        // 10 wei floor avoids the dust regime where amount<price truncates to 0 shares
+        amount = bound(amount, 10, 1_000_000 * 1e6);
+        // Mint generous balance so the L9 cap never bites
+        shareToken.mint(address(ark), 1_000_000 * 1e6);
+
+        vm.mockCall(
+            address(shareToken),
+            abi.encodeWithSignature("offchainRedeem(uint256)"),
+            abi.encode()
+        );
+
+        vm.prank(keeper);
+        ark.requestWithdrawal(amount);
+
+        // assetsInWithdrawalQueue() = _sharesToAssets(_assetsToShares(amount))
+        uint256 roundTrip = ark.assetsInWithdrawalQueue();
+        assertLe(roundTrip, amount, "round-trip cannot increase the value");
+        // Loss bounded by 1 share's asset-price worth (10 wei in mock setup)
+        assertApproxEqAbs(
+            roundTrip,
+            amount,
+            10,
+            "round-trip loss exceeds the per-share price"
+        );
+    }
+
+    function testFuzz_SetSweepSlippage_RespectsMax(uint256 raw) public {
+        Percentage maxP = ark.MAX_SWEEP_SLIPPAGE();
+        Percentage p = Percentage.wrap(
+            bound(raw, 0, Percentage.unwrap(maxP) * 2)
+        );
+        vm.startPrank(keeper);
+        if (Percentage.unwrap(p) > Percentage.unwrap(maxP)) {
+            vm.expectRevert();
+            ark.setSweepSlippage(p);
+        } else {
+            ark.setSweepSlippage(p);
+            assertEq(
+                Percentage.unwrap(ark.sweepSlippage()),
+                Percentage.unwrap(p)
+            );
+        }
+        vm.stopPrank();
+    }
+
+    function testFuzz_SetDepositSlippage_RespectsMax(uint256 raw) public {
+        Percentage maxP = ark.MAX_DEPOSIT_SLIPPAGE();
+        Percentage p = Percentage.wrap(
+            bound(raw, 0, Percentage.unwrap(maxP) * 2)
+        );
+        vm.startPrank(keeper);
+        if (Percentage.unwrap(p) > Percentage.unwrap(maxP)) {
+            vm.expectRevert();
+            ark.setDepositSlippage(p);
+        } else {
+            ark.setDepositSlippage(p);
+            assertEq(
+                Percentage.unwrap(ark.depositSlippage()),
+                Percentage.unwrap(p)
+            );
+        }
+        vm.stopPrank();
+    }
+
+    function testFuzz_RequestWithdrawal_CapsAtShareBalance(
+        uint256 balance,
+        uint256 amount
+    ) public {
+        balance = bound(balance, 1, 1_000_000 * 1e6);
+        amount = bound(amount, 1, 1_000_000_000 * 1e6); // can be far above the share-implied value
+
+        shareToken.mint(address(ark), balance);
+
+        vm.mockCall(
+            address(shareToken),
+            abi.encodeWithSignature("offchainRedeem(uint256)"),
+            abi.encode()
+        );
+
+        vm.prank(keeper);
+        ark.requestWithdrawal(amount);
+
+        assertLe(
+            ark.pendingWithdrawalShares(),
+            balance,
+            "pendingWithdrawalShares exceeded available share balance - L9 cap broken"
+        );
+    }
 }

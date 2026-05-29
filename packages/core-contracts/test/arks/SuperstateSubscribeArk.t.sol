@@ -37,6 +37,18 @@ contract MockSuperstateOracle is AggregatorV3Interface {
         _updatedAt = block.timestamp;
     }
 
+    function setRoundData(
+        uint80 roundId_,
+        int256 answer_,
+        uint256 updatedAt_,
+        uint80 answeredInRound_
+    ) external {
+        _roundId = roundId_;
+        _answer = answer_;
+        _updatedAt = updatedAt_;
+        _answeredInRound = answeredInRound_;
+    }
+
     function decimals() external view override returns (uint8) {
         return _decimals;
     }
@@ -596,5 +608,259 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             returnedUsdc,
             "Buffer ark received the swept asset"
         );
+    }
+
+    /* L9 cap regression (inherited base behavior) */
+
+    function test_RequestWithdrawal_CapsAtShareBalance() public {
+        // Only 1 share available; request asks for 100 shares worth
+        uint256 sharesAvailable = 1e6;
+        shareToken.mint(address(ark), sharesAvailable);
+
+        uint256 amount = 1000 * 1e6;
+        vm.prank(keeper);
+        ark.requestWithdrawal(amount);
+
+        assertEq(
+            ark.pendingWithdrawalShares(),
+            sharesAvailable,
+            "pendingWithdrawalShares must be capped at share balance"
+        );
+    }
+
+    /* Oracle failure paths */
+
+    function test_RequestWithdrawal_RevertsIfOraclePriceNonPositive() public {
+        shareToken.mint(address(ark), 1e6);
+        oracle.setAnswer(0);
+        vm.prank(keeper);
+        vm.expectRevert(ISuperstateArkErrors.OraclePriceNotPositive.selector);
+        ark.requestWithdrawal(1e6);
+    }
+
+    function test_RequestWithdrawal_RevertsIfOracleStale() public {
+        shareToken.mint(address(ark), 1e6);
+        oracle.setRoundData(
+            1,
+            10 * 1e8,
+            block.timestamp - 24 hours - 1,
+            1
+        );
+        vm.prank(keeper);
+        vm.expectRevert(ISuperstateArkErrors.StaleOraclePrice.selector);
+        ark.requestWithdrawal(1e6);
+    }
+
+    function test_Board_RevertsIfOracleStale() public {
+        // Subscribe's _board calls _validateReceivedShares which reads the oracle
+        oracle.setRoundData(
+            1,
+            10 * 1e8,
+            block.timestamp - 24 hours - 1,
+            1
+        );
+        uint256 amount = 100 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        vm.expectRevert(ISuperstateArkErrors.StaleOraclePrice.selector);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_TotalAssets_RevertsIfOracleStale_WhenSharesPresent() public {
+        shareToken.mint(address(ark), 1e6);
+        oracle.setRoundData(
+            1,
+            10 * 1e8,
+            block.timestamp - 24 hours - 1,
+            1
+        );
+        vm.expectRevert(ISuperstateArkErrors.StaleOraclePrice.selector);
+        ark.totalAssets();
+    }
+
+    function test_TotalAssets_DoesNotTouchOracleWhenEmpty() public view {
+        assertEq(ark.totalAssets(), 0);
+    }
+
+    /* Slippage cap setters + constructor validation */
+
+    function test_SetSweepSlippage_RevertsAboveMax() public {
+        Percentage above = Percentage.wrap(PERCENTAGE_FACTOR / 2 + 1);
+        Percentage maxP = ark.MAX_SWEEP_SLIPPAGE();
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISuperstateArkErrors.InvalidSweepSlippage.selector,
+                above,
+                maxP
+            )
+        );
+        ark.setSweepSlippage(above);
+    }
+
+    function test_SetDepositSlippage_RevertsAboveMax() public {
+        Percentage above = Percentage.wrap(PERCENTAGE_FACTOR / 2 + 1);
+        Percentage maxP = ark.MAX_DEPOSIT_SLIPPAGE();
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISuperstateArkErrors.InvalidDepositSlippage.selector,
+                above,
+                maxP
+            )
+        );
+        ark.setDepositSlippage(above);
+    }
+
+    function test_Constructor_RevertsIfSweepSlippageAboveMax() public {
+        Percentage above = Percentage.wrap(PERCENTAGE_FACTOR / 2 + 1);
+        vm.expectRevert();
+        new SuperstateSubscribeArk(
+            address(shareToken),
+            address(subscribeContract),
+            address(redeemContract),
+            address(oracle),
+            above,
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            params
+        );
+    }
+
+    function test_Constructor_RevertsIfDepositSlippageAboveMax() public {
+        Percentage above = Percentage.wrap(PERCENTAGE_FACTOR / 2 + 1);
+        vm.expectRevert();
+        new SuperstateSubscribeArk(
+            address(shareToken),
+            address(subscribeContract),
+            address(redeemContract),
+            address(oracle),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            above,
+            params
+        );
+    }
+
+    /* Disembark branch coverage */
+
+    function test_Disembark_FullExitBranch_DrainsAllShares() public {
+        uint256 amount = 100 * 1e6;
+        uint256 shares = 10 * 1e6; // 10 shares * 10 USDC/share = 100 USDC
+
+        shareToken.mint(address(ark), shares);
+        deal(USDC_ADDRESS, address(redeemContract), amount);
+
+        vm.prank(commander);
+        ark.disembark(amount, bytes(""));
+
+        // Full-exit branch redeems entire share balance, leaving 0 in the ark
+        assertEq(
+            shareToken.balanceOf(address(ark)),
+            0,
+            "Full-exit must drain shares"
+        );
+        assertEq(
+            shareToken.balanceOf(address(redeemContract)),
+            shares,
+            "Redeem contract holds the burned shares"
+        );
+    }
+
+    function test_Disembark_RevertsWhenNoSharesToRedeem() public {
+        // No shares minted to the ark
+        vm.prank(commander);
+        vm.expectRevert();
+        ark.disembark(100 * 1e6, bytes(""));
+    }
+
+    /* Fuzz */
+
+    function testFuzz_SharesAssetsRoundTrip(uint256 amount) public {
+        amount = bound(amount, 10, 1_000_000 * 1e6);
+        shareToken.mint(address(ark), 1_000_000 * 1e6);
+
+        vm.prank(keeper);
+        ark.requestWithdrawal(amount);
+
+        uint256 roundTrip = ark.assetsInWithdrawalQueue();
+        assertLe(roundTrip, amount, "round-trip cannot increase the value");
+        assertApproxEqAbs(
+            roundTrip,
+            amount,
+            10,
+            "round-trip loss exceeds the per-share price"
+        );
+    }
+
+    function testFuzz_SetSweepSlippage_RespectsMax(uint256 raw) public {
+        Percentage maxP = ark.MAX_SWEEP_SLIPPAGE();
+        Percentage p = Percentage.wrap(
+            bound(raw, 0, Percentage.unwrap(maxP) * 2)
+        );
+        vm.startPrank(keeper);
+        if (Percentage.unwrap(p) > Percentage.unwrap(maxP)) {
+            vm.expectRevert();
+            ark.setSweepSlippage(p);
+        } else {
+            ark.setSweepSlippage(p);
+            assertEq(
+                Percentage.unwrap(ark.sweepSlippage()),
+                Percentage.unwrap(p)
+            );
+        }
+        vm.stopPrank();
+    }
+
+    function testFuzz_RequestWithdrawal_CapsAtShareBalance(
+        uint256 balance,
+        uint256 amount
+    ) public {
+        balance = bound(balance, 1, 1_000_000 * 1e6);
+        amount = bound(amount, 1, 1_000_000_000 * 1e6);
+
+        shareToken.mint(address(ark), balance);
+
+        vm.prank(keeper);
+        ark.requestWithdrawal(amount);
+
+        assertLe(
+            ark.pendingWithdrawalShares(),
+            balance,
+            "pendingWithdrawalShares exceeded available share balance - L9 cap broken"
+        );
+    }
+
+    function testFuzz_Board_DepositSlippageBoundary(
+        uint256 num,
+        uint256 den
+    ) public {
+        den = bound(den, 1, 1_000_000);
+        num = bound(num, 0, den * 2);
+        subscribeContract.setMintRatio(num, den);
+
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+
+        // 1 share = 10 USDC at the mock oracle price, so expectedShares = amount / 10
+        uint256 expectedShares = amount / 10;
+        uint256 actualShares = (amount * num) / den;
+        // depositSlippage = 0.5% => band = expectedShares * 199 / 200
+        uint256 minAcceptedShares = (expectedShares * 199) / 200;
+
+        if (actualShares >= minAcceptedShares) {
+            ark.board(amount, bytes(""));
+            assertEq(
+                shareToken.balanceOf(address(ark)),
+                actualShares,
+                "Ark holds the actually-minted shares"
+            );
+        } else {
+            vm.expectRevert();
+            ark.board(amount, bytes(""));
+        }
+        vm.stopPrank();
     }
 }
