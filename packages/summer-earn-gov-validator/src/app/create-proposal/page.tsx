@@ -51,6 +51,18 @@ import { DeploymentConfig } from '@/types/deployment'
 import { AbiInput, AbiItem, ProposalAction } from '@/types/governance'
 import { Action } from '@/types/tenderly'
 import { constructLzOptions } from '@/utils/layerzero-options'
+import {
+  bigIntSafeReplacer,
+  buildActionCalldata,
+  computeGasRatio,
+  computeGasSeverity,
+  DEFAULT_LZ_GAS_LIMIT,
+  GasSeverityOrIdle,
+  LZ_GAS_HEADROOM_PERCENT,
+  parseLzGas,
+  worstSeverity,
+  ZERO_BYTES32,
+} from '@/utils/proposal-encoding'
 
 // --- Types ---
 
@@ -89,17 +101,6 @@ interface ArgumentFieldProps {
   onChange: (val: unknown) => void
   labelPrefix?: string
 }
-
-type GasSeverity = 'ok' | 'warning' | 'critical'
-const GAS_SEVERITY_ORDER: Record<GasSeverity | 'idle', number> = {
-  idle: 0,
-  ok: 1,
-  warning: 2,
-  critical: 3,
-}
-
-const bigIntSafeReplacer = (_key: string, value: unknown): unknown =>
-  typeof value === 'bigint' ? value.toString() : value
 
 const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
   param,
@@ -214,7 +215,7 @@ export default function CreateProposalPage() {
   const [actions, setActions] = useState<ProposalAction[]>([
     {
       id: Math.random().toString(36).substr(2, 9),
-      chainId: '8453',
+      chainId: HUB_CHAIN_ID,
       target: '',
       abi: [],
       method: '',
@@ -231,7 +232,6 @@ export default function CreateProposalPage() {
   // Stored as strings so the input stays controllable; parsed to bigint on use.
   // Once the proposal is queued in the timelock these values are frozen, so
   // we surface a warning below if simulated gasUsed approaches them.
-  const DEFAULT_LZ_GAS_LIMIT = '500000'
   const [lzGasLimits, setLzGasLimits] = useState<Record<string, string>>({})
   const descriptionRef = React.useRef<HTMLTextAreaElement>(null)
 
@@ -248,28 +248,22 @@ export default function CreateProposalPage() {
     [actions],
   )
 
-  const parseLzGas = (raw: string | undefined): bigint => {
-    if (!raw) return BigInt(DEFAULT_LZ_GAS_LIMIT)
-    const cleaned = raw.replace(/[_,\s]/g, '')
-    if (!/^\d+$/.test(cleaned)) return BigInt(DEFAULT_LZ_GAS_LIMIT)
-    try {
-      return BigInt(cleaned)
-    } catch {
-      return BigInt(DEFAULT_LZ_GAS_LIMIT)
-    }
-  }
-
-  // Signature of the inputs that feed simulation. Any change invalidates the
-  // previous run so the user cannot edit actions after a green simulation and
-  // submit with stale results.
+  // Signature of every input that affects encodeProposal's output. Any change
+  // invalidates the previous run so the user cannot edit actions after a green
+  // simulation and submit with stale results. `abi` must be included because
+  // calldata derivation depends on it — without it, an ABI fetched after the
+  // sim would change proposal bytes without busting the gate.
   const actionsSignature = useMemo(
     () =>
       JSON.stringify(
         {
+          title,
+          description,
           actions: actions.map((a) => ({
             chainId: a.chainId,
             target: a.target,
             method: a.method,
+            abi: a.abi,
             args: a.args,
             rawCalldata: a.rawCalldata ?? null,
             rawValue: a.rawValue ?? null,
@@ -278,7 +272,7 @@ export default function CreateProposalPage() {
         },
         bigIntSafeReplacer,
       ),
-    [actions, lzGasLimits],
+    [actions, lzGasLimits, title, description],
   )
 
   // Signature captured at the last triggerSimulation call. The gate compares
@@ -302,7 +296,7 @@ export default function CreateProposalPage() {
     encodedGas: bigint
     gasUsed?: number
     ratio?: number
-    severity: GasSeverity | 'idle'
+    severity: GasSeverityOrIdle
   }
 
   const gasInsights: GasInsight[] = useMemo(() => {
@@ -312,17 +306,17 @@ export default function CreateProposalPage() {
       if (gasUsed === undefined || results[cid]?.status !== 'success') {
         return { chainId: cid, encodedGas, severity: 'idle' }
       }
-      const encodedGasNum = Number(encodedGas)
-      const ratio = encodedGasNum === 0 ? Number.POSITIVE_INFINITY : gasUsed / encodedGasNum
-      const severity: GasSeverity = ratio >= 1 ? 'critical' : ratio >= 0.7 ? 'warning' : 'ok'
-      return { chainId: cid, encodedGas, gasUsed, ratio, severity }
+      return {
+        chainId: cid,
+        encodedGas,
+        gasUsed,
+        ratio: computeGasRatio(gasUsed, encodedGas),
+        severity: computeGasSeverity(gasUsed, encodedGas),
+      }
     })
   }, [satelliteChainIds, lzGasLimits, results])
 
-  const worstGasSeverity: GasSeverity | 'idle' = gasInsights.reduce<GasSeverity | 'idle'>(
-    (acc, i) => (GAS_SEVERITY_ORDER[i.severity] > GAS_SEVERITY_ORDER[acc] ? i.severity : acc),
-    'idle',
-  )
+  const worstGasSeverity: GasSeverityOrIdle = worstSeverity(gasInsights.map((i) => i.severity))
 
   const insertMarkdown = (prefix: string, suffix: string = '') => {
     const textarea = descriptionRef.current
@@ -428,17 +422,7 @@ export default function CreateProposalPage() {
         if (a.rawValue) return BigInt(a.rawValue)
         return 0n
       })
-      const calldatas = groupActions.map((a) => {
-        // Use raw calldata if available (from imported proposals)
-        if (a.rawCalldata) return a.rawCalldata as Hex
-        const methodObj = a.abi.find((m: AbiItem) => m.name === a.method)
-        if (!methodObj || !methodObj.inputs) return '0x' as Hex
-        return encodeFunctionData({
-          abi: [methodObj],
-          functionName: a.method,
-          args: methodObj.inputs.map((i) => a.args[i.name]),
-        })
-      })
+      const calldatas = groupActions.map((a) => buildActionCalldata(a))
 
       if (isHub) {
         hubTargets.push(...targets)
@@ -721,7 +705,7 @@ export default function CreateProposalPage() {
       ...actions,
       {
         id: Math.random().toString(36).substr(2, 9),
-        chainId: '8453',
+        chainId: HUB_CHAIN_ID,
         target: '',
         abi: [],
         method: '',
@@ -752,7 +736,7 @@ export default function CreateProposalPage() {
         target,
         method: 'unknown',
         calldata: encoded.calldatas[i],
-        salt: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        salt: ZERO_BYTES32,
         value: encoded.values[i].toString(),
       })
     })
@@ -760,25 +744,12 @@ export default function CreateProposalPage() {
     // 2. Add raw satellite actions for their direct simulations on their respective chains
     actions.forEach((a) => {
       if (a.chainId !== HUB_CHAIN_ID) {
-        let calldata: string
-        if (a.rawCalldata) {
-          calldata = a.rawCalldata
-        } else {
-          const methodObj = a.abi.find((m) => m.name === a.method)
-          calldata = methodObj
-            ? encodeFunctionData({
-                abi: [methodObj],
-                functionName: a.method,
-                args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
-              })
-            : '0x'
-        }
         simActions.push({
           chainId: a.chainId,
           target: a.target,
           method: a.rawCalldata ? 'raw' : a.method,
-          calldata,
-          salt: '0x0000000000000000000000000000000000000000000000000000000000000000',
+          calldata: buildActionCalldata(a),
+          salt: ZERO_BYTES32,
           value: a.rawValue || '0',
         })
       }
@@ -886,7 +857,7 @@ export default function CreateProposalPage() {
                       : worstGasSeverity === 'critical'
                         ? 'Warning: simulated gas exceeds encoded _options gas on at least one chain'
                         : worstGasSeverity === 'warning'
-                          ? 'Warning: less than 30% gas headroom on at least one chain'
+                          ? `Warning: less than ${LZ_GAS_HEADROOM_PERCENT}% gas headroom on at least one chain`
                           : undefined
                 }
                 className={`px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg ${
@@ -1012,7 +983,8 @@ export default function CreateProposalPage() {
                       )}
                       {severity === 'warning' && (
                         <p className="text-[10px] text-warning">
-                          Less than 30% headroom. Consider raising the limit before submitting.
+                          Less than {LZ_GAS_HEADROOM_PERCENT}% headroom. Consider raising the limit
+                          before submitting.
                         </p>
                       )}
                     </div>
