@@ -177,8 +177,16 @@ describe('transformProposal - derived numeric fields', () => {
     expect(result.chain).toContain('Base')
   })
 
-  it('uses default now when not provided', () => {
-    expect(() => transformProposal(withCross(baseProposal()))).not.toThrow()
+  it('uses the live wall clock as the default now (not a leaked 0/index)', () => {
+    // baseProposal's voteEnd is 1000200 (~Jan 1970). With the real wall clock
+    // (now >> voteEnd) the proposal is past voting with no votes -> Defeated,
+    // and timeRemaining = voteEnd - now is strongly negative. If `now` had
+    // defaulted to 0 (or a leaked index), now < voteStart, timeRemaining would
+    // be +1000100 and status would stay Pending. So these assertions prove the
+    // default is the live clock.
+    const result = transformProposal(withCross(baseProposal()))
+    expect(result.status).toBe('Defeated')
+    expect(result.timeRemaining).toBeLessThan(0)
   })
 
   it('falls back to empty string when description is undefined', () => {

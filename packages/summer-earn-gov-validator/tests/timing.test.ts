@@ -114,9 +114,14 @@ describe('calculateProposalTiming', () => {
   })
 
   it('defaults currentTime to the wall clock when not provided', () => {
+    // Bracket the call with real wall-clock reads; the default must land inside
+    // [before, after]. This proves the default is the live clock, not 0 / a
+    // leaked argument, without any tolerance fudge.
+    const before = Math.floor(Date.now() / 1000)
     const t = calculateProposalTiming(proposalAt('pending'))
-    expect(typeof t.currentTime).toBe('number')
-    expect(t.currentTime).toBeGreaterThan(0)
+    const after = Math.floor(Date.now() / 1000)
+    expect(t.currentTime).toBeGreaterThanOrEqual(before)
+    expect(t.currentTime).toBeLessThanOrEqual(after)
   })
 })
 
