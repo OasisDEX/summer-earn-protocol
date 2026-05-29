@@ -298,10 +298,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         // 2. Request Withdrawal — offchainRedeem burns shares from the Ark
         vm.mockCall(
             address(shareToken),
-            abi.encodeWithSignature(
-                "offchainRedeem(uint256)",
-                sharesMinted
-            ),
+            abi.encodeWithSignature("offchainRedeem(uint256)", sharesMinted),
             abi.encode()
         );
 
@@ -412,9 +409,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.requestWithdrawal(amount);
 
         // Second withdrawal must revert because a cycle is in flight
-        vm.expectRevert(
-            ISuperstateArkErrors.PendingWithdrawalActive.selector
-        );
+        vm.expectRevert(ISuperstateArkErrors.PendingWithdrawalActive.selector);
         ark.requestWithdrawal(amount);
         vm.stopPrank();
     }
@@ -426,9 +421,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.setArkFrozen(true, type(uint256).max);
 
         vm.startPrank(keeper);
-        vm.expectRevert(
-            ISuperstateStandardArkErrors.ArkIsFrozen.selector
-        );
+        vm.expectRevert(ISuperstateStandardArkErrors.ArkIsFrozen.selector);
         ark.sweep();
         vm.stopPrank();
     }
@@ -442,9 +435,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
-        vm.expectRevert(
-            ISuperstateStandardArkErrors.ArkIsFrozen.selector
-        );
+        vm.expectRevert(ISuperstateStandardArkErrors.ArkIsFrozen.selector);
         ark.board(amount, bytes(""));
         vm.stopPrank();
     }
@@ -454,9 +445,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.setArkFrozen(true, type(uint256).max);
 
         vm.startPrank(keeper);
-        vm.expectRevert(
-            ISuperstateStandardArkErrors.ArkIsFrozen.selector
-        );
+        vm.expectRevert(ISuperstateStandardArkErrors.ArkIsFrozen.selector);
         ark.requestWithdrawal(1000 * 1e6);
         vm.stopPrank();
     }
@@ -553,9 +542,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         // Keeper sweep is blocked by the freeze
         vm.startPrank(keeper);
-        vm.expectRevert(
-            ISuperstateStandardArkErrors.ArkIsFrozen.selector
-        );
+        vm.expectRevert(ISuperstateStandardArkErrors.ArkIsFrozen.selector);
         ark.sweep();
         vm.stopPrank();
 
@@ -663,12 +650,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_RequestWithdrawal_RevertsIfOracleStale() public {
         shareToken.mint(address(ark), 1e6);
-        oracle.setRoundData(
-            1,
-            10 * 1e8,
-            block.timestamp - 24 hours - 1,
-            1
-        );
+        oracle.setRoundData(1, 10 * 1e8, block.timestamp - 24 hours - 1, 1);
         vm.prank(keeper);
         vm.expectRevert(ISuperstateArkErrors.StaleOraclePrice.selector);
         ark.requestWithdrawal(1e6);
@@ -676,12 +658,7 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_TotalAssets_RevertsIfOracleStale_WhenSharesPresent() public {
         shareToken.mint(address(ark), 1e6);
-        oracle.setRoundData(
-            1,
-            10 * 1e8,
-            block.timestamp - 24 hours - 1,
-            1
-        );
+        oracle.setRoundData(1, 10 * 1e8, block.timestamp - 24 hours - 1, 1);
         vm.expectRevert(ISuperstateArkErrors.StaleOraclePrice.selector);
         ark.totalAssets();
     }

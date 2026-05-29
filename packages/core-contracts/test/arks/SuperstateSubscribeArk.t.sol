@@ -243,7 +243,10 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         oracle = new MockSuperstateOracle(8, 10 * 1e8); // 1 share = 10 USDC
 
-        subscribeContract = new MockSuperstateSubscribe(USDC_ADDRESS, address(oracle));
+        subscribeContract = new MockSuperstateSubscribe(
+            USDC_ADDRESS,
+            address(oracle)
+        );
         // Wire the mock to mint MockSuperstateToken shares during subscribe (1 share per 10 USDC,
         // matching the oracle mock's 10:1 price).
         subscribeContract.setMintTarget(address(shareToken));
@@ -529,9 +532,7 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.requestWithdrawal(amount);
 
         // Second withdrawal must revert because a cycle is in flight
-        vm.expectRevert(
-            ISuperstateArkErrors.PendingWithdrawalActive.selector
-        );
+        vm.expectRevert(ISuperstateArkErrors.PendingWithdrawalActive.selector);
         ark.requestWithdrawal(amount);
         vm.stopPrank();
     }
@@ -640,12 +641,7 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_RequestWithdrawal_RevertsIfOracleStale() public {
         shareToken.mint(address(ark), 1e6);
-        oracle.setRoundData(
-            1,
-            10 * 1e8,
-            block.timestamp - 24 hours - 1,
-            1
-        );
+        oracle.setRoundData(1, 10 * 1e8, block.timestamp - 24 hours - 1, 1);
         vm.prank(keeper);
         vm.expectRevert(ISuperstateArkErrors.StaleOraclePrice.selector);
         ark.requestWithdrawal(1e6);
@@ -653,12 +649,7 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_Board_RevertsIfOracleStale() public {
         // Subscribe's _board calls _validateReceivedShares which reads the oracle
-        oracle.setRoundData(
-            1,
-            10 * 1e8,
-            block.timestamp - 24 hours - 1,
-            1
-        );
+        oracle.setRoundData(1, 10 * 1e8, block.timestamp - 24 hours - 1, 1);
         uint256 amount = 100 * 1e6;
         deal(USDC_ADDRESS, commander, amount);
         vm.startPrank(commander);
@@ -670,12 +661,7 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_TotalAssets_RevertsIfOracleStale_WhenSharesPresent() public {
         shareToken.mint(address(ark), 1e6);
-        oracle.setRoundData(
-            1,
-            10 * 1e8,
-            block.timestamp - 24 hours - 1,
-            1
-        );
+        oracle.setRoundData(1, 10 * 1e8, block.timestamp - 24 hours - 1, 1);
         vm.expectRevert(ISuperstateArkErrors.StaleOraclePrice.selector);
         ark.totalAssets();
     }

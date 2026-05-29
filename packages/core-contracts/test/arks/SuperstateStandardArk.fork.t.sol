@@ -11,8 +11,15 @@ import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentag
 
 interface ISuperstateAllowlist {
     function owner() external view returns (address);
-    function setProtocolAddressPermission(address addr, string calldata fund, bool isAllowed) external;
-    function isAddressAllowedForFund(address addr, string calldata fund) external view returns (bool);
+    function setProtocolAddressPermission(
+        address addr,
+        string calldata fund,
+        bool isAllowed
+    ) external;
+    function isAddressAllowedForFund(
+        address addr,
+        string calldata fund
+    ) external view returns (bool);
 }
 
 contract SuperstateStandardArkForkTest is Test, ArkTestBaseWhitelist {
@@ -24,9 +31,11 @@ contract SuperstateStandardArkForkTest is Test, ArkTestBaseWhitelist {
     // Superstate USCC Mainnet addresses (https://docs.superstate.com/investors/smart-contracts)
     // USCC uses the same token proxy address for both subscriptions and redemptions
     address public constant USCC = 0x14d60E7FDC0D71d8611742720E4C50E7a974020c;
-    address public constant ALLOWLIST = 0x02f1fA8B196d21c7b733EB2700B825611d8A38E5;
+    address public constant ALLOWLIST =
+        0x02f1fA8B196d21c7b733EB2700B825611d8A38E5;
     // Chainlink USCC / USD price feed (8 decimals)
-    address public constant USCC_ORACLE = 0xAfFd8F5578E8590665de561bdE9E7BAdb99300d9;
+    address public constant USCC_ORACLE =
+        0xAfFd8F5578E8590665de561bdE9E7BAdb99300d9;
 
     // Must be after USCC contract upgrade that supports current oracle
     uint256 public constant FORK_BLOCK = 25191026;
@@ -70,7 +79,10 @@ contract SuperstateStandardArkForkTest is Test, ArkTestBaseWhitelist {
 
         // Verify the whitelist was applied
         assertTrue(
-            ISuperstateAllowlist(ALLOWLIST).isAddressAllowedForFund(address(ark), "USCC"),
+            ISuperstateAllowlist(ALLOWLIST).isAddressAllowedForFund(
+                address(ark),
+                "USCC"
+            ),
             "Ark must be on USCC allowlist"
         );
 
@@ -106,7 +118,11 @@ contract SuperstateStandardArkForkTest is Test, ArkTestBaseWhitelist {
     function _whitelistForUSCC(address addr) internal {
         address allowlistAdmin = ISuperstateAllowlist(ALLOWLIST).owner();
         vm.startPrank(allowlistAdmin);
-        ISuperstateAllowlist(ALLOWLIST).setProtocolAddressPermission(addr, "USCC", true);
+        ISuperstateAllowlist(ALLOWLIST).setProtocolAddressPermission(
+            addr,
+            "USCC",
+            true
+        );
         vm.stopPrank();
     }
 
@@ -115,8 +131,11 @@ contract SuperstateStandardArkForkTest is Test, ArkTestBaseWhitelist {
      *      live oracle.  Formula: shares = amount * 10^SHARE_DECIMALS / answer.
      *      All Superstate oracles and tokens use 6 decimals.
      */
-    function _expectedUsccShares(uint256 usdcAmount) internal view returns (uint256) {
-        (, int256 answer, , , ) = AggregatorV3Interface(USCC_ORACLE).latestRoundData();
+    function _expectedUsccShares(
+        uint256 usdcAmount
+    ) internal view returns (uint256) {
+        (, int256 answer, , , ) = AggregatorV3Interface(USCC_ORACLE)
+            .latestRoundData();
         return (usdcAmount * 1e6) / uint256(answer);
     }
 
@@ -146,8 +165,16 @@ contract SuperstateStandardArkForkTest is Test, ArkTestBaseWhitelist {
         );
 
         // Ark records the amount as pending until Superstate mints USCC off-chain
-        assertEq(ark.pendingDepositAssets(), amount, "pendingDepositAssets should equal boarded amount");
-        assertEq(ark.totalAssets(), amount, "totalAssets counts pending deposit at face value");
+        assertEq(
+            ark.pendingDepositAssets(),
+            amount,
+            "pendingDepositAssets should equal boarded amount"
+        );
+        assertEq(
+            ark.totalAssets(),
+            amount,
+            "totalAssets counts pending deposit at face value"
+        );
     }
 
     /**
@@ -172,14 +199,22 @@ contract SuperstateStandardArkForkTest is Test, ArkTestBaseWhitelist {
         ark.clearPendingDeposit();
         vm.stopPrank();
 
-        assertEq(ark.pendingDepositAssets(), 0, "pendingDepositAssets should be cleared");
+        assertEq(
+            ark.pendingDepositAssets(),
+            0,
+            "pendingDepositAssets should be cleared"
+        );
         assertEq(
             ark.cachedShareBalance(),
             IERC20(USCC).balanceOf(address(ark)),
             "cachedShareBalance should match USCC balance"
         );
         // totalAssets() now derives from oracle price of held USCC shares
-        assertGt(ark.totalAssets(), 0, "totalAssets should reflect oracle value of USCC shares");
+        assertGt(
+            ark.totalAssets(),
+            0,
+            "totalAssets should reflect oracle value of USCC shares"
+        );
         assertApproxEqRel(
             ark.totalAssets(),
             amount,
@@ -219,8 +254,16 @@ contract SuperstateStandardArkForkTest is Test, ArkTestBaseWhitelist {
 
         // offchainRedeem burned the Ark's USCC shares
         // Allow 1 unit of dust due to oracle price rounding
-        assertLe(IERC20(USCC).balanceOf(address(ark)), 1, "Ark should have at most 1 unit USCC dust");
-        assertGt(ark.pendingWithdrawalShares(), 0, "pendingWithdrawalShares must be set");
+        assertLe(
+            IERC20(USCC).balanceOf(address(ark)),
+            1,
+            "Ark should have at most 1 unit USCC dust"
+        );
+        assertGt(
+            ark.pendingWithdrawalShares(),
+            0,
+            "pendingWithdrawalShares must be set"
+        );
     }
 
     /**
@@ -275,8 +318,16 @@ contract SuperstateStandardArkForkTest is Test, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         // ── 6. Verify final state ─────────────────────────────────────────────
-        assertEq(ark.pendingWithdrawalShares(), 0, "pendingWithdrawalShares should be cleared after sweep");
-        assertEq(IERC20(USDC).balanceOf(address(ark)), 0, "Ark should have 0 USDC after sweep");
+        assertEq(
+            ark.pendingWithdrawalShares(),
+            0,
+            "pendingWithdrawalShares should be cleared after sweep"
+        );
+        assertEq(
+            IERC20(USDC).balanceOf(address(ark)),
+            0,
+            "Ark should have 0 USDC after sweep"
+        );
         // USDC moved into the buffer ark
         assertGt(
             IERC20(USDC).balanceOf(address(bufferArk)),

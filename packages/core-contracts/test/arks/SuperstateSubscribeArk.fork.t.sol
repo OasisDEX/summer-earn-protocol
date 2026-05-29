@@ -10,8 +10,15 @@ import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentag
 
 interface ISuperstateAllowlist {
     function owner() external view returns (address);
-    function setProtocolAddressPermission(address addr, string calldata fund, bool isAllowed) external;
-    function isAddressAllowedForFund(address addr, string calldata fund) external view returns (bool);
+    function setProtocolAddressPermission(
+        address addr,
+        string calldata fund,
+        bool isAllowed
+    ) external;
+    function isAddressAllowedForFund(
+        address addr,
+        string calldata fund
+    ) external view returns (bool);
 }
 
 contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
@@ -21,10 +28,13 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
 
     // Superstate USTB Mainnet addresses (https://docs.superstate.com/investors/smart-contracts)
     address public constant USTB = 0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e;
-    address public constant ALLOWLIST = 0x02f1fA8B196d21c7b733EB2700B825611d8A38E5;
-    address public constant USTB_REDEMPTION_IDLE = 0x4c21B7577C8FE8b0B0669165ee7C8f67fa1454Cf;
+    address public constant ALLOWLIST =
+        0x02f1fA8B196d21c7b733EB2700B825611d8A38E5;
+    address public constant USTB_REDEMPTION_IDLE =
+        0x4c21B7577C8FE8b0B0669165ee7C8f67fa1454Cf;
     // Superstate USTB Continuous Price Oracle — must match USTB.superstateOracle()
-    address public constant USTB_ORACLE = 0xE4fA682f94610cCd170680cc3B045d77D9E528a8;
+    address public constant USTB_ORACLE =
+        0xE4fA682f94610cCd170680cc3B045d77D9E528a8;
 
     // Must be after USTB upgrade that added subscribe(address,uint256,address)
     uint256 public constant FORK_BLOCK = 25191026;
@@ -62,7 +72,10 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
 
         // Verify the whitelist was applied
         assertTrue(
-            ISuperstateAllowlist(ALLOWLIST).isAddressAllowedForFund(address(ark), "USTB"),
+            ISuperstateAllowlist(ALLOWLIST).isAddressAllowedForFund(
+                address(ark),
+                "USTB"
+            ),
             "Ark must be on USTB allowlist"
         );
 
@@ -83,12 +96,18 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
     function _whitelistForUSTB(address addr) internal {
         address allowlistAdmin = ISuperstateAllowlist(ALLOWLIST).owner();
         vm.startPrank(allowlistAdmin);
-        ISuperstateAllowlist(ALLOWLIST).setProtocolAddressPermission(addr, "USTB", true);
+        ISuperstateAllowlist(ALLOWLIST).setProtocolAddressPermission(
+            addr,
+            "USTB",
+            true
+        );
         vm.stopPrank();
     }
 
     /// @dev Boards USDC into the Ark (subscribe for USTB) and returns the USTB shares received.
-    function _boardAndGetShares(uint256 amount) internal returns (uint256 shares) {
+    function _boardAndGetShares(
+        uint256 amount
+    ) internal returns (uint256 shares) {
         deal(USDC, commander, amount);
         uint256 ustbBefore = IERC20(USTB).balanceOf(address(ark));
 
@@ -154,7 +173,11 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
         );
 
         // pendingWithdrawalShares tracks the burned shares awaiting off-chain settlement
-        assertGt(ark.pendingWithdrawalShares(), 0, "pendingWithdrawalShares must be set");
+        assertGt(
+            ark.pendingWithdrawalShares(),
+            0,
+            "pendingWithdrawalShares must be set"
+        );
 
         // Ark's direct USTB balance should have decreased
         assertLt(
@@ -206,9 +229,17 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
         ark.requestWithdrawal(totalAssetsValue);
         vm.stopPrank();
 
-        assertGt(ark.pendingWithdrawalShares(), 0, "pendingWithdrawalShares should be set");
+        assertGt(
+            ark.pendingWithdrawalShares(),
+            0,
+            "pendingWithdrawalShares should be set"
+        );
         // Allow 1 unit of USTB dust due to oracle price rounding
-        assertLe(IERC20(USTB).balanceOf(address(ark)), 1, "Ark should have at most 1 unit USTB dust");
+        assertLe(
+            IERC20(USTB).balanceOf(address(ark)),
+            1,
+            "Ark should have at most 1 unit USTB dust"
+        );
 
         // ── 3. Simulate Superstate returning USDC (T+1 settlement) ────────────
         deal(USDC, address(ark), totalAssetsValue);
@@ -247,7 +278,11 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         // ── 5. Verify final state ─────────────────────────────────────────────
-        assertEq(IERC20(USDC).balanceOf(address(ark)), 0, "Ark should have 0 USDC after sweep");
+        assertEq(
+            IERC20(USDC).balanceOf(address(ark)),
+            0,
+            "Ark should have 0 USDC after sweep"
+        );
         assertGt(
             IERC20(USDC).balanceOf(address(bufferArk)),
             0,
