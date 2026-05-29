@@ -180,6 +180,11 @@ export interface BaseConfig {
       receiveUln302: string
       blockedMessageLib: string
       lzDeadDVN: string
+      // Source-chain block confirmations the DVN waits before attesting. Uniform
+      // per source chain across all destinations; must match the LZ per-chain
+      // default (read live from SendUln302). A directed pathway A→B uses A's value
+      // for A's send config AND B's receive config.
+      confirmations?: number
       dvns: {
         [key: string]: {
           lzLabs: string
