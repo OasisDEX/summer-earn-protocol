@@ -10,11 +10,9 @@ import {Ark} from "../Ark.sol";
 import {IArk} from "../../interfaces/IArk.sol";
 import {ArkParams} from "../../types/ArkTypes.sol";
 
-import {PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 import {ISuperstateStandardArk} from "../../interfaces/arks/ISuperstateStandardArk.sol";
-import {ISuperstateToken} from "../../interfaces/superstate/ISuperstateToken.sol";
 
 /**
  * @title SuperstateStandardArk
@@ -35,20 +33,12 @@ import {ISuperstateToken} from "../../interfaces/superstate/ISuperstateToken.sol
  *
  * **Freeze:**
  *   The keeper can freeze the ark via `setArkFrozen()`, locking `totalAssets()` to a snapshot
- *   value and preventing new boards or withdrawals.
+ *   value and preventing new boards, withdrawals, and sweeps. Use `emergencySweep` (governor)
+ *   to recover assets while frozen.
  */
 contract SuperstateStandardArk is BaseSuperstateArk, ISuperstateStandardArk {
     using SafeERC20 for IERC20Metadata;
     using SafeERC20 for IERC20;
-    using PercentageUtils for uint256;
-
-    /*//////////////////////////////////////////////////////////////
-                                CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Maximum allowed deposit slippage. Under the Percentage library convention (100% = 100 * 1e18) this equals 0.5%.
-    Percentage public constant MAX_DEPOSIT_SLIPPAGE =
-        Percentage.wrap(PERCENTAGE_FACTOR / 2);
 
     /*//////////////////////////////////////////////////////////////
                               IMMUTABLES
@@ -67,8 +57,6 @@ contract SuperstateStandardArk is BaseSuperstateArk, ISuperstateStandardArk {
     uint256 public cachedShareBalance;
     /// @notice When true, totalAssets() returns a frozen snapshot and board/withdraw are blocked.
     bool public isArkFrozen;
-    /// @notice Slippage tolerance when validating shares received after a deposit clears.
-    Percentage public depositSlippage;
     /// @notice Snapshot of totalAssets() taken when the ark was frozen.
     uint256 private _frozenTotalAssets;
 
@@ -100,12 +88,17 @@ contract SuperstateStandardArk is BaseSuperstateArk, ISuperstateStandardArk {
         Percentage _sweepSlippage,
         Percentage _depositSlippage,
         ArkParams memory _params
-    ) BaseSuperstateArk(_shareToken, _oracle, _params) {
+    )
+        BaseSuperstateArk(
+            _shareToken,
+            _oracle,
+            _sweepSlippage,
+            _depositSlippage,
+            _params
+        )
+    {
         if (_depositAddress == address(0)) revert InvalidDepositAddress();
-
         DEPOSIT_ADDRESS = _depositAddress;
-        _setSweepSlippage(_sweepSlippage);
-        _setDepositSlippage(_depositSlippage);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -137,49 +130,49 @@ contract SuperstateStandardArk is BaseSuperstateArk, ISuperstateStandardArk {
     /**
      * @notice Removes a fulfilled deposit amount from `pendingDepositAssets`.
      * @dev Called by the keeper after Superstate issues shares (T+1/T+2) to this contract.
+     *      Validates that the share-balance delta since `cachedShareBalance` covers the
+     *      oracle-implied expected shares minus `depositSlippage`.
      */
     function clearPendingDeposit() external onlyKeeper {
-        _validateReceivedShares(pendingDepositAssets);
+        _validateReceivedShares(pendingDepositAssets, cachedShareBalance);
         _clearPendingDeposit(pendingDepositAssets);
     }
 
     /**
-     * @notice Converts the requested asset amount to shares via the oracle, then calls
-     *         `offchainRedeem()` on the fund token to burn them. The burned shares are tracked
-     *         in `pendingWithdrawalShares` until Superstate delivers USDC and the keeper sweeps.
+     * @notice Adds the Standard-ark preconditions (`onlyNotFrozen`, no active pending deposit) on
+     *         top of the base `requestWithdrawal`, which burns shares via `offchainRedeem` and
+     *         tracks them in `pendingWithdrawalShares`.
      */
     function requestWithdrawal(
         uint256 amount
-    ) external override onlyKeeper onlyNotFrozen {
+    ) public override onlyKeeper onlyNotFrozen {
         if (pendingDepositAssets > 0) revert PendingDepositActive();
-
-        uint256 sharesToRedeem = _assetsToShares(amount);
-
-        pendingWithdrawalShares += sharesToRedeem;
-
-        ISuperstateToken(address(SHARE_TOKEN)).offchainRedeem(sharesToRedeem);
-
-        emit RedemptionExecuted(sharesToRedeem, amount);
-        emit WithdrawalRequested(amount, 0);
-    }
-
-    /// @notice Emergency sweep function for the governor to recover any remaining base asset.
-    function emergencySweep()
-        external
-        onlyGovernor
-        nonReentrant
-        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
-    {
-        uint256 returnedAssets = config.asset.balanceOf(address(this));
-        return _sweep(returnedAssets);
+        super.requestWithdrawal(amount);
     }
 
     /// @notice Emergency clear pending deposit function for the governor.
+    /// @dev Bypasses `_validateReceivedShares`; lets the governor accept the current share balance
+    ///      as valid for `amount` of the pending queue when the keeper path is deadlocked
+    ///      (partial fills, oracle staleness). `emergencySweep` lives on `BaseSuperstateArk`.
     function emergencyClearPendingDeposit(
         uint256 amount
     ) external onlyGovernor {
         if (amount > pendingDepositAssets) revert InsufficientPendingDeposit();
         _clearPendingDeposit(amount);
+    }
+
+    /**
+     * @inheritdoc BaseSuperstateArk
+     * @dev Adds `onlyNotFrozen` to the inherited sweep so that freezing the ark also gates routine
+     *      settlement. Use `emergencySweep` (governor) to recover assets while frozen.
+     */
+    function sweep()
+        public
+        override
+        onlyNotFrozen
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        return super.sweep();
     }
 
     /// @notice Freezes the Ark, locking the total assets value.
@@ -194,13 +187,6 @@ contract SuperstateStandardArk is BaseSuperstateArk, ISuperstateStandardArk {
         }
         isArkFrozen = _isArkFrozen;
         emit ArkIsFrozenUpdated(_isArkFrozen, _frozenTotalAssets);
-    }
-
-    /// @notice Sets the deposit slippage percentage.
-    function setDepositSlippage(
-        Percentage newDepositSlippage
-    ) external onlyKeeper {
-        _setDepositSlippage(newDepositSlippage);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -249,36 +235,10 @@ contract SuperstateStandardArk is BaseSuperstateArk, ISuperstateStandardArk {
         return 0;
     }
 
-    function _setDepositSlippage(Percentage newDepositSlippage) internal {
-        if (newDepositSlippage > MAX_DEPOSIT_SLIPPAGE) {
-            revert InvalidDepositSlippage(
-                newDepositSlippage,
-                MAX_DEPOSIT_SLIPPAGE
-            );
-        }
-        emit DepositSlippageUpdated(depositSlippage, newDepositSlippage);
-        depositSlippage = newDepositSlippage;
-    }
-
     /// @dev Decrements `pendingDepositAssets` and refreshes `cachedShareBalance`.
     function _clearPendingDeposit(uint256 amountCleared) internal {
         pendingDepositAssets -= amountCleared;
         cachedShareBalance = SHARE_TOKEN.balanceOf(address(this));
         emit PendingDepositCleared(amountCleared);
-    }
-
-    /// @dev Reverts if newly arrived shares are below the expected amount minus deposit slippage.
-    function _validateReceivedShares(uint256 amount) internal view {
-        if (amount > pendingDepositAssets) revert InsufficientPendingDeposit();
-        uint256 currentShares = SHARE_TOKEN.balanceOf(address(this));
-        uint256 newlyArrivedShares = currentShares - cachedShareBalance;
-        uint256 expectedShares = _assetsToShares(amount);
-        uint256 expectedSharesMinusSlippage = expectedShares.subtractPercentage(
-            depositSlippage
-        );
-
-        if (newlyArrivedShares < expectedSharesMinusSlippage) {
-            revert SharesNotArrived(expectedShares, newlyArrivedShares);
-        }
     }
 }

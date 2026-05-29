@@ -6,7 +6,7 @@ import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
-import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 interface ISuperstateAllowlist {
     function owner() external view returns (address);
@@ -52,6 +52,8 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
             USTB,
             USTB_REDEMPTION_IDLE,
             USTB_ORACLE,
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
             params
         );
 
@@ -124,8 +126,8 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
 
     /**
      * @notice Verifies the async (off-chain) withdrawal path: the keeper calls
-     *         requestWithdrawal(), which transfers USTB shares to the RedemptionIdle
-     *         contract and updates pendingWithdrawalShares.
+     *         requestWithdrawal(), which burns USTB shares via offchainRedeem and updates
+     *         pendingWithdrawalShares.
      */
     function test_Fork_RequestWithdrawal() public {
         uint256 amount = 1000 * 1e6;
@@ -133,7 +135,7 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
 
         uint256 totalAssetsValue = ark.totalAssets();
         uint256 ustbInArk = IERC20(USTB).balanceOf(address(ark));
-        uint256 redeemIdleUstbBefore = IERC20(USTB).balanceOf(USTB_REDEMPTION_IDLE);
+        uint256 ustbSupplyBefore = IERC20(USTB).totalSupply();
 
         assertGt(ustbInArk, 0, "Ark must have USTB before withdrawal");
         assertGt(totalAssetsValue, 0, "totalAssets must be > 0");
@@ -143,15 +145,15 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
         ark.requestWithdrawal(totalAssetsValue);
         vm.stopPrank();
 
-        // USTB shares should have been forwarded to the RedemptionIdle contract
-        uint256 redeemIdleUstbAfter = IERC20(USTB).balanceOf(USTB_REDEMPTION_IDLE);
-        assertGt(
-            redeemIdleUstbAfter,
-            redeemIdleUstbBefore,
-            "RedemptionIdle should have received USTB shares"
+        // USTB shares should have been burned (offchainRedeem reduces total supply)
+        uint256 ustbSupplyAfter = IERC20(USTB).totalSupply();
+        assertLt(
+            ustbSupplyAfter,
+            ustbSupplyBefore,
+            "USTB total supply should have dropped (shares burned by offchainRedeem)"
         );
 
-        // pendingWithdrawalShares tracks the shares awaiting off-chain settlement
+        // pendingWithdrawalShares tracks the burned shares awaiting off-chain settlement
         assertGt(ark.pendingWithdrawalShares(), 0, "pendingWithdrawalShares must be set");
 
         // Ark's direct USTB balance should have decreased
@@ -168,10 +170,9 @@ contract SuperstateSubscribeArkForkTest is Test, ArkTestBaseWhitelist {
      *
      *         The RedemptionIdle.redeem() has internal requirements (e.g. NAV
      *         oracle checks, market-hours gating) that cannot easily be satisfied
-     *         in a fork test.  When sync fails, _disembark falls back to the
-     *         async path which sets pendingWithdrawalShares, but then the base
-     *         Ark.disembark() tries asset.safeTransfer(commander, amount) and
-     *         reverts because the Ark has no USDC.
+     *         in a fork test. When sync redemption is unavailable, `_disembark`
+     *         reverts with `DirectWithdrawalNotAvailable`; the keeper is expected
+     *         to detect this and route through `requestWithdrawal` (async path).
      *
      *         The correct async withdrawal flow is tested by test_Fork_RequestWithdrawal
      *         and test_Fork_Sweep.

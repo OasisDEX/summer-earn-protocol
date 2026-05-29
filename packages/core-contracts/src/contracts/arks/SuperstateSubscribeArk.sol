@@ -11,6 +11,8 @@ import {Ark} from "../Ark.sol";
 import {IArk} from "../../interfaces/IArk.sol";
 import {ArkParams} from "../../types/ArkTypes.sol";
 
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
 import {ISuperstateToken, SupportedStablecoin} from "../../interfaces/superstate/ISuperstateToken.sol";
 import {ISuperstateRedeem} from "../../interfaces/superstate/ISuperstateRedeem.sol";
 import {ISuperstateSubscribeArk} from "../../interfaces/arks/ISuperstateSubscribeArk.sol";
@@ -18,19 +20,21 @@ import {ISuperstateSubscribeArk} from "../../interfaces/arks/ISuperstateSubscrib
 /**
  * @title SuperstateSubscribeArk
  * @notice Ark for synchronous interaction with Superstate Tokenized Funds (primarily USTB).
- * @dev Unlike SuperstateStandardArk, this contract calls `subscribe()` on-chain during boarding
- *      to mint fund tokens immediately, and attempts synchronous redemption via the RedemptionIdle
- *      contract during disembarkation.
+ * @dev Structurally mirrors `SuperstateStandardArk` (shared `BaseSuperstateArk` machinery for
+ *      oracle, sweep, and `pendingWithdrawalShares`), with two Subscribe-specific differences:
+ *      (a) `_board` calls `SUPERSTATE_SUBSCRIBE.subscribe()` on-chain so shares mint in the same
+ *      transaction (no `pendingDepositAssets` cycle), and (b) `_disembark` attempts synchronous
+ *      redemption via `SUPERSTATE_REDEEM.redeem()`.
  *
  * **Lifecycle:**
  *   1. Board:     Approves USDC to `SUPERSTATE_SUBSCRIBE` and calls `subscribe()`, which pulls
  *                 USDC and mints fund tokens to this contract in the same transaction.
- *   2. Disembark: Attempts synchronous redemption via `SUPERSTATE_REDEEM.redeem()` (or `withdraw()`).
- *                 If that reverts (e.g. market closed, insufficient idle USDC), falls back to the
- *                 async path: shares are transferred to the redeem contract and the keeper calls
- *                 `sweep()` once USDC arrives.
- *   3. Keeper:    Can call `requestWithdrawal()` to explicitly use the async path, bypassing the
- *                 synchronous attempt.
+ *   2. Disembark: Synchronously redeems shares via `SUPERSTATE_REDEEM.redeem()`. If RedemptionIdle
+ *                 is closed, paused, or out of idle USDC, the call reverts with
+ *                 `DirectWithdrawalNotAvailable` — the keeper is expected to detect this and route
+ *                 the withdrawal through `requestWithdrawal` (async path) instead.
+ *   3. Keeper:    Calls `requestWithdrawal()` to use the async off-chain path explicitly (single
+ *                 outstanding tranche at a time, settled later by `sweep()`).
  *
  * **Allowlist:**
  *   This contract MUST be on the Superstate on-chain AllowList for the target fund.
@@ -54,23 +58,16 @@ contract SuperstateSubscribeArk is BaseSuperstateArk, ISuperstateSubscribeArk {
     ISuperstateRedeem public immutable SUPERSTATE_REDEEM;
 
     /*//////////////////////////////////////////////////////////////
-                              MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    modifier onlySelf() {
-        if (_msgSender() != address(this)) revert OnlySelf();
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @param _shareToken  The Superstate fund token (e.g. USTB).
      * @param _superstateSubscribe  Contract exposing `subscribe()` (typically the token proxy itself).
-     * @param _superstateRedeem  Contract exposing `redeem()` / `withdraw()` (e.g. RedemptionIdle).
+     * @param _superstateRedeem  Contract exposing `redeem()` (RedemptionIdle).
      * @param _oracle  Price feed for the fund token; must match `_superstateSubscribe.superstateOracle()`.
+     * @param _sweepSlippage  Tolerance for USDC-vs-shares mismatch during sweep; `<= MAX_SWEEP_SLIPPAGE` (0.5%).
+     * @param _depositSlippage  Tolerance for the post-`subscribe()` shares-received check; `<= MAX_DEPOSIT_SLIPPAGE` (0.5%).
      * @param _params  Standard Ark initialization parameters.
      */
     constructor(
@@ -78,8 +75,18 @@ contract SuperstateSubscribeArk is BaseSuperstateArk, ISuperstateSubscribeArk {
         address _superstateSubscribe,
         address _superstateRedeem,
         address _oracle,
+        Percentage _sweepSlippage,
+        Percentage _depositSlippage,
         ArkParams memory _params
-    ) BaseSuperstateArk(_shareToken, _oracle, _params) {
+    )
+        BaseSuperstateArk(
+            _shareToken,
+            _oracle,
+            _sweepSlippage,
+            _depositSlippage,
+            _params
+        )
+    {
         if (_superstateSubscribe == address(0))
             revert InvalidSubscribeAddress();
         if (_superstateRedeem == address(0)) revert InvalidRedeemAddress();
@@ -115,29 +122,19 @@ contract SuperstateSubscribeArk is BaseSuperstateArk, ISuperstateSubscribeArk {
     }
 
     /*//////////////////////////////////////////////////////////////
-                          KEEPER FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Explicitly initiates an async redemption. Useful when the keeper wants to bypass
-     *         the synchronous attempt and go straight to the off-chain path.
-     */
-    function requestWithdrawal(uint256 amount) external override onlyKeeper {
-        uint256 sharesToRedeem = _assetsToShares(amount);
-
-        pendingWithdrawalShares += sharesToRedeem;
-        SHARE_TOKEN.safeTransfer(address(SUPERSTATE_REDEEM), sharesToRedeem);
-
-        emit RedemptionExecuted(sharesToRedeem, address(SUPERSTATE_REDEEM));
-        emit WithdrawalRequested(amount, 0);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                          INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Approves USDC to the subscribe contract and calls `subscribe()` to mint fund tokens synchronously.
+    /**
+     * @dev Approves USDC to the subscribe contract, calls `subscribe()` to mint fund tokens
+     *      synchronously, then asserts the share-balance delta is within `depositSlippage` of the
+     *      oracle-implied expectation. Reverts with `SharesNotArrived` if Superstate underpaid
+     *      (fee enabled, partial mint, etc.) so the loss surfaces on-chain instead of silently
+     *      bleeding into `totalAssets()`.
+     */
     function _board(uint256 amount, bytes calldata) internal override {
+        uint256 sharesBefore = SHARE_TOKEN.balanceOf(address(this));
+
         IERC20Metadata(address(config.asset)).forceApprove(
             address(SUPERSTATE_SUBSCRIBE),
             amount
@@ -148,76 +145,34 @@ contract SuperstateSubscribeArk is BaseSuperstateArk, ISuperstateSubscribeArk {
             address(config.asset)
         );
 
+        _validateReceivedShares(amount, sharesBefore);
+
         emit SubscriptionExecuted(amount, address(SUPERSTATE_SUBSCRIBE));
     }
 
     /**
-     * @dev Mirrors ERC4626Ark._disembark: full exits use `_directRedeemShares` (exact shares,
-     *      avoids rounding issues), partial exits use `_directWithdrawAmount` (asset-denominated).
-     *      Both attempt synchronous settlement first; if that reverts (e.g. market closed) the
-     *      async off-chain path is taken via `_withdrawShares`.
+     * @dev Synchronously redeems shares for USDC via `SUPERSTATE_REDEEM.redeem`. For a full exit
+     *      (asset amount equals the entire balance, no pending withdrawals) the contract redeems
+     *      every share it holds to avoid leaving rounding dust; otherwise it redeems
+     *      `_assetsToShares(amount)`. Reverts with `DirectWithdrawalNotAvailable` if the
+     *      RedemptionIdle call reverts (market closed, paused, out of idle USDC, …) — the keeper
+     *      is expected to detect this and route through `requestWithdrawal` (async path).
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
-        // TODO: Check if the amount is the current balance of the ark without taking into account
-        // the pending withdrawals and in that case redeem all the balance at once. If the
-        // direct redeem/withdraw fails then check if there is a pending withdrawal and if so
-        // then bail out as we don't want to accumulate withdrawal requests.
-
-        // To prevent dust in the ark we check if the amount is equal to the total assets
-        // and if there are no pending withdrawals. In that case we redeem all the shares
-        // at once.
+        uint256 sharesToRedeem;
         if (amount == totalAssets() && assetsInWithdrawalQueue() == 0) {
-            uint256 allShares = SHARE_TOKEN.balanceOf(address(this));
-            try this._directRedeemShares(allShares) {
-                emit RedemptionExecuted(allShares, address(SUPERSTATE_REDEEM));
-            } catch {
-                _withdrawShares(allShares, amount);
-            }
+            // Full exit: drain the entire share balance to avoid dust from oracle rounding.
+            sharesToRedeem = SHARE_TOKEN.balanceOf(address(this));
         } else {
-            try this._directWithdrawAmount(amount) {
-                uint256 shares = _assetsToShares(amount);
-                emit RedemptionExecuted(shares, address(SUPERSTATE_REDEEM));
-            } catch {
-                _withdrawShares(_assetsToShares(amount), amount);
-            }
+            sharesToRedeem = _assetsToShares(amount);
         }
-    }
 
-    /**
-     * @dev Synchronous full-exit path: approves and calls `SUPERSTATE_REDEEM.redeem` with an
-     *      exact share amount, expecting config.asset to arrive at this address immediately.
-     *      Called via `this.` so the revert can be caught by `_disembark`.
-     * @param sharesToRedeem The exact number of fund-token shares to redeem.
-     */
-    function _directRedeemShares(uint256 sharesToRedeem) external onlySelf {
         SHARE_TOKEN.forceApprove(address(SUPERSTATE_REDEEM), sharesToRedeem);
-        SUPERSTATE_REDEEM.redeem(sharesToRedeem, address(this));
-    }
-
-    /**
-     * @dev Synchronous partial-exit path: approves and calls `SUPERSTATE_REDEEM.withdraw` with
-     *      an asset-denominated amount, expecting config.asset to arrive at this address immediately.
-     *      Called via `this.` so the revert can be caught by `_disembark`.
-     * @param amount The asset-denominated amount to withdraw.
-     */
-    function _directWithdrawAmount(uint256 amount) external onlySelf {
-        uint256 shares = _assetsToShares(amount);
-        SHARE_TOKEN.forceApprove(address(SUPERSTATE_REDEEM), shares);
-        SUPERSTATE_REDEEM.withdraw(address(SHARE_TOKEN), address(this), amount);
-    }
-
-    /**
-     * @dev Async off-chain path: transfers shares to the redeem contract and increments
-     *      `pendingWithdrawalShares`. The keeper must call `sweep()` once USDC arrives.
-     * @param sharesToRedeem The number of fund-token shares being sent off-chain.
-     * @param amount The asset-denominated amount, emitted in WithdrawalRequested.
-     */
-    function _withdrawShares(uint256 sharesToRedeem, uint256 amount) internal {
-        SHARE_TOKEN.safeTransfer(address(SUPERSTATE_REDEEM), sharesToRedeem);
-        pendingWithdrawalShares += sharesToRedeem;
-
-        emit RedemptionExecuted(sharesToRedeem, address(SUPERSTATE_REDEEM));
-        emit WithdrawalRequested(amount, 0);
+        try SUPERSTATE_REDEEM.redeem(sharesToRedeem, address(this)) {
+            emit RedemptionExecuted(sharesToRedeem, amount);
+        } catch {
+            revert DirectWithdrawalNotAvailable();
+        }
     }
 
     /**

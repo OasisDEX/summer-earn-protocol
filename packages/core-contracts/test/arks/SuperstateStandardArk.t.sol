@@ -384,4 +384,235 @@ contract SuperstateStandardArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.clearPendingDeposit();
         vm.stopPrank();
     }
+
+    /* Stacked-Withdrawal Guard (Pashov audit #3 fix ported from WisdomTreeArk) */
+
+    function test_RequestWithdrawal_RevertsIfPendingWithdrawal() public {
+        // Set up a fully cleared deposit
+        uint256 amount = 10 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e6;
+        shareToken.mint(address(ark), sharesMinted);
+
+        vm.mockCall(
+            address(shareToken),
+            abi.encodeWithSignature("offchainRedeem(uint256)", sharesMinted),
+            abi.encode()
+        );
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+
+        // First withdrawal queues fine
+        ark.requestWithdrawal(amount);
+
+        // Second withdrawal must revert because a cycle is in flight
+        vm.expectRevert(
+            ISuperstateArkErrors.PendingWithdrawalActive.selector
+        );
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+    }
+
+    /* Freeze gates sweep too (ported from WisdomTreeArk) */
+
+    function test_RevertSweepWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+
+        vm.startPrank(keeper);
+        vm.expectRevert(
+            ISuperstateStandardArkErrors.ArkIsFrozen.selector
+        );
+        ark.sweep();
+        vm.stopPrank();
+    }
+
+    function test_RevertBoardWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        vm.expectRevert(
+            ISuperstateStandardArkErrors.ArkIsFrozen.selector
+        );
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_RevertRequestWithdrawalWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+
+        vm.startPrank(keeper);
+        vm.expectRevert(
+            ISuperstateStandardArkErrors.ArkIsFrozen.selector
+        );
+        ark.requestWithdrawal(1000 * 1e6);
+        vm.stopPrank();
+    }
+
+    /* Emergency Sweep (inherited from BaseSuperstateArk) */
+
+    function test_EmergencySweep_RevertsIfNotGovernor() public {
+        vm.startPrank(keeper);
+        vm.expectRevert();
+        ark.emergencySweep();
+        vm.stopPrank();
+    }
+
+    function test_EmergencySweep_BypassesSweepSlippage() public {
+        // Set up an active withdrawal cycle with a return below the slippage band
+        uint256 amount = 10 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e6;
+        shareToken.mint(address(ark), sharesMinted);
+
+        vm.mockCall(
+            address(shareToken),
+            abi.encodeWithSignature("offchainRedeem(uint256)", sharesMinted),
+            abi.encode()
+        );
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        // Simulate Superstate returning far less than expected (5 USDC vs ~10 expected)
+        uint256 returnedUsdc = 5 * 1e6;
+        deal(USDC_ADDRESS, address(ark), returnedUsdc);
+
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        // Keeper sweep would revert (below the 0.5% slippage band)
+        vm.startPrank(keeper);
+        vm.expectRevert();
+        ark.sweep();
+        vm.stopPrank();
+
+        // Governor emergencySweep succeeds and forwards whatever USDC is on the ark
+        vm.startPrank(governor);
+        ark.emergencySweep();
+        vm.stopPrank();
+
+        assertEq(
+            ark.pendingWithdrawalShares(),
+            0,
+            "pendingWithdrawalShares cleared by emergencySweep"
+        );
+        assertEq(
+            usdc.balanceOf(address(bufferArk)),
+            returnedUsdc,
+            "Buffer ark received the partial return"
+        );
+    }
+
+    function test_EmergencySweep_WorksWhenFrozen() public {
+        // Freeze first
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+
+        // Drop some USDC on the ark (no pending withdrawal needed for this path)
+        uint256 returnedUsdc = 1e6;
+        deal(USDC_ADDRESS, address(ark), returnedUsdc);
+
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("bufferArk()"),
+            abi.encode(address(bufferArk))
+        );
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSignature("isArkActiveOrBufferArk(address)"),
+            abi.encode(true)
+        );
+
+        // Keeper sweep is blocked by the freeze
+        vm.startPrank(keeper);
+        vm.expectRevert(
+            ISuperstateStandardArkErrors.ArkIsFrozen.selector
+        );
+        ark.sweep();
+        vm.stopPrank();
+
+        // Governor emergencySweep still works
+        vm.startPrank(governor);
+        ark.emergencySweep();
+        vm.stopPrank();
+
+        assertEq(
+            usdc.balanceOf(address(bufferArk)),
+            returnedUsdc,
+            "Buffer ark received the swept asset while frozen"
+        );
+    }
+
+    /* Emergency Clear Pending Deposit */
+
+    function test_EmergencyClearPendingDeposit_RevertsIfNotGovernor() public {
+        vm.startPrank(keeper);
+        vm.expectRevert();
+        ark.emergencyClearPendingDeposit(1);
+        vm.stopPrank();
+    }
+
+    function test_EmergencyClearPendingDeposit_RescuesPartialFill() public {
+        // Board a deposit
+        uint256 amount = 100 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // Only partial shares arrive (insufficient under the deposit-slippage band)
+        uint256 partialShares = 1e6; // would need 10e6 for full clearance at price=10
+        shareToken.mint(address(ark), partialShares);
+
+        // Keeper-facing clear fails
+        vm.startPrank(keeper);
+        vm.expectRevert();
+        ark.clearPendingDeposit();
+        vm.stopPrank();
+
+        // Governor partially clears the half that did arrive (10 USDC worth)
+        uint256 partialAmount = 10 * 1e6;
+        vm.prank(governor);
+        ark.emergencyClearPendingDeposit(partialAmount);
+
+        assertEq(
+            ark.pendingDepositAssets(),
+            amount - partialAmount,
+            "Pending queue shrinks by cleared amount"
+        );
+        assertEq(
+            ark.cachedShareBalance(),
+            partialShares,
+            "cachedShareBalance hard-resets to live balance"
+        );
+    }
 }

@@ -124,3 +124,6 @@ docs/superstate/
 .next-docs
 .claude
 
+bin/gemini_pipe.sh
+cmd.in
+cmd.out

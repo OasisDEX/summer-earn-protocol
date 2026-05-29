@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {Ark} from "../Ark.sol";
 import {ArkWithWithdrawalRequest} from "../ArkWithWithdrawalRequest.sol";
@@ -16,6 +17,7 @@ import {PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contr
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
+import {ISuperstateToken} from "../../interfaces/superstate/ISuperstateToken.sol";
 import {ISuperstateArkErrors} from "../../errors/arks/ISuperstateArkErrors.sol";
 import {ISuperstateArkEvents} from "../../events/arks/ISuperstateArkEvents.sol";
 
@@ -51,6 +53,9 @@ abstract contract BaseSuperstateArk is
     /// @notice Maximum allowed sweep slippage. Under the Percentage library convention (100% = 100 * 1e18) this equals 0.5%.
     Percentage public constant MAX_SWEEP_SLIPPAGE =
         Percentage.wrap(PERCENTAGE_FACTOR / 2);
+    /// @notice Maximum allowed deposit slippage. Same convention as `MAX_SWEEP_SLIPPAGE` — equals 0.5%.
+    Percentage public constant MAX_DEPOSIT_SLIPPAGE =
+        Percentage.wrap(PERCENTAGE_FACTOR / 2);
 
     /*//////////////////////////////////////////////////////////////
                               IMMUTABLES
@@ -77,6 +82,8 @@ abstract contract BaseSuperstateArk is
     uint256 public pendingWithdrawalShares;
     /// @notice Slippage band applied to the share/asset check during `sweep`.
     Percentage public sweepSlippage;
+    /// @notice Slippage band applied to the shares-received check after a subscription/clear.
+    Percentage public depositSlippage;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
@@ -85,11 +92,15 @@ abstract contract BaseSuperstateArk is
     /**
      * @param _shareToken Superstate fund token (e.g. USTB).
      * @param _oracle Price feed returning the price of 1 share in base-asset terms.
+     * @param _sweepSlippage Initial sweep slippage cap; must be `<= MAX_SWEEP_SLIPPAGE` (0.5%).
+     * @param _depositSlippage Initial deposit slippage cap; must be `<= MAX_DEPOSIT_SLIPPAGE` (0.5%).
      * @param _params Standard Ark initialization parameters.
      */
     constructor(
         address _shareToken,
         address _oracle,
+        Percentage _sweepSlippage,
+        Percentage _depositSlippage,
         ArkParams memory _params
     ) ArkWithWithdrawalRequest(_params, DEFAULT_SWAP_SLIPPAGE) {
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
@@ -101,6 +112,9 @@ abstract contract BaseSuperstateArk is
         SHARE_DECIMALS = IERC20Metadata(_shareToken).decimals();
         ASSET_DECIMALS = IERC20Metadata(_params.asset).decimals();
         ONE_ASSET = 10 ** ASSET_DECIMALS;
+
+        _setSweepSlippage(_sweepSlippage);
+        _setDepositSlippage(_depositSlippage);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -149,6 +163,42 @@ abstract contract BaseSuperstateArk is
         _setSweepSlippage(newSweepSlippage);
     }
 
+    /// @notice Updates the deposit slippage band. Keeper-gated.
+    function setDepositSlippage(
+        Percentage newDepositSlippage
+    ) external onlyKeeper {
+        _setDepositSlippage(newDepositSlippage);
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     * @notice Converts `amount` to shares via the oracle, burns them through
+     *         `SHARE_TOKEN.offchainRedeem`, and tracks them in `pendingWithdrawalShares` until
+     *         Superstate delivers USDC and the keeper calls `sweep()`.
+     * @dev Reverts with `PendingWithdrawalActive` if a withdrawal cycle is already in flight —
+     *      single-tranche settlement is required because the slippage check in `sweep()` compares
+     *      total returned USDC against the cumulative `pendingWithdrawalShares` counter.
+     *      Subclasses may add further preconditions (see `SuperstateStandardArk` for the deposit /
+     *      freeze guards) by overriding and calling `super.requestWithdrawal`.
+     */
+    function requestWithdrawal(
+        uint256 amount
+    ) public virtual override onlyKeeper {
+        if (pendingWithdrawalShares > 0) revert PendingWithdrawalActive();
+
+        uint256 sharesToRedeem = _assetsToShares(amount);
+        uint256 totalShares = SHARE_TOKEN.balanceOf(address(this));
+
+        // Do not redeem more shares than available in the ark
+        sharesToRedeem = Math.min(sharesToRedeem, totalShares);
+        pendingWithdrawalShares += sharesToRedeem;
+
+        ISuperstateToken(address(SHARE_TOKEN)).offchainRedeem(sharesToRedeem);
+
+        emit RedemptionExecuted(sharesToRedeem, amount);
+        emit WithdrawalRequested(amount, 0);
+    }
+
     /**
      * @inheritdoc IArkWithWithdrawalRequest
      * @notice Forwards any USDC sitting on the ark to the buffer ark and zeroes
@@ -177,6 +227,28 @@ abstract contract BaseSuperstateArk is
             );
         }
 
+        return _sweep(returnedAssets);
+    }
+
+    /**
+     * @notice Bypass-slippage variant of `sweep`. Sends the full balance of the configured asset
+     *         held by the ark to the FleetCommander buffer ark and clears
+     *         `pendingWithdrawalShares`.
+     * @dev Used when the venue returns less than `pendingWithdrawalShares - sweepSlippage`, which
+     *      would block the keeper-facing `sweep`. The slippage check is intentionally skipped here;
+     *      the governor should adjust `sweepSlippage` or address the root cause before re-enabling
+     *      normal flow. Restricted to the governor role.
+     * @return sweptTokens Single-element array containing the configured asset address.
+     * @return sweptAmounts Single-element array containing the asset amount forwarded to the
+     *                     buffer ark.
+     */
+    function emergencySweep()
+        external
+        onlyGovernor
+        nonReentrant
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        uint256 returnedAssets = config.asset.balanceOf(address(this));
         return _sweep(returnedAssets);
     }
 
@@ -219,6 +291,42 @@ abstract contract BaseSuperstateArk is
         }
         emit SweepSlippageUpdated(sweepSlippage, newSweepSlippage);
         sweepSlippage = newSweepSlippage;
+    }
+
+    function _setDepositSlippage(Percentage newDepositSlippage) internal {
+        if (newDepositSlippage > MAX_DEPOSIT_SLIPPAGE) {
+            revert InvalidDepositSlippage(
+                newDepositSlippage,
+                MAX_DEPOSIT_SLIPPAGE
+            );
+        }
+        emit DepositSlippageUpdated(depositSlippage, newDepositSlippage);
+        depositSlippage = newDepositSlippage;
+    }
+
+    /**
+     * @dev Reverts if `SHARE_TOKEN.balanceOf(this) - cachedBalance` is below the oracle-implied
+     *      expected shares for `amount` minus the configured `depositSlippage` band. Shared by:
+     *      (a) `SuperstateStandardArk.clearPendingDeposit`, which passes `pendingDepositAssets` and
+     *      its `cachedShareBalance` snapshot taken at board time; and (b) `SuperstateSubscribeArk._board`,
+     *      which passes the boarded amount and a fresh `SHARE_TOKEN.balanceOf(this)` snapshot taken
+     *      immediately before the synchronous `subscribe()` call.
+     * @param amount Asset amount whose share-delivery is being validated.
+     * @param cachedBalance The `SHARE_TOKEN.balanceOf(this)` snapshot taken before the venue's mint.
+     */
+    function _validateReceivedShares(
+        uint256 amount,
+        uint256 cachedBalance
+    ) internal view {
+        uint256 currentShares = SHARE_TOKEN.balanceOf(address(this));
+        uint256 newlyArrivedShares = currentShares - cachedBalance;
+        uint256 expectedShares = _assetsToShares(amount);
+        uint256 expectedSharesMinusSlippage = expectedShares.subtractPercentage(
+            depositSlippage
+        );
+        if (newlyArrivedShares < expectedSharesMinusSlippage) {
+            revert SharesNotArrived(expectedShares, newlyArrivedShares);
+        }
     }
 
     /// @inheritdoc Ark
