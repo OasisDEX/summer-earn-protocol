@@ -30,7 +30,8 @@ async function V1ProposalsListServer() {
   let proposals: TransformedProposal[]
   try {
     const raw = await getProposalsCached({ isV1: true })
-    proposals = raw.map(transformProposal)
+    // Wrap in an arrow so Array.map's index isn't passed as the `now` arg.
+    proposals = raw.map((p) => transformProposal(p))
   } catch (error) {
     console.error('Error fetching V1 proposals:', error)
     proposals = []
