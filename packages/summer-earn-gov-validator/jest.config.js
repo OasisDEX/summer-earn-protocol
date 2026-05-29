@@ -11,6 +11,7 @@ module.exports = {
     'src/utils/layerzero-options.ts',
     'src/utils/text.ts',
     'src/utils/timing.ts',
+    'src/utils/proposal-transformer.ts',
   ],
   coverageThreshold: {
     global: {
@@ -26,6 +27,12 @@ module.exports = {
       statements: 90,
     },
     './src/utils/timing.ts': {
+      lines: 90,
+      branches: 90,
+      functions: 90,
+      statements: 90,
+    },
+    './src/utils/proposal-transformer.ts': {
       lines: 90,
       branches: 90,
       functions: 90,
