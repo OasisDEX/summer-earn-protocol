@@ -367,14 +367,14 @@ export function RouteDetailPanel({ sourceChain, oApp, remoteChain, onEdit }: Pro
 
       <UlnSection
         title="Send ULN config"
-        desired={desired?.uln ?? null}
+        desired={desired?.sendUln ?? null}
         actual={onChain?.sendUln ?? null}
         metadata={dvnMetadata}
         sourceChain={sourceChain}
       />
       <UlnSection
         title="Receive ULN config"
-        desired={desired?.uln ?? null}
+        desired={desired?.receiveUln ?? null}
         actual={onChain?.receiveUln ?? null}
         metadata={dvnMetadata}
         sourceChain={sourceChain}

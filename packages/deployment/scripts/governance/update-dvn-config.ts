@@ -32,7 +32,8 @@ interface ConfigDiff {
   sendLibAddress: Address
   receiveLibAddress: Address
   encodedExecutor: `0x${string}`
-  encodedUln: `0x${string}`
+  encodedSendUln: `0x${string}`
+  encodedReceiveUln: `0x${string}`
   sendNeedsUpdate: boolean
   receiveNeedsUpdate: boolean
 }
@@ -276,13 +277,23 @@ async function updateDvnConfig(useBummerConfig = false) {
         )
         const hasThirdDvn = !!(dvns.thirdDvn && dvns.thirdDvn.length > 0)
 
-        let desiredUln: UlnConfig
+        // Per-source-chain block confirmations.
+        // `chain` is the source, `remoteChain` is the remote.
+        // The send config (chain->remote) carries the source chain's confirmations;
+        // the receive config (remote->chain inbound) carries the remote chain's confirmations.
+        const sourceConfirmations = BigInt(
+          (chainConfig.common.layerZero as any).confirmations ?? 15,
+        )
+        const remoteConfirmations = BigInt(
+          (remoteChainConfig.common.layerZero as any).confirmations ?? 15,
+        )
+
+        let dvnTier: Omit<UlnConfig, 'confirmations'>
         if (hasFourDvns) {
           // LZ "2-of-3 redundant": X=2 required + N=2 optional threshold=1.
           // Required: LZ Labs + Nethermind (slots: lzLabs + thirdDvn).
           // Optional: Deutsche Telekom + Horizen (slots: secondDvn + horizen).
-          desiredUln = {
-            confirmations: 15n,
+          dvnTier = {
             requiredDVNCount: 2,
             optionalDVNCount: 2,
             optionalDVNThreshold: 1,
@@ -297,8 +308,7 @@ async function updateDvnConfig(useBummerConfig = false) {
           // 3-DVN fallback: LZ Labs required + 1-of-2 optional (secondDvn / thirdDvn).
           // True 2-of-3 with LZ Labs as a fixed attestor — tolerates one optional DVN
           // outage, instead of the strict 3-of-3 we'd get with all DVNs required.
-          desiredUln = {
-            confirmations: 15n,
+          dvnTier = {
             requiredDVNCount: 1,
             optionalDVNCount: 2,
             optionalDVNThreshold: 1,
@@ -311,8 +321,7 @@ async function updateDvnConfig(useBummerConfig = false) {
           }
         } else {
           // 2-of-2 strict — last-resort fallback when neither thirdDvn nor horizen is set.
-          desiredUln = {
-            confirmations: 15n,
+          dvnTier = {
             requiredDVNCount: 2,
             optionalDVNCount: 0,
             optionalDVNThreshold: 0,
@@ -323,8 +332,12 @@ async function updateDvnConfig(useBummerConfig = false) {
           }
         }
 
-        // Encode desired ULN
-        const encodedUln = encodeAbiParameters(ULN_CONFIG_ENCODE_PARAMS, [desiredUln])
+        const desiredSendUln: UlnConfig = { confirmations: sourceConfirmations, ...dvnTier }
+        const desiredReceiveUln: UlnConfig = { confirmations: remoteConfirmations, ...dvnTier }
+
+        // Encode desired ULN configs (send and receive sides separately)
+        const encodedSendUln = encodeAbiParameters(ULN_CONFIG_ENCODE_PARAMS, [desiredSendUln])
+        const encodedReceiveUln = encodeAbiParameters(ULN_CONFIG_ENCODE_PARAMS, [desiredReceiveUln])
 
         // Encode executor config
         const encodedExecutor = encodeAbiParameters(EXECUTOR_CONFIG_ENCODE_PARAMS, [
@@ -349,8 +362,8 @@ async function updateDvnConfig(useBummerConfig = false) {
           remoteEid,
         )
 
-        const sendNeedsUpdate = !ulnConfigsMatch(currentSend, desiredUln)
-        const receiveNeedsUpdate = !ulnConfigsMatch(currentReceive, desiredUln)
+        const sendNeedsUpdate = !ulnConfigsMatch(currentSend, desiredSendUln)
+        const receiveNeedsUpdate = !ulnConfigsMatch(currentReceive, desiredReceiveUln)
 
         if (sendNeedsUpdate || receiveNeedsUpdate) {
           console.log(
@@ -368,7 +381,8 @@ async function updateDvnConfig(useBummerConfig = false) {
             sendLibAddress: sendUln302,
             receiveLibAddress: receiveUln302,
             encodedExecutor,
-            encodedUln,
+            encodedSendUln,
+            encodedReceiveUln,
             sendNeedsUpdate,
             receiveNeedsUpdate,
           })
@@ -452,11 +466,13 @@ async function updateDvnConfig(useBummerConfig = false) {
       phase === 'send'
         ? [
             { eid: diff.remoteEid, configType: 1, config: diff.encodedExecutor },
-            { eid: diff.remoteEid, configType: 2, config: diff.encodedUln },
+            { eid: diff.remoteEid, configType: 2, config: diff.encodedSendUln },
           ]
         : [],
     receiveConfigParams:
-      phase === 'receive' ? [{ eid: diff.remoteEid, configType: 2, config: diff.encodedUln }] : [],
+      phase === 'receive'
+        ? [{ eid: diff.remoteEid, configType: 2, config: diff.encodedReceiveUln }]
+        : [],
   })
 
   const hubChainConfigs = phaseDiffs.filter((d) => d.chain === hubChain).map(toProposalConfig)

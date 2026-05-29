@@ -273,12 +273,12 @@ function RouteMatrixRow({
     ? 'error'
     : isLoading
       ? 'loading'
-      : ulnStatusFn(desired?.uln ?? null, onChain?.sendUln ?? null)
+      : ulnStatusFn(desired?.sendUln ?? null, onChain?.sendUln ?? null)
   const recvUln: Status = error
     ? 'error'
     : isLoading
       ? 'loading'
-      : ulnStatusFn(desired?.uln ?? null, onChain?.receiveUln ?? null)
+      : ulnStatusFn(desired?.receiveUln ?? null, onChain?.receiveUln ?? null)
   const sendLib: Status = error
     ? 'error'
     : isLoading

@@ -9,6 +9,11 @@ const configData: any = configJson
 const DEFAULT_CONFIRMATIONS = 15n
 const DEFAULT_MAX_MESSAGE_SIZE = 10000
 
+export function getConfirmations(chain: ChainName): bigint {
+  const v = configData[chain]?.common?.layerZero?.confirmations
+  return v != null ? BigInt(v) : DEFAULT_CONFIRMATIONS
+}
+
 export function getEid(chain: ChainName): number {
   const v = configData[chain]?.common?.layerZero?.eID
   return v ? Number(v) : 0
@@ -44,7 +49,11 @@ export function getOAppAddress(chain: ChainName, kind: OAppKind): Address | null
   }
 }
 
-export function getDesiredUln(sourceChain: ChainName, remoteChain: ChainName): UlnConfig | null {
+export function getDesiredUln(
+  sourceChain: ChainName,
+  remoteChain: ChainName,
+  confirmations: bigint,
+): UlnConfig | null {
   const dvns = configData[sourceChain]?.common?.layerZero?.dvns?.[remoteChain]
   if (!dvns || !dvns.lzLabs || !dvns.secondDvn) return null
 
@@ -64,7 +73,7 @@ export function getDesiredUln(sourceChain: ChainName, remoteChain: ChainName): U
     // Required: LZ Labs + Nethermind (slots: lzLabs + thirdDvn).
     // Optional: Deutsche Telekom + Horizen (slots: secondDvn + horizen).
     return {
-      confirmations: DEFAULT_CONFIRMATIONS,
+      confirmations,
       requiredDVNCount: 2,
       optionalDVNCount: 2,
       optionalDVNThreshold: 1,
@@ -81,7 +90,7 @@ export function getDesiredUln(sourceChain: ChainName, remoteChain: ChainName): U
     // True 2-of-3 with LZ Labs as a fixed attestor — tolerates one optional DVN
     // outage, instead of the strict 3-of-3 we'd get with all DVNs required.
     return {
-      confirmations: DEFAULT_CONFIRMATIONS,
+      confirmations,
       requiredDVNCount: 1,
       optionalDVNCount: 2,
       optionalDVNThreshold: 1,
@@ -95,7 +104,7 @@ export function getDesiredUln(sourceChain: ChainName, remoteChain: ChainName): U
   }
   // 2-of-2 strict — last-resort fallback when neither thirdDvn nor horizen is set.
   return {
-    confirmations: DEFAULT_CONFIRMATIONS,
+    confirmations,
     requiredDVNCount: 2,
     optionalDVNCount: 0,
     optionalDVNThreshold: 0,
@@ -115,13 +124,15 @@ export function getDesiredRouteConfig(
   const sendLib = getSendLib(sourceChain)
   const receiveLib = getReceiveLib(sourceChain)
   const executor = getExecutor(sourceChain)
-  const uln = getDesiredUln(sourceChain, remoteChain)
+  const sendUln = getDesiredUln(sourceChain, remoteChain, getConfirmations(sourceChain))
+  const receiveUln = getDesiredUln(sourceChain, remoteChain, getConfirmations(remoteChain))
   const peerAddress = getOAppAddress(remoteChain, oApp)
   const dvnsRaw = configData[sourceChain]?.common?.layerZero?.dvns?.[remoteChain]
 
-  if (!eid || !sendLib || !receiveLib || !executor || !uln || !dvnsRaw) return null
+  if (!eid || !sendLib || !receiveLib || !executor || !sendUln || !receiveUln || !dvnsRaw)
+    return null
 
-  return { eid, peerAddress, sendLib, receiveLib, executor, uln, dvnsRaw }
+  return { eid, peerAddress, sendLib, receiveLib, executor, sendUln, receiveUln, dvnsRaw }
 }
 
 export function listRemoteChainsWithDvns(sourceChain: ChainName): ChainName[] {
