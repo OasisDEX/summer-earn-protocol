@@ -15,7 +15,15 @@ module.exports = {
     'src/services/validation.ts',
   ],
   coverageThreshold: {
-    global: {
+    // Per-file thresholds (not global) so one module cannot hide behind
+    // another's coverage. Every file in collectCoverageFrom has an entry.
+    './src/utils/proposal-encoding.ts': {
+      lines: 90,
+      branches: 90,
+      functions: 90,
+      statements: 90,
+    },
+    './src/utils/layerzero-options.ts': {
       lines: 90,
       branches: 90,
       functions: 90,
