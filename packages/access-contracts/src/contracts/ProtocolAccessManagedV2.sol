@@ -51,7 +51,7 @@ abstract contract ProtocolAccessManagedV2 is ProtocolAccessManaged {
 
     /**
      * @notice Returns whether `account` holds the Operator role for this contract.
-     * @dev Resolves to `_accessManager.hasRole(generateRole(OPERATOR_ROLE, address(this)), account)`.
+     * @dev Resolves to `_ACCESS_MANAGER.hasRole(generateRole(OPERATOR_ROLE, address(this)), account)`.
      *      Used by inheriting contracts (e.g. FleetCommanderWhitelist) to let bundler/proxy
      *      contracts bypass user-side gateways.
      * @param account The address to check
@@ -59,7 +59,7 @@ abstract contract ProtocolAccessManagedV2 is ProtocolAccessManaged {
      */
     function hasOperatorRole(address account) public view returns (bool) {
         return
-            _accessManager.hasRole(
+            _ACCESS_MANAGER.hasRole(
                 generateRole(
                     ContractSpecificRoles.OPERATOR_ROLE,
                     address(this)

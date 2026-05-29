@@ -35,9 +35,11 @@ contract SummerVestingWallet is
     //////////////////////////////////////////////
 
     /// @dev The type of vesting schedule for this wallet
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     VestingType private immutable _vestingType;
 
     /// @inheritdoc ISummerVestingWallet
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     address public immutable token;
 
     // Performance-based vesting amounts
@@ -47,6 +49,7 @@ contract SummerVestingWallet is
     bool[] public goalsReached;
 
     // Time-based vesting amount
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     uint256 public immutable timeBasedVestingAmount;
 
     //////////////////////////////////////////////
@@ -146,6 +149,7 @@ contract SummerVestingWallet is
             }
         }
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         IERC20(token).transfer(msg.sender, unvestedPerformanceTokens);
         emit UnvestedTokensRecalled(unvestedPerformanceTokens);
     }

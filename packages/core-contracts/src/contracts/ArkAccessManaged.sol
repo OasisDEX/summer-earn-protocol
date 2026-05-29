@@ -99,7 +99,7 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
      */
     function _hasCommanderRole() internal view returns (bool) {
         return
-            _accessManager.hasRole(
+            _ACCESS_MANAGER.hasRole(
                 generateRole(
                     ContractSpecificRoles.COMMANDER_ROLE,
                     address(this)

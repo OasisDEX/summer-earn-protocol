@@ -46,6 +46,7 @@ library BridgeCodec {
         }
 
         // Extract the first 2 bytes as uint16, then cast to OperationType
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint16 opTypeRaw = uint16(bytes2(raw));
 
         // Validate that the operation type is within valid range

@@ -2,9 +2,7 @@
 pragma solidity 0.8.28;
 
 import {SummerGovernorTestBase} from "./SummerGovernorTestBase.sol";
-import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {IOAppSetPeer} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
 contract SummerGovernorOAppTest is SummerGovernorTestBase {
     using OptionsBuilder for bytes;

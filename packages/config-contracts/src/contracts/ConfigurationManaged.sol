@@ -10,6 +10,7 @@ import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
  * @custom:see IConfigurationManaged
  */
 abstract contract ConfigurationManaged is IConfigurationManaged {
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     IConfigurationManager public immutable configurationManager;
 
     /**

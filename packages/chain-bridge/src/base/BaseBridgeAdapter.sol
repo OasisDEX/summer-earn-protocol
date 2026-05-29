@@ -80,6 +80,11 @@ abstract contract BaseBridgeAdapter is
      * 2. External ID mapping: "Do I know how to talk to the bridge on that chain?" (technical capability)
      */
     modifier onlyTrustedDestination(uint16 dstChain) {
+        _onlyTrustedDestination(dstChain);
+        _;
+    }
+
+    function _onlyTrustedDestination(uint16 dstChain) internal view {
         if (
             ICrossChainRegistry(CROSS_CHAIN_REGISTRY).getAdapterPeer(
                 address(this),
@@ -88,7 +93,6 @@ abstract contract BaseBridgeAdapter is
         ) {
             revert UntrustedDestinationChain(dstChain);
         }
-        _;
     }
 
     modifier onlyTrustedSource(address srcAdapter, uint16 srcChain) {

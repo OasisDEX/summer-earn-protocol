@@ -299,7 +299,7 @@ contract FleetCommanderConfigProviderDao is
         _activeArks.remove(ark);
 
         IArk(ark).unregisterFleetCommander();
-        _accessManager.selfRevokeContractSpecificRole(
+        _ACCESS_MANAGER.selfRevokeContractSpecificRole(
             ContractSpecificRoles.COMMANDER_ROLE,
             address(ark)
         );

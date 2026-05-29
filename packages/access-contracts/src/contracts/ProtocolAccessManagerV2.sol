@@ -2,10 +2,8 @@
 pragma solidity 0.8.28;
 
 import {ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {IProtocolAccessManagerV2} from "../interfaces/IProtocolAccessManagerV2.sol";
 import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title ProtocolAccessManagerV2

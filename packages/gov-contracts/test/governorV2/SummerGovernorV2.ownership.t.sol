@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SummerGovernorOwnershipTest is SummerGovernorV2TestBase {

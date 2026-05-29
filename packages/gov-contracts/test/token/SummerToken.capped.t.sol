@@ -2,8 +2,6 @@
 pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
-import {console} from "forge-std/console.sol";
 
 contract SummerTokenCappedTest is SummerTokenTestBase {
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -163,6 +161,7 @@ contract SummerTokenCappedTest is SummerTokenTestBase {
         aSummerToken.mint(alice, 500e18);
 
         vm.prank(alice);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(bob, 500e18);
 
         vm.prank(bob);

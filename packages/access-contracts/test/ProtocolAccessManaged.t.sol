@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "forge-std/Test.sol";
-import "../src/contracts/ProtocolAccessManaged.sol";
-import "../src/contracts/ProtocolAccessManager.sol";
+import {Test} from "forge-std/Test.sol";
+import {ProtocolAccessManaged} from "../src/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
+import {ContractSpecificRoles} from "../src/interfaces/IProtocolAccessManager.sol";
+import {IAccessControlErrors} from "../src/interfaces/IAccessControlErrors.sol";
 
 contract MockProtocolAccessManaged is ProtocolAccessManaged {
     constructor(address accessManager) ProtocolAccessManaged(accessManager) {}

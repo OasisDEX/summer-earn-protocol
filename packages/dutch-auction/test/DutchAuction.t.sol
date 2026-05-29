@@ -8,9 +8,9 @@ import {DutchAuctionManager} from "../src/DutchAuctionManager.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "forge-std/StdJson.sol";
-import "forge-std/Test.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {stdJson} from "forge-std/StdJson.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 contract DutchAuctionLibraryTest is Test {
     using stdJson for string;
@@ -230,6 +230,7 @@ contract DutchAuctionLibraryTest is Test {
                     0,
                     IERC20(address(auctionToken1)),
                     IERC20(address(paymentToken)),
+                    // forge-lint: disable-next-line(unsafe-typecast)
                     uint40(AUCTION_DURATION),
                     START_PRICE,
                     END_PRICE,
@@ -305,6 +306,7 @@ contract DutchAuctionLibraryTest is Test {
             DecayFunctions.DecayType.Linear
         );
         // Load expected prices from JSON
+        // forge-lint: disable-next-line(unsafe-cheatcode)
         string memory json = vm.readFile(EXPECTED_PRICES_PATH);
 
         string[] memory keys = vm.parseJsonKeys(json, ".linear");
@@ -333,6 +335,7 @@ contract DutchAuctionLibraryTest is Test {
             auctionToken1,
             DecayFunctions.DecayType.Quadratic
         );
+        // forge-lint: disable-next-line(unsafe-cheatcode)
         string memory json = vm.readFile(EXPECTED_PRICES_PATH);
 
         string[] memory keys = vm.parseJsonKeys(json, ".quadratic");

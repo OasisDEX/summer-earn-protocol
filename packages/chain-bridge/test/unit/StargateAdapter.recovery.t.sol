@@ -16,6 +16,7 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
     MockFleetProxy public fleetProxy;
     MockStargateV2Pool public mockStargate;
 
+    // forge-lint: disable-next-line(unsafe-typecast)
     bytes32 public constant TEST_OPERATION_ID = bytes32("test-operation-id");
     address public constant TEST_ORIGINATOR = address(0x1234);
     uint256 public constant TEST_AMOUNT = 1 ether;
@@ -307,6 +308,7 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
 
     function testGetFailedComposeNonExistent() public view {
         StargateAdapter.FailedCompose memory failed = wrapperB.getFailedCompose(
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("nonexistent")
         );
         assertEq(failed.asset, address(0));

@@ -10,6 +10,7 @@ import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager
  * @notice Manages decay updates for governance rewards and voting power
  */
 abstract contract DecayController is IDecayController {
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     ISummerToken private immutable _summerToken;
     IGovernanceRewardsManager private _rewardsManager;
 

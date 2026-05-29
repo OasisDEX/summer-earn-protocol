@@ -16,6 +16,7 @@
   "scripts": {
     "start:node": "hardhat node",
     "build": "forge build --quiet",
+    "lint": "forge lint --fix",
     "spawn:devnet": "export $(pnpx tsx scripts/node/spawn-devnet.ts)",
     "test": "FOUNDRY_PROFILE=test forge test",
     "coverage": "forge coverage --ir-minimum --no-match-coverage '(script|test|TestBase|Mock|Test)'",

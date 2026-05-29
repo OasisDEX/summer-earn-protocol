@@ -243,6 +243,7 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             Origin memory origin = Origin({
                 srcEid: READ_CHANNEL_THRESHOLD + 1,
                 sender: bytes32(uint256(uint160(address(layerZeroAdapter)))),
+                // forge-lint: disable-next-line(unsafe-typecast)
                 nonce: uint64(i + 1)
             });
 

@@ -24,6 +24,7 @@ contract SummerVestingWalletFactoryV2 is
     //////////////////////////////////////////////
 
     /** @notice The ERC20 token that will be vested */
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     address public immutable token;
 
     /** @notice Mapping from beneficiary address to their vesting wallet address */

@@ -53,6 +53,7 @@ contract LayerZeroAdapter is
     ///      4294967295). Any `srcEid` strictly greater than this threshold is treated
     ///      as a read response. This value is set at deploy time to allow
     ///      forward-compatibility and testing across different environments.
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     uint32 public immutable readChannelThreshold;
 
     /// @notice Active read channel ID for sending read requests
@@ -181,6 +182,7 @@ contract LayerZeroAdapter is
      * @param executor Address of the executor for read operations
      * @dev Must be called to enable read operations with proper DVN and executor configuration
      */
+    // forge-lint: disable-next-line(mixed-case-function)
     function configureReadDVNs(
         address readLib1002Address,
         address[] memory readDVNs,
@@ -468,7 +470,7 @@ contract LayerZeroAdapter is
                 readChannelId,
                 cmd,
                 lzOptions,
-                EndpointFee(msg.value, 0),
+                EndpointFee({nativeFee: msg.value, lzTokenFee: 0}),
                 payable(params.refundAddress)
             );
             guid = receipt.guid;
@@ -529,7 +531,7 @@ contract LayerZeroAdapter is
             lzDstEid,
             payload,
             lzOptions,
-            EndpointFee(msg.value, 0),
+            EndpointFee({nativeFee: msg.value, lzTokenFee: 0}),
             payable(params.refundAddress)
         );
 

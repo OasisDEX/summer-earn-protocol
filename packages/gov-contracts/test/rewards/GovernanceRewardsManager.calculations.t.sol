@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "./GovernanceRewardsManager.general.t.sol";
-import {console} from "forge-std/console.sol";
+import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SummerGovernorTestBase} from "../governor/SummerGovernorTestBase.sol";
 
 contract GovernanceRewardsManagerCalculationsTest is SummerGovernorTestBase {
@@ -34,7 +34,9 @@ contract GovernanceRewardsManagerCalculationsTest is SummerGovernorTestBase {
 
         // Mint initial tokens
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, INITIAL_STAKE_AMOUNT);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(bob, INITIAL_STAKE_AMOUNT);
         vm.stopPrank();
 

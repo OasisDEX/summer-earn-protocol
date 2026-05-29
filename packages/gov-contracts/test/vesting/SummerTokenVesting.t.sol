@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import {SummerVestingWallet} from "../../src/contracts/SummerVestingWallet.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {ISummerVestingWallet} from "../../src/interfaces/ISummerVestingWallet.sol";
 import {SummerTokenTestBase} from "../token/SummerTokenTestBase.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {Test, console} from "forge-std/Test.sol";
 
 contract SummerVestingTest is SummerTokenTestBase {
     address public beneficiary;
@@ -43,6 +40,7 @@ contract SummerVestingTest is SummerTokenTestBase {
         // Setup token transfers and approvals
         enableTransfers();
         vm.prank(owner);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(foundation, aSummerToken.cap());
         vm.prank(foundation);
         aSummerToken.approve(

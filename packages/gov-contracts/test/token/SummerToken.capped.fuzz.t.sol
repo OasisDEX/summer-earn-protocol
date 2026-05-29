@@ -2,8 +2,6 @@
 pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
-import {console} from "forge-std/console.sol";
 
 contract SummerTokenCappedFuzzTest is SummerTokenTestBase {
     event Transfer(address indexed from, address indexed to, uint256 value);

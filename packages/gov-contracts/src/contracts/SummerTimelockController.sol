@@ -5,6 +5,7 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 contract SummerTimelockController is TimelockController {
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     IProtocolAccessManager public immutable accessManager;
 
     // Add mapping to track guardian expiry operations
@@ -125,6 +126,7 @@ contract SummerTimelockController is TimelockController {
 
         // Check if this is a guardian expiry operation before scheduling
         if (
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes4(data) ==
             IProtocolAccessManager.setGuardianExpiration.selector
         ) {

@@ -2,9 +2,6 @@
 pragma solidity 0.8.28;
 
 import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
-import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
-
-import {Test} from "forge-std/Test.sol";
 import {SummerVestingWalletsEscrowTestBase} from "./SummerVestingWalletsEscrowTestBase.sol";
 import {ISummerVestingWalletsEscrow} from "../../src/interfaces/ISummerVestingWalletsEscrow.sol";
 import {TestMockVestingFactory} from "../mocks/MockVestingFactory.sol";

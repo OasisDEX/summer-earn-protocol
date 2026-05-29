@@ -421,6 +421,7 @@ contract SummerGovernorV2 is
         bytes memory _calldata
     ) internal view returns (bool) {
         return
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes4(_calldata) ==
             IProtocolAccessManager.setGuardianExpiration.selector;
     }
@@ -575,6 +576,7 @@ contract SummerGovernorV2 is
      * @dev Returns the clock mode used by the contract.
      * @return A string describing the clock mode.
      */
+    // forge-lint: disable-next-line(mixed-case-function)
     function CLOCK_MODE()
         public
         view

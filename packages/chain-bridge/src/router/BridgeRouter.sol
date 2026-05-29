@@ -77,8 +77,12 @@ contract BridgeRouter is
      * Reverts with `UnknownAdapter` if the caller is not in the `adapters` set.
      */
     modifier onlyRegisteredAdapter() {
-        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
+        _onlyRegisteredAdapter();
         _;
+    }
+
+    function _onlyRegisteredAdapter() internal view {
+        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
     }
 
     /**
@@ -86,8 +90,12 @@ contract BridgeRouter is
      * Reverts with `Paused` if the contract is in the paused state.
      */
     modifier whenNotPaused() {
-        if (paused) revert Paused();
+        _whenNotPaused();
         _;
+    }
+
+    function _whenNotPaused() internal view {
+        if (paused) revert Paused();
     }
 
     /**
@@ -99,9 +107,16 @@ contract BridgeRouter is
         address adapter,
         BridgeTypes.OperationType operationType
     ) {
+        _validAdapter(adapter, operationType);
+        _;
+    }
+
+    function _validAdapter(
+        address adapter,
+        BridgeTypes.OperationType operationType
+    ) internal view {
         if (!this.isValidAdapter(adapter)) revert UnknownAdapter();
         _validateAdapterSupportsOperation(adapter, operationType);
-        _;
     }
 
     /*//////////////////////////////////////////////////////////////

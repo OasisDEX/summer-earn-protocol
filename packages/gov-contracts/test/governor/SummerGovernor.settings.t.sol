@@ -37,6 +37,7 @@ contract SummerGovernorSettingsTest is SummerGovernorTestBase {
 
         // Setup proposer
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -55,6 +56,7 @@ contract SummerGovernorSettingsTest is SummerGovernorTestBase {
 
         // Give enough tokens for quorum
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
 
@@ -92,6 +94,7 @@ contract SummerGovernorSettingsTest is SummerGovernorTestBase {
 
         // Setup proposer
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -110,6 +113,7 @@ contract SummerGovernorSettingsTest is SummerGovernorTestBase {
 
         // Give enough tokens for quorum
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
 
@@ -153,6 +157,7 @@ contract SummerGovernorSettingsTest is SummerGovernorTestBase {
 
         // Setup proposer
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -171,6 +176,7 @@ contract SummerGovernorSettingsTest is SummerGovernorTestBase {
 
         // Give enough tokens for quorum
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
 
@@ -214,6 +220,7 @@ contract SummerGovernorSettingsTest is SummerGovernorTestBase {
 
         // Setup proposer
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -232,6 +239,7 @@ contract SummerGovernorSettingsTest is SummerGovernorTestBase {
 
         // Give enough tokens for quorum
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
 

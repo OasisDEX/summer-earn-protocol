@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {SummerGovernorTestBase} from "./SummerGovernorTestBase.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SummerGovernorOwnershipTest is SummerGovernorTestBase {
@@ -48,6 +47,7 @@ contract SummerGovernorOwnershipTest is SummerGovernorTestBase {
 
         // Setup voter with enough tokens
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
 

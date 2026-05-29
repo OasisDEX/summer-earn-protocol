@@ -2,16 +2,14 @@
 pragma solidity 0.8.28;
 
 import {SummerGovernorTestBase} from "../governor/SummerGovernorTestBase.sol";
+import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {IGovernanceRewardsManagerErrors} from "../../src/errors/IGovernanceRewardsManagerErrors.sol";
 import {IGovernanceRewardsManager} from "../../src/interfaces/IGovernanceRewardsManager.sol";
 import {IStakingRewardsManagerBaseErrors} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBaseErrors.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import {SupplyControlSummerToken} from "../utils/SupplyControlSummerToken.sol";
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {stdStorage, StdStorage} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
 import {WrappedStakingToken} from "../../src/contracts/WrappedStakingToken.sol";
 
 contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
@@ -284,6 +282,7 @@ contract BuggedGovernanceRewardsManager is GovernanceRewardsManager {
         );
 
         // Transfer the unwrapped tokens to the receiver after voting power is properly adjusted
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         IERC20(stakingToken).transfer(receiver, amount);
 
         emit Unstaked(from, receiver, amount);

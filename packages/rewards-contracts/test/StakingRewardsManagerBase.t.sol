@@ -2,16 +2,13 @@
 pragma solidity 0.8.28;
 
 import {MockStakingRewardsManager} from "./MockStakingRewardsManager.sol";
-import {IStakingRewardsManagerBaseErrors} from "../src/interfaces/IStakingRewardsManagerBaseErrors.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IStakingRewardsManagerBase} from "../src/interfaces/IStakingRewardsManagerBase.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {ERC20, ERC20Wrapper} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Wrapper.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 
 contract ERC20MockWithoutDecimals is ERC20Mock {
@@ -871,6 +868,7 @@ contract StakingRewardsManagerBaseTest is Test {
 
         // Simulate all rewards being claimed by transferring tokens out
         vm.startPrank(address(stakingRewardsManager));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         rewardToken.transfer(address(1), rewardAmount);
         vm.stopPrank();
 
@@ -936,6 +934,7 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 balance = rewardTokenWithDecimals.balanceOf(
             address(stakingRewardsManager)
         );
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         rewardTokenWithDecimals.transfer(address(1), balance - 1e13); // Leave 0.00001 tokens as dust
         vm.stopPrank();
 
@@ -968,6 +967,7 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 balance = rewardTokenWithoutDecimals.balanceOf(
             address(stakingRewardsManager)
         );
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         rewardTokenWithoutDecimals.transfer(address(1), balance - 1e12); // Leave 0.000001 tokens as dust
         vm.stopPrank();
 
@@ -1203,6 +1203,7 @@ contract StakingRewardsManagerBaseTest is Test {
             address(stakingRewardsManager)
         );
         console.log("Remaining balance to transfer:", remainingBalance);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         rewardToken.transfer(address(1), remainingBalance);
         vm.stopPrank();
 
@@ -1300,6 +1301,7 @@ contract StakingRewardsManagerBaseTest is Test {
             address(stakingRewardsManager)
         );
         console.log("Remaining balance to transfer:", remainingBalance);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         rewardToken.transfer(address(1), remainingBalance);
         vm.stopPrank();
 

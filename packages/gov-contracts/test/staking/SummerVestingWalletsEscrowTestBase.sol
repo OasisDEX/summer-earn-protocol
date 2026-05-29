@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
-import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
 import {ISummerVestingWalletV2} from "../../src/interfaces/ISummerVestingWalletV2.sol";
 import {SummerVestingWallet} from "../../src/contracts/SummerVestingWallet.sol";
 import {ISummerVestingWallet} from "../../src/interfaces/ISummerVestingWallet.sol";
@@ -131,6 +130,7 @@ contract SummerVestingWalletsEscrowTestBase is SummerGovernorV2TestBase {
             }
 
             vm.prank(address(timelockA));
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             aSummerToken.transfer(foundation, vestingAmount);
 
             vm.startPrank(foundation);

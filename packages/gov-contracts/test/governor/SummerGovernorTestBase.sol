@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Origin, SummerGovernor} from "../../src/contracts/SummerGovernor.sol";
+import {SummerGovernor} from "../../src/contracts/SummerGovernor.sol";
 import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
 import {SummerTokenTestBase} from "../token/SummerTokenTestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {IOAppSetPeer, TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
+import {IOAppSetPeer} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
 
 contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
@@ -178,6 +178,7 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
     ) internal {
         // Give Alice enough tokens to meet proposal threshold
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -196,6 +197,7 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
 
         // Give Alice enough tokens to meet quorum
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
 

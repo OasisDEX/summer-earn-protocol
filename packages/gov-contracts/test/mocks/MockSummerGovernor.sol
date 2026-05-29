@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 
 contract MockSummerGovernor is ERC165 {
     mapping(bytes32 => mapping(address => bool)) private roles;

@@ -34,9 +34,11 @@ contract SummerVestingWalletV2 is ISummerVestingWalletV2, VestingWallet {
     //////////////////////////////////////////////
 
     /// @inheritdoc ISummerVestingWalletV2
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     address public immutable token;
 
     /// @dev Address of the factory that created this vesting wallet
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     address public immutable factory;
 
     /// @dev Vesting parameters
@@ -84,6 +86,7 @@ contract SummerVestingWalletV2 is ISummerVestingWalletV2, VestingWallet {
         VestingWallet(
             beneficiaryAddress,
             vestingParams_.cliffEndTimestamp,
+            // forge-lint: disable-next-line(unsafe-typecast)
             uint64(vestingParams_.vestingPeriods * MONTH)
         )
     {

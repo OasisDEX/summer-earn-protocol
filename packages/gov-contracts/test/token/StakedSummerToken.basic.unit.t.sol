@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
 import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {IStakedSummerToken} from "../../src/interfaces/IStakedSummerToken.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
@@ -359,6 +358,7 @@ contract StakedSummerTokenBasicTest is SummerGovernorV2TestBase {
                 IStakedSummerToken.xSumr_TransferNotAllowed.selector
             )
         );
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         axSumr.transfer(bob, 1 ether);
 
         vm.prank(alice);
@@ -370,6 +370,7 @@ contract StakedSummerTokenBasicTest is SummerGovernorV2TestBase {
                 IStakedSummerToken.xSumr_TransferNotAllowed.selector
             )
         );
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         axSumr.transferFrom(alice, bob, 1 ether);
     }
 }

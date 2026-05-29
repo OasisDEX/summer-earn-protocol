@@ -57,8 +57,10 @@ contract MockERC20 is IERC20 {
                             EIP-2612 STORAGE
     //////////////////////////////////////////////////////////////*/
 
+    // forge-lint: disable-next-line(mixed-case-variable)
     uint256 internal INITIAL_CHAIN_ID;
 
+    // forge-lint: disable-next-line(mixed-case-variable)
     bytes32 internal INITIAL_DOMAIN_SEPARATOR;
 
     mapping(address => uint256) public nonces;
@@ -183,6 +185,7 @@ contract MockERC20 is IERC20 {
         emit Approval(owner, spender, value);
     }
 
+    // forge-lint: disable-next-line(mixed-case-function)
     function DOMAIN_SEPARATOR() public view virtual returns (bytes32) {
         return
             _pureChainId() == INITIAL_CHAIN_ID

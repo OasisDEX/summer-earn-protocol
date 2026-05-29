@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract SummerGovernorEIP712Test is SummerGovernorV2TestBase {

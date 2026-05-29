@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
-import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import {ISummerVestingWalletFactory} from "../interfaces/ISummerVestingWalletFactory.sol";
 import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
 import {IOFT, SendParam, OFTReceipt, MessagingReceipt, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
@@ -21,7 +20,6 @@ import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
 import {OFT, OFTCore} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 
 import {GovernanceRewardsManager} from "./GovernanceRewardsManager.sol";
-import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
 import {DecayController} from "./DecayController.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
@@ -52,11 +50,13 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The chain ID of the hub chain where governance actions are permitted
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     uint32 public immutable hubChainId;
     address public vestingWalletFactory;
     address public rewardsManager;
     VotingDecayLibrary.DecayState internal decayState;
 
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     uint256 public immutable transferEnableDate;
     bool public transfersEnabled;
     mapping(address account => bool isWhitelisted) public whitelistedAddresses;
@@ -171,6 +171,7 @@ contract SummerToken is
         }
 
         // Debit the sender's balance
+        // forge-lint: disable-next-line(mixed-case-variable)
         (uint256 amountSentLD, uint256 amountReceivedLD) = _debit(
             msg.sender,
             _sendParam.amountLD,
@@ -337,6 +338,7 @@ contract SummerToken is
         return uint48(block.timestamp);
     }
 
+    // forge-lint: disable-next-line(mixed-case-function)
     function CLOCK_MODE() public pure override returns (string memory) {
         return "mode=timestamp";
     }
@@ -447,13 +449,19 @@ contract SummerToken is
      */
     function _debit(
         address _from,
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 _amountLD,
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 _minAmountLD,
         uint32 _dstEid
     )
         internal
         override
-        returns (uint256 amountSentLD, uint256 amountReceivedLD)
+        returns (
+            // forge-lint: disable-next-line(mixed-case-variable)
+            uint256 amountSentLD,
+            uint256 amountReceivedLD
+        )
     {
         (amountSentLD, amountReceivedLD) = _debitView(
             _amountLD,

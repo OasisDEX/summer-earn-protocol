@@ -33,8 +33,12 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
      * Reverts with `OnlyAuthorizedExecutor` if the caller is not registered.
      */
     modifier onlyAuthorizedExecutor() {
-        if (!isExecutor(msg.sender)) revert OnlyAuthorizedExecutor();
+        _onlyAuthorizedExecutor();
         _;
+    }
+
+    function _onlyAuthorizedExecutor() internal view {
+        if (!isExecutor(msg.sender)) revert OnlyAuthorizedExecutor();
     }
 
     /**
@@ -42,8 +46,12 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
      * Reverts with `OnlyBridgeRouter` if the caller is not the bridge router.
      */
     modifier onlyRouter() {
-        if (msg.sender != bridgeRouter()) revert OnlyBridgeRouter();
+        _onlyRouter();
         _;
+    }
+
+    function _onlyRouter() internal view {
+        if (msg.sender != bridgeRouter()) revert OnlyBridgeRouter();
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -186,6 +186,7 @@ library VotingDecayLibrary {
         // Create checkpoint with current timestamp and new decay factor
         self.decayFactorCheckpoints[accountAddress].push(
             uint32(block.timestamp),
+            // forge-lint: disable-next-line(unsafe-typecast)
             uint224(newDecayFactor)
         );
 
@@ -298,6 +299,7 @@ library VotingDecayLibrary {
 
             self.decayFactorCheckpoints[accountAddress].push(
                 uint32(block.timestamp),
+                // forge-lint: disable-next-line(unsafe-typecast)
                 uint224(WAD)
             );
 
@@ -528,9 +530,11 @@ library VotingDecayLibrary {
             return 0;
         }
 
-        uint224 checkpointValue = self
-            .decayFactorCheckpoints[accountAddress]
-            .upperLookup(uint32(timestamp));
+        Checkpoints.Trace224 storage checkpoints = self.decayFactorCheckpoints[
+            accountAddress
+        ];
+        // forge-lint: disable-next-line(unsafe-typecast)
+        uint224 checkpointValue = checkpoints.upperLookup(uint32(timestamp));
 
         // No checkpoint found - calculate from origin
         if (checkpointValue == 0) {

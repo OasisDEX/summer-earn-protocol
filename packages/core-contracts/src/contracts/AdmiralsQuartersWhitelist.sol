@@ -347,7 +347,7 @@ contract AdmiralsQuartersWhitelist is
      *      configured for `ProtocolAccessManagedV2`.
      */
     function _getAccessManager() internal view override returns (address) {
-        return address(_accessManager);
+        return address(_ACCESS_MANAGER);
     }
 
     /**

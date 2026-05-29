@@ -169,6 +169,7 @@ contract VotingDecayFuzzTest is Test {
             vm.assume(
                 elapsedTimes[i] > 0 && elapsedTimes[i] <= YEAR_IN_SECONDS
             );
+            // forge-lint: disable-next-line(unsafe-typecast)
             accounts[i] = address(uint160(i + 1));
             decayManager.resetDecay(accounts[i]);
             initialFactors[i] = decayManager.getDecayFactor(accounts[i]);

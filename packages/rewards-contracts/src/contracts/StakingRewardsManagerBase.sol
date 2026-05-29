@@ -15,7 +15,6 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
-import {ERC20Wrapper} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Wrapper.sol";
 
 /**
  * @title StakingRewards
@@ -45,6 +44,7 @@ abstract contract StakingRewardsManagerBase is
     /* @notice List of all reward tokens supported by this contract */
     EnumerableSet.AddressSet internal _rewardTokensList;
     /* @notice The token that users stake to earn rewards */
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     address public immutable stakingToken;
 
     /* @notice Mapping of reward token to its reward distribution data */

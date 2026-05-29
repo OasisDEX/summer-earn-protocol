@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../src/lib/TokenLibrary.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "forge-std/Test.sol";
+import {TokenLibrary} from "../src/lib/TokenLibrary.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 contract MockToken is ERC20 {
     uint8 private _decimals;

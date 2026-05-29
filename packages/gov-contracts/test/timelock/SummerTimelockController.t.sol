@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 // Reuse the existing test base that deploys ExposedSummerTimelockController, AccessManager, etc.
-import {SummerTokenTestBase, ExposedSummerTimelockController} from "../token/SummerTokenTestBase.sol";
+import {SummerTokenTestBase} from "../token/SummerTokenTestBase.sol";
 
 contract SummerTimelockControllerTest is SummerTokenTestBase {
     function test_schedule_marksGuardianExpiryOperation() public {

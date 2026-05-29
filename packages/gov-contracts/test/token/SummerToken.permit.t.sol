@@ -2,8 +2,6 @@
 pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
 contract SummerTokenPermitTest is SummerTokenTestBase {
     address public alice;
@@ -18,6 +16,7 @@ contract SummerTokenPermitTest is SummerTokenTestBase {
         enableTransfers();
 
         // Transfer some tokens to alice for testing
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100 ether);
     }
 
@@ -26,6 +25,7 @@ contract SummerTokenPermitTest is SummerTokenTestBase {
         uint256 deadline = block.timestamp + 1 hours;
         uint256 nonce = aSummerToken.nonces(alice);
 
+        // forge-lint: disable-next-line(mixed-case-variable)
         bytes32 DOMAIN_SEPARATOR = aSummerToken.DOMAIN_SEPARATOR();
 
         bytes32 structHash = keccak256(
@@ -58,6 +58,7 @@ contract SummerTokenPermitTest is SummerTokenTestBase {
         uint256 deadline = block.timestamp - 1; // expired deadline
         uint256 nonce = aSummerToken.nonces(alice);
 
+        // forge-lint: disable-next-line(mixed-case-variable)
         bytes32 DOMAIN_SEPARATOR = aSummerToken.DOMAIN_SEPARATOR();
 
         bytes32 structHash = keccak256(
@@ -95,6 +96,7 @@ contract SummerTokenPermitTest is SummerTokenTestBase {
         uint256 deadline = block.timestamp + 1 hours;
         uint256 nonce = aSummerToken.nonces(alice);
 
+        // forge-lint: disable-next-line(mixed-case-variable)
         bytes32 DOMAIN_SEPARATOR = aSummerToken.DOMAIN_SEPARATOR();
 
         // Create the permit hash
@@ -136,6 +138,7 @@ contract SummerTokenPermitTest is SummerTokenTestBase {
         uint256 deadline = block.timestamp + 1 hours;
         uint256 nonce = aSummerToken.nonces(alice);
 
+        // forge-lint: disable-next-line(mixed-case-variable)
         bytes32 DOMAIN_SEPARATOR = aSummerToken.DOMAIN_SEPARATOR();
 
         bytes32 structHash = keccak256(
@@ -162,6 +165,7 @@ contract SummerTokenPermitTest is SummerTokenTestBase {
 
         // Use the allowance to transfer tokens
         vm.prank(bob);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transferFrom(alice, bob, value);
 
         // Verify final balances

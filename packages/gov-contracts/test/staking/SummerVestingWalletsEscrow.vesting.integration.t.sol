@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Origin, SummerGovernorV2} from "../../src/contracts/SummerGovernorV2.sol";
-import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
-
 import {ISummerVestingWallet} from "../../src/interfaces/ISummerVestingWallet.sol";
 import {ISummerVestingWalletV2} from "../../src/interfaces/ISummerVestingWalletV2.sol";
 import {SummerVestingWallet} from "../../src/contracts/SummerVestingWallet.sol";
-import {Test} from "forge-std/Test.sol";
 import {SummerVestingWalletsEscrowTestBase} from "../staking/SummerVestingWalletsEscrowTestBase.sol";
 
 import {ISummerVestingWalletsEscrow} from "../../src/interfaces/ISummerVestingWalletsEscrow.sol";
@@ -118,6 +114,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Malicious actor dusts the vesting wallet V2 to try to influence staking/unstaking
         vm.prank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(vestingWalletV2, maliciousAmount);
 
         // Check that escrow received the Alice's released cliff amount
@@ -1286,6 +1283,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         // Fund staking escrow with SUMMER tokens
         uint256 amount = 1_000 ether;
         vm.prank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(address(aStaking), amount);
         assertEq(
             aSummerToken.balanceOf(address(aStaking)),

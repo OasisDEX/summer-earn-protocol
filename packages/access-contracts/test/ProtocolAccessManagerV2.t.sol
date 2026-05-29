@@ -265,6 +265,7 @@ contract ProtocolAccessManagerV2Test is Test, IAccessControlErrors {
         bool[] memory statuses = new bool[](size);
 
         for (uint256 i = 0; i < size; i++) {
+            // forge-lint: disable-next-line(unsafe-typecast)
             users[i] = address(uint160(i + 100));
             statuses[i] = true;
         }

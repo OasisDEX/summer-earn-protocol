@@ -18,11 +18,14 @@ contract SolverBond is ReentrancyGuard, AccessControl {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The solver who owns this bond
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     address public immutable solver;
 
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     address public immutable factory;
 
     /// @notice The Summer token used for bonding
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     IERC20 public immutable summerToken;
 
     /// @notice Total amount of Summer tokens bonded
@@ -49,13 +52,21 @@ contract SolverBond is ReentrancyGuard, AccessControl {
     //////////////////////////////////////////////////////////////*/
 
     modifier onlySolver() {
-        if (msg.sender != solver) revert SolverBond__UnauthorizedCaller();
+        _onlySolver();
         _;
     }
 
+    function _onlySolver() internal view {
+        if (msg.sender != solver) revert SolverBond__UnauthorizedCaller();
+    }
+
     modifier onlyFactory() {
-        if (msg.sender != factory) revert SolverBond__UnauthorizedCaller();
+        _onlyFactory();
         _;
+    }
+
+    function _onlyFactory() internal view {
+        if (msg.sender != factory) revert SolverBond__UnauthorizedCaller();
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -16,6 +16,7 @@ contract YieldPocket is Ownable {
     using SafeERC20 for IERC20;
 
     /// @notice The USDC token held in this pocket
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     IERC20 public immutable usdc;
 
     /// @param _usdc Address of the USDC token

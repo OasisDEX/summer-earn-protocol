@@ -6,9 +6,8 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
-import {IGovernanceRewardsManager} from "../../src/interfaces/IGovernanceRewardsManager.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {IOFT, SendParam, MessagingFee, MessagingReceipt, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     uint256 private constant INITIAL_SUPPLY = 1e9;
@@ -26,6 +25,7 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     }
 
     // Add missing implementations:
+    // forge-lint: disable-next-line(mixed-case-function)
     function DOMAIN_SEPARATOR() external pure override returns (bytes32) {
         // Implement or revert
         revert("Not implemented");
@@ -169,6 +169,7 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         return (bytes4(keccak256("OFT")), 1);
     }
 
+    // forge-lint: disable-next-line(mixed-case-function)
     function quoteOFT(
         SendParam calldata
     )

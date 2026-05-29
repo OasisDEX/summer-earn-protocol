@@ -190,6 +190,7 @@ contract StargateAdapterComposeForkTest is Test {
             address(fleetProxyArbitrum),
             1000e6,
             uint256(CHAIN_ID_MAINNET),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-operation"),
             user
         );
@@ -208,6 +209,7 @@ contract StargateAdapterComposeForkTest is Test {
         bytes memory callData = abi.encodeWithSignature(
             "lzCompose(address,bytes32,bytes,address,bytes)",
             address(adapterMainnet),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-guid"),
             oftEncodedMessage, // Use the properly encoded OFT message
             address(0),

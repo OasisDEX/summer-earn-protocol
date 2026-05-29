@@ -21,10 +21,13 @@ contract TestYieldToken is ERC20, Ownable {
     using SafeERC20 for IERC20;
 
     /// @notice USDC token address (6 decimals)
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     IERC20 public immutable usdc;
     /// @notice Oracle providing price (8 decimals)
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     AggregatorV3Interface public immutable oracle;
     /// @notice Pocket holding excess USDC (yield) separate from pending deposits
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     YieldPocket public immutable pocket;
     uint8 public constant ORACLE_DECIMALS = 8;
     uint8 public constant USDC_DECIMALS = 6;
@@ -80,6 +83,7 @@ contract TestYieldToken is ERC20, Ownable {
         require(price > 0, "Invalid price");
 
         // Logic: shares = (usdc * 1e20) / price
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint256 shares = (usdcAmount * 1e20) / uint256(price);
 
         _mint(user, shares);
@@ -109,6 +113,7 @@ contract TestYieldToken is ERC20, Ownable {
         _burn(address(this), sharesAmount);
 
         // Calculate USDC: (shares * price) / 1e20
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint256 usdcAmount = (sharesAmount * uint256(price)) / 1e20;
 
         uint256 contractBalance = usdc.balanceOf(address(this));

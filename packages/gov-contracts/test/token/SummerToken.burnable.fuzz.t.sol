@@ -2,8 +2,6 @@
 pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract SummerTokenBurnableFuzzTest is SummerTokenTestBase {
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -55,6 +53,7 @@ contract SummerTokenBurnableFuzzTest is SummerTokenTestBase {
         burnAmount = bound(burnAmount, 0, initialBalance);
 
         // Setup initial state
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, initialBalance);
 
         vm.startPrank(user1);
@@ -81,6 +80,7 @@ contract SummerTokenBurnableFuzzTest is SummerTokenTestBase {
         initialBalance = bound(initialBalance, 1, 1000000 ether);
         burnAmount = bound(burnAmount, 0, initialBalance);
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, initialBalance);
 
         vm.startPrank(user1);
@@ -110,6 +110,7 @@ contract SummerTokenBurnableFuzzTest is SummerTokenTestBase {
             initialBalance - firstBurnAmount
         );
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, initialBalance);
 
         vm.startPrank(user1);
@@ -141,6 +142,7 @@ contract SummerTokenBurnableFuzzTest is SummerTokenTestBase {
         initialBalance = bound(initialBalance, 1, 1000000 ether);
         burnAmount = bound(burnAmount, 0, initialBalance);
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, initialBalance);
 
         vm.startPrank(user1);
@@ -176,6 +178,7 @@ contract SummerTokenBurnableFuzzTest is SummerTokenTestBase {
         initialBalance = bound(initialBalance, 1, 1000000 ether);
         burnAmount = bound(burnAmount, 1, initialBalance);
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, initialBalance);
 
         vm.expectRevert();
@@ -192,6 +195,7 @@ contract SummerTokenBurnableFuzzTest is SummerTokenTestBase {
         allowance = bound(allowance, 1, initialBalance - 1);
         burnAmount = bound(burnAmount, allowance + 1, initialBalance);
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, initialBalance);
 
         vm.startPrank(user1);
@@ -210,6 +214,7 @@ contract SummerTokenBurnableFuzzTest is SummerTokenTestBase {
         initialBalance = bound(initialBalance, 1, 1000000 ether);
         burnAmount = bound(burnAmount, initialBalance + 1, type(uint256).max);
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, initialBalance);
 
         vm.startPrank(user1);

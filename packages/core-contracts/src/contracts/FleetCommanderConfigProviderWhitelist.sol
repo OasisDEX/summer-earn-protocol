@@ -156,7 +156,7 @@ contract FleetCommanderConfigProviderWhitelist is
      * @dev Implementation of the Whitelist proxy adapter's virtual hook.
      */
     function _getAccessManager() internal view override returns (address) {
-        return address(_accessManager);
+        return address(_ACCESS_MANAGER);
     }
 
     // ARK MANAGEMENT
@@ -321,7 +321,7 @@ contract FleetCommanderConfigProviderWhitelist is
         _activeArks.remove(ark);
 
         IArk(ark).unregisterFleetCommander();
-        _accessManager.selfRevokeContractSpecificRole(
+        _ACCESS_MANAGER.selfRevokeContractSpecificRole(
             ContractSpecificRoles.COMMANDER_ROLE,
             address(ark)
         );

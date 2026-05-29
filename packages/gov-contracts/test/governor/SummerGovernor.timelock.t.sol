@@ -11,6 +11,7 @@ contract SummerGovernorTimelockTest is SummerGovernorTestBase {
     function test_TimelockStateTransitions() public {
         // Setup voter with enough tokens
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
 
@@ -104,6 +105,7 @@ contract SummerGovernorTimelockTest is SummerGovernorTestBase {
 
         // Setup voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -122,6 +124,7 @@ contract SummerGovernorTimelockTest is SummerGovernorTestBase {
 
         // Give enough tokens for quorum
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
 
@@ -153,6 +156,7 @@ contract SummerGovernorTimelockTest is SummerGovernorTestBase {
     function test_QueueAndExecuteWithDelay() public {
         // Setup voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
 
@@ -195,6 +199,7 @@ contract SummerGovernorTimelockTest is SummerGovernorTestBase {
             abi.encodeWithSelector(
                 TimelockController.TimelockUnexpectedOperationState.selector,
                 operationId,
+                // forge-lint: disable-next-line(incorrect-shift)
                 bytes32(1 << uint8(TimelockController.OperationState.Ready)) // Expect Ready state
             )
         );
@@ -206,6 +211,7 @@ contract SummerGovernorTimelockTest is SummerGovernorTestBase {
             abi.encodeWithSelector(
                 TimelockController.TimelockUnexpectedOperationState.selector,
                 operationId,
+                // forge-lint: disable-next-line(incorrect-shift)
                 bytes32(1 << uint8(TimelockController.OperationState.Ready)) // Expect Ready state
             )
         );

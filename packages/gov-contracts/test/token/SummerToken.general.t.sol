@@ -1,22 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
-import {ISummerToken, IERC20} from "../../src/interfaces/ISummerToken.sol";
+import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {IGovernanceRewardsManager} from "../../src/interfaces/IGovernanceRewardsManager.sol";
 
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
-import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
-import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
-import {IOFT, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
-
-import {OFTComposerMock, SummerTokenTestBase} from "./SummerTokenTestBase.sol";
-import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
-import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
-import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
+import {console} from "forge-std/Test.sol";
 
 contract SummerTokenTest is SummerTokenTestBase {
     using OptionsBuilder for bytes;
@@ -48,6 +40,7 @@ contract SummerTokenTest is SummerTokenTestBase {
     function test_Transfer() public {
         enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, amount);
         assertEq(aSummerToken.balanceOf(user1), amount);
         assertEq(
@@ -56,6 +49,7 @@ contract SummerTokenTest is SummerTokenTestBase {
         );
 
         bSummerToken.mint(owner, amount * 2); // bSummerToken is initialized with 0 supply, so we need to mint to test transfer
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         bSummerToken.transfer(user2, amount);
         assertEq(bSummerToken.balanceOf(user2), amount);
         assertEq(bSummerToken.balanceOf(owner), amount);
@@ -64,6 +58,7 @@ contract SummerTokenTest is SummerTokenTestBase {
     function test_TransfersBlockedByDefault() public {
         uint256 amount = 1000 * 10 ** 18;
         vm.expectRevert(ISummerToken.TransferNotAllowed.selector);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, amount);
     }
 
@@ -78,6 +73,7 @@ contract SummerTokenTest is SummerTokenTestBase {
                 amount
             )
         );
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, amount);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -87,6 +83,7 @@ contract SummerTokenTest is SummerTokenTestBase {
                 amount
             )
         );
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         bSummerToken.transfer(user2, amount);
     }
 
@@ -97,6 +94,7 @@ contract SummerTokenTest is SummerTokenTestBase {
         assertEq(aSummerToken.allowance(owner, user1), amount);
 
         vm.prank(user1);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transferFrom(owner, user2, amount);
         assertEq(aSummerToken.balanceOf(user2), amount);
         assertEq(aSummerToken.allowance(owner, user1), 0);
@@ -108,6 +106,7 @@ contract SummerTokenTest is SummerTokenTestBase {
         bSummerToken.mint(owner, amount);
 
         vm.prank(user1);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         bSummerToken.transferFrom(owner, user2, amount);
         assertEq(bSummerToken.balanceOf(user2), amount);
         assertEq(bSummerToken.allowance(owner, user1), 0);
@@ -127,6 +126,7 @@ contract SummerTokenTest is SummerTokenTestBase {
                 amount
             )
         );
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transferFrom(owner, user2, amount);
 
         bSummerToken.approve(user1, amount - 1);
@@ -140,6 +140,7 @@ contract SummerTokenTest is SummerTokenTestBase {
                 amount
             )
         );
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         bSummerToken.transferFrom(owner, user2, amount);
     }
 
@@ -250,6 +251,7 @@ contract SummerTokenTest is SummerTokenTestBase {
         uint256 unstakeAmount = 60 ether;
 
         // Setup: Transfer tokens to user1
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, amount);
 
         // Initialize voting decay for user2
@@ -352,6 +354,7 @@ contract SummerTokenTest is SummerTokenTestBase {
 
         // Setup initial tokens and delegation
         uint256 initialAmount = 100 ether;
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, initialAmount);
 
         vm.startPrank(user1);
@@ -419,7 +422,9 @@ contract SummerTokenTest is SummerTokenTestBase {
 
         // Setup initial tokens
         uint256 amount = 100 ether;
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, amount);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user2, amount);
 
         // Test case 1: Self-delegation (length should be 0)

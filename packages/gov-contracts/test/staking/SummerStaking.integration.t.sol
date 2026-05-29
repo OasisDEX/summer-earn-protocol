@@ -2,8 +2,6 @@
 pragma solidity 0.8.28;
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
-import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
 
 /*

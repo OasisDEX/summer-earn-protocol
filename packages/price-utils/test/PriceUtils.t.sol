@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import "../contracts/PriceUtils.sol";
+import {PriceUtils, Price, toPrice, toPriceFromOraclePrice} from "../contracts/PriceUtils.sol";
 
 contract PriceUtilsTest is Test {
     using PriceUtils for Price;
@@ -261,6 +261,7 @@ contract PriceUtilsTest is Test {
         );
 
         assertEq(price.baseAmount, baseAmount);
+        // forge-lint: disable-next-line(unsafe-typecast)
         assertEq(price.quoteAmount, uint256(int256(oraclePrice)));
     }
 

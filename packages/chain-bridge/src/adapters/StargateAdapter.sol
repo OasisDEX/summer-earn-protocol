@@ -453,6 +453,7 @@ contract StargateAdapter is
         uint256 gasLimit = _normalizeGas(options.gasLimit);
 
         // Always include compose options in fee estimation
+        // forge-lint: disable-next-line(unsafe-typecast)
         bytes memory extraOptions = _composeOptions(uint128(gasLimit));
 
         // Check if a compose message is provided in adapter params
@@ -582,6 +583,7 @@ contract StargateAdapter is
      * @dev Decode OFT compose message header and payload
      * Layout: [8b nonce][4b srcEid][32b amountLD][20b composeFrom][bytes composeMsg]
      */
+    // forge-lint: disable-next-line(mixed-case-function)
     function _decodeOFTCompose(
         bytes calldata message
     )

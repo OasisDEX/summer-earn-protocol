@@ -202,7 +202,7 @@ abstract contract RoundsVaultBase is
      *      authority.
      */
     function _getAccessManager() internal view override returns (address) {
-        return address(_accessManager);
+        return address(_ACCESS_MANAGER);
     }
 
     /**

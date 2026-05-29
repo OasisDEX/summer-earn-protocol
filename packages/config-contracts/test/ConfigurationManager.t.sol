@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "src/contracts/ConfigurationManager.sol";
-import "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {ConfigurationManager, ConfigurationManagerParams} from "src/contracts/ConfigurationManager.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 import {IConfigurationManagerEvents} from "src/events/IConfigurationManagerEvents.sol";
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 contract ConfigurationManagerTest is Test {
     ConfigurationManager public configurationManager;

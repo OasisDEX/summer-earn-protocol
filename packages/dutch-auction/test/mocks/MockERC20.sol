@@ -57,9 +57,9 @@ contract MockERC20 is IERC20 {
                             EIP-2612 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    uint256 internal INITIAL_CHAIN_ID;
+    uint256 internal initialChainId;
 
-    bytes32 internal INITIAL_DOMAIN_SEPARATOR;
+    bytes32 internal initialDomainSeparator;
 
     mapping(address => uint256) public nonces;
 
@@ -83,8 +83,8 @@ contract MockERC20 is IERC20 {
         _symbol = symbol_;
         _decimals = decimals_;
 
-        INITIAL_CHAIN_ID = _pureChainId();
-        INITIAL_DOMAIN_SEPARATOR = computeDomainSeparator();
+        initialChainId = _pureChainId();
+        initialDomainSeparator = computeDomainSeparator();
 
         initialized = true;
     }
@@ -183,10 +183,11 @@ contract MockERC20 is IERC20 {
         emit Approval(owner, spender, value);
     }
 
+    // forge-lint: disable-next-line(mixed-case-function)
     function DOMAIN_SEPARATOR() public view virtual returns (bytes32) {
         return
-            _pureChainId() == INITIAL_CHAIN_ID
-                ? INITIAL_DOMAIN_SEPARATOR
+            _pureChainId() == initialChainId
+                ? initialDomainSeparator
                 : computeDomainSeparator();
     }
 

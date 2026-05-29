@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {ISummerTokenErrors} from "../../src/errors/ISummerTokenErrors.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {console} from "forge-std/console.sol";
@@ -70,6 +69,7 @@ contract SummerTokenDecayFuzzTest is SummerTokenTestBase {
     ) public {
         amount = bound(amount, MIN_TRANSFER, MAX_TRANSFER);
 
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 MAX_DELEGATES = 16;
         if (delegatees.length == 0 || delegatees.length > MAX_DELEGATES) {
             return;

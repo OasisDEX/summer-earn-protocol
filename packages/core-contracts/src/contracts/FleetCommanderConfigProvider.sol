@@ -73,7 +73,7 @@ contract FleetCommanderConfigProvider is
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
             stakingRewardsManager: IFleetCommanderRewardsManagerFactory(
                 fleetCommanderRewardsManagerFactory()
-            ).createRewardsManager(address(_accessManager), address(this))
+            ).createRewardsManager(address(_ACCESS_MANAGER), address(this))
         });
         details = params.details;
     }
@@ -196,7 +196,7 @@ contract FleetCommanderConfigProvider is
     {
         config.stakingRewardsManager = IFleetCommanderRewardsManagerFactory(
             fleetCommanderRewardsManagerFactory()
-        ).createRewardsManager(address(_accessManager), address(this));
+        ).createRewardsManager(address(_ACCESS_MANAGER), address(this));
         emit FleetCommanderStakingRewardsUpdated(config.stakingRewardsManager);
     }
 
@@ -288,7 +288,7 @@ contract FleetCommanderConfigProvider is
         _activeArks.remove(ark);
 
         IArk(ark).unregisterFleetCommander();
-        _accessManager.selfRevokeContractSpecificRole(
+        _ACCESS_MANAGER.selfRevokeContractSpecificRole(
             ContractSpecificRoles.COMMANDER_ROLE,
             address(ark)
         );

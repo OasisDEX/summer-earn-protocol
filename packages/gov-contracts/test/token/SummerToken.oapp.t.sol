@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {EnforcedOptionParam} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppOptionsType3.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
-import {IOFT, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {IOFT} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
+import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
-import {Test, console} from "forge-std/Test.sol";
-import {IOAppPreCrimeSimulator, InboundPacket, Origin} from "@layerzerolabs/oapp-evm/contracts/precrime/interfaces/IOAppPreCrimeSimulator.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
+import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
+import {InboundPacket, Origin} from "@layerzerolabs/oapp-evm/contracts/precrime/interfaces/IOAppPreCrimeSimulator.sol";
 import {IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppOptionsType3.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -155,6 +154,7 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
     function test_Send() public {
         enableTransfers();
         uint256 amount = 1000e18;
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, amount);
 
         vm.startPrank(user1);
@@ -429,6 +429,7 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
 
         // Transfer tokens to user1 first
         vm.startPrank(owner);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, amount);
         vm.stopPrank();
 

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import "../contracts/PercentageUtils.sol";
+import {PercentageUtils, Percentage, PERCENTAGE_FACTOR} from "../contracts/PercentageUtils.sol";
 
 contract PercentageUtilsTest is Test {
     using PercentageUtils for uint256;

@@ -41,7 +41,9 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // Mint initial tokens
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, INITIAL_STAKE_AMOUNT);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(bob, INITIAL_STAKE_AMOUNT);
         vm.stopPrank();
 
@@ -271,8 +273,10 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         // Setup reward with aSummerToken
         vm.startPrank(address(timelockA));
         // First transfer tokens to the rewards manager
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(address(stakingRewardsManager), rewardAmount);
         // Then transfer tokens to governor for notification
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(address(mockGovernor), rewardAmount);
         vm.stopPrank();
 
@@ -405,6 +409,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             address(stakingRewardsManager)
         );
         vm.prank(address(stakingRewardsManager));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         rewardTokens[0].transfer(address(1), remainingBalance);
 
         // Remove reward token

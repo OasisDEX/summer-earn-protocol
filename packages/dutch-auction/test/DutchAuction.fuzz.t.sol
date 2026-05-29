@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.13;
 
-import "../src/DutchAuctionLibrary.sol";
+import {DutchAuctionLibrary} from "../src/DutchAuctionLibrary.sol";
+import {DecayFunctions} from "../src/DecayFunctions.sol";
 import {DutchAuctionManager} from "../src/DutchAuctionManager.sol";
 
-import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "forge-std/Test.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Test} from "forge-std/Test.sol";
 
 contract DutchAuctionFuzzTest is Test {
     //   address constant address(DutchAuctionLibrary) = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;

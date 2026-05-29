@@ -8,7 +8,6 @@ import {ISummerVestingWalletFactoryV2} from "../../src/interfaces/ISummerVesting
 import {SummerTokenTestBase} from "../token/SummerTokenTestBase.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Test, console} from "forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SummerVestingV2Test is SummerTokenTestBase {
@@ -49,6 +48,7 @@ contract SummerVestingV2Test is SummerTokenTestBase {
         // Setup token transfers and approvals
         enableTransfers();
         vm.prank(owner);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(foundation, aSummerToken.cap());
         vm.prank(foundation);
         aSummerToken.approve(address(factoryV2), TOTAL_AMOUNT);

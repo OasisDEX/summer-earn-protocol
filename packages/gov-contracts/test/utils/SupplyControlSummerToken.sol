@@ -25,6 +25,7 @@ contract SupplyControlSummerToken is SummerToken {
         _mint(to, amount);
     }
 
+    // forge-lint: disable-next-line(mixed-case-function)
     function exposed_getPeerOrRevert(
         uint32 _eid
     ) external view returns (bytes32) {

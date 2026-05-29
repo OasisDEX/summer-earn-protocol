@@ -35,6 +35,7 @@ contract TimelockGuard {
      * @dev Set during construction and immutable thereafter. Actions executed before this timestamp will revert.
      *      Uses Unix timestamp format (seconds since epoch).
      */
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     uint256 public immutable minimumTimestamp;
 
     /*//////////////////////////////////////////////////////////////

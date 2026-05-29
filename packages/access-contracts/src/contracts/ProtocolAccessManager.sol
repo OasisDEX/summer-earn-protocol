@@ -291,6 +291,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         ContractSpecificRoles roleName,
         address roleTargetContract
     ) public pure returns (bytes32) {
+        // forge-lint: disable-next-line(asm-keccak256)
         return keccak256(abi.encodePacked(roleName, roleTargetContract));
     }
 

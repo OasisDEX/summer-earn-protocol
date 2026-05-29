@@ -81,6 +81,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
                 recipient: recipient,
                 asset: asset,
                 amount: amount,
+                // forge-lint: disable-next-line(unsafe-typecast)
                 sourceChainId: uint16(sourceChainId),
                 operationId: operationId,
                 originator: originator,
@@ -115,6 +116,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address(tokenB),
             1 ether,
             uint256(CHAIN_ID_A),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-operation"),
             user
         );
@@ -132,6 +134,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
         adapterB.lzCompose(
             address(adapterA),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-guid"),
             oftMessage,
             address(0),
@@ -244,6 +247,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(adapterA),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-guid"),
             oftMessage,
             address(0),
@@ -353,6 +357,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address(tokenB),
             testAmount,
             uint256(CHAIN_ID_A),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-op"),
             user
         );
@@ -380,6 +385,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.expectRevert(); // Just expect any revert for now
         adapterB.lzCompose(
             address(mockStargateFrom),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-guid"),
             oftMessage,
             address(0),
@@ -398,6 +404,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address(tokenB),
             testAmount,
             uint256(CHAIN_ID_A),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-op"),
             user
         );
@@ -425,6 +432,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.expectRevert(); // Just expect any revert for now
         adapterB.lzCompose(
             address(mockStargateFrom),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-guid"),
             oftMessage,
             address(0),
@@ -450,6 +458,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-guid"),
             invalidOFTMessage,
             address(0),
@@ -479,6 +488,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-guid"),
             malformedOFTMessage,
             address(0),
@@ -536,6 +546,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-guid"),
             oftMessage,
             address(0),
@@ -611,6 +622,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("test-guid-success"),
             oftMessage,
             address(0),

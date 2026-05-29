@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
 import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract SummerTokenBurnableTest is SummerTokenTestBase {
     // Define the Transfer event
@@ -63,6 +62,7 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
 
     function test_burnFrom() public {
         uint256 burnAmount = 100 ether;
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, burnAmount);
         uint256 initialBalance = aSummerToken.balanceOf(user1);
         uint256 initialSupply = aSummerToken.totalSupply();
@@ -96,6 +96,7 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
     }
 
     function test_RevertWhen_burnFromWithoutAllowance() public {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, 100 ether);
         vm.expectRevert();
         aSummerToken.burnFrom(user1, 100 ether);
@@ -103,6 +104,7 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
 
     function test_RevertWhen_burnFromMoreThanAllowance() public {
         uint256 burnAmount = 100 ether;
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, burnAmount);
 
         vm.startPrank(user1);
@@ -115,6 +117,7 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
 
     function test_RevertWhen_burnFromMoreThanBalance() public {
         uint256 burnAmount = 100 ether;
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, burnAmount);
 
         vm.startPrank(user1);
@@ -127,6 +130,7 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
 
     function test_burnFromWithInfiniteAllowance() public {
         uint256 burnAmount = 100 ether;
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, burnAmount);
         uint256 initialBalance = aSummerToken.balanceOf(user1);
         uint256 initialSupply = aSummerToken.totalSupply();
@@ -145,6 +149,7 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
     function test_multipleBurnsFromSameAccount() public {
         uint256 burnAmount = 50 ether;
         uint256 totalAmount = burnAmount * 2;
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, totalAmount);
         uint256 initialBalance = aSummerToken.balanceOf(user1);
 
@@ -166,6 +171,7 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
     // ======== Edge cases ========
 
     function test_burnFromZeroAmount() public {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, 100 ether);
 
         vm.startPrank(user1);
@@ -185,6 +191,7 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
 
     function test_burnAndVotingPower() public {
         uint256 burnAmount = 100 ether;
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, burnAmount);
 
         vm.startPrank(user1);

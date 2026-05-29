@@ -25,6 +25,7 @@ contract SummerRewardsRedeemerOwnable is ISummerRewardsRedeemer, Ownable {
      * @notice Token being distributed as rewards
      * @dev Set at deployment and cannot be changed
      */
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     IERC20 public immutable rewardsToken;
 
     /**
@@ -130,9 +131,9 @@ contract SummerRewardsRedeemerOwnable is ISummerRewardsRedeemer, Ownable {
         uint256 amount,
         bytes32[] memory proof
     ) internal view returns (bool) {
-        bytes32 leaf = keccak256(
-            bytes.concat(keccak256(abi.encode(user, amount)))
-        );
+        // prettier-ignore
+        // forge-lint: disable-next-line(asm-keccak256)
+        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(user, amount))));
         return MerkleProof.verify(proof, roots[index], leaf);
     }
 

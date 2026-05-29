@@ -27,8 +27,10 @@ contract RwaOracle is Ownable, AggregatorV3Interface, IRwaOracle, EIP712 {
     /// @notice Human-readable description of this price feed
     string public description;
     /// @notice Number of decimals in the price (Chainlink standard)
+    // forge-lint: disable-next-line(screaming-snake-case-const)
     uint8 public constant decimals = 8;
     /// @notice Version for EIP-712 domain
+    // forge-lint: disable-next-line(screaming-snake-case-const)
     uint256 public constant version = 1;
 
     /// @notice Minimum number of valid signatures required to update price
@@ -165,16 +167,16 @@ contract RwaOracle is Ownable, AggregatorV3Interface, IRwaOracle, EIP712 {
         if (timestamp > block.timestamp + 1 hours) revert FuturePrice(); // Basic sanity check
 
         // EIP-712: structured data so wallets show price, timestamp, nonce, etc.
-        bytes32 structHash = keccak256(
-            abi.encode(
-                PRICE_UPDATE_TYPEHASH,
-                price,
-                timestamp,
-                nonce,
-                address(this),
-                block.chainid
-            )
+        bytes memory encoded = abi.encode(
+            PRICE_UPDATE_TYPEHASH,
+            price,
+            timestamp,
+            nonce,
+            address(this),
+            block.chainid
         );
+        // forge-lint: disable-next-line(asm-keccak256)
+        bytes32 structHash = keccak256(encoded);
         bytes32 digest = _hashTypedDataV4(structHash);
 
         _verifySignatures(digest, signatures);

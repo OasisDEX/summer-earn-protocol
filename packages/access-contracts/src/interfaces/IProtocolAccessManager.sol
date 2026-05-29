@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-
 /**
  * @dev Dynamic roles are roles that are not hardcoded in the contract but are defined by the protocol
  * Members of this enum are treated as prefixes to the role generated using prefix and target contract address
@@ -201,21 +199,27 @@ interface IProtocolAccessManager {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Role identifier for the Governor role
+    // forge-lint: disable-next-line(mixed-case-function)
     function GOVERNOR_ROLE() external pure returns (bytes32);
 
     /// @notice Role identifier for the Guardian role
+    // forge-lint: disable-next-line(mixed-case-function)
     function GUARDIAN_ROLE() external pure returns (bytes32);
 
     /// @notice Role identifier for the Super Keeper role
+    // forge-lint: disable-next-line(mixed-case-function)
     function SUPER_KEEPER_ROLE() external pure returns (bytes32);
 
     /// @notice Role identifier for the Decay Controller role
+    // forge-lint: disable-next-line(mixed-case-function)
     function DECAY_CONTROLLER_ROLE() external pure returns (bytes32);
 
     /// @notice Role identifier for the Admirals Quarters role
+    // forge-lint: disable-next-line(mixed-case-function)
     function ADMIRALS_QUARTERS_ROLE() external pure returns (bytes32);
 
     /// @notice Role identifier for the Foundation, responsible for managing vesting wallets and related operations
+    // forge-lint: disable-next-line(mixed-case-function)
     function FOUNDATION_ROLE() external pure returns (bytes32);
 
     /**

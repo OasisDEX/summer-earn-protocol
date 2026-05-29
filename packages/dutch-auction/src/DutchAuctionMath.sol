@@ -43,11 +43,11 @@ library DutchAuctionMath {
         uint256 endPriceWei = endPrice.toWei(priceDecimals);
 
         UD60x18 priceDifference = ud(startPriceWei - endPriceWei);
-        UD60x18 timeElapsedUD = convert(timeElapsed);
-        UD60x18 totalDurationUD = convert(totalDuration);
+        UD60x18 timeElapsedUd = convert(timeElapsed);
+        UD60x18 totalDurationUd = convert(totalDuration);
 
-        UD60x18 decayedDifference = priceDifference.mul(timeElapsedUD).div(
-            totalDurationUD
+        UD60x18 decayedDifference = priceDifference.mul(timeElapsedUd).div(
+            totalDurationUd
         );
 
         uint256 currentPriceWei = startPriceWei - unwrap(decayedDifference);
@@ -85,13 +85,13 @@ library DutchAuctionMath {
 
         UD60x18 priceDifference = ud(startPriceWei - endPriceWei);
         UD60x18 timeRemaining = convert(totalDuration - timeElapsed);
-        UD60x18 totalDurationUD = convert(totalDuration);
+        UD60x18 totalDurationUd = convert(totalDuration);
 
         // Calculate (totalDuration - timeElapsed) ** 2
         UD60x18 timeRemainingSquared = timeRemaining.powu(2);
 
         // Calculate totalDuration ** 2
-        UD60x18 totalDurationSquared = totalDurationUD.powu(2);
+        UD60x18 totalDurationSquared = totalDurationUd.powu(2);
 
         // Calculate (priceDifference * (totalDuration - timeElapsed) ** 2) / totalDuration ** 2
         UD60x18 decayedDifference = priceDifference
@@ -130,8 +130,8 @@ library DutchAuctionMath {
         uint256 priceWei = price.toWei(priceDecimals);
         uint256 amountWei = amount.toWei(amountDecimals);
 
-        UD60x18 resultUD = ud(priceWei).mul(ud(amountWei));
+        UD60x18 resultUd = ud(priceWei).mul(ud(amountWei));
 
-        return unwrap(resultUD).fromWei(resultDecimals);
+        return unwrap(resultUd).fromWei(resultDecimals);
     }
 }

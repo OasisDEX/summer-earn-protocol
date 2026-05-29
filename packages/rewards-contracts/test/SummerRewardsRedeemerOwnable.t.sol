@@ -3,9 +3,7 @@ pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {SummerRewardsRedeemerOwnable} from "../src/contracts/SummerRewardsRedeemerOwnable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {console} from "forge-std/console.sol";
 
 contract RewardsRedeemerOwnableTest is Test {
     SummerRewardsRedeemerOwnable public redeemer;
@@ -27,11 +25,11 @@ contract RewardsRedeemerOwnableTest is Test {
     uint256 public constant TEST_AMOUNT_BOB = 2 ether;
     uint256 public constant TEST_AMOUNT_BOB_2 = 2 ether;
 
-    bytes32[] public TEST_PROOF_ALICE;
-    bytes32[] public TEST_PROOF_ALICE_2;
+    bytes32[] public testProofAlice;
+    bytes32[] public testProofAlice2;
 
-    bytes32[] public TEST_PROOF_BOB;
-    bytes32[] public TEST_PROOF_BOB_2;
+    bytes32[] public testProofBob;
+    bytes32[] public testProofBob2;
 
     event Claimed(address indexed user, uint256 indexed index, uint256 amount);
     event RootAdded(uint256 indexed index, bytes32 root);
@@ -52,38 +50,38 @@ contract RewardsRedeemerOwnableTest is Test {
         );
 
         // Setup test proof for alice
-        TEST_PROOF_ALICE = new bytes32[](2);
-        TEST_PROOF_ALICE[
+        testProofAlice = new bytes32[](2);
+        testProofAlice[
             0
         ] = hex"561fb36e5ca9909a808f1e83a1363762ff75b9a121babb0178f6c9fc690a1367";
-        TEST_PROOF_ALICE[
+        testProofAlice[
             1
         ] = hex"9edac377c4d6abe396e41107eccedbb2741e10f8387a9167c404646631914c4c";
 
         // Setup test proof for alice - distribution 2
-        TEST_PROOF_ALICE_2 = new bytes32[](2);
-        TEST_PROOF_ALICE_2[
+        testProofAlice2 = new bytes32[](2);
+        testProofAlice2[
             0
         ] = hex"561fb36e5ca9909a808f1e83a1363762ff75b9a121babb0178f6c9fc690a1367";
-        TEST_PROOF_ALICE_2[
+        testProofAlice2[
             1
         ] = hex"59bfd8b8aa058effb68dc5d8dadc75a6af9069ec03a5e3e4081284366d553c72";
 
         // Setup test proof for bob
-        TEST_PROOF_BOB = new bytes32[](2);
-        TEST_PROOF_BOB[
+        testProofBob = new bytes32[](2);
+        testProofBob[
             0
         ] = hex"4f85b7756d43c5aff03edda5556ddc40391674530def808c54a418a3388845f0";
-        TEST_PROOF_BOB[
+        testProofBob[
             1
         ] = hex"9edac377c4d6abe396e41107eccedbb2741e10f8387a9167c404646631914c4c";
 
         // Setup test proof for bob - distribution 2
-        TEST_PROOF_BOB_2 = new bytes32[](2);
-        TEST_PROOF_BOB_2[
+        testProofBob2 = new bytes32[](2);
+        testProofBob2[
             0
         ] = hex"42cc8a55e963e0472bfe88474c638d374e1a860c2580fcf2d5ef698fbfd830c3";
-        TEST_PROOF_BOB_2[
+        testProofBob2[
             1
         ] = hex"59bfd8b8aa058effb68dc5d8dadc75a6af9069ec03a5e3e4081284366d553c72";
     }
@@ -151,7 +149,7 @@ contract RewardsRedeemerOwnableTest is Test {
 
         vm.expectEmit(true, true, false, true);
         emit Claimed(alice, TEST_INDEX, TEST_AMOUNT_ALICE);
-        redeemer.claim(alice, TEST_INDEX, TEST_AMOUNT_ALICE, TEST_PROOF_ALICE);
+        redeemer.claim(alice, TEST_INDEX, TEST_AMOUNT_ALICE, testProofAlice);
 
         assertEq(
             rewardsToken.balanceOf(alice),
@@ -165,7 +163,7 @@ contract RewardsRedeemerOwnableTest is Test {
 
         vm.expectEmit(true, true, false, true);
         emit Claimed(bob, TEST_INDEX, TEST_AMOUNT_BOB);
-        redeemer.claim(bob, TEST_INDEX, TEST_AMOUNT_BOB, TEST_PROOF_BOB);
+        redeemer.claim(bob, TEST_INDEX, TEST_AMOUNT_BOB, testProofBob);
 
         assertEq(rewardsToken.balanceOf(bob), balanceBefore + TEST_AMOUNT_BOB);
         assertTrue(redeemer.hasClaimed(bob, TEST_INDEX));
@@ -188,12 +186,12 @@ contract RewardsRedeemerOwnableTest is Test {
         amountsBob[1] = TEST_AMOUNT_BOB_2;
 
         bytes32[][] memory proofsAlice = new bytes32[][](2);
-        proofsAlice[0] = TEST_PROOF_ALICE;
-        proofsAlice[1] = TEST_PROOF_ALICE_2;
+        proofsAlice[0] = testProofAlice;
+        proofsAlice[1] = testProofAlice2;
 
         bytes32[][] memory proofsBob = new bytes32[][](2);
-        proofsBob[0] = TEST_PROOF_BOB;
-        proofsBob[1] = TEST_PROOF_BOB_2;
+        proofsBob[0] = testProofBob;
+        proofsBob[1] = testProofBob2;
 
         vm.startPrank(owner);
         redeemer.addRoot(TEST_INDEX, TEST_ROOT);
@@ -332,7 +330,7 @@ contract RewardsRedeemerOwnableTest is Test {
                 alice,
                 TEST_INDEX,
                 TEST_AMOUNT_ALICE,
-                TEST_PROOF_ALICE
+                testProofAlice
             )
         );
     }
@@ -347,7 +345,7 @@ contract RewardsRedeemerOwnableTest is Test {
                 alice,
                 TEST_INDEX + 1,
                 TEST_AMOUNT_ALICE,
-                TEST_PROOF_ALICE
+                testProofAlice
             )
         );
     }
@@ -361,7 +359,7 @@ contract RewardsRedeemerOwnableTest is Test {
                 alice,
                 TEST_INDEX,
                 TEST_AMOUNT_ALICE + 1,
-                TEST_PROOF_ALICE
+                testProofAlice
             )
         );
     }
@@ -375,7 +373,7 @@ contract RewardsRedeemerOwnableTest is Test {
                 alice,
                 TEST_INDEX,
                 TEST_AMOUNT_ALICE,
-                TEST_PROOF_BOB
+                testProofBob
             )
         );
     }
@@ -406,8 +404,8 @@ contract RewardsRedeemerOwnableTest is Test {
         amounts[1] = TEST_AMOUNT_ALICE;
 
         bytes32[][] memory proofs = new bytes32[][](2);
-        proofs[0] = TEST_PROOF_ALICE;
-        proofs[1] = TEST_PROOF_ALICE;
+        proofs[0] = testProofAlice;
+        proofs[1] = testProofAlice;
 
         vm.prank(owner);
         redeemer.addRoot(TEST_INDEX, TEST_ROOT);
@@ -419,7 +417,7 @@ contract RewardsRedeemerOwnableTest is Test {
                 alice,
                 TEST_INDEX,
                 TEST_AMOUNT_ALICE,
-                TEST_PROOF_ALICE
+                testProofAlice
             )
         );
         redeemer.claimMultiple(alice, indices, amounts, proofs);
@@ -436,8 +434,8 @@ contract RewardsRedeemerOwnableTest is Test {
         amounts[1] = TEST_AMOUNT_ALICE_2;
 
         bytes32[][] memory proofs = new bytes32[][](2);
-        proofs[0] = TEST_PROOF_ALICE;
-        proofs[1] = TEST_PROOF_ALICE_2;
+        proofs[0] = testProofAlice;
+        proofs[1] = testProofAlice2;
 
         vm.startPrank(owner);
         redeemer.addRoot(TEST_INDEX, TEST_ROOT);
@@ -469,8 +467,8 @@ contract RewardsRedeemerOwnableTest is Test {
         amounts[1] = TEST_AMOUNT_ALICE_2;
 
         bytes32[][] memory proofs = new bytes32[][](2);
-        proofs[0] = TEST_PROOF_ALICE;
-        proofs[1] = TEST_PROOF_ALICE_2;
+        proofs[0] = testProofAlice;
+        proofs[1] = testProofAlice2;
 
         vm.startPrank(owner);
         redeemer.addRoot(TEST_INDEX, TEST_ROOT);

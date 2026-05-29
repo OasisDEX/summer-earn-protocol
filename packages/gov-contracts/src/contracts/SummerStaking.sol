@@ -11,7 +11,6 @@ import {ConfigurationManaged} from "@summerfi/config-contracts/contracts/Configu
 import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
 import {ISummerStaking} from "../interfaces/ISummerStaking.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title SummerStaking

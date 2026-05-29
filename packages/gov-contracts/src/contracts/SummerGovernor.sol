@@ -10,10 +10,10 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {MessagingFee, OApp, Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 
-import {Governor, GovernorVotes, IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import {Governor, GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
-import {GovernorTimelockControl, TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -41,12 +41,14 @@ contract SummerGovernor is
 
     uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Tokens
     uint256 public constant MAX_PROPOSAL_THRESHOLD = 100000e18; // 100,000 Tokens
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     uint32 public immutable hubChainId;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    // forge-lint: disable-next-line(screaming-snake-case-immutable)
     address public immutable accessManager;
 
     /*//////////////////////////////////////////////////////////////
@@ -573,6 +575,7 @@ contract SummerGovernor is
      * @dev Returns the clock mode used by the contract.
      * @return A string describing the clock mode.
      */
+    // forge-lint: disable-next-line(mixed-case-function)
     function CLOCK_MODE()
         public
         view

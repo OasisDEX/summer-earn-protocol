@@ -6,8 +6,7 @@ import {ISummerStaking} from "../../src/interfaces/ISummerStaking.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
-import {Test, console} from "forge-std/Test.sol";
-import {Vm} from "forge-std/Vm.sol";
+import {console} from "forge-std/Test.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 
@@ -440,7 +439,9 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         uint256 lockupPeriod
     ) internal pure returns (uint256) {
         // Constants from contract
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 WEIGHTED_STAKE_BASE = 1e18;
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 WEIGHTED_STAKE_COEFFICIENT = 700; //
         // Convert lockupPeriod into 60.18 fixed-point
         UD60x18 time = convert(lockupPeriod);

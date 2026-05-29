@@ -39,8 +39,11 @@ contract SummerTokenDecayTest is SummerTokenTestBase {
         enableTransfers();
 
         // Initial token distribution
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user1, TRANSFER_AMOUNT);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user2, TRANSFER_AMOUNT);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(user3, TRANSFER_AMOUNT);
     }
 

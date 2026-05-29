@@ -2,8 +2,7 @@
 pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
-import {IOAppPreCrimeSimulator, InboundPacket, Origin} from "@layerzerolabs/oapp-evm/contracts/precrime/interfaces/IOAppPreCrimeSimulator.sol";
+import {InboundPacket, Origin} from "@layerzerolabs/oapp-evm/contracts/precrime/interfaces/IOAppPreCrimeSimulator.sol";
 
 contract SummerTokenPreCrimeTest is SummerTokenTestBase {
     address public constant PRECRIME = address(0x123);

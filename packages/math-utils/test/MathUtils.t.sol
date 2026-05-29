@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {Test, console} from "forge-std/Test.sol";
 
 import {MathUtils} from "../contracts/MathUtils.sol";
-import {Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 contract RPowTest is Test {
     address public governor = address(1);
     using MathUtils for uint256;

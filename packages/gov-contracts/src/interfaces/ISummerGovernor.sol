@@ -3,10 +3,8 @@ pragma solidity 0.8.28;
 
 import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {SummerTimelockController} from "../contracts/SummerTimelockController.sol";
 import {ISummerToken} from "./ISummerToken.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 /**
  * @title ISummerGovernor Interface
  * @notice Interface for the SummerGovernor contract, extending OpenZeppelin's IGovernor

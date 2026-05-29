@@ -3,9 +3,7 @@ pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
 import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {console} from "forge-std/console.sol";
-import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
 import {VotingDecayMath} from "@summerfi/voting-decay/VotingDecayMath.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -83,6 +81,7 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
         _invariant_ST_VD5_delegateChangePreservesVotingPower();
     }
 
+    // forge-lint: disable-next-line(mixed-case-function)
     function _invariant_ST_VD5_delegateChangePreservesVotingPower() public {
         for (uint256 i = 0; i < actors.length; i++) {
             address account = actors[i];

@@ -115,6 +115,7 @@ contract StakedSummerToken is
     }
 
     // solhint-disable-next-line func-name-mixedcase
+    // forge-lint: disable-next-line(mixed-case-function)
     /// @notice Returns the clock mode string as required by ERC-6372.
     function CLOCK_MODE() public pure override returns (string memory) {
         return "mode=timestamp";

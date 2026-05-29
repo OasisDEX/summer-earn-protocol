@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {SummerGovernorTestBase} from "./SummerGovernorTestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract SummerGovernorEIP712Test is SummerGovernorTestBase {
@@ -67,6 +66,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function test_CastVoteBySig() public {
         // Setup proposal and voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -118,6 +118,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function test_CastVoteWithReasonAndParamsBySig() public {
         // Setup proposal and voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -185,6 +186,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function testRevert_InvalidSignature() public {
         // Setup proposal and voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -225,6 +227,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
 
         // Setup proposal and voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -286,6 +289,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function test_CastVoteWithReasonBySig() public {
         // Setup proposal and voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -354,6 +358,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function test_CastVoteWithReason() public {
         // Setup proposal and voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -389,6 +394,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function test_CastVoteWithReasonAndParams() public {
         // Setup proposal and voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -425,6 +431,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function test_GetVotes() public {
         // Setup voter with tokens
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100e18);
         vm.stopPrank();
 
@@ -442,6 +449,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function test_GetVotesWithParams() public {
         // Setup voter with tokens
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100e18);
         vm.stopPrank();
 
@@ -464,6 +472,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function test_HasVoted() public {
         // Setup proposal and voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -499,6 +508,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function testRevert_InvalidSignatureLength() public {
         // Setup proposal and voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -525,6 +535,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function test_PreventSignatureReplay() public {
         // Setup proposal and voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -567,6 +578,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
     function test_NonceIncrement() public {
         // Setup proposal and voter
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
@@ -615,6 +627,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
         // Setup proposal and voter with specific voting power
         uint256 votingPower = governorA.proposalThreshold(); // Use the actual required threshold
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, votingPower);
         vm.stopPrank();
 

@@ -3,32 +3,28 @@ pragma solidity 0.8.28;
 
 import {SummerGovernorTestBase} from "./SummerGovernorTestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {TestMockReceiver} from "../mocks/MockReceiver.sol";
 import {TestMockERC721} from "../mocks/MockTokens.sol";
 import {TestMockERC1155} from "../mocks/MockTokens.sol";
 
 contract SummerGovernorGovernorTest is SummerGovernorTestBase {
-    TestMockERC721 public mockNFT;
+    TestMockERC721 public mockNft;
     TestMockERC1155 public mockERC1155;
 
     function setUp() public override {
         super.setUp();
-        mockNFT = new TestMockERC721("Mock NFT", "MNFT");
+        mockNft = new TestMockERC721("Mock NFT", "MNFT");
         mockERC1155 = new TestMockERC1155("uri/");
     }
 
     function test_OnERC721Received() public {
         // Test receiving an ERC721 token
         uint256 tokenId = 1;
-        mockNFT.mint(address(this), tokenId);
+        mockNft.mint(address(this), tokenId);
 
         // Should revert because deposits are disabled when using timelock
         vm.expectRevert(abi.encodeWithSignature("GovernorDisabledDeposit()"));
-        mockNFT.safeTransferTestFrom(
+        mockNft.safeTransferTestFrom(
             address(this),
             address(governorA),
             tokenId,
@@ -94,6 +90,7 @@ contract SummerGovernorGovernorTest is SummerGovernorTestBase {
 
         // Rest of the proposal flow
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
 
@@ -171,6 +168,7 @@ contract SummerGovernorGovernorTest is SummerGovernorTestBase {
 
         // Rest of proposal flow
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
 

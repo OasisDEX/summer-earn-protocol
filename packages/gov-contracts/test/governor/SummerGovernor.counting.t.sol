@@ -21,8 +21,11 @@ contract SummerGovernorCountingTest is SummerGovernorTestBase {
         address voter3 = address(0x3);
 
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(voter1, 100e18);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(voter2, 200e18);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(voter3, 300e18);
         vm.stopPrank();
 
@@ -74,6 +77,7 @@ contract SummerGovernorCountingTest is SummerGovernorTestBase {
         uint256 quorumVotes = governorA.quorum(block.timestamp - 1);
 
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(voter, quorumVotes);
         vm.stopPrank();
 
@@ -111,7 +115,9 @@ contract SummerGovernorCountingTest is SummerGovernorTestBase {
         address againstVoter = address(0x2);
 
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(forVoter, 200 * 1e6 * 1e18);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(againstVoter, 100 * 1e6 * 1e18);
         vm.stopPrank();
 
@@ -150,6 +156,7 @@ contract SummerGovernorCountingTest is SummerGovernorTestBase {
 
         address voter = address(0x1);
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(voter, 100e18);
         vm.stopPrank();
 
@@ -184,6 +191,7 @@ contract SummerGovernorCountingTest is SummerGovernorTestBase {
 
         address voter = address(0x1);
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(voter, 100e18);
         vm.stopPrank();
 
@@ -209,6 +217,7 @@ contract SummerGovernorCountingTest is SummerGovernorTestBase {
         string memory description = "Test Proposal";
 
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, governorA.proposalThreshold());
         vm.stopPrank();
 

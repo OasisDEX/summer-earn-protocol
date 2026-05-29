@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {SummerGovernorTestBase} from "../governor/SummerGovernorTestBase.sol";
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 
@@ -36,7 +35,9 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // Mint initial tokens
         vm.startPrank(address(timelockA));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, INITIAL_STAKE_AMOUNT);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(bob, INITIAL_STAKE_AMOUNT);
         vm.stopPrank();
 
@@ -88,8 +89,10 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         stakingRewardsManager.updateSmoothedDecayFactor(alice);
 
         // Calculate expected EMA: α * currentValue + (1 - α) * previousValue
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 SMOOTHING_FACTOR = stakingRewardsManager
             .DECAY_SMOOTHING_FACTOR();
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 SMOOTHING_BASE = stakingRewardsManager
             .DECAY_SMOOTHING_FACTOR_BASE();
         uint256 expectedSmoothedFactor = ((newDecayFactor * SMOOTHING_FACTOR) +
@@ -168,8 +171,10 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             stakingRewardsManager.updateSmoothedDecayFactor(alice);
 
             // Calculate expected EMA
+            // forge-lint: disable-next-line(mixed-case-variable)
             uint256 SMOOTHING_FACTOR = stakingRewardsManager
                 .DECAY_SMOOTHING_FACTOR();
+            // forge-lint: disable-next-line(mixed-case-variable)
             uint256 SMOOTHING_BASE = stakingRewardsManager
                 .DECAY_SMOOTHING_FACTOR_BASE();
             expectedSmoothed =
@@ -217,8 +222,10 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         stakingRewardsManager.updateSmoothedDecayFactor(alice);
 
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 SMOOTHING_FACTOR = stakingRewardsManager
             .DECAY_SMOOTHING_FACTOR();
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 SMOOTHING_BASE = stakingRewardsManager
             .DECAY_SMOOTHING_FACTOR_BASE();
         uint256 expectedSmoothed = ((largeDecayFactor * SMOOTHING_FACTOR) +

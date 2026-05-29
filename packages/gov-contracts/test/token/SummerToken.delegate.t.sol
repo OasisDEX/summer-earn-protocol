@@ -2,8 +2,6 @@
 pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IGovernanceRewardsManager} from "../../src/interfaces/IGovernanceRewardsManager.sol";
 import {ISummerTokenErrors} from "../../src/errors/ISummerTokenErrors.sol";
 

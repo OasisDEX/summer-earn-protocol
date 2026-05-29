@@ -5,7 +5,6 @@ import {SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {TimelockGuard} from "../../src/contracts/misc/TimelockGuard.sol";
-import {console} from "forge-std/console.sol";
 
 contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
     event TimelockChange(address oldTimelock, address newTimelock);
@@ -194,6 +193,7 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
             abi.encodeWithSelector(
                 TimelockController.TimelockUnexpectedOperationState.selector,
                 operationId,
+                // forge-lint: disable-next-line(incorrect-shift)
                 bytes32(1 << uint8(TimelockController.OperationState.Ready)) // Expect Ready state
             )
         );
@@ -205,6 +205,7 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
             abi.encodeWithSelector(
                 TimelockController.TimelockUnexpectedOperationState.selector,
                 operationId,
+                // forge-lint: disable-next-line(incorrect-shift)
                 bytes32(1 << uint8(TimelockController.OperationState.Ready)) // Expect Ready state
             )
         );

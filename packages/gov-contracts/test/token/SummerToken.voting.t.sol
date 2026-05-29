@@ -2,9 +2,7 @@
 pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import {console} from "forge-std/console.sol";
 import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
 
 contract SummerTokenVotingTest is SummerTokenTestBase {
@@ -23,6 +21,7 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
     function test_InitialDelegation() public {
         assertEq(aSummerToken.getVotes(alice), 0);
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100 ether);
         assertEq(aSummerToken.getVotes(alice), 0);
 
@@ -34,6 +33,7 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
 
         // Transfer half balance
         vm.prank(alice);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(bob, 50 ether);
 
         // Check historical votes
@@ -50,7 +50,9 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
     }
 
     function test_Delegation() public {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100 ether);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(bob, 50 ether);
 
         vm.prank(alice);
@@ -68,8 +70,11 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
     }
 
     function test_DelegationChain() public {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100 ether);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(bob, 50 ether);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(charlie, 25 ether);
 
         vm.prank(charlie);
@@ -88,6 +93,7 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
 
     function test_HistoricalVotes() public {
         // Initial setup at block N
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100e18);
 
         vm.prank(alice);
@@ -95,6 +101,7 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
 
         vm.roll(block.number + 1);
         vm.warp(block.timestamp + 1);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 50e18);
 
         // Check historical votes at block N+1
@@ -102,6 +109,7 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
     }
 
     function test_CheckpointsAccess() public {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100 ether);
 
         vm.prank(alice);
@@ -116,6 +124,7 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
     }
 
     function test_NumCheckpoints() public {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100 ether);
 
         vm.prank(alice);
@@ -125,12 +134,14 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
         vm.warp(block.timestamp + 1);
 
         vm.prank(alice);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(bob, 50 ether);
 
         assertEq(aSummerToken.numCheckpoints(alice), 2);
     }
 
     function test_DelegateToZeroAddress() public {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100 ether);
 
         vm.prank(alice);
@@ -142,12 +153,14 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
     }
 
     function test_TransferAfterDelegation() public {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100 ether);
 
         vm.prank(alice);
         aSummerToken.delegate(bob);
 
         vm.prank(alice);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(charlie, 50 ether);
 
         assertEq(aSummerToken.getVotes(bob), 50 ether);
@@ -155,10 +168,12 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
     }
 
     function test_DelegateBySig() public {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100 ether);
 
         uint256 privateKey = 0xA11CE;
         address signer = vm.addr(privateKey);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(signer, 100 ether);
 
         // Prepare signature data
@@ -196,6 +211,7 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
     function test_DelegateBySig_ExpiredSignature() public {
         uint256 privateKey = 0xA11CE;
         address signer = vm.addr(privateKey);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(signer, 100 ether);
 
         uint256 nonce = aSummerToken.nonces(signer);
@@ -261,8 +277,11 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
 
     function test_ComplexDelegationScenario() public {
         // Do transfers and delegations
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100e18);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(bob, 50e18);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(charlie, 25e18);
 
         vm.prank(alice);
@@ -283,6 +302,7 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
     }
 
     function test_DelegationWithTransfers() public {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(alice, 100 ether);
 
         vm.prank(alice);
@@ -293,6 +313,7 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
 
         // Transfer half balance
         vm.prank(alice);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         aSummerToken.transfer(bob, 50 ether);
 
         // Check historical votes

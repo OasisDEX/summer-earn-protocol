@@ -227,6 +227,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
             });
         try
             mockAdapter.transferAsset{value: 0.1 ether}(
+                // forge-lint: disable-next-line(unsafe-typecast)
                 bytes32("test"),
                 params,
                 options
@@ -246,6 +247,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         // Try with explicit gas limit
         try
             mockAdapter.transferAsset{value: 0.1 ether, gas: 500000}(
+                // forge-lint: disable-next-line(unsafe-typecast)
                 bytes32("test"),
                 params,
                 options
@@ -267,6 +269,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         // Try the minimal version
         try
             mockAdapter.transferAssetMinimal{value: 0.1 ether}(
+                // forge-lint: disable-next-line(unsafe-typecast)
                 bytes32("test"),
                 DEST_CHAIN_ID,
                 address(token),
@@ -289,6 +292,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         // Try without payable value
         try
             mockAdapter.transferAssetMinimal(
+                // forge-lint: disable-next-line(unsafe-typecast)
                 bytes32("test"),
                 DEST_CHAIN_ID,
                 address(token),

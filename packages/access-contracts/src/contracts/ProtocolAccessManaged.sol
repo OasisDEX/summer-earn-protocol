@@ -28,7 +28,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
  * Usage:
  * - Inherit from this contract to gain access to role-checking modifiers
  * - Use modifiers like onlyGovernor, onlyKeeper, etc. to protect functions
- * - Access the internal _accessManager to perform custom role checks
+ * - Access the internal _ACCESS_MANAGER to perform custom role checks
  *
  * Security Considerations:
  * - The contract validates the access manager address during construction
@@ -79,7 +79,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The ProtocolAccessManager instance used for access control
-    ProtocolAccessManager internal immutable _accessManager;
+    ProtocolAccessManager internal immutable _ACCESS_MANAGER;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -88,7 +88,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     /**
      * @notice Initializes the ProtocolAccessManaged contract
      * @param accessManager Address of the ProtocolAccessManager contract
-     * @dev Validates the provided accessManager address and initializes the _accessManager
+     * @dev Validates the provided accessManager address and initializes the _ACCESS_MANAGER
      */
     constructor(address accessManager) {
         if (accessManager == address(0)) {
@@ -103,7 +103,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
             revert InvalidAccessManagerAddress(accessManager);
         }
 
-        _accessManager = ProtocolAccessManager(accessManager);
+        _ACCESS_MANAGER = ProtocolAccessManager(accessManager);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -129,7 +129,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     function _revertIfNotGovernor() private view {
-        if (!_accessManager.hasRole(GOVERNOR_ROLE, _msgSender())) {
+        if (!_ACCESS_MANAGER.hasRole(GOVERNOR_ROLE, _msgSender())) {
             revert CallerIsNotGovernor(_msgSender());
         }
     }
@@ -155,10 +155,10 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
 
     function _revertIfNotKeeper() private view {
         if (
-            !_accessManager.hasRole(
+            !_ACCESS_MANAGER.hasRole(
                 generateRole(ContractSpecificRoles.KEEPER_ROLE, address(this)),
                 _msgSender()
-            ) && !_accessManager.hasRole(SUPER_KEEPER_ROLE, _msgSender())
+            ) && !_ACCESS_MANAGER.hasRole(SUPER_KEEPER_ROLE, _msgSender())
         ) {
             revert CallerIsNotKeeper(_msgSender());
         }
@@ -182,7 +182,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     function _revertIfNotSuperKeeper() private view {
-        if (!_accessManager.hasRole(SUPER_KEEPER_ROLE, _msgSender())) {
+        if (!_ACCESS_MANAGER.hasRole(SUPER_KEEPER_ROLE, _msgSender())) {
             revert CallerIsNotSuperKeeper(_msgSender());
         }
     }
@@ -200,7 +200,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     function _revertIfNotCurator(address fleetAddress) private view {
         if (
             fleetAddress == address(0) ||
-            !_accessManager.hasRole(
+            !_ACCESS_MANAGER.hasRole(
                 generateRole(ContractSpecificRoles.CURATOR_ROLE, fleetAddress),
                 _msgSender()
             )
@@ -227,7 +227,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     function _revertIfNotGuardian() private view {
-        if (!_accessManager.hasRole(GUARDIAN_ROLE, _msgSender())) {
+        if (!_ACCESS_MANAGER.hasRole(GUARDIAN_ROLE, _msgSender())) {
             revert CallerIsNotGuardian(_msgSender());
         }
     }
@@ -253,8 +253,8 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
 
     function _revertIfNotGuardianOrGovernor() private view {
         if (
-            !_accessManager.hasRole(GUARDIAN_ROLE, _msgSender()) &&
-            !_accessManager.hasRole(GOVERNOR_ROLE, _msgSender())
+            !_ACCESS_MANAGER.hasRole(GUARDIAN_ROLE, _msgSender()) &&
+            !_ACCESS_MANAGER.hasRole(GOVERNOR_ROLE, _msgSender())
         ) {
             revert CallerIsNotGuardianOrGovernor(_msgSender());
         }
@@ -269,7 +269,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     function _revertIfNotDecayController() private view {
-        if (!_accessManager.hasRole(DECAY_CONTROLLER_ROLE, _msgSender())) {
+        if (!_ACCESS_MANAGER.hasRole(DECAY_CONTROLLER_ROLE, _msgSender())) {
             revert CallerIsNotDecayController(_msgSender());
         }
     }
@@ -288,8 +288,8 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
 
     function _revertIfNotFoundation() private view {
         if (
-            !_accessManager.hasRole(
-                _accessManager.FOUNDATION_ROLE(),
+            !_ACCESS_MANAGER.hasRole(
+                _ACCESS_MANAGER.FOUNDATION_ROLE(),
                 _msgSender()
             )
         ) {
@@ -312,6 +312,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         ContractSpecificRoles roleName,
         address roleTargetContract
     ) public pure returns (bytes32) {
+        // forge-lint: disable-next-line(asm-keccak256)
         return keccak256(abi.encodePacked(roleName, roleTargetContract));
     }
 
@@ -323,7 +324,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     function hasAdmiralsQuartersRole(
         address account
     ) public view returns (bool) {
-        return _accessManager.hasRole(ADMIRALS_QUARTERS_ROLE, account);
+        return _ACCESS_MANAGER.hasRole(ADMIRALS_QUARTERS_ROLE, account);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -336,11 +337,11 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * @return bool True if the address has the Governor role
      */
     function _isGovernor(address account) internal view returns (bool) {
-        return _accessManager.hasRole(GOVERNOR_ROLE, account);
+        return _ACCESS_MANAGER.hasRole(GOVERNOR_ROLE, account);
     }
 
     function _isDecayController(address account) internal view returns (bool) {
-        return _accessManager.hasRole(DECAY_CONTROLLER_ROLE, account);
+        return _ACCESS_MANAGER.hasRole(DECAY_CONTROLLER_ROLE, account);
     }
 
     /**
@@ -350,6 +351,6 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      */
     function _isFoundation(address account) internal view returns (bool) {
         return
-            _accessManager.hasRole(_accessManager.FOUNDATION_ROLE(), account);
+            _ACCESS_MANAGER.hasRole(_ACCESS_MANAGER.FOUNDATION_ROLE(), account);
     }
 }

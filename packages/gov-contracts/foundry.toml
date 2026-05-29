@@ -2,10 +2,13 @@
 src = "src"
 out = "out"
 libs = [
-  'node_modules', 
+  'node_modules',
   'lib'
 ]
 allow_paths = ["../../node_modules"]
+remappings = [
+  "solidity-bytes-utils/=node_modules/@summerfi/legacy-dependencies/node_modules/solidity-bytes-utils/"
+]
 test = 'test'
 cache_path  = 'cache_forge'
 solc = "0.8.28"

@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
-import {console} from "forge-std/console.sol";
 contract SummerGovernorCountingTest2 is SummerGovernorV2TestBase {
     // Test basic vote counting mode
     function test_CountingMode() public view {
