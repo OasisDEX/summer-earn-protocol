@@ -177,12 +177,28 @@ export function evaluateRoute({
     }
   }
 
-  // 9. Confirmation floor (EVM)
-  if (onChain?.sendUln && Number(onChain.sendUln.confirmations) < 15) {
+  // 9. Confirmation floor (per-chain): flag only when on-chain is BELOW the
+  // recommended desired value — the reorg-risk direction.
+  if (
+    onChain?.sendUln &&
+    desired?.sendUln &&
+    onChain.sendUln.confirmations < desired.sendUln.confirmations
+  ) {
     recs.push({
-      id: 'confirmations-low',
-      severity: 'info',
-      message: `Send ULN confirmations = ${onChain.sendUln.confirmations}. LayerZero recommends >= 15 for EVM source chains.`,
+      id: 'send-confirmations-low',
+      severity: 'warn',
+      message: `Send ULN confirmations (${onChain.sendUln.confirmations}) are below the recommended ${desired.sendUln.confirmations} for this source chain — reorg risk.`,
+    })
+  }
+  if (
+    onChain?.receiveUln &&
+    desired?.receiveUln &&
+    onChain.receiveUln.confirmations < desired.receiveUln.confirmations
+  ) {
+    recs.push({
+      id: 'receive-confirmations-low',
+      severity: 'warn',
+      message: `Receive ULN confirmations (${onChain.receiveUln.confirmations}) are below the recommended ${desired.receiveUln.confirmations} for the remote source chain — messages from that chain may be accepted with too few confirmations.`,
     })
   }
 
