@@ -10,6 +10,7 @@ module.exports = {
     'src/utils/proposal-encoding.ts',
     'src/utils/layerzero-options.ts',
     'src/utils/text.ts',
+    'src/utils/timing.ts',
   ],
   coverageThreshold: {
     global: {
@@ -19,6 +20,12 @@ module.exports = {
       statements: 90,
     },
     './src/utils/text.ts': {
+      lines: 90,
+      branches: 90,
+      functions: 90,
+      statements: 90,
+    },
+    './src/utils/timing.ts': {
       lines: 90,
       branches: 90,
       functions: 90,
