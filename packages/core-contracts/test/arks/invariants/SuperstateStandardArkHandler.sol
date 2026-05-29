@@ -45,6 +45,14 @@ contract SuperstateStandardArkHandler is Test {
     uint256 public frozenTotalsSnapshot;
     bool public hasFrozenSnapshot;
 
+    /// @notice Shares added to `pendingWithdrawalShares` since the last (emergency)sweep. Used by
+    ///         I15 (withdrawal cycle consistency: `pendingWithdrawalShares == this`).
+    uint256 public ghost_sharesAddedToPendingWithdrawal;
+
+    /// @notice Outstanding pending-deposit volume since last (emergency)clear. Used by I16
+    ///         (deposit cycle consistency: `pendingDepositAssets == this`).
+    uint256 public ghost_pendingDepositCycle;
+
     constructor(
         SuperstateStandardArk _ark,
         MockShareTokenWithBurn _shareToken,
@@ -77,7 +85,9 @@ contract SuperstateStandardArkHandler is Test {
         deal(address(usdc), commander, amount);
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
-        try ark.board(amount, bytes("")) {} catch {}
+        try ark.board(amount, bytes("")) {
+            ghost_pendingDepositCycle += amount;
+        } catch {}
         vm.stopPrank();
     }
 
@@ -95,21 +105,27 @@ contract SuperstateStandardArkHandler is Test {
 
     function clearPendingDeposit() external {
         vm.prank(keeper);
-        try ark.clearPendingDeposit() {} catch {}
+        try ark.clearPendingDeposit() {
+            ghost_pendingDepositCycle = 0; // full clear
+        } catch {}
     }
 
     function requestWithdrawal(uint256 amount) external {
         amount = bound(amount, 0, MAX_AMOUNT);
         sharesBalanceBeforeRequest = shareToken.balanceOf(address(ark));
         lastRequestSucceeded = false;
+        uint256 pendingBefore = ark.pendingWithdrawalShares();
         vm.prank(keeper);
         try ark.requestWithdrawal(amount) {
             lastRequestSucceeded = true;
+            uint256 pendingAfter = ark.pendingWithdrawalShares();
+            ghost_sharesAddedToPendingWithdrawal += (pendingAfter -
+                pendingBefore);
             // I12 (L9 cap postcondition): pendingWithdrawalShares <= balance-at-call-time.
             // Since the base reverts on `pendingWithdrawalShares > 0`, pre-call pending must have
             // been 0, so post-call pending equals the newly-added (capped) tranche.
             assertLe(
-                ark.pendingWithdrawalShares(),
+                pendingAfter,
                 sharesBalanceBeforeRequest,
                 "L9 cap broken: pendingWithdrawalShares exceeded share balance at request time"
             );
@@ -121,6 +137,7 @@ contract SuperstateStandardArkHandler is Test {
         vm.prank(keeper);
         try ark.sweep() {
             lastSweepSucceeded = true;
+            ghost_sharesAddedToPendingWithdrawal = 0; // cycle reset
             // I11: after a successful sweep, pendingWithdrawalShares must be zeroed.
             assertEq(
                 ark.pendingWithdrawalShares(),
@@ -135,6 +152,7 @@ contract SuperstateStandardArkHandler is Test {
         vm.prank(governor);
         try ark.emergencySweep() {
             lastSweepSucceeded = true;
+            ghost_sharesAddedToPendingWithdrawal = 0;
             // Same I11 invariant — emergencySweep also zeroes the counter.
             assertEq(
                 ark.pendingWithdrawalShares(),
@@ -147,7 +165,10 @@ contract SuperstateStandardArkHandler is Test {
     function emergencyClearPendingDeposit(uint256 amount) external {
         amount = bound(amount, 0, ark.pendingDepositAssets() + 1);
         vm.prank(governor);
-        try ark.emergencyClearPendingDeposit(amount) {} catch {}
+        try ark.emergencyClearPendingDeposit(amount) {
+            // Partial emergency clear: decrement the cycle by the cleared amount.
+            ghost_pendingDepositCycle -= amount;
+        } catch {}
     }
 
     function setArkFrozen(bool isFrozen, uint256 frozenValue) external {

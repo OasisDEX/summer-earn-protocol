@@ -169,4 +169,29 @@ contract SuperstateSubscribeArkInvariants is Test, ArkTestBaseWhitelist {
             "I8: assetsInWithdrawalQueue identity broken"
         );
     }
+
+    /// @notice I14: share conservation for Subscribe — shares leave the ark in two ways: burned via
+    ///         `offchainRedeem` (requestWithdrawal path) or transferred to `SUPERSTATE_REDEEM`
+    ///         (synchronous `_disembark` path).
+    function invariant_ShareConservation() public view {
+        uint256 minted = shareToken.totalMintedTo(address(ark));
+        uint256 burned = shareToken.totalBurnedFrom(address(ark));
+        uint256 transferredToRedeem = redeemContract.totalSharesReceived();
+        uint256 held = shareToken.balanceOf(address(ark));
+        assertEq(
+            minted,
+            held + burned + transferredToRedeem,
+            "I14: share conservation broken (mints != held + burned + transferredToRedeem)"
+        );
+    }
+
+    /// @notice I15: `pendingWithdrawalShares` equals the cumulative shares queued since the last
+    ///         (emergency)sweep.
+    function invariant_WithdrawalCycleConsistency() public view {
+        assertEq(
+            ark.pendingWithdrawalShares(),
+            handler.ghost_sharesAddedToPendingWithdrawal(),
+            "I15: pendingWithdrawalShares != cumulative queued since last sweep"
+        );
+    }
 }

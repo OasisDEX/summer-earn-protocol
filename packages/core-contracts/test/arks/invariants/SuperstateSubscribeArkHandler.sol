@@ -32,6 +32,10 @@ contract SuperstateSubscribeArkHandler is Test {
     bool public lastRequestSucceeded;
     bool public lastSweepSucceeded;
 
+    /// @notice Shares added to `pendingWithdrawalShares` since the last (emergency)sweep. Used by
+    ///         I15 (withdrawal cycle consistency).
+    uint256 public ghost_sharesAddedToPendingWithdrawal;
+
     constructor(
         SuperstateSubscribeArk _ark,
         MockShareTokenWithBurn _shareToken,
@@ -86,12 +90,16 @@ contract SuperstateSubscribeArkHandler is Test {
         amount = bound(amount, 0, MAX_AMOUNT);
         sharesBalanceBeforeRequest = shareToken.balanceOf(address(ark));
         lastRequestSucceeded = false;
+        uint256 pendingBefore = ark.pendingWithdrawalShares();
         vm.prank(keeper);
         try ark.requestWithdrawal(amount) {
             lastRequestSucceeded = true;
+            uint256 pendingAfter = ark.pendingWithdrawalShares();
+            ghost_sharesAddedToPendingWithdrawal += (pendingAfter -
+                pendingBefore);
             // I12 (L9 cap postcondition)
             assertLe(
-                ark.pendingWithdrawalShares(),
+                pendingAfter,
                 sharesBalanceBeforeRequest,
                 "L9 cap broken: pending exceeded share balance at request time"
             );
@@ -108,6 +116,7 @@ contract SuperstateSubscribeArkHandler is Test {
         vm.prank(keeper);
         try ark.sweep() {
             lastSweepSucceeded = true;
+            ghost_sharesAddedToPendingWithdrawal = 0;
             assertEq(
                 ark.pendingWithdrawalShares(),
                 0,
@@ -121,6 +130,7 @@ contract SuperstateSubscribeArkHandler is Test {
         vm.prank(governor);
         try ark.emergencySweep() {
             lastSweepSucceeded = true;
+            ghost_sharesAddedToPendingWithdrawal = 0;
             assertEq(
                 ark.pendingWithdrawalShares(),
                 0,

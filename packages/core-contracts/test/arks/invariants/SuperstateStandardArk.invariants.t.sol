@@ -181,6 +181,41 @@ contract SuperstateStandardArkInvariants is Test, ArkTestBaseWhitelist {
         );
     }
 
+    /// @notice I14: share conservation — every share minted to the ark is either still held by
+    ///         the ark or has been burned via `offchainRedeem`. Standard ark never transfers
+    ///         shares out to a third-party contract, so there is no third term.
+    function invariant_ShareConservation() public view {
+        uint256 minted = shareToken.totalMintedTo(address(ark));
+        uint256 burned = shareToken.totalBurnedFrom(address(ark));
+        uint256 held = shareToken.balanceOf(address(ark));
+        assertEq(
+            minted,
+            held + burned,
+            "I14: share conservation broken (mints != held + burned)"
+        );
+    }
+
+    /// @notice I15: `pendingWithdrawalShares` equals the cumulative shares queued since the last
+    ///         (emergency)sweep. Since the base contract enforces single-tranche withdrawals,
+    ///         the ghost should always equal the live counter.
+    function invariant_WithdrawalCycleConsistency() public view {
+        assertEq(
+            ark.pendingWithdrawalShares(),
+            handler.ghost_sharesAddedToPendingWithdrawal(),
+            "I15: pendingWithdrawalShares != cumulative queued since last sweep"
+        );
+    }
+
+    /// @notice I16: `pendingDepositAssets` equals the cumulative boarded amount minus what has
+    ///         been cleared (full keeper clear or partial governor clear) since cycle start.
+    function invariant_DepositCycleConsistency() public view {
+        assertEq(
+            ark.pendingDepositAssets(),
+            handler.ghost_pendingDepositCycle(),
+            "I16: pendingDepositAssets != cumulative boarded - cleared this cycle"
+        );
+    }
+
     /// @notice Diagnostic: prints how many times each handler action ran. Off by default; flip on
     ///         when debugging coverage. (Foundry runs view-or-pure invariant_* functions even when
     ///         they call console.log.)

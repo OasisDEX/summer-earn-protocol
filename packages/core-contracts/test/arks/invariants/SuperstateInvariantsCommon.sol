@@ -18,6 +18,12 @@ contract MockShareTokenWithBurn is MockERC20, ISuperstateToken {
     address public expectedStablecoin;
     address public configuredSweepDestination = address(0x5555);
 
+    /// @notice Per-recipient cumulative mint counter. Used by the share conservation invariant
+    ///         (`totalMintedTo[ark] == balanceOf(ark) + totalBurnedFrom[ark] + sharesTransferredOut`).
+    mapping(address => uint256) public totalMintedTo;
+    /// @notice Per-caller cumulative burn counter (via `offchainRedeem`).
+    mapping(address => uint256) public totalBurnedFrom;
+
     function setSuperstateOracle(address o) external {
         _superstateOracle = o;
     }
@@ -53,7 +59,13 @@ contract MockShareTokenWithBurn is MockERC20, ISuperstateToken {
     }
 
     function offchainRedeem(uint256 amount) external override {
+        totalBurnedFrom[msg.sender] += amount;
         _burn(msg.sender, amount);
+    }
+
+    function _mint(address to, uint256 amount) internal override {
+        super._mint(to, amount);
+        totalMintedTo[to] += amount;
     }
 }
 
@@ -128,6 +140,9 @@ contract MockRedeemContract is ISuperstateRedeem {
     IERC20 public immutable usdc;
     /// @notice USDC paid per share-wei during sync redeem. Default matches the 10:1 oracle mock.
     uint256 public usdcPerShare = 10;
+    /// @notice Cumulative shares received via `redeem`. Used by the Subscribe-ark share conservation
+    ///         invariant (these shares left the ark via `safeTransferFrom`).
+    uint256 public totalSharesReceived;
 
     constructor(address _shareToken, address _usdc) {
         shareToken = IERC20(_shareToken);
@@ -139,6 +154,7 @@ contract MockRedeemContract is ISuperstateRedeem {
     }
 
     function redeem(uint256 amount, address to) external override {
+        totalSharesReceived += amount;
         shareToken.safeTransferFrom(msg.sender, address(this), amount);
         usdc.safeTransfer(to, amount * usdcPerShare);
     }
