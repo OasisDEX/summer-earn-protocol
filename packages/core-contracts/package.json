@@ -14,7 +14,10 @@
     }
   },
   "scripts": {
-    "test": "forge test --no-storage-caching",
+    "test": "forge test --no-storage-caching --no-match-path '**/invariants/**'",
+    "test:invariant": "forge test --no-storage-caching --match-path '**/invariants/**'",
+    "test:fuzz": "forge test --no-storage-caching --match-test 'testFuzz_'",
+    "test:deep": "FOUNDRY_PROFILE=deep forge test --no-storage-caching",
     "build": "forge build --extra-output-files abi --quiet && bash ./abi.sh",
     "coverage": "forge coverage --ir-minimum",
     "coverage:lcov": "forge coverage --report lcov --ir-minimum",

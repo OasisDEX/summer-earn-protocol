@@ -108,7 +108,7 @@
         "lint",
         "check-circular",
         "format",
-        "coverage:total"
+        "coverage"
       ]
     },
     "deploy:staging": {
