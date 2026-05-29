@@ -9,9 +9,16 @@ module.exports = {
   collectCoverageFrom: [
     'src/utils/proposal-encoding.ts',
     'src/utils/layerzero-options.ts',
+    'src/utils/text.ts',
   ],
   coverageThreshold: {
     global: {
+      lines: 90,
+      branches: 90,
+      functions: 90,
+      statements: 90,
+    },
+    './src/utils/text.ts': {
       lines: 90,
       branches: 90,
       functions: 90,
