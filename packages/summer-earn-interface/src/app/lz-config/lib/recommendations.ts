@@ -22,10 +22,13 @@ function dvnsEqualCI(a: readonly string[] | undefined, b: readonly string[] | un
   return x.every((v, i) => v === y[i])
 }
 
-function ulnEqual(a: UlnConfig | null, b: UlnConfig | null): boolean {
+// Compares the DVN structure only, ignoring confirmations. A chain's own send
+// and receive ULN for a given route legitimately differ in confirmations
+// (send = source-chain value, receive = remote-chain value), but should share
+// the same DVN set / counts / threshold.
+function ulnDvnSetEqual(a: UlnConfig | null, b: UlnConfig | null): boolean {
   if (!a || !b) return false
   return (
-    a.confirmations === b.confirmations &&
     a.requiredDVNCount === b.requiredDVNCount &&
     a.optionalDVNCount === b.optionalDVNCount &&
     a.optionalDVNThreshold === b.optionalDVNThreshold &&
@@ -141,13 +144,18 @@ export function evaluateRoute({
     }
   }
 
-  // 7. Send vs Receive must match
-  if (onChain?.sendUln && onChain.receiveUln && !ulnEqual(onChain.sendUln, onChain.receiveUln)) {
+  // 7. Send vs Receive DVN sets must match (confirmations are expected to
+  // differ — send uses the source chain's value, receive uses the remote's).
+  if (
+    onChain?.sendUln &&
+    onChain.receiveUln &&
+    !ulnDvnSetEqual(onChain.sendUln, onChain.receiveUln)
+  ) {
     recs.push({
       id: 'send-receive-mismatch',
       severity: 'warn',
       message:
-        'Send ULN config differs from Receive ULN config. LayerZero recommends matching settings across the pathway.',
+        'Send and Receive ULN use different DVN sets. The DVN configuration should match across the pathway.',
     })
   }
 
