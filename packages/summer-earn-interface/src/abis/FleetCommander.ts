@@ -64,6 +64,13 @@ export const fleetCommanderAbi = [
   },
   {
     type: 'function',
+    name: 'convertToAssets',
+    inputs: [{ type: 'uint256', name: 'shares' }],
+    outputs: [{ type: 'uint256', name: '' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'maxDeposit',
     inputs: [{ type: 'address', name: 'owner' }],
     outputs: [{ type: 'uint256', name: '' }],
