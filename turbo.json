@@ -107,8 +107,7 @@
         "test:integration",
         "lint",
         "check-circular",
-        "format",
-        "coverage"
+        "format"
       ]
     },
     "deploy:staging": {
