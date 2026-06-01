@@ -22,8 +22,7 @@ const FRIENDLY_REVERT_LABELS: Record<string, string> = {
     'The out-asset doesn’t match the target vault’s underlying token. Pick the correct token.',
   ZeroExpectedOutShares:
     'Trade size is too small — the expected target shares round to zero. Increase the trade amount.',
-  InvalidPriceBounds:
-    'Min price cannot exceed max price. Adjust your price guardrails.',
+  InvalidPriceBounds: 'Min price cannot exceed max price. Adjust your price guardrails.',
   Permit2AllowanceInsufficient:
     'Permit2 allowance is too small for the full strategy (tradeAmount × maxTrades). Sign a larger permit.',
   Permit2ExpirationTooEarly:
