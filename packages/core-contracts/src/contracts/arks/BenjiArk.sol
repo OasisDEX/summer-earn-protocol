@@ -56,8 +56,10 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    and `_board` reverts. `isArkOnboarded()` therefore checks the readable trader gate only;
  *    holder authorization must be granted off-chain by Franklin Templeton.
  *
- * Still out of scope for this branch's scaffold: deployment-package wiring (ArkType enum, deploy
- * script, Ignition module) and an owner-impersonation fork test of the full board/disembark cycle.
+ * The full board/disembark cycle is validated against the real SwapPool + iBENJI in
+ * `BenjiArk.fork.t.sol` by impersonating the SwapPool owner (trader auth) and the iBENJI
+ * AuthorizationModule admin (holder auth). Still out of scope for this branch's scaffold:
+ * deployment-package wiring (ArkType enum, deploy script, Ignition module).
  */
 contract BenjiArk is ArkWithWithdrawalRequest {
     using SafeERC20 for IERC20;
