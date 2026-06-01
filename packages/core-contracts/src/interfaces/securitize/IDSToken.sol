@@ -28,4 +28,14 @@ interface IDSToken is IERC20Metadata {
         address _to,
         uint256 _value
     ) external view returns (uint256 code, string memory reason);
+
+    /**
+     * @notice Returns the address of a DS Protocol service by its numeric service id.
+     * @dev Service ids follow the DS Protocol `IDSServiceConsumer` convention — notably
+     *      `4 = registry service` and `8 = compliance service`. Lets an integrator resolve the
+     *      registry from the token itself rather than passing it (and risking a mismatch).
+     * @param _serviceId The DS Protocol service id
+     * @return The service contract address (zero if unset)
+     */
+    function getDSService(uint256 _serviceId) external view returns (address);
 }

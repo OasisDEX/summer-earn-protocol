@@ -69,6 +69,9 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /// @notice Timeout for the oracle heartbeat (24 hours)
     uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 hours;
 
+    /// @notice DS Protocol service id for the registry service (per `IDSServiceConsumer`).
+    uint256 public constant REGISTRY_SERVICE_ID = 4;
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -123,7 +126,8 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /// @param expectedShares Oracle-implied shares for `pendingDepositAssets`
     /// @param actualNewShares Live share balance minus `cachedShareBalance`
     error SharesNotArrived(uint256 expectedShares, uint256 actualNewShares);
-    /// @notice Reverts when the constructor is given a zero registry-service address.
+    /// @notice Reverts when the registry service resolved from the DSToken is the zero address
+    ///         (i.e. the token has no registry configured).
     error InvalidRegistryAddress();
     /// @notice Reverts when this Ark is not (yet) a registered investor wallet in the Securitize
     ///         registry and therefore cannot hold or transfer the DSToken. Onboarding is performed
@@ -243,7 +247,6 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
      * @param _custodianWallet Securitize-controlled wallet that receives the configured asset on
      *                         `_board` and returns it after settlement.
      * @param _shareToken Securitize DSToken (fund share token) issued for accepted asset deposits.
-     * @param _registryService Securitize registry service used to verify investor-wallet registration.
      * @param _oracle NAV price feed for "1 DSToken denominated in the underlying asset".
      * @param _sweepSlippage Initial sweep slippage cap; must be `<= MAX_SWEEP_SLIPPAGE` (0.5%).
      * @param _depositSlippage Initial deposit slippage cap; must be `<= MAX_DEPOSIT_SLIPPAGE` (0.5%).
@@ -252,7 +255,6 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     constructor(
         address _custodianWallet,
         address _shareToken,
-        address _registryService,
         address _oracle,
         Percentage _sweepSlippage,
         Percentage _depositSlippage,
@@ -261,11 +263,16 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
         if (_custodianWallet == address(0)) revert InvalidTargetWallet();
         if (_oracle == address(0)) revert InvalidOracleAddress();
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
-        if (_registryService == address(0)) revert InvalidRegistryAddress();
 
         custodianWallet = _custodianWallet;
         shareToken = IERC20(_shareToken);
-        registryService = IDSRegistryService(_registryService);
+        // Resolve the registry service directly from the DSToken (service id 4 per
+        // IDSServiceConsumer) so it cannot be misconfigured independently of the token.
+        address resolvedRegistry = IDSToken(_shareToken).getDSService(
+            REGISTRY_SERVICE_ID
+        );
+        if (resolvedRegistry == address(0)) revert InvalidRegistryAddress();
+        registryService = IDSRegistryService(resolvedRegistry);
         oracle = AggregatorV3Interface(_oracle);
         if (_sweepSlippage > MAX_SWEEP_SLIPPAGE) {
             revert InvalidSweepSlippage(_sweepSlippage, MAX_SWEEP_SLIPPAGE);
