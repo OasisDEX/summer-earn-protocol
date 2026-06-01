@@ -6,6 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {IAllowanceTransfer, ISignatureTransfer} from "../../interfaces/permit2/IPermit2.sol";
 import {Permit2Consumer} from "../../utils/Permit2Consumer.sol";
 import {EnsoRouterSwapper} from "../../utils/EnsoRouterSwapper.sol";
 import {HarborCommandConsumer} from "../../utils/HarborCommandConsumer.sol";
@@ -54,11 +55,14 @@ contract DCAStrategyManager is
     /// @notice Minimum allowed interval between executions (1 day).
     uint256 private constant _MIN_INTERVAL = 1 days;
 
+    /// @notice Maximum allowed interval between executions (90 days ≈ 3 months).
+    uint256 private constant _MAX_INTERVAL = 90 days;
+
     /// @notice Maximum allowed slippage in BPS (50%).
     BPS private constant _MAX_SLIPPAGE_BPS = BPS.wrap(5000);
 
     /*//////////////////////////////////////////////////////////////
-                              STATE VARIALES
+                              STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Monotonically-increasing counter used to assign the next strategy ID.
@@ -94,9 +98,7 @@ contract DCAStrategyManager is
         Permit2Consumer(_permit2)
         EnsoRouterSwapper(_ensoRouter)
         HarborCommandConsumer(_harborCommand)
-    {
-        // Empty on purpose
-    }
+    {}
 
     /*//////////////////////////////////////////////////////////////
                               MODIFIERS
@@ -140,29 +142,116 @@ contract DCAStrategyManager is
         StrategyConfig calldata config
     )
         external
+        nonReentrant
         ownerOnlySender(config)
         onlyActiveFleetCommander(config.sourceVault, "source")
         onlyActiveFleetCommander(config.targetVault, "target")
         returns (uint256 strategyId)
     {
-        _validateStrategyConfig(config);
+        strategyId = _createStrategy(config);
+    }
 
-        bytes32 commitment = _commitmentHash(config);
-        if (activeCommitments[commitment]) revert DuplicateStrategy();
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
+    function depositAndCreate(
+        StrategyConfig calldata config,
+        uint256 assetAmount
+    )
+        external
+        nonReentrant
+        ownerOnlySender(config)
+        onlyActiveFleetCommander(config.sourceVault, "source")
+        onlyActiveFleetCommander(config.targetVault, "target")
+        returns (uint256 strategyId)
+    {
+        if (assetAmount == 0) revert ZeroDeposit();
 
-        strategyId = _nextStrategyId++;
-        activeCommitments[commitment] = true;
-        strategyCommitments[strategyId] = commitment;
+        strategyId = _createStrategy(config);
 
-        uint256 hourAligned = _hourAlignedTimestamp();
-        _strategyStates[strategyId] = StrategyState({
-            status: Status.ACTIVE,
-            tradesExecuted: 0,
-            nextTriggerAt: hourAligned + config.interval,
-            lastScheduledAt: hourAligned
-        });
+        IERC20 inAsset = IERC20(address(config.inAsset));
+        inAsset.safeTransferFrom(_msgSender(), address(this), assetAmount);
+        _depositPulledAsset(
+            config.sourceVault,
+            inAsset,
+            _msgSender(),
+            assetAmount
+        );
+    }
 
-        emit StrategyCreated(strategyId, config);
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
+    function createStrategyWithPermit2(
+        StrategyConfig calldata config,
+        IAllowanceTransfer.PermitSingle calldata permitSingle,
+        bytes calldata signature
+    )
+        external
+        nonReentrant
+        ownerOnlySender(config)
+        onlyActiveFleetCommander(config.sourceVault, "source")
+        onlyActiveFleetCommander(config.targetVault, "target")
+        returns (uint256 strategyId)
+    {
+        address expectedToken = address(config.sourceVault);
+        if (permitSingle.details.token != expectedToken) {
+            revert InvalidPermit2Token(
+                expectedToken,
+                permitSingle.details.token
+            );
+        }
+        _requirePermit2CoversStrategy(config, permitSingle);
+
+        strategyId = _createStrategy(config);
+
+        _applyPermit2Allowance(_msgSender(), permitSingle, signature);
+    }
+
+    /**
+     * @inheritdoc IDCAStrategyManager
+     */
+    function depositAndCreateWithPermit2(
+        StrategyConfig calldata config,
+        uint256 assetAmount,
+        Permit2DepositBundle calldata permits
+    )
+        external
+        nonReentrant
+        ownerOnlySender(config)
+        onlyActiveFleetCommander(config.sourceVault, "source")
+        onlyActiveFleetCommander(config.targetVault, "target")
+        returns (uint256 strategyId)
+    {
+        if (assetAmount == 0) revert ZeroDeposit();
+        if (permits.shares.details.token != address(config.sourceVault)) {
+            revert InvalidPermit2Token(
+                address(config.sourceVault),
+                permits.shares.details.token
+            );
+        }
+        _requirePermit2CoversStrategy(config, permits.shares);
+
+        strategyId = _createStrategy(config);
+
+        // Set the recurring sub-allowance for keeper-driven pulls.
+        _applyPermit2Allowance(_msgSender(), permits.shares, permits.sharesSig);
+
+        // Pull the one-shot `inAsset` deposit via SignatureTransfer and deposit
+        // it into `sourceVault` with shares routed to the user.
+        _pullFundsWithPermit2(
+            _msgSender(),
+            address(config.inAsset),
+            assetAmount,
+            permits.inAsset,
+            permits.inAssetSig
+        );
+        _depositPulledAsset(
+            config.sourceVault,
+            IERC20(address(config.inAsset)),
+            _msgSender(),
+            assetAmount
+        );
     }
 
     /**
@@ -174,21 +263,16 @@ contract DCAStrategyManager is
         StrategyConfig calldata newConfig
     )
         external
+        nonReentrant
         onlyStrategyOwner(strategyId, oldConfig)
         onlyActiveFleetCommander(newConfig.sourceVault, "source")
         onlyActiveFleetCommander(newConfig.targetVault, "target")
     {
         StrategyState storage state = _strategyStates[strategyId];
 
-        if (
-            state.status == Status.CANCELLED || state.status == Status.COMPLETED
-        ) {
-            revert StrategyNotActive(strategyId);
-        }
+        _requireNonTerminal(strategyId, state.status);
 
-        // Ownership transfer via edit is disallowed — the commitment is the
-        // ownership proof, so changing config.owner would silently re-key
-        // authorization. Force-cancel + recreate instead.
+        // Ownership transfer via edit would silently re-key the commitment proof.
         if (newConfig.owner != oldConfig.owner) {
             revert UnauthorizedAccess(strategyId, _msgSender());
         }
@@ -204,10 +288,20 @@ contract DCAStrategyManager is
             strategyCommitments[strategyId] = newCommitment;
         }
 
-        // Last sheduled time is already hour aligned
         state.nextTriggerAt = state.lastScheduledAt + newConfig.interval;
 
         emit StrategyEdited(strategyId, newConfig);
+
+        // Auto-complete if the edit already satisfies a terminal condition;
+        // mirrors the pre-flight checks in `executeStrategy` so a keeper-less
+        // strategy doesn't get stranded as ACTIVE.
+        if (state.tradesExecuted >= newConfig.maxTrades) {
+            _markCompleted(strategyId, state, "max_trades");
+        } else if (
+            newConfig.endDate > 0 && block.timestamp >= newConfig.endDate
+        ) {
+            _markCompleted(strategyId, state, "end_date");
+        }
     }
 
     /**
@@ -216,7 +310,7 @@ contract DCAStrategyManager is
     function pauseStrategy(
         uint256 strategyId,
         StrategyConfig calldata config
-    ) external onlyStrategyOwner(strategyId, config) {
+    ) external nonReentrant onlyStrategyOwner(strategyId, config) {
         StrategyState storage state = _strategyStates[strategyId];
         if (state.status != Status.ACTIVE) {
             revert StrategyNotActive(strategyId);
@@ -233,14 +327,14 @@ contract DCAStrategyManager is
     function resumeStrategy(
         uint256 strategyId,
         StrategyConfig calldata config
-    ) external onlyStrategyOwner(strategyId, config) {
+    ) external nonReentrant onlyStrategyOwner(strategyId, config) {
         StrategyState storage state = _strategyStates[strategyId];
         if (state.status != Status.PAUSED) {
             revert StrategyNotActive(strategyId);
         }
 
         state.status = Status.ACTIVE;
-        // @audit Should this be hour aligned?
+        state.lastScheduledAt = block.timestamp;
         state.nextTriggerAt = block.timestamp + config.interval;
 
         emit StrategyResumed(strategyId, state.nextTriggerAt);
@@ -252,13 +346,9 @@ contract DCAStrategyManager is
     function cancelStrategy(
         uint256 strategyId,
         StrategyConfig calldata config
-    ) external onlyStrategyOwner(strategyId, config) {
+    ) external nonReentrant onlyStrategyOwner(strategyId, config) {
         StrategyState storage state = _strategyStates[strategyId];
-        if (
-            state.status == Status.CANCELLED || state.status == Status.COMPLETED
-        ) {
-            revert StrategyNotActive(strategyId);
-        }
+        _requireNonTerminal(strategyId, state.status);
 
         state.status = Status.CANCELLED;
 
@@ -272,7 +362,13 @@ contract DCAStrategyManager is
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData
-    ) external onlyKeeper nonReentrant {
+    )
+        external
+        onlyKeeper
+        nonReentrant
+        onlyActiveFleetCommander(config.sourceVault, "source")
+        onlyActiveFleetCommander(config.targetVault, "target")
+    {
         bytes32 storedCommitment = strategyCommitments[strategyId];
         if (_commitmentHash(config) != storedCommitment) {
             revert CommitmentMismatch(strategyId);
@@ -283,15 +379,12 @@ contract DCAStrategyManager is
             revert StrategyNotActive(strategyId);
         }
 
-        if (config.maxTrades > 0 && state.tradesExecuted >= config.maxTrades) {
-            // This should never happened though
-            state.status = Status.COMPLETED;
-            emit StrategyCompleted(strategyId, "max_trades");
+        if (state.tradesExecuted >= config.maxTrades) {
+            _markCompleted(strategyId, state, "max_trades");
             return;
         }
         if (config.endDate > 0 && block.timestamp >= config.endDate) {
-            state.status = Status.COMPLETED;
-            emit StrategyCompleted(strategyId, "end_date");
+            _markCompleted(strategyId, state, "end_date");
             return;
         }
 
@@ -338,7 +431,7 @@ contract DCAStrategyManager is
         if (block.timestamp < state.nextTriggerAt) {
             return (false, performData);
         }
-        if (config.maxTrades > 0 && state.tradesExecuted >= config.maxTrades) {
+        if (state.tradesExecuted >= config.maxTrades) {
             return (false, performData);
         }
         if (config.endDate > 0 && block.timestamp >= config.endDate) {
@@ -370,6 +463,109 @@ contract DCAStrategyManager is
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @dev Reverts unless the Permit2 sub-allowance signed by the owner can
+     *      cover the worst-case keeper spend (`tradeAmount * maxTrades`) and,
+     *      when `endDate > 0`, remains valid until that date. Catches obvious
+     *      misconfigurations at create-time instead of mid-strategy reverts.
+     */
+    function _requirePermit2CoversStrategy(
+        StrategyConfig calldata config,
+        IAllowanceTransfer.PermitSingle calldata permitSingle
+    ) internal pure {
+        uint256 requiredAmount = config.tradeAmount * config.maxTrades;
+        if (uint256(permitSingle.details.amount) < requiredAmount) {
+            revert Permit2AllowanceInsufficient(
+                permitSingle.details.amount,
+                requiredAmount
+            );
+        }
+        if (
+            config.endDate > 0 &&
+            uint256(permitSingle.details.expiration) < config.endDate
+        ) {
+            revert Permit2ExpirationTooEarly(
+                permitSingle.details.expiration,
+                config.endDate
+            );
+        }
+    }
+
+    /**
+     * @dev Approves `sourceVault` for `assetAmount` of `inAsset` already held
+     *      by this contract, deposits with `shareReceiver` as the recipient,
+     *      and resets the allowance to 0 for hygiene. Caller is responsible
+     *      for pulling the assets into this contract beforehand.
+     */
+    function _depositPulledAsset(
+        IFleetCommander sourceVault,
+        IERC20 inAsset,
+        address shareReceiver,
+        uint256 assetAmount
+    ) internal {
+        inAsset.forceApprove(address(sourceVault), assetAmount);
+        sourceVault.deposit(assetAmount, shareReceiver);
+        inAsset.forceApprove(address(sourceVault), 0);
+    }
+
+    /**
+     * @dev Reverts with `StrategyNotActive` if `status` is one of the terminal
+     *      states (CANCELLED, COMPLETED). Shared by `editStrategy` and
+     *      `cancelStrategy`.
+     */
+    function _requireNonTerminal(
+        uint256 strategyId,
+        Status status
+    ) internal pure {
+        if (status == Status.CANCELLED || status == Status.COMPLETED) {
+            revert StrategyNotActive(strategyId);
+        }
+    }
+
+    /**
+     * @dev Flips a strategy to `COMPLETED` and emits `StrategyCompleted`.
+     *      Centralises the state-write + event-emit pair used by all
+     *      terminal-transition sites (pre-flight in `executeStrategy` and
+     *      post-trade in `_executeSwap`).
+     */
+    function _markCompleted(
+        uint256 strategyId,
+        StrategyState storage state,
+        bytes32 reason
+    ) internal {
+        state.status = Status.COMPLETED;
+        emit StrategyCompleted(strategyId, reason);
+    }
+
+    /**
+     * @dev Shared body for `createStrategy` and `depositAndCreate`. Assumes the
+     *      caller-side modifier stack (`ownerOnlySender`, `onlyActiveFleetCommander` x2)
+     *      has already run; performs field validation, duplicate-commitment guard,
+     *      ID allocation, state initialization, and emission.
+     */
+    function _createStrategy(
+        StrategyConfig calldata config
+    ) internal returns (uint256 strategyId) {
+        _validateStrategyConfig(config);
+
+        bytes32 commitment = _commitmentHash(config);
+        if (activeCommitments[commitment]) revert DuplicateStrategy();
+
+        strategyId = _nextStrategyId++;
+        activeCommitments[commitment] = true;
+        strategyCommitments[strategyId] = commitment;
+
+        uint256 hourAligned = _hourAlignedTimestamp();
+        _strategyStates[strategyId] = StrategyState({
+            status: Status.ACTIVE,
+            tradesExecuted: 0,
+            nextTriggerAt: hourAligned + config.interval,
+            lastScheduledAt: hourAligned
+        });
+
+        emit StrategyCreated(strategyId, config);
+    }
+
+    /**
      * @dev Rounds `block.timestamp` up to the next whole hour boundary.
      */
     function _hourAlignedTimestamp() internal view returns (uint256) {
@@ -389,19 +585,30 @@ contract DCAStrategyManager is
      * @dev Validates the fields of `config` that are independent of vault registry
      *      checks (those are enforced by the `onlyActiveFleetCommander` modifier).
      *      Reverts with `InvalidOwner`, `SameAsset`, `IntervalTooShort`,
-     *      `InvalidSlippage`, `ZeroTradeAmount`, or `InvalidFeedAddress` on the
-     *      first failing field.
+     *      `IntervalTooLong`, `InvalidSlippage`, `ZeroTradeAmount`, `ZeroMaxTrades`,
+     *      or `InvalidFeedAddress` on the first failing field.
      */
     function _validateStrategyConfig(
         StrategyConfig calldata config
-    ) internal pure {
+    ) internal view {
         if (config.owner == address(0)) revert InvalidOwner();
         if (address(config.sourceVault) == address(config.targetVault))
             revert SameAsset(address(config.sourceVault));
         if (config.inAsset == config.outAsset)
             revert SameAsset(address(config.inAsset));
+        address expectedIn = config.sourceVault.asset();
+        if (address(config.inAsset) != expectedIn) {
+            revert InAssetVaultMismatch(expectedIn, address(config.inAsset));
+        }
+        address expectedOut = config.targetVault.asset();
+        if (address(config.outAsset) != expectedOut) {
+            revert OutAssetVaultMismatch(expectedOut, address(config.outAsset));
+        }
         if (config.interval < _MIN_INTERVAL) {
             revert IntervalTooShort(config.interval, _MIN_INTERVAL);
+        }
+        if (config.interval > _MAX_INTERVAL) {
+            revert IntervalTooLong(config.interval, _MAX_INTERVAL);
         }
         if (BPS.wrap(config.slippageBps) > _MAX_SLIPPAGE_BPS) {
             revert InvalidSlippage(config.slippageBps);
@@ -409,11 +616,21 @@ contract DCAStrategyManager is
         if (config.tradeAmount == 0) {
             revert ZeroTradeAmount();
         }
+        if (config.maxTrades == 0) {
+            revert ZeroMaxTrades();
+        }
         if (
             config.inAssetFeed == address(0) ||
             config.outAssetFeed == address(0)
         ) {
             revert InvalidFeedAddress();
+        }
+        if (
+            config.maxPrice > 0 &&
+            config.minPrice > 0 &&
+            config.minPrice > config.maxPrice
+        ) {
+            revert InvalidPriceBounds(config.minPrice, config.maxPrice);
         }
     }
 
@@ -429,42 +646,46 @@ contract DCAStrategyManager is
         bytes calldata ensoData,
         StrategyState storage state
     ) internal {
-        // Convert source shares → inAssets, then derive expectedOutAssets and
-        // oracle prices in one call. Prices are returned for reuse in the guard.
-        // This spends more gas for a failing call but makes the architecture more
-        // readable
-        uint256 inAssets = config.sourceVault.convertToAssets(
-            config.tradeAmount
-        );
-        (
-            uint256 expectedOutAssets,
-            ChainlinkOraclePrice memory inPrice,
-            ChainlinkOraclePrice memory outPrice
-        ) = ChainlinkOracleUtils.convertAmount(
-                inAssets,
-                config.inAsset,
-                config.inAssetFeed,
-                config.outAsset,
-                config.outAssetFeed
+        // Scoped to free stack slots before destructuring `_executeSwap`'s returns.
+        uint256 minOut;
+        {
+            uint256 intendedInAssets = config.sourceVault.convertToAssets(
+                config.tradeAmount
             );
+            (
+                uint256 expectedOutAssets,
+                ChainlinkOraclePrice memory inPrice,
+                ChainlinkOraclePrice memory outPrice
+            ) = ChainlinkOracleUtils.convertAmount(
+                    intendedInAssets,
+                    config.inAsset,
+                    config.inAssetFeed,
+                    config.outAsset,
+                    config.outAssetFeed
+                );
 
-        uint256 executionPrice = ChainlinkOracleUtils.crossRate(
-            inPrice,
-            outPrice
-        );
-        if (config.maxPrice > 0 && executionPrice > config.maxPrice) {
-            revert PriceAboveCeiling(executionPrice, config.maxPrice);
-        }
-        if (config.minPrice > 0 && executionPrice < config.minPrice) {
-            revert PriceBelowFloor(executionPrice, config.minPrice);
+            uint256 executionPrice = ChainlinkOracleUtils.crossRate(
+                inPrice,
+                outPrice
+            );
+            if (config.maxPrice > 0 && executionPrice > config.maxPrice) {
+                revert PriceAboveCeiling(executionPrice, config.maxPrice);
+            }
+            if (config.minPrice > 0 && executionPrice < config.minPrice) {
+                revert PriceBelowFloor(executionPrice, config.minPrice);
+            }
+
+            uint256 expectedOutShares = config.targetVault.previewDeposit(
+                expectedOutAssets
+            );
+            if (expectedOutShares == 0) revert ZeroExpectedOutShares();
+            minOut = expectedOutShares.subtractBps(
+                BPS.wrap(config.slippageBps)
+            );
         }
 
-        uint256 expectedOutShares = config.targetVault.previewDeposit(
-            expectedOutAssets
-        );
-        uint256 minOut = expectedOutShares.subtractBps(
-            BPS.wrap(config.slippageBps)
-        );
+        uint256 sourceSharesBaseline = IERC20(address(config.sourceVault))
+            .balanceOf(address(this));
 
         _pullFunds(
             config.owner,
@@ -472,65 +693,111 @@ contract DCAStrategyManager is
             config.tradeAmount
         );
 
-        _executeSwap(strategyId, config, ensoData, state, minOut);
+        (
+            uint256 swappedAmount,
+            uint256 outAssets,
+            uint256 nextTriggerAt,
+            uint248 tradesExecuted,
+            uint256 actualInShares
+        ) = _executeSwap(
+                strategyId,
+                config,
+                ensoData,
+                state,
+                minOut,
+                sourceSharesBaseline
+            );
+
+        emit ExecutionCompleted(
+            strategyId,
+            tradesExecuted,
+            actualInShares,
+            swappedAmount,
+            config.sourceVault.convertToAssets(actualInShares),
+            outAssets,
+            nextTriggerAt
+        );
+
+        if (tradesExecuted >= config.maxTrades) {
+            _markCompleted(strategyId, state, "max_trades");
+        } else if (config.endDate > 0 && nextTriggerAt >= config.endDate) {
+            _markCompleted(strategyId, state, "end_date");
+        }
     }
 
     /**
-     * @dev Performs the CEI sequence for a single DCA trade:
-     *      1. Effects — advance `tradesExecuted`, `lastScheduledAt`, `nextTriggerAt`.
-     *      2. Interactions — route source shares through Enso, verify `minOut`,
-     *         transfer target shares to the owner.
-     *      3. Emit `ExecutionCompleted` and, if terminal, `StrategyCompleted`.
-     *      Reverts with `SwapOutputBelowMinOut` when the received target shares
-     *      fall below the slippage-adjusted minimum.
+     * @dev CEI sequence for the swap mechanics of a single DCA trade: advance
+     *      state, route source shares through Enso, verify `minOut`, transfer
+     *      target shares to the owner, refund any unused source shares. Lifecycle
+     *      decisions (terminal-state transition, event emission) are handled by
+     *      the caller. Reverts with `SwapOutputBelowMinOut` when received shares
+     *      are below the slippage-adjusted minimum.
+     *
+     *      `sourceSharesBaseline` is the manager's source-vault share balance
+     *      captured by the caller before pulling funds. Any source shares left
+     *      in the contract above this baseline after the Enso call are returned
+     *      to `config.owner` — defending the "no funds held between txs"
+     *      invariant against routers that underspend the approval.
      */
     function _executeSwap(
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData,
         StrategyState storage state,
-        uint256 minOut
-    ) internal {
-        // Effects: write state before any external interaction.
-        uint256 nextTriggerAt = block.timestamp + config.interval;
+        uint256 minOut,
+        uint256 sourceSharesBaseline
+    )
+        internal
+        returns (
+            uint256 swappedAmount,
+            uint256 outAssets,
+            uint256 nextTriggerAt,
+            uint248 tradesExecuted,
+            uint256 actualInShares
+        )
+    {
+        // Effects.
+        nextTriggerAt = block.timestamp + config.interval;
         state.tradesExecuted += 1;
         state.lastScheduledAt = block.timestamp;
         state.nextTriggerAt = nextTriggerAt;
-        uint248 tradesExecuted = state.tradesExecuted;
+        tradesExecuted = state.tradesExecuted;
 
-        uint256 targetSharesBefore = IERC20(address(config.targetVault))
-            .balanceOf(address(this));
+        IERC20 targetShares = IERC20(address(config.targetVault));
+        IERC20 sourceShares = IERC20(address(config.sourceVault));
 
-        // Interactions: approve, swap, reset allowance via Enso router.
-        _ensoSwap(address(config.sourceVault), config.tradeAmount, ensoData);
-
-        uint256 swappedAmount = IERC20(address(config.targetVault)).balanceOf(
-            address(this)
-        ) - targetSharesBefore;
+        // Interactions.
+        {
+            uint256 targetSharesBefore = targetShares.balanceOf(address(this));
+            _ensoSwap(
+                address(config.sourceVault),
+                config.tradeAmount,
+                ensoData
+            );
+            swappedAmount =
+                targetShares.balanceOf(address(this)) -
+                targetSharesBefore;
+        }
 
         if (swappedAmount < minOut) {
             revert SwapOutputBelowMinOut(strategyId, minOut, swappedAmount);
         }
 
-        IERC20(address(config.targetVault)).safeTransfer(
-            config.owner,
-            swappedAmount
-        );
+        targetShares.safeTransfer(config.owner, swappedAmount);
 
-        emit ExecutionCompleted(
-            strategyId,
-            tradesExecuted,
-            config.tradeAmount,
-            swappedAmount,
-            nextTriggerAt
-        );
-
-        if (config.maxTrades > 0 && tradesExecuted >= config.maxTrades) {
-            state.status = Status.COMPLETED;
-            emit StrategyCompleted(strategyId, "max_trades");
-        } else if (config.endDate > 0 && nextTriggerAt >= config.endDate) {
-            state.status = Status.COMPLETED;
-            emit StrategyCompleted(strategyId, "end_date");
+        // Refund any source-vault shares the router didn't consume.
+        uint256 residue;
+        {
+            uint256 sourceSharesAfter = sourceShares.balanceOf(address(this));
+            if (sourceSharesAfter > sourceSharesBaseline) {
+                residue = sourceSharesAfter - sourceSharesBaseline;
+            }
         }
+        if (residue > 0) {
+            sourceShares.safeTransfer(config.owner, residue);
+        }
+        actualInShares = config.tradeAmount - residue;
+
+        outAssets = config.targetVault.convertToAssets(swappedAmount);
     }
 }

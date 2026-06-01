@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 
 import {IFleetCommander} from "../IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IAllowanceTransfer, ISignatureTransfer} from "../permit2/IPermit2.sol";
 
 interface IDCAStrategyManager {
     /**
@@ -46,14 +47,39 @@ interface IDCAStrategyManager {
         uint256 interval;
         /// @notice Maximum acceptable slippage expressed in basis points (0–10 000).
         uint256 slippageBps;
-        /// @notice Ceiling on the out/in execution-price ratio scaled to ChainlinkOracleUtils.PRECISION. 0 = no ceiling.
+        /// @notice Ceiling on the execution price expressed as `inAsset` units per
+        ///         `outAsset` unit, scaled to ChainlinkOracleUtils.PRECISION (1e18) —
+        ///         i.e. the price of the out-asset denominated in the in-asset, as
+        ///         returned by `ChainlinkOracleUtils.crossRate`. 0 = no ceiling.
+        ///         Example: buying ETH (out) with USDC (in), `maxPrice = 5000e18`
+        ///         means "abort if 1 ETH costs more than 5000 USDC at oracle".
         uint256 maxPrice;
-        /// @notice Floor on the out/in execution-price ratio scaled to ChainlinkOracleUtils.PRECISION. 0 = no floor.
+        /// @notice Floor on the execution price expressed as `inAsset` units per
+        ///         `outAsset` unit, scaled to ChainlinkOracleUtils.PRECISION (1e18) —
+        ///         same convention as `maxPrice`. 0 = no floor.
         uint256 minPrice;
         /// @notice Unix timestamp after which no further executions are permitted.
         uint256 endDate;
-        /// @notice Maximum number of executions before the strategy auto-completes. 0 = unlimited.
+        /// @notice Maximum number of executions before the strategy auto-completes.
+        ///         Must be >= 1; zero is rejected at validation.
         uint256 maxTrades;
+    }
+
+    /**
+     * @notice Bundle of the two Permit2 signatures required by
+     *         `depositAndCreateWithPermit2`. Packed into a single struct to
+     *         stay under the Solidity 16-slot stack limit.
+     */
+    struct Permit2DepositBundle {
+        /// @notice SignatureTransfer permit authorising the one-shot `inAsset` pull.
+        ISignatureTransfer.PermitTransferFrom inAsset;
+        /// @notice EIP-712 signature over `inAsset`.
+        bytes inAssetSig;
+        /// @notice AllowanceTransfer PermitSingle authorising the recurring
+        ///         keeper-driven pulls on source-vault shares.
+        IAllowanceTransfer.PermitSingle shares;
+        /// @notice EIP-712 signature over `shares`.
+        bytes sharesSig;
     }
 
     /**
@@ -83,6 +109,73 @@ interface IDCAStrategyManager {
      */
     function createStrategy(
         StrategyConfig calldata config
+    ) external returns (uint256 strategyId);
+
+    /**
+     * @notice Deposits `assetAmount` of `config.inAsset` into `config.sourceVault`
+     *         on behalf of the caller, then creates a DCA strategy in the same
+     *         transaction.
+     * @dev The deposit goes through the manager only momentarily — the caller
+     *      pre-approves the manager for `config.inAsset`, the manager pulls the
+     *      assets, approves `config.sourceVault`, and calls
+     *      `sourceVault.deposit(assetAmount, msg.sender)` so the resulting
+     *      source-vault shares land in the caller's wallet directly.
+     *      The Permit2 sub-allowance for future keeper-driven pulls must still
+     *      be granted by the caller separately (`Permit2.approve` or `permit`).
+     *      Reverts with `ZeroDeposit` if `assetAmount == 0`.
+     *      All `createStrategy` validations also apply.
+     * @param config Fully populated strategy configuration.
+     * @param assetAmount Underlying-asset amount to deposit into `config.sourceVault`
+     *                    (denominated in `config.inAsset` native decimals).
+     * @return strategyId The newly assigned strategy identifier.
+     */
+    function depositAndCreate(
+        StrategyConfig calldata config,
+        uint256 assetAmount
+    ) external returns (uint256 strategyId);
+
+    /**
+     * @notice Creates a DCA strategy and applies a Permit2 `AllowanceTransfer`
+     *         signature to set up the keeper sub-allowance in one transaction.
+     * @dev The caller must have signed an EIP-712 `PermitSingle` over Permit2
+     *      naming this contract as the spender and `config.sourceVault` as the
+     *      token. The caller must also have previously called
+     *      `sourceVaultShares.approve(PERMIT2, max)` once (standard ERC20).
+     *      Reverts with `InvalidPermit2Spender` if `permitSingle.spender` is not
+     *      this contract, and with `InvalidPermit2Token` if
+     *      `permitSingle.details.token != address(config.sourceVault)`.
+     *      All `createStrategy` validations also apply.
+     * @param config Fully populated strategy configuration.
+     * @param permitSingle Permit2 `AllowanceTransfer` data signed by the caller.
+     * @param signature EIP-712 signature over `permitSingle`.
+     * @return strategyId The newly assigned strategy identifier.
+     */
+    function createStrategyWithPermit2(
+        StrategyConfig calldata config,
+        IAllowanceTransfer.PermitSingle calldata permitSingle,
+        bytes calldata signature
+    ) external returns (uint256 strategyId);
+
+    /**
+     * @notice One-tx variant of `depositAndCreate` that uses Permit2 for both
+     *         the initial `inAsset` pull (SignatureTransfer) and the recurring
+     *         keeper sub-allowance on source-vault shares (AllowanceTransfer).
+     * @dev The caller signs two off-chain messages bundled in `permits`. The
+     *      caller must have previously called `inAsset.approve(PERMIT2, max)`
+     *      and `sourceVaultShares.approve(PERMIT2, max)` once each.
+     *      Reverts with `ZeroDeposit` if `assetAmount == 0`, with
+     *      `InvalidPermit2Spender` / `InvalidPermit2Token` /
+     *      `InvalidPermit2Amount` on any of the four required field mismatches.
+     *      All `createStrategy` validations also apply.
+     * @param config Fully populated strategy configuration.
+     * @param assetAmount Underlying-asset amount to deposit into `config.sourceVault`.
+     * @param permits Bundle of the two signed Permit2 messages (see `Permit2DepositBundle`).
+     * @return strategyId The newly assigned strategy identifier.
+     */
+    function depositAndCreateWithPermit2(
+        StrategyConfig calldata config,
+        uint256 assetAmount,
+        Permit2DepositBundle calldata permits
     ) external returns (uint256 strategyId);
 
     /**
@@ -155,9 +248,11 @@ interface IDCAStrategyManager {
      *      Advances `nextTriggerAt` and increments `tradesExecuted`. Transitions
      *      the strategy to COMPLETED when `maxTrades` is reached or
      *      `nextTriggerAt >= endDate` after the trade.
+     *      If `maxTrades` or `endDate` is already exceeded on entry, transitions
+     *      the strategy to COMPLETED and emits `StrategyCompleted` without
+     *      reverting (no trade is performed).
      *      Reverts with `CommitmentMismatch` if `config` does not match the stored commitment.
      *      Reverts with `StrategyNotActive` if the strategy is not ACTIVE.
-     *      Reverts with `TerminalStateReached` if `maxTrades` or `endDate` is already exceeded.
      *      Reverts with `ExecutionWindowNotReached` if called before `nextTriggerAt`.
      * @param strategyId Identifier of the strategy to execute.
      * @param config Exact current configuration (commitment proof).

@@ -31,8 +31,10 @@ const STRATEGY_FIELDS = /* GraphQL */ `
 
 const EXECUTION_FIELDS = /* GraphQL */ `
   id
-  amountIn
-  amountOut
+  inAssets
+  outAssets
+  inShares
+  outShares
   tradesExecutedAfter
   executionTimestamp
   blockNumber
