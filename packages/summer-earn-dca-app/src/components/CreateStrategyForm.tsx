@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { type Address, parseUnits } from 'viem'
+import { type Address, getAddress, parseUnits } from 'viem'
 import { useAccount, useReadContract } from 'wagmi'
 
 import { dcaStrategyManagerAbi } from '@/abis/DCAStrategyManager'
@@ -25,6 +25,19 @@ import type { ChainId } from '@/types/chain'
 interface CreateStrategyFormProps {
   chainId: ChainId
 }
+
+// Minimal ERC4626 fragment used to re-verify the vault's underlying asset
+// matches what we pass into the strategy config. Defense-in-depth on top of
+// `useActiveFleets` metadata.
+const ERC4626_ASSET_ABI = [
+  {
+    type: 'function',
+    name: 'asset',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
+] as const
 
 export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
   const router = useRouter()
@@ -70,6 +83,36 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
 
   const missingFeed = (sourceFleet && !sourceFleet.feed) || (targetFleet && !targetFleet.feed)
   const sameFleet = sourceFleet && targetFleet && sourceFleet.address === targetFleet.address
+  const priceBoundsInvalid = maxPrice > 0n && minPrice > 0n && minPrice > maxPrice
+
+  // Re-read sourceVault.asset() / targetVault.asset() on-chain and compare
+  // against the form's chosen in/out assets. The contract enforces this via
+  // {In,Out}AssetVaultMismatch; we surface the mismatch pre-flight so the
+  // wallet never sees an inevitable revert.
+  const sourceAssetRead = useReadContract({
+    chainId: Number(chainId),
+    address: sourceFleet?.address,
+    abi: ERC4626_ASSET_ABI,
+    functionName: 'asset',
+    query: { enabled: Boolean(sourceFleet) },
+  })
+  const targetAssetRead = useReadContract({
+    chainId: Number(chainId),
+    address: targetFleet?.address,
+    abi: ERC4626_ASSET_ABI,
+    functionName: 'asset',
+    query: { enabled: Boolean(targetFleet) },
+  })
+  const inAssetMismatch = Boolean(
+    sourceFleet &&
+      sourceAssetRead.data &&
+      getAddress(sourceAssetRead.data) !== getAddress(sourceFleet.asset.address),
+  )
+  const outAssetMismatch = Boolean(
+    targetFleet &&
+      targetAssetRead.data &&
+      getAddress(targetAssetRead.data) !== getAddress(targetFleet.asset.address),
+  )
 
   const inSym = sourceFleet?.asset.symbol ?? 'in'
   const outSym = targetFleet?.asset.symbol ?? 'out'
@@ -83,7 +126,10 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
     intervalValidation.ok &&
     slippageBps <= 10_000n &&
     maxTrades > 0n &&
-    endDateUnix > 0n
+    endDateUnix > 0n &&
+    !priceBoundsInvalid &&
+    !inAssetMismatch &&
+    !outAssetMismatch
 
   const permit2 = usePermit2Approval({
     chainId,
@@ -172,7 +218,9 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
             error={
               sourceFleet && !sourceFleet.feed
                 ? `No Chainlink feed mapped for ${sourceFleet.asset.symbol}. Add one to FEED_BY_ASSET_ADDRESS.`
-                : undefined
+                : inAssetMismatch
+                  ? `Source vault's on-chain underlying does not match ${sourceFleet?.asset.symbol}. Refresh active fleets.`
+                  : undefined
             }
           >
             <FleetSelect
@@ -195,7 +243,9 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
                 ? `No Chainlink feed mapped for ${targetFleet.asset.symbol}. Add one to FEED_BY_ASSET_ADDRESS.`
                 : sameFleet
                   ? 'Source and target must differ.'
-                  : undefined
+                  : outAssetMismatch
+                    ? `Target vault's on-chain underlying does not match ${targetFleet?.asset.symbol}. Refresh active fleets.`
+                    : undefined
             }
           >
             <FleetSelect
@@ -310,6 +360,7 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
           <Field
             label={`Min ${outSym} price (${inSym} per ${outSym})`}
             hint={`0 = no floor. Skip the trade if 1 ${outSym} would cost less than this in ${inSym}.`}
+            error={priceBoundsInvalid ? 'Min price cannot exceed max price.' : undefined}
           >
             <TextInput
               type="number"

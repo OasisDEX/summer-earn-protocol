@@ -176,6 +176,7 @@ Auto-build on `main`; `pr*` branches get PR previews.
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-05-28 — claude — ABI sync after contract security fixes. Regenerated `src/abis/DCAStrategyManager.ts`; subgraph types/queries renamed `Execution.amountIn`/`amountOut` → `inAssets`/`outAssets` (added `inShares`/`outShares`) so the FE's existing asset-decimal formatting is now semantically correct. Added 6 new revert labels to `FRIENDLY_REVERT_LABELS` (InAssetVaultMismatch, OutAssetVaultMismatch, ZeroExpectedOutShares, InvalidPriceBounds, Permit2AllowanceInsufficient, Permit2ExpirationTooEarly). `CreateStrategyForm` gained pre-flight guards: `minPrice > maxPrice` is blocked locally, and `sourceVault.asset()` / `targetVault.asset()` are re-read on-chain and compared against the chosen `inAsset`/`outAsset`. Subgraph must be re-indexed before the new asset fields appear.
 - 2026-05-21 — claude — migrated to Next 16 stable Partial Prerendering:
   `next.config.mjs` swapped `experimental.useCache` → `cacheComponents: true`.
   Root `layout.tsx` and `/portfolio`, `/create` page shells are now

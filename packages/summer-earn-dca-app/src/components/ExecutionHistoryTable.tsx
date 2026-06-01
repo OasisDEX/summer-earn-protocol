@@ -42,8 +42,8 @@ export function ExecutionHistoryTable({
         </thead>
         <tbody>
           {executions.map((ex) => {
-            const inAmt = BigInt(ex.amountIn)
-            const outAmt = BigInt(ex.amountOut)
+            const inAmt = BigInt(ex.inAssets)
+            const outAmt = BigInt(ex.outAssets)
             const skipped = outAmt === 0n
             const priceLabel = skipped
               ? '—'
