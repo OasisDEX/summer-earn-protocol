@@ -118,3 +118,5 @@ myenv
 **/terraform.tfvars
 *.tfvars
 x-ray/
+
+.resources/
