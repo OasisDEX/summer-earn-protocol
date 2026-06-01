@@ -38,9 +38,12 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    and the pair is authorized on both live SwapPools. The constructor enforces this via
  *    `isTokenPairAuthorized`. The pair enforces per-trader authorization, so this Ark must be
  *    authorized as a trader by Franklin Templeton before boarding (see `isArkOnboarded`).
+ *  - iBENJI is a fixed-share ERC20 (18 dec) and is NOT rebasing: `balanceOf` changes only on
+ *    mint/burn/transfer, and NAV is held at $1 par (the fund tracks `lastKnownPrice` off-chain).
+ *    Combined with the SwapPool's fixed 1:1 rate, 1:1 decimal-normalized accounting is exact and no
+ *    NAV oracle is required — contrast SecuritizeArk's rebasing DSToken + Chainlink NAV feed.
  *
  * SCAFFOLD: raw first pass. Deferred to iteration (tracked in the integration plan):
- *  2. Confirm iBENJI decimals and that 1:1 par is the correct valuation (vs a NAV oracle).
  *  3. Confirm SwapPool redemption is always synchronous; decide whether `requestWithdrawal` should
  *     perform the swap rather than no-op.
  *  4. Add iBENJI authorization-module onboarding checks (KYC/whitelist holder gate) alongside the
@@ -411,7 +414,9 @@ contract BenjiArk is ArkWithWithdrawalRequest {
 
     /**
      * @dev Rescales `amount` from `fromDecimals` to `toDecimals` (1:1 value), mirroring the
-     *      SwapPool's own decimal normalization. Downscaling truncates toward zero.
+     *      SwapPool's own decimal normalization. Downscaling truncates toward zero. The 1:1 basis is
+     *      valid because iBENJI is a non-rebasing fixed-share token held at $1 par and the SwapPool
+     *      swaps at a fixed 1:1 rate; if iBENJI ever moves off par this must become NAV-based.
      */
     function _normalizeDecimals(
         uint256 amount,
