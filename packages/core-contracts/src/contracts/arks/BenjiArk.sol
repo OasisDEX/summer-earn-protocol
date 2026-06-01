@@ -43,9 +43,14 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    Combined with the SwapPool's fixed 1:1 rate, 1:1 decimal-normalized accounting is exact and no
  *    NAV oracle is required — contrast SecuritizeArk's rebasing DSToken + Chainlink NAV feed.
  *
+ *  - SwapPool redemption is synchronous: `swap` settles iBENJI -> USDC atomically in one tx and
+ *    returns nothing. Withdrawals therefore flow through `disembark`/`_disembark`, and
+ *    `withdrawableTotalAssets()` reports the full held value. `requestWithdrawal`/`claimWithdrawal`
+ *    are intentionally inert no-ops kept only for `IArkWithWithdrawalRequest` conformance — there is
+ *    no queue to pre-stage, so making `requestWithdrawal` perform the swap would just duplicate
+ *    `disembark` without the FleetCommander's accounting.
+ *
  * SCAFFOLD: raw first pass. Deferred to iteration (tracked in the integration plan):
- *  3. Confirm SwapPool redemption is always synchronous; decide whether `requestWithdrawal` should
- *     perform the swap rather than no-op.
  *  4. Add iBENJI authorization-module onboarding checks (KYC/whitelist holder gate) alongside the
  *     SwapPool trader-authorization gate.
  */
