@@ -117,3 +117,4 @@ myenv
 *.tfvars
 .next-docs
 .claude
+.resources
