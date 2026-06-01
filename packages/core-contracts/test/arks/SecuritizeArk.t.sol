@@ -502,4 +502,51 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         assertEq(ark.sharesToAssets(1e6), 1e6);
         assertEq(ark.sharesToAssets(1000 * 1e6), 1000 * 1e6);
     }
+
+    /* ------------------------- variable NAV (ACRED/STAC) ----------------- */
+
+    /// @notice Funds like ACRED (~$1097/share) and STAC (~$1019/share) are variable-NAV, not par.
+    ///         The generic oracle path must value 1 share at the live NAV.
+    function test_VariableNavValuation() public {
+        // ACRED-style NAV: $1097.96093 at 8 decimals.
+        int256 nav = 109796093000;
+        oracle.setAnswer(nav);
+
+        // 1 share (1e6) -> answer * 1e6(asset) / 1e8(oracle) USDC units.
+        uint256 expectedOneShare = (uint256(nav) * 1e6) / 1e8;
+        assertEq(ark.sharesToAssets(1e6), expectedOneShare, "1 share == NAV");
+        assertEq(ark.sharesToAssets(10 * 1e6), 10 * expectedOneShare);
+    }
+
+    /// @notice Full deposit cycle at a variable NAV: 10 shares issued at ~$1097 each.
+    function test_VariableNav_BoardClearWithdraw() public {
+        int256 nav = 109796093000; // $1097.96093
+        oracle.setAnswer(nav);
+        _onboard();
+
+        // Board the USDC value of 10 shares.
+        uint256 shares = 10 * 1e6;
+        uint256 navValue = (uint256(nav) * shares) / 1e8;
+        _board(navValue);
+
+        vbill.issue(address(ark), shares);
+        vm.prank(keeper);
+        ark.clearPendingDeposit();
+
+        assertEq(ark.pendingDepositAssets(), 0);
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            navValue,
+            1,
+            "NAV-priced holdings"
+        );
+
+        vm.prank(keeper);
+        ark.requestWithdrawal(navValue);
+        assertEq(
+            vbill.balanceOf(custodian),
+            shares,
+            "shares sent to custodian"
+        );
+    }
 }

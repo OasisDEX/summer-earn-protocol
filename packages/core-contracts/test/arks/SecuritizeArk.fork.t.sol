@@ -12,27 +12,35 @@ import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentag
 import {Test} from "forge-std/Test.sol";
 
 /**
- * @title SecuritizeArk fork test — VanEck Treasury Fund (VBILL) on Ethereum mainnet
- * @notice Validates the SecuritizeArk wiring against the REAL VBILL DSToken, its registry, and the
- *         live RedStone NAV feed. The full board -> clear -> withdraw -> sweep cycle requires the
- *         Ark + custodian to be onboarded as investor wallets by Securitize (an `onlyExchangeOrAbove`
- *         operation we cannot reproduce on a fork without the privileged key); that cycle is covered
- *         by the mock-based unit tests in SecuritizeArk.t.sol. Here we assert the real integration
- *         points: on-chain registry resolution, the live NAV oracle, decimals, par valuation, and
- *         that the real registry gate blocks an un-onboarded Ark.
+ * @title SecuritizeArk fork test — Securitize DSToken funds on Ethereum mainnet
+ * @notice Validates SecuritizeArk against the REAL Securitize funds we integrate (VBILL, ACRED,
+ *         STAC), their DSToken registries, and their live RedStone NAV feeds. Covers a $1.00-par
+ *         fund (VBILL) and two variable-NAV funds (ACRED ~ $1097, STAC ~ $1019), proving the
+ *         generic oracle path values all of them correctly.
+ *
+ *         The full board -> clear -> withdraw -> sweep cycle requires the Ark + custodian to be
+ *         onboarded as investor wallets by Securitize (an `onlyExchangeOrAbove` operation we cannot
+ *         reproduce on a fork without the privileged key); that cycle is covered by the mock-based
+ *         unit tests in SecuritizeArk.t.sol. Here we assert the real integration points: on-chain
+ *         registry resolution, the live NAV oracle (par + variable), decimals, and that the real
+ *         registry gate blocks an un-onboarded Ark.
  */
 contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
-    SecuritizeArk public ark;
-    BufferArk public bufferArk;
-    ArkParams public params;
-    address public custodian;
+    struct Fund {
+        string label;
+        address token;
+        address oracle;
+        address registry;
+    }
 
-    // Ethereum mainnet (verified 2026-06-01).
-    address constant VBILL = 0x2255718832bC9fD3bE1CaF75084F4803DA14FF01;
-    address constant NAV_ORACLE = 0xA569E68B5D110F2A255482c2997DFDBe1b2ab912; // VBILL_ETHEREUM_FUNDAMENTAL
-    address constant REGISTRY = 0x897e452425bd1c860d7F9bc14eA045cBbC0fA0d4;
     address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
+    // Ethereum mainnet (verified 2026-06-01).
+    Fund[3] public funds;
+    SecuritizeArk[3] public arks;
+    address public custodian;
+
+    // Block whose timestamp (1780317443) keeps all three RedStone feeds within the 24h heartbeat.
     uint256 forkBlock = 25222568;
 
     function setUp() public {
@@ -42,9 +50,34 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         custodian = makeAddr("custodian");
         keeper = makeAddr("keeper");
 
-        params = ArkParams({
-            name: "USDC Securitize VBILL Ark",
-            details: "USDC Securitize VBILL Ark details",
+        funds[0] = Fund({
+            label: "VBILL",
+            token: 0x2255718832bC9fD3bE1CaF75084F4803DA14FF01,
+            oracle: 0xA569E68B5D110F2A255482c2997DFDBe1b2ab912,
+            registry: 0x897e452425bd1c860d7F9bc14eA045cBbC0fA0d4
+        });
+        funds[1] = Fund({
+            label: "ACRED",
+            token: 0x17418038ecF73BA4026c4f428547BF099706F27B,
+            oracle: 0xD6BcbbC87bFb6c8964dDc73DC3EaE6d08865d51C,
+            registry: 0x3A8E9CD2E17E1F2904b7f745Da29C9cA765Cc319
+        });
+        funds[2] = Fund({
+            label: "STAC",
+            token: 0x51C2d74017390CbBd30550179A16A1c28F7210fc,
+            oracle: 0xEdC6287D3D41b322AF600317628D7E226DD3add4,
+            registry: 0x71080EB74E2816124327Af399aC8Cc518bbC7f49
+        });
+
+        for (uint256 i = 0; i < funds.length; i++) {
+            arks[i] = _deployArk(funds[i]);
+        }
+    }
+
+    function _deployArk(Fund memory f) internal returns (SecuritizeArk ark) {
+        ArkParams memory params = ArkParams({
+            name: string.concat("USDC Securitize ", f.label, " Ark"),
+            details: "Securitize ark",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: USDC,
@@ -58,8 +91,8 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(governor);
         ark = new SecuritizeArk(
             custodian,
-            VBILL,
-            NAV_ORACLE,
+            f.token,
+            f.oracle,
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             params
@@ -73,49 +106,70 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Fork_RegistryResolvedFromToken() public view {
-        assertEq(
-            address(ark.registryService()),
-            REGISTRY,
-            "registry resolved from VBILL.getDSService(4)"
-        );
+        for (uint256 i = 0; i < funds.length; i++) {
+            assertEq(
+                address(arks[i].registryService()),
+                funds[i].registry,
+                string.concat(funds[i].label, ": registry from getDSService(4)")
+            );
+        }
     }
 
     function test_Fork_Decimals() public view {
-        assertEq(ark.assetDecimals(), 6, "USDC decimals");
-        assertEq(ark.shareDecimals(), 6, "VBILL decimals");
-        assertEq(ark.oracleDecimals(), 8, "RedStone feed decimals");
-        assertEq(IERC20Metadata(VBILL).decimals(), 6);
+        for (uint256 i = 0; i < funds.length; i++) {
+            assertEq(arks[i].assetDecimals(), 6, "USDC decimals");
+            assertEq(arks[i].shareDecimals(), 6, "DSToken decimals");
+            assertEq(arks[i].oracleDecimals(), 8, "RedStone feed decimals");
+            assertEq(IERC20Metadata(funds[i].token).decimals(), 6);
+        }
     }
 
-    function test_Fork_LiveNavOracle_ParValuation() public view {
-        // VBILL is a $1.00-par fund: 1 VBILL (1e6) ~= 1 USDC (1e6) via the live NAV feed.
-        uint256 oneVbill = ark.sharesToAssets(1e6);
-        assertApproxEqAbs(oneVbill, 1e6, 1e3, "1 VBILL ~= $1.00 in USDC");
+    /// @notice Values 1 share off the live NAV feed — works for par (VBILL) and variable-NAV
+    ///         (ACRED, STAC) funds alike.
+    function test_Fork_LiveNavValuation() public view {
+        for (uint256 i = 0; i < funds.length; i++) {
+            SecuritizeArk ark = arks[i];
+            (, int256 answer, , , ) = AggregatorV3Interface(funds[i].oracle)
+                .latestRoundData();
+            assertGt(answer, 0, "live NAV positive");
 
-        uint256 thousand = ark.sharesToAssets(1000 * 1e6);
-        assertApproxEqAbs(thousand, 1000 * 1e6, 1e6, "1000 VBILL ~= $1000");
+            uint256 oneShare = 10 ** ark.shareDecimals();
+            uint256 expected = (uint256(answer) * (10 ** ark.assetDecimals())) /
+                (10 ** ark.oracleDecimals());
+            assertApproxEqAbs(
+                ark.sharesToAssets(oneShare),
+                expected,
+                1,
+                string.concat(funds[i].label, ": 1 share == live NAV in USDC")
+            );
+        }
     }
 
     function test_Fork_ArkNotOnboarded() public view {
-        // A freshly deployed Ark is not yet a registered investor wallet.
-        assertFalse(ark.isArkOnboarded());
+        for (uint256 i = 0; i < funds.length; i++) {
+            assertFalse(arks[i].isArkOnboarded(), "fresh ark not onboarded");
+        }
     }
 
     function test_Fork_BoardRevertsAgainstRealRegistry() public {
-        uint256 amount = 1000 * 1e6;
-        deal(USDC, commander, amount);
-        vm.startPrank(commander);
-        IERC20(USDC).approve(address(ark), amount);
-        // Real registry gate: the Ark is not onboarded, so board must revert.
-        vm.expectRevert(SecuritizeArk.ArkNotRegistered.selector);
-        ark.board(amount, bytes(""));
-        vm.stopPrank();
+        for (uint256 i = 0; i < funds.length; i++) {
+            SecuritizeArk ark = arks[i];
+            uint256 amount = 1000 * 1e6;
+            deal(USDC, commander, amount);
+            vm.startPrank(commander);
+            IERC20(USDC).approve(address(ark), amount);
+            vm.expectRevert(SecuritizeArk.ArkNotRegistered.selector);
+            ark.board(amount, bytes(""));
+            vm.stopPrank();
+        }
     }
 
     function test_Fork_ConstructorWiring() public view {
-        assertEq(ark.custodianWallet(), custodian);
-        assertEq(address(ark.asset()), USDC);
-        assertEq(address(ark.shareToken()), VBILL);
-        assertEq(address(ark.oracle()), NAV_ORACLE);
+        for (uint256 i = 0; i < funds.length; i++) {
+            assertEq(arks[i].custodianWallet(), custodian);
+            assertEq(address(arks[i].asset()), USDC);
+            assertEq(address(arks[i].shareToken()), funds[i].token);
+            assertEq(address(arks[i].oracle()), funds[i].oracle);
+        }
     }
 }
