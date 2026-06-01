@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/BenjiArk.sol";
+import {ISwapPool} from "../../src/interfaces/benji/ISwapPool.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
@@ -20,11 +21,12 @@ import {Test} from "forge-std/Test.sol";
  *         Here we assert the real integration points: live decimals, the trader-authorization gate,
  *         and that an un-onboarded Ark is blocked from boarding.
  *
- * @dev SCAFFOLD CAVEAT (open question #1): the stable leg of the iBENJI SwapPool ("USC") is not yet
- *      confirmed. USDC is used here as a placeholder asset so the constructor/onboarding gate can be
- *      exercised; the assertions below hold regardless of the real leg. Replace `STABLE` with the
- *      confirmed leg during iteration and extend with an onboarded board/disembark cycle (impersonate
- *      the SwapPool owner to authorize the Ark as a trader).
+ * @dev Confirmed against mainnet: the stable leg is USDC (6 dec) and iBENJI is 18 dec; both are
+ *      registered on the SwapPool and the USDC/iBENJI pair is authorized, with per-trader
+ *      authorization enforced. The full board/disembark cycle still requires the SwapPool owner
+ *      (Franklin Templeton) to authorize this Ark as a trader AND as an iBENJI holder — neither is
+ *      reproducible on a fork without the privileged key — so that cycle stays in the mocked unit
+ *      tests. Extend during iteration by impersonating the owner once the key/role is known.
  */
 contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     BenjiArk public ark;
@@ -33,7 +35,7 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     // Ethereum mainnet (from .resources/benji/info.md).
     address constant SWAP_POOL = 0x2e508F0F89Ce077252b182f37Aa20240f7b5eC2f;
     address constant IBENJI = 0x90276e9d4A023b5229E0C2e9D4b2a83fe3A2b48c;
-    address constant STABLE = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // USDC placeholder
+    address constant STABLE = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // USDC (confirmed leg)
 
     uint256 forkBlock = 25222568;
 
@@ -78,8 +80,25 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Fork_Decimals() public view {
-        assertEq(ark.assetDecimals(), IERC20Metadata(STABLE).decimals());
-        assertEq(ark.shareDecimals(), IERC20Metadata(IBENJI).decimals());
+        assertEq(ark.assetDecimals(), 6, "USDC decimals");
+        assertEq(ark.shareDecimals(), 18, "iBENJI decimals");
+        assertEq(IERC20Metadata(STABLE).decimals(), 6);
+        assertEq(IERC20Metadata(IBENJI).decimals(), 18);
+    }
+
+    function test_Fork_PairAuthorizedAndTraderEnforced() public view {
+        // The USDC/iBENJI pair is authorized on the live pool (the constructor would have reverted
+        // with PairNotAuthorized otherwise)...
+        assertTrue(ISwapPool(SWAP_POOL).isTokenPairAuthorized(STABLE, IBENJI));
+        // ...but per-trader authorization is enforced: an arbitrary address cannot trade the pair,
+        // so this Ark must be explicitly authorized by Franklin Templeton (see isArkOnboarded).
+        assertFalse(
+            ISwapPool(SWAP_POOL).isTraderAllowed(
+                address(0xdead),
+                STABLE,
+                IBENJI
+            )
+        );
     }
 
     function test_Fork_ArkNotOnboarded() public view {

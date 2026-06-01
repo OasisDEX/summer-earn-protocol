@@ -38,6 +38,7 @@ contract MockToken is ERC20 {
 contract MockSwapPool {
     bool public paused;
     bool public allowAll = true;
+    bool public pairAuthorized = true;
     uint256 public haircutBps; // simulates SwapPool underdelivery for slippage tests
     mapping(address => bool) public traderAllowed;
 
@@ -47,6 +48,10 @@ contract MockSwapPool {
 
     function setAllowAll(bool v) external {
         allowAll = v;
+    }
+
+    function setPairAuthorized(bool v) external {
+        pairAuthorized = v;
     }
 
     function setTraderAllowed(address t, bool v) external {
@@ -68,8 +73,8 @@ contract MockSwapPool {
     function isTokenPairAuthorized(
         address,
         address
-    ) external pure returns (bool) {
-        return true;
+    ) external view returns (bool) {
+        return pairAuthorized;
     }
 
     function getTokenBalance(address token) external view returns (uint256) {
@@ -262,6 +267,18 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             )
         );
         new BenjiArk(address(pool), address(ibenji), tooHigh, params);
+    }
+
+    function test_Constructor_RevertsUnauthorizedPair() public {
+        MockSwapPool unauthPool = new MockSwapPool();
+        unauthPool.setPairAuthorized(false);
+        vm.expectRevert(BenjiArk.PairNotAuthorized.selector);
+        new BenjiArk(
+            address(unauthPool),
+            address(ibenji),
+            Percentage.wrap(PERCENTAGE_FACTOR / 2),
+            params
+        );
     }
 
     /* ----------------------------- onboarding ---------------------------- */

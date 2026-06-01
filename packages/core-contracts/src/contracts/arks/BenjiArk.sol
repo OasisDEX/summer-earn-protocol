@@ -33,9 +33,13 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * inert; `BenjiArk` extends `ArkWithWithdrawalRequest` only to inherit the whitelisted-router swap
  * escape (`_swap`, `whitelistRouter`, `_applySlippage`, `setSlippage`).
  *
+ * Confirmed against mainnet (SwapPool 0x2e508F…5eC2f, iBENJI 0x90276e…b48c):
+ *  - Base-asset leg is USDC directly (no hop): USDC (6 dec) and iBENJI (18 dec) are both registered
+ *    and the pair is authorized on both live SwapPools. The constructor enforces this via
+ *    `isTokenPairAuthorized`. The pair enforces per-trader authorization, so this Ark must be
+ *    authorized as a trader by Franklin Templeton before boarding (see `isArkOnboarded`).
+ *
  * SCAFFOLD: raw first pass. Deferred to iteration (tracked in the integration plan):
- *  1. Confirm the base-asset leg (is `config.asset` the SwapPool stable leg "USC" directly, or does
- *     USDC->USC need a hop?) from the on-chain registered/authorized pairs.
  *  2. Confirm iBENJI decimals and that 1:1 par is the correct valuation (vs a NAV oracle).
  *  3. Confirm SwapPool redemption is always synchronous; decide whether `requestWithdrawal` should
  *     perform the swap rather than no-op.
@@ -76,6 +80,10 @@ contract BenjiArk is ArkWithWithdrawalRequest {
     /// @notice Reverts in `_board` when this Ark is not an authorized SwapPool trader for the
     ///         asset/iBENJI pair (so the swap would revert and strand the asset).
     error ArkNotAuthorized();
+    /// @notice Reverts in the constructor when the configured asset/iBENJI pair is not authorized on
+    ///         the SwapPool (so the Ark could never board or disembark). Pair authorization is a
+    ///         pool-wide setting independent of this Ark's per-trader authorization.
+    error PairNotAuthorized();
     /// @notice Reverts in `_board` when the iBENJI received from the SwapPool is below the 1:1
     ///         expectation minus `depositSlippage`.
     /// @param expectedShares 1:1 decimal-normalized shares for the deposited amount
@@ -152,6 +160,17 @@ contract BenjiArk is ArkWithWithdrawalRequest {
         depositSlippage = _depositSlippage;
         assetDecimals = IERC20Metadata(_params.asset).decimals();
         shareDecimals = IERC20Metadata(_shareToken).decimals();
+
+        // The asset/iBENJI pair must be authorized on the SwapPool for this Ark to ever board or
+        // disembark; fail at deployment rather than stranding funds at the first keeper action.
+        if (
+            !ISwapPool(_swapPool).isTokenPairAuthorized(
+                _params.asset,
+                _shareToken
+            )
+        ) {
+            revert PairNotAuthorized();
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
