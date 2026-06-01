@@ -14,5 +14,6 @@ export function buildAdminTabs(institutionSlug: string, fleetAddress: string): T
     { href: `${root}/rounds`, label: 'Rounds' },
     { href: `${root}/roles`, label: 'Roles' },
     { href: `${root}/rebalance`, label: 'Rebalance' },
+    { href: `${root}/transfers`, label: 'Transfers' },
   ]
 }

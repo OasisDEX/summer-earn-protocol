@@ -20,6 +20,7 @@ export const ACCOUNT_RECEIPTS = /* GraphQL */ `
         vault {
           id
           flavor
+          minPositionSize
           underlyingToken {
             id
             symbol
@@ -67,6 +68,7 @@ export const RECEIPTS_BY_VAULT = /* GraphQL */ `
       vault {
         id
         flavor
+        minPositionSize
         underlyingToken {
           id
           symbol
