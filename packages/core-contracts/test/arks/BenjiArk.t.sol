@@ -16,8 +16,12 @@ import {Test, console} from "forge-std/Test.sol";
 /* -------------------------------------------------------------------------- */
 
 /// @notice ERC20 with configurable decimals and open mint, used for the stable leg and iBENJI.
+/// @dev Optionally enforces an iBENJI-style holder whitelist on genuine transfers (off by default,
+///      mint/burn always allowed) to model the token's off-chain KYC transfer policy.
 contract MockToken is ERC20 {
     uint8 private immutable _dec;
+    bool public holderGate;
+    mapping(address => bool) public authorizedHolder;
 
     constructor(string memory n, string memory s, uint8 dec_) ERC20(n, s) {
         _dec = dec_;
@@ -29,6 +33,25 @@ contract MockToken is ERC20 {
 
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
+    }
+
+    function setHolderGate(bool v) external {
+        holderGate = v;
+    }
+
+    function setAuthorizedHolder(address a, bool v) external {
+        authorizedHolder[a] = v;
+    }
+
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal override {
+        if (holderGate && from != address(0) && to != address(0)) {
+            require(authorizedHolder[to], "HOLDER_NOT_AUTHORIZED");
+        }
+        super._update(from, to, value);
     }
 }
 
@@ -308,6 +331,24 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         assertEq(ibenji.balanceOf(address(ark)), 1000 * 1e18);
         assertEq(stable.balanceOf(address(ark)), 0);
         assertEq(ark.totalAssets(), ONE, "valued 1:1 in stable terms");
+    }
+
+    function test_Board_RevertsWhenArkNotAuthorizedHolder() public {
+        // iBENJI now enforces its holder whitelist on inbound transfers. The Ark is an authorized
+        // SwapPool trader (pool.allowAll) but NOT yet an authorized iBENJI holder, so the SwapPool's
+        // delivery transfer reverts inside the token — the holder gate is enforced implicitly.
+        ibenji.setHolderGate(true);
+        stable.mint(commander, ONE);
+        vm.startPrank(commander);
+        IERC20(address(stable)).forceApprove(address(ark), ONE);
+        vm.expectRevert();
+        ark.board(ONE, bytes(""));
+        vm.stopPrank();
+
+        // Once Franklin Templeton authorizes the Ark as a holder, board succeeds.
+        ibenji.setAuthorizedHolder(address(ark), true);
+        _board(ONE);
+        assertEq(ibenji.balanceOf(address(ark)), 1000 * 1e18);
     }
 
     function test_Board_RevertsOnUnderdelivery() public {

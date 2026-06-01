@@ -49,10 +49,15 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    are intentionally inert no-ops kept only for `IArkWithWithdrawalRequest` conformance — there is
  *    no queue to pre-stage, so making `requestWithdrawal` perform the swap would just duplicate
  *    `disembark` without the FleetCommander's accounting.
+ *  - iBENJI holder authorization (KYC/whitelist) is enforced by the token's own transfer policy and
+ *    is NOT readable on-chain from the token (no public getter; its module registry is internal).
+ *    This Ark reaches iBENJI only via the SwapPool, so the holder gate is enforced implicitly: if
+ *    the Ark is not an authorized holder, the SwapPool's iBENJI delivery reverts inside the token
+ *    and `_board` reverts. `isArkOnboarded()` therefore checks the readable trader gate only;
+ *    holder authorization must be granted off-chain by Franklin Templeton.
  *
- * SCAFFOLD: raw first pass. Deferred to iteration (tracked in the integration plan):
- *  4. Add iBENJI authorization-module onboarding checks (KYC/whitelist holder gate) alongside the
- *     SwapPool trader-authorization gate.
+ * Still out of scope for this branch's scaffold: deployment-package wiring (ArkType enum, deploy
+ * script, Ignition module) and an owner-impersonation fork test of the full board/disembark cycle.
  */
 contract BenjiArk is ArkWithWithdrawalRequest {
     using SafeERC20 for IERC20;
@@ -234,6 +239,9 @@ contract BenjiArk is ArkWithWithdrawalRequest {
     /**
      * @notice Whether this Ark is an authorized SwapPool trader for the asset/iBENJI pair and may
      *         therefore swap. Trader authorization is granted off-chain by Franklin Templeton.
+     * @dev This reflects the SwapPool trader gate only. iBENJI also requires the Ark to be an
+     *      authorized *holder*, which is enforced by the token and is not readable here; if missing,
+     *      it surfaces as a revert when the SwapPool delivers iBENJI during `_board`.
      */
     function isArkOnboarded() external view returns (bool) {
         return
