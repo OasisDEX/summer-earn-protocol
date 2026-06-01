@@ -48,30 +48,31 @@ interface IArkWithWithdrawalRequest is IArk {
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts);
 
     /**
-     * @notice Requests a withdrawal of all underlying assets from the Ark
-     * @dev This function is only callable by the keeper
-     * @dev This function is non-reentrant
+     * @notice Requests a withdrawal of underlying assets from the Ark.
+     * @dev This function is only callable by the keeper.
+     * @dev This function is non-reentrant.
+     * @param amount The amount of underlying asset to request a withdrawal for.
      */
     function requestWithdrawal(uint256 amount) external;
 
     /**
-     * @notice Claims a withdrawal of all underlying assets from the Ark
-     * @dev This function is only callable by the keeper
-     * @dev This function is non-reentrant
+     * @notice Claims a previously requested withdrawal of underlying assets from the Ark.
+     * @dev This function is only callable by the keeper.
+     * @dev This function is non-reentrant.
      */
     function claimWithdrawal() external;
 
     /**
-     * @notice Returns the current withdrawal request id
-     * @return The current withdrawal request id
+     * @notice Returns the current withdrawal request id.
+     * @return requestId The current withdrawal request id.
      */
-    function withdrawalRequestId() external view returns (uint256);
+    function withdrawalRequestId() external view returns (uint256 requestId);
 
     /**
-     * @notice Returns the assets in the withdrawal queue
-     * @return The assets in the withdrawal queue
+     * @notice Returns the assets in the withdrawal queue.
+     * @return assets The amount of underlying assets currently pending withdrawal.
      */
-    function assetsInWithdrawalQueue() external view returns (uint256);
+    function assetsInWithdrawalQueue() external view returns (uint256 assets);
 
     /**
      * @notice Withdraws assets from the Ark using a swap
@@ -99,20 +100,49 @@ interface IArkWithWithdrawalRequest is IArk {
     function whitelistRouter(address router, bool isWhitelisted) external;
 
     /**
-     * @notice Returns whether a withdrawal claim is required for this Ark
-     * @dev It's a keeper helper method to check if a claim is required
-     * @return Whether a withdrawal claim is required
+     * @notice Returns whether a withdrawal claim is required for this Ark.
+     * @dev It's a keeper helper method to check if a claim is required.
+     * @return required Whether a withdrawal claim is required.
      */
-    function isWithdrawalClaimRequired() external view returns (bool);
+    function isWithdrawalClaimRequired() external view returns (bool required);
 
+    /**
+     * @notice Emitted when a withdrawal is requested.
+     * @param amount The amount of underlying asset requested for withdrawal.
+     * @param withdrawalId The protocol-specific withdrawal id (0 for protocols without an id).
+     */
     event WithdrawalRequested(uint256 amount, uint256 withdrawalId);
+
+    /**
+     * @notice Emitted when a router's whitelist status is updated.
+     * @param router The router address whose status changed.
+     * @param isWhitelisted The new whitelist status.
+     */
     event RouterWhitelisted(address router, bool isWhitelisted);
+
+    /**
+     * @notice Emitted when `setSlippage` updates the swap slippage tolerance.
+     * @param slippage The new slippage value, in basis points of `SLIPPAGE_BASE`.
+     */
     event SlippageSet(uint256 slippage);
+
+    /**
+     * @notice Emitted by `_swap` after a successful router call.
+     * @param token The sold token address.
+     * @param router The router address that executed the swap.
+     * @param amount The amount of `token` sold.
+     * @param swapCalldata The calldata forwarded to the router.
+     */
     event Swapped(
         address token,
         address router,
         uint256 amount,
         bytes swapCalldata
     );
+
+    /**
+     * @notice Emitted when a previously requested withdrawal is cancelled.
+     * @param shares The amount of shares that were returned as a result of the cancellation.
+     */
     event WithdrawalCancelled(uint256 shares);
 }

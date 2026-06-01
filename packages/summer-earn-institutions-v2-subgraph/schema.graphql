@@ -1768,9 +1768,10 @@ enum RoundState {
   SETTLED
 }
 
-enum TransferKind {
-  MINT
-  BURN
+enum ReceiptActivityType {
+  DEPOSIT
+  REDEEM_CURRENT
+  REDEEM_EXCHANGE
   TRANSFER
 }
 
@@ -1819,56 +1820,55 @@ type Round @entity {
   " Set when the round transitions to SETTLED "
   settledAt: BigInt
   settledAtBlock: BigInt
-  " From RoundSettled event's Price tuple. baseAmount = underlying, quoteAmount = exchange asset. "
+  " From RoundSettled event's Price tuple. baseAmount = exchange asset produced, quoteAmount = underlying/receipts frozen. Payout = receiptAmount * base / quote. Null until settlement. "
   exchangeRateBase: BigInt
   exchangeRateQuote: BigInt
-  " quoteAmount / baseAmount (exchange asset per underlying unit) — null until settlement "
-  exchangeRateDecimal: BigDecimal
+  " True when the round settled with zero receipt supply (a fallback preview rate was snapshotted instead of a real trade). "
+  isEmpty: Boolean!
   " Live ERC-1155 supply for this round's receipt token. Bumped on every mint/burn, stays live after settle (redeemExchangeAsset burns continue to shrink it). Always equals on-chain totalSupply(roundId). "
   receiptSupply: BigInt!
-  " Running sum of DepositWithReceipt asset amounts attributed to this round. Cumulative across the round's lifetime. "
-  depositsQueued: BigInt!
-  " Running sum of underlying redeemed via queue-cancel `redeem` against this round (gross). Does not include SETTLED-phase exchangeAssetWithdrawn. "
-  depositsRedeemed: BigInt!
-  " Running sum of exchange-asset amount withdrawn via redeemExchangeAsset against this round's receipts. "
-  exchangeAssetWithdrawn: BigInt!
-  " Underlying amount the vault released to the target on settle (INPUT flavor: assets deposited; OUTPUT flavor: shares redeemed). Disambiguate via RoundsVault.flavor. "
-  settledUnderlyingAmount: BigInt
-  " Exchange-asset amount the vault received back from the target on settle (INPUT flavor: shares received; OUTPUT flavor: assets returned). Disambiguate via RoundsVault.flavor. "
-  settledExchangeAmount: BigInt
-  retriedCount: Int!
   " True if this round was ever emergency-rolled-back. The on-chain state goes back to Opened post-rollback, so `state` reflects that; this flag preserves the historical fact. "
   rolledBack: Boolean!
   receipts: [Receipt!]! @derivedFrom(field: "round")
+  " Immutable, append-only activity feed for this round (deposits, cancels, settled exchanges, transfers). "
+  activities: [ReceiptActivity!]! @derivedFrom(field: "round")
 }
 
 type Receipt @entity {
   " {vaultAddr}-{roundId}-{accountAddr} "
   id: ID!
   vault: RoundsVault!
+  " The round this receipt belongs to. Read `round.state` for this receipt's lifecycle state and `round.exchangeRateBase/Quote` for its settled rate — never recompute. "
   round: Round!
   account: Account!
+  " Current ERC-1155 receipt balance. Single source of truth, maintained purely from TransferSingle/TransferBatch deltas. "
   balance: BigInt!
-  totalMinted: BigInt!
-  totalBurned: BigInt!
-  totalRedeemedForExchangeAsset: BigInt!
-  exchangeAssetReceived: BigInt!
-  " Underlying returned to this user via queue-cancel `redeem` against this round. Separate from exchangeAssetReceived (which covers SETTLED-phase redemptions). "
-  underlyingRedeemed: BigInt!
   lastUpdated: BigInt!
   lastUpdatedBlock: BigInt!
+  " Immutable, append-only activity feed for this receipt holder. "
+  activities: [ReceiptActivity!]! @derivedFrom(field: "receipt")
 }
 
-type ReceiptTransfer @entity(immutable: true) {
-  " {txHash}-{logIndex}-{batchIndex} "
+" Immutable, append-only semantic activity row. Replaces running counters: lifetime/volumetric figures are reconstructed by summing these. Carries the realized counter-asset amount straight from the emitting event. "
+type ReceiptActivity @entity(immutable: true) {
+  " {txHash}-{logIndex} (+ -{lineIndex} for batched lines) "
   id: ID!
   vault: RoundsVault!
   round: Round!
-  from: Bytes!
-  to: Bytes!
-  operator: Bytes!
-  amount: BigInt!
-  kind: TransferKind!
+  receipt: Receipt!
+  " The receipt owner affected: receiver for DEPOSIT, owner for redemptions, sender for TRANSFER. "
+  account: Account!
+  type: ReceiptActivityType!
+  caller: Bytes!
+  receiver: Bytes!
+  " Receipts minted / burned / transferred. "
+  receiptAmount: BigInt!
+  " Realized counter-asset moved: deposit asset in (DEPOSIT), underlying returned (REDEEM_CURRENT), exchange asset out (REDEEM_EXCHANGE). Null for TRANSFER. "
+  assetAmount: BigInt
+  " Token `assetAmount` is denominated in (vault.underlyingToken or vault.exchangeAssetToken). Null for TRANSFER. "
+  assetToken: Token
+  " Round state at the time of this action. "
+  roundStateAtAction: RoundState!
   blockNumber: BigInt!
   timestamp: BigInt!
   txHash: Bytes!

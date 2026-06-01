@@ -86,11 +86,13 @@ export const PHASE_INFO: Record<ProposalPhase, PhaseInfo> = {
 /**
  * Calculate the current phase and timing information for a proposal
  */
-export function calculateProposalTiming(proposal: {
-  status: string
-  createdAt: string
-}): ProposalTiming {
-  const currentTime = Math.floor(Date.now() / 1000)
+export function calculateProposalTiming(
+  proposal: {
+    status: string
+    createdAt: string
+  },
+  currentTime: number = Math.floor(Date.now() / 1000),
+): ProposalTiming {
   const createdAt = Number(proposal.createdAt)
   const baseStatus = proposal.status.toLowerCase() as ProposalPhase
 

@@ -342,6 +342,16 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
     }
 
+    function test_RevertSweepWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+
+        vm.startPrank(keeper);
+        vm.expectRevert(WisdomTreeArk.ArkIsFrozen.selector);
+        ark.sweep();
+        vm.stopPrank();
+    }
+
     function test_TotalAssetsIsCachedWhenFrozen_MaxUint256() public {
         uint256 amount = 60000 * 1e6; // 1 share worth
         deal(USDC_ADDRESS, commander, amount);
@@ -428,32 +438,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         );
     }
 
-    function test_ClearPendingDepositAmount() public {
-        uint256 amount = 60000 * 1e6; // Exact price of 1 share
-        deal(USDC_ADDRESS, commander, amount);
-
-        vm.startPrank(commander);
-        usdc.forceApprove(address(ark), amount);
-        ark.board(amount, bytes(""));
-        vm.stopPrank();
-
-        assertEq(ark.pendingDepositAssets(), amount);
-
-        uint256 clearAmount = 10000 * 1e6;
-        uint256 equivalentShares = (clearAmount * 1e18) / amount;
-        deal(address(wtToken), address(ark), equivalentShares);
-
-        vm.startPrank(keeper);
-        ark.clearPendingDeposit(clearAmount);
-        vm.stopPrank();
-
-        assertEq(
-            ark.pendingDepositAssets(),
-            amount - clearAmount,
-            "Pending deposit should be partially cleared"
-        );
-    }
-
     function test_RevertBoardWhenPendingDepositNonMoneyMarket() public {
         uint256 amount = 1000 * 1e6;
         deal(USDC_ADDRESS, commander, amount * 2);
@@ -484,6 +468,30 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         // 2. Try to withdraw
         vm.startPrank(keeper);
         vm.expectRevert(WisdomTreeArk.PendingDepositActive.selector);
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+    }
+
+    function test_RequestWithdrawal_RevertsIfPendingWithdrawal() public {
+        // 1. Setup fully cleared deposit
+        uint256 amount = 60000 * 1e6; // 1 share worth
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 sharesMinted = 1e18;
+        wtToken.mint(address(ark), sharesMinted);
+
+        vm.startPrank(keeper);
+        ark.clearPendingDeposit();
+
+        // 2. Request first withdrawal successfully
+        ark.requestWithdrawal(amount);
+
+        // 3. Try to request another withdrawal while one is already pending
+        vm.expectRevert(WisdomTreeArk.PendingWithdrawalActive.selector);
         ark.requestWithdrawal(amount);
         vm.stopPrank();
     }
@@ -826,47 +834,6 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         );
     }
 
-    function test_ClearPendingDeposit_PartialClearance_SafeUpdate() public {
-        // Board 120k USDC (Expect 2 Shares)
-        uint256 amount = 120000 * 1e6;
-        deal(USDC_ADDRESS, commander, amount);
-
-        vm.startPrank(commander);
-        usdc.forceApprove(address(ark), amount);
-        ark.board(amount, bytes(""));
-        vm.stopPrank();
-
-        // Only 1 Share arrives off-chain initially
-        uint256 partialSharesMinted = 1e18;
-        wtToken.mint(address(ark), partialSharesMinted);
-
-        uint256 partialClearance = 60000 * 1e6; // Clear half the USDC
-
-        vm.startPrank(keeper);
-        ark.clearPendingDeposit(partialClearance); // Clear half
-        vm.stopPrank();
-
-        // Verify partial state
-        assertEq(
-            ark.pendingDepositAssets(),
-            60000 * 1e6,
-            "Half of the deposit should still be pending"
-        );
-        assertEq(
-            ark.cachedShareBalance(),
-            partialSharesMinted,
-            "Cache should safely track the partial delivery"
-        );
-
-        // Assert totalAssets is still completely stable
-        // 1 share in cache (60k) + 60k pending = 120k total
-        assertEq(
-            ark.totalAssets(),
-            amount,
-            "NAV should not shift during partial clearance"
-        );
-    }
-
     function test_EmergencyClearPendingDeposit_RescuesDeadlock() public {
         uint256 amount = 1200000 * 1e6; // $1.2M USDC -> 20 shares
         deal(USDC_ADDRESS, commander, amount);
@@ -894,11 +861,11 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.expectRevert(
             abi.encodeWithSelector(
                 WisdomTreeArk.SharesNotArrived.selector,
-                30e18, // Contract demands 30 shares based on today's cheap price
+                60e18, // Contract demands 60 shares based on today's cheap price for the full $1.2M deposit
                 partialSharesDelivered // Only 10 arrived
             )
         );
-        ark.clearPendingDeposit(clearanceAttempt);
+        ark.clearPendingDeposit();
         vm.stopPrank();
 
         // The Governor verifies off-chain that $600k was legitimately
@@ -1098,7 +1065,7 @@ contract WisdomTreeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
 
         vm.startPrank(keeper);
-        ark.clearPendingDeposit(0);
+        ark.clearPendingDeposit();
         vm.stopPrank();
     }
 }

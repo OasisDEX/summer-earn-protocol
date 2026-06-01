@@ -7,12 +7,14 @@ import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import "../interfaces/extensions/ERC1155FullSupply/IERC1155FullSupply.sol";
 
 /**
- * @dev Extension of ERC1155 that adds tracking of total overall supply on top of the
- * per-id supply tracking of ERC1155Supply
+ * @title ERC1155FullSupply
  *
- * @dev This contract is based on the OpenZeppelin ERC1155Supply contract, with
- * added functionality track the full supply of all minted ids plus the balance of all ids
- * for a given account.
+ * @notice Extension of OpenZeppelin's `ERC1155Supply` that additionally tracks each account's total
+ *         balance across every token id, so callers can query the per-account aggregate in O(1)
+ *         instead of enumerating ids.
+ *
+ * @dev Implementations that mint multi-id receipts use `balanceOfAll` as the cheap aggregate
+ *      readout (e.g. `RoundsVaultBase` uses it for minimum-position-size checks).
  *
  * @author robercano
  */
@@ -22,7 +24,9 @@ abstract contract ERC1155FullSupply is ERC1155Supply, IERC1155FullSupply {
     /**
      * STORAGE
      */
-    mapping(address => uint256) private _totalSupplyByAccount; /// Sum of amounts of all ids owned by an account
+
+    /// @notice Sum of an account's balances across every id, maintained by `_update`.
+    mapping(address => uint256) private _totalSupplyByAccount;
 
     /**
      * READ FUNCTIONS
@@ -42,7 +46,8 @@ abstract contract ERC1155FullSupply is ERC1155Supply, IERC1155FullSupply {
      */
 
     /**
-     * @dev See {ERC1155-_beforeTokenTransfer}.
+     * @dev ERC-1155 `_update` hook. Delegates the per-id supply bookkeeping to `ERC1155Supply` and
+     *      maintains the per-account aggregate `_totalSupplyByAccount` so `balanceOfAll` is O(1).
      */
     function _update(
         address from,

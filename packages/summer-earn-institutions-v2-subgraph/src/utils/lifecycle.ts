@@ -1,8 +1,12 @@
 import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
-import { Round } from '../../generated/schema'
-import { getOrCreateRound, getRoundsVaultByAddress } from '../common/initializers'
+import {
+  getOrCreateAccount,
+  getOrCreateReceipt,
+  getOrCreateRound,
+  getRoundsVaultByAddress,
+} from '../common/initializers'
 import { BigIntConstants } from '../common/constants'
-import { exchangeRateAsDecimal } from './price'
+import { recordReceiptActivity, ReceiptActivityTypeStr } from './receipt'
 
 export function applyRoundAdvanced(
   vaultAddr: Address,
@@ -45,7 +49,9 @@ export function applyRoundSettled(
   round.settledAtBlock = event.block.number
   round.exchangeRateBase = rateBase
   round.exchangeRateQuote = rateQuote
-  round.exchangeRateDecimal = exchangeRateAsDecimal(rateBase, rateQuote)
+  // Empty rounds settle with a fallback preview rate (non-zero quote), so detect "empty" from the
+  // receipt supply at settlement time, not from the rate.
+  round.isEmpty = round.receiptSupply.equals(BigIntConstants.ZERO)
   round.save()
 }
 
@@ -58,7 +64,6 @@ export function applyRoundRetried(
   if (vault == null) return
   let round = getOrCreateRound(vault, roundId, event.block)
   round.state = 'IN_SETTLEMENT'
-  round.retriedCount = round.retriedCount + 1
   round.save()
 }
 
@@ -91,16 +96,30 @@ export function applyMinPositionSize(
 export function applyDepositWithReceipt(
   vaultAddr: Address,
   roundId: BigInt,
+  caller: Address,
+  receiver: Address,
   assets: BigInt,
   event: ethereum.Event,
 ): void {
   let vault = getRoundsVaultByAddress(vaultAddr)
   if (vault == null) return
   let round = getOrCreateRound(vault, roundId, event.block)
-  round.depositsQueued = round.depositsQueued.plus(assets)
-  round.save()
-}
-
-export function loadRound(vaultId: string, roundId: BigInt): Round | null {
-  return Round.load(vaultId + '-' + roundId.toString())
+  let user = getOrCreateAccount(receiver.toHexString())
+  let receipt = getOrCreateReceipt(vault, round, user, event.block)
+  // Receipts are minted 1:1 with the deposited asset, so receiptAmount == assetAmount == assets.
+  // The receipt balance itself is booked by the paired ERC-1155 mint in applyReceiptTransfer.
+  recordReceiptActivity(
+    vault,
+    round,
+    receipt,
+    user,
+    ReceiptActivityTypeStr.DEPOSIT(),
+    caller,
+    receiver,
+    assets,
+    assets,
+    vault.underlyingToken,
+    event,
+    '',
+  )
 }

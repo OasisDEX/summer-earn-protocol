@@ -5,13 +5,18 @@ import "./IRoundsVaultBase.sol";
 
 /**
     @title IRoundsVaultInputEvents
-    @notice The IRoundsVaultInputEvents contract defines the events emitted by the IRoundsVaultInput contract.
-            These events allow users to track the deposits made in the input vault
+
+    @notice Events specific to the Input flavor of `RoundsVaultBase`.
 
     @author Roberto Cano <robercano>
  */
 interface IRoundsVaultInputEvents {
-    /// Emitted when a user deposits assets into the input vault, indicating the round, the account, the amount of assets and the amount of shares minted
+    /// @notice Emitted by `RoundsVaultInput._operate` when the keeper settles a round and the frozen
+    ///         underlying-asset liability is deposited into the target vault.
+    /// @param roundId The id of the round being settled
+    /// @param account The address that triggered the settlement (the keeper for normal flows)
+    /// @param assets The amount of underlying asset that was deposited into the target vault
+    /// @param shares The amount of target-vault shares received in return
     event AssetsDeposited(
         uint256 indexed roundId,
         address indexed account,

@@ -5,10 +5,6 @@ export const ROUNDS_VAULT = /* GraphQL */ `
       flavor
       currentRound
       minPositionSize
-      cumulativeDepositsQueued
-      cumulativeExchangeAssetWithdrawn
-      currentRoundReceiptSupply
-      pendingSettlementAmount
       createdAt
       createdAtBlock
       underlyingToken {
@@ -52,13 +48,8 @@ export const ROUNDS_FOR_VAULT = /* GraphQL */ `
       settledAtBlock
       exchangeRateBase
       exchangeRateQuote
-      exchangeRateDecimal
-      totalReceiptSupplyAtClose
-      inputAssetsDeposited
-      inputSharesReceived
-      outputSharesRedeemed
-      outputAssetsReturned
-      retriedCount
+      isEmpty
+      receiptSupply
       rolledBack
     }
   }
@@ -71,10 +62,6 @@ export const ROUNDS_VAULT_WITH_RECENT_ROUNDS = /* GraphQL */ `
       flavor
       currentRound
       minPositionSize
-      cumulativeDepositsQueued
-      cumulativeExchangeAssetWithdrawn
-      currentRoundReceiptSupply
-      pendingSettlementAmount
       underlyingToken {
         id
         symbol
@@ -94,13 +81,8 @@ export const ROUNDS_VAULT_WITH_RECENT_ROUNDS = /* GraphQL */ `
         settledAt
         exchangeRateBase
         exchangeRateQuote
-        exchangeRateDecimal
-        totalReceiptSupplyAtClose
-        inputAssetsDeposited
-        inputSharesReceived
-        outputSharesRedeemed
-        outputAssetsReturned
-        retriedCount
+        isEmpty
+        receiptSupply
         rolledBack
       }
     }

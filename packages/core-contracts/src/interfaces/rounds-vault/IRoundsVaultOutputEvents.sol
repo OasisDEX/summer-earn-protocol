@@ -5,13 +5,18 @@ import "./IRoundsVaultBase.sol";
 
 /**
     @title IRoundsVaultOutputEvents
-    @notice The IRoundsVaultOutputEvents contract defines the events emitted by the IRoundsVaultOutput contract.
-            These events allow users to track the redemptions made in the output vault.
+
+    @notice Events specific to the Output flavor of `RoundsVaultBase`.
 
     @author Roberto Cano <robercano>
  */
 interface IRoundsVaultOutputEvents {
-    /// Emitted when a user redeems shares from the output vault, indicating the round, the account, the amount of shares and the amount of assets received
+    /// @notice Emitted by `RoundsVaultOutput._operate` when the keeper settles a round and the frozen
+    ///         target-vault shares are redeemed from the target vault for its underlying asset.
+    /// @param roundId The id of the round being settled
+    /// @param account The address that triggered the settlement (the keeper for normal flows)
+    /// @param shares The amount of target-vault shares that were redeemed
+    /// @param assets The amount of underlying asset received from the target vault
     event SharesRedeemed(
         uint256 indexed roundId,
         address indexed account,

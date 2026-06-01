@@ -14,11 +14,11 @@ import {IRoundsVaultInputEvents} from "../../interfaces/rounds-vault/IRoundsVaul
 /**
     @title RoundsVaultInput
 
-    @notice The RoundsInputVault contract allows users to deposit funds into this contract while the
-    target vault is locked, and receipts are minted to the users for this deposits. Upon round completion, the
-    funds are transferred to the target vault and the corresponding shares are collected.
-
-    Users can then exchange their receipts from previous rounds for the corresponding shares held in this vault.
+    @notice Input flavor of `RoundsVaultBase`. Users deposit the target vault's underlying asset
+    (e.g. USDC) and receive ERC-1155 receipts for the current round. When the keeper closes and
+    settles the round, the frozen underlying is deposited into the target vault and the target
+    vault's shares are credited as the round's exchange asset. Holders of past-round receipts can
+    then redeem them for shares at the round's snapshotted rate.
 
     @author Roberto Cano <robercano>
  */
@@ -32,14 +32,15 @@ contract RoundsVaultInput is
      */
 
     /**
-        @param targetVault The address of the target vault for which this input vault is managing deposits. This vault will
-                           be moving funds in and out of the target vault on each round
-        @param accessManager The address of the Protocol Access Manager contract that provides information
-                             about the different roles in the protocol, including the Keeper role that is the only
-                             one allowed to call the `nextRound` function
-        @param receiptsURI The URI of the ERC-1155 receipts that will be emitted when depositing the underlying
-
-        @dev For an input vault the underlying of the Rounds Vault is the underlying asset of the target vault
+     * @notice Wires the Input-flavor rounds-vault to its target ERC-4626 vault and the protocol
+     *         access manager.
+     * @dev For an Input vault the deposit asset is the target vault's underlying asset; the exchange
+     *      asset (returned by `redeemExchangeAsset`) is the target vault itself (its shares).
+     * @param targetVault The target ERC-4626 vault this Input vault wraps; settlement deposits into
+     *                    this vault each round.
+     * @param accessManager The `ProtocolAccessManagerV2` instance that gates keeper and governor
+     *                      entry points (e.g. only the keeper may call `nextRound`).
+     * @param receiptsURI The ERC-1155 metadata URI for round receipts minted on deposit.
      */
     constructor(
         address targetVault,
@@ -61,14 +62,17 @@ contract RoundsVaultInput is
      */
 
     /**
-        @inheritdoc RoundsVaultBase
-        @dev Deposits the frozen assets into the target vault, receiving back an amount of target vault shares
-    */
-    // @audit This function is protected for re-entrancy by two mechanisms: only the Operator can call
-    // `_nextRound` which is the function that in turn calls this function, and the Operator is a trusted
-    // entity. Also, even if the operator would call `nextRound` in a re-entrancy attack, the funds are being
-    // moved from this contract to the `InvestmentVault` contract and no more funds would be left, leading
-    // the following code to be a no-op
+     * @inheritdoc RoundsVaultBase
+     * @dev Deposits the round's frozen underlying balance into the target vault and returns the
+     *      amount of target-vault shares received. The shares stay in this contract and back
+     *      `redeemExchangeAsset` payouts for the round.
+     */
+    // @audit Re-entrancy posture: `_operate` is only reachable via `_setRoundSettled`, which is
+    // gated by `onlyKeeper` on `setRoundSettled` / `setRoundSettledBatch`. The Keeper is a trusted
+    // role. Even if a Keeper attempted to re-enter `setRoundSettled` for the same round, the round
+    // state is flipped to `Settled` before `_operate` runs, so the second call would revert on
+    // `InvalidRoundState`. And the round's deposit balance has already been transferred to the
+    // target FleetCommander, leaving this contract with nothing to move on a re-entrant pass.
     function _operate(
         uint256 assets,
         uint256 roundId
@@ -83,14 +87,11 @@ contract RoundsVaultInput is
     }
 
     /**
-        @inheritdoc RoundsVaultBase
-
-        @dev The exchange rate is given by the `previewDeposit` function on the target vault. The exchange rate is
-        calculated for 1 full token
-
-        @dev This function can only be called while the target vault is unlocked
-
-        @dev The fallback exchange rate is calculated for 1 full token
+     * @inheritdoc RoundsVaultBase
+     *
+     * @dev Derives the rate from the target vault's `previewDeposit` for one full unit of the
+     *      deposit asset, so empty rounds still snapshot a sensible price aligned with what a
+     *      synchronous deposit would have produced at settlement time.
      */
     function _getFallbackExchangeRate()
         internal

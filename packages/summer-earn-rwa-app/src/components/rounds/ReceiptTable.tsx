@@ -1,30 +1,39 @@
 'use client'
 
 import { useState } from 'react'
+import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 
 import { ExchangeRateDisplay } from '@/components/rounds/ExchangeRateDisplay'
 import { RoundStateBadge } from '@/components/rounds/RoundStateBadge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/Card'
+import { TextInput } from '@/components/ui/Field'
 import type { Institution, InstitutionFleet } from '@/config/institutions'
+import { useMounted } from '@/hooks/useMounted'
 import { useRoundsActions } from '@/hooks/useRoundsActions'
 import { useUserReceipts } from '@/hooks/useUserReceipts'
-import { formatDecimalOutput } from '@/lib/format'
+import { formatDecimalOutput, parseDecimalInput } from '@/lib/format'
 import { priceFromSubgraph } from '@/lib/rounds/rate'
 import type { SubgraphReceipt } from '@/lib/subgraph/types'
 
 interface Props {
   institution: Institution
   fleet: InstitutionFleet
-  initialReceipts: SubgraphReceipt[]
 }
 
-export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
+export function ReceiptTable({ institution, fleet }: Props) {
   const { address } = useAccount()
+  // wagmi resolves the connected address only on the client (from
+  // wallet/localStorage state), so SSR sees `undefined` while a returning
+  // user's hydrated client sees the real address. Gate the
+  // connection-dependent branch behind a post-mount flag so SSR + the first
+  // client render both produce the same skeleton, then swap to the real
+  // content after hydration.
+  const mounted = useMounted()
+
   const { receipts, loading } = useUserReceipts({
     chainId: institution.chainId,
-    initialData: initialReceipts,
   })
 
   // Both Input and Output rounds-vaults under this fleet (a user might hold receipts in either).
@@ -45,6 +54,7 @@ export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
         receipts={inputReceipts}
         loading={loading}
         connected={!!address}
+        mounted={mounted}
       />
       <ReceiptGroup
         institution={institution}
@@ -53,6 +63,7 @@ export function ReceiptTable({ institution, fleet, initialReceipts }: Props) {
         receipts={outputReceipts}
         loading={loading}
         connected={!!address}
+        mounted={mounted}
       />
     </>
   )
@@ -65,6 +76,7 @@ function ReceiptGroup({
   receipts,
   loading,
   connected,
+  mounted,
 }: {
   institution: Institution
   title: string
@@ -72,6 +84,7 @@ function ReceiptGroup({
   receipts: SubgraphReceipt[]
   loading: boolean
   connected: boolean
+  mounted: boolean
 }) {
   return (
     <Card className="mt-6">
@@ -82,7 +95,9 @@ function ReceiptGroup({
         </div>
       </CardHeader>
 
-      {!connected ? (
+      {!mounted ? (
+        <div className="h-24 animate-pulse rounded-lg bg-[var(--surface-2)]" />
+      ) : !connected ? (
         <div className="text-sm text-[var(--text-3)]">Connect a wallet to view your receipts.</div>
       ) : loading ? (
         <div className="h-24 animate-pulse rounded-lg bg-[var(--surface-2)]" />
@@ -114,18 +129,31 @@ function ReceiptRow({
     owner: address,
   })
   const [busy, setBusy] = useState(false)
+  const [amountStr, setAmountStr] = useState('')
 
   const balance = BigInt(receipt.balance)
   const roundId = BigInt(receipt.round.roundId)
   const rate = priceFromSubgraph(receipt.round)
   const underlying = receipt.vault.underlyingToken
   const exchange = receipt.vault.exchangeAssetToken
+  const minPositionSize = BigInt(receipt.vault.minPositionSize ?? '0')
+
+  // Empty input means cancel the full balance; otherwise redeem the parsed
+  // partial amount (receipts are denominated in the underlying asset).
+  const redeemAmount =
+    amountStr.trim() === '' ? balance : parseDecimalInput(amountStr, underlying.decimals)
+  const remainder = balance - redeemAmount
+  // The on-chain validateMinPosition modifier reverts if a non-zero leftover
+  // position falls below the vault minimum.
+  const leftoverTooSmall = remainder > 0n && remainder < minPositionSize
+  const amountValid = redeemAmount > 0n && redeemAmount <= balance && !leftoverTooSmall
 
   async function onCancel() {
-    if (!address) return
+    if (!address || !amountValid) return
     setBusy(true)
     try {
-      await actions.redeemCurrent(roundId, balance, address)
+      await actions.redeemCurrent(roundId, redeemAmount, address)
+      setAmountStr('')
     } finally {
       setBusy(false)
     }
@@ -162,11 +190,39 @@ function ReceiptRow({
           exchangeSymbol={exchange.symbol}
         />
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {receipt.round.state === 'OPENED' && (
-          <Button variant="secondary" loading={busy || actions.pending.redeem} onClick={onCancel}>
-            Cancel
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="w-32">
+                <TextInput
+                  value={amountStr}
+                  onChange={(e) => setAmountStr(e.target.value)}
+                  placeholder={formatDecimalOutput(balance, underlying.decimals)}
+                  inputMode="decimal"
+                />
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => setAmountStr(formatUnits(balance, underlying.decimals))}
+              >
+                Max
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={!amountValid || busy || actions.pending.redeem}
+                loading={busy || actions.pending.redeem}
+                onClick={onCancel}
+              >
+                Cancel
+              </Button>
+            </div>
+            {leftoverTooSmall && (
+              <span className="text-xs text-[var(--warning)]">
+                Leftover below minimum position — redeem the full amount
+              </span>
+            )}
+          </div>
         )}
         {receipt.round.state === 'SETTLED' && (
           <Button loading={busy || actions.pending.claim} onClick={onClaim}>

@@ -33,6 +33,8 @@ module.exports = {
         "inverse-surface": "#fcf9f8",
         "outline": "#767575",
         "error": "#ff6e84",
+        "success": "#86d995",
+        "warning": "#ffb86b",
         "on-primary-container": "#4b002a",
         "on-primary-fixed-variant": "#5c0034",
         "surface-bright": "#2c2c2c",

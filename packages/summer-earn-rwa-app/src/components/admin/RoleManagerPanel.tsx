@@ -10,18 +10,8 @@ import { Field, TextInput } from '@/components/ui/Field'
 import { Pill } from '@/components/ui/Pill'
 import type { Institution, InstitutionFleet } from '@/config/institutions'
 import { useAccess } from '@/hooks/useAccess'
-import { useRoleActions } from '@/hooks/useRoleActions'
+import { type GrantableRole, roleHash, useRoleActions } from '@/hooks/useRoleActions'
 import { useRolesForInstitution } from '@/hooks/useRolesForInstitution'
-import {
-  ADMIRALS_QUARTERS_ROLE,
-  DECAY_CONTROLLER_ROLE,
-  FOUNDATION_ROLE,
-  generateContractSpecificRole,
-  GOVERNOR_ROLE,
-  GUARDIAN_ROLE,
-  SUPER_KEEPER_ROLE,
-  WHITELIST_MANAGER_ROLE,
-} from '@/lib/access/roleHashes'
 import { formatUnixDate, shortAddress } from '@/lib/format'
 
 interface Props {
@@ -29,21 +19,6 @@ interface Props {
   fleet: InstitutionFleet
   institutionSubgraphId?: string
 }
-
-const ROLE_OPTIONS: Array<{
-  label: string
-  hash: `0x${string}` | 'CONTRACT_KEEPER' | 'CONTRACT_CURATOR'
-}> = [
-  { label: 'GOVERNOR_ROLE', hash: GOVERNOR_ROLE },
-  { label: 'SUPER_KEEPER_ROLE', hash: SUPER_KEEPER_ROLE },
-  { label: 'GUARDIAN_ROLE', hash: GUARDIAN_ROLE },
-  { label: 'WHITELIST_MANAGER_ROLE', hash: WHITELIST_MANAGER_ROLE },
-  { label: 'DECAY_CONTROLLER_ROLE', hash: DECAY_CONTROLLER_ROLE },
-  { label: 'ADMIRALS_QUARTERS_ROLE', hash: ADMIRALS_QUARTERS_ROLE },
-  { label: 'FOUNDATION_ROLE', hash: FOUNDATION_ROLE },
-  { label: 'KEEPER_ROLE (this fleet)', hash: 'CONTRACT_KEEPER' },
-  { label: 'CURATOR_ROLE (this fleet)', hash: 'CONTRACT_CURATOR' },
-]
 
 export function RoleManagerPanel({ institution, fleet, institutionSubgraphId }: Props) {
   const { address } = useAccount()
@@ -57,16 +32,51 @@ export function RoleManagerPanel({ institution, fleet, institutionSubgraphId }: 
     institution.chainId,
   )
 
-  const [selected, setSelected] = useState<(typeof ROLE_OPTIONS)[number]['hash']>(GOVERNOR_ROLE)
+  // Each option binds the dropdown to a typed role variant that the hook can
+  // dispatch to the right wrapper (PAM/V2 disables direct grantRole). Fleet-
+  // specific variants carry the fleet address so the hook can call
+  // grantKeeperRole(fleet, account) / grantCuratorRole(fleet, account).
+  const ROLE_OPTIONS: Array<{ key: string; label: string; role: GrantableRole }> = useMemo(
+    () => [
+      { key: 'GOVERNOR', label: 'GOVERNOR_ROLE', role: { kind: 'GOVERNOR' } },
+      { key: 'SUPER_KEEPER', label: 'SUPER_KEEPER_ROLE', role: { kind: 'SUPER_KEEPER' } },
+      { key: 'GUARDIAN', label: 'GUARDIAN_ROLE', role: { kind: 'GUARDIAN' } },
+      {
+        key: 'WHITELIST_MANAGER',
+        label: 'WHITELIST_MANAGER_ROLE',
+        role: { kind: 'WHITELIST_MANAGER' },
+      },
+      {
+        key: 'DECAY_CONTROLLER',
+        label: 'DECAY_CONTROLLER_ROLE',
+        role: { kind: 'DECAY_CONTROLLER' },
+      },
+      {
+        key: 'ADMIRALS_QUARTERS',
+        label: 'ADMIRALS_QUARTERS_ROLE',
+        role: { kind: 'ADMIRALS_QUARTERS' },
+      },
+      { key: 'FOUNDATION', label: 'FOUNDATION_ROLE', role: { kind: 'FOUNDATION' } },
+      {
+        key: 'KEEPER_FLEET',
+        label: 'KEEPER_ROLE (this fleet)',
+        role: { kind: 'KEEPER', fleet: fleet.fleetCommander },
+      },
+      {
+        key: 'CURATOR_FLEET',
+        label: 'CURATOR_ROLE (this fleet)',
+        role: { kind: 'CURATOR', fleet: fleet.fleetCommander },
+      },
+    ],
+    [fleet.fleetCommander],
+  )
+
+  const [selectedKey, setSelectedKey] = useState<string>(ROLE_OPTIONS[0].key)
+  const selectedOption = ROLE_OPTIONS.find((o) => o.key === selectedKey) ?? ROLE_OPTIONS[0]
+  const selectedRole = selectedOption.role
   const [account, setAccount] = useState('')
   const accountValid = isAddress(account.trim())
-  const targetHash = useMemo<`0x${string}`>(() => {
-    if (selected === 'CONTRACT_KEEPER')
-      return generateContractSpecificRole('KEEPER_ROLE', fleet.fleetCommander)
-    if (selected === 'CONTRACT_CURATOR')
-      return generateContractSpecificRole('CURATOR_ROLE', fleet.fleetCommander)
-    return selected
-  }, [selected, fleet.fleetCommander])
+  const targetHash = useMemo<`0x${string}`>(() => roleHash(selectedRole), [selectedRole])
 
   const disabled = !access.isGovernor
 
@@ -89,12 +99,12 @@ export function RoleManagerPanel({ institution, fleet, institutionSubgraphId }: 
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Role">
             <select
-              value={selected}
-              onChange={(e) => setSelected(e.target.value as typeof selected)}
+              value={selectedKey}
+              onChange={(e) => setSelectedKey(e.target.value)}
               className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-elev)] px-3.5 py-3 text-sm text-[var(--text)] outline-none focus:border-[var(--pink)] focus:shadow-[0_0_0_3px_var(--pink-soft)]"
             >
               {ROLE_OPTIONS.map((opt) => (
-                <option key={opt.label} value={opt.hash}>
+                <option key={opt.key} value={opt.key}>
                   {opt.label}
                 </option>
               ))}
@@ -117,7 +127,7 @@ export function RoleManagerPanel({ institution, fleet, institutionSubgraphId }: 
             loading={actions.pending.grant}
             onClick={() =>
               actions
-                .grantRole(targetHash, account.trim() as `0x${string}`)
+                .grant(selectedRole, account.trim() as `0x${string}`)
                 .then(() => setAccount(''))
             }
           >
@@ -128,7 +138,7 @@ export function RoleManagerPanel({ institution, fleet, institutionSubgraphId }: 
             disabled={disabled || !accountValid || actions.pending.revoke}
             onClick={() =>
               actions
-                .revokeRole(targetHash, account.trim() as `0x${string}`)
+                .revoke(selectedRole, account.trim() as `0x${string}`)
                 .then(() => setAccount(''))
             }
           >

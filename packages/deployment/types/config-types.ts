@@ -144,6 +144,8 @@ export interface BaseConfig {
       admiralsQuarters: { address: string }
       fleetCommanderRewardsManagerFactory: { address: string }
       institutionalVaultRegistry?: { address: string }
+      institutionalVaultRegistryV2?: { address: string }
+      roundsVaultRegistry?: { address: string }
       daoTipJar?: { address: string }
     }
     dca?: {
@@ -178,10 +180,17 @@ export interface BaseConfig {
       receiveUln302: string
       blockedMessageLib: string
       lzDeadDVN: string
+      // Source-chain block confirmations the DVN waits before attesting. Uniform
+      // per source chain across all destinations; must match the LZ per-chain
+      // default (read live from SendUln302). A directed pathway A→B uses A's value
+      // for A's send config AND B's receive config.
+      confirmations?: number
       dvns: {
         [key: string]: {
           lzLabs: string
           secondDvn: string
+          thirdDvn?: string // Optional: Nethermind or other reliable DVN; address varies per chain
+          horizen?: string // Optional: Horizen Labs DVN — fourth DVN slot
         }
       }
     }
@@ -403,4 +412,6 @@ export interface FleetDeployment {
 // Extend CoreContracts to include InstitutionalVaultRegistry for networks
 export interface CoreContracts extends CoreContractsBase {
   institutionalVaultRegistry?: { address: Address }
+  institutionalVaultRegistryV2?: { address: Address }
+  roundsVaultRegistry?: { address: Address }
 }

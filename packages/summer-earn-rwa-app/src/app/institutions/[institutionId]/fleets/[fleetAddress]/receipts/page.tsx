@@ -42,7 +42,7 @@ export default async function ReceiptsPage({ params }: PageProps) {
         <Suspense
           fallback={<div className="mt-8 h-64 animate-pulse rounded-lg bg-[var(--surface)]" />}
         >
-          <ReceiptTable institution={inst} fleet={fleet} initialReceipts={[]} />
+          <ReceiptTable institution={inst} fleet={fleet} />
         </Suspense>
       </div>
     </>

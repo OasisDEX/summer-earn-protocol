@@ -2,9 +2,9 @@
 // packages/summer-earn-institutions-v2-subgraph/schema.graphql). BigInt
 // fields arrive as strings — consumers convert with BigInt(...).
 
-export type RoundState = 'OPENED' | 'IN_SETTLEMENT' | 'SETTLED' | 'ROLLED_BACK'
+export type RoundState = 'OPENED' | 'IN_SETTLEMENT' | 'SETTLED'
 export type RoundsVaultFlavor = 'INPUT' | 'OUTPUT'
-export type TransferKind = 'MINT' | 'BURN' | 'TRANSFER' | 'REDEEM'
+export type ReceiptActivityType = 'DEPOSIT' | 'REDEEM_CURRENT' | 'REDEEM_EXCHANGE' | 'TRANSFER'
 export type RoleAction = 'GRANT_ROLE' | 'REVOKE_ROLE'
 
 export interface SubgraphToken {
@@ -24,15 +24,13 @@ export interface SubgraphRound {
   closedAtBlock?: string | null
   settledAt?: string | null
   settledAtBlock?: string | null
+  // base = exchange asset produced, quote = underlying/receipts frozen. Payout = receiptAmount * base / quote.
   exchangeRateBase?: string | null
   exchangeRateQuote?: string | null
-  exchangeRateDecimal?: string | null
-  totalReceiptSupplyAtClose?: string | null
-  inputAssetsDeposited?: string | null
-  inputSharesReceived?: string | null
-  outputSharesRedeemed?: string | null
-  outputAssetsReturned?: string | null
-  retriedCount: string
+  // True when the round settled with zero receipt supply (a fallback preview rate was snapshotted).
+  isEmpty: boolean
+  // Live ERC-1155 supply mirror — equals on-chain totalSupply(roundId).
+  receiptSupply: string
   rolledBack: boolean
 }
 
@@ -43,10 +41,6 @@ export interface SubgraphRoundsVault {
   exchangeAssetToken: SubgraphToken
   currentRound: string
   minPositionSize: string
-  cumulativeDepositsQueued: string
-  cumulativeExchangeAssetWithdrawn: string
-  currentRoundReceiptSupply: string
-  pendingSettlementAmount: string
   createdAt: string
   createdAtBlock: string
   pair?: {
@@ -71,11 +65,8 @@ export interface SubgraphRoundsVaultPair {
 
 export interface SubgraphReceipt {
   id: string
+  // Current ERC-1155 balance — single source of truth, maintained from TransferSingle/TransferBatch.
   balance: string
-  totalMinted: string
-  totalBurned: string
-  totalRedeemedForExchangeAsset: string
-  exchangeAssetReceived: string
   lastUpdated: string
   lastUpdatedBlock: string
   round: SubgraphRound

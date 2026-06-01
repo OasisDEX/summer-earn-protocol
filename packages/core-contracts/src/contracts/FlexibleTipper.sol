@@ -41,6 +41,9 @@ abstract contract FlexibleTipper is IFlexibleTipper, Tipper {
                             CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice A zero performance fee rate
+    Percentage immutable ZERO_PERFORMANCE_FEE_RATE = Percentage.wrap(0);
+
     /// @notice The maximum performance fee rate is 50%
     Percentage immutable MAX_PERFORMANCE_FEE_RATE = Percentage.wrap(50 * 1e18);
 
@@ -120,6 +123,9 @@ abstract contract FlexibleTipper is IFlexibleTipper, Tipper {
         address tipJar,
         uint256 _totalSupply
     ) internal {
+        if (newRate == ZERO_PERFORMANCE_FEE_RATE) {
+            revert PerformanceFeeRateCannotBeZero();
+        }
         if (newRate > MAX_PERFORMANCE_FEE_RATE) {
             revert PerformanceFeeRateTooHigh();
         }

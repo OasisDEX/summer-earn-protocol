@@ -1,19 +1,28 @@
 import { Address, BigInt, Bytes, ethereum, log } from '@graphprotocol/graph-ts'
-import { ReceiptTransfer } from '../../generated/schema'
+import {
+  Account,
+  Receipt as RVReceipt,
+  ReceiptActivity,
+  Round as RVRound,
+  RoundsVault as RVRoundsVault,
+} from '../../generated/schema'
 import {
   getOrCreateAccount,
   getOrCreateReceipt,
   getOrCreateRound,
   getRoundsVaultByAddress,
 } from '../common/initializers'
-import { ADDRESS_ZERO, BigIntConstants } from '../common/constants'
+import { ADDRESS_ZERO } from '../common/constants'
 
-export class TransferKindStr {
-  static MINT(): string {
-    return 'MINT'
+export class ReceiptActivityTypeStr {
+  static DEPOSIT(): string {
+    return 'DEPOSIT'
   }
-  static BURN(): string {
-    return 'BURN'
+  static REDEEM_CURRENT(): string {
+    return 'REDEEM_CURRENT'
+  }
+  static REDEEM_EXCHANGE(): string {
+    return 'REDEEM_EXCHANGE'
   }
   static TRANSFER(): string {
     return 'TRANSFER'
@@ -21,16 +30,55 @@ export class TransferKindStr {
 }
 
 /**
- * Apply a single ERC-1155 receipt transfer:
- *   - update per-user Receipt balance and mint/burn counters
- *   - update per-round `receiptSupply` (live mirror of on-chain totalSupply)
- *   - emit an immutable ReceiptTransfer row
+ * Append one immutable ReceiptActivity row. This is the single feed that replaces the former
+ * running counters — lifetime/volumetric figures are reconstructed by summing these rows, so
+ * a handler bug can never silently drift a stored aggregate.
  *
- * Mints always target the current OPENED round (see RoundsVaultBase._getMintId).
- * Burns happen via:
- *   - `redeem`              on an OPENED round  (post-rollback is also OPENED)
- *   - `redeemExchangeAsset` on a SETTLED round
- * In all cases supply decreases by `amount`, so this branch is uniform.
+ * `idSuffix` is '' for a single-line event and '-{i}' for the i-th line of a batch event, so
+ * each row gets a unique id within its {txHash}-{logIndex}.
+ */
+export function recordReceiptActivity(
+  vault: RVRoundsVault,
+  round: RVRound,
+  receipt: RVReceipt,
+  account: Account,
+  type: string,
+  caller: Address,
+  receiver: Address,
+  receiptAmount: BigInt,
+  assetAmount: BigInt | null,
+  assetToken: string | null,
+  event: ethereum.Event,
+  idSuffix: string,
+): void {
+  const id = event.transaction.hash.toHexString() + '-' + event.logIndex.toString() + idSuffix
+  const activity = new ReceiptActivity(id)
+  activity.vault = vault.id
+  activity.round = round.id
+  activity.receipt = receipt.id
+  activity.account = account.id
+  activity.type = type
+  activity.caller = caller as Bytes
+  activity.receiver = receiver as Bytes
+  activity.receiptAmount = receiptAmount
+  activity.assetAmount = assetAmount
+  activity.assetToken = assetToken
+  activity.roundStateAtAction = round.state
+  activity.blockNumber = event.block.number
+  activity.timestamp = event.block.timestamp
+  activity.txHash = event.transaction.hash
+  activity.save()
+}
+
+/**
+ * Apply a single ERC-1155 receipt transfer:
+ *   - update per-user Receipt balance (the single source of truth)
+ *   - update per-round `receiptSupply` (live mirror of on-chain totalSupply)
+ *   - for a pure user-to-user transfer (from!=0 && to!=0) append a TRANSFER activity row
+ *
+ * Mints (from=0) and burns (to=0) do NOT log here — their activity rows come from the semantic
+ * handlers (DepositWithReceipt, RedeemReceipt[Batch], WithdrawExchangeAsset[Batch]) which also
+ * carry the realized counter-asset amount. Logging mints/burns here too would double-count.
  */
 export function applyReceiptTransfer(
   vaultAddr: Address,
@@ -51,29 +99,21 @@ export function applyReceiptTransfer(
 
   let isMint = from.equals(ADDRESS_ZERO)
   let isBurn = to.equals(ADDRESS_ZERO)
-  let kind: string
-  if (isMint) {
-    kind = TransferKindStr.MINT()
-  } else if (isBurn) {
-    kind = TransferKindStr.BURN()
-  } else {
-    kind = TransferKindStr.TRANSFER()
-  }
 
+  let senderAccount: Account | null = null
+  let senderReceipt: RVReceipt | null = null
   if (!isMint) {
-    let sender = getOrCreateAccount(from.toHexString())
-    let senderReceipt = getOrCreateReceipt(vault, round, sender, event.block)
+    senderAccount = getOrCreateAccount(from.toHexString())
+    senderReceipt = getOrCreateReceipt(vault, round, senderAccount as Account, event.block)
     senderReceipt.balance = senderReceipt.balance.minus(amount)
-    senderReceipt.totalBurned = senderReceipt.totalBurned.plus(amount)
     senderReceipt.lastUpdated = event.block.timestamp
     senderReceipt.lastUpdatedBlock = event.block.number
     senderReceipt.save()
   }
   if (!isBurn) {
-    let receiver = getOrCreateAccount(to.toHexString())
-    let receiverReceipt = getOrCreateReceipt(vault, round, receiver, event.block)
+    let receiverAccount = getOrCreateAccount(to.toHexString())
+    let receiverReceipt = getOrCreateReceipt(vault, round, receiverAccount, event.block)
     receiverReceipt.balance = receiverReceipt.balance.plus(amount)
-    receiverReceipt.totalMinted = receiverReceipt.totalMinted.plus(amount)
     receiverReceipt.lastUpdated = event.block.timestamp
     receiverReceipt.lastUpdatedBlock = event.block.number
     receiverReceipt.save()
@@ -87,110 +127,130 @@ export function applyReceiptTransfer(
     round.save()
   }
 
-  let transferId =
-    event.transaction.hash.toHexString() +
-    '-' +
-    event.logIndex.toString() +
-    '-' +
-    batchIndex.toString()
-  let transfer = new ReceiptTransfer(transferId)
-  transfer.vault = vault.id
-  transfer.round = round.id
-  transfer.from = from as Bytes
-  transfer.to = to as Bytes
-  transfer.operator = operator as Bytes
-  transfer.amount = amount
-  transfer.kind = kind
-  transfer.blockNumber = event.block.number
-  transfer.timestamp = event.block.timestamp
-  transfer.txHash = event.transaction.hash
-  transfer.save()
+  if (!isMint && !isBurn && senderReceipt != null && senderAccount != null) {
+    recordReceiptActivity(
+      vault,
+      round,
+      senderReceipt as RVReceipt,
+      senderAccount as Account,
+      ReceiptActivityTypeStr.TRANSFER(),
+      operator,
+      to,
+      amount,
+      null,
+      null,
+      event,
+      '-' + batchIndex.toString(),
+    )
+  }
 }
 
 /**
- * Mark an already-burned receipt amount as having been queue-cancel-redeemed
- * (OPENED-phase `redeem`), returning underlying 1:1 to the user. Called from
- * RedeemReceipt handlers AFTER applyReceiptTransfer has already booked the
- * burn. The 1:1 invariant comes from ERC4626MultiToken._redeem:
- *   _burn(owner, id, amount);
- *   safeTransfer(_asset, receiver, amount);
- * so the underlying returned equals the receipt amount burned.
+ * Append a queue-cancel redemption (OPENED-phase `redeem`) activity: underlying returned 1:1.
+ * The 1:1 invariant comes from ERC4626MultiToken._redeem (burn(amount); safeTransfer(amount)).
+ * The receipt balance itself is already booked by the paired ERC-1155 burn in applyReceiptTransfer.
  */
 export function markUnderlyingRedemption(
   vaultAddr: Address,
+  caller: Address,
+  receiver: Address,
   owner: Address,
   roundId: BigInt,
   amount: BigInt,
   event: ethereum.Event,
+  idSuffix: string,
 ): void {
   let vault = getRoundsVaultByAddress(vaultAddr)
   if (vault == null) return
   let round = getOrCreateRound(vault, roundId, event.block)
   let user = getOrCreateAccount(owner.toHexString())
   let receipt = getOrCreateReceipt(vault, round, user, event.block)
-  receipt.underlyingRedeemed = receipt.underlyingRedeemed.plus(amount)
-  receipt.lastUpdated = event.block.timestamp
-  receipt.lastUpdatedBlock = event.block.number
-  receipt.save()
-
-  round.depositsRedeemed = round.depositsRedeemed.plus(amount)
-  round.save()
+  recordReceiptActivity(
+    vault,
+    round,
+    receipt,
+    user,
+    ReceiptActivityTypeStr.REDEEM_CURRENT(),
+    caller,
+    receiver,
+    amount,
+    amount,
+    vault.underlyingToken,
+    event,
+    idSuffix,
+  )
 }
 
-/**
- * Apply a batched queue-cancel redemption. Per-id underlying returned equals
- * per-id receipt `amount` (no rate, no dust — the contract does a single
- * safeTransfer(sum(amounts)) so summing per-id is exact).
- */
 export function markUnderlyingRedemptionBatch(
   vaultAddr: Address,
+  caller: Address,
+  receiver: Address,
   owner: Address,
   ids: BigInt[],
   amounts: BigInt[],
   event: ethereum.Event,
 ): void {
   for (let i = 0; i < ids.length; i++) {
-    markUnderlyingRedemption(vaultAddr, owner, ids[i], amounts[i], event)
+    markUnderlyingRedemption(
+      vaultAddr,
+      caller,
+      receiver,
+      owner,
+      ids[i],
+      amounts[i],
+      event,
+      '-' + i.toString(),
+    )
   }
 }
 
 /**
- * Mark an already-burned receipt amount as having been redeemed for the
- * exchange asset. Called from WithdrawExchangeAsset handlers AFTER
- * applyReceiptTransfer has already booked the burn.
+ * Append a settled-round exchange redemption activity, carrying the realized exchange-asset
+ * amount straight from the WithdrawExchangeAsset event. The receipt balance is already booked by
+ * the paired ERC-1155 burn in applyReceiptTransfer.
  */
 export function markExchangeAssetRedemption(
   vaultAddr: Address,
+  caller: Address,
+  receiver: Address,
   owner: Address,
   roundId: BigInt,
   receiptAmount: BigInt,
   exchangeAmount: BigInt,
   event: ethereum.Event,
+  idSuffix: string,
 ): void {
   let vault = getRoundsVaultByAddress(vaultAddr)
   if (vault == null) return
   let round = getOrCreateRound(vault, roundId, event.block)
   let user = getOrCreateAccount(owner.toHexString())
   let receipt = getOrCreateReceipt(vault, round, user, event.block)
-  receipt.totalRedeemedForExchangeAsset = receipt.totalRedeemedForExchangeAsset.plus(receiptAmount)
-  receipt.exchangeAssetReceived = receipt.exchangeAssetReceived.plus(exchangeAmount)
-  receipt.lastUpdated = event.block.timestamp
-  receipt.lastUpdatedBlock = event.block.number
-  receipt.save()
-
-  round.exchangeAssetWithdrawn = round.exchangeAssetWithdrawn.plus(exchangeAmount)
-  round.save()
+  recordReceiptActivity(
+    vault,
+    round,
+    receipt,
+    user,
+    ReceiptActivityTypeStr.REDEEM_EXCHANGE(),
+    caller,
+    receiver,
+    receiptAmount,
+    exchangeAmount,
+    vault.exchangeAssetToken,
+    event,
+    idSuffix,
+  )
 }
 
 /**
- * Attribute a batched exchange-asset redemption per-id, mirroring the contract's
- * per-id `mulDiv(receiptAmount, base, quote)` against each round's settled rate
- * (stored on the Round entity from RoundSettled). Rounding dust between the sum
- * of per-id amounts and the event's total is folded onto the last row so the
- * cumulative counters still equal the on-chain transfer.
+ * Batch variant. The contract pays a single safeTransfer(sum), so per-id realized amounts are
+ * the contract's own `mulDiv(receiptAmount, base, quote)` against each round's settled rate, with
+ * the rounding dust folded onto the last row so the per-row amounts sum to the on-chain total.
+ * This is a deterministic re-derivation from stored rates, not a maintained running counter.
  */
 export function markExchangeAssetRedemptionBatch(
   vaultAddr: Address,
+  caller: Address,
+  receiver: Address,
   owner: Address,
   ids: BigInt[],
   amounts: BigInt[],
@@ -201,18 +261,18 @@ export function markExchangeAssetRedemptionBatch(
   if (vault == null) return
 
   let computed = new Array<BigInt>(ids.length)
-  let sumComputed = BigIntConstants.ZERO
+  let sumComputed = BigInt.fromI32(0)
   for (let i = 0; i < ids.length; i++) {
     let round = getOrCreateRound(vault, ids[i], event.block)
     let base = round.exchangeRateBase
     let quote = round.exchangeRateQuote
     let part: BigInt
-    if (base === null || quote === null || quote.equals(BigIntConstants.ZERO)) {
+    if (base === null || quote === null || quote.equals(BigInt.fromI32(0))) {
       log.warning('Exchange-asset batch redemption on unsettled round {} for vault {}', [
         ids[i].toString(),
         vaultAddr.toHexString(),
       ])
-      part = BigIntConstants.ZERO
+      part = BigInt.fromI32(0)
     } else {
       part = amounts[i].times(base).div(quote)
     }
@@ -221,12 +281,22 @@ export function markExchangeAssetRedemptionBatch(
   }
 
   let dust = totalExchangeAsset.minus(sumComputed)
-  if (dust.notEqual(BigIntConstants.ZERO) && computed.length > 0) {
+  if (dust.notEqual(BigInt.fromI32(0)) && computed.length > 0) {
     let lastIdx = computed.length - 1
     computed[lastIdx] = computed[lastIdx].plus(dust)
   }
 
   for (let i = 0; i < ids.length; i++) {
-    markExchangeAssetRedemption(vaultAddr, owner, ids[i], amounts[i], computed[i], event)
+    markExchangeAssetRedemption(
+      vaultAddr,
+      caller,
+      receiver,
+      owner,
+      ids[i],
+      amounts[i],
+      computed[i],
+      event,
+      '-' + i.toString(),
+    )
   }
 }

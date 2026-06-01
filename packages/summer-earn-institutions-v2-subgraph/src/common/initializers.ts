@@ -1092,13 +1092,10 @@ export function getOrCreateRound(
   round.vault = vault.id
   round.roundId = roundId
   round.state = 'OPENED'
+  round.isEmpty = false
   round.openedAt = block.timestamp
   round.openedAtBlock = block.number
   round.receiptSupply = BigIntConstants.ZERO
-  round.depositsQueued = BigIntConstants.ZERO
-  round.depositsRedeemed = BigIntConstants.ZERO
-  round.exchangeAssetWithdrawn = BigIntConstants.ZERO
-  round.retriedCount = 0
   round.rolledBack = false
   round.save()
   return round
@@ -1120,11 +1117,6 @@ export function getOrCreateReceipt(
   receipt.round = round.id
   receipt.account = account.id
   receipt.balance = BigIntConstants.ZERO
-  receipt.totalMinted = BigIntConstants.ZERO
-  receipt.totalBurned = BigIntConstants.ZERO
-  receipt.totalRedeemedForExchangeAsset = BigIntConstants.ZERO
-  receipt.exchangeAssetReceived = BigIntConstants.ZERO
-  receipt.underlyingRedeemed = BigIntConstants.ZERO
   receipt.lastUpdated = block.timestamp
   receipt.lastUpdatedBlock = block.number
   receipt.save()
