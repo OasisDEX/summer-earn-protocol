@@ -1,17 +1,19 @@
 'use client'
 
 import { useState } from 'react'
+import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 
 import { ExchangeRateDisplay } from '@/components/rounds/ExchangeRateDisplay'
 import { RoundStateBadge } from '@/components/rounds/RoundStateBadge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/Card'
+import { TextInput } from '@/components/ui/Field'
 import type { Institution, InstitutionFleet } from '@/config/institutions'
 import { useMounted } from '@/hooks/useMounted'
 import { useRoundsActions } from '@/hooks/useRoundsActions'
 import { useUserReceipts } from '@/hooks/useUserReceipts'
-import { formatDecimalOutput } from '@/lib/format'
+import { formatDecimalOutput, parseDecimalInput } from '@/lib/format'
 import { priceFromSubgraph } from '@/lib/rounds/rate'
 import type { SubgraphReceipt } from '@/lib/subgraph/types'
 
@@ -127,18 +129,31 @@ function ReceiptRow({
     owner: address,
   })
   const [busy, setBusy] = useState(false)
+  const [amountStr, setAmountStr] = useState('')
 
   const balance = BigInt(receipt.balance)
   const roundId = BigInt(receipt.round.roundId)
   const rate = priceFromSubgraph(receipt.round)
   const underlying = receipt.vault.underlyingToken
   const exchange = receipt.vault.exchangeAssetToken
+  const minPositionSize = BigInt(receipt.vault.minPositionSize ?? '0')
+
+  // Empty input means cancel the full balance; otherwise redeem the parsed
+  // partial amount (receipts are denominated in the underlying asset).
+  const redeemAmount =
+    amountStr.trim() === '' ? balance : parseDecimalInput(amountStr, underlying.decimals)
+  const remainder = balance - redeemAmount
+  // The on-chain validateMinPosition modifier reverts if a non-zero leftover
+  // position falls below the vault minimum.
+  const leftoverTooSmall = remainder > 0n && remainder < minPositionSize
+  const amountValid = redeemAmount > 0n && redeemAmount <= balance && !leftoverTooSmall
 
   async function onCancel() {
-    if (!address) return
+    if (!address || !amountValid) return
     setBusy(true)
     try {
-      await actions.redeemCurrent(roundId, balance, address)
+      await actions.redeemCurrent(roundId, redeemAmount, address)
+      setAmountStr('')
     } finally {
       setBusy(false)
     }
@@ -175,11 +190,39 @@ function ReceiptRow({
           exchangeSymbol={exchange.symbol}
         />
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {receipt.round.state === 'OPENED' && (
-          <Button variant="secondary" loading={busy || actions.pending.redeem} onClick={onCancel}>
-            Cancel
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="w-32">
+                <TextInput
+                  value={amountStr}
+                  onChange={(e) => setAmountStr(e.target.value)}
+                  placeholder={formatDecimalOutput(balance, underlying.decimals)}
+                  inputMode="decimal"
+                />
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => setAmountStr(formatUnits(balance, underlying.decimals))}
+              >
+                Max
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={!amountValid || busy || actions.pending.redeem}
+                loading={busy || actions.pending.redeem}
+                onClick={onCancel}
+              >
+                Cancel
+              </Button>
+            </div>
+            {leftoverTooSmall && (
+              <span className="text-xs text-[var(--warning)]">
+                Leftover below minimum position — redeem the full amount
+              </span>
+            )}
+          </div>
         )}
         {receipt.round.state === 'SETTLED' && (
           <Button loading={busy || actions.pending.claim} onClick={onClaim}>
