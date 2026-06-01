@@ -23,6 +23,7 @@ import {
   TipAccrued,
   TipRateUpdated,
   Withdraw as WithdrawEvent,
+  Transfer as TransferEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { addresses } from '../common/addressProvider'
 import * as constants from '../common/constants'
@@ -161,6 +162,46 @@ export function handleWithdraw(event: WithdrawEvent): void {
   updatePosition(positionDetails, event.block, account.referralData)
 
   createWithdrawEventEntity(event, positionDetails, account.referralData)
+}
+
+// Track transfers of ERC4626 shares between users (excluding mints/burns and staking contract transfers)
+export function handleShareTransfer(event: TransferEvent): void {
+  // skip mints/burns and zero-value transfers
+  if (
+    event.params.from.equals(ADDRESS_ZERO) ||
+    event.params.to.equals(ADDRESS_ZERO) ||
+    event.params.value.equals(constants.BigIntConstants.ZERO)
+  ) {
+    return
+  }
+
+  const vault = getOrCreateVault(event.address, event.block)
+  const rewardsManager = vault.stakingRewardsManager
+
+  // skip transfers involving the staking rewards manager
+  if (
+    rewardsManager &&
+    (event.params.from.toHexString() == rewardsManager.toHexString() ||
+      event.params.to.toHexString() == rewardsManager.toHexString())
+  ) {
+    return
+  }
+
+  // ensure Account entities exist for FE lookups
+  getOrCreateAccount(event.params.from.toHexString())
+  getOrCreateAccount(event.params.to.toHexString())
+
+  // Recompute positions using the standard path to keep balances and rewards coherent
+  const vaultDetails = getVaultDetails(vault, event.block)
+  const updatedVault = updateVault(vaultDetails, event.block, false)
+
+  const fromDetails = getPositionDetails(updatedVault, event.params.from, vaultDetails, event.block)
+  updatePosition(fromDetails, event.block, null)
+  createWithdrawEventEntity(event, fromDetails, null, true)
+
+  const toDetails = getPositionDetails(updatedVault, event.params.to, vaultDetails, event.block)
+  updatePosition(toDetails, event.block, null)
+  createDepositEventEntity(event, toDetails, null, true)
 }
 
 // withdaraw already handled in handleWithdraw

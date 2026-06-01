@@ -218,6 +218,9 @@ templates:
         - event: TipRateUpdated(uint256)
           handler: handleTipRateUpdated
           receipt: true
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleShareTransfer
+          receipt: true
       file: ./src/mappings/fleetCommander.ts
 
   - kind: ethereum/contract
