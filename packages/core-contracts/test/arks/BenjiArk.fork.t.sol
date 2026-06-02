@@ -33,18 +33,20 @@ interface IBenjiAuthModule {
 /**
  * @title BenjiArk fork test — Franklin Templeton iBENJI on Ethereum mainnet
  * @notice Validates the BenjiArk wiring AND a genuine end-to-end board/disembark against the REAL
- *         iBENJI token and Franklin-Templeton SwapPool. Onboarding the Ark needs two privileged
- *         actions, both impersonated on the fork via `vm.prank` (no private key required, the same
- *         approach as the SyrupArk fork test's `setLenderAllowlist`):
- *           1. SwapPool owner authorizes the Ark as a trader for the USDC/iBENJI pair.
+ *         iBENJI token and both Franklin-Templeton SwapPools. The curator whitelists the pools and
+ *         the keeper selects one per call via `boardData`/`disembarkData`. Onboarding the Ark needs
+ *         two privileged actions, both impersonated on the fork via `vm.prank` (no private key
+ *         required, the same approach as the SyrupArk fork test's `setLenderAllowlist`):
+ *           1. SwapPool owner authorizes the Ark as a trader for the USDC/iBENJI pair (per pool;
+ *              both live pools share the same owner).
  *           2. iBENJI's AuthorizationModule admin authorizes the Ark as a KYC'd holder (so the
  *              SwapPool's iBENJI delivery passes the token's transfer policy).
  *
  * @dev Verified on mainnet at block 25222568: stable leg is USDC (6 dec), iBENJI is 18 dec;
- *      both registered and the USDC/iBENJI pair authorized with per-trader auth enforced;
- *      lastKnownPrice == 1e18 ($1 par). Privileged addresses discovered on-chain (pinned to the
- *      fork block): SwapPool owner, iBENJI module registry -> AuthorizationModule -> its
- *      ROLE_AUTHORIZATION_ADMIN member.
+ *      both registered and the USDC/iBENJI pair authorized on BOTH pools with per-trader auth
+ *      enforced; lastKnownPrice == 1e18 ($1 par). Privileged addresses discovered on-chain (pinned
+ *      to the fork block): SwapPool owner (same for both pools), iBENJI module registry ->
+ *      AuthorizationModule -> its ROLE_AUTHORIZATION_ADMIN member.
  */
 contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     BenjiArk public ark;
@@ -52,6 +54,7 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     // Ethereum mainnet (from .resources/benji/info.md).
     address constant SWAP_POOL = 0x2e508F0F89Ce077252b182f37Aa20240f7b5eC2f;
+    address constant SWAP_POOL_2 = 0xF83B6b38ab056909282EdDb99884e2a079E85F8b;
     address constant IBENJI = 0x90276e9d4A023b5229E0C2e9D4b2a83fe3A2b48c;
     address constant STABLE = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // USDC (confirmed leg)
 
@@ -85,29 +88,35 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false,
+            requiresKeeperData: true,
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
         vm.startPrank(governor);
         ark = new BenjiArk(
-            SWAP_POOL,
             IBENJI,
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             params
         );
         accessManager.grantCommanderRole(address(ark), address(commander));
         accessManager.grantKeeperRole(address(ark), keeper);
+        accessManager.grantCuratorRole(address(commander), address(curator));
         vm.stopPrank();
 
         vm.prank(commander);
         ark.registerFleetCommander();
+
+        vm.startPrank(curator);
+        ark.whitelistSwapPool(SWAP_POOL, true);
+        ark.whitelistSwapPool(SWAP_POOL_2, true);
+        vm.stopPrank();
     }
 
     function test_Fork_ConstructorWiring() public view {
-        assertEq(address(ark.swapPool()), SWAP_POOL);
         assertEq(address(ark.shareToken()), IBENJI);
         assertEq(address(ark.asset()), STABLE);
+        assertTrue(ark.whitelistedSwapPools(SWAP_POOL));
+        assertTrue(ark.whitelistedSwapPools(SWAP_POOL_2));
     }
 
     function test_Fork_Decimals() public view {
@@ -118,9 +127,12 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Fork_PairAuthorizedAndTraderEnforced() public view {
-        // The USDC/iBENJI pair is authorized on the live pool (the constructor would have reverted
-        // with PairNotAuthorized otherwise)...
+        // The USDC/iBENJI pair is authorized on both live pools (whitelistSwapPool would have
+        // reverted with PairNotAuthorized otherwise)...
         assertTrue(ISwapPool(SWAP_POOL).isTokenPairAuthorized(STABLE, IBENJI));
+        assertTrue(
+            ISwapPool(SWAP_POOL_2).isTokenPairAuthorized(STABLE, IBENJI)
+        );
         // ...but per-trader authorization is enforced: an arbitrary address cannot trade the pair,
         // so this Ark must be explicitly authorized by Franklin Templeton (see isArkOnboarded).
         assertFalse(
@@ -133,8 +145,9 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Fork_ArkNotOnboarded() public view {
-        // A freshly deployed Ark is not an authorized SwapPool trader.
-        assertFalse(ark.isArkOnboarded());
+        // A freshly deployed Ark is not an authorized trader on either SwapPool.
+        assertFalse(ark.isArkOnboarded(SWAP_POOL));
+        assertFalse(ark.isArkOnboarded(SWAP_POOL_2));
     }
 
     function test_Fork_BoardRevertsWhenNotAuthorized() public {
@@ -143,15 +156,36 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(commander);
         IERC20(STABLE).approve(address(ark), amount);
         vm.expectRevert(IBenjiArkErrors.ArkNotAuthorized.selector);
-        ark.board(amount, bytes(""));
+        ark.board(amount, abi.encode(SWAP_POOL));
         vm.stopPrank();
     }
 
-    /// @dev Grant the Ark the two off-chain prerequisites by impersonating the privileged accounts:
-    ///      SwapPool trader authorization and iBENJI holder authorization.
+    function test_Fork_BoardRevertsOnNonWhitelistedPool() public {
+        uint256 amount = 1000 * 1e6;
+        deal(STABLE, commander, amount);
+        vm.startPrank(commander);
+        IERC20(STABLE).approve(address(ark), amount);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBenjiArkErrors.SwapPoolNotWhitelisted.selector,
+                address(0xdead)
+            )
+        );
+        ark.board(amount, abi.encode(address(0xdead)));
+        vm.stopPrank();
+    }
+
+    /// @dev Grant the Ark the off-chain prerequisites by impersonating the privileged accounts:
+    ///      trader authorization on both SwapPools and iBENJI holder authorization.
     function _onboardArk() internal {
-        vm.prank(SWAP_POOL_OWNER);
+        vm.startPrank(SWAP_POOL_OWNER);
         ISwapPoolAdmin(SWAP_POOL).authorizeTrader(address(ark), STABLE, IBENJI);
+        ISwapPoolAdmin(SWAP_POOL_2).authorizeTrader(
+            address(ark),
+            STABLE,
+            IBENJI
+        );
+        vm.stopPrank();
 
         vm.prank(IBENJI_AUTH_ADMIN);
         IBenjiAuthModule(IBENJI_AUTH_MODULE).authorizeAccount(address(ark));
@@ -159,7 +193,14 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_Fork_OnboardingPrereqs() public {
         _onboardArk();
-        assertTrue(ark.isArkOnboarded(), "Ark is now an authorized trader");
+        assertTrue(
+            ark.isArkOnboarded(SWAP_POOL),
+            "Ark is an authorized trader on pool 1"
+        );
+        assertTrue(
+            ark.isArkOnboarded(SWAP_POOL_2),
+            "Ark is an authorized trader on pool 2"
+        );
         assertTrue(
             IBenjiAuthModule(IBENJI_AUTH_MODULE).isAccountAuthorized(
                 address(ark)
@@ -168,20 +209,21 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         );
     }
 
-    /// @notice Genuine end-to-end swap against the real SwapPool + iBENJI: board USDC -> iBENJI,
-    ///         then disembark iBENJI -> USDC, both settled 1:1 by the live pool.
-    function test_Fork_RealBoardAndDisembark() public {
+    /// @notice Genuine end-to-end swap against the real SwapPools + iBENJI: board USDC -> iBENJI
+    ///         through pool 1, then disembark iBENJI -> USDC through pool 2 — exercising the
+    ///         keeper's per-rebalance pool selection across both production pools.
+    function test_Fork_RealBoardAndDisembark_AcrossPools() public {
         _onboardArk();
         uint256 amount = 1000 * 1e6; // 1000 USDC
 
         deal(STABLE, commander, amount);
         vm.startPrank(commander);
         IERC20(STABLE).approve(address(ark), amount);
-        ark.board(amount, bytes(""));
+        ark.board(amount, abi.encode(SWAP_POOL));
         vm.stopPrank();
 
-        // Board swapped USDC -> iBENJI 1:1 (6 -> 18 dec). The Ark now holds ~1000 iBENJI valued at
-        // ~1000 USDC, and holds no idle USDC.
+        // Board swapped USDC -> iBENJI 1:1 (6 -> 18 dec) through pool 1. The Ark now holds ~1000
+        // iBENJI valued at ~1000 USDC, and holds no idle USDC.
         assertApproxEqAbs(
             IERC20(IBENJI).balanceOf(address(ark)),
             1000 * 1e18,
@@ -191,10 +233,11 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         assertEq(IERC20(STABLE).balanceOf(address(ark)), 0, "no idle USDC");
         assertApproxEqAbs(ark.totalAssets(), amount, 1, "valued at par");
 
-        // Disembark swaps iBENJI -> USDC 1:1 and forwards `amount` to the commander.
+        // Disembark swaps iBENJI -> USDC 1:1 through pool 2 and forwards `amount` to the
+        // commander.
         uint256 commanderBefore = IERC20(STABLE).balanceOf(commander);
         vm.prank(commander);
-        ark.disembark(amount, bytes(""));
+        ark.disembark(amount, abi.encode(SWAP_POOL_2));
 
         assertEq(
             IERC20(STABLE).balanceOf(commander),

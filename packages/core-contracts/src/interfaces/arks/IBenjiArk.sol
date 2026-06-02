@@ -22,10 +22,29 @@ interface IBenjiArk is IArkSwapProvider, IBenjiArkErrors, IBenjiArkEvents {
     function sharesToAssets(uint256 shares) external view returns (uint256);
 
     /**
-     * @notice Whether this Ark is an authorized SwapPool trader for the asset/iBENJI pair and may
-     *         therefore swap. Trader authorization is granted off-chain by Franklin Templeton.
+     * @notice Whether this Ark is an authorized trader for the asset/iBENJI pair on the given
+     *         SwapPool and may therefore swap through it. Trader authorization is granted
+     *         off-chain by Franklin Templeton per pool.
+     * @param swapPool The SwapPool to check
      */
-    function isArkOnboarded() external view returns (bool);
+    function isArkOnboarded(address swapPool) external view returns (bool);
+
+    /**
+     * @notice Whether the given SwapPool is approved by the curator for board/disembark.
+     * @param swapPool The SwapPool to check
+     */
+    function whitelistedSwapPools(
+        address swapPool
+    ) external view returns (bool);
+
+    /**
+     * @notice Adds or removes a SwapPool from the curator whitelist. The keeper selects one of the
+     *         whitelisted pools per rebalance via `boardData`/`disembarkData`
+     *         (`abi.encode(address pool)`).
+     * @param swapPool The SwapPool address
+     * @param isWhitelisted The new whitelist status
+     */
+    function whitelistSwapPool(address swapPool, bool isWhitelisted) external;
 
     /**
      * @notice Sets the board (deposit) slippage tolerance.

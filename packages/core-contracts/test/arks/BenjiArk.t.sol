@@ -213,13 +213,12 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false,
+            requiresKeeperData: true,
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
         vm.startPrank(governor);
         ark = new BenjiArk(
-            address(pool),
             address(ibenji),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             params
@@ -228,6 +227,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         ArkParams memory bParams = params;
         bParams.name = "BufferArk";
+        bParams.requiresKeeperData = false;
         bufferArk = new BufferArk(bParams, address(commander));
 
         vm.startPrank(governor);
@@ -238,15 +238,22 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         vm.prank(commander);
         ark.registerFleetCommander();
+
+        vm.prank(curator);
+        ark.whitelistSwapPool(address(pool), true);
     }
 
     /* ------------------------------ helpers ------------------------------ */
+
+    function _poolData() internal view returns (bytes memory) {
+        return abi.encode(address(pool));
+    }
 
     function _board(uint256 amount) internal {
         stable.mint(commander, amount);
         vm.startPrank(commander);
         IERC20(address(stable)).forceApprove(address(ark), amount);
-        ark.board(amount, bytes(""));
+        ark.board(amount, _poolData());
         vm.stopPrank();
     }
 
@@ -266,28 +273,30 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     /* ----------------------------- constructor --------------------------- */
 
     function test_Constructor_Wiring() public view {
-        assertEq(address(ark.swapPool()), address(pool));
         assertEq(address(ark.shareToken()), address(ibenji));
         assertEq(address(ark.asset()), address(stable));
         assertEq(ark.assetDecimals(), 6);
         assertEq(ark.shareDecimals(), 18);
+        assertTrue(ark.whitelistedSwapPools(address(pool)));
     }
 
-    function test_Constructor_RevertsZeroChecks() public {
-        vm.expectRevert(IBenjiArkErrors.InvalidSwapPoolAddress.selector);
+    function test_Constructor_RevertsZeroShareToken() public {
+        vm.expectRevert(IBenjiArkErrors.InvalidShareTokenAddress.selector);
         new BenjiArk(
             address(0),
-            address(ibenji),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
             params
         );
+    }
 
-        vm.expectRevert(IBenjiArkErrors.InvalidShareTokenAddress.selector);
+    function test_Constructor_RevertsWithoutKeeperData() public {
+        ArkParams memory badParams = params;
+        badParams.requiresKeeperData = false;
+        vm.expectRevert(IBenjiArkErrors.MustRequireKeeperData.selector);
         new BenjiArk(
-            address(pool),
-            address(0),
+            address(ibenji),
             Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            params
+            badParams
         );
     }
 
@@ -300,28 +309,84 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
                 ark.MAX_DEPOSIT_SLIPPAGE()
             )
         );
-        new BenjiArk(address(pool), address(ibenji), tooHigh, params);
+        new BenjiArk(address(ibenji), tooHigh, params);
     }
 
-    function test_Constructor_RevertsUnauthorizedPair() public {
+    /* --------------------------- pool whitelist -------------------------- */
+
+    function test_WhitelistSwapPool_RevertsZeroAddress() public {
+        vm.prank(curator);
+        vm.expectRevert(IBenjiArkErrors.InvalidSwapPoolAddress.selector);
+        ark.whitelistSwapPool(address(0), true);
+    }
+
+    function test_WhitelistSwapPool_RevertsUnauthorizedPair() public {
         MockSwapPool unauthPool = new MockSwapPool();
         unauthPool.setPairAuthorized(false);
+        vm.prank(curator);
         vm.expectRevert(IBenjiArkErrors.PairNotAuthorized.selector);
-        new BenjiArk(
-            address(unauthPool),
-            address(ibenji),
-            Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            params
+        ark.whitelistSwapPool(address(unauthPool), true);
+    }
+
+    function test_WhitelistSwapPool_Removal() public {
+        vm.prank(curator);
+        ark.whitelistSwapPool(address(pool), false);
+        assertFalse(ark.whitelistedSwapPools(address(pool)));
+
+        stable.mint(commander, ONE);
+        vm.startPrank(commander);
+        IERC20(address(stable)).forceApprove(address(ark), ONE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBenjiArkErrors.SwapPoolNotWhitelisted.selector,
+                address(pool)
+            )
         );
+        ark.board(ONE, _poolData());
+        vm.stopPrank();
+    }
+
+    function test_Board_RevertsOnNonWhitelistedPool() public {
+        MockSwapPool rogue = new MockSwapPool();
+        stable.mint(commander, ONE);
+        vm.startPrank(commander);
+        IERC20(address(stable)).forceApprove(address(ark), ONE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBenjiArkErrors.SwapPoolNotWhitelisted.selector,
+                address(rogue)
+            )
+        );
+        ark.board(ONE, abi.encode(address(rogue)));
+        vm.stopPrank();
+    }
+
+    function test_Board_RevertsOnEmptyKeeperData() public {
+        stable.mint(commander, ONE);
+        vm.startPrank(commander);
+        IERC20(address(stable)).forceApprove(address(ark), ONE);
+        // Base Ark validation: requiresKeeperData arks reject empty data.
+        vm.expectRevert();
+        ark.board(ONE, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_Board_RevertsOnMalformedKeeperData() public {
+        stable.mint(commander, ONE);
+        vm.startPrank(commander);
+        IERC20(address(stable)).forceApprove(address(ark), ONE);
+        vm.expectRevert(IBenjiArkErrors.InvalidSwapPoolData.selector);
+        ark.board(ONE, hex"deadbeef");
+        vm.stopPrank();
     }
 
     /* ----------------------------- onboarding ---------------------------- */
 
     function test_isArkOnboarded() public {
         pool.setAllowAll(false);
-        assertFalse(ark.isArkOnboarded());
+        assertFalse(ark.isArkOnboarded(address(pool)));
         pool.setTraderAllowed(address(ark), true);
-        assertTrue(ark.isArkOnboarded());
+        assertTrue(ark.isArkOnboarded(address(pool)));
     }
 
     function test_Board_RevertsIfArkNotAuthorized() public {
@@ -330,7 +395,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(commander);
         IERC20(address(stable)).forceApprove(address(ark), ONE);
         vm.expectRevert(IBenjiArkErrors.ArkNotAuthorized.selector);
-        ark.board(ONE, bytes(""));
+        ark.board(ONE, _poolData());
         vm.stopPrank();
     }
 
@@ -338,7 +403,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_Board_SwapsToIbenji_AtPar() public {
         _board(ONE);
-        // 1000 stable (6dec) -> 1000 iBENJI (18dec) at 1:1 par.
+        // 1000 stable (6 dec) -> 1000 iBENJI (18 dec) at 1:1 par.
         assertEq(ibenji.balanceOf(address(ark)), ONE_IN_SHARES);
         assertEq(stable.balanceOf(address(ark)), 0);
         assertEq(ark.totalAssets(), ONE, "valued 1:1 in stable terms");
@@ -353,7 +418,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(commander);
         IERC20(address(stable)).forceApprove(address(ark), ONE);
         vm.expectRevert();
-        ark.board(ONE, bytes(""));
+        ark.board(ONE, _poolData());
         vm.stopPrank();
 
         // Once Franklin Templeton authorizes the Ark as a holder, board succeeds.
@@ -368,7 +433,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(commander);
         IERC20(address(stable)).forceApprove(address(ark), ONE);
         vm.expectRevert();
-        ark.board(ONE, bytes(""));
+        ark.board(ONE, _poolData());
         vm.stopPrank();
     }
 
@@ -379,7 +444,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         uint256 commanderBefore = stable.balanceOf(commander);
 
         vm.prank(commander);
-        ark.disembark(ONE, bytes(""));
+        ark.disembark(ONE, _poolData());
 
         assertEq(
             stable.balanceOf(commander),
@@ -390,20 +455,13 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         assertEq(ark.totalAssets(), 0);
     }
 
-    function test_WithdrawableTotalAssets_IsSynchronous() public {
-        _board(ONE);
-        // SwapPool redemption is synchronous, so all held value is withdrawable. This Ark has no
-        // async-withdrawal surface (it extends ArkSwapProvider, not ArkWithWithdrawalRequest).
-        assertEq(ark.withdrawableTotalAssets(), ONE);
-    }
-
     function test_Disembark_Partial() public {
         _board(ONE);
         uint256 half = ONE / 2;
         uint256 commanderBefore = stable.balanceOf(commander);
 
         vm.prank(commander);
-        ark.disembark(half, bytes(""));
+        ark.disembark(half, _poolData());
 
         assertEq(
             stable.balanceOf(commander),
@@ -430,46 +488,44 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         uint256 commanderBefore = stable.balanceOf(commander);
         vm.prank(commander);
-        ark.disembark(total, bytes(""));
+        ark.disembark(total, _poolData());
 
         assertEq(stable.balanceOf(commander), commanderBefore + total);
         assertEq(ibenji.balanceOf(address(ark)), 0);
         assertEq(ark.totalAssets(), 0);
     }
 
-    /* -------------------- conservative withdrawable (Rule 4) ------------- */
+    function test_MultiPool_BoardAndDisembarkViaDifferentPools() public {
+        // Franklin Templeton runs multiple SwapPools; the keeper picks one per rebalance.
+        MockSwapPool secondPool = new MockSwapPool();
+        ibenji.mint(address(secondPool), 1_000_000 * 1e18);
+        stable.mint(address(secondPool), 1_000_000 * 1e6);
+        vm.prank(curator);
+        ark.whitelistSwapPool(address(secondPool), true);
 
-    function test_WithdrawableTotalAssets_ZeroWhenPoolPaused() public {
-        _board(ONE);
-        pool.setPaused(true);
-        // The iBENJI position cannot be redeemed while the pool is paused; only idle counts.
-        assertEq(ark.withdrawableTotalAssets(), 0);
-        assertEq(ark.totalAssets(), ONE, "valuation unaffected by pause");
-    }
+        _board(ONE); // boards through `pool`
 
-    function test_WithdrawableTotalAssets_ZeroWhenTraderDeauthorized() public {
-        _board(ONE);
-        pool.setAllowAll(false);
-        assertEq(ark.withdrawableTotalAssets(), 0);
-    }
+        uint256 commanderBefore = stable.balanceOf(commander);
+        vm.prank(commander);
+        ark.disembark(ONE, abi.encode(address(secondPool)));
 
-    function test_WithdrawableTotalAssets_CappedByPoolLiquidity() public {
-        _board(ONE);
-        // Drain the pool's stable reserves below the position value.
-        uint256 poolStable = stable.balanceOf(address(pool));
-        uint256 cap = ONE / 4;
-        vm.prank(address(pool));
-        require(
-            stable.transfer(address(0xbeef), poolStable - cap),
-            "TRANSFER_FAILED"
-        );
-
+        assertEq(stable.balanceOf(commander), commanderBefore + ONE);
+        assertEq(ibenji.balanceOf(address(ark)), 0);
         assertEq(
-            ark.withdrawableTotalAssets(),
-            cap,
-            "withdrawable capped by SwapPool liquidity"
+            ibenji.balanceOf(address(secondPool)),
+            1_000_000 * 1e18 + ONE_IN_SHARES,
+            "second pool absorbed the iBENJI"
         );
-        assertEq(ark.totalAssets(), ONE, "valuation unaffected by liquidity");
+    }
+
+    /* ------------------------- withdrawable assets ----------------------- */
+
+    function test_WithdrawableTotalAssets_ZeroWithKeeperData() public {
+        _board(ONE);
+        // Redeeming requires the keeper to select a SwapPool via disembarkData, so the public
+        // withdrawable reports 0 (requiresKeeperData) and exits flow through keeper rebalances.
+        assertEq(ark.withdrawableTotalAssets(), 0);
+        assertEq(ark.totalAssets(), ONE, "valuation unaffected");
     }
 
     /* --------------------------- access control -------------------------- */
@@ -478,13 +534,13 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         stable.mint(address(this), ONE);
         IERC20(address(stable)).forceApprove(address(ark), ONE);
         vm.expectRevert();
-        ark.board(ONE, bytes(""));
+        ark.board(ONE, _poolData());
     }
 
     function test_AccessControl_DisembarkRevertsForNonCommander() public {
         _board(ONE);
         vm.expectRevert();
-        ark.disembark(ONE, bytes(""));
+        ark.disembark(ONE, _poolData());
     }
 
     function test_AccessControl_WithdrawUsingSwapRevertsForNonKeeper() public {
@@ -503,6 +559,11 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     {
         vm.expectRevert();
         ark.setDepositSlippage(Percentage.wrap(PERCENTAGE_FACTOR / 4));
+    }
+
+    function test_AccessControl_WhitelistSwapPoolRevertsForNonCurator() public {
+        vm.expectRevert();
+        ark.whitelistSwapPool(address(pool), false);
     }
 
     /* --------------------------- escape swap ----------------------------- */

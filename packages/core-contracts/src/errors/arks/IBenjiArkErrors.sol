@@ -8,11 +8,23 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
  * @notice Custom errors for `BenjiArk`
  */
 interface IBenjiArkErrors {
-    /// @notice Reverts when the constructor is given a zero SwapPool address.
+    /// @notice Reverts when `whitelistSwapPool` is given the zero address.
     error InvalidSwapPoolAddress();
 
     /// @notice Reverts when the constructor is given a zero iBENJI share-token address.
     error InvalidShareTokenAddress();
+
+    /// @notice Reverts when the constructor is given `ArkParams` with `requiresKeeperData` unset.
+    ///         The keeper must supply the SwapPool address via `boardData`/`disembarkData`, so the
+    ///         flag is mandatory for this Ark.
+    error MustRequireKeeperData();
+
+    /// @notice Reverts when `boardData`/`disembarkData` is not exactly one ABI-encoded address.
+    error InvalidSwapPoolData();
+
+    /// @notice Reverts when the keeper-supplied SwapPool is not on the curator whitelist.
+    /// @param swapPool The SwapPool address supplied via `boardData`/`disembarkData`
+    error SwapPoolNotWhitelisted(address swapPool);
 
     /// @notice Reverts when the constructor or `setDepositSlippage` is given a value above
     ///         `MAX_DEPOSIT_SLIPPAGE`.
@@ -27,9 +39,10 @@ interface IBenjiArkErrors {
     ///         asset/iBENJI pair (so the swap would revert and strand the asset).
     error ArkNotAuthorized();
 
-    /// @notice Reverts in the constructor when the configured asset/iBENJI pair is not authorized on
-    ///         the SwapPool (so the Ark could never board or disembark). Pair authorization is a
-    ///         pool-wide setting independent of this Ark's per-trader authorization.
+    /// @notice Reverts in `whitelistSwapPool` when the configured asset/iBENJI pair is not
+    ///         authorized on the pool being whitelisted (so the Ark could never board or disembark
+    ///         through it). Pair authorization is a pool-wide setting independent of this Ark's
+    ///         per-trader authorization.
     error PairNotAuthorized();
 
     /// @notice Reverts in `_board` when the iBENJI received from the SwapPool is below the 1:1

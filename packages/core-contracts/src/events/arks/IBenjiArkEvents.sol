@@ -15,4 +15,9 @@ interface IBenjiArkEvents {
         Percentage oldDepositSlippage,
         Percentage newDepositSlippage
     );
+
+    /// @notice Emitted when a SwapPool's whitelist status is updated by the curator.
+    /// @param swapPool The SwapPool address whose status changed
+    /// @param isWhitelisted The new whitelist status
+    event SwapPoolWhitelisted(address indexed swapPool, bool isWhitelisted);
 }
