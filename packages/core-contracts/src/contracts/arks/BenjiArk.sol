@@ -167,23 +167,30 @@ contract BenjiArk is IBenjiArk, ArkWithSwap {
 
     /**
      * @inheritdoc IBenjiArk
-     * @dev Restricted to the curator. When whitelisting, the asset/iBENJI pair must already be
-     *      authorized on the pool (reverts with `PairNotAuthorized` otherwise) so the keeper cannot
-     *      be handed a pool that strands the asset on the first board.
+     * @dev Restricted to the curator. When whitelisting, the asset/iBENJI pair must be authorized
+     *      on the pool (`PairNotAuthorized`; pair authorization also implies both tokens are
+     *      registered) and neither token may be flagged unsupported (`SwapPoolTokenUnsupported`),
+     *      so the keeper cannot be handed a pool that strands the asset on the first board. Both
+     *      flags are owner-mutable on the pool, so they are re-checked at swap time by the pool
+     *      itself; this is a fail-fast gate, not a standing guarantee.
      */
     function whitelistSwapPool(
         address swapPool,
         bool isWhitelisted
     ) external onlyCurator(config.commander) {
         if (swapPool == address(0)) revert InvalidSwapPoolAddress();
-        if (
-            isWhitelisted &&
-            !ISwapPool(swapPool).isTokenPairAuthorized(
-                address(config.asset),
-                address(shareToken)
-            )
-        ) {
-            revert PairNotAuthorized();
+        if (isWhitelisted) {
+            ISwapPool pool = ISwapPool(swapPool);
+            address asset = address(config.asset);
+            if (!pool.isTokenPairAuthorized(asset, address(shareToken))) {
+                revert PairNotAuthorized();
+            }
+            if (pool.unsupportedTokens(asset)) {
+                revert SwapPoolTokenUnsupported(asset);
+            }
+            if (pool.unsupportedTokens(address(shareToken))) {
+                revert SwapPoolTokenUnsupported(address(shareToken));
+            }
         }
         whitelistedSwapPools[swapPool] = isWhitelisted;
         emit SwapPoolWhitelisted(swapPool, isWhitelisted);

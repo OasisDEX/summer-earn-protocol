@@ -24,6 +24,11 @@ interface IBenjiArkErrors {
     /// @param swapPool The SwapPool address supplied via `boardData`/`disembarkData`
     error SwapPoolNotWhitelisted(address swapPool);
 
+    /// @notice Reverts in `whitelistSwapPool` when the asset or iBENJI is flagged unsupported on
+    ///         the pool being whitelisted (all swaps involving it would revert).
+    /// @param token The token flagged unsupported on the pool
+    error SwapPoolTokenUnsupported(address token);
+
     /// @notice Reverts in `_board` when this Ark is not an authorized SwapPool trader for the
     ///         asset/iBENJI pair (so the swap would revert and strand the asset).
     error ArkNotAuthorized();

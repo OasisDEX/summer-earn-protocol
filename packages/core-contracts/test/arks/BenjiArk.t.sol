@@ -67,6 +67,7 @@ contract MockSwapPool {
     bool public pairAuthorized = true;
     uint256 public haircutBps; // simulates SwapPool underdelivery for slippage tests
     mapping(address => bool) public traderAllowed;
+    mapping(address => bool) public unsupportedTokens;
 
     function setPaused(bool v) external {
         paused = v;
@@ -78,6 +79,10 @@ contract MockSwapPool {
 
     function setPairAuthorized(bool v) external {
         pairAuthorized = v;
+    }
+
+    function setUnsupportedToken(address token, bool v) external {
+        unsupportedTokens[token] = v;
     }
 
     function setTraderAllowed(address t, bool v) external {
@@ -300,6 +305,19 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.prank(curator);
         vm.expectRevert(IBenjiArkErrors.PairNotAuthorized.selector);
         ark.whitelistSwapPool(address(unauthPool), true);
+    }
+
+    function test_WhitelistSwapPool_RevertsUnsupportedToken() public {
+        MockSwapPool flaggedPool = new MockSwapPool();
+        flaggedPool.setUnsupportedToken(address(ibenji), true);
+        vm.prank(curator);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBenjiArkErrors.SwapPoolTokenUnsupported.selector,
+                address(ibenji)
+            )
+        );
+        ark.whitelistSwapPool(address(flaggedPool), true);
     }
 
     function test_WhitelistSwapPool_Removal() public {

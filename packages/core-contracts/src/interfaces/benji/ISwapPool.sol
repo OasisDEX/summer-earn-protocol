@@ -56,6 +56,12 @@ interface ISwapPool {
     ) external view returns (bool);
 
     /**
+     * @notice Whether `token` is flagged unsupported (all swaps involving it revert). An
+     *         owner-mutable kill-switch independent of pair authorization.
+     */
+    function unsupportedTokens(address token) external view returns (bool);
+
+    /**
      * @notice Whether the `tokenA`/`tokenB` pair is authorized for swapping.
      */
     function isTokenPairAuthorized(
