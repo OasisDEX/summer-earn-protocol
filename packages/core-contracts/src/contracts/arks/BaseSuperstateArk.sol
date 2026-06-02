@@ -83,6 +83,7 @@ abstract contract BaseSuperstateArk is
     /// @notice Slippage band applied to the share/asset check during `sweep`.
     Percentage public sweepSlippage;
     /// @notice Slippage band applied to the shares-received check after a subscription/clear.
+    /// It must include the fee applied by Superstate at deposit time.
     Percentage public depositSlippage;
 
     /*//////////////////////////////////////////////////////////////
