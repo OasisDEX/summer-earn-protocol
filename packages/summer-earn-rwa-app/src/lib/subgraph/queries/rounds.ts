@@ -48,14 +48,8 @@ export const ROUNDS_FOR_VAULT = /* GraphQL */ `
       settledAtBlock
       exchangeRateBase
       exchangeRateQuote
-      exchangeRateDecimal
+      isEmpty
       receiptSupply
-      depositsQueued
-      depositsRedeemed
-      exchangeAssetWithdrawn
-      settledUnderlyingAmount
-      settledExchangeAmount
-      retriedCount
       rolledBack
     }
   }
@@ -87,14 +81,8 @@ export const ROUNDS_VAULT_WITH_RECENT_ROUNDS = /* GraphQL */ `
         settledAt
         exchangeRateBase
         exchangeRateQuote
-        exchangeRateDecimal
+        isEmpty
         receiptSupply
-        depositsQueued
-        depositsRedeemed
-        exchangeAssetWithdrawn
-        settledUnderlyingAmount
-        settledExchangeAmount
-        retriedCount
         rolledBack
       }
     }

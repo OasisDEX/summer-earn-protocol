@@ -22,8 +22,8 @@ export interface StrategyChartInitialData {
 export interface StrategyChartExecution {
   t: number
   p: number
-  amountIn: bigint
-  amountOut: bigint
+  inAssets: bigint
+  outAssets: bigint
   txHash: `0x${string}`
   skipped: boolean
 }
@@ -82,7 +82,7 @@ function mergeGaps(
 
 // Chart line is the outAsset/inAsset price ratio over time, same units as
 // the contract's 1e18-scaled maxPrice/minPrice guardrails. Execution dots
-// use the realised amountIn/amountOut ratio.
+// use the realised inAssets/outAssets ratio (asset-denominated, not shares).
 export function useStrategyChartData(
   chainId: ChainId,
   strategyId: string | undefined,
@@ -145,14 +145,14 @@ export function useStrategyChartData(
 
     const executions: StrategyChartExecution[] = (sg.executions ?? []).map((e) => {
       const tMs = Number(e.executionTimestamp) * 1000
-      const amountInF = Number(e.amountIn) / Math.pow(10, inAssetDecimals)
-      const amountOutF = Number(e.amountOut) / Math.pow(10, outAssetDecimals)
-      const p = amountOutF > 0 ? amountInF / amountOutF : 0
+      const inAssetsF = Number(e.inAssets) / Math.pow(10, inAssetDecimals)
+      const outAssetsF = Number(e.outAssets) / Math.pow(10, outAssetDecimals)
+      const p = outAssetsF > 0 ? inAssetsF / outAssetsF : 0
       return {
         t: tMs,
         p,
-        amountIn: BigInt(e.amountIn),
-        amountOut: BigInt(e.amountOut),
+        inAssets: BigInt(e.inAssets),
+        outAssets: BigInt(e.outAssets),
         txHash: e.txHash,
         skipped: false,
       }

@@ -5,11 +5,6 @@ export const ACCOUNT_RECEIPTS = /* GraphQL */ `
       roundsVaultReceipts(first: 1000, where: { balance_gt: "0" }) {
         id
         balance
-        totalMinted
-        totalBurned
-        totalRedeemedForExchangeAsset
-        exchangeAssetReceived
-        underlyingRedeemed
         lastUpdated
         round {
           id
@@ -20,11 +15,12 @@ export const ACCOUNT_RECEIPTS = /* GraphQL */ `
           settledAt
           exchangeRateBase
           exchangeRateQuote
-          exchangeRateDecimal
+          isEmpty
         }
         vault {
           id
           flavor
+          minPositionSize
           underlyingToken {
             id
             symbol
@@ -57,11 +53,6 @@ export const RECEIPTS_BY_VAULT = /* GraphQL */ `
     ) {
       id
       balance
-      totalMinted
-      totalBurned
-      totalRedeemedForExchangeAsset
-      exchangeAssetReceived
-      underlyingRedeemed
       lastUpdated
       round {
         id
@@ -72,11 +63,12 @@ export const RECEIPTS_BY_VAULT = /* GraphQL */ `
         settledAt
         exchangeRateBase
         exchangeRateQuote
-        exchangeRateDecimal
+        isEmpty
       }
       vault {
         id
         flavor
+        minPositionSize
         underlyingToken {
           id
           symbol

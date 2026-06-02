@@ -47,7 +47,7 @@ dataSources:
           handler: handleStrategyCancelled
         - event: StrategyCompleted(indexed uint256,bytes32)
           handler: handleStrategyCompleted
-        - event: ExecutionCompleted(indexed uint256,uint256,uint256,uint256,uint256)
+        - event: ExecutionCompleted(indexed uint256,uint256,uint256,uint256,uint256,uint256,uint256)
           handler: handleExecutionCompleted
       file: ./src/mappings/dcaStrategyManager.ts
   - kind: ethereum/contract

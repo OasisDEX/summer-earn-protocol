@@ -134,7 +134,7 @@ export const dcaStrategyManagerAbi = [
     name: 'activeCommitments',
     inputs: [
       {
-        name: 'commitment',
+        name: 'commitmentHash',
         type: 'bytes32',
         internalType: 'bytes32',
       },
@@ -417,6 +417,433 @@ export const dcaStrategyManagerAbi = [
             name: 'maxTrades',
             type: 'uint256',
             internalType: 'uint256',
+          },
+        ],
+      },
+    ],
+    outputs: [
+      {
+        name: 'strategyId',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'createStrategyWithPermit2',
+    inputs: [
+      {
+        name: 'config',
+        type: 'tuple',
+        internalType: 'struct IDCAStrategyManager.StrategyConfig',
+        components: [
+          {
+            name: 'owner',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'sourceVault',
+            type: 'address',
+            internalType: 'contract IFleetCommander',
+          },
+          {
+            name: 'targetVault',
+            type: 'address',
+            internalType: 'contract IFleetCommander',
+          },
+          {
+            name: 'inAsset',
+            type: 'address',
+            internalType: 'contract IERC20',
+          },
+          {
+            name: 'outAsset',
+            type: 'address',
+            internalType: 'contract IERC20',
+          },
+          {
+            name: 'inAssetFeed',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'outAssetFeed',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'tradeAmount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'interval',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'slippageBps',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'maxPrice',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'minPrice',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'endDate',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'maxTrades',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
+      {
+        name: 'permitSingle',
+        type: 'tuple',
+        internalType: 'struct IAllowanceTransfer.PermitSingle',
+        components: [
+          {
+            name: 'details',
+            type: 'tuple',
+            internalType: 'struct IAllowanceTransfer.PermitDetails',
+            components: [
+              {
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
+              },
+              {
+                name: 'amount',
+                type: 'uint160',
+                internalType: 'uint160',
+              },
+              {
+                name: 'expiration',
+                type: 'uint48',
+                internalType: 'uint48',
+              },
+              {
+                name: 'nonce',
+                type: 'uint48',
+                internalType: 'uint48',
+              },
+            ],
+          },
+          {
+            name: 'spender',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'sigDeadline',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
+      {
+        name: 'signature',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+    ],
+    outputs: [
+      {
+        name: 'strategyId',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'depositAndCreate',
+    inputs: [
+      {
+        name: 'config',
+        type: 'tuple',
+        internalType: 'struct IDCAStrategyManager.StrategyConfig',
+        components: [
+          {
+            name: 'owner',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'sourceVault',
+            type: 'address',
+            internalType: 'contract IFleetCommander',
+          },
+          {
+            name: 'targetVault',
+            type: 'address',
+            internalType: 'contract IFleetCommander',
+          },
+          {
+            name: 'inAsset',
+            type: 'address',
+            internalType: 'contract IERC20',
+          },
+          {
+            name: 'outAsset',
+            type: 'address',
+            internalType: 'contract IERC20',
+          },
+          {
+            name: 'inAssetFeed',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'outAssetFeed',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'tradeAmount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'interval',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'slippageBps',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'maxPrice',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'minPrice',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'endDate',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'maxTrades',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
+      {
+        name: 'assetAmount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    outputs: [
+      {
+        name: 'strategyId',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'depositAndCreateWithPermit2',
+    inputs: [
+      {
+        name: 'config',
+        type: 'tuple',
+        internalType: 'struct IDCAStrategyManager.StrategyConfig',
+        components: [
+          {
+            name: 'owner',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'sourceVault',
+            type: 'address',
+            internalType: 'contract IFleetCommander',
+          },
+          {
+            name: 'targetVault',
+            type: 'address',
+            internalType: 'contract IFleetCommander',
+          },
+          {
+            name: 'inAsset',
+            type: 'address',
+            internalType: 'contract IERC20',
+          },
+          {
+            name: 'outAsset',
+            type: 'address',
+            internalType: 'contract IERC20',
+          },
+          {
+            name: 'inAssetFeed',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'outAssetFeed',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'tradeAmount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'interval',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'slippageBps',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'maxPrice',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'minPrice',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'endDate',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'maxTrades',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
+      {
+        name: 'assetAmount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'permits',
+        type: 'tuple',
+        internalType: 'struct IDCAStrategyManager.Permit2DepositBundle',
+        components: [
+          {
+            name: 'inAsset',
+            type: 'tuple',
+            internalType: 'struct ISignatureTransfer.PermitTransferFrom',
+            components: [
+              {
+                name: 'permitted',
+                type: 'tuple',
+                internalType: 'struct ISignatureTransfer.TokenPermissions',
+                components: [
+                  {
+                    name: 'token',
+                    type: 'address',
+                    internalType: 'contract IERC20',
+                  },
+                  {
+                    name: 'amount',
+                    type: 'uint256',
+                    internalType: 'uint256',
+                  },
+                ],
+              },
+              {
+                name: 'nonce',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'deadline',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+          {
+            name: 'inAssetSig',
+            type: 'bytes',
+            internalType: 'bytes',
+          },
+          {
+            name: 'shares',
+            type: 'tuple',
+            internalType: 'struct IAllowanceTransfer.PermitSingle',
+            components: [
+              {
+                name: 'details',
+                type: 'tuple',
+                internalType: 'struct IAllowanceTransfer.PermitDetails',
+                components: [
+                  {
+                    name: 'token',
+                    type: 'address',
+                    internalType: 'address',
+                  },
+                  {
+                    name: 'amount',
+                    type: 'uint160',
+                    internalType: 'uint160',
+                  },
+                  {
+                    name: 'expiration',
+                    type: 'uint48',
+                    internalType: 'uint48',
+                  },
+                  {
+                    name: 'nonce',
+                    type: 'uint48',
+                    internalType: 'uint48',
+                  },
+                ],
+              },
+              {
+                name: 'spender',
+                type: 'address',
+                internalType: 'address',
+              },
+              {
+                name: 'sigDeadline',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+          {
+            name: 'sharesSig',
+            type: 'bytes',
+            internalType: 'bytes',
           },
         ],
       },
@@ -827,6 +1254,37 @@ export const dcaStrategyManagerAbi = [
   },
   {
     type: 'function',
+    name: 'priceFromFeed',
+    inputs: [
+      {
+        name: 'feed',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        internalType: 'struct ChainlinkOraclePrice',
+        components: [
+          {
+            name: 'value',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'decimals',
+            type: 'uint8',
+            internalType: 'uint8',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'resumeStrategy',
     inputs: [
       {
@@ -927,7 +1385,7 @@ export const dcaStrategyManagerAbi = [
     ],
     outputs: [
       {
-        name: '',
+        name: 'commitmentHash',
         type: 'bytes32',
         internalType: 'bytes32',
       },
@@ -992,13 +1450,25 @@ export const dcaStrategyManagerAbi = [
         internalType: 'uint256',
       },
       {
-        name: 'inAmount',
+        name: 'inShares',
         type: 'uint256',
         indexed: false,
         internalType: 'uint256',
       },
       {
-        name: 'outAmount',
+        name: 'outShares',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
+      {
+        name: 'inAssets',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
+      {
+        name: 'outAssets',
         type: 'uint256',
         indexed: false,
         internalType: 'uint256',
@@ -1447,6 +1917,32 @@ export const dcaStrategyManagerAbi = [
   },
   {
     type: 'error',
+    name: 'ChainlinkOraclePriceZero',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'ChainlinkOracleStalePrice',
+    inputs: [
+      {
+        name: 'feed',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: 'updatedAt',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'currentTime',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+  },
+  {
+    type: 'error',
     name: 'CommitmentMismatch',
     inputs: [
       {
@@ -1485,14 +1981,8 @@ export const dcaStrategyManagerAbi = [
   },
   {
     type: 'error',
-    name: 'EmptyEnsoData',
-    inputs: [
-      {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+    name: 'EmptySwapData',
+    inputs: [],
   },
   {
     type: 'error',
@@ -1517,20 +2007,47 @@ export const dcaStrategyManagerAbi = [
   },
   {
     type: 'error',
-    name: 'InsufficientFunds',
+    name: 'InAssetVaultMismatch',
     inputs: [
       {
-        name: 'strategyId',
+        name: 'expected',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: 'actual',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'InactiveFleetCommander',
+    inputs: [
+      {
+        name: 'vault',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: 'label',
+        type: 'string',
+        internalType: 'string',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'IntervalTooLong',
+    inputs: [
+      {
+        name: 'provided',
         type: 'uint256',
         internalType: 'uint256',
       },
       {
-        name: 'available',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'required',
+        name: 'maximum',
         type: 'uint256',
         internalType: 'uint256',
       },
@@ -1575,10 +2092,73 @@ export const dcaStrategyManagerAbi = [
   },
   {
     type: 'error',
-    name: 'InvalidInterval',
+    name: 'InvalidOwner',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InvalidPermit2Address',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InvalidPermit2Amount',
     inputs: [
       {
-        name: 'interval',
+        name: 'expected',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'actual',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'InvalidPermit2Spender',
+    inputs: [
+      {
+        name: 'expected',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: 'actual',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'InvalidPermit2Token',
+    inputs: [
+      {
+        name: 'expected',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: 'actual',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'InvalidPriceBounds',
+    inputs: [
+      {
+        name: 'minPrice',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'maxPrice',
         type: 'uint256',
         internalType: 'uint256',
       },
@@ -1602,10 +2182,15 @@ export const dcaStrategyManagerAbi = [
   },
   {
     type: 'error',
-    name: 'InvalidSourceVault',
+    name: 'OutAssetVaultMismatch',
     inputs: [
       {
-        name: 'vault',
+        name: 'expected',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: 'actual',
         type: 'address',
         internalType: 'address',
       },
@@ -1613,19 +2198,51 @@ export const dcaStrategyManagerAbi = [
   },
   {
     type: 'error',
-    name: 'InvalidTargetVault',
+    name: 'Permit2AllowanceInsufficient',
     inputs: [
       {
-        name: 'vault',
-        type: 'address',
-        internalType: 'address',
+        name: 'signed',
+        type: 'uint160',
+        internalType: 'uint160',
+      },
+      {
+        name: 'required',
+        type: 'uint256',
+        internalType: 'uint256',
       },
     ],
   },
   {
     type: 'error',
-    name: 'OraclePriceZero',
-    inputs: [],
+    name: 'Permit2AllowanceNotSet',
+    inputs: [
+      {
+        name: 'required',
+        type: 'uint160',
+        internalType: 'uint160',
+      },
+      {
+        name: 'actual',
+        type: 'uint160',
+        internalType: 'uint160',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'Permit2ExpirationTooEarly',
+    inputs: [
+      {
+        name: 'expiration',
+        type: 'uint48',
+        internalType: 'uint48',
+      },
+      {
+        name: 'endDate',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
     type: 'error',
@@ -1656,32 +2273,6 @@ export const dcaStrategyManagerAbi = [
         name: 'minPrice',
         type: 'uint256',
         internalType: 'uint256',
-      },
-    ],
-  },
-  {
-    type: 'error',
-    name: 'PriceGuardViolation',
-    inputs: [
-      {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'price',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'limitPrice',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'isAbove',
-        type: 'bool',
-        internalType: 'bool',
       },
     ],
   },
@@ -1726,13 +2317,7 @@ export const dcaStrategyManagerAbi = [
   {
     type: 'error',
     name: 'SwapFailed',
-    inputs: [
-      {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+    inputs: [],
   },
   {
     type: 'error',
@@ -1757,22 +2342,6 @@ export const dcaStrategyManagerAbi = [
   },
   {
     type: 'error',
-    name: 'TerminalStateReached',
-    inputs: [
-      {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'reason',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
-    ],
-  },
-  {
-    type: 'error',
     name: 'UnauthorizedAccess',
     inputs: [
       {
@@ -1786,6 +2355,37 @@ export const dcaStrategyManagerAbi = [
         internalType: 'address',
       },
     ],
+  },
+  {
+    type: 'error',
+    name: 'UnauthorizedOwner',
+    inputs: [
+      {
+        name: 'caller',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: 'owner',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'ZeroDeposit',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'ZeroExpectedOutShares',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'ZeroMaxTrades',
+    inputs: [],
   },
   {
     type: 'error',

@@ -4,7 +4,7 @@
 
 export type RoundState = 'OPENED' | 'IN_SETTLEMENT' | 'SETTLED'
 export type RoundsVaultFlavor = 'INPUT' | 'OUTPUT'
-export type TransferKind = 'MINT' | 'BURN' | 'TRANSFER'
+export type ReceiptActivityType = 'DEPOSIT' | 'REDEEM_CURRENT' | 'REDEEM_EXCHANGE' | 'TRANSFER'
 export type RoleAction = 'GRANT_ROLE' | 'REVOKE_ROLE'
 
 export interface SubgraphToken {
@@ -24,18 +24,13 @@ export interface SubgraphRound {
   closedAtBlock?: string | null
   settledAt?: string | null
   settledAtBlock?: string | null
+  // base = exchange asset produced, quote = underlying/receipts frozen. Payout = receiptAmount * base / quote.
   exchangeRateBase?: string | null
   exchangeRateQuote?: string | null
-  exchangeRateDecimal?: string | null
+  // True when the round settled with zero receipt supply (a fallback preview rate was snapshotted).
+  isEmpty: boolean
   // Live ERC-1155 supply mirror — equals on-chain totalSupply(roundId).
   receiptSupply: string
-  depositsQueued: string
-  depositsRedeemed: string
-  exchangeAssetWithdrawn: string
-  // Set at settlement; INPUT flavor: assets in / shares out, OUTPUT flavor: shares in / assets out.
-  settledUnderlyingAmount?: string | null
-  settledExchangeAmount?: string | null
-  retriedCount: string
   rolledBack: boolean
 }
 
@@ -70,14 +65,8 @@ export interface SubgraphRoundsVaultPair {
 
 export interface SubgraphReceipt {
   id: string
+  // Current ERC-1155 balance — single source of truth, maintained from TransferSingle/TransferBatch.
   balance: string
-  totalMinted: string
-  totalBurned: string
-  totalRedeemedForExchangeAsset: string
-  exchangeAssetReceived: string
-  // Underlying returned via queue-cancel `redeem` (OPENED-phase) — paired with
-  // `exchangeAssetReceived` which covers SETTLED-phase redemptions.
-  underlyingRedeemed: string
   lastUpdated: string
   lastUpdatedBlock: string
   round: SubgraphRound

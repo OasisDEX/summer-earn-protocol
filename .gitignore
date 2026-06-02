@@ -97,8 +97,10 @@ broadcast
 cache_forge/
 **/cache_forge/
 .cursorignore
-.antigravitycli/
 **/docs/superpowers/
+.antigravitycli
+.claude/
+.next-docs
 
 SYSTEM_PROMPT.md
 myenv
@@ -128,3 +130,5 @@ docs/superstate/
 bin/gemini_pipe.sh
 cmd.in
 cmd.out
+
+.resources/

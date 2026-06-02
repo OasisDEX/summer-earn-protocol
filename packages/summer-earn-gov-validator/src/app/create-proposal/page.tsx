@@ -50,6 +50,19 @@ import { useSimulation } from '@/hooks/useSimulation'
 import { DeploymentConfig } from '@/types/deployment'
 import { AbiInput, AbiItem, ProposalAction } from '@/types/governance'
 import { Action } from '@/types/tenderly'
+import { constructLzOptions } from '@/utils/layerzero-options'
+import {
+  bigIntSafeReplacer,
+  buildActionCalldata,
+  computeGasRatio,
+  computeGasSeverity,
+  DEFAULT_LZ_GAS_LIMIT,
+  GasSeverityOrIdle,
+  LZ_GAS_HEADROOM_PERCENT,
+  parseLzGas,
+  worstSeverity,
+  ZERO_BYTES32,
+} from '@/utils/proposal-encoding'
 
 // --- Types ---
 
@@ -198,11 +211,11 @@ export default function CreateProposalPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { results, isSimulating, triggerSimulation } = useSimulation()
+  const { results, isSimulating, triggerSimulation, setResults } = useSimulation()
   const [actions, setActions] = useState<ProposalAction[]>([
     {
       id: Math.random().toString(36).substr(2, 9),
-      chainId: '8453',
+      chainId: HUB_CHAIN_ID,
       target: '',
       abi: [],
       method: '',
@@ -215,7 +228,95 @@ export default function CreateProposalPage() {
   const [failedAbiFetchIds, setFailedAbiFetchIds] = useState<Set<string>>(new Set())
   const [isDecodingImport, setIsDecodingImport] = useState(false)
   const [decodeErrors, setDecodeErrors] = useState<Record<string, string>>({})
+  // Per‑destination LayerZero executor gas limit (encoded into `_options`).
+  // Stored as strings so the input stays controllable; parsed to bigint on use.
+  // Once the proposal is queued in the timelock these values are frozen, so
+  // we surface a warning below if simulated gasUsed approaches them.
+  const [lzGasLimits, setLzGasLimits] = useState<Record<string, string>>({})
   const descriptionRef = React.useRef<HTMLTextAreaElement>(null)
+
+  const satelliteChainIds = useMemo(
+    () => Array.from(new Set(actions.map((a) => a.chainId).filter((id) => id !== HUB_CHAIN_ID))),
+    [actions],
+  )
+
+  // Expected sim targets = hub + every chain referenced by an action. Used by
+  // the simulation gate so we validate against the chains we *expected*, not
+  // just the ones that happened to show up in `results`.
+  const expectedChainIds = useMemo(
+    () => Array.from(new Set([HUB_CHAIN_ID, ...actions.map((a) => a.chainId)])),
+    [actions],
+  )
+
+  // Signature of every input that affects encodeProposal's output. Any change
+  // invalidates the previous run so the user cannot edit actions after a green
+  // simulation and submit with stale results. `abi` must be included because
+  // calldata derivation depends on it — without it, an ABI fetched after the
+  // sim would change proposal bytes without busting the gate.
+  const actionsSignature = useMemo(
+    () =>
+      JSON.stringify(
+        {
+          title,
+          description,
+          actions: actions.map((a) => ({
+            chainId: a.chainId,
+            target: a.target,
+            method: a.method,
+            abi: a.abi,
+            args: a.args,
+            rawCalldata: a.rawCalldata ?? null,
+            rawValue: a.rawValue ?? null,
+          })),
+          lzGasLimits,
+        },
+        bigIntSafeReplacer,
+      ),
+    [actions, lzGasLimits, title, description],
+  )
+
+  // Signature captured at the last triggerSimulation call. The gate compares
+  // it against the live actionsSignature so even within the one-render window
+  // before the invalidation effect runs, stale results don't count.
+  const lastSimSignatureRef = React.useRef<string | null>(null)
+
+  useEffect(() => {
+    setResults({})
+    lastSimSignatureRef.current = null
+    // intentionally only re-run on actionsSignature change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionsSignature])
+
+  const simulationPassed =
+    lastSimSignatureRef.current === actionsSignature &&
+    expectedChainIds.every((cid) => results[cid]?.status === 'success')
+
+  interface GasInsight {
+    chainId: string
+    encodedGas: bigint
+    gasUsed?: number
+    ratio?: number
+    severity: GasSeverityOrIdle
+  }
+
+  const gasInsights: GasInsight[] = useMemo(() => {
+    return satelliteChainIds.map((cid) => {
+      const encodedGas = parseLzGas(lzGasLimits[cid])
+      const gasUsed = results[cid]?.gasUsed
+      if (gasUsed === undefined || results[cid]?.status !== 'success') {
+        return { chainId: cid, encodedGas, severity: 'idle' }
+      }
+      return {
+        chainId: cid,
+        encodedGas,
+        gasUsed,
+        ratio: computeGasRatio(gasUsed, encodedGas),
+        severity: computeGasSeverity(gasUsed, encodedGas),
+      }
+    })
+  }, [satelliteChainIds, lzGasLimits, results])
+
+  const worstGasSeverity: GasSeverityOrIdle = worstSeverity(gasInsights.map((i) => i.severity))
 
   const insertMarkdown = (prefix: string, suffix: string = '') => {
     const textarea = descriptionRef.current
@@ -321,17 +422,7 @@ export default function CreateProposalPage() {
         if (a.rawValue) return BigInt(a.rawValue)
         return 0n
       })
-      const calldatas = groupActions.map((a) => {
-        // Use raw calldata if available (from imported proposals)
-        if (a.rawCalldata) return a.rawCalldata as Hex
-        const methodObj = a.abi.find((m: AbiItem) => m.name === a.method)
-        if (!methodObj || !methodObj.inputs) return '0x' as Hex
-        return encodeFunctionData({
-          abi: [methodObj],
-          functionName: a.method,
-          args: methodObj.inputs.map((i) => a.args[i.name]),
-        })
-      })
+      const calldatas = groupActions.map((a) => buildActionCalldata(a))
 
       if (isHub) {
         hubTargets.push(...targets)
@@ -345,7 +436,7 @@ export default function CreateProposalPage() {
           throw new Error(`Chain ${chainId} not found in CHAINS config`)
         }
         const dstDescription = `SIPX.Y.Z Cross-Chain Actions for ${chainInfo?.name}`
-        const lzOptions = '0x0003010011030000000000000000000000000007a120' as Hex // ~500k gas
+        const lzOptions = constructLzOptions(parseLzGas(lzGasLimits[chainId]))
 
         hubTargets.push(HUB_GOVERNOR_ADDRESS)
         hubValues.push(0n)
@@ -614,7 +705,7 @@ export default function CreateProposalPage() {
       ...actions,
       {
         id: Math.random().toString(36).substr(2, 9),
-        chainId: '8453',
+        chainId: HUB_CHAIN_ID,
         target: '',
         abi: [],
         method: '',
@@ -645,7 +736,7 @@ export default function CreateProposalPage() {
         target,
         method: 'unknown',
         calldata: encoded.calldatas[i],
-        salt: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        salt: ZERO_BYTES32,
         value: encoded.values[i].toString(),
       })
     })
@@ -653,30 +744,20 @@ export default function CreateProposalPage() {
     // 2. Add raw satellite actions for their direct simulations on their respective chains
     actions.forEach((a) => {
       if (a.chainId !== HUB_CHAIN_ID) {
-        let calldata: string
-        if (a.rawCalldata) {
-          calldata = a.rawCalldata
-        } else {
-          const methodObj = a.abi.find((m) => m.name === a.method)
-          calldata = methodObj
-            ? encodeFunctionData({
-                abi: [methodObj],
-                functionName: a.method,
-                args: methodObj.inputs?.map((i) => a.args[i.name]) || [],
-              })
-            : '0x'
-        }
         simActions.push({
           chainId: a.chainId,
           target: a.target,
           method: a.rawCalldata ? 'raw' : a.method,
-          calldata,
-          salt: '0x0000000000000000000000000000000000000000000000000000000000000000',
+          calldata: buildActionCalldata(a),
+          salt: ZERO_BYTES32,
           value: a.rawValue || '0',
         })
       }
     })
 
+    // Capture the signature of the inputs we're simulating. simulationPassed
+    // only goes true again when the live actionsSignature still matches this.
+    lastSimSignatureRef.current = actionsSignature
     await triggerSimulation(simActions)
   }
 
@@ -763,9 +844,24 @@ export default function CreateProposalPage() {
               </button>
               <button
                 onClick={handlePropose}
-                disabled={!isEligible || !title || isSubmitting}
+                disabled={
+                  !isEligible || !title || isSubmitting || isSimulating || !simulationPassed
+                }
+                title={
+                  isSimulating
+                    ? 'Simulation running…'
+                    : !simulationPassed
+                      ? lastSimSignatureRef.current !== actionsSignature
+                        ? 'Run simulation against the current actions before submitting'
+                        : 'Simulation has reverts or errors — fix and re-simulate before submitting'
+                      : worstGasSeverity === 'critical'
+                        ? 'Warning: simulated gas exceeds encoded _options gas on at least one chain'
+                        : worstGasSeverity === 'warning'
+                          ? `Warning: less than ${LZ_GAS_HEADROOM_PERCENT}% gas headroom on at least one chain`
+                          : undefined
+                }
                 className={`px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg ${
-                  isEligible && title
+                  isEligible && title && simulationPassed && !isSimulating
                     ? 'bg-primary text-on-primary hover:brightness-110 shadow-primary/20'
                     : 'bg-surface-container-highest text-on-surface-variant cursor-not-allowed grayscale'
                 }`}
@@ -779,6 +875,124 @@ export default function CreateProposalPage() {
               </button>
             </div>
           </div>
+
+          {/* Cross-Chain Gas Limits */}
+          {satelliteChainIds.length > 0 && (
+            <section className="mb-10 space-y-6">
+              <div className="flex items-center gap-3">
+                <Settings className="text-primary" size={20} />
+                <h2 className="text-xl font-bold">LayerZero Gas Limits</h2>
+              </div>
+              <p className="text-xs text-on-surface-variant max-w-3xl">
+                Executor gas limit baked into <code className="font-mono">_options</code> per
+                destination. Frozen at queue time — once the proposal is in the timelock you
+                can&apos;t bump it. Re-run the simulation after editing.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {gasInsights.map((insight) => {
+                  const chain = CHAINS.find((c) => c.id === insight.chainId)
+                  const severity = insight.severity
+                  const badge =
+                    severity === 'critical'
+                      ? { label: 'OVER LIMIT', className: 'text-error border-error/30 bg-error/10' }
+                      : severity === 'warning'
+                        ? {
+                            label: 'TIGHT',
+                            className: 'text-warning border-warning/30 bg-warning/10',
+                          }
+                        : severity === 'ok'
+                          ? {
+                              label: 'OK',
+                              className: 'text-success border-success/30 bg-success/10',
+                            }
+                          : {
+                              label: 'NOT SIMULATED',
+                              className:
+                                'text-on-surface-variant border-outline-variant bg-surface-container-low',
+                            }
+                  const ratioPct =
+                    insight.ratio !== undefined
+                      ? Number.isFinite(insight.ratio)
+                        ? Math.round(insight.ratio * 100)
+                        : Infinity
+                      : null
+                  return (
+                    <div
+                      key={insight.chainId}
+                      className={`p-5 rounded-2xl border bg-surface-container-lowest space-y-3 ${
+                        severity === 'critical'
+                          ? 'border-error/40'
+                          : severity === 'warning'
+                            ? 'border-warning/40'
+                            : 'border-outline-variant'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-sm">{chain?.name ?? insight.chainId}</span>
+                        <span
+                          className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${badge.className}`}
+                        >
+                          {badge.label}
+                        </span>
+                      </div>
+                      <label className="block">
+                        <span className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase ml-1">
+                          Executor Gas
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={lzGasLimits[insight.chainId] ?? DEFAULT_LZ_GAS_LIMIT}
+                          onChange={(e) =>
+                            setLzGasLimits((prev) => ({
+                              ...prev,
+                              [insight.chainId]: e.target.value,
+                            }))
+                          }
+                          className="mt-1 w-full bg-surface-container-low border border-outline-variant rounded-xl p-3 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                          placeholder={DEFAULT_LZ_GAS_LIMIT}
+                        />
+                      </label>
+                      <div className="flex justify-between text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">
+                        <span>Simulated Gas</span>
+                        <span className="font-mono text-on-surface">
+                          {insight.gasUsed !== undefined ? insight.gasUsed.toLocaleString() : '—'}
+                        </span>
+                      </div>
+                      {ratioPct !== null && (
+                        <div className="flex justify-between text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">
+                          <span>Headroom</span>
+                          <span
+                            className={`font-mono ${
+                              severity === 'critical'
+                                ? 'text-error'
+                                : severity === 'warning'
+                                  ? 'text-warning'
+                                  : 'text-success'
+                            }`}
+                          >
+                            {ratioPct === Infinity ? '∞' : ratioPct}% used
+                          </span>
+                        </div>
+                      )}
+                      {severity === 'critical' && (
+                        <p className="text-[10px] text-error">
+                          Simulated execution exceeds encoded gas. Raise the limit before
+                          submitting.
+                        </p>
+                      )}
+                      {severity === 'warning' && (
+                        <p className="text-[10px] text-warning">
+                          Less than {LZ_GAS_HEADROOM_PERCENT}% headroom. Consider raising the limit
+                          before submitting.
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
 
           {/* Simulation Center */}
           <section className="mb-10 space-y-6">

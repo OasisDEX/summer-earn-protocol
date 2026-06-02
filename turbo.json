@@ -121,6 +121,18 @@
         "^prebuild"
       ]
     },
+    "coverage:total": {
+      "dependsOn": [
+        "^prebuild"
+      ],
+      "inputs": [
+        "src/**/*.sol",
+        "test/**/*.sol",
+        "foundry.toml",
+        "package.json"
+      ],
+      "outputs": []
+    },
     "coverage:lcov": {
       "dependsOn": [
         "^prebuild"

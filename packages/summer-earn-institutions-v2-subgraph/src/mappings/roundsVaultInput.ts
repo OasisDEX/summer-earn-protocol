@@ -1,6 +1,5 @@
 import { log } from '@graphprotocol/graph-ts'
 import {
-  AssetsDeposited,
   DepositWithReceipt,
   EmergencyRoundRolledBack,
   MinPositionSizeUpdated,
@@ -14,7 +13,6 @@ import {
   WithdrawExchangeAsset,
   WithdrawExchangeAssetBatch,
 } from '../../generated/templates/RoundsVaultInputTemplate/RoundsVaultInput'
-import { getRoundsVaultByAddress } from '../common/initializers'
 import {
   applyDepositWithReceipt,
   applyEmergencyRollback,
@@ -22,7 +20,6 @@ import {
   applyRoundAdvanced,
   applyRoundRetried,
   applyRoundSettled,
-  loadRound,
 } from '../utils/lifecycle'
 import {
   applyReceiptTransfer,
@@ -59,16 +56,26 @@ export function handleMinPositionSizeUpdated(event: MinPositionSizeUpdated): voi
 }
 
 export function handleDepositWithReceipt(event: DepositWithReceipt): void {
-  applyDepositWithReceipt(event.address, event.params.id, event.params.assets, event)
+  applyDepositWithReceipt(
+    event.address,
+    event.params.id,
+    event.params.caller,
+    event.params.receiver,
+    event.params.assets,
+    event,
+  )
 }
 
 export function handleRedeemReceipt(event: RedeemReceipt): void {
   markUnderlyingRedemption(
     event.address,
+    event.params.caller,
+    event.params.receiver,
     event.params.owner,
     event.params.id,
     event.params.amount,
     event,
+    '',
   )
 }
 
@@ -79,27 +86,28 @@ export function handleRedeemReceiptBatch(event: RedeemReceiptBatch): void {
     log.warning('RedeemReceiptBatch len mismatch on {}', [event.address.toHexString()])
     return
   }
-  markUnderlyingRedemptionBatch(event.address, event.params.owner, ids, amounts, event)
-}
-
-export function handleAssetsDeposited(event: AssetsDeposited): void {
-  let vault = getRoundsVaultByAddress(event.address)
-  if (vault == null) return
-  let round = loadRound(vault.id, event.params.roundId)
-  if (round == null) return
-  round.settledUnderlyingAmount = event.params.assets
-  round.settledExchangeAmount = event.params.shares
-  round.save()
+  markUnderlyingRedemptionBatch(
+    event.address,
+    event.params.caller,
+    event.params.receiver,
+    event.params.owner,
+    ids,
+    amounts,
+    event,
+  )
 }
 
 export function handleWithdrawExchangeAsset(event: WithdrawExchangeAsset): void {
   markExchangeAssetRedemption(
     event.address,
+    event.params.caller,
+    event.params.receiver,
     event.params.owner,
     event.params.receiptId,
     event.params.receiptAmount,
     event.params.exchangeAssetAmount,
     event,
+    '',
   )
 }
 
@@ -112,6 +120,8 @@ export function handleWithdrawExchangeAssetBatch(event: WithdrawExchangeAssetBat
   }
   markExchangeAssetRedemptionBatch(
     event.address,
+    event.params.caller,
+    event.params.receiver,
     event.params.owner,
     ids,
     amounts,

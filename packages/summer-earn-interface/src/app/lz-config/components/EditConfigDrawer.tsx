@@ -220,12 +220,14 @@ export function EditConfigDrawer({
   const [executorSizeInput, setExecutorSizeInput] = useState<string>(
     String(desired?.executor.maxMessageSize ?? 10000),
   )
-  const [sendUlnForm, setSendUlnForm] = useState<UlnFormState>(ulnToFormState(desired?.uln ?? null))
+  const [sendUlnForm, setSendUlnForm] = useState<UlnFormState>(
+    ulnToFormState(desired?.sendUln ?? null),
+  )
 
   // receive config
   const [includeReceiveConfig, setIncludeReceiveConfig] = useState(false)
   const [receiveUlnForm, setReceiveUlnForm] = useState<UlnFormState>(
-    ulnToFormState(desired?.uln ?? null),
+    ulnToFormState(desired?.receiveUln ?? null),
   )
 
   // delegate

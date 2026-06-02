@@ -45,6 +45,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </Link>
                 <div className="flex items-center space-x-6">
                   <Link
+                    href="/tipjar"
+                    className="hidden md:inline-block text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                  >
+                    TipJar
+                  </Link>
+                  <Link
                     href="/lz-config"
                     className="hidden md:inline-block text-sm font-medium text-slate-300 hover:text-white transition-colors"
                   >

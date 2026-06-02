@@ -56,7 +56,8 @@ export interface DesiredRouteConfig {
   sendLib: Address // sendUln302 from source chain
   receiveLib: Address // receiveUln302 from source chain
   executor: ExecutorConfig
-  uln: UlnConfig
+  sendUln: UlnConfig
+  receiveUln: UlnConfig
   dvnsRaw: { lzLabs: string; secondDvn: string; thirdDvn?: string; horizen?: string }
 }
 

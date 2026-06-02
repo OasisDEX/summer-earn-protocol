@@ -115,6 +115,7 @@
         "receiveUln302": "0xc70AB6f32772f59fBfc23889Caf4Ba3376C84bAf",
         "blockedMessageLib": "0x1ccbf0db9c192d969de57e25b3ff09a25bb1d862",
         "lzDeadDVN": "0x6498b0632f3834D7647367334838111c8C889703",
+        "confirmations": 10,
         "dvns": {
           "sonic": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
@@ -403,6 +404,7 @@
         "receiveUln302": "0x7B9E184e07a6EE1aC23eAe0fe8D6Be2f663f05e6",
         "blockedMessageLib": "0x1ccbf0db9c192d969de57e25b3ff09a25bb1d862",
         "lzDeadDVN": "0x758C419533ad64Ce9D3413BC8d3A97B026098EC1",
+        "confirmations": 20,
         "dvns": {
           "sonic": {
             "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
@@ -674,6 +676,7 @@
         "receiveUln302": "0xc02Ab410f0734EFa3F14628780e6e695156024C2",
         "blockedMessageLib": "0x1ccbf0db9c192d969de57e25b3ff09a25bb1d862",
         "lzDeadDVN": "0x747C741496a507E4B404b50463e691A8d692f6Ac",
+        "confirmations": 15,
         "dvns": {
           "sonic": {
             "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
@@ -1137,6 +1140,7 @@
         "receiveUln302": "0xe1844c5D63a9543023008D332Bd3d2e6f1FE1043",
         "blockedMessageLib": "0xc1ce56b2099ca68720592583c7984cab4b6d7e7a",
         "lzDeadDVN": "",
+        "confirmations": 20,
         "dvns": {
           "base": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
@@ -1450,6 +1454,7 @@
         "receiveUln302": "0x7cacBe439EaD55fa1c22790330b12835c6884a91",
         "blockedMessageLib": "0xf540d892bc671f08e0b1c5b61185c53c2211e8f7",
         "lzDeadDVN": "0xcCE466a522984415bC91338c232d98869193D46e",
+        "confirmations": 1,
         "dvns": {
           "sonic": {
             "lzLabs": "0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f",

@@ -473,7 +473,7 @@ templates:
         - RoundsVault
         - Round
         - Receipt
-        - ReceiptTransfer
+        - ReceiptActivity
         - Account
         - Token
       abis:
@@ -492,8 +492,6 @@ templates:
           handler: handleEmergencyRoundRolledBack
         - event: MinPositionSizeUpdated(uint256,uint256)
           handler: handleMinPositionSizeUpdated
-        - event: AssetsDeposited(indexed uint256,indexed address,uint256,uint256)
-          handler: handleAssetsDeposited
         - event: DepositWithReceipt(indexed address,indexed address,uint256,uint256)
           handler: handleDepositWithReceipt
         - event: RedeemReceipt(indexed address,indexed address,indexed address,uint256,uint256)
@@ -522,7 +520,7 @@ templates:
         - RoundsVault
         - Round
         - Receipt
-        - ReceiptTransfer
+        - ReceiptActivity
         - Account
         - Token
       abis:
@@ -541,8 +539,6 @@ templates:
           handler: handleEmergencyRoundRolledBack
         - event: MinPositionSizeUpdated(uint256,uint256)
           handler: handleMinPositionSizeUpdated
-        - event: SharesRedeemed(indexed uint256,indexed address,uint256,uint256)
-          handler: handleSharesRedeemed
         - event: DepositWithReceipt(indexed address,indexed address,uint256,uint256)
           handler: handleDepositWithReceipt
         - event: RedeemReceipt(indexed address,indexed address,indexed address,uint256,uint256)

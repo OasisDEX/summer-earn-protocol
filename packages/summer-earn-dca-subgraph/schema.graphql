@@ -49,8 +49,14 @@ type Execution @entity(immutable: true) {
   "{strategyId}-{txHashHex}-{logIndex}"
   id: String!
   strategy: Strategy!
-  amountIn: BigInt!
-  amountOut: BigInt!
+  "Underlying in-asset amount consumed by this trade (`sourceVault.convertToAssets(inShares)` at execution time)."
+  inAssets: BigInt!
+  "Underlying out-asset amount delivered by this trade (`targetVault.convertToAssets(outShares)` at execution time)."
+  outAssets: BigInt!
+  "Source-vault share count pulled from the owner via Permit2 — equal to `config.tradeAmount`."
+  inShares: BigInt!
+  "Target-vault share count minted to the owner from the swap proceeds."
+  outShares: BigInt!
   tradesExecutedAfter: BigInt!
   executionTimestamp: BigInt!
   blockNumber: BigInt!
