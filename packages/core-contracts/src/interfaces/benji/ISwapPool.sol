@@ -5,11 +5,14 @@ pragma solidity 0.8.28;
  * @title ISwapPool
  * @notice Minimal interface for the Franklin Templeton `SwapPool` used by `BenjiArk`.
  * @dev The SwapPool swaps a registered/authorized token pair at a fixed 1:1 rate with decimal
- *      normalization (e.g. a 6-decimal stable leg <-> 18-decimal iBENJI). Neither `swap` overload
- *      returns the received amount, so callers MUST measure the `toToken` balance delta to learn how
- *      much was delivered. `swap` pulls `fromToken` from `msg.sender` via `transferFrom`, so the
- *      caller must approve the pool first. Only the subset of functions actually consumed by the Ark
- *      is declared here.
+ *      normalization (e.g. a 6-decimal stable leg <-> 18-decimal iBENJI): the output is exactly
+ *      `convertDecimals(amount, fromDecimals, toDecimals)`. The pool charges no fee and enforces
+ *      exact delivery in both directions (it reverts if the amounts received or sent deviate),
+ *      which is why `BenjiArk` values iBENJI at 1:1 par and checks board/disembark outputs
+ *      strictly. Neither `swap` overload returns the received amount, so callers must measure the
+ *      `toToken` balance delta to learn how much was delivered. `swap` pulls `fromToken` from
+ *      `msg.sender` via `transferFrom`, so the caller must approve the pool first. Only the subset
+ *      of functions consumed by the Ark is declared here.
  */
 interface ISwapPool {
     /**
