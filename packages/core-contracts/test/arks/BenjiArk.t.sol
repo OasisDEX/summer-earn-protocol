@@ -6,6 +6,7 @@ import "../../src/contracts/arks/BenjiArk.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
+import {IBenjiArkErrors} from "../../src/errors/arks/IBenjiArkErrors.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -263,7 +264,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Constructor_RevertsZeroChecks() public {
-        vm.expectRevert(BenjiArk.InvalidSwapPoolAddress.selector);
+        vm.expectRevert(IBenjiArkErrors.InvalidSwapPoolAddress.selector);
         new BenjiArk(
             address(0),
             address(ibenji),
@@ -271,7 +272,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             params
         );
 
-        vm.expectRevert(BenjiArk.InvalidShareTokenAddress.selector);
+        vm.expectRevert(IBenjiArkErrors.InvalidShareTokenAddress.selector);
         new BenjiArk(
             address(pool),
             address(0),
@@ -284,7 +285,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         Percentage tooHigh = Percentage.wrap(PERCENTAGE_FACTOR); // 100% > 0.5% cap
         vm.expectRevert(
             abi.encodeWithSelector(
-                BenjiArk.InvalidDepositSlippage.selector,
+                IBenjiArkErrors.InvalidDepositSlippage.selector,
                 tooHigh,
                 ark.MAX_DEPOSIT_SLIPPAGE()
             )
@@ -295,7 +296,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     function test_Constructor_RevertsUnauthorizedPair() public {
         MockSwapPool unauthPool = new MockSwapPool();
         unauthPool.setPairAuthorized(false);
-        vm.expectRevert(BenjiArk.PairNotAuthorized.selector);
+        vm.expectRevert(IBenjiArkErrors.PairNotAuthorized.selector);
         new BenjiArk(
             address(unauthPool),
             address(ibenji),
@@ -318,7 +319,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         stable.mint(commander, ONE);
         vm.startPrank(commander);
         IERC20(address(stable)).forceApprove(address(ark), ONE);
-        vm.expectRevert(BenjiArk.ArkNotAuthorized.selector);
+        vm.expectRevert(IBenjiArkErrors.ArkNotAuthorized.selector);
         ark.board(ONE, bytes(""));
         vm.stopPrank();
     }
@@ -384,6 +385,90 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         // SwapPool redemption is synchronous, so all held value is withdrawable. This Ark has no
         // async-withdrawal surface (it extends ArkSwapProvider, not ArkWithWithdrawalRequest).
         assertEq(ark.withdrawableTotalAssets(), ONE);
+    }
+
+    function test_Disembark_Partial() public {
+        _board(ONE);
+        uint256 half = ONE / 2;
+        uint256 commanderBefore = stable.balanceOf(commander);
+
+        vm.prank(commander);
+        ark.disembark(half, bytes(""));
+
+        assertEq(
+            stable.balanceOf(commander),
+            commanderBefore + half,
+            "commander receives the partial amount"
+        );
+        assertEq(
+            ibenji.balanceOf(address(ark)),
+            500 * 1e18,
+            "half the iBENJI position remains"
+        );
+        assertEq(ark.totalAssets(), half, "remaining position valued at par");
+    }
+
+    /* -------------------- conservative withdrawable (Rule 4) ------------- */
+
+    function test_WithdrawableTotalAssets_ZeroWhenPoolPaused() public {
+        _board(ONE);
+        pool.setPaused(true);
+        // The iBENJI position cannot be redeemed while the pool is paused; only idle counts.
+        assertEq(ark.withdrawableTotalAssets(), 0);
+        assertEq(ark.totalAssets(), ONE, "valuation unaffected by pause");
+    }
+
+    function test_WithdrawableTotalAssets_ZeroWhenTraderDeauthorized() public {
+        _board(ONE);
+        pool.setAllowAll(false);
+        assertEq(ark.withdrawableTotalAssets(), 0);
+    }
+
+    function test_WithdrawableTotalAssets_CappedByPoolLiquidity() public {
+        _board(ONE);
+        // Drain the pool's stable reserves below the position value.
+        uint256 poolStable = stable.balanceOf(address(pool));
+        uint256 cap = ONE / 4;
+        vm.prank(address(pool));
+        stable.transfer(address(0xbeef), poolStable - cap);
+
+        assertEq(
+            ark.withdrawableTotalAssets(),
+            cap,
+            "withdrawable capped by SwapPool liquidity"
+        );
+        assertEq(ark.totalAssets(), ONE, "valuation unaffected by liquidity");
+    }
+
+    /* --------------------------- access control -------------------------- */
+
+    function test_AccessControl_BoardRevertsForNonCommander() public {
+        stable.mint(address(this), ONE);
+        IERC20(address(stable)).forceApprove(address(ark), ONE);
+        vm.expectRevert();
+        ark.board(ONE, bytes(""));
+    }
+
+    function test_AccessControl_DisembarkRevertsForNonCommander() public {
+        _board(ONE);
+        vm.expectRevert();
+        ark.disembark(ONE, bytes(""));
+    }
+
+    function test_AccessControl_WithdrawUsingSwapRevertsForNonKeeper() public {
+        bytes memory data = abi.encode(
+            IArkSwapProvider.SwapData({
+                router: address(0x1234),
+                swapCalldata: hex""
+            })
+        );
+        vm.expectRevert();
+        ark.withdrawUsingSwap(ONE, data);
+    }
+
+    function test_AccessControl_SetDepositSlippageRevertsForNonKeeper() public {
+        vm.expectRevert();
+        ark.setDepositSlippage(Percentage.wrap(PERCENTAGE_FACTOR / 4));
     }
 
     /* --------------------------- escape swap ----------------------------- */
@@ -461,7 +546,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSelector(
-                BenjiArk.InvalidDepositSlippage.selector,
+                IBenjiArkErrors.InvalidDepositSlippage.selector,
                 tooHigh,
                 maxSlippage
             )

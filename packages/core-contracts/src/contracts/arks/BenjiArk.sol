@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {IBenjiArk} from "../../interfaces/arks/IBenjiArk.sol";
 import "../ArkSwapProvider.sol";
 import {ISwapPool} from "../../interfaces/benji/ISwapPool.sol";
 import {IBenjiToken} from "../../interfaces/benji/IBenjiToken.sol";
@@ -45,8 +46,9 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *
  *  - SwapPool redemption is synchronous: `swap` settles iBENJI -> USDC atomically in one tx and
  *    returns nothing. Withdrawals therefore flow through `disembark`/`_disembark`, and
- *    `withdrawableTotalAssets()` reports the full held value — there is no queue to pre-stage and
- *    no claim step, hence no `IArkWithWithdrawalRequest` surface on this Ark.
+ *    `withdrawableTotalAssets()` reports the held value conservatively (zeroed while the pool is
+ *    paused or the Ark is deauthorized, capped by the pool's base-asset liquidity) — there is no
+ *    queue to pre-stage and no claim step, hence no `IArkWithWithdrawalRequest` surface on this Ark.
  *  - iBENJI holder authorization (KYC/whitelist) is enforced by the token's own transfer policy and
  *    is NOT readable on-chain from the token (no public getter; its module registry is internal).
  *    This Ark reaches iBENJI only via the SwapPool, so the holder gate is enforced implicitly: if
@@ -59,7 +61,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * AuthorizationModule admin (holder auth). Still out of scope for this branch's scaffold:
  * deployment-package wiring (ArkType enum, deploy script, Ignition module).
  */
-contract BenjiArk is ArkSwapProvider {
+contract BenjiArk is IBenjiArk, ArkSwapProvider {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
@@ -73,55 +75,6 @@ contract BenjiArk is ArkSwapProvider {
     /// @notice Maximum deposit slippage (0.5%) tolerated on the 1:1 SwapPool board.
     Percentage public constant MAX_DEPOSIT_SLIPPAGE =
         Percentage.wrap(PERCENTAGE_FACTOR / 2);
-
-    /*//////////////////////////////////////////////////////////////
-                                 ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Reverts when the constructor is given a zero SwapPool address.
-    error InvalidSwapPoolAddress();
-    /// @notice Reverts when the constructor is given a zero iBENJI share-token address.
-    error InvalidShareTokenAddress();
-    /// @notice Reverts when the constructor or `setDepositSlippage` is given a value above
-    ///         `MAX_DEPOSIT_SLIPPAGE`.
-    /// @param newSlippage The supplied slippage
-    /// @param maxSlippage The hard cap (`MAX_DEPOSIT_SLIPPAGE`)
-    error InvalidDepositSlippage(
-        Percentage newSlippage,
-        Percentage maxSlippage
-    );
-    /// @notice Reverts in `_board` when this Ark is not an authorized SwapPool trader for the
-    ///         asset/iBENJI pair (so the swap would revert and strand the asset).
-    error ArkNotAuthorized();
-    /// @notice Reverts in the constructor when the configured asset/iBENJI pair is not authorized on
-    ///         the SwapPool (so the Ark could never board or disembark). Pair authorization is a
-    ///         pool-wide setting independent of this Ark's per-trader authorization.
-    error PairNotAuthorized();
-    /// @notice Reverts in `_board` when the iBENJI received from the SwapPool is below the 1:1
-    ///         expectation minus `depositSlippage`.
-    /// @param expectedShares 1:1 decimal-normalized shares for the deposited amount
-    /// @param receivedShares iBENJI balance delta actually delivered by the SwapPool
-    error SharesNotReceived(uint256 expectedShares, uint256 receivedShares);
-    /// @notice Reverts in `_disembark` when the base asset received from the SwapPool is below the
-    ///         requested amount (the 1:1 redemption underdelivered).
-    /// @param requestedAssets The asset amount the keeper asked to free
-    /// @param receivedAssets The base-asset balance delta delivered by the SwapPool
-    error InsufficientAssetsReceived(
-        uint256 requestedAssets,
-        uint256 receivedAssets
-    );
-
-    /*//////////////////////////////////////////////////////////////
-                                 EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted by `setDepositSlippage` after the cap is updated.
-    /// @param oldDepositSlippage The previous `depositSlippage`
-    /// @param newDepositSlippage The newly configured `depositSlippage`
-    event DepositSlippageUpdated(
-        Percentage oldDepositSlippage,
-        Percentage newDepositSlippage
-    );
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -206,17 +159,14 @@ contract BenjiArk is ArkSwapProvider {
     }
 
     /**
-     * @notice Converts an iBENJI share amount to the equivalent base-asset amount at 1:1 par.
-     * @param shares Amount in `shareDecimals`
-     * @return assets Equivalent amount in `assetDecimals`
+     * @inheritdoc IBenjiArk
      */
     function sharesToAssets(uint256 shares) external view returns (uint256) {
         return _sharesToAssets(shares);
     }
 
     /**
-     * @notice Whether this Ark is an authorized SwapPool trader for the asset/iBENJI pair and may
-     *         therefore swap. Trader authorization is granted off-chain by Franklin Templeton.
+     * @inheritdoc IBenjiArk
      * @dev This reflects the SwapPool trader gate only. iBENJI also requires the Ark to be an
      *      authorized *holder*, which is enforced by the token and is not readable here; if missing,
      *      it surfaces as a revert when the SwapPool delivers iBENJI during `_board`.
@@ -263,7 +213,7 @@ contract BenjiArk is ArkSwapProvider {
     }
 
     /**
-     * @notice Sets the board (deposit) slippage tolerance.
+     * @inheritdoc IBenjiArk
      * @dev Restricted to the keeper role. Reverts with `InvalidDepositSlippage` if the supplied
      *      value exceeds `MAX_DEPOSIT_SLIPPAGE`.
      * @param newDepositSlippage The new deposit slippage
@@ -332,7 +282,12 @@ contract BenjiArk is ArkSwapProvider {
     }
 
     /**
-     * @dev Synchronously withdrawable = idle base asset + value of held iBENJI (swappable now).
+     * @dev Synchronously withdrawable = idle base asset + value of held iBENJI, but reported
+     *      conservatively (over-reporting makes FleetCommander withdrawal planning revert):
+     *      - while the SwapPool is paused or this Ark is not an authorized trader, the iBENJI
+     *        position cannot be redeemed, so only the idle balance is withdrawable;
+     *      - the redeemable position value is capped by the SwapPool's available base-asset
+     *        liquidity.
      */
     function _withdrawableTotalAssets()
         internal
@@ -340,9 +295,27 @@ contract BenjiArk is ArkSwapProvider {
         override
         returns (uint256)
     {
+        uint256 idleAssets = _balanceOfAsset();
+
+        if (
+            swapPool.paused() ||
+            !swapPool.isTraderAllowed(
+                address(this),
+                address(config.asset),
+                address(shareToken)
+            )
+        ) {
+            return idleAssets;
+        }
+
+        uint256 positionValue = _sharesToAssets(
+            shareToken.balanceOf(address(this))
+        );
+        uint256 poolLiquidity = swapPool.getTokenBalance(address(config.asset));
+
         return
-            _balanceOfAsset() +
-            _sharesToAssets(shareToken.balanceOf(address(this)));
+            idleAssets +
+            (positionValue < poolLiquidity ? positionValue : poolLiquidity);
     }
 
     /**

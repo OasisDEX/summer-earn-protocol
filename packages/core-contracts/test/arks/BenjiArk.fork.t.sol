@@ -7,6 +7,7 @@ import {ISwapPool} from "../../src/interfaces/benji/ISwapPool.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
+import {IBenjiArkErrors} from "../../src/errors/arks/IBenjiArkErrors.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -66,8 +67,10 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     uint256 forkBlock = 25222568;
 
     function setUp() public {
-        initializeCoreContracts();
+        // The fork must be created BEFORE initializeCoreContracts() so the core
+        // contracts are deployed on the active fork.
         vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
+        initializeCoreContracts();
 
         keeper = makeAddr("keeper");
 
@@ -137,7 +140,7 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         deal(STABLE, commander, amount);
         vm.startPrank(commander);
         IERC20(STABLE).approve(address(ark), amount);
-        vm.expectRevert(BenjiArk.ArkNotAuthorized.selector);
+        vm.expectRevert(IBenjiArkErrors.ArkNotAuthorized.selector);
         ark.board(amount, bytes(""));
         vm.stopPrank();
     }
