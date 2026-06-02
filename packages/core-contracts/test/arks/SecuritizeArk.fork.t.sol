@@ -54,6 +54,9 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
+    // navProvider.rate() is 6-decimal; the RedStone feed answer is 8-decimal. Same value, 100x apart.
+    uint256 constant RATE_TO_ORACLE_SCALE = 100;
+
     // Ethereum mainnet (verified 2026-06-01).
     Fund[3] public funds;
     SecuritizeArk[3] public arks;
@@ -230,7 +233,7 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             (, int256 answer, , , ) = AggregatorV3Interface(funds[i].oracle)
                 .latestRoundData();
             assertEq(
-                navRate * 100, // 6 dec -> 8 dec
+                navRate * RATE_TO_ORACLE_SCALE,
                 uint256(answer),
                 string.concat(funds[i].label, ": navProvider == RedStone feed")
             );

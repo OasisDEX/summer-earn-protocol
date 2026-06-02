@@ -10,7 +10,7 @@ import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 /* -------------------------------------------------------------------------- */
 /*                                   MOCKS                                     */
@@ -260,6 +260,14 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public custodian;
 
+    // The RedStone NAV feeds report price with 8 decimals; the on-ramp `rate()` and the
+    // 6-decimal funds share the asset (USDC) scale, so oracle answers are 100x the rate.
+    uint8 internal constant ORACLE_DECIMALS = 8;
+    uint256 internal constant ORACLE_SCALE = 1e8; // 10 ** ORACLE_DECIMALS
+    uint256 internal constant ORACLE_TO_RATE_SCALE = 100; // 8-dec oracle -> 6-dec rate
+    int256 internal constant PAR_NAV = 1e8; // $1.00 at 8 decimals (VBILL)
+    int256 internal constant VARIABLE_NAV = 109796093000; // ~$1097.96 (ACRED-like)
+
     uint256 forkBlock = 21666256;
 
     function setUp() public {
@@ -276,7 +284,7 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         // VBILL has 6 decimals, same as USDC.
         vbill = new MockDSToken(registry, 6);
         // NAV feed: 8 decimals, $1.00 par => 1 VBILL (1e6) == 1 USDC (1e6).
-        oracle = new MockOracle(8, 1e8);
+        oracle = new MockOracle(ORACLE_DECIMALS, PAR_NAV);
         // On-ramp at the same $1.00 NAV (6 decimals), registered under service id 16384.
         onRampMock = new MockOnRamp(vbill, registry, usdc, custodian, 1e6);
         vbill.setOnRamp(address(onRampMock));
@@ -575,7 +583,7 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_RevertIfOracleStale() public {
-        oracle.setRoundData(1, 1e8, block.timestamp - 24 hours - 1, 1);
+        oracle.setRoundData(1, PAR_NAV, block.timestamp - 24 hours - 1, 1);
         vm.expectRevert(ISecuritizeArkErrors.StaleOraclePrice.selector);
         ark.sharesToAssets(1e6);
     }
@@ -592,24 +600,24 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     ///         The generic oracle path must value 1 share at the live NAV.
     function test_VariableNavValuation() public {
         // ACRED-style NAV: $1097.96093 at 8 decimals.
-        int256 nav = 109796093000;
+        int256 nav = VARIABLE_NAV;
         oracle.setAnswer(nav);
 
         // 1 share (1e6) -> answer * 1e6(asset) / 1e8(oracle) USDC units.
-        uint256 expectedOneShare = (uint256(nav) * 1e6) / 1e8;
+        uint256 expectedOneShare = (uint256(nav) * 1e6) / ORACLE_SCALE;
         assertEq(ark.sharesToAssets(1e6), expectedOneShare, "1 share == NAV");
         assertEq(ark.sharesToAssets(10 * 1e6), 10 * expectedOneShare);
     }
 
     /// @notice Full deposit cycle at a variable NAV: 10 shares issued at ~$1097 each.
     function test_VariableNav_BoardClearWithdraw() public {
-        int256 nav = 109796093000; // $1097.96093
+        int256 nav = VARIABLE_NAV; // $1097.96093
         oracle.setAnswer(nav);
         _onboard();
 
         // Board the USDC value of 10 shares.
         uint256 shares = 10 * 1e6;
-        uint256 navValue = (uint256(nav) * shares) / 1e8;
+        uint256 navValue = (uint256(nav) * shares) / ORACLE_SCALE;
         _board(navValue);
 
         vbill.issue(address(ark), shares);
@@ -753,13 +761,13 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_OnRampBoard_VariableNav() public {
         // ACRED-style NAV on BOTH sources (oracle 8 dec, on-ramp rate 6 dec).
-        int256 nav8 = 109796093000; // $1097.96093
+        int256 nav8 = VARIABLE_NAV;
         oracle.setAnswer(nav8);
-        onRampMock.setRate(uint256(nav8) / 100); // 1097960930 (6 dec)
+        onRampMock.setRate(uint256(nav8) / ORACLE_TO_RATE_SCALE);
         _onboard();
 
         uint256 shares = 10 * 1e6;
-        uint256 amount = (uint256(nav8) * shares) / 1e8;
+        uint256 amount = (uint256(nav8) * shares) / ORACLE_SCALE;
         _boardViaOnRamp(amount);
 
         assertApproxEqAbs(

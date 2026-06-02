@@ -49,21 +49,13 @@ import {ISecuritizeArk} from "../../interfaces/arks/ISecuritizeArk.sol";
  * 3. Emergency fallbacks: governor-only `emergencySweep()` / `emergencyClearPendingDeposit()` and
  *    keeper `setArkFrozen(...)`.
  *
- * NAV / ORACLE SOURCES — there are two on-chain representations of the (single-source) fund NAV:
- * 1. Securitize's own `ISecuritizeNavProvider` — resolvable fully on-chain via
- *    `token.getDSService(16384)` (on-ramp) -> `navProvider()` -> `rate()`. This is the operator-set
- *    TSSO root value the on-ramp itself prices with, but it exposes NO freshness signal (no
- *    timestamp) and its service id is marked deprecated in newer DS Protocol sources.
- * 2. The RedStone `*_FUNDAMENTAL` push feed (`AggregatorV3Interface`) — same upstream value,
- *    republished with the TSSO signature chain and `updatedAt`.
- * This Ark deliberately prices with (2) so it can enforce `ORACLE_HEARTBEAT_TIMEOUT`, and uses the
- * on-ramp `minOut` derivation as a live cross-check against (1) on every synchronous subscription.
- *
- * Integrated funds (Ethereum mainnet): VBILL ($1.00 par), ACRED and STAC (variable NAV) — all
- * 6-decimal DSTokens priced by RedStone `*_FUNDAMENTAL` feeds (AggregatorV3-compatible).
- * Remaining work before mainnet: Ark onboarding as an investor wallet by Securitize,
- * oracle-heartbeat calibration, and the rebasing-accounting hardening noted in
- * `_validateReceivedShares`.
+ * NAV / oracle sources — the single-source fund NAV is available on-chain two ways:
+ * 1. Securitize's `ISecuritizeNavProvider`, resolvable via `onRamp().navProvider().rate()`. This
+ *    is the operator-set value the on-ramp prices with, but it carries no freshness timestamp and
+ *    its service id is marked deprecated in newer DS Protocol sources.
+ * 2. The RedStone `*_FUNDAMENTAL` push feed (`AggregatorV3Interface`): same value, with `updatedAt`.
+ * This Ark prices with (2) to enforce `ORACLE_HEARTBEAT_TIMEOUT`, and cross-checks (1) via the
+ * on-ramp `minOut` on every synchronous subscription.
  */
 contract SecuritizeArk is
     ISecuritizeArk,
@@ -127,7 +119,7 @@ contract SecuritizeArk is
     ///      are cross-checked on every on-ramp subscription via the oracle-derived `minOut`.
     AggregatorV3Interface public immutable oracle;
 
-    /// @notice Decimals reported by the Chainlink oracle
+    /// @notice Decimals reported by the NAV oracle (RedStone AggregatorV3 feed)
     uint8 public immutable oracleDecimals;
 
     /// @notice Decimals of the underlying asset configured on this ark (e.g. 6 for USDC)
@@ -136,8 +128,8 @@ contract SecuritizeArk is
     /// @notice Decimals of the Securitize DSToken (share token)
     uint8 public immutable shareDecimals;
 
-    /// @notice One full asset with the correct decimals
-    uint256 public immutable ONE_ASSET;
+    /// @notice One whole DSToken share, in `shareDecimals` (10 ** shareDecimals)
+    uint256 public immutable ONE_SHARE;
 
     /// @notice Validated configured-asset amount sent to Securitize, awaiting corresponding share
     ///         issuance clearance.
@@ -220,7 +212,7 @@ contract SecuritizeArk is
         oracleDecimals = AggregatorV3Interface(_oracle).decimals();
         shareDecimals = IERC20Metadata(_shareToken).decimals();
         assetDecimals = IERC20Metadata(_params.asset).decimals();
-        ONE_ASSET = 10 ** assetDecimals;
+        ONE_SHARE = 10 ** shareDecimals;
         // Default to the synchronous on-ramp subscription path; the keeper can fall back to the
         // custodial path via setUseOnRampSubscription(false).
         useOnRampSubscription = true;
@@ -697,7 +689,7 @@ contract SecuritizeArk is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Converts DSToken shares to underlying asset amount via Chainlink oracle.
+     * @dev Converts DSToken shares to the underlying asset amount via the NAV oracle.
      */
     function _sharesToAssets(uint256 shares) internal view returns (uint256) {
         if (shares == 0) return 0;
@@ -709,7 +701,7 @@ contract SecuritizeArk is
     }
 
     /**
-     * @dev Converts underlying asset amount to DSToken shares via Chainlink oracle.
+     * @dev Converts an underlying asset amount to DSToken shares via the NAV oracle.
      */
     function _assetsToShares(
         uint256 assetAmount
@@ -739,14 +731,13 @@ contract SecuritizeArk is
             revert StaleOraclePrice();
         }
 
-        // The oracle returns the price of 1 share denominated in the underlying asset.
-        // Therefore, the Base Asset is the DSToken share, and Quote Asset is the underlying asset.
+        // The oracle prices one share in the underlying asset: base = DSToken share, quote = asset.
         return
             toPriceFromOraclePrice(
-                10 ** shareDecimals, // baseAmount (1 Share)
-                answer, // oracle price of 1 Share in Assets
-                oracleDecimals, // decimals of oracle price
-                assetDecimals // decimals of quote asset (Asset)
+                ONE_SHARE, // base amount: one whole share
+                answer, // oracle price of one share, in asset terms
+                oracleDecimals, // decimals of the oracle price
+                assetDecimals // decimals of the quote (asset)
             );
     }
 
@@ -771,11 +762,10 @@ contract SecuritizeArk is
     ///               Must be `<= pendingDepositAssets`; reverts with `InsufficientPendingDeposit`
     ///               otherwise.
     function _validateReceivedShares(uint256 amount) internal view {
-        // TODO(securitize): DSToken is a REBASING token — `balanceOf` can change between the
-        // `_board` snapshot (`cachedShareBalance`) and clearance due to a yield `multiplier()`
-        // update, polluting this delta. Before mainnet, denominate the snapshot/delta in the
-        // token's internal (non-rebasing) shares, or widen `depositSlippage` to absorb intra-window
-        // rebase. Tracked as adaptation #3 in the integration plan.
+        // The DSToken rebases: `balanceOf` can move between the `_board` snapshot
+        // (`cachedShareBalance`) and clearance when the yield multiplier updates, which skews this
+        // delta. `depositSlippage` absorbs an intra-window rebase; for funds with larger rebase
+        // steps, denominate the snapshot/delta in the token's non-rebasing shares instead.
         if (amount > pendingDepositAssets) revert InsufficientPendingDeposit();
         uint256 currentShares = shareToken.balanceOf(address(this));
         uint256 newlyArrivedShares = currentShares - cachedShareBalance;
