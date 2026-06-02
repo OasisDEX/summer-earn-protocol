@@ -13,6 +13,22 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test} from "forge-std/Test.sol";
 
+/// @dev Admin surface of the Securitize RegistryService used ONLY by this test to onboard
+///      wallets on a fork. `updateInvestor` is `onlyIssuerOrTransferAgentOrAbove`; we impersonate
+///      the fund's on-ramp contract, which holds the ISSUER role on the trust service (verified
+///      live: trustService.getRole(onRamp) == 2 for all three funds).
+interface IRegistryAdmin {
+    function updateInvestor(
+        string calldata _id,
+        string calldata _collisionHash,
+        string memory _country,
+        address[] memory _wallets,
+        uint8[] memory _attributeIds,
+        uint256[] memory _attributeValues,
+        uint256[] memory _attributeExpirations
+    ) external returns (bool);
+}
+
 /**
  * @title SecuritizeArk fork test — Securitize DSToken funds on Ethereum mainnet
  * @notice Validates SecuritizeArk against the REAL Securitize funds we integrate (VBILL, ACRED,
@@ -218,6 +234,163 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
                 uint256(answer),
                 string.concat(funds[i].label, ": navProvider == RedStone feed")
             );
+        }
+    }
+
+    /* ------------------- end-to-end with real onboarding ----------------- */
+
+    /// @dev Onboards `wallet` as a KYC'd/accredited investor wallet in the fund's REAL registry
+    ///      by impersonating the fund's on-ramp (ISSUER role) — the fork equivalent of
+    ///      Securitize's off-chain onboarding (mirrors the SyrupArkV2 authority-impersonation
+    ///      pattern).
+    function _onboardWalletOnFork(
+        Fund memory f,
+        address wallet,
+        string memory investorId
+    ) internal {
+        uint8[] memory attrIds = new uint8[](3);
+        attrIds[0] = 1; // KYC_APPROVED
+        attrIds[1] = 2; // ACCREDITED
+        attrIds[2] = 4; // QUALIFIED
+        uint256[] memory attrVals = new uint256[](3);
+        attrVals[0] = 1; // APPROVED
+        attrVals[1] = 1;
+        attrVals[2] = 1;
+        uint256[] memory attrExp = new uint256[](3);
+        attrExp[0] = block.timestamp + 365 days;
+        attrExp[1] = block.timestamp + 365 days;
+        attrExp[2] = block.timestamp + 365 days;
+        address[] memory wallets = new address[](1);
+        wallets[0] = wallet;
+
+        vm.prank(f.onRamp); // holds ISSUER on the fund's trust service
+        IRegistryAdmin(f.registry).updateInvestor(
+            investorId,
+            "",
+            "US",
+            wallets,
+            attrIds,
+            attrVals,
+            attrExp
+        );
+    }
+
+    /// @notice REAL end-to-end subscription: onboard the Ark in the live registry, then board
+    ///         through the live on-ramp — USDC flows to the real fund custodian and freshly
+    ///         minted DSTokens arrive at the Ark in the same transaction.
+    function test_Fork_E2E_BoardViaLiveOnRamp() public {
+        for (uint256 i = 0; i < funds.length; i++) {
+            SecuritizeArk ark = arks[i];
+            _onboardWalletOnFork(
+                funds[i],
+                address(ark),
+                string.concat("SUMMER_ARK_", funds[i].label)
+            );
+            assertTrue(ark.isArkOnboarded(), "ark onboarded in real registry");
+
+            ISecuritizeOnRamp ramp = ark.onRamp();
+            uint256 amount = ramp.minSubscriptionAmount();
+            if (amount < 1000 * 1e6) amount = 1000 * 1e6;
+
+            address realCustodian = ramp.custodianWallet();
+            uint256 custodianBefore = IERC20(USDC).balanceOf(realCustodian);
+
+            deal(USDC, commander, amount);
+            vm.startPrank(commander);
+            IERC20(USDC).approve(address(ark), amount);
+            ark.board(amount, bytes(""));
+            vm.stopPrank();
+
+            // Synchronous: no pending bookkeeping, tokens minted, USDC at the REAL custodian.
+            assertEq(ark.pendingDepositAssets(), 0, "no pending deposit");
+            uint256 shares = IERC20(funds[i].token).balanceOf(address(ark));
+            assertGt(shares, 0, "DSTokens minted same tx");
+            assertGe(
+                IERC20(USDC).balanceOf(realCustodian),
+                custodianBefore,
+                "USDC forwarded toward fund custodian"
+            );
+            // Valued within depositSlippage (0.5%) of the boarded amount.
+            assertApproxEqRel(
+                ark.totalAssets(),
+                amount,
+                0.005e18,
+                string.concat(funds[i].label, ": totalAssets ~= subscription")
+            );
+        }
+    }
+
+    /// @notice After a live subscription, the async exit leg: transfer the DSTokens to a
+    ///         (registry-onboarded) custodian via requestWithdrawal, then sweep returned USDC.
+    function test_Fork_E2E_WithdrawalLegAfterLiveBoard() public {
+        for (uint256 i = 0; i < funds.length; i++) {
+            // Each fund warps time (lock-up) independently; snapshot/revert keeps the others at
+            // the original fork timestamp so their live oracles stay fresh.
+            uint256 snap = vm.snapshotState();
+            SecuritizeArk ark = arks[i];
+            _onboardWalletOnFork(
+                funds[i],
+                address(ark),
+                string.concat("SUMMER_ARK_", funds[i].label)
+            );
+            // Our withdrawal custodian must also be a registered investor wallet.
+            _onboardWalletOnFork(
+                funds[i],
+                custodian,
+                string.concat("SUMMER_CUSTODIAN_", funds[i].label)
+            );
+
+            ISecuritizeOnRamp ramp = ark.onRamp();
+            uint256 amount = ramp.minSubscriptionAmount();
+            if (amount < 1000 * 1e6) amount = 1000 * 1e6;
+            deal(USDC, commander, amount);
+            vm.startPrank(commander);
+            IERC20(USDC).approve(address(ark), amount);
+            ark.board(amount, bytes(""));
+            vm.stopPrank();
+
+            uint256 value = ark.totalAssets();
+
+            // Newly issued DSTokens carry a US/non-US lock-up (VBILL 3d, STAC 1d). Warp past it,
+            // then refresh the RedStone feed's `updatedAt` so it stays within the heartbeat.
+            (, int256 answer, , , ) = AggregatorV3Interface(funds[i].oracle)
+                .latestRoundData();
+            vm.warp(block.timestamp + 3 days + 1);
+            vm.mockCall(
+                funds[i].oracle,
+                abi.encodeWithSelector(
+                    AggregatorV3Interface.latestRoundData.selector
+                ),
+                abi.encode(
+                    uint80(1),
+                    answer,
+                    block.timestamp,
+                    block.timestamp,
+                    uint80(1)
+                )
+            );
+
+            vm.prank(keeper);
+            ark.requestWithdrawal(value);
+
+            // Essentially all DSTokens sent; allow sub-wei dust from NAV asset<->share rounding.
+            assertLe(
+                IERC20(funds[i].token).balanceOf(address(ark)),
+                2,
+                "DSTokens sent for redemption (dust tolerance)"
+            );
+            assertGt(
+                IERC20(funds[i].token).balanceOf(custodian),
+                0,
+                "custodian received DSTokens"
+            );
+            assertApproxEqRel(
+                ark.assetsInWithdrawalQueue(),
+                value,
+                0.005e18,
+                "queue tracks escrowed value"
+            );
+            vm.revertToState(snap);
         }
     }
 }
