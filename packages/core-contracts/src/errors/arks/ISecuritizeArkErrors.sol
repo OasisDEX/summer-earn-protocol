@@ -72,4 +72,9 @@ interface ISecuritizeArkErrors {
     ///         `swap` subscriptions are disabled. The keeper should switch the Ark to the
     ///         custodial path via `setUseOnRampSubscription(false)`.
     error OnRampSubscriptionDisabled();
+    /// @notice Reverts when the resolved on-ramp's liquidity token does not match this Ark's base
+    ///         asset (e.g. a re-registered on-ramp), since `_board` approves/passes the base asset.
+    /// @param expected This Ark's base asset
+    /// @param actual The on-ramp's liquidity token
+    error OnRampAssetMismatch(address expected, address actual);
 }

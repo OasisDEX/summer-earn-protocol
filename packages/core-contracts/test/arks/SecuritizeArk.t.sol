@@ -188,6 +188,7 @@ contract MockOnRamp {
     MockDSToken public token;
     MockRegistry public registry;
     IERC20 public liquidity;
+    address public liquidityToken; // reported via liquidityToken(); defaults to address(liquidity)
     address public custodian;
     uint256 public rate; // NAV in asset decimals (6), e.g. 1e6 = $1.00
     uint256 public fee; // flat fee taken from the liquidity amount
@@ -204,8 +205,13 @@ contract MockOnRamp {
         token = _token;
         registry = _registry;
         liquidity = _liquidity;
+        liquidityToken = address(_liquidity);
         custodian = _custodian;
         rate = _rate;
+    }
+
+    function setLiquidityToken(address a) external {
+        liquidityToken = a;
     }
 
     function setRate(uint256 v) external {
@@ -583,7 +589,7 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_RevertIfOracleStale() public {
-        oracle.setRoundData(1, PAR_NAV, block.timestamp - 24 hours - 1, 1);
+        oracle.setRoundData(1, PAR_NAV, block.timestamp - 48 hours - 1, 1);
         vm.expectRevert(ISecuritizeArkErrors.StaleOraclePrice.selector);
         ark.sharesToAssets(1e6);
     }
@@ -789,6 +795,43 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         usdc.forceApprove(address(ark), amount);
         vm.expectRevert(
             ISecuritizeArkErrors.OnRampSubscriptionDisabled.selector
+        );
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_Board_RevertsWhileCustodialDepositPending() public {
+        _onboard();
+        // Start a custodial deposit (sets pendingDepositAssets > 0).
+        _board(1000 * 1e6);
+        assertGt(ark.pendingDepositAssets(), 0);
+
+        // Switching to the on-ramp path must NOT bypass the pending-deposit guard.
+        vm.prank(keeper);
+        ark.setUseOnRampSubscription(true);
+
+        deal(USDC_ADDRESS, commander, 1000 * 1e6);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), 1000 * 1e6);
+        vm.expectRevert(ISecuritizeArkErrors.PendingDepositActive.selector);
+        ark.board(1000 * 1e6, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_OnRampBoard_RevertsWhenLiquidityTokenMismatch() public {
+        _onboard();
+        onRampMock.setLiquidityToken(address(0xBEEF)); // not the base asset (USDC)
+
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISecuritizeArkErrors.OnRampAssetMismatch.selector,
+                USDC_ADDRESS,
+                address(0xBEEF)
+            )
         );
         ark.board(amount, bytes(""));
         vm.stopPrank();

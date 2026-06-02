@@ -85,8 +85,10 @@ contract SecuritizeArk is
     Percentage public constant MAX_DEPOSIT_SLIPPAGE =
         Percentage.wrap(PERCENTAGE_FACTOR / 2);
 
-    /// @notice Timeout for the oracle heartbeat (24 hours)
-    uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 24 hours;
+    /// @notice Max age of a NAV answer before it is rejected as stale. Set above the funds'
+    ///         ~daily RedStone update cadence to tolerate weekend/holiday gaps without freezing
+    ///         valuation (a 24h bound trips on routine ~16h-old updates).
+    uint256 public constant ORACLE_HEARTBEAT_TIMEOUT = 48 hours;
 
     /// @notice DS Protocol service id for the registry service (per `IDSServiceConsumer`).
     uint256 public constant REGISTRY_SERVICE_ID = 4;
@@ -598,14 +600,15 @@ contract SecuritizeArk is
         // The Ark must be a registered investor wallet to receive/hold the DSToken (the on-ramp
         // enforces the same); fail fast rather than stranding the base asset.
         if (!registryService.isWallet(address(this))) revert ArkNotRegistered();
+        // Block ALL boarding while a custodial deposit is in flight: it has snapshotted
+        // `cachedShareBalance` and frozen `totalAssets()` accounting, so any newly issued/minted
+        // shares (custodial or on-ramp) would be misattributed to the pending clearance.
+        if (pendingDepositAssets > 0) revert PendingDepositActive();
 
         if (useOnRampSubscription) {
             _subscribeViaOnRamp(amount);
         } else {
             // Custodial fallback: requires a matching off-chain subscription order.
-            if (pendingDepositAssets > 0) {
-                revert PendingDepositActive();
-            }
             cachedShareBalance = shareToken.balanceOf(address(this));
             pendingDepositAssets += amount;
 
@@ -626,6 +629,12 @@ contract SecuritizeArk is
         if (address(ramp) == address(0)) revert OnRampNotConfigured();
         if (!ramp.investorSubscriptionEnabled()) {
             revert OnRampSubscriptionDisabled();
+        }
+        // Guard against a re-registered on-ramp that takes a different liquidity token: we approve
+        // and pass our base asset to `swap`, so the on-ramp's liquidity token must match it.
+        address liquidityToken = ramp.liquidityToken();
+        if (liquidityToken != address(config.asset)) {
+            revert OnRampAssetMismatch(address(config.asset), liquidityToken);
         }
 
         uint256 sharesBefore = shareToken.balanceOf(address(this));
