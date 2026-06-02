@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/SecuritizeArk.sol";
+import {ISecuritizeArkErrors} from "../../src/errors/arks/ISecuritizeArkErrors.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
@@ -44,8 +45,10 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     uint256 forkBlock = 25222568;
 
     function setUp() public {
-        initializeCoreContracts();
+        // Fork must be selected BEFORE initializeCoreContracts() so the core contracts are
+        // deployed on the active fork (ark-development skill: fork-test setup order).
         vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
+        initializeCoreContracts();
 
         custodian = makeAddr("custodian");
         keeper = makeAddr("keeper");
@@ -158,7 +161,7 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             deal(USDC, commander, amount);
             vm.startPrank(commander);
             IERC20(USDC).approve(address(ark), amount);
-            vm.expectRevert(SecuritizeArk.ArkNotRegistered.selector);
+            vm.expectRevert(ISecuritizeArkErrors.ArkNotRegistered.selector);
             ark.board(amount, bytes(""));
             vm.stopPrank();
         }

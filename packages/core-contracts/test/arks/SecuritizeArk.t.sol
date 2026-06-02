@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/SecuritizeArk.sol";
+import {ISecuritizeArkErrors} from "../../src/errors/arks/ISecuritizeArkErrors.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
@@ -197,8 +198,10 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     uint256 forkBlock = 21666256;
 
     function setUp() public {
-        initializeCoreContracts();
+        // Fork must be selected BEFORE initializeCoreContracts() so the core contracts are
+        // deployed on the active fork (ark-development skill: fork-test setup order).
         vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
+        initializeCoreContracts();
 
         usdc = IERC20(USDC_ADDRESS);
         custodian = makeAddr("custodian");
@@ -288,7 +291,7 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Constructor_RevertsZeroChecks() public {
-        vm.expectRevert(SecuritizeArk.InvalidTargetWallet.selector);
+        vm.expectRevert(ISecuritizeArkErrors.InvalidTargetWallet.selector);
         new SecuritizeArk(
             address(0),
             address(vbill),
@@ -298,7 +301,7 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             params
         );
 
-        vm.expectRevert(SecuritizeArk.InvalidShareTokenAddress.selector);
+        vm.expectRevert(ISecuritizeArkErrors.InvalidShareTokenAddress.selector);
         new SecuritizeArk(
             custodian,
             address(0),
@@ -312,7 +315,7 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     function test_Constructor_RevertsIfTokenHasNoRegistry() public {
         MockDSToken noReg = new MockDSToken(registry, 6);
         noReg.setRegistryUnset(true);
-        vm.expectRevert(SecuritizeArk.InvalidRegistryAddress.selector);
+        vm.expectRevert(ISecuritizeArkErrors.InvalidRegistryAddress.selector);
         new SecuritizeArk(
             custodian,
             address(noReg),
@@ -336,7 +339,7 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         deal(USDC_ADDRESS, commander, amount);
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
-        vm.expectRevert(SecuritizeArk.ArkNotRegistered.selector);
+        vm.expectRevert(ISecuritizeArkErrors.ArkNotRegistered.selector);
         ark.board(amount, bytes(""));
         vm.stopPrank();
     }
@@ -418,7 +421,7 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(keeper);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SecuritizeArk.TransferNotCompliant.selector,
+                ISecuritizeArkErrors.TransferNotCompliant.selector,
                 vbill.CODE_NOT_REGISTERED(),
                 "Wallet not in registry service"
             )
@@ -440,7 +443,7 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.startPrank(keeper);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SecuritizeArk.TransferNotCompliant.selector,
+                ISecuritizeArkErrors.TransferNotCompliant.selector,
                 vbill.CODE_PAUSED(),
                 "Token paused"
             )
@@ -478,7 +481,7 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         deal(USDC_ADDRESS, commander, amount);
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
-        vm.expectRevert(SecuritizeArk.ArkIsFrozen.selector);
+        vm.expectRevert(ISecuritizeArkErrors.ArkIsFrozen.selector);
         ark.board(amount, bytes(""));
         vm.stopPrank();
     }
@@ -487,13 +490,13 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_RevertIfOraclePriceNotPositive() public {
         oracle.setAnswer(0);
-        vm.expectRevert(SecuritizeArk.OraclePriceNotPositive.selector);
+        vm.expectRevert(ISecuritizeArkErrors.OraclePriceNotPositive.selector);
         ark.sharesToAssets(1e6);
     }
 
     function test_RevertIfOracleStale() public {
         oracle.setRoundData(1, 1e8, block.timestamp - 24 hours - 1, 1);
-        vm.expectRevert(SecuritizeArk.StaleOraclePrice.selector);
+        vm.expectRevert(ISecuritizeArkErrors.StaleOraclePrice.selector);
         ark.sharesToAssets(1e6);
     }
 
@@ -547,6 +550,87 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             vbill.balanceOf(custodian),
             shares,
             "shares sent to custodian"
+        );
+    }
+
+    /* ------------------------- access control ---------------------------- */
+
+    function test_AccessControl() public {
+        _onboard();
+        address rando = makeAddr("rando");
+
+        // board: only commander (or authorized) may board.
+        vm.startPrank(rando);
+        vm.expectRevert();
+        ark.board(1e6, bytes(""));
+
+        // keeper-only entry points.
+        vm.expectRevert();
+        ark.requestWithdrawal(1e6);
+        vm.expectRevert();
+        ark.sweep();
+        vm.expectRevert();
+        ark.clearPendingDeposit();
+        vm.expectRevert();
+        ark.setCustodianWallet(rando);
+        vm.expectRevert();
+        ark.setArkFrozen(true, 0);
+
+        // governor-only entry points.
+        vm.expectRevert();
+        ark.emergencySweep();
+        vm.expectRevert();
+        ark.emergencyClearPendingDeposit(1);
+        vm.stopPrank();
+    }
+
+    /* --------------------------- async no-ops ---------------------------- */
+
+    function test_AsyncNoOpsAndViews() public {
+        // claimWithdrawal: keeper-only no-op (off-chain settlement).
+        vm.startPrank(keeper);
+        ark.claimWithdrawal();
+
+        // withdrawUsingSwap: no-op (no swap-based exit for custodial settlement).
+        ark.withdrawUsingSwap(1e6, new bytes(0));
+        vm.stopPrank();
+
+        // Async view surface.
+        assertEq(ark.withdrawalRequestId(), 0);
+        assertFalse(ark.isWithdrawalClaimRequired());
+        assertEq(ark.assetsInWithdrawalQueue(), 0);
+    }
+
+    /// @notice `withdrawableTotalAssets` must stay 0 throughout the async cycle — funds only
+    ///         leave via the keeper-driven `sweep`, never via synchronous `disembark`.
+    function test_WithdrawableTotalAssets_AlwaysZero() public {
+        assertEq(ark.withdrawableTotalAssets(), 0);
+
+        _onboard();
+        uint256 amount = 1000 * 1e6;
+        _board(amount);
+        assertEq(
+            ark.withdrawableTotalAssets(),
+            0,
+            "zero while pending deposit"
+        );
+
+        vbill.issue(address(ark), 1000 * 1e6);
+        vm.prank(keeper);
+        ark.clearPendingDeposit();
+        assertEq(ark.withdrawableTotalAssets(), 0, "zero while holding shares");
+
+        vm.prank(keeper);
+        ark.requestWithdrawal(amount);
+        assertEq(
+            ark.withdrawableTotalAssets(),
+            0,
+            "zero while withdrawal pending"
+        );
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            amount,
+            "queue reflects escrowed value"
         );
     }
 }

@@ -10,6 +10,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 import "@summerfi/price-solidity/contracts/PriceUtils.sol";
 import {IDSToken} from "../../interfaces/securitize/IDSToken.sol";
 import {IDSRegistryService} from "../../interfaces/securitize/IDSRegistryService.sol";
+import {ISecuritizeArk} from "../../interfaces/arks/ISecuritizeArk.sol";
 
 /**
  * @title SecuritizeArk
@@ -38,11 +39,17 @@ import {IDSRegistryService} from "../../interfaces/securitize/IDSRegistryService
  * 5. Emergency fallbacks: governor-only `emergencySweep()` / `emergencyClearPendingDeposit()` and
  *    keeper `setArkFrozen(...)` provide the same controls as the reference custodial Ark.
  *
- * SCAFFOLD: raw first pass adapted from the off-chain custodial Ark pattern. Pending real fund
- * proxy / registry / NAV-oracle addresses, modularized errors/events, the rebasing-accounting fix,
- * and unit + fork tests.
+ * Integrated funds (Ethereum mainnet): VBILL ($1.00 par), ACRED and STAC (variable NAV) — all
+ * 6-decimal DSTokens priced by RedStone `*_FUNDAMENTAL` feeds (AggregatorV3-compatible).
+ * Remaining work before mainnet: real custodian addresses + Ark/custodian onboarding by
+ * Securitize, oracle-heartbeat calibration, and the rebasing-accounting hardening noted in
+ * `_validateReceivedShares`.
  */
-contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
+contract SecuritizeArk is
+    ISecuritizeArk,
+    ArkWithWithdrawalRequest,
+    ERC721Holder
+{
     using SafeERC20 for IERC20;
     using PriceUtils for Price;
     using PercentageUtils for uint256;
@@ -73,115 +80,6 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     uint256 public constant REGISTRY_SERVICE_ID = 4;
 
     /*//////////////////////////////////////////////////////////////
-                               ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Reverts when the constructor or `setCustodianWallet` is given the zero address.
-    error InvalidTargetWallet();
-    /// @notice Reverts when the constructor is given a zero oracle address.
-    error InvalidOracleAddress();
-    /// @notice Reverts when the constructor is given a zero share-token address.
-    error InvalidShareTokenAddress();
-    /// @notice Reverts when the Chainlink oracle returns a non-positive answer.
-    error OraclePriceNotPositive();
-    /// @notice Reverts when the oracle's `updatedAt` is older than `ORACLE_HEARTBEAT_TIMEOUT`.
-    error StaleOraclePrice();
-    /// @notice Reverts when `emergencyClearPendingDeposit` is called with `amount` greater than
-    ///         the currently pending deposit.
-    error InsufficientPendingDeposit();
-    /// @notice Reverts when an operation (e.g. `_board`, `requestWithdrawal`) is attempted while a
-    ///         deposit is already pending.
-    error PendingDepositActive();
-    /// @notice Reverts when `requestWithdrawal` is called while a withdrawal cycle is already in
-    ///         flight (`pendingWithdrawalShares > 0`).
-    error PendingWithdrawalActive();
-    /// @notice Reverts when a state-changing entry point is invoked while the ark is frozen via
-    ///         `setArkFrozen`.
-    error ArkIsFrozen();
-    /// @notice Reverts when `setDepositSlippage` or the constructor is given a value above
-    ///         `MAX_DEPOSIT_SLIPPAGE`.
-    /// @param newSlippage The supplied slippage
-    /// @param maxSlippage The hard cap (`MAX_DEPOSIT_SLIPPAGE`)
-    error InvalidDepositSlippage(
-        Percentage newSlippage,
-        Percentage maxSlippage
-    );
-    /// @notice Reverts when `setSweepSlippage` or the constructor is given a value above
-    ///         `MAX_SWEEP_SLIPPAGE`.
-    /// @param newSlippage The supplied slippage
-    /// @param maxSlippage The hard cap (`MAX_SWEEP_SLIPPAGE`)
-    error InvalidSweepSlippage(Percentage newSlippage, Percentage maxSlippage);
-    /// @notice Reverts in `sweep` when the assets returned by WisdomTree convert to fewer shares
-    ///         (at current oracle price) than `pendingWithdrawalShares - sweepSlippage`.
-    /// @param receivedAssets The asset balance the ark holds at sweep time
-    /// @param expectedShares `pendingWithdrawalShares` at sweep time
-    /// @param receivedShares Asset balance converted back to shares via the oracle
-    error InsufficientAssetsReturned(
-        uint256 receivedAssets,
-        uint256 expectedShares,
-        uint256 receivedShares
-    );
-    /// @notice Reverts in `clearPendingDeposit` when the share delta since `cachedShareBalance` is
-    ///         below the oracle-implied expected shares minus `depositSlippage`.
-    /// @param expectedShares Oracle-implied shares for `pendingDepositAssets`
-    /// @param actualNewShares Live share balance minus `cachedShareBalance`
-    error SharesNotArrived(uint256 expectedShares, uint256 actualNewShares);
-    /// @notice Reverts when the registry service resolved from the DSToken is the zero address
-    ///         (i.e. the token has no registry configured).
-    error InvalidRegistryAddress();
-    /// @notice Reverts when this Ark is not (yet) a registered investor wallet in the Securitize
-    ///         registry and therefore cannot hold or transfer the DSToken. Onboarding is performed
-    ///         off-chain by Securitize.
-    error ArkNotRegistered();
-    /// @notice Reverts when a prospective DSToken transfer fails the compliance pre-check.
-    /// @param code The non-zero compliance failure code returned by `preTransferCheck`
-    /// @param reason The human-readable reason returned by `preTransferCheck`
-    error TransferNotCompliant(uint256 code, string reason);
-
-    /*//////////////////////////////////////////////////////////////
-                            EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when `clearPendingDeposit` or `emergencyClearPendingDeposit` reduces
-    ///         `pendingDepositAssets`.
-    /// @param amountCleared The amount removed from `pendingDepositAssets`
-    event PendingDepositCleared(uint256 amountCleared);
-
-    /// @notice Emitted by `requestWithdrawal` after shares are sent to the WisdomTree custodian for
-    ///         off-chain redemption.
-    /// @param shares Shares transferred to the custodian wallet
-    /// @param expectedAssets Underlying asset amount the keeper requested (informational)
-    event SharesSentForRedemption(uint256 shares, uint256 expectedAssets);
-
-    /// @notice Emitted when the WisdomTree custodian wallet is rotated.
-    /// @param oldWallet The previous `custodianWallet`
-    /// @param newWallet The newly configured `custodianWallet`
-    event CustodianWalletUpdated(address oldWallet, address newWallet);
-
-    /// @notice Emitted whenever `setArkFrozen` is called.
-    /// @param isFrozen The new frozen flag
-    /// @param frozenTotalAssets The current value of the `_frozenTotalAssets` storage slot at emit
-    ///                          time. On freeze this is the snapshot just taken; on unfreeze this is
-    ///                          the previous snapshot (the slot is intentionally not reset).
-    event ArkIsFrozenUpdated(bool isFrozen, uint256 frozenTotalAssets);
-
-    /// @notice Emitted by `setSweepSlippage` after the cap is updated.
-    /// @param oldSweepSlippage The previous `sweepSlippage`
-    /// @param newSweepSlippage The newly configured `sweepSlippage`
-    event SweepSlippageUpdated(
-        Percentage oldSweepSlippage,
-        Percentage newSweepSlippage
-    );
-
-    /// @notice Emitted by `setDepositSlippage` after the cap is updated.
-    /// @param oldDepositSlippage The previous `depositSlippage`
-    /// @param newDepositSlippage The newly configured `depositSlippage`
-    event DepositSlippageUpdated(
-        Percentage oldDepositSlippage,
-        Percentage newDepositSlippage
-    );
-
-    /*//////////////////////////////////////////////////////////////
                            STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
@@ -203,24 +101,24 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /// @notice Decimals reported by the Chainlink oracle
     uint8 public immutable oracleDecimals;
 
-    /// @notice Decimals of the underlying asset configured on this ark (e.g. 6 for USDC, 8 for WTBTC)
+    /// @notice Decimals of the underlying asset configured on this ark (e.g. 6 for USDC)
     uint8 public immutable assetDecimals;
 
-    /// @notice Decimals of the WisdomTree share token
+    /// @notice Decimals of the Securitize DSToken (share token)
     uint8 public immutable shareDecimals;
 
     /// @notice One full asset with the correct decimals
     uint256 public immutable ONE_ASSET;
 
-    /// @notice Validated configured-asset amount sent to WisdomTree, awaiting corresponding share
+    /// @notice Validated configured-asset amount sent to Securitize, awaiting corresponding share
     ///         issuance clearance.
     uint256 public pendingDepositAssets;
 
     /// @notice Frozen share balance used while deposits are pending to prevent double-counting newly minted shares.
     uint256 public cachedShareBalance;
 
-    /// @notice WisdomTree fund shares sent to the custodian for off-chain redemption, pending
-    ///         settlement via `sweep`. Denominated in WisdomTree share units (e.g. WTGXX shares).
+    /// @notice DSToken shares sent to the custodian for off-chain redemption, pending
+    ///         settlement via `sweep`. Denominated in DSToken units.
     uint256 public pendingWithdrawalShares;
 
     /// @notice True while the ark is quarantined by `setArkFrozen`. Gates state-changing entry
@@ -347,7 +245,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     }
 
     /**
-     * @notice Converts WisdomTree shares to underlying asset amount using the oracle
+     * @notice Converts DSToken shares to underlying asset amount using the oracle
      * @param shares Amount in `shareDecimals`
      * @return assets Equivalent amount in `assetDecimals`
      */
@@ -371,7 +269,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Updates the WisdomTree target wallet receiving the configured asset.
+     * @notice Updates the Securitize custodian wallet receiving the configured asset.
      * @dev Restricted to the keeper role.
      * @param _custodianWallet The new custodian wallet address
      */
@@ -408,7 +306,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     }
 
     /**
-     * @notice Clears the full pending deposit after WisdomTree has actually delivered the
+     * @notice Clears the full pending deposit after Securitize has actually delivered the
      *         corresponding shares on-chain.
      * @dev `_validateReceivedShares` enforces that the share-balance delta since
      *      `cachedShareBalance` covers the oracle-implied expected shares minus `depositSlippage`,
@@ -457,7 +355,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
     /**
      * @inheritdoc IArkWithWithdrawalRequest
-     * @dev No-op: WisdomTree processes withdrawals entirely off-chain.
+     * @dev No-op: Securitize processes withdrawals entirely off-chain.
      */
     function claimWithdrawal() external override onlyKeeper {
         // No-op
@@ -478,7 +376,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
      * @inheritdoc IArkWithWithdrawalRequest
      * @notice Sweeps the returned configured asset to the buffer and clears
      *         `pendingWithdrawalShares`.
-     * @dev Called by keeper after WisdomTree returns the configured-asset equivalent for the
+     * @dev Called by keeper after Securitize returns the configured-asset equivalent for the
      *      retired shares.
      * @return sweptTokens Single-element array containing the configured asset address.
      * @return sweptAmounts Single-element array containing the asset amount forwarded to the
@@ -517,7 +415,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
      * @notice Bypass-slippage variant of `sweep`. Sends the full balance of the configured asset
      *         held by the ark to the FleetCommander buffer ark and clears
      *         `pendingWithdrawalShares`.
-     * @dev Used when WisdomTree returns less than `pendingWithdrawalShares - sweepSlippage`, which
+     * @dev Used when Securitize returns less than `pendingWithdrawalShares - sweepSlippage`, which
      *      would block the keeper-facing `sweep`. The slippage check is intentionally skipped here;
      *      the governor should adjust `sweepSlippage` or address the root cause before re-enabling
      *      normal flow. Restricted to the governor role.
@@ -538,7 +436,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     /**
      * @notice Partial-clearance variant of `clearPendingDeposit` that accepts the current share
      *         balance as valid without running the slippage check.
-     * @dev Used when WisdomTree partially fills a deposit in a way the keeper-facing flow cannot
+     * @dev Used when Securitize partially fills a deposit in a way the keeper-facing flow cannot
      *      reconcile, or when oracle staleness blocks the share-arrival validation. The supplied
      *      `amount` must be `<= pendingDepositAssets`. Restricted to the governor role.
      * @param amount The portion of `pendingDepositAssets` to clear.
@@ -629,7 +527,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Caches placeholder deposit and sends the configured asset to the WisdomTree target
+     * @notice Caches placeholder deposit and sends the configured asset to the Securitize custodian
      *         wallet.
      * @dev If this is the start of a deposit queue, snapshots the real share balance.
      */
@@ -695,7 +593,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Converts WisdomTree shares to underlying asset amount via Chainlink oracle.
+     * @dev Converts DSToken shares to underlying asset amount via Chainlink oracle.
      */
     function _sharesToAssets(uint256 shares) internal view returns (uint256) {
         if (shares == 0) return 0;
@@ -707,7 +605,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
     }
 
     /**
-     * @dev Converts underlying asset amount to WisdomTree shares via Chainlink oracle.
+     * @dev Converts underlying asset amount to DSToken shares via Chainlink oracle.
      */
     function _assetsToShares(
         uint256 assetAmount
@@ -738,7 +636,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
         }
 
         // The oracle returns the price of 1 share denominated in the underlying asset.
-        // Therefore, the Base Asset is the WisdomTree share, and Quote Asset is the underlying asset.
+        // Therefore, the Base Asset is the DSToken share, and Quote Asset is the underlying asset.
         return
             toPriceFromOraclePrice(
                 10 ** shareDecimals, // baseAmount (1 Share)
@@ -764,7 +662,7 @@ contract SecuritizeArk is ArkWithWithdrawalRequest, ERC721Holder {
 
     /// @dev Reverts unless the share-balance delta since `cachedShareBalance` covers the
     ///      oracle-implied expected shares minus `depositSlippage`. Defends against clearing a
-    ///      pending deposit before WisdomTree has actually minted the matching shares.
+    ///      pending deposit before Securitize has actually issued the matching shares.
     /// @param amount Portion of `pendingDepositAssets` whose share-delivery is being validated.
     ///               Must be `<= pendingDepositAssets`; reverts with `InsufficientPendingDeposit`
     ///               otherwise.
