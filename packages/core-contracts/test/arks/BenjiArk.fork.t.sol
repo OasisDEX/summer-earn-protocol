@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
-import "../../src/contracts/arks/BenjiArk.sol";
+import {BenjiArk} from "../../src/contracts/arks/BenjiArk.sol";
+import {IBenjiArkErrors} from "../../src/errors/arks/IBenjiArkErrors.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ISwapPool} from "../../src/interfaces/benji/ISwapPool.sol";
-import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
-import {IBenjiArkErrors} from "../../src/errors/arks/IBenjiArkErrors.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -35,13 +34,13 @@ interface IBenjiAuthModule {
  * @title BenjiArk fork test — Franklin Templeton iBENJI on Ethereum mainnet
  * @notice Validates the BenjiArk wiring AND a genuine end-to-end board/disembark against the REAL
  *         iBENJI token and Franklin-Templeton SwapPool. Onboarding the Ark needs two privileged
- *         actions — both impersonated on the fork via `vm.prank` (no private key required, à la
- *         SyrupArk's `setLenderAllowlist`):
+ *         actions, both impersonated on the fork via `vm.prank` (no private key required, the same
+ *         approach as the SyrupArk fork test's `setLenderAllowlist`):
  *           1. SwapPool owner authorizes the Ark as a trader for the USDC/iBENJI pair.
  *           2. iBENJI's AuthorizationModule admin authorizes the Ark as a KYC'd holder (so the
  *              SwapPool's iBENJI delivery passes the token's transfer policy).
  *
- * @dev Confirmed against mainnet @ block 25222568: stable leg is USDC (6 dec), iBENJI is 18 dec;
+ * @dev Verified on mainnet at block 25222568: stable leg is USDC (6 dec), iBENJI is 18 dec;
  *      both registered and the USDC/iBENJI pair authorized with per-trader auth enforced;
  *      lastKnownPrice == 1e18 ($1 par). Privileged addresses discovered on-chain (pinned to the
  *      fork block): SwapPool owner, iBENJI module registry -> AuthorizationModule -> its
@@ -63,6 +62,9 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         0x12aBfF8Dca2d09D99019dFCC9bf07539a8264066;
     address constant IBENJI_AUTH_ADMIN =
         0xe9cAc1Be0dfCaf655E0193385800B9DaF9B723E2;
+
+    /// @dev Dust tolerance for 18-decimal iBENJI comparisons (1e12 wei of iBENJI == 1e-6 USDC).
+    uint256 constant SHARE_DUST_TOLERANCE = 1e12;
 
     uint256 forkBlock = 25222568;
 
@@ -183,7 +185,7 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         assertApproxEqAbs(
             IERC20(IBENJI).balanceOf(address(ark)),
             1000 * 1e18,
-            1e12,
+            SHARE_DUST_TOLERANCE,
             "Ark holds ~1000 iBENJI"
         );
         assertEq(IERC20(STABLE).balanceOf(address(ark)), 0, "no idle USDC");
@@ -202,7 +204,7 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         assertApproxEqAbs(
             IERC20(IBENJI).balanceOf(address(ark)),
             0,
-            1e12,
+            SHARE_DUST_TOLERANCE,
             "Ark exited iBENJI"
         );
     }

@@ -133,6 +133,9 @@ abstract contract ArkSwapProvider is IArkSwapProvider, Ark {
             address(this)
         );
         Address.functionCall(router, swapCalldata);
+        // Clear any allowance the router did not consume (partial fills, exact-out swaps) so a
+        // later de-whitelisted router cannot spend it.
+        IERC20(sellToken).forceApprove(router, 0);
         uint256 buyTokenBalanceAfter = IERC20(buyToken).balanceOf(
             address(this)
         );

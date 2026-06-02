@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {BenjiArk} from "../../src/contracts/arks/BenjiArk.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
-import "../../src/contracts/arks/BenjiArk.sol";
-import "../../src/events/IArkEvents.sol";
+import {IBenjiArkErrors} from "../../src/errors/arks/IBenjiArkErrors.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
+import {IArkSwapProvider} from "../../src/interfaces/IArkSwapProvider.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
-import {IBenjiArkErrors} from "../../src/errors/arks/IBenjiArkErrors.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 /* -------------------------------------------------------------------------- */
 /*                                   MOCKS                                     */
@@ -60,6 +61,8 @@ contract MockToken is ERC20 {
 ///         gate, an optional underdelivery haircut, and a pause switch. Must be pre-funded with the
 ///         output-token reserves it pays out (mirroring the contract-held-treasury mode).
 contract MockSwapPool {
+    uint256 public constant BPS_BASE = 10_000;
+
     bool public paused;
     bool public allowAll = true;
     bool public pairAuthorized = true;
@@ -131,14 +134,17 @@ contract MockSwapPool {
     ) internal {
         require(!paused, "PAUSED");
         require(allowAll || traderAllowed[msg.sender], "UNAUTHORIZED");
-        IERC20(fromToken).transferFrom(msg.sender, address(this), amount);
+        require(
+            IERC20(fromToken).transferFrom(msg.sender, address(this), amount),
+            "TRANSFER_FROM_FAILED"
+        );
         uint256 out = _normalize(
             amount,
             ERC20(fromToken).decimals(),
             ERC20(toToken).decimals()
         );
-        out = out - (out * haircutBps) / 10000;
-        IERC20(toToken).transfer(destination, out);
+        out = out - (out * haircutBps) / BPS_BASE;
+        require(IERC20(toToken).transfer(destination, out), "TRANSFER_FAILED");
     }
 
     function _normalize(
@@ -162,8 +168,11 @@ contract MockRouter {
         uint256 amountOut,
         address to
     ) external {
-        IERC20(sellToken).transferFrom(msg.sender, address(this), amountIn);
-        IERC20(buyToken).transfer(to, amountOut);
+        require(
+            IERC20(sellToken).transferFrom(msg.sender, address(this), amountIn),
+            "TRANSFER_FROM_FAILED"
+        );
+        require(IERC20(buyToken).transfer(to, amountOut), "TRANSFER_FAILED");
     }
 }
 
@@ -176,17 +185,18 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     BenjiArk public ark;
     BufferArk public bufferArk;
-    MockToken public stable; // 6-decimal stable leg (e.g. USC / USDC)
+    MockToken public stable; // 6-decimal stable leg (USDC on mainnet)
     MockToken public ibenji; // 18-decimal iBENJI share token
     MockSwapPool public pool;
     ArkParams public params;
 
-    uint256 constant ONE = 1000 * 1e6; // 1000 stable units
+    uint256 constant ONE = 1000 * 1e6; // 1000 stable units (6 decimals)
+    uint256 constant ONE_IN_SHARES = 1000 * 1e18; // the same value in iBENJI (18 decimals)
 
     function setUp() public {
         initializeCoreContracts();
 
-        stable = new MockToken("Stable", "USC", 6);
+        stable = new MockToken("USD Coin", "USDC", 6);
         ibenji = new MockToken("Franklin iBENJI", "iBENJI", 18);
         pool = new MockSwapPool();
 
@@ -329,7 +339,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     function test_Board_SwapsToIbenji_AtPar() public {
         _board(ONE);
         // 1000 stable (6dec) -> 1000 iBENJI (18dec) at 1:1 par.
-        assertEq(ibenji.balanceOf(address(ark)), 1000 * 1e18);
+        assertEq(ibenji.balanceOf(address(ark)), ONE_IN_SHARES);
         assertEq(stable.balanceOf(address(ark)), 0);
         assertEq(ark.totalAssets(), ONE, "valued 1:1 in stable terms");
     }
@@ -349,7 +359,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         // Once Franklin Templeton authorizes the Ark as a holder, board succeeds.
         ibenji.setAuthorizedHolder(address(ark), true);
         _board(ONE);
-        assertEq(ibenji.balanceOf(address(ark)), 1000 * 1e18);
+        assertEq(ibenji.balanceOf(address(ark)), ONE_IN_SHARES);
     }
 
     function test_Board_RevertsOnUnderdelivery() public {
@@ -402,10 +412,29 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         );
         assertEq(
             ibenji.balanceOf(address(ark)),
-            500 * 1e18,
+            ONE_IN_SHARES / 2,
             "half the iBENJI position remains"
         );
         assertEq(ark.totalAssets(), half, "remaining position valued at par");
+    }
+
+    function test_Disembark_FullExitWithDonatedDust() public {
+        _board(ONE);
+        // A donation (or accumulated dust) inflates totalAssets above the iBENJI position. The
+        // full exit must use the idle balance first and only swap the shortfall, otherwise it
+        // would try to swap more shares than the Ark holds and revert.
+        uint256 dust = 1;
+        stable.mint(address(ark), dust);
+        uint256 total = ark.totalAssets();
+        assertEq(total, ONE + dust);
+
+        uint256 commanderBefore = stable.balanceOf(commander);
+        vm.prank(commander);
+        ark.disembark(total, bytes(""));
+
+        assertEq(stable.balanceOf(commander), commanderBefore + total);
+        assertEq(ibenji.balanceOf(address(ark)), 0);
+        assertEq(ark.totalAssets(), 0);
     }
 
     /* -------------------- conservative withdrawable (Rule 4) ------------- */
@@ -430,7 +459,10 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         uint256 poolStable = stable.balanceOf(address(pool));
         uint256 cap = ONE / 4;
         vm.prank(address(pool));
-        stable.transfer(address(0xbeef), poolStable - cap);
+        require(
+            stable.transfer(address(0xbeef), poolStable - cap),
+            "TRANSFER_FAILED"
+        );
 
         assertEq(
             ark.withdrawableTotalAssets(),
@@ -466,7 +498,9 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.withdrawUsingSwap(ONE, data);
     }
 
-    function test_AccessControl_SetDepositSlippageRevertsForNonKeeper() public {
+    function test_AccessControl_SetDepositSlippageRevertsForNonCurator()
+        public
+    {
         vm.expectRevert();
         ark.setDepositSlippage(Percentage.wrap(PERCENTAGE_FACTOR / 4));
     }
@@ -484,7 +518,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
         _mockCommanderBuffer();
 
-        uint256 shares = 1000 * 1e18;
+        uint256 shares = ONE_IN_SHARES;
         bytes memory swapCalldata = abi.encodeCall(
             MockRouter.swap,
             (address(ibenji), address(stable), shares, ONE, address(ark))
@@ -532,7 +566,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_SetDepositSlippage() public {
         Percentage newSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 4); // 0.25%
-        vm.prank(keeper);
+        vm.prank(curator);
         ark.setDepositSlippage(newSlippage);
         assertEq(
             Percentage.unwrap(ark.depositSlippage()),
@@ -543,7 +577,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     function test_SetDepositSlippage_RevertsAboveMax() public {
         Percentage tooHigh = Percentage.wrap(PERCENTAGE_FACTOR);
         Percentage maxSlippage = ark.MAX_DEPOSIT_SLIPPAGE();
-        vm.prank(keeper);
+        vm.prank(curator);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IBenjiArkErrors.InvalidDepositSlippage.selector,

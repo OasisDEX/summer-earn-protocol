@@ -2,10 +2,15 @@
 pragma solidity 0.8.28;
 
 import {IBenjiArk} from "../../interfaces/arks/IBenjiArk.sol";
-import "../ArkSwapProvider.sol";
-import {ISwapPool} from "../../interfaces/benji/ISwapPool.sol";
 import {IBenjiToken} from "../../interfaces/benji/IBenjiToken.sol";
+import {ISwapPool} from "../../interfaces/benji/ISwapPool.sol";
+import {IArk} from "../../interfaces/IArk.sol";
+import {IArkSwapProvider} from "../../interfaces/IArkSwapProvider.sol";
+import {ArkParams} from "../../types/ArkTypes.sol";
+import {Ark} from "../Ark.sol";
+import {ArkSwapProvider} from "../ArkSwapProvider.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
@@ -34,7 +39,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * `whitelistRouter`, `_applySlippage`, `setSlippage`, `_boardToBufferArk`) rather than
  * `ArkWithWithdrawalRequest`, so there are no inert `requestWithdrawal`/`claimWithdrawal` stubs.
  *
- * Confirmed against mainnet (SwapPool 0x2e508F…5eC2f, iBENJI 0x90276e…b48c):
+ * Integration notes (verified on Ethereum mainnet):
  *  - Base-asset leg is USDC directly (no hop): USDC (6 dec) and iBENJI (18 dec) are both registered
  *    and the pair is authorized on both live SwapPools. The constructor enforces this via
  *    `isTokenPairAuthorized`. The pair enforces per-trader authorization, so this Ark must be
@@ -43,7 +48,6 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    mint/burn/transfer, and NAV is held at $1 par (the fund tracks `lastKnownPrice` off-chain).
  *    Combined with the SwapPool's fixed 1:1 rate, 1:1 decimal-normalized accounting is exact and no
  *    NAV oracle is required — contrast SecuritizeArk's rebasing DSToken + Chainlink NAV feed.
- *
  *  - SwapPool redemption is synchronous: `swap` settles iBENJI -> USDC atomically in one tx and
  *    returns nothing. Withdrawals therefore flow through `disembark`/`_disembark`, and
  *    `withdrawableTotalAssets()` reports the held value conservatively (zeroed while the pool is
@@ -56,10 +60,9 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    and `_board` reverts. `isArkOnboarded()` therefore checks the readable trader gate only;
  *    holder authorization must be granted off-chain by Franklin Templeton.
  *
- * The full board/disembark cycle is validated against the real SwapPool + iBENJI in
- * `BenjiArk.fork.t.sol` by impersonating the SwapPool owner (trader auth) and the iBENJI
- * AuthorizationModule admin (holder auth). Still out of scope for this branch's scaffold:
- * deployment-package wiring (ArkType enum, deploy script, Ignition module).
+ * The full board/disembark cycle is exercised against the production SwapPool and iBENJI in
+ * `BenjiArk.fork.t.sol` by impersonating the SwapPool owner (trader authorization) and the iBENJI
+ * AuthorizationModule admin (holder authorization).
  */
 contract BenjiArk is IBenjiArk, ArkSwapProvider {
     using SafeERC20 for IERC20;
@@ -181,7 +184,7 @@ contract BenjiArk is IBenjiArk, ArkSwapProvider {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            KEEPER FUNCTIONS
+                       KEEPER & CURATOR FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -208,19 +211,22 @@ contract BenjiArk is IBenjiArk, ArkSwapProvider {
             _applySlippage(amount),
             swapData.swapCalldata
         );
-        emit Disembarked(msg.sender, address(config.asset), amount);
+        // Emit the amount actually realized (>= amount minus `slippage`), not the requested
+        // amount, so accounting reflects secondary-market slippage.
+        emit Disembarked(msg.sender, address(config.asset), assetBought);
         _boardToBufferArk(assetBought);
     }
 
     /**
      * @inheritdoc IBenjiArk
-     * @dev Restricted to the keeper role. Reverts with `InvalidDepositSlippage` if the supplied
-     *      value exceeds `MAX_DEPOSIT_SLIPPAGE`.
+     * @dev Restricted to the curator (consistent with `setSlippage` on `ArkSwapProvider` — slippage
+     *      bounds are risk parameters, not keeper operations). Reverts with
+     *      `InvalidDepositSlippage` if the supplied value exceeds `MAX_DEPOSIT_SLIPPAGE`.
      * @param newDepositSlippage The new deposit slippage
      */
     function setDepositSlippage(
         Percentage newDepositSlippage
-    ) external onlyKeeper {
+    ) external onlyCurator(config.commander) {
         if (newDepositSlippage > MAX_DEPOSIT_SLIPPAGE) {
             revert InvalidDepositSlippage(
                 newDepositSlippage,
@@ -269,15 +275,22 @@ contract BenjiArk is IBenjiArk, ArkSwapProvider {
     /**
      * @notice Swaps iBENJI back into the base asset 1:1 via the SwapPool so the base `disembark`
      *         can forward exactly `amount` to the FleetCommander.
+     * @dev Uses any idle base asset first and only swaps the shortfall. Swapping the full `amount`
+     *      unconditionally would let a 1-wei base-asset donation inflate `totalAssets()` above the
+     *      iBENJI position and make a full exit try to swap more shares than the Ark holds,
+     *      reverting every `disembark(totalAssets())` until the dust is swept.
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
-        uint256 shares = _assetsToShares(amount);
-        uint256 assetBefore = _balanceOfAsset();
+        uint256 idleAssets = _balanceOfAsset();
+        if (idleAssets >= amount) return;
+
+        uint256 shortfall = amount - idleAssets;
+        uint256 shares = _assetsToShares(shortfall);
         IERC20(address(shareToken)).forceApprove(address(swapPool), shares);
         swapPool.swap(address(shareToken), address(config.asset), shares);
-        uint256 receivedAssets = _balanceOfAsset() - assetBefore;
-        if (receivedAssets < amount) {
-            revert InsufficientAssetsReceived(amount, receivedAssets);
+        uint256 receivedAssets = _balanceOfAsset() - idleAssets;
+        if (receivedAssets < shortfall) {
+            revert InsufficientAssetsReceived(shortfall, receivedAssets);
         }
     }
 
@@ -364,6 +377,10 @@ contract BenjiArk is IBenjiArk, ArkSwapProvider {
      *      SwapPool's own decimal normalization. Downscaling truncates toward zero. The 1:1 basis is
      *      valid because iBENJI is a non-rebasing fixed-share token held at $1 par and the SwapPool
      *      swaps at a fixed 1:1 rate; if iBENJI ever moves off par this must become NAV-based.
+     * @param amount The amount to rescale, in `fromDecimals`
+     * @param fromDecimals Decimals of the input amount
+     * @param toDecimals Decimals of the output amount
+     * @return The rescaled amount, in `toDecimals`
      */
     function _normalizeDecimals(
         uint256 amount,
