@@ -42,4 +42,14 @@ interface ISecuritizeArkEvents {
         Percentage oldDepositSlippage,
         Percentage newDepositSlippage
     );
+
+    /// @notice Emitted when `_board` subscribes synchronously through the Securitize on-ramp.
+    /// @param assets Base-asset amount swapped in
+    /// @param sharesReceived DSTokens minted to the Ark in the same transaction
+    event SubscribedViaOnRamp(uint256 assets, uint256 sharesReceived);
+
+    /// @notice Emitted when the boarding path is switched between the synchronous on-ramp `swap`
+    ///         and the asynchronous custodial transfer.
+    /// @param useOnRampSubscription True for the on-ramp path, false for the custodial path
+    event UseOnRampSubscriptionUpdated(bool useOnRampSubscription);
 }

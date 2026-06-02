@@ -48,6 +48,7 @@ contract MockDSToken is ERC20 {
     MockRegistry public registry;
     bool public paused;
     bool public registryUnset; // when true, getDSService(4) returns address(0)
+    address public onRampAddr; // returned for getDSService(16384)
 
     uint256 public constant CODE_PAUSED = 10;
     uint256 public constant CODE_NOT_REGISTERED = 20;
@@ -64,14 +65,19 @@ contract MockDSToken is ERC20 {
         return _dec;
     }
 
-    /// @dev DS Protocol service resolver; id 4 == registry service.
+    /// @dev DS Protocol service resolver; 4 == registry service, 16384 == on-ramp (swap).
     function getDSService(uint256 id) external view returns (address) {
         if (id == 4 && !registryUnset) return address(registry);
+        if (id == 16384) return onRampAddr;
         return address(0);
     }
 
     function setRegistryUnset(bool v) external {
         registryUnset = v;
+    }
+
+    function setOnRamp(address a) external {
+        onRampAddr = a;
     }
 
     function setPaused(bool v) external {
@@ -175,6 +181,64 @@ contract MockOracle is AggregatorV3Interface {
     }
 }
 
+/// @notice Minimal Securitize on-ramp: atomic USDC -> DSToken primary-market swap at a set NAV.
+/// @dev Mirrors SecuritizeOnRamp.swap: pulls the liquidity token from the caller (a registered
+///      investor) to the custodian, mints DSTokens at `rate` (asset decimals), enforces minOut.
+contract MockOnRamp {
+    MockDSToken public token;
+    MockRegistry public registry;
+    IERC20 public liquidity;
+    address public custodian;
+    uint256 public rate; // NAV in asset decimals (6), e.g. 1e6 = $1.00
+    uint256 public fee; // flat fee taken from the liquidity amount
+    bool public enabled = true;
+    uint256 public minSubscriptionAmount;
+
+    constructor(
+        MockDSToken _token,
+        MockRegistry _registry,
+        IERC20 _liquidity,
+        address _custodian,
+        uint256 _rate
+    ) {
+        token = _token;
+        registry = _registry;
+        liquidity = _liquidity;
+        custodian = _custodian;
+        rate = _rate;
+    }
+
+    function setRate(uint256 v) external {
+        rate = v;
+    }
+
+    function setFee(uint256 v) external {
+        fee = v;
+    }
+
+    function setEnabled(bool v) external {
+        enabled = v;
+    }
+
+    function investorSubscriptionEnabled() external view returns (bool) {
+        return enabled;
+    }
+
+    function swap(uint256 _liquidityAmount, uint256 _minOutAmount) external {
+        require(enabled, "subscription disabled");
+        require(registry.isWallet(msg.sender), "Investor not registered");
+        require(_liquidityAmount >= minSubscriptionAmount, "below min");
+
+        liquidity.transferFrom(msg.sender, custodian, _liquidityAmount);
+
+        // out = (amount - fee) * 10^(2*assetDec) / (rate * 10^liqDec); 6/6 dec => *1e6/rate
+        uint256 out = ((_liquidityAmount - fee) * 1e6) / rate;
+        require(out >= _minOutAmount, "minOut");
+
+        token.issue(msg.sender, out);
+    }
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                   TESTS                                     */
 /* -------------------------------------------------------------------------- */
@@ -188,6 +252,7 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     MockRegistry public registry;
     MockDSToken public vbill;
     MockOracle public oracle;
+    MockOnRamp public onRampMock;
     ArkParams public params;
 
     // Mainnet USDC (6 decimals), matching VBILL's base asset.
@@ -212,6 +277,9 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vbill = new MockDSToken(registry, 6);
         // NAV feed: 8 decimals, $1.00 par => 1 VBILL (1e6) == 1 USDC (1e6).
         oracle = new MockOracle(8, 1e8);
+        // On-ramp at the same $1.00 NAV (6 decimals), registered under service id 16384.
+        onRampMock = new MockOnRamp(vbill, registry, usdc, custodian, 1e6);
+        vbill.setOnRamp(address(onRampMock));
 
         params = ArkParams({
             name: "USDC Securitize VBILL Ark",
@@ -270,7 +338,19 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         );
     }
 
+    /// @dev Boards via the CUSTODIAL fallback path (flips the keeper toggle first).
     function _board(uint256 amount) internal {
+        vm.prank(keeper);
+        ark.setUseOnRampSubscription(false);
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    /// @dev Boards via the default synchronous on-ramp path.
+    function _boardViaOnRamp(uint256 amount) internal {
         deal(USDC_ADDRESS, commander, amount);
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
@@ -632,5 +712,129 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             amount,
             "queue reflects escrowed value"
         );
+    }
+
+    /* ----------------------- on-ramp (sync) boarding --------------------- */
+
+    function test_OnRampBoard_Synchronous() public {
+        _onboard();
+        assertTrue(ark.useOnRampSubscription(), "on-ramp path is the default");
+        assertEq(address(ark.onRamp()), address(onRampMock));
+
+        uint256 amount = 1000 * 1e6;
+        uint256 custBefore = usdc.balanceOf(custodian);
+
+        _boardViaOnRamp(amount);
+
+        // Atomic: USDC at custodian, freshly minted VBILL at the Ark, NO pending deposit.
+        assertEq(usdc.balanceOf(custodian), custBefore + amount);
+        assertEq(vbill.balanceOf(address(ark)), 1000 * 1e6, "minted same tx");
+        assertEq(ark.pendingDepositAssets(), 0, "no pending bookkeeping");
+        assertEq(ark.totalAssets(), amount, "valued immediately");
+    }
+
+    function test_OnRampBoard_FullCycleWithWithdrawal() public {
+        _onboard();
+        uint256 amount = 1000 * 1e6;
+        _boardViaOnRamp(amount);
+
+        // Withdrawals stay async/custodial regardless of the boarding path.
+        vm.prank(keeper);
+        ark.requestWithdrawal(amount);
+        assertEq(vbill.balanceOf(custodian), 1000 * 1e6);
+
+        deal(USDC_ADDRESS, address(ark), amount);
+        _mockCommanderBuffer();
+        vm.prank(keeper);
+        ark.sweep();
+        assertEq(usdc.balanceOf(address(bufferArk)), amount);
+        assertEq(ark.totalAssets(), 0);
+    }
+
+    function test_OnRampBoard_VariableNav() public {
+        // ACRED-style NAV on BOTH sources (oracle 8 dec, on-ramp rate 6 dec).
+        int256 nav8 = 109796093000; // $1097.96093
+        oracle.setAnswer(nav8);
+        onRampMock.setRate(uint256(nav8) / 100); // 1097960930 (6 dec)
+        _onboard();
+
+        uint256 shares = 10 * 1e6;
+        uint256 amount = (uint256(nav8) * shares) / 1e8;
+        _boardViaOnRamp(amount);
+
+        assertApproxEqAbs(
+            vbill.balanceOf(address(ark)),
+            shares,
+            1,
+            "minted at NAV"
+        );
+        assertApproxEqAbs(ark.totalAssets(), amount, 2, "valued at NAV");
+    }
+
+    function test_OnRampBoard_RevertsWhenSubscriptionDisabled() public {
+        _onboard();
+        onRampMock.setEnabled(false);
+
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        vm.expectRevert(
+            ISecuritizeArkErrors.OnRampSubscriptionDisabled.selector
+        );
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_OnRampBoard_RevertsWhenNotConfigured() public {
+        _onboard();
+        vbill.setOnRamp(address(0));
+
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        vm.expectRevert(ISecuritizeArkErrors.OnRampNotConfigured.selector);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_OnRampBoard_SlippageGuard_NavSourceDivergence() public {
+        _onboard();
+        // Securitize NAV diverges +1% above our oracle => on-ramp mints ~1% fewer
+        // tokens than oracle-implied minOut (0.5% tolerance) => swap must revert.
+        onRampMock.setRate(1.01e6);
+
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        vm.expectRevert(); // mock reverts "minOut" (real on-ramp: SlippageControlError)
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_OnRampBoard_FeeWithinSlippageTolerance() public {
+        _onboard();
+        uint256 amount = 1000 * 1e6;
+        onRampMock.setFee(2 * 1e6); // 0.2% fee, within the 0.5% depositSlippage
+
+        _boardViaOnRamp(amount);
+
+        // 998 USDC effective at $1.00 => 998 VBILL; accepted by the minOut tolerance.
+        assertEq(vbill.balanceOf(address(ark)), 998 * 1e6);
+    }
+
+    function test_SetUseOnRampSubscription_KeeperOnlyToggle() public {
+        vm.expectRevert();
+        ark.setUseOnRampSubscription(false); // not keeper
+
+        vm.prank(keeper);
+        ark.setUseOnRampSubscription(false);
+        assertFalse(ark.useOnRampSubscription());
+
+        vm.prank(keeper);
+        ark.setUseOnRampSubscription(true);
+        assertTrue(ark.useOnRampSubscription());
     }
 }

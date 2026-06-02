@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/SecuritizeArk.sol";
 import {ISecuritizeArkErrors} from "../../src/errors/arks/ISecuritizeArkErrors.sol";
+import {ISecuritizeNavProvider} from "../../src/interfaces/securitize/ISecuritizeNavProvider.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
@@ -32,6 +33,7 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         address token;
         address oracle;
         address registry;
+        address onRamp;
     }
 
     address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -57,19 +59,22 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             label: "VBILL",
             token: 0x2255718832bC9fD3bE1CaF75084F4803DA14FF01,
             oracle: 0xA569E68B5D110F2A255482c2997DFDBe1b2ab912,
-            registry: 0x897e452425bd1c860d7F9bc14eA045cBbC0fA0d4
+            registry: 0x897e452425bd1c860d7F9bc14eA045cBbC0fA0d4,
+            onRamp: 0x488EFd3eD474b205A0AaDe3732E4741432cba50B
         });
         funds[1] = Fund({
             label: "ACRED",
             token: 0x17418038ecF73BA4026c4f428547BF099706F27B,
             oracle: 0xD6BcbbC87bFb6c8964dDc73DC3EaE6d08865d51C,
-            registry: 0x3A8E9CD2E17E1F2904b7f745Da29C9cA765Cc319
+            registry: 0x3A8E9CD2E17E1F2904b7f745Da29C9cA765Cc319,
+            onRamp: 0x368e7478fF8c88C9002c32E1F576fAbe2E9Ddf7B
         });
         funds[2] = Fund({
             label: "STAC",
             token: 0x51C2d74017390CbBd30550179A16A1c28F7210fc,
             oracle: 0xEdC6287D3D41b322AF600317628D7E226DD3add4,
-            registry: 0x71080EB74E2816124327Af399aC8Cc518bbC7f49
+            registry: 0x71080EB74E2816124327Af399aC8Cc518bbC7f49,
+            onRamp: 0xc793b33120E5b74b601b00aF8FE2d30167CEB923
         });
 
         for (uint256 i = 0; i < funds.length; i++) {
@@ -173,6 +178,46 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             assertEq(address(arks[i].asset()), USDC);
             assertEq(address(arks[i].shareToken()), funds[i].token);
             assertEq(address(arks[i].oracle()), funds[i].oracle);
+            assertTrue(arks[i].useOnRampSubscription(), "on-ramp path default");
+        }
+    }
+
+    /// @notice The on-ramp (subscription/swap contract) resolves from the token's service
+    ///         registry (id 16384) and currently accepts investor-initiated swaps.
+    function test_Fork_OnRampResolvedAndLive() public view {
+        for (uint256 i = 0; i < funds.length; i++) {
+            ISecuritizeOnRamp ramp = arks[i].onRamp();
+            assertEq(
+                address(ramp),
+                funds[i].onRamp,
+                string.concat(
+                    funds[i].label,
+                    ": onRamp from getDSService(16384)"
+                )
+            );
+            assertEq(ramp.liquidityToken(), USDC, "USDC-denominated on-ramp");
+            assertTrue(
+                ramp.investorSubscriptionEnabled(),
+                "swap subscriptions live"
+            );
+        }
+    }
+
+    /// @notice Cross-checks the two on-chain NAV sources: Securitize's navProvider (6 dec,
+    ///         operator-set TSSO root) vs the RedStone feed the Ark prices with (8 dec). They
+    ///         publish the same upstream value.
+    function test_Fork_NavSourceParity() public view {
+        for (uint256 i = 0; i < funds.length; i++) {
+            uint256 navRate = ISecuritizeNavProvider(
+                arks[i].onRamp().navProvider()
+            ).rate();
+            (, int256 answer, , , ) = AggregatorV3Interface(funds[i].oracle)
+                .latestRoundData();
+            assertEq(
+                navRate * 100, // 6 dec -> 8 dec
+                uint256(answer),
+                string.concat(funds[i].label, ": navProvider == RedStone feed")
+            );
         }
     }
 }

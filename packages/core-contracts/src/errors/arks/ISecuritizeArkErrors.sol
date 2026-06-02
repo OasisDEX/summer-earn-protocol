@@ -65,4 +65,11 @@ interface ISecuritizeArkErrors {
     /// @param expectedShares Oracle-implied shares for `pendingDepositAssets`
     /// @param actualNewShares Live share balance minus `cachedShareBalance`
     error SharesNotArrived(uint256 expectedShares, uint256 actualNewShares);
+    /// @notice Reverts when on-ramp boarding is requested but the DSToken has no on-ramp
+    ///         registered under service id 16384.
+    error OnRampNotConfigured();
+    /// @notice Reverts when on-ramp boarding is requested but the on-ramp's investor-initiated
+    ///         `swap` subscriptions are disabled. The keeper should switch the Ark to the
+    ///         custodial path via `setUseOnRampSubscription(false)`.
+    error OnRampSubscriptionDisabled();
 }
