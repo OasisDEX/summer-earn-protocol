@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-
 /**
  * @title IBenjiArkErrors
  * @notice Custom errors for `BenjiArk`
@@ -25,15 +23,6 @@ interface IBenjiArkErrors {
     /// @notice Reverts when the keeper-supplied SwapPool is not on the curator whitelist.
     /// @param swapPool The SwapPool address supplied via `boardData`/`disembarkData`
     error SwapPoolNotWhitelisted(address swapPool);
-
-    /// @notice Reverts when the constructor or `setDepositSlippage` is given a value above
-    ///         `MAX_DEPOSIT_SLIPPAGE`.
-    /// @param newSlippage The supplied slippage
-    /// @param maxSlippage The hard cap (`MAX_DEPOSIT_SLIPPAGE`)
-    error InvalidDepositSlippage(
-        Percentage newSlippage,
-        Percentage maxSlippage
-    );
 
     /// @notice Reverts in `_board` when this Ark is not an authorized SwapPool trader for the
     ///         asset/iBENJI pair (so the swap would revert and strand the asset).

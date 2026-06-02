@@ -12,8 +12,6 @@ import {ArkWithSwap} from "../ArkWithSwap.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {TokenLibrary} from "@summerfi/dutch-auction/lib/TokenLibrary.sol";
-import {PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title BenjiArk
@@ -35,7 +33,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *
  * Lifecycle:
  * 1. Deposit (`_board`): approve the keeper-selected SwapPool and swap the base asset -> iBENJI
- *    1:1; assert the received shares cover the 1:1 expectation minus `depositSlippage`.
+ *    1:1; assert the received shares cover the full 1:1 expectation.
  * 2. Withdraw (`_disembark`): swap iBENJI -> base asset 1:1 through the keeper-selected pool for
  *    the requested amount; the base `Ark.disembark` then forwards the asset to the FleetCommander.
  *    Synchronous.
@@ -55,8 +53,11 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    authorized as a trader by Franklin Templeton on each pool before boarding (see
  *    `isArkOnboarded`).
  *  - iBENJI is a fixed-share ERC20 (18 dec), non-rebasing: `balanceOf` changes only on
- *    mint/burn/transfer, and NAV is held at $1 par. Combined with the SwapPools' fixed 1:1
- *    rate, 1:1 decimal-normalized accounting is exact; no NAV oracle is required.
+ *    mint/burn/transfer, and NAV is held at $1 par. The SwapPools charge no fee and enforce
+ *    exact delivery in both directions, so 1:1 decimal-normalized accounting is exact; no NAV
+ *    oracle and no board slippage tolerance are required. `_board` checks the full 1:1
+ *    expectation strictly, so a future (UUPS-upgraded) pool that introduces a fee reverts
+ *    loudly instead of silently leaking value.
  *  - SwapPool redemption is synchronous: `swap` settles iBENJI -> USDC atomically and returns
  *    nothing. Withdrawals flow through `disembark`/`_disembark` with the keeper supplying the
  *    pool; there is no queue and no claim step, hence no `IArkWithWithdrawalRequest` surface.
@@ -71,7 +72,6 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  */
 contract BenjiArk is IBenjiArk, ArkWithSwap {
     using SafeERC20 for IERC20;
-    using PercentageUtils for uint256;
     using TokenLibrary for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -80,10 +80,6 @@ contract BenjiArk is IBenjiArk, ArkWithSwap {
 
     /// @notice Default slippage (0.02%) applied to the whitelisted-router escape swaps.
     uint256 public constant DEFAULT_SWAP_SLIPPAGE = 2;
-
-    /// @notice Maximum deposit slippage (0.5%) tolerated on the 1:1 SwapPool board.
-    Percentage public constant MAX_DEPOSIT_SLIPPAGE =
-        Percentage.wrap(PERCENTAGE_FACTOR / 2);
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -98,9 +94,6 @@ contract BenjiArk is IBenjiArk, ArkWithSwap {
     /// @notice Decimals of the iBENJI share token (e.g. 18).
     uint8 public immutable shareDecimals;
 
-    /// @notice Tolerance applied to the 1:1 expected vs. actual iBENJI received during `_board`.
-    Percentage public depositSlippage;
-
     /// @notice Franklin Templeton SwapPools approved by the curator for board/disembark. The
     ///         keeper selects one per rebalance via `boardData`/`disembarkData`.
     mapping(address swapPool => bool isWhitelisted) public whitelistedSwapPools;
@@ -110,30 +103,20 @@ contract BenjiArk is IBenjiArk, ArkWithSwap {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Wires the Ark to iBENJI and sets the board slippage bound. SwapPools are not fixed
-     *         at deployment: the curator whitelists them via `whitelistSwapPool` and the keeper
-     *         selects one per rebalance.
+     * @notice Wires the Ark to iBENJI. SwapPools are not fixed at deployment: the curator
+     *         whitelists them via `whitelistSwapPool` and the keeper selects one per rebalance.
      * @param _shareToken iBENJI share token (`MoneyMarketFund`).
-     * @param _depositSlippage Initial board slippage cap; must be `<= MAX_DEPOSIT_SLIPPAGE` (0.5%).
      * @param _params Standard `ArkParams` (asset, commander, deposit caps, etc.).
      *                `requiresKeeperData` must be true — the keeper supplies the SwapPool address.
      */
     constructor(
         address _shareToken,
-        Percentage _depositSlippage,
         ArkParams memory _params
     ) ArkWithSwap(_params, DEFAULT_SWAP_SLIPPAGE) {
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
         if (!_params.requiresKeeperData) revert MustRequireKeeperData();
-        if (_depositSlippage > MAX_DEPOSIT_SLIPPAGE) {
-            revert InvalidDepositSlippage(
-                _depositSlippage,
-                MAX_DEPOSIT_SLIPPAGE
-            );
-        }
 
         shareToken = IBenjiToken(_shareToken);
-        depositSlippage = _depositSlippage;
         assetDecimals = IERC20Metadata(_params.asset).decimals();
         shareDecimals = IERC20Metadata(_shareToken).decimals();
     }
@@ -236,26 +219,6 @@ contract BenjiArk is IBenjiArk, ArkWithSwap {
         _boardToBufferArk(assetBought);
     }
 
-    /**
-     * @inheritdoc IBenjiArk
-     * @dev Restricted to the curator (consistent with `setSlippage` on `ArkWithSwap` — slippage
-     *      bounds are risk parameters, not keeper operations). Reverts with
-     *      `InvalidDepositSlippage` if the supplied value exceeds `MAX_DEPOSIT_SLIPPAGE`.
-     * @param newDepositSlippage The new deposit slippage
-     */
-    function setDepositSlippage(
-        Percentage newDepositSlippage
-    ) external onlyCurator(config.commander) {
-        if (newDepositSlippage > MAX_DEPOSIT_SLIPPAGE) {
-            revert InvalidDepositSlippage(
-                newDepositSlippage,
-                MAX_DEPOSIT_SLIPPAGE
-            );
-        }
-        emit DepositSlippageUpdated(depositSlippage, newDepositSlippage);
-        depositSlippage = newDepositSlippage;
-    }
-
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -264,8 +227,8 @@ contract BenjiArk is IBenjiArk, ArkWithSwap {
      * @notice Swaps the boarded base asset into iBENJI 1:1 via the keeper-selected SwapPool.
      * @dev The pool is decoded from `data` and was validated against the curator whitelist by
      *      `_validateBoardData`. Fail fast if this Ark is not an authorized trader on it (the swap
-     *      would otherwise revert and strand the asset). Validates the received iBENJI against the
-     *      1:1 expectation minus `depositSlippage`.
+     *      would otherwise revert and strand the asset). Requires the full 1:1 share expectation:
+     *      the SwapPools are fee-less with exact delivery, so any shortfall is a fault.
      */
     function _board(uint256 amount, bytes calldata data) internal override {
         ISwapPool swapPool = ISwapPool(abi.decode(data, (address)));
@@ -286,9 +249,7 @@ contract BenjiArk is IBenjiArk, ArkWithSwap {
             sharesBefore;
 
         uint256 expectedShares = _assetsToShares(amount);
-        if (
-            receivedShares < expectedShares.subtractPercentage(depositSlippage)
-        ) {
+        if (receivedShares < expectedShares) {
             revert SharesNotReceived(expectedShares, receivedShares);
         }
     }

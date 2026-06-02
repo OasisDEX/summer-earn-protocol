@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {IBenjiArkErrors} from "../../errors/arks/IBenjiArkErrors.sol";
 import {IBenjiArkEvents} from "../../events/arks/IBenjiArkEvents.sol";
 import {IArkWithSwap} from "../IArkWithSwap.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title IBenjiArk
@@ -45,10 +44,4 @@ interface IBenjiArk is IArkWithSwap, IBenjiArkErrors, IBenjiArkEvents {
      * @param isWhitelisted The new whitelist status
      */
     function whitelistSwapPool(address swapPool, bool isWhitelisted) external;
-
-    /**
-     * @notice Sets the board (deposit) slippage tolerance.
-     * @param newDepositSlippage The new deposit slippage
-     */
-    function setDepositSlippage(Percentage newDepositSlippage) external;
 }

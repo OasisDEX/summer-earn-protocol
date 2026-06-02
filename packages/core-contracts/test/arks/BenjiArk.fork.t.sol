@@ -9,7 +9,7 @@ import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test} from "forge-std/Test.sol";
 
 /// @notice Owner-only SwapPool surface used to onboard the Ark as a trader on the fork.
@@ -84,11 +84,7 @@ contract BenjiArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         });
 
         vm.startPrank(governor);
-        ark = new BenjiArk(
-            IBENJI,
-            Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            params
-        );
+        ark = new BenjiArk(IBENJI, params);
         accessManager.grantCommanderRole(address(ark), address(commander));
         accessManager.grantKeeperRole(address(ark), keeper);
         accessManager.grantCuratorRole(address(commander), address(curator));

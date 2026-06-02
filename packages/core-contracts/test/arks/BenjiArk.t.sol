@@ -10,7 +10,7 @@ import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test} from "forge-std/Test.sol";
 
 /* -------------------------------------------------------------------------- */
@@ -216,11 +216,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         });
 
         vm.startPrank(governor);
-        ark = new BenjiArk(
-            address(ibenji),
-            Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            params
-        );
+        ark = new BenjiArk(address(ibenji), params);
         vm.stopPrank();
 
         ArkParams memory bParams = params;
@@ -280,34 +276,14 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_Constructor_RevertsZeroShareToken() public {
         vm.expectRevert(IBenjiArkErrors.InvalidShareTokenAddress.selector);
-        new BenjiArk(
-            address(0),
-            Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            params
-        );
+        new BenjiArk(address(0), params);
     }
 
     function test_Constructor_RevertsWithoutKeeperData() public {
         ArkParams memory badParams = params;
         badParams.requiresKeeperData = false;
         vm.expectRevert(IBenjiArkErrors.MustRequireKeeperData.selector);
-        new BenjiArk(
-            address(ibenji),
-            Percentage.wrap(PERCENTAGE_FACTOR / 2),
-            badParams
-        );
-    }
-
-    function test_Constructor_RevertsBadSlippage() public {
-        Percentage tooHigh = Percentage.wrap(PERCENTAGE_FACTOR); // 100% > 0.5% cap
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBenjiArkErrors.InvalidDepositSlippage.selector,
-                tooHigh,
-                ark.MAX_DEPOSIT_SLIPPAGE()
-            )
-        );
-        new BenjiArk(address(ibenji), tooHigh, params);
+        new BenjiArk(address(ibenji), badParams);
     }
 
     /* --------------------------- pool whitelist -------------------------- */
@@ -421,7 +397,8 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Board_RevertsOnUnderdelivery() public {
-        pool.setHaircutBps(100); // 1% haircut > 0.5% depositSlippage
+        // The 1:1 expectation is strict: any underdelivery reverts, even 1 bps.
+        pool.setHaircutBps(1);
         stable.mint(commander, ONE);
         vm.startPrank(commander);
         IERC20(address(stable)).forceApprove(address(ark), ONE);
@@ -541,13 +518,6 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.withdrawUsingSwap(ONE, data);
     }
 
-    function test_AccessControl_SetDepositSlippageRevertsForNonCurator()
-        public
-    {
-        vm.expectRevert();
-        ark.setDepositSlippage(Percentage.wrap(PERCENTAGE_FACTOR / 4));
-    }
-
     function test_AccessControl_WhitelistSwapPoolRevertsForNonCurator() public {
         vm.expectRevert();
         ark.whitelistSwapPool(address(pool), false);
@@ -604,31 +574,5 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         // 1 ArkWithSwap= 1 stable (1e6) at par.
         assertEq(ark.sharesToAssets(1e18), 1e6);
         assertEq(ark.sharesToAssets(1000 * 1e18), 1000 * 1e6);
-    }
-
-    /* ----------------------------- slippage ------------------------------ */
-
-    function test_SetDepositSlippage() public {
-        Percentage newSlippage = Percentage.wrap(PERCENTAGE_FACTOR / 4); // 0.25%
-        vm.prank(curator);
-        ark.setDepositSlippage(newSlippage);
-        assertEq(
-            Percentage.unwrap(ark.depositSlippage()),
-            Percentage.unwrap(newSlippage)
-        );
-    }
-
-    function test_SetDepositSlippage_RevertsAboveMax() public {
-        Percentage tooHigh = Percentage.wrap(PERCENTAGE_FACTOR);
-        Percentage maxSlippage = ark.MAX_DEPOSIT_SLIPPAGE();
-        vm.prank(curator);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBenjiArkErrors.InvalidDepositSlippage.selector,
-                tooHigh,
-                maxSlippage
-            )
-        );
-        ark.setDepositSlippage(tooHigh);
     }
 }
