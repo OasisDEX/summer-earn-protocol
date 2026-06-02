@@ -11,6 +11,7 @@ import {Ark} from "../Ark.sol";
 import {ArkSwapProvider} from "../ArkSwapProvider.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {TokenLibrary} from "@summerfi/dutch-auction/lib/TokenLibrary.sol";
 import {PERCENTAGE_FACTOR, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
@@ -67,6 +68,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 contract BenjiArk is IBenjiArk, ArkSwapProvider {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
+    using TokenLibrary for uint256;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
@@ -357,41 +359,23 @@ contract BenjiArk is IBenjiArk, ArkSwapProvider {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Converts an iBENJI share amount to the base-asset amount at 1:1 par by rescaling decimals.
+     * @dev Converts an iBENJI share amount to the base-asset amount at 1:1 par by rescaling
+     *      decimals via `TokenLibrary.convertDecimals` (truncates toward zero when downscaling),
+     *      mirroring the SwapPool's own decimal normalization. The 1:1 basis is valid because
+     *      iBENJI is a non-rebasing fixed-share token held at $1 par and the SwapPool swaps at a
+     *      fixed 1:1 rate; if iBENJI ever moves off par this must become NAV-based.
      */
     function _sharesToAssets(uint256 shares) internal view returns (uint256) {
-        return _normalizeDecimals(shares, shareDecimals, assetDecimals);
+        return shares.convertDecimals(shareDecimals, assetDecimals);
     }
 
     /**
-     * @dev Converts a base-asset amount to the iBENJI share amount at 1:1 par by rescaling decimals.
+     * @dev Converts a base-asset amount to the iBENJI share amount at 1:1 par by rescaling
+     *      decimals. See `_sharesToAssets` for the validity of the 1:1 basis.
      */
     function _assetsToShares(
         uint256 assetAmount
     ) internal view returns (uint256) {
-        return _normalizeDecimals(assetAmount, assetDecimals, shareDecimals);
-    }
-
-    /**
-     * @dev Rescales `amount` from `fromDecimals` to `toDecimals` (1:1 value), mirroring the
-     *      SwapPool's own decimal normalization. Downscaling truncates toward zero. The 1:1 basis is
-     *      valid because iBENJI is a non-rebasing fixed-share token held at $1 par and the SwapPool
-     *      swaps at a fixed 1:1 rate; if iBENJI ever moves off par this must become NAV-based.
-     * @param amount The amount to rescale, in `fromDecimals`
-     * @param fromDecimals Decimals of the input amount
-     * @param toDecimals Decimals of the output amount
-     * @return The rescaled amount, in `toDecimals`
-     */
-    function _normalizeDecimals(
-        uint256 amount,
-        uint8 fromDecimals,
-        uint8 toDecimals
-    ) internal pure returns (uint256) {
-        if (amount == 0) return 0;
-        if (fromDecimals == toDecimals) return amount;
-        if (toDecimals > fromDecimals) {
-            return amount * (10 ** (toDecimals - fromDecimals));
-        }
-        return amount / (10 ** (fromDecimals - toDecimals));
+        return assetAmount.convertDecimals(assetDecimals, shareDecimals);
     }
 }
