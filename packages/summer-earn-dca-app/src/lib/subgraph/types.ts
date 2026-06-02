@@ -13,8 +13,12 @@ export type SubgraphStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED' | 'COMPLETED'
 
 export interface SubgraphExecution {
   id: string
-  amountIn: string
-  amountOut: string
+  // Asset-denominated amounts (sourceVault/targetVault.convertToAssets at exec time).
+  inAssets: string
+  outAssets: string
+  // Raw vault-share counts from the ExecutionCompleted event.
+  inShares: string
+  outShares: string
   tradesExecutedAfter: string
   executionTimestamp: string
   blockNumber: string
