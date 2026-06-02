@@ -167,7 +167,7 @@ contract UpshiftArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @inheritdoc IArkWithWithdrawalRequest
+     * @inheritdoc IArkSwapProvider
      */
     function withdrawUsingSwap(uint256, bytes calldata) external pure {
         revert NotSupported();

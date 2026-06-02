@@ -381,38 +381,9 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_WithdrawableTotalAssets_IsSynchronous() public {
         _board(ONE);
-        // SwapPool redemption is synchronous, so all held value is withdrawable.
+        // SwapPool redemption is synchronous, so all held value is withdrawable. This Ark has no
+        // async-withdrawal surface (it extends ArkSwapProvider, not ArkWithWithdrawalRequest).
         assertEq(ark.withdrawableTotalAssets(), ONE);
-        assertEq(ark.assetsInWithdrawalQueue(), 0);
-        assertFalse(ark.isWithdrawalClaimRequired());
-    }
-
-    function test_RequestWithdrawal_IsInert() public {
-        _board(ONE);
-        uint256 sharesBefore = ibenji.balanceOf(address(ark));
-
-        // requestWithdrawal/claimWithdrawal are no-ops for this synchronous Ark: they move no
-        // tokens and leave totalAssets unchanged. The actual exit happens via disembark.
-        vm.expectEmit(false, false, false, true);
-        emit IArkWithWithdrawalRequest.WithdrawalRequested(ONE, 0);
-        vm.prank(keeper);
-        ark.requestWithdrawal(ONE);
-
-        vm.prank(keeper);
-        ark.claimWithdrawal();
-
-        assertEq(
-            ibenji.balanceOf(address(ark)),
-            sharesBefore,
-            "no shares moved"
-        );
-        assertEq(ark.totalAssets(), ONE, "totalAssets unchanged");
-        assertEq(ark.assetsInWithdrawalQueue(), 0);
-
-        // The synchronous exit still works afterwards.
-        vm.prank(commander);
-        ark.disembark(ONE, bytes(""));
-        assertEq(ibenji.balanceOf(address(ark)), 0);
     }
 
     /* --------------------------- escape swap ----------------------------- */
@@ -434,7 +405,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             (address(ibenji), address(stable), shares, ONE, address(ark))
         );
         bytes memory data = abi.encode(
-            IArkWithWithdrawalRequest.SwapData({
+            IArkSwapProvider.SwapData({
                 router: address(router),
                 swapCalldata: swapCalldata
             })
@@ -454,7 +425,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     function test_WithdrawUsingSwap_RevertsNonWhitelistedRouter() public {
         _board(ONE);
         bytes memory data = abi.encode(
-            IArkWithWithdrawalRequest.SwapData({
+            IArkSwapProvider.SwapData({
                 router: address(0x1234),
                 swapCalldata: hex""
             })

@@ -740,8 +740,8 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
     //     uint256 swapAmount = 100 * 1e6; // 100 USDC
 
     //     // Mock swap data (simplified for test)
-    //     IArkWithWithdrawalRequest.SwapData
-    //         memory swapData = IArkWithWithdrawalRequest.SwapData({
+    //     IArkSwapProvider.SwapData
+    //         memory swapData = IArkSwapProvider.SwapData({
     //             router: address(0x123), // Mock router
     //             swapCalldata: abi.encodeWithSignature("swap()")
     //         });

@@ -346,11 +346,10 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
         test_Board();
 
         // Prepare swap data (this would be real swap data in practice)
-        IArkWithWithdrawalRequest.SwapData
-            memory swapData = IArkWithWithdrawalRequest.SwapData({
-                router: ODOS_ROUTER_MAINNET,
-                swapCalldata: hex"" // Would contain actual swap calldata
-            });
+        IArkSwapProvider.SwapData memory swapData = IArkSwapProvider.SwapData({
+            router: ODOS_ROUTER_MAINNET,
+            swapCalldata: hex"" // Would contain actual swap calldata
+        });
         bytes memory data = abi.encode(swapData);
 
         uint256 withdrawAmount = 0.5 ether;

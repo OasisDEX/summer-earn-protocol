@@ -76,7 +76,7 @@ contract ArmArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @inheritdoc IArkWithWithdrawalRequest
+     * @inheritdoc IArkSwapProvider
      */
     function withdrawUsingSwap(
         uint256 amount,

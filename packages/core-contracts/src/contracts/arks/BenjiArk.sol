@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../ArkWithWithdrawalRequest.sol";
+import "../ArkSwapProvider.sol";
 import {ISwapPool} from "../../interfaces/benji/ISwapPool.sol";
 import {IBenjiToken} from "../../interfaces/benji/IBenjiToken.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -28,10 +28,10 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    secondary market through a curator-whitelisted DEX router (the `SyrupArk` pattern), bounded by
  *    `slippage`, then boards the proceeds to the buffer ark.
  *
- * Because the SwapPool path is synchronous, the async-withdrawal hooks
- * (`requestWithdrawal` / `claimWithdrawal` / `withdrawalRequestId` / `assetsInWithdrawalQueue`) are
- * inert; `BenjiArk` extends `ArkWithWithdrawalRequest` only to inherit the whitelisted-router swap
- * escape (`_swap`, `whitelistRouter`, `_applySlippage`, `setSlippage`).
+ * Because the SwapPool path is synchronous, this Ark has no async-withdrawal surface at all: it
+ * extends `ArkSwapProvider` (Ark + the curator-whitelisted router-swap machinery: `_swap`,
+ * `whitelistRouter`, `_applySlippage`, `setSlippage`, `_boardToBufferArk`) rather than
+ * `ArkWithWithdrawalRequest`, so there are no inert `requestWithdrawal`/`claimWithdrawal` stubs.
  *
  * Confirmed against mainnet (SwapPool 0x2e508F…5eC2f, iBENJI 0x90276e…b48c):
  *  - Base-asset leg is USDC directly (no hop): USDC (6 dec) and iBENJI (18 dec) are both registered
@@ -45,10 +45,8 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *
  *  - SwapPool redemption is synchronous: `swap` settles iBENJI -> USDC atomically in one tx and
  *    returns nothing. Withdrawals therefore flow through `disembark`/`_disembark`, and
- *    `withdrawableTotalAssets()` reports the full held value. `requestWithdrawal`/`claimWithdrawal`
- *    are intentionally inert no-ops kept only for `IArkWithWithdrawalRequest` conformance — there is
- *    no queue to pre-stage, so making `requestWithdrawal` perform the swap would just duplicate
- *    `disembark` without the FleetCommander's accounting.
+ *    `withdrawableTotalAssets()` reports the full held value — there is no queue to pre-stage and
+ *    no claim step, hence no `IArkWithWithdrawalRequest` surface on this Ark.
  *  - iBENJI holder authorization (KYC/whitelist) is enforced by the token's own transfer policy and
  *    is NOT readable on-chain from the token (no public getter; its module registry is internal).
  *    This Ark reaches iBENJI only via the SwapPool, so the holder gate is enforced implicitly: if
@@ -61,7 +59,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * AuthorizationModule admin (holder auth). Still out of scope for this branch's scaffold:
  * deployment-package wiring (ArkType enum, deploy script, Ignition module).
  */
-contract BenjiArk is ArkWithWithdrawalRequest {
+contract BenjiArk is ArkSwapProvider {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
@@ -160,7 +158,7 @@ contract BenjiArk is ArkWithWithdrawalRequest {
         address _shareToken,
         Percentage _depositSlippage,
         ArkParams memory _params
-    ) ArkWithWithdrawalRequest(_params, DEFAULT_SWAP_SLIPPAGE) {
+    ) ArkSwapProvider(_params, DEFAULT_SWAP_SLIPPAGE) {
         if (_swapPool == address(0)) revert InvalidSwapPoolAddress();
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
         if (_depositSlippage > MAX_DEPOSIT_SLIPPAGE) {
@@ -208,28 +206,6 @@ contract BenjiArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @inheritdoc IArkWithWithdrawalRequest
-     * @dev Withdrawals are synchronous via the SwapPool, so nothing is ever queued.
-     */
-    function assetsInWithdrawalQueue() public pure override returns (uint256) {
-        return 0;
-    }
-
-    /**
-     * @inheritdoc IArkWithWithdrawalRequest
-     */
-    function withdrawalRequestId() external pure override returns (uint256) {
-        return 0;
-    }
-
-    /**
-     * @inheritdoc IArkWithWithdrawalRequest
-     */
-    function isWithdrawalClaimRequired() external pure override returns (bool) {
-        return false;
-    }
-
-    /**
      * @notice Converts an iBENJI share amount to the equivalent base-asset amount at 1:1 par.
      * @param shares Amount in `shareDecimals`
      * @return assets Equivalent amount in `assetDecimals`
@@ -259,24 +235,7 @@ contract BenjiArk is ArkWithWithdrawalRequest {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @inheritdoc IArkWithWithdrawalRequest
-     * @dev No-op: redemption is synchronous via `disembark`/`_disembark`. Emits `WithdrawalRequested`
-     *      for indexer parity with the async Arks.
-     */
-    function requestWithdrawal(uint256 amount) external override onlyKeeper {
-        emit WithdrawalRequested(amount, 0);
-    }
-
-    /**
-     * @inheritdoc IArkWithWithdrawalRequest
-     * @dev No-op: the SwapPool settles synchronously, so there is nothing to claim.
-     */
-    function claimWithdrawal() external override onlyKeeper {
-        // No-op
-    }
-
-    /**
-     * @inheritdoc IArkWithWithdrawalRequest
+     * @inheritdoc IArkSwapProvider
      * @notice Secondary-market escape: sells iBENJI for the base asset through a curator-whitelisted
      *         DEX router when the SwapPool path is unavailable (paused/illiquid), then boards the
      *         proceeds to the FleetCommander buffer ark.
