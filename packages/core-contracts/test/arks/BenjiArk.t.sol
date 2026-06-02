@@ -18,8 +18,7 @@ import {Test} from "forge-std/Test.sol";
 /* -------------------------------------------------------------------------- */
 
 /// @notice ERC20 with configurable decimals and open mint, used for the stable leg and iBENJI.
-/// @dev Optionally enforces an iBENJI-style holder whitelist on genuine transfers (off by default,
-///      mint/burn always allowed) to model the token's off-chain KYC transfer policy.
+/// @dev Optionally enforces a holder whitelist on transfers to model the token's KYC policy.
 contract MockToken is ERC20 {
     uint8 private immutable _dec;
     bool public holderGate;
@@ -57,9 +56,9 @@ contract MockToken is ERC20 {
     }
 }
 
-/// @notice Minimal Franklin Templeton SwapPool: 1:1 swap with decimal normalization, a trader-auth
-///         gate, an optional underdelivery haircut, and a pause switch. Must be pre-funded with the
-///         output-token reserves it pays out (mirroring the contract-held-treasury mode).
+/// @notice Minimal Franklin Templeton SwapPool: 1:1 swap with decimal normalization, trader
+///         authorization gate, optional haircut, and pause switch. Must be pre-funded with output
+///         token reserves.
 contract MockSwapPool {
     uint256 public constant BPS_BASE = 10_000;
 
@@ -158,8 +157,7 @@ contract MockSwapPool {
     }
 }
 
-/// @notice Minimal secondary-market router for the `withdrawUsingSwap` escape path. Pulls the sell
-///         token from the caller and delivers a fixed amount of the buy token to a recipient.
+/// @notice Minimal secondary-market router for the `withdrawUsingSwap` escape path.
 contract MockRouter {
     function swap(
         address sellToken,
@@ -365,7 +363,6 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         stable.mint(commander, ONE);
         vm.startPrank(commander);
         IERC20(address(stable)).forceApprove(address(ark), ONE);
-        // Base Ark validation: requiresKeeperData arks reject empty data.
         vm.expectRevert();
         ark.board(ONE, bytes(""));
         vm.stopPrank();
@@ -410,9 +407,6 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_Board_RevertsWhenArkNotAuthorizedHolder() public {
-        // iBENJI now enforces its holder whitelist on inbound transfers. The Ark is an authorized
-        // SwapPool trader (pool.allowAll) but NOT yet an authorized iBENJI holder, so the SwapPool's
-        // delivery transfer reverts inside the token — the holder gate is enforced implicitly.
         ibenji.setHolderGate(true);
         stable.mint(commander, ONE);
         vm.startPrank(commander);
@@ -421,7 +415,6 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.board(ONE, _poolData());
         vm.stopPrank();
 
-        // Once Franklin Templeton authorizes the Ark as a holder, board succeeds.
         ibenji.setAuthorizedHolder(address(ark), true);
         _board(ONE);
         assertEq(ibenji.balanceOf(address(ark)), ONE_IN_SHARES);
@@ -478,9 +471,6 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_Disembark_FullExitWithDonatedDust() public {
         _board(ONE);
-        // A donation (or accumulated dust) inflates totalAssets above the iBENJI position. The
-        // full exit must use the idle balance first and only swap the shortfall, otherwise it
-        // would try to swap more shares than the Ark holds and revert.
         uint256 dust = 1;
         stable.mint(address(ark), dust);
         uint256 total = ark.totalAssets();
@@ -496,14 +486,13 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     }
 
     function test_MultiPool_BoardAndDisembarkViaDifferentPools() public {
-        // Franklin Templeton runs multiple SwapPools; the keeper picks one per rebalance.
         MockSwapPool secondPool = new MockSwapPool();
         ibenji.mint(address(secondPool), 1_000_000 * 1e18);
         stable.mint(address(secondPool), 1_000_000 * 1e6);
         vm.prank(curator);
         ark.whitelistSwapPool(address(secondPool), true);
 
-        _board(ONE); // boards through `pool`
+        _board(ONE);
 
         uint256 commanderBefore = stable.balanceOf(commander);
         vm.prank(commander);
@@ -522,8 +511,6 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_WithdrawableTotalAssets_ZeroWithKeeperData() public {
         _board(ONE);
-        // Redeeming requires the keeper to select a SwapPool via disembarkData, so the public
-        // withdrawable reports 0 (requiresKeeperData) and exits flow through keeper rebalances.
         assertEq(ark.withdrawableTotalAssets(), 0);
         assertEq(ark.totalAssets(), ONE, "valuation unaffected");
     }

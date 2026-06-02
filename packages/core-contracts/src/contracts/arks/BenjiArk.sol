@@ -21,15 +21,14 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *         ERC20, par $1) through the Franklin-Templeton-maintained on-chain `SwapPool`s. The
  *         SwapPools are the primary entry/exit: they swap the base asset (the "stable leg") and
  *         iBENJI at a fixed 1:1 rate with decimal normalization, so deposits and withdrawals are
- *         synchronous and atomic — unlike the off-chain custodial RWA Arks (WisdomTree /
- *         Securitize).
+ *         synchronous and atomic.
  *
  * @dev Pool selection model: Franklin Templeton operates multiple SwapPools for the same
  *      USDC/iBENJI pair. The curator whitelists eligible pools via `whitelistSwapPool`, and the
  *      keeper selects one per rebalance by passing `abi.encode(address pool)` as
- *      `boardData`/`disembarkData`. `requiresKeeperData` MUST therefore be true in `ArkParams`
- *      (enforced by the constructor), which also makes the public `withdrawableTotalAssets()`
- *      report 0 — exits flow through keeper-driven rebalances.
+ *      `boardData`/`disembarkData`. `requiresKeeperData` must be true in `ArkParams`
+ *      (enforced by the constructor), which makes `withdrawableTotalAssets()` report 0; exits
+ *      flow through keeper-driven rebalances.
  *
  * Asset tracking model (1:1 par, decimal-normalized):
  *      totalAssets() = sharesToAssets(iBENJI balance) + idle base-asset balance
@@ -44,35 +43,31 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    a secondary market through a curator-whitelisted DEX router (the `SyrupArk` pattern), bounded
  *    by `slippage`, then boards the proceeds to the buffer ark.
  *
- * Because the SwapPool path is synchronous, this Ark has no async-withdrawal surface at all: it
- * extends `ArkSwapProvider` (Ark + the curator-whitelisted router-swap machinery: `_swap`,
+ * Because the SwapPool path is synchronous, this Ark has no async-withdrawal surface; it
+ * extends `ArkSwapProvider` (Ark + curator-whitelisted router-swap machinery: `_swap`,
  * `whitelistRouter`, `_applySlippage`, `setSlippage`, `_boardToBufferArk`) rather than
  * `ArkWithWithdrawalRequest`, so there are no inert `requestWithdrawal`/`claimWithdrawal` stubs.
  *
- * Integration notes (verified on Ethereum mainnet):
- *  - Base-asset leg is USDC directly (no hop): USDC (6 dec) and iBENJI (18 dec) are both registered
- *    and the pair is authorized on both live SwapPools. `whitelistSwapPool` enforces this via
- *    `isTokenPairAuthorized` when a pool is whitelisted. The pair enforces per-trader
- *    authorization, so this Ark must be authorized as a trader by Franklin Templeton on each pool
- *    before boarding through it (see `isArkOnboarded`).
- *  - iBENJI is a fixed-share ERC20 (18 dec) and is NOT rebasing: `balanceOf` changes only on
- *    mint/burn/transfer, and NAV is held at $1 par (the fund tracks `lastKnownPrice` off-chain).
- *    Combined with the SwapPools' fixed 1:1 rate, 1:1 decimal-normalized accounting is exact and no
- *    NAV oracle is required — contrast SecuritizeArk's rebasing DSToken + Chainlink NAV feed.
- *  - SwapPool redemption is synchronous: `swap` settles iBENJI -> USDC atomically in one tx and
- *    returns nothing. Withdrawals therefore flow through `disembark`/`_disembark` with the keeper
- *    supplying the pool; there is no queue to pre-stage and no claim step, hence no
- *    `IArkWithWithdrawalRequest` surface on this Ark.
- *  - iBENJI holder authorization (KYC/whitelist) is enforced by the token's own transfer policy and
- *    is NOT readable on-chain from the token (no public getter; its module registry is internal).
- *    This Ark reaches iBENJI only via the SwapPools, so the holder gate is enforced implicitly: if
- *    the Ark is not an authorized holder, a SwapPool's iBENJI delivery reverts inside the token
- *    and `_board` reverts. `isArkOnboarded(pool)` therefore checks the readable trader gate only;
- *    holder authorization must be granted off-chain by Franklin Templeton.
+ * Integration notes:
+ *  - Base-asset leg is USDC directly (no hop): USDC (6 dec) and iBENJI (18 dec) are both
+ *    registered and authorized on both SwapPools. `whitelistSwapPool` enforces this via
+ *    `isTokenPairAuthorized`. Per-trader authorization is required, so the Ark must be
+ *    authorized as a trader by Franklin Templeton on each pool before boarding (see
+ *    `isArkOnboarded`).
+ *  - iBENJI is a fixed-share ERC20 (18 dec), non-rebasing: `balanceOf` changes only on
+ *    mint/burn/transfer, and NAV is held at $1 par. Combined with the SwapPools' fixed 1:1
+ *    rate, 1:1 decimal-normalized accounting is exact; no NAV oracle is required.
+ *  - SwapPool redemption is synchronous: `swap` settles iBENJI -> USDC atomically and returns
+ *    nothing. Withdrawals flow through `disembark`/`_disembark` with the keeper supplying the
+ *    pool; there is no queue and no claim step, hence no `IArkWithWithdrawalRequest` surface.
+ *  - iBENJI holder authorization (KYC/whitelist) is enforced by the token's transfer policy and
+ *    is not readable on-chain. This Ark reaches iBENJI only via the SwapPools, so the holder
+ *    gate is enforced implicitly: if the Ark is not an authorized holder, a SwapPool's iBENJI
+ *    delivery reverts inside the token. `isArkOnboarded(pool)` checks the readable trader gate
+ *    only; holder authorization is granted off-chain by Franklin Templeton.
  *
- * The full board/disembark cycle is exercised against the production SwapPools and iBENJI in
- * `BenjiArk.fork.t.sol` by impersonating the SwapPool owner (trader authorization) and the iBENJI
- * AuthorizationModule admin (holder authorization).
+ * The full board/disembark cycle is tested against production SwapPools and iBENJI in
+ * `BenjiArk.fork.t.sol`.
  */
 contract BenjiArk is IBenjiArk, ArkSwapProvider {
     using SafeERC20 for IERC20;
@@ -171,9 +166,8 @@ contract BenjiArk is IBenjiArk, ArkSwapProvider {
 
     /**
      * @inheritdoc IBenjiArk
-     * @dev This reflects the given pool's trader gate only. iBENJI also requires the Ark to be an
-     *      authorized *holder*, which is enforced by the token and is not readable here; if missing,
-     *      it surfaces as a revert when the SwapPool delivers iBENJI during `_board`.
+     * @dev Reflects only the pool's trader gate. iBENJI holder authorization is not readable
+     *      here and surfaces as a revert if missing when the SwapPool delivers iBENJI.
      */
     function isArkOnboarded(address swapPool) external view returns (bool) {
         return
@@ -303,10 +297,8 @@ contract BenjiArk is IBenjiArk, ArkSwapProvider {
      * @notice Swaps iBENJI back into the base asset 1:1 via the keeper-selected SwapPool so the
      *         base `disembark` can forward exactly `amount` to the FleetCommander.
      * @dev The pool is decoded from `data` and was validated against the curator whitelist by
-     *      `_validateDisembarkData`. Uses any idle base asset first and only swaps the shortfall.
-     *      Swapping the full `amount` unconditionally would let a 1-wei base-asset donation inflate
-     *      `totalAssets()` above the iBENJI position and make a full exit try to swap more shares
-     *      than the Ark holds, reverting every `disembark(totalAssets())` until the dust is swept.
+     *      `_validateDisembarkData`. Uses idle base asset first and only swaps the shortfall to
+     *      prevent donated dust from inflating `totalAssets()` and causing a full exit to revert.
      */
     function _disembark(uint256 amount, bytes calldata data) internal override {
         uint256 idleAssets = _balanceOfAsset();
@@ -324,10 +316,9 @@ contract BenjiArk is IBenjiArk, ArkSwapProvider {
     }
 
     /**
-     * @dev Only the idle base-asset balance is withdrawable without keeper input: redeeming the
-     *      iBENJI position requires the keeper to select a SwapPool via `disembarkData`. Note the
-     *      public `withdrawableTotalAssets()` already reports 0 because `requiresKeeperData` is
-     *      true; this conservative value covers any internal callers.
+     * @dev Only idle base-asset balance is withdrawable without keeper input; redeeming iBENJI
+     *      requires keeper-selected SwapPool via `disembarkData`. The public
+     *      `withdrawableTotalAssets()` reports 0 because `requiresKeeperData` is true.
      */
     function _withdrawableTotalAssets()
         internal
