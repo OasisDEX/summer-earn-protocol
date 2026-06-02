@@ -142,6 +142,7 @@ pnpm --filter @summerfi/summer-earn-dca-subgraph run deploy:base  # Goldsky CLI
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-05-28 — claude — ABI sync after contract security fixes. `ExecutionCompleted` event reshaped to `(strategyId, tradesExecuted, inShares, outShares, inAssets, outAssets, nextTriggerAt)` — 7 params, was 5. Manifest event signature updated in lockstep. `Execution` entity renamed `amountIn`/`amountOut` → `inAssets`/`outAssets` (asset-denominated) and gained `inShares`/`outShares` (raw vault-share counts); `Strategy.totalInAssetSwapped` / `totalOutAssetReceived` are now correctly fed with asset amounts (was shares — latent bug). Schema-breaking; requires full re-index from start block on redeploy.
 - 2026-05-21 — claude — `Strategy.maxPrice` / `Strategy.minPrice` natspec
   updated to document the new unit (1e18-scaled out/in execution-price
   ratio). Wire format and mappings unchanged — both fields still pass
