@@ -155,7 +155,7 @@ contract MapleInstitutionalArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @inheritdoc IArkSwapProvider
+     * @inheritdoc IArkWithSwap
      */
     function withdrawUsingSwap(
         uint256 amount,

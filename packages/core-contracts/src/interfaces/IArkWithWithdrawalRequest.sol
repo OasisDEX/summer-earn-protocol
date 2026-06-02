@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IArkSwapProvider} from "./IArkSwapProvider.sol";
+import {IArkWithSwap} from "./IArkWithSwap.sol";
 
 /**
  * @title IArkWithWithdrawalRequest
  * @notice Interface for the Ark contract, which manages funds and interacts with Rafts
  * @notice Used for protocols that require a withdrawal request
  * @dev Inherits the curator-whitelisted router-swap surface (`withdrawUsingSwap`, `setSlippage`,
- *      `whitelistRouter`, `SwapData`, and the related errors/events) from `IArkSwapProvider`,
+ *      `whitelistRouter`, `SwapData`, and the related errors/events) from `IArkWithSwap`,
  *      which itself inherits `IArk`.
  */
-interface IArkWithWithdrawalRequest is IArkSwapProvider {
+interface IArkWithWithdrawalRequest is IArkWithSwap {
     /// @notice Error thrown when a withdrawal has already been requested
     error WithdrawalAlreadyRequested();
 

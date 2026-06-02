@@ -321,7 +321,7 @@ contract AeraArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @inheritdoc IArkSwapProvider
+     * @inheritdoc IArkWithSwap
      * @notice Emergency withdrawal using swap
      */
     function withdrawUsingSwap(

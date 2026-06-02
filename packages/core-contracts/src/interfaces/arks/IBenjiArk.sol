@@ -3,17 +3,17 @@ pragma solidity 0.8.28;
 
 import {IBenjiArkErrors} from "../../errors/arks/IBenjiArkErrors.sol";
 import {IBenjiArkEvents} from "../../events/arks/IBenjiArkEvents.sol";
-import {IArkSwapProvider} from "../IArkSwapProvider.sol";
+import {IArkWithSwap} from "../IArkWithSwap.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title IBenjiArk
  * @notice Interface for `BenjiArk` — the Franklin Templeton iBENJI Ark.
- * @dev Extends `IArkSwapProvider` (which extends `IArk`) because the Ark's escape hatch is the
+ * @dev Extends `IArkWithSwap` (which extends `IArk`) because the Ark's escape hatch is the
  *      curator-whitelisted router swap; the SwapPool entry/exit itself is synchronous, so there is
  *      no `IArkWithWithdrawalRequest` surface.
  */
-interface IBenjiArk is IArkSwapProvider, IBenjiArkErrors, IBenjiArkEvents {
+interface IBenjiArk is IArkWithSwap, IBenjiArkErrors, IBenjiArkEvents {
     /**
      * @notice Converts an iBENJI share amount to the equivalent base-asset amount at 1:1 par.
      * @param shares Amount in `shareDecimals`

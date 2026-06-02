@@ -4,14 +4,14 @@ pragma solidity 0.8.28;
 import {IArk} from "./IArk.sol";
 
 /**
- * @title IArkSwapProvider
+ * @title IArkWithSwap
  * @notice Interface for Arks that can exit positions through a curator-whitelisted DEX-aggregator
  *         router swap (`withdrawUsingSwap`), with a curator-configured slippage bound.
  * @dev Split out of `IArkWithWithdrawalRequest` so synchronous Arks (e.g. swap-based RWA Arks) can
  *      use the router-swap machinery without inheriting the async-withdrawal surface.
  *      `IArkWithWithdrawalRequest` inherits this interface, so existing consumers are unaffected.
  */
-interface IArkSwapProvider is IArk {
+interface IArkWithSwap is IArk {
     /// @notice Error thrown when a router is not whitelisted
     error RouterNotWhitelisted();
 

@@ -8,7 +8,7 @@ import {ISyrupWithdrawalManagerV2} from "../../interfaces/syrup/ISyrupWithdrawal
 import {IPoolPermissionManager} from "../../interfaces/syrup/IPoolPermissionManager.sol";
 import {ArkWithWithdrawalRequest} from "../ArkWithWithdrawalRequest.sol";
 import {IArk} from "../../interfaces/IArk.sol";
-import {IArkSwapProvider} from "../../interfaces/IArkSwapProvider.sol";
+import {IArkWithSwap} from "../../interfaces/IArkWithSwap.sol";
 import {IArkWithWithdrawalRequest} from "../../interfaces/IArkWithWithdrawalRequest.sol";
 import {Ark} from "../Ark.sol";
 import {ArkParams} from "../../types/ArkTypes.sol";
@@ -240,7 +240,7 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @inheritdoc IArkSwapProvider
+     * @inheritdoc IArkWithSwap
      */
     function withdrawUsingSwap(
         uint256 amount,
@@ -248,9 +248,9 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
     ) external onlyKeeper nonReentrant {
         // conservative estimate of shares to withdraw (reflecting market knowledge of unrealized losses)
         uint256 shares = VAULT.convertToExitShares(amount);
-        IArkSwapProvider.SwapData memory swapData = abi.decode(
+        IArkWithSwap.SwapData memory swapData = abi.decode(
             data,
-            (IArkSwapProvider.SwapData)
+            (IArkWithSwap.SwapData)
         );
         uint256 assetBought = _swap(
             address(VAULT),

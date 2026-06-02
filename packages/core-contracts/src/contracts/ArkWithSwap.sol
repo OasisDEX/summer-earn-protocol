@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
-import {IArkSwapProvider} from "../interfaces/IArkSwapProvider.sol";
+import {IArkWithSwap} from "../interfaces/IArkWithSwap.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ArkParams} from "../types/ArkTypes.sol";
 import {Ark} from "./Ark.sol";
@@ -11,7 +11,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /**
- * @title ArkSwapProvider
+ * @title ArkWithSwap
  * @author SummerFi
  *
  * @notice Abstract base for Arks that can exit positions through a curator-whitelisted
@@ -23,7 +23,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
  *      synchronous Arks (e.g. swap-based RWA Arks) that have no async-withdrawal surface.
  *      `ArkWithWithdrawalRequest` inherits this contract, so its subclasses are unaffected.
  */
-abstract contract ArkSwapProvider is IArkSwapProvider, Ark {
+abstract contract ArkWithSwap is IArkWithSwap, Ark {
     using SafeERC20 for IERC20;
 
     /// @notice Current slippage tolerance applied to `_swap`-bound exits, in basis points of
@@ -58,7 +58,7 @@ abstract contract ArkSwapProvider is IArkSwapProvider, Ark {
     //                       EXTERNAL FUNCTIONS
     // ============================================================
 
-    /// @inheritdoc IArkSwapProvider
+    /// @inheritdoc IArkWithSwap
     function whitelistRouter(
         address router,
         bool isWhitelisted
@@ -67,7 +67,7 @@ abstract contract ArkSwapProvider is IArkSwapProvider, Ark {
         emit RouterWhitelisted(router, isWhitelisted);
     }
 
-    /// @inheritdoc IArkSwapProvider
+    /// @inheritdoc IArkWithSwap
     function setSlippage(
         uint256 _slippage
     ) external onlyCurator(config.commander) {

@@ -222,6 +222,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         console.log("Refunding deposit request directly");
         provisioner.refundRequest(usdc, request);
     }
+
     function _solveAsyncRedeemRequestWithRefund(
         uint256 unitsIn,
         uint256 minTokensOut
@@ -740,8 +741,8 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
     //     uint256 swapAmount = 100 * 1e6; // 100 USDC
 
     //     // Mock swap data (simplified for test)
-    //     IArkSwapProvider.SwapData
-    //         memory swapData = IArkSwapProvider.SwapData({
+    //     IArkWithSwap.SwapData
+    //         memory swapData = IArkWithSwap.SwapData({
     //             router: address(0x123), // Mock router
     //             swapCalldata: abi.encodeWithSignature("swap()")
     //         });

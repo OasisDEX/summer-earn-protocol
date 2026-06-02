@@ -5,10 +5,10 @@ import {IBenjiArk} from "../../interfaces/arks/IBenjiArk.sol";
 import {IBenjiToken} from "../../interfaces/benji/IBenjiToken.sol";
 import {ISwapPool} from "../../interfaces/benji/ISwapPool.sol";
 import {IArk} from "../../interfaces/IArk.sol";
-import {IArkSwapProvider} from "../../interfaces/IArkSwapProvider.sol";
+import {IArkWithSwap} from "../../interfaces/IArkWithSwap.sol";
 import {ArkParams} from "../../types/ArkTypes.sol";
 import {Ark} from "../Ark.sol";
-import {ArkSwapProvider} from "../ArkSwapProvider.sol";
+import {ArkWithSwap} from "../ArkWithSwap.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {TokenLibrary} from "@summerfi/dutch-auction/lib/TokenLibrary.sol";
@@ -44,7 +44,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    by `slippage`, then boards the proceeds to the buffer ark.
  *
  * Because the SwapPool path is synchronous, this Ark has no async-withdrawal surface; it
- * extends `ArkSwapProvider` (Ark + curator-whitelisted router-swap machinery: `_swap`,
+ * extends `ArkWithSwap` (Ark + curator-whitelisted router-swap machinery: `_swap`,
  * `whitelistRouter`, `_applySlippage`, `setSlippage`, `_boardToBufferArk`) rather than
  * `ArkWithWithdrawalRequest`, so there are no inert `requestWithdrawal`/`claimWithdrawal` stubs.
  *
@@ -69,7 +69,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * The full board/disembark cycle is tested against production SwapPools and iBENJI in
  * `BenjiArk.fork.t.sol`.
  */
-contract BenjiArk is IBenjiArk, ArkSwapProvider {
+contract BenjiArk is IBenjiArk, ArkWithSwap {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
     using TokenLibrary for uint256;
@@ -122,7 +122,7 @@ contract BenjiArk is IBenjiArk, ArkSwapProvider {
         address _shareToken,
         Percentage _depositSlippage,
         ArkParams memory _params
-    ) ArkSwapProvider(_params, DEFAULT_SWAP_SLIPPAGE) {
+    ) ArkWithSwap(_params, DEFAULT_SWAP_SLIPPAGE) {
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
         if (!_params.requiresKeeperData) revert MustRequireKeeperData();
         if (_depositSlippage > MAX_DEPOSIT_SLIPPAGE) {
@@ -207,7 +207,7 @@ contract BenjiArk is IBenjiArk, ArkSwapProvider {
     }
 
     /**
-     * @inheritdoc IArkSwapProvider
+     * @inheritdoc IArkWithSwap
      * @notice Secondary-market escape: sells iBENJI for the base asset through a curator-whitelisted
      *         DEX router when the SwapPool path is unavailable (paused/illiquid), then boards the
      *         proceeds to the FleetCommander buffer ark.
@@ -238,7 +238,7 @@ contract BenjiArk is IBenjiArk, ArkSwapProvider {
 
     /**
      * @inheritdoc IBenjiArk
-     * @dev Restricted to the curator (consistent with `setSlippage` on `ArkSwapProvider` — slippage
+     * @dev Restricted to the curator (consistent with `setSlippage` on `ArkWithSwap` — slippage
      *      bounds are risk parameters, not keeper operations). Reverts with
      *      `InvalidDepositSlippage` if the supplied value exceeds `MAX_DEPOSIT_SLIPPAGE`.
      * @param newDepositSlippage The new deposit slippage

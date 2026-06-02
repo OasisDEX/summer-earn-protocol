@@ -4,11 +4,11 @@ pragma solidity 0.8.28;
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 
-import {IArkSwapProvider} from "../interfaces/IArkSwapProvider.sol";
+import {IArkWithSwap} from "../interfaces/IArkWithSwap.sol";
 import {IArkWithWithdrawalRequest} from "../interfaces/IArkWithWithdrawalRequest.sol";
 import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
 import {Ark} from "./Ark.sol";
-import {ArkSwapProvider} from "./ArkSwapProvider.sol";
+import {ArkWithSwap} from "./ArkWithSwap.sol";
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
@@ -21,7 +21,7 @@ import {Constants} from "@summerfi/constants/Constants.sol";
  *         initiates the off-chain settlement, and a separate `sweep` (or `claimWithdrawal`) step
  *         brings the underlying asset back to this Ark and forwards it to the FleetCommander's
  *         buffer ark. Inherits the whitelisted-router swap utility (`_swap`, `_applySlippage`,
- *         `whitelistRouter`, `setSlippage`, `_boardToBufferArk`) from `ArkSwapProvider` for exits
+ *         `whitelistRouter`, `setSlippage`, `_boardToBufferArk`) from `ArkWithSwap` for exits
  *         that route through a DEX aggregator.
  *
  * @dev Concrete subclasses must still implement the abstract hooks defined on `Ark` (`_board`,
@@ -33,7 +33,7 @@ import {Constants} from "@summerfi/constants/Constants.sol";
  */
 abstract contract ArkWithWithdrawalRequest is
     IArkWithWithdrawalRequest,
-    ArkSwapProvider
+    ArkWithSwap
 {
     using SafeERC20 for IERC20;
 
@@ -50,7 +50,7 @@ abstract contract ArkWithWithdrawalRequest is
     constructor(
         ArkParams memory _params,
         uint256 _slippage
-    ) ArkSwapProvider(_params, _slippage) {}
+    ) ArkWithSwap(_params, _slippage) {}
 
     // ============================================================
     //                       EXTERNAL FUNCTIONS

@@ -427,7 +427,7 @@ contract WisdomTreeArk is ArkWithWithdrawalRequest, ERC721Holder {
     }
 
     /**
-     * @inheritdoc IArkSwapProvider
+     * @inheritdoc IArkWithSwap
      * @dev No-op: Swap-based exits are not supported for this Ark.
      */
     function withdrawUsingSwap(

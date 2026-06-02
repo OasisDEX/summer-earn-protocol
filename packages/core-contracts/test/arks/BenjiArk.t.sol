@@ -5,7 +5,7 @@ import {BenjiArk} from "../../src/contracts/arks/BenjiArk.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {IBenjiArkErrors} from "../../src/errors/arks/IBenjiArkErrors.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
-import {IArkSwapProvider} from "../../src/interfaces/IArkSwapProvider.sol";
+import {IArkWithSwap} from "../../src/interfaces/IArkWithSwap.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBaseWhitelist} from "./ArkTestBaseWhitelist.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -532,7 +532,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
 
     function test_AccessControl_WithdrawUsingSwapRevertsForNonKeeper() public {
         bytes memory data = abi.encode(
-            IArkSwapProvider.SwapData({
+            IArkWithSwap.SwapData({
                 router: address(0x1234),
                 swapCalldata: hex""
             })
@@ -572,7 +572,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             (address(ibenji), address(stable), shares, ONE, address(ark))
         );
         bytes memory data = abi.encode(
-            IArkSwapProvider.SwapData({
+            IArkWithSwap.SwapData({
                 router: address(router),
                 swapCalldata: swapCalldata
             })
@@ -582,17 +582,13 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         ark.withdrawUsingSwap(ONE, data);
 
         assertEq(ibenji.balanceOf(address(ark)), 0, "iBENJI sold");
-        assertEq(
-            stable.balanceOf(address(bufferArk)),
-            ONE,
-            "proceeds buffered"
-        );
+        assertEq(stable.balanceOf(address(bufferArk)), ONE, "ArkWithSwaped");
     }
 
     function test_WithdrawUsingSwap_RevertsNonWhitelistedRouter() public {
         _board(ONE);
         bytes memory data = abi.encode(
-            IArkSwapProvider.SwapData({
+            IArkWithSwap.SwapData({
                 router: address(0x1234),
                 swapCalldata: hex""
             })
@@ -605,7 +601,7 @@ contract BenjiArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
     /* ---------------------------- valuation ------------------------------ */
 
     function test_SharesToAssets_Normalizes() public view {
-        // 1 iBENJI (1e18) == 1 stable (1e6) at par.
+        // 1 ArkWithSwap= 1 stable (1e6) at par.
         assertEq(ark.sharesToAssets(1e18), 1e6);
         assertEq(ark.sharesToAssets(1000 * 1e18), 1000 * 1e6);
     }
