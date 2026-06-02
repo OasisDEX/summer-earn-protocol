@@ -588,7 +588,7 @@ contract SuperstateSubscribeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             abi.encode(true)
         );
 
-        // Keeper sweep would revert (returned shares < pendingWithdrawalShares with 0 slippage)
+        // Keeper sweep would revert (returned shares < pendingWithdrawalShares with default slippage)
         vm.startPrank(keeper);
         vm.expectRevert();
         ark.sweep();
