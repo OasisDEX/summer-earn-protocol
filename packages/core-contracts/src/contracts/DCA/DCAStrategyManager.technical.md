@@ -7,8 +7,8 @@
 > `ChainlinkOracleUtils`) plus the `IDCAStrategyManager` interface/events/errors.
 > **Companion docs:** [`DCAStrategyManager.product.md`](./DCAStrategyManager.product.md)
 > (non-technical), [`CLAUDE.md`](./CLAUDE.md) (maintainer invariants),
-> [`security-review-DCAStrategyManager.md`](./security-review-DCAStrategyManager.md)
-> (2026-05-26 review — see §14 for remediation status).
+> [`DCAStrategyManager.ai-audit.md`](./DCAStrategyManager.ai-audit.md)
+> (AI adversarial audit — fresh findings; see §15).
 >
 > Line references are against the source at the time of writing; re-verify
 > against the contract before relying on any single number.
@@ -456,26 +456,43 @@ COMPLETED→CANCELLED block, 50% slippage cap, oracle staleness check).
 | `errors/arks/IDCAStrategyManagerErrors.sol` | Errors |
 | `events/arks/IDCAStrategyManagerEvents.sol` | Events |
 
-**Prior review:** `security-review-DCAStrategyManager.md` (2026-05-26, Pashov
-solidity-auditor skill). Findings F-1 (permissionless creation), F-2 (oracle
-staleness), F-3 (terminal-edit frees commitment), F-4 (COMPLETED→CANCELLED), F-5
-(100% slippage) are **all remediated** in the current source. Leads L-1…L-6
-remain worth re-checking; **L-4 is superseded** (execute now carries the registry
-modifier — see §13).
+**Reviews.** The 2026-05-26 external review (Pashov `solidity-auditor` skill)
+raised F-1 (permissionless creation), F-2 (oracle staleness), F-3 (terminal-edit
+frees commitment), F-4 (COMPLETED→CANCELLED), F-5 (100% slippage) — **all
+remediated** in the current source (its lead L-4 is superseded; execute now carries
+the registry modifier — see §13). The fresh **AI adversarial audit** (2026-06-03,
+Gemini + GPT-5.5 + source verification) is the current finding set; see §15 and the
+full writeup in [`DCAStrategyManager.ai-audit.md`](./DCAStrategyManager.ai-audit.md).
 
 ---
 
-## 15. External adversarial review (Gemini + GPT-5.5)
+## 15. AI security audit (summary)
 
-Two external models independently reviewed the in-scope source in an adversarial
-"try to break it" framing on 2026-06-03:
-- Google **`gemini-3.1-pro-preview`** (Gemini CLI, security extension)
-- OpenAI **`gpt-5.5`** (Codex CLI, reasoning effort `xhigh`, structured output)
+The fresh adversarial findings (2026-06-03 — Gemini `gemini-3.1-pro-preview` +
+OpenAI `gpt-5.5`, with a Claude-led source verification) are maintained in their
+own companion doc, which is the **canonical** writeup:
+**[`DCAStrategyManager.ai-audit.md`](./DCAStrategyManager.ai-audit.md)**.
 
-Both were told F-1…F-5 from the 2026-05-26 review are fixed and asked for issues
-*beyond* them. **Findings below are leads to verify, not confirmed
-vulnerabilities.** Notably, both models independently converged on the same
-headline issue.
+| ID | Finding | Severity | Status |
+|----|---------|----------|--------|
+| C-1 | Keeper can route swap surplus to itself (`minOut` is not a floor vs. the keeper) | High | **Risk accepted — keeper trusted** |
+| C-2 | `minOut` can round to zero for tiny expected-share counts | Low | Open (defense-in-depth) |
+| C-3 | `checkUpkeep` doesn't mirror `executeStrategy` preconditions | Medium | Open |
+| X-1 | Permit2 fallback ignores allowance expiration | Low | Open |
+| G-1 | Execution schedule drifts off hour alignment | Info | Open |
+
+**C-1 is risk-accepted:** the keeper is a trusted, permissioned role
+(`KEEPER_ROLE` / `SUPER_KEEPER_ROLE`), so `minOut` is treated as a slippage bound
+for an honest keeper. Revisit if keepers ever become permissionless. The
+FleetCommander verification (in the audit doc) downgrades C-2's inflation
+amplifier. See §13 (keeper trust) and §9 (edit-trigger timing) for the
+integrator-facing angles.
+
+<details>
+<summary>Appendix — original two-model writeup (2026-06-03; superseded by the audit doc above)</summary>
+
+> Retained for reference. The audit doc is authoritative; C-1 has since been
+> risk-accepted (keeper trusted).
 
 ### Consensus finding (both models — HIGH)
 
@@ -622,6 +639,8 @@ specific already-applied-nonce race this path targets.
 > Provenance: run via the `/second-opinion` skill (Trail of Bits). These are
 > independent model opinions; confirm each against the source and the test suite
 > before acting.
+
+</details>
 
 ---
 
