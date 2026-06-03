@@ -407,9 +407,14 @@ Registry/roles: `InactiveFleetCommander`, `CallerIsNotKeeper`.
 ### Trust boundaries
 - **Keeper** (semi-trusted): chooses *when* (within the schedule/price window) and
   *how* (the Enso route) a trade executes. Bounded by: `onlyKeeper`, the
-  `minOut`/price guards, and proceeds hard-wired to `config.owner`. **Not bounded**
-  against: ordering/MEV within the slippage band, choosing a sub-optimal-but-
-  passing route, or simply not executing (liveness).
+  `minOut`/price guards, and the fact that whatever target shares *reach the
+  manager* are forwarded to `config.owner`. **Not bounded** against: ordering/MEV,
+  choosing a sub-optimal-but-passing route, or simply not executing (liveness).
+  ⚠️ **Crucially**, `minOut` is only a floor on what the route delivers to the
+  manager — it does not prove the route sent *all* proceeds there. A malicious
+  keeper can deliver exactly `minOut` and keep the rest (up to `slippageBps` of
+  expected output per trade). The external review flags this as the top issue —
+  see **C-1 in §15**.
 - **Oracle** (trusted within 24h): `MAX_ORACLE_STALENESS = 86400`. Any round
   fresher than 24h is trusted as-is; no deviation/sequencer-uptime check.
 - **Enso router** (trusted code, untrusted calldata): `ensoData` is forwarded
@@ -462,12 +467,111 @@ modifier — see §13).
 
 ## 15. External adversarial review (Gemini + GPT-5.5)
 
-> An independent adversarial review by two external models (Google
-> `gemini-3.1-pro-preview` and OpenAI `gpt-5.5`) was run against the in-scope
-> source. **Findings are appended below once both reviews complete.** Treat them
-> as leads to verify, not confirmed vulnerabilities.
+Two external models independently reviewed the in-scope source in an adversarial
+"try to break it" framing on 2026-06-03:
+- Google **`gemini-3.1-pro-preview`** (Gemini CLI, security extension)
+- OpenAI **`gpt-5.5`** (Codex CLI, reasoning effort `xhigh`, structured output)
 
-_(pending — populated from the second-opinion run)_
+Both were told F-1…F-5 from the 2026-05-26 review are fixed and asked for issues
+*beyond* them. **Findings below are leads to verify, not confirmed
+vulnerabilities.** Notably, both models independently converged on the same
+headline issue.
+
+### Consensus finding (both models — HIGH)
+
+**C-1 — The keeper's arbitrary Enso route makes `minOut` a profit margin, not a
+safety floor.** `_executeSwap` (`DCAStrategyManager.sol:771-786`) approves
+`tradeAmount` source shares to Enso, forwards opaque keeper-supplied `ensoData`,
+and only checks the manager's *target-share balance delta ≥ minOut*. It never
+constrains where the route sends value. A malicious or compromised keeper can
+route the full pulled amount, deliver exactly `minOut` target shares to the
+manager, and direct the surplus to itself — every trade, deterministically.
+
+- `minOut = expectedOutShares × (1 − slippageBps)`. With the 50% cap, a keeper can
+  skim up to **~50% of expected output per trade** and still pass. Even a tight
+  `slippageBps` is a per-trade skim ceiling, not a one-off MEV risk.
+- The 24h oracle staleness window widens the gap between `minOut` and the *live*
+  market price, so the capturable surplus can exceed the user's intended slippage.
+- Codex confidence 0.86; Gemini confidence 1.0 (framed via target-vault inflation).
+
+**Why it matters:** the design treats the keeper as "bounded by `minOut`." In
+reality the keeper is trusted with up to `slippageBps` of every trade. This must
+be an explicit, accepted assumption — or mitigated.
+
+**Mitigation directions (to evaluate):** don't forward arbitrary router calldata
+for user-owned swaps — prefer a constrained wrapper where the manager supplies
+`(tokenIn, tokenOut, amount, recipient = address(this), minOut)` and Enso cannot
+redirect output, or decode/whitelist the route and reject any non-manager output
+recipient; and verify the floor against a manipulation-resistant price while
+forwarding the *full measured* output to the owner.
+
+### Corroborating / amplifying findings
+
+**C-2 — `minOut` can round to zero for small expected-share counts (Codex MEDIUM
+0.70; Gemini detail).** The guard rejects `expectedOutShares == 0` but not the
+case where `subtractBps` floors a small positive value to `minOut = 0` (e.g.
+`expectedOutShares == 1, slippageBps > 0`). A target-vault donation/inflation
+attack can push `previewDeposit(expectedOutAssets)` down to 1 → `minOut = 0` → a
+zero-output route passes. Fixes: require `minOut > 0` after slippage, round the
+floor up, enforce a minimum trade/expected-share size, quote against a
+manipulation-resistant share price. *Dependency:* FleetCommander's ERC4626
+inflation resistance (virtual shares / decimals offset) — **verify this**. C-1
+holds regardless; C-2's inflation amplifier depends on it.
+
+**C-3 — `checkUpkeep` does not mirror `executeStrategy`'s preconditions (Codex
+MEDIUM 0.90; Gemini LOW on the `endDate` sub-case).** `checkUpkeep`
+(`DCAStrategyManager.sol:418-458`) omits the active-vault check, the unconditional
+oracle/`minOut` computation, the `ZeroExpectedOutShares` path, and Permit2
+allowance/expiration & owner-balance checks; it also returns `false` once
+`endDate` passes (so the auto-COMPLETE transition is unreachable by a keeper that
+only trusts `checkUpkeep`, leaving the strategy ACTIVE-but-dead). Net effects:
+(a) false positives → `executeStrategy` reverts → keeper gas-griefing; (b) expired
+strategies never reach COMPLETED on-chain. Fix: mirror execution preconditions in
+`checkUpkeep` (and surface an `endDate` cleanup signal), or document it as a
+partial hint and require keepers to simulate.
+
+### Single-model findings
+
+**G-1 — Schedule drift (Gemini, LOW/info).** Creation hour-aligns `nextTriggerAt`,
+but executions set `nextTriggerAt = block.timestamp + interval`, drifting the slot
+forward each trade and defeating the alignment. `nextTriggerAt =
+state.nextTriggerAt + interval` fixes it (trade-off: can bunch catch-up runs after
+a late keeper).
+
+**X-1 — Permit2 fallback ignores allowance expiration (Codex, LOW 0.78).**
+`Permit2Consumer._applyPermit2Allowance` (`lines 140-146`) catches a failed
+`PERMIT2.permit` and accepts a pre-existing allowance checking only `amount`,
+discarding `expiration`. A create can succeed against an old, sufficiently-funded
+allowance that expires before `endDate`, so later keeper pulls revert
+`AllowanceExpired`. Fix: in the catch path also require on-chain
+`expiration ≥ signed expiration` (or `≥ endDate`); ideally suppress only the
+specific already-applied-nonce race this path targets.
+
+### What both models agree is NOT broken
+- The stateless commitment ownership model is sound; neither found an unprivileged
+  path to pull another user's shares (the original F-1 stays fixed).
+- Permit2 sub-allowance sizing and Chainlink decimal normalisation are correct.
+
+### Verdicts
+- **Codex (`gpt-5.5`):** "not safe under the stated adversarial keeper and
+  griefing assumptions"; commitment model sound; root issue is over-trusting the
+  keeper's Enso calldata. Overall confidence 0.82.
+- **Gemini (`gemini-3.1-pro-preview`):** 9.5/10 architecture; the share-denominated
+  `minOut` against a manipulable spot rate is the must-fix before deploy.
+
+### Maintainer takeaways (priority order)
+1. **Decide the keeper trust model (C-1).** Either accept "keeper may skim up to
+   `slippageBps` per trade" explicitly, or constrain the Enso route (hard-code
+   output recipient / whitelist / wrapper) so the floor is a real safety bound.
+2. **Harden the floor (C-2):** `minOut > 0`, round-up, minimum trade size, and
+   confirm FleetCommander inflation resistance.
+3. **Align `checkUpkeep` with execution (C-3)** or document it as a partial hint.
+4. **Fix the Permit2 catch-path expiration check (X-1).**
+5. **Optional:** rigid scheduling (G-1).
+
+> Provenance: run via the `/second-opinion` skill (Trail of Bits). These are
+> independent model opinions; confirm each against the source and the test suite
+> before acting.
 
 ---
 
