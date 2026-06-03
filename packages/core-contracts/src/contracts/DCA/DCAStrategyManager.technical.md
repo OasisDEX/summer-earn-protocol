@@ -5,7 +5,7 @@
 > **Scope:** `DCAStrategyManager.sol` and its direct dependencies
 > (`EnsoRouterSwapper`, `Permit2Consumer`, `HarborCommandConsumer`,
 > `ChainlinkOracleUtils`) plus the `IDCAStrategyManager` interface/events/errors.
-> **Companion docs:** [`PRODUCT-SPEC-DCAStrategyManager.md`](./PRODUCT-SPEC-DCAStrategyManager.md)
+> **Companion docs:** [`DCAStrategyManager.product.md`](./DCAStrategyManager.product.md)
 > (non-technical), [`CLAUDE.md`](./CLAUDE.md) (maintainer invariants),
 > [`security-review-DCAStrategyManager.md`](./security-review-DCAStrategyManager.md)
 > (2026-05-26 review — see §14 for remediation status).
@@ -515,8 +515,10 @@ attack can push `previewDeposit(expectedOutAssets)` down to 1 → `minOut = 0` �
 zero-output route passes. Fixes: require `minOut > 0` after slippage, round the
 floor up, enforce a minimum trade/expected-share size, quote against a
 manipulation-resistant share price. *Dependency:* FleetCommander's ERC4626
-inflation resistance (virtual shares / decimals offset) — **verify this**. C-1
-holds regardless; C-2's inflation amplifier depends on it.
+inflation resistance — **verified, see "Verification against FleetCommander"
+below**. C-1 holds regardless; C-2's inflation *amplifier* turns out to be
+largely mitigated for FleetCommander, but the `minOut == 0` guard gap is still a
+cheap, worthwhile fix.
 
 **C-3 — `checkUpkeep` does not mirror `executeStrategy`'s preconditions (Codex
 MEDIUM 0.90; Gemini LOW on the `endDate` sub-case).** `checkUpkeep`
@@ -529,6 +531,52 @@ only trusts `checkUpkeep`, leaving the strategy ACTIVE-but-dead). Net effects:
 strategies never reach COMPLETED on-chain. Fix: mirror execution preconditions in
 `checkUpkeep` (and surface an `endDate` cleanup signal), or document it as a
 partial hint and require keepers to simulate.
+
+### Verification against FleetCommander (2026-06-03)
+
+I traced C-1 and C-2 against the actual source vault, since both findings hinge
+on the source/target vaults' ERC4626 internals.
+
+**What FleetCommander is:**
+- It inherits **OpenZeppelin's standard `ERC4626`** (`FleetCommander.sol:13,29,49`,
+  `constructor … ERC4626(IERC20(params.asset))`) — appreciating shares, standard
+  OZ conversion formulas.
+- It **does not override `_decimalsOffset()`** → OZ default `0` → the conversion
+  math carries OZ's built-in `+1` virtual asset / `+1` virtual share dampener:
+  `shares = assets·(totalSupply+1)/(totalAssets+1)` and the inverse.
+- It **overrides `totalAssets()`** (`FleetCommander.sol:359`) →
+  `_totalAssets(config.bufferArk)` → `FleetCommanderCacheLib.totalAssets` →
+  `sumTotalAssets(getAllArks(...))` = the sum of each **Ark's** position plus the
+  buffer Ark. **It does not read the vault's own `asset.balanceOf(this)`.**
+
+**Conclusion — C-1 (keeper route surplus skim): CONFIRMED, and independent of
+vault internals.** The manager approves `tradeAmount` source shares to Enso and
+verifies only the *target-share balance delta ≥ minOut*; it never constrains the
+route's output recipient. A malicious/compromised keeper can deliver exactly
+`minOut` and divert the rest. This holds for any ERC4626 vault. **Severity gate:
+the keeper is permissioned** (`KEEPER_ROLE` / `SUPER_KEEPER_ROLE`, granted by
+governance), so this is an insider/compromise threat, not a permissionless one —
+but `minOut` is genuinely *not* a safety floor against the keeper. This is the
+finding to resolve.
+
+**Conclusion — C-2 (inflation amplifier): LARGELY MITIGATED for FleetCommander.**
+The classic "donate tokens to the vault to inflate the share price" move **does
+not work**: a direct ERC20 transfer to the FleetCommander address is *uncounted*
+because `totalAssets()` reads Ark positions, not the vault's own balance. Add the
+OZ `+1/+1` virtual offset, and to force `previewDeposit(expectedOutAssets) → 1`
+you would need share price (assets/share) to exceed a whole trade's
+`expectedOutAssets`, i.e. a donation on the order of total TVL — economically
+irrelevant for any established vault. The only theoretical donation vector is into
+the **buffer Ark** (whose `totalAssets()` reads its own balance), and even that is
+TVL-gated by the points above; it could only bite a brand-new, near-empty target
+vault.
+
+> **Net:** treat C-1 as the real, must-decide issue (keeper trust model). C-2's
+> inflation *exploit* is impractical against FleetCommander, but the mechanical
+> gap it rides on — the contract rejecting only `expectedOutShares == 0`, never
+> `minOut == 0` after `subtractBps` flooring — is still a cheap defense-in-depth
+> fix (`require(minOut > 0)`, round-up, minimum trade size), most relevant for new
+> or low-TVL target vaults.
 
 ### Single-model findings
 
@@ -563,8 +611,10 @@ specific already-applied-nonce race this path targets.
 1. **Decide the keeper trust model (C-1).** Either accept "keeper may skim up to
    `slippageBps` per trade" explicitly, or constrain the Enso route (hard-code
    output recipient / whitelist / wrapper) so the floor is a real safety bound.
-2. **Harden the floor (C-2):** `minOut > 0`, round-up, minimum trade size, and
-   confirm FleetCommander inflation resistance.
+2. **Harden the floor (C-2):** `minOut > 0`, round-up, minimum trade size.
+   (FleetCommander's inflation resistance was verified adequate — see
+   "Verification against FleetCommander" — so this is defense-in-depth, chiefly
+   for new/low-TVL target vaults.)
 3. **Align `checkUpkeep` with execution (C-3)** or document it as a partial hint.
 4. **Fix the Permit2 catch-path expiration check (X-1).**
 5. **Optional:** rigid scheduling (G-1).
