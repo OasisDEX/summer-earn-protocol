@@ -19,6 +19,8 @@ import { SiloProduct } from '../products/Silo'
 import { SkyRewardsProduct } from '../products/SkyRewardsProduct'
 import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
 import { SparkProduct } from '../products/SparkProduct'
+import { SecuritizeDailyAccrualProduct } from '../products/SecuritizeDailyAccrualProduct'
+import { SecuritizePriceFeedProduct } from '../products/SecuritizePriceFeedProduct'
 import { getOrCreateToken } from '../utils/initializers'
 
 /**
@@ -884,6 +886,35 @@ class ProtocolConfig {
           BigInt.fromI32(23631727),
           'InfiniFi',
         ),
+      ]),
+      // Securitize RWA funds (DSToken). The fund token address is used as the pool address.
+      // Price-feed products: yield shows up as a rising NAV (ACRED, STAC).
+      new Protocol('Securitize', [
+        new SecuritizePriceFeedProduct(
+          getOrCreateToken(Address.fromString('0x17418038ecF73BA4026c4f428547BF099706F27B')), // ACRED
+          Address.fromString('0x17418038ecF73BA4026c4f428547BF099706F27B'),
+          BigInt.fromI32(25229442),
+          'Securitize',
+          Address.fromString('0xD6BcbbC87bFb6c8964dDc73DC3EaE6d08865d51C'), // ACRED_FUNDAMENTAL NAV feed
+        ),
+        new SecuritizePriceFeedProduct(
+          getOrCreateToken(Address.fromString('0x51C2d74017390CbBd30550179A16A1c28F7210fc')), // STAC
+          Address.fromString('0x51C2d74017390CbBd30550179A16A1c28F7210fc'),
+          BigInt.fromI32(25229442),
+          'Securitize',
+          Address.fromString('0xEdC6287D3D41b322AF600317628D7E226DD3add4'), // STAC_FUNDAMENTAL NAV feed
+        ),
+      ]),
+      // Daily-accrual products: yield does not move the NAV (VBILL, ACRED).
+      new Protocol('Securitize Daily Accrual', [
+        new SecuritizeDailyAccrualProduct(
+          getOrCreateToken(Address.fromString('0x2255718832bC9fD3bE1CaF75084F4803DA14FF01')), // VBILL
+          Address.fromString('0x2255718832bC9fD3bE1CaF75084F4803DA14FF01'),
+          BigInt.fromI32(25229442),
+          'Securitize Daily Accrual',
+          Address.fromString('0x5cC480aeCAd8F52ebd25b9B427737e401E47e8B0'), // VBILL daily-accrual feed
+        ),
+        // TODO(securitize): add the ACRED daily-accrual product once its feed address is provided.
       ]),
     ]
   }
