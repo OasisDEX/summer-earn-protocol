@@ -67,7 +67,7 @@ strategy in one transaction; the resulting source-vault shares go directly to
 ## Invariants
 
 - **Commitment IS the ownership proof.** `keccak256(abi.encode(config))` is
-  stored as `_strategyCommitments[strategyId]`. Every owner-gated function
+  stored in the public `strategyCommitments[strategyId]` mapping. Every owner-gated function
   takes `StrategyConfig calldata`, recomputes the hash, checks it against the
   stored commitment, then checks `msg.sender == config.owner`. There is no
   `_strategyOwners` mapping.
@@ -75,7 +75,7 @@ strategy in one transaction; the resulting source-vault shares go directly to
   It's an explicit argument to `editStrategy`/`pauseStrategy`/`resumeStrategy`/
   `cancelStrategy`/`executeStrategy`/`checkUpkeep`. The wire encoding of
   `StrategyConfig` must mirror this everywhere (subgraph, app, keeper).
-- **Duplicate prevention is O(1).** `_activeCommitments[hash] = true` on
+- **Duplicate prevention is O(1).** The public `activeCommitments[hash] = true` on
   create/edit; the lookup blocks identical resubmissions. **Terminal states
   (Cancelled/Completed) do NOT free the entry** — the user gets a fresh hash
   naturally because real edits change at least one field (e.g. a new
@@ -84,7 +84,8 @@ strategy in one transaction; the resulting source-vault shares go directly to
   `UnauthorizedAccess` when `newConfig.owner != oldConfig.owner`.
 - **Auto-COMPLETED transition.** After the last valid execution
   (`tradesExecuted >= maxTrades` OR `nextTriggerAt >= endDate`),
-  `_executeSwapCore` flips status to `COMPLETED` and emits
+  `_executeStrategy` (via the `_markCompleted` helper) flips status to
+  `COMPLETED` and emits
   `StrategyCompleted(id, reason)`. Subsequent keeper calls revert with
   `StrategyNotActive`, not `TerminalStateReached`.
 - **Effects-before-interactions.** State writes (`tradesExecuted`,
@@ -124,6 +125,11 @@ jq '.abi' out/DCAStrategyManager.sol/DCAStrategyManager.json \
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-06-03 — claude — doc-sync only (no logic change): corrected the
+  Invariants section to match the source — `strategyCommitments` /
+  `activeCommitments` are the public mapping names (no leading underscore), and
+  the auto-COMPLETED transition lives in `_executeStrategy` via `_markCompleted`,
+  not the long-renamed `_executeSwapCore`.
 - 2026-05-27 — claude — product alignment + DRY pass.
   Validation: `_MAX_INTERVAL = 90 days` cap (new `IntervalTooLong` error);
   `maxTrades == 0` rejected (new `ZeroMaxTrades` error); `maxTrades >= 1` is
