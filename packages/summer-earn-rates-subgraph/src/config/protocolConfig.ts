@@ -829,6 +829,15 @@ class ProtocolConfig {
           'Syrup',
         ),
       ]),
+      // Maple institutional pool — a standard ERC4626 vault (MPLhysUSDC1, asset USDC).
+      new Protocol('Maple Institutional', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xC39a5A616F0ad1Ff45077FA2dE3f79ab8eb8b8B9'),
+          BigInt.fromI32(19363393),
+          'Maple Institutional',
+        ),
+      ]),
       new Protocol('Origin', [
         new OriginEthProduct(
           getOrCreateToken(addresses.WETH),
