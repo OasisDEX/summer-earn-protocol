@@ -32,6 +32,11 @@ export const ABI_FETCHER_CONFIG: Record<
     apiUrl: 'https://api.etherscan.io/v2/api?chainid=146&',
     apiKeyEnv: 'ETHERSCAN_API_KEY',
   },
+  '999': {
+    type: AbiFetcherType.Etherscan,
+    apiUrl: 'https://api.etherscan.io/v2/api?chainid=999&',
+    apiKeyEnv: 'ETHERSCAN_API_KEY',
+  },
 }
 
 export const getAbiFetcher = async (chainId: string): Promise<AbiFetcher> => {
