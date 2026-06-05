@@ -10,6 +10,8 @@ import {
   InstitutionGovernanceSchema,
   InstitutionIndex,
   InstitutionIndexSchema,
+  TimelockConfig,
+  TimelockConfigSchema,
 } from './zod-schemas'
 
 export function getInstitutionRootDir(): string {
@@ -81,6 +83,7 @@ export function readInstitutionGovernance(
   const net = content[network]
   const treasury = net?.treasury
   const governor = net?.governor
+  const curators = net?.curators
   const guardian = net?.guardian
   const superKeeper = net?.superKeeper
   const whitelistManagers = net?.whitelistManagers
@@ -90,6 +93,7 @@ export function readInstitutionGovernance(
     const parsed = InstitutionGovernanceSchema.parse({
       treasury,
       governor,
+      curators,
       guardian,
       superKeeper,
       whitelistManagers,
@@ -97,6 +101,7 @@ export function readInstitutionGovernance(
     return {
       treasury: parsed.treasury as Address,
       governor: parsed.governor as Address[],
+      curators: parsed.curators as Address[],
       guardian: parsed.guardian as Address[],
       superKeeper: parsed.superKeeper as Address,
       whitelistManagers: parsed.whitelistManagers as Address[],
@@ -106,6 +111,26 @@ export function readInstitutionGovernance(
       `Institution governance is missing or invalid for network "${network}". Ensure fields { treasury, governor[], guardian[], superKeeper, whitelistManagers[] } exist under that network in the institution index file for "${institutionId}"`,
     )
   }
+}
+
+/**
+ * Reads the per-network timelock delay configuration for an institution.
+ *
+ * Both RwaTimelock instances are always deployed regardless of this config — it only sets each
+ * one's delay. When the `timelock` block is absent for the network, both delays default to 0
+ * (immediate execution), which is the "none" mode. See TimelockConfigSchema for the full mapping.
+ */
+export function readInstitutionTimelockConfig(
+  institutionId: string,
+  useBummer: boolean,
+  network: string,
+): TimelockConfig {
+  const content = readInstitutionConfigFile(institutionId, useBummer)
+  const raw = content[network]?.timelock
+  if (!raw) {
+    return { governorDelay: 0, curatorDelay: 0 }
+  }
+  return TimelockConfigSchema.parse(raw)
 }
 
 export function updateInstitutionDeployedContracts(

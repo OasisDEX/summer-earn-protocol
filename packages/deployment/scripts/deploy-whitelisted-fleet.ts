@@ -385,6 +385,18 @@ async function main() {
     fleetAddress,
   )
 
+  // Curator timelock. When the institution was deployed with the timelock flow, the curator
+  // timelock holds CURATOR_ROLE on each fleet (granted below by the deployer acting as bootstrap
+  // governor). Older institutions without a curator timelock fall back to the configured curator
+  // EOA. The deployer keeps GOVERNOR_ROLE through fleet deploys and hands over to the governor
+  // timelock only via the separate handover script, so all grants here run directly.
+  const curatorTimelockAddress = config.deployedContracts.gov.curatorTimelock?.address as
+    | Address
+    | undefined
+  if (curatorTimelockAddress) {
+    console.log(kleur.blue(`Curator timelock ${curatorTimelockAddress} will hold CURATOR_ROLE.`))
+  }
+
   // Idempotency helper: returns true when `account` already holds the contract-specific role
   // for `roleName` on `target`. Used to skip redundant grant actions when re-running the script.
   const accountHasContractRole = async (
@@ -479,14 +491,16 @@ async function main() {
     buildGrantCommanderRoleAction(pamAddress, bufferArkAddress as Address, fleetAddress),
   )
 
-  // 4. Curator (if configured).
-  if (fleetDefinition.curator && fleetDefinition.curator !== ADDRESS_ZERO) {
+  // 4. Curator. With the timelock flow the curator is the curator timelock (which holds
+  //    CURATOR_ROLE on the fleet); otherwise it is the configured curator EOA (legacy).
+  const curatorToGrant = (curatorTimelockAddress ?? fleetDefinition.curator) as Address | undefined
+  if (curatorToGrant && curatorToGrant !== ADDRESS_ZERO) {
     await queueGrantIfMissing(
       'CURATOR on fleet',
       CONTRACT_SPECIFIC_ROLES.CURATOR,
       fleetAddress,
-      fleetDefinition.curator as Address,
-      buildGrantCuratorRoleAction(pamAddress, fleetAddress, fleetDefinition.curator as Address),
+      curatorToGrant,
+      buildGrantCuratorRoleAction(pamAddress, fleetAddress, curatorToGrant),
     )
   }
 

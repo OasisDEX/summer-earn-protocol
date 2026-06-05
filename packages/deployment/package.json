@@ -27,6 +27,7 @@
     "deploy:staking": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-staking.ts --network $NETWORK",
     "deploy:institution": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-institution-whitelist.ts --network $NETWORK",
     "deploy:institution-fleet": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-whitelisted-fleet.ts --network $NETWORK",
+    "deploy:institution-handover": "hardhat run scripts/handover-institution-timelock.ts --network $NETWORK",
     "deploy:institution-registry": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-institution-registry.ts --network $NETWORK",
     "deploy:rounds-vault-registry": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-rounds-vault-registry.ts --network $NETWORK",
     "deploy:dao-tip-jar": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-dao-tip-jar.ts --network $NETWORK",
