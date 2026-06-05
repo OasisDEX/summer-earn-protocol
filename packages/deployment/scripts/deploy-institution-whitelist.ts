@@ -152,8 +152,10 @@ async function main() {
 
     // Even when the contracts are already deployed and registered, make sure the governor timelock
     // holds GOVERNOR_ROLE — a previous run may have stopped before that grant.
-    const governorTimelockAddress = institutionConfig.deployedContracts.gov.governorTimelock?.address
-    const existingPamAddress = institutionConfig.deployedContracts.gov.protocolAccessManager?.address
+    const governorTimelockAddress =
+      institutionConfig.deployedContracts.gov.governorTimelock?.address
+    const existingPamAddress =
+      institutionConfig.deployedContracts.gov.protocolAccessManager?.address
     if (governorTimelockAddress && existingPamAddress) {
       const pam = await hre.viem.getContractAt(
         'ProtocolAccessManagerV2' as string,

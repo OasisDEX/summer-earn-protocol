@@ -58,7 +58,11 @@ async function main() {
     | ViemAddress
     | undefined
 
-  const timelockConfig = readInstitutionTimelockConfig(institutionId, useBummerConfig, hre.network.name)
+  const timelockConfig = readInstitutionTimelockConfig(
+    institutionId,
+    useBummerConfig,
+    hre.network.name,
+  )
   console.log(
     kleur.blue('Timelock delays (seconds):'),
     kleur.cyan(`governor=${timelockConfig.governorDelay}, curator=${timelockConfig.curatorDelay}`),
