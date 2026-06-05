@@ -15,6 +15,46 @@ import {
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { validateAddress, validateToken } from './helpers/validation'
 
+/**
+ * Idempotently ensures the governor timelock holds GOVERNOR_ROLE. Safe to call on a fresh deploy
+ * (deployer is the bootstrap governor) and on a re-run of an already-registered institution (a
+ * prior run may have stopped before this grant). If the timelock lacks the role and the deployer
+ * is not a governor, it warns instead of reverting — the grant must then go through the existing
+ * governor (or the governor timelock itself).
+ */
+async function ensureGovernorTimelockIsGovernor(
+  pam: any,
+  publicClient: any,
+  governorTimelockAddress: ViemAddress,
+  deployerAddress: ViemAddress,
+): Promise<void> {
+  const timelockAlreadyGovernor = (await pam.read.hasRole([
+    GOVERNOR_ROLE,
+    governorTimelockAddress,
+  ])) as boolean
+  if (timelockAlreadyGovernor) {
+    console.log(kleur.gray('[skip] GOVERNOR_ROLE already held by governor timelock'))
+    return
+  }
+
+  const deployerIsGovernor = (await pam.read.hasRole([GOVERNOR_ROLE, deployerAddress])) as boolean
+  if (!deployerIsGovernor) {
+    console.log(
+      kleur
+        .yellow()
+        .bold(
+          `Governor timelock ${governorTimelockAddress} does NOT hold GOVERNOR_ROLE and the ` +
+            `deployer is not a governor — grant it via the current governor (or the governor timelock).`,
+        ),
+    )
+    return
+  }
+
+  const hash = await pam.write.grantGovernorRole([governorTimelockAddress])
+  await publicClient.waitForTransactionReceipt({ hash })
+  console.log(kleur.green(`Granted GOVERNOR_ROLE to governor timelock ${governorTimelockAddress}`))
+}
+
 async function main() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
 
@@ -26,6 +66,50 @@ async function main() {
   if (!institutionId) {
     console.log(kleur.red('No institution id provided. Exiting.'))
     return
+  }
+
+  // Read and validate governance + timelock config up front — before any on-chain state changes
+  // or contract deployments — so a misconfiguration fails fast and leaves nothing half-wired.
+  const governance = readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name)
+  const treasury = governance.treasury
+
+  // Timelock delays (both timelocks are always deployed; delays may be 0 = immediate).
+  const timelockConfig = readInstitutionTimelockConfig(
+    institutionId,
+    useBummerConfig,
+    hre.network.name,
+  )
+  console.log(
+    kleur.blue('Timelock delays (seconds):'),
+    kleur.cyan(`governor=${timelockConfig.governorDelay}, curator=${timelockConfig.curatorDelay}`),
+  )
+
+  // Proposers for each timelock are segregated: the governor timelock is proposed to by the
+  // institution governors, the curator timelock by the institution curators (a separate set; it
+  // falls back to the governors when `curators` is not configured). The deployer is intentionally
+  // NOT a proposer — during deployment it acts directly as the bootstrap governor and hands over
+  // to the governor timelock only at the end (see the separate handover script). Executors are
+  // left open at the contract level.
+  const dedupeAddresses = (addrs: string[]): ViemAddress[] =>
+    Array.from(new Set(addrs.map((a) => a.toLowerCase()))).map((a) => getAddress(a))
+
+  const governorTimelockProposers = dedupeAddresses(governance.governor)
+  const curatorTimelockProposers = dedupeAddresses(
+    governance.curators.length > 0 ? governance.curators : governance.governor,
+  )
+  // Fail fast if either timelock would have no proposers. A proposer-less timelock can never
+  // schedule operations and would be permanently stuck.
+  if (governorTimelockProposers.length === 0) {
+    throw new Error(
+      `No governor timelock proposers for institution "${institutionId}" on network "${hre.network.name}". ` +
+        `Configure "governor" in the institution index before deploying.`,
+    )
+  }
+  if (curatorTimelockProposers.length === 0) {
+    throw new Error(
+      `No curator timelock proposers for institution "${institutionId}" on network "${hre.network.name}". ` +
+        `Configure "curators" (or "governor" as fallback) in the institution index before deploying.`,
+    )
   }
 
   const config = getConfigByNetwork(
@@ -65,6 +149,30 @@ async function main() {
 
   if (exists && addressessMatch) {
     console.log(kleur.yellow('Institution already registered in registry V2. Skipping deployment.'))
+
+    // Even when the contracts are already deployed and registered, make sure the governor timelock
+    // holds GOVERNOR_ROLE — a previous run may have stopped before that grant.
+    const governorTimelockAddress = institutionConfig.deployedContracts.gov.governorTimelock?.address
+    const existingPamAddress = institutionConfig.deployedContracts.gov.protocolAccessManager?.address
+    if (governorTimelockAddress && existingPamAddress) {
+      const pam = await hre.viem.getContractAt(
+        'ProtocolAccessManagerV2' as string,
+        existingPamAddress as ViemAddress,
+      )
+      const [deployerWallet] = await hre.viem.getWalletClients()
+      await ensureGovernorTimelockIsGovernor(
+        pam,
+        publicClient,
+        governorTimelockAddress as ViemAddress,
+        getAddress(deployerWallet.account.address),
+      )
+    } else {
+      console.log(
+        kleur.yellow(
+          'No governor timelock recorded for this institution — was it deployed before the timelock flow? Skipping timelock governor check.',
+        ),
+      )
+    }
     return
   }
 
@@ -73,50 +181,6 @@ async function main() {
     const hash = await registry.write.removeInstitution([institutionBytes32])
     await publicClient.waitForTransactionReceipt({ hash })
     console.log(kleur.green().bold('Institution successfully removed from registry V2.'))
-  }
-
-  // Read institution governance for current network and validate
-  const governance = readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name)
-
-  const treasury = governance.treasury
-
-  // Read timelock delays (both timelocks are always deployed; delays may be 0 = immediate).
-  const timelockConfig = readInstitutionTimelockConfig(
-    institutionId,
-    useBummerConfig,
-    hre.network.name,
-  )
-  console.log(
-    kleur.blue('Timelock delays (seconds):'),
-    kleur.cyan(`governor=${timelockConfig.governorDelay}, curator=${timelockConfig.curatorDelay}`),
-  )
-
-  // Proposers for each timelock are segregated: the governor timelock is proposed to by the
-  // institution governors, the curator timelock by the institution curators (a separate set; it
-  // falls back to the governors when `curators` is not configured). The deployer is intentionally
-  // NOT a proposer — during deployment it acts directly as the bootstrap governor and hands over
-  // to the governor timelock only at the end (see the separate handover script). Executors are
-  // left open at the contract level.
-  const dedupeAddresses = (addrs: string[]): ViemAddress[] =>
-    Array.from(new Set(addrs.map((a) => a.toLowerCase()))).map((a) => getAddress(a))
-
-  const governorTimelockProposers = dedupeAddresses(governance.governor)
-  const curatorTimelockProposers = dedupeAddresses(
-    governance.curators.length > 0 ? governance.curators : governance.governor,
-  )
-  if (governorTimelockProposers.length === 0) {
-    console.log(
-      kleur.yellow(
-        'Warning: no governors configured — the governor timelock will have no proposers and cannot schedule operations.',
-      ),
-    )
-  }
-  if (curatorTimelockProposers.length === 0) {
-    console.log(
-      kleur.yellow(
-        'Warning: no curators configured — the curator timelock will have no proposers and cannot schedule operations.',
-      ),
-    )
   }
 
   const envLabel = useBummerConfig ? 'staging_' : ''
@@ -248,21 +312,13 @@ async function main() {
     // Grant GOVERNOR_ROLE to the governor timelock so it is ready to act. The deployer is NOT
     // renounced here — run handover-institution-timelock.ts after all fleets are deployed to
     // renounce the deployer and leave the timelock as the sole governor.
-    const governorTimelockAddress = getAddress(deployed.governorTimelock.address)
-
-    const timelockAlreadyGovernor = (await protocolAccessManagerV2.read.hasRole([
-      GOVERNOR_ROLE,
-      governorTimelockAddress,
-    ])) as boolean
-    if (timelockAlreadyGovernor) {
-      console.log(kleur.gray(`[skip] GOVERNOR_ROLE already held by governor timelock`))
-    } else {
-      const hash = await protocolAccessManagerV2.write.grantGovernorRole([governorTimelockAddress])
-      await publicClient.waitForTransactionReceipt({ hash })
-      console.log(
-        kleur.green(`Granted GOVERNOR_ROLE to governor timelock ${governorTimelockAddress}`),
-      )
-    }
+    const [deployerWallet] = await hre.viem.getWalletClients()
+    await ensureGovernorTimelockIsGovernor(
+      protocolAccessManagerV2,
+      publicClient,
+      getAddress(deployed.governorTimelock.address),
+      getAddress(deployerWallet.account.address),
+    )
   } catch (e) {
     console.error(
       kleur.red(`Failed to grant governance roles: ${e instanceof Error ? e.message : String(e)}`),
