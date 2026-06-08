@@ -37,6 +37,10 @@
           "0x2AB23a9636E9b77ff112829FF0d703d691D19eE2"
         ]
       }
+    },
+    "timelock": {
+      "governorDelay": 0,
+      "curatorDelay": 0
     }
   }
 }
