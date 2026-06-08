@@ -390,9 +390,16 @@ async function main() {
   // governor). Older institutions without a curator timelock fall back to the configured curator
   // EOA. The deployer keeps GOVERNOR_ROLE through fleet deploys and hands over to the governor
   // timelock only via the separate handover script, so all grants here run directly.
-  const curatorTimelockAddress = config.deployedContracts.gov.curatorTimelock?.address as
+  const recordedCuratorTimelock = config.deployedContracts.gov.curatorTimelock?.address as
     | Address
     | undefined
+  // Treat a zero-address placeholder the same as "not set". Otherwise the `??` fallback below would
+  // select the zero address, and the `!== ADDRESS_ZERO` guard would then skip the curator grant
+  // entirely — leaving neither the curator timelock nor the legacy curator EOA with CURATOR_ROLE.
+  const curatorTimelockAddress =
+    recordedCuratorTimelock && recordedCuratorTimelock !== ADDRESS_ZERO
+      ? recordedCuratorTimelock
+      : undefined
   if (curatorTimelockAddress) {
     console.log(kleur.blue(`Curator timelock ${curatorTimelockAddress} will hold CURATOR_ROLE.`))
   }
