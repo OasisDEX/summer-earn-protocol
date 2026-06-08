@@ -57,9 +57,15 @@ export const InstitutionFleetEntrySchema = z.object({
  *
  * This block is MANDATORY for every configured network entry — there is no implicit default.
  */
+// Upper sanity bound on a timelock delay, in seconds. Catches unit confusion (e.g. a value entered
+// in milliseconds) and fat-fingered magnitudes that would brick governance for years — the timelock
+// is self-administered, so an over-large delay cannot be shortened, only waited out. 365 days is far
+// longer than any realistic governance review window while still rejecting absurd values.
+export const MAX_TIMELOCK_DELAY_SECONDS = 365 * 24 * 60 * 60 // 31_536_000
+
 export const TimelockConfigSchema = z.object({
-  governorDelay: z.number().int().nonnegative(),
-  curatorDelay: z.number().int().nonnegative(),
+  governorDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
+  curatorDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
 })
 
 export type TimelockConfig = z.infer<typeof TimelockConfigSchema>
