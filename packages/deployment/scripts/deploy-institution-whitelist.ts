@@ -4,7 +4,7 @@ import kleur from 'kleur'
 import { Address as ViemAddress, getAddress } from 'viem'
 import { createInstitutionWhitelistModule } from '../ignition/modules/institution-whitelist'
 import { BaseConfig } from '../types/config-types'
-import { GOVERNOR_ROLE } from './common/constants'
+import { ADDRESS_ZERO, GOVERNOR_ROLE } from './common/constants'
 import { getConfigByNetwork, getInstitutionConfigByNetwork } from './helpers/config-handler'
 import {
   promptForInstitutionId,
@@ -13,6 +13,7 @@ import {
   updateInstitutionDeployedContracts,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
+import { assertTimelockUsable } from './helpers/timelock'
 import { validateAddress, validateToken } from './helpers/validation'
 
 /**
@@ -144,52 +145,99 @@ async function main() {
       institutionConfig.deployedContracts.gov.protocolAccessManager?.address &&
     registeredInstitution[2] === institutionConfig.deployedContracts.core.admiralsQuarters?.address
 
-  const existingPamAddress = institutionConfig.deployedContracts.gov.protocolAccessManager?.address
-  // Set when we fall through to the Ignition deploy purely to retrofit missing timelock(s) onto an
-  // already-registered institution (see below). Used to assert Ignition reused the existing PAM.
-  let redeployingTimelocks = false
-
   if (exists && addressessMatch) {
-    const governorTimelockAddress =
-      institutionConfig.deployedContracts.gov.governorTimelock?.address
-    const curatorTimelockAddress = institutionConfig.deployedContracts.gov.curatorTimelock?.address
+    // Institution already deployed/registered. Make the timelocks idempotent: deploy whichever
+    // RwaTimelock is missing (institution predates the timelock flow, or a prior run stopped early)
+    // DIRECTLY — not via the Ignition module — so we never re-reconcile the existing PAM/core,
+    // whose embedded metadata hash drifts whenever NatSpec/comments change. Then ensure the
+    // governor timelock holds GOVERNOR_ROLE.
+    const existingPamAddress =
+      institutionConfig.deployedContracts.gov.protocolAccessManager?.address
+    if (!existingPamAddress) {
+      throw new Error(
+        `Institution "${institutionId}" is registered on "${hre.network.name}" but has no ` +
+          `ProtocolAccessManager recorded — cannot wire timelocks. Fix the institution index first.`,
+      )
+    }
 
-    if (governorTimelockAddress && curatorTimelockAddress) {
-      // Both RwaTimelock instances are already deployed and recorded — nothing to deploy. Make
-      // sure the governor timelock holds GOVERNOR_ROLE (a previous run may have stopped before
-      // that grant) and finish.
+    const recordedGovernorTimelock =
+      institutionConfig.deployedContracts.gov.governorTimelock?.address
+    const recordedCuratorTimelock = institutionConfig.deployedContracts.gov.curatorTimelock?.address
+    let governorTimelockAddress = recordedGovernorTimelock
+    let curatorTimelockAddress = recordedCuratorTimelock
+
+    if (!governorTimelockAddress) {
+      const tl = await hre.viem.deployContract('RwaTimelock' as string, [
+        BigInt(timelockConfig.governorDelay),
+        governorTimelockProposers,
+        [ADDRESS_ZERO],
+        ADDRESS_ZERO,
+      ])
+      governorTimelockAddress = getAddress(tl.address)
+      console.log(kleur.green(`Deployed governor timelock ${governorTimelockAddress}`))
+    } else {
+      // Recorded but not deployed by us this run — verify it (code, delay, proposers) before
+      // granting it GOVERNOR_ROLE, so a stale/typo'd recorded address can't be made a governor.
+      await assertTimelockUsable(
+        'governor timelock',
+        getAddress(governorTimelockAddress),
+        timelockConfig.governorDelay,
+        governorTimelockProposers,
+        publicClient,
+      )
+    }
+    if (!curatorTimelockAddress) {
+      const tl = await hre.viem.deployContract('RwaTimelock' as string, [
+        BigInt(timelockConfig.curatorDelay),
+        curatorTimelockProposers,
+        [ADDRESS_ZERO],
+        ADDRESS_ZERO,
+      ])
+      curatorTimelockAddress = getAddress(tl.address)
+      console.log(kleur.green(`Deployed curator timelock ${curatorTimelockAddress}`))
+    } else {
+      // Recorded but not deployed by us this run — verify it before recording/relying on it.
+      await assertTimelockUsable(
+        'curator timelock',
+        getAddress(curatorTimelockAddress),
+        timelockConfig.curatorDelay,
+        curatorTimelockProposers,
+        publicClient,
+      )
+    }
+
+    // Persist the timelock addresses if we deployed either (merge with the existing PAM so the
+    // recorded gov block is not wiped).
+    if (
+      governorTimelockAddress !== recordedGovernorTimelock ||
+      curatorTimelockAddress !== recordedCuratorTimelock
+    ) {
+      updateInstitutionDeployedContracts(institutionId, useBummerConfig, hre.network.name, 'gov', {
+        protocolAccessManager: { address: existingPamAddress },
+        governorTimelock: { address: governorTimelockAddress },
+        curatorTimelock: { address: curatorTimelockAddress },
+      })
+      console.log(kleur.green().bold('Institution index updated with timelock addresses.'))
+    } else {
       console.log(
         kleur.yellow(
           'Institution already registered in registry V2 with timelocks. Skipping deployment.',
         ),
       )
-      if (existingPamAddress) {
-        const pam = await hre.viem.getContractAt(
-          'ProtocolAccessManagerV2' as string,
-          existingPamAddress as ViemAddress,
-        )
-        const [deployerWallet] = await hre.viem.getWalletClients()
-        await ensureGovernorTimelockIsGovernor(
-          pam,
-          publicClient,
-          governorTimelockAddress as ViemAddress,
-          getAddress(deployerWallet.account.address),
-        )
-      }
-      return
     }
 
-    // Institution is registered but one or both RwaTimelock instances are missing (it was deployed
-    // before the timelock flow, or a prior run stopped early). Fall through to the full Ignition
-    // deploy below: Ignition reconciles its journal, reusing the existing PAM/core and deploying
-    // only the missing timelock futures. We then record the timelock addresses and grant
-    // GOVERNOR_ROLE via the normal post-deploy path.
-    console.log(
-      kleur.yellow(
-        'Institution registered but timelock(s) missing — deploying them via Ignition (existing contracts are reused).',
-      ),
+    const pam = await hre.viem.getContractAt(
+      'ProtocolAccessManagerV2' as string,
+      existingPamAddress as ViemAddress,
     )
-    redeployingTimelocks = true
+    const [deployerWallet] = await hre.viem.getWalletClients()
+    await ensureGovernorTimelockIsGovernor(
+      pam,
+      publicClient,
+      governorTimelockAddress as ViemAddress,
+      getAddress(deployerWallet.account.address),
+    )
+    return
   }
 
   if (exists && !addressessMatch) {
@@ -216,24 +264,6 @@ async function main() {
       },
     },
   })
-
-  // Safety: when retrofitting timelocks onto an already-registered institution, Ignition must have
-  // REUSED the existing ProtocolAccessManager (via its deployment journal). If it deployed a fresh
-  // one, the journal was missing or out of sync — abort before recording/registering anything, to
-  // avoid corrupting the institution with a duplicate PAM/core.
-  if (
-    redeployingTimelocks &&
-    existingPamAddress &&
-    deployed.protocolAccessManager.address.toLowerCase() !== existingPamAddress.toLowerCase()
-  ) {
-    throw new Error(
-      `Ignition deployed a new ProtocolAccessManager (${deployed.protocolAccessManager.address}) ` +
-        `instead of reusing the institution's existing one (${existingPamAddress}). The Ignition ` +
-        `deployment journal for "${moduleName}" is missing or out of sync — aborting to avoid ` +
-        `corrupting the institution. Restore the journal (ignition/deployments/${moduleName}) and retry.`,
-    )
-  }
-
   console.log(kleur.green().bold('Institution contracts deployed. Writing institution index...'))
 
   // gov: protocolAccessManagerV2 + the two RwaTimelock instances for the whitelist flow
@@ -263,40 +293,38 @@ async function main() {
 
     const alreadyExists = (await registry.read.exists([institutionBytes32])) as boolean
     if (alreadyExists) {
-      // Already registered (e.g. we are only retrofitting timelocks) — skip registration but still
-      // fall through to the role grants below so the governor timelock gets GOVERNOR_ROLE.
       console.log(
         kleur.yellow('Institution already registered in registry V2. Skipping registration.'),
       )
-    } else {
-      const owner = (await registry.read.owner()) as string
-      const deployers = await hre.viem.getWalletClients()
-      for (const deployer of deployers) {
-        if (owner.toLowerCase() !== deployer.account.address.toLowerCase()) {
-          console.log(
-            kleur.yellow(
-              'Caller is not the owner of InstitutionalVaultRegistry V2. Please register the institution via the owner account.',
-            ),
-          )
-          continue
-        }
-
-        console.log(kleur.cyan('Registering institution in InstitutionalVaultRegistry V2...'))
-        const publicClient = await hre.viem.getPublicClient()
-        const hash = await registry.write.addInstitution(
-          [
-            institutionBytes32,
-            {
-              configurationManager: deployed.configurationManager.address,
-              protocolAccessManager: deployed.protocolAccessManager.address,
-              admiralsQuarters: deployed.admiralsQuarters.address,
-            },
-          ],
-          { account: deployer.account },
+      return
+    }
+    const owner = (await registry.read.owner()) as string
+    const deployers = await hre.viem.getWalletClients()
+    for (const deployer of deployers) {
+      if (owner.toLowerCase() !== deployer.account.address.toLowerCase()) {
+        console.log(
+          kleur.yellow(
+            'Caller is not the owner of InstitutionalVaultRegistry V2. Please register the institution via the owner account.',
+          ),
         )
-        await publicClient.waitForTransactionReceipt({ hash })
-        console.log(kleur.green().bold('Institution successfully registered in registry V2.'))
+        continue
       }
+
+      console.log(kleur.cyan('Registering institution in InstitutionalVaultRegistry V2...'))
+      const publicClient = await hre.viem.getPublicClient()
+      const hash = await registry.write.addInstitution(
+        [
+          institutionBytes32,
+          {
+            configurationManager: deployed.configurationManager.address,
+            protocolAccessManager: deployed.protocolAccessManager.address,
+            admiralsQuarters: deployed.admiralsQuarters.address,
+          },
+        ],
+        { account: deployer.account },
+      )
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green().bold('Institution successfully registered in registry V2.'))
     }
   } catch (e) {
     console.error(

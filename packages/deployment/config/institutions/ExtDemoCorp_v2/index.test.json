@@ -4,6 +4,12 @@
       "gov": {
         "protocolAccessManager": {
           "address": "0x0eF127ce2ae77e7a08Dc4Bb460e6E888E86D0459"
+        },
+        "governorTimelock": {
+          "address": "0x2E26CF6d2c67cBe1530e894B1E8CAaB40781Fc61"
+        },
+        "curatorTimelock": {
+          "address": "0xd690821D4f3972b656B8eB91e1364d475D996633"
         }
       },
       "core": {

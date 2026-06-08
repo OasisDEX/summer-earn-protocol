@@ -12,6 +12,7 @@ import {
   readInstitutionTimelockConfig,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
+import { assertTimelockUsable, computeTimelockProposers } from './helpers/timelock'
 import { validateAddress } from './helpers/validation'
 
 // Position of CURATOR_ROLE in access-contracts IProtocolAccessManager.ContractSpecificRoles.
@@ -22,10 +23,13 @@ const CURATOR_ROLE_INDEX = 0
  *
  * Run this ONCE, after the institution and all its fleets have been deployed. By then the deployer
  * has acted as the bootstrap governor and granted every role directly. This script:
+ *   0. verifies each recorded timelock has code, the configured minDelay, and that its expected
+ *      proposers hold PROPOSER_ROLE (so the renounce cannot brick or misassign governance),
  *   1. ensures the governor timelock holds GOVERNOR_ROLE (idempotent),
  *   2. requires the curator timelock to hold CURATOR_ROLE on each of >= 1 fleets,
- *   3. revokes the deployer's WHITELIST_MANAGER_ROLE (seeded by the PAM V2 constructor), and
- *   4. renounces the deployer's GOVERNOR_ROLE — leaving the governor timelock as the SOLE governor.
+ *   3. revokes the deployer's WHITELIST_MANAGER_ROLE (seeded by the PAM V2 constructor),
+ *   4. warns loudly about any configured governor EOA that still holds GOVERNOR_ROLE directly, and
+ *   5. renounces the deployer's GOVERNOR_ROLE — leaving the governor timelock as the SOLE governor.
  *
  * Note: AdmiralsQuarters' Ownable owner is intentionally left as-is (not transferred here).
  */
@@ -73,37 +77,31 @@ async function main() {
   const [deployerWallet] = await hre.viem.getWalletClients()
   const deployer = getAddress(deployerWallet.account.address)
 
-  // 0. Sanity-check the recorded timelock addresses on-chain BEFORE any irreversible role change.
-  //    A copy-paste error in the index file (an EOA, a wrong/dead address, or a contract whose
-  //    delay has drifted from config) would otherwise be handed sole GOVERNOR_ROLE and lock the
-  //    institution's governance permanently. Require each recorded timelock to have code and to
-  //    report exactly the configured minDelay.
-  const assertTimelockMatches = async (
-    label: string,
-    address: ViemAddress,
-    expectedDelay: number,
-  ): Promise<void> => {
-    const code = await publicClient.getBytecode({ address })
-    if (!code || code === '0x') {
-      throw new Error(
-        `${label} ${address} has no contract code — refusing handover. Verify the address recorded ` +
-          `in the institution index file.`,
-      )
-    }
-    const tl = await hre.viem.getContractAt('RwaTimelock' as string, address)
-    const onChainDelay = (await tl.read.getMinDelay()) as bigint
-    if (onChainDelay !== BigInt(expectedDelay)) {
-      throw new Error(
-        `${label} ${address} reports minDelay ${onChainDelay}s but config expects ${expectedDelay}s ` +
-          `— refusing handover. The recorded address may be wrong or the config has drifted.`,
-      )
-    }
-    console.log(kleur.gray(`[ok] ${label} ${address} verified (minDelay=${onChainDelay}s)`))
-  }
+  // Expected proposer sets for the two timelocks — the accounts that MUST be able to schedule once
+  // the deployer renounces. Same derivation as the deploy script.
+  const governance = readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name)
+  const { governorProposers, curatorProposers } = computeTimelockProposers(governance)
 
-  await assertTimelockMatches('governor timelock', governorTimelock, timelockConfig.governorDelay)
+  // 0. Verify the recorded timelock addresses on-chain BEFORE any irreversible role change: each
+  //    must have code, report the configured minDelay, AND grant PROPOSER_ROLE to its expected
+  //    proposers. Verifying the delay alone is not enough — a stale/typo'd address, or a real
+  //    timelock whose proposers don't match the configured governors/curators, would otherwise be
+  //    handed sole GOVERNOR_ROLE and permanently brick (or misassign) the institution's governance.
+  await assertTimelockUsable(
+    'governor timelock',
+    governorTimelock,
+    timelockConfig.governorDelay,
+    governorProposers,
+    publicClient,
+  )
   if (curatorTimelock) {
-    await assertTimelockMatches('curator timelock', curatorTimelock, timelockConfig.curatorDelay)
+    await assertTimelockUsable(
+      'curator timelock',
+      curatorTimelock,
+      timelockConfig.curatorDelay,
+      curatorProposers,
+      publicClient,
+    )
   }
 
   // 1. Verify the curator timelock holds CURATOR_ROLE on EVERY fleet before changing any role.
@@ -176,7 +174,6 @@ async function main() {
     deployer,
   ])) as boolean
   if (deployerIsWhitelistManager) {
-    const governance = readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name)
     const otherManagers = governance.whitelistManagers
       .map((a) => getAddress(a))
       .filter((a) => a.toLowerCase() !== deployer.toLowerCase())
@@ -208,7 +205,31 @@ async function main() {
     console.log(kleur.gray(`[skip] deployer does not hold WHITELIST_MANAGER_ROLE`))
   }
 
-  // 4. Renounce the deployer's GOVERNOR_ROLE — the governor timelock becomes the sole governor.
+  // 4. Loudly surface any configured governor EOA that STILL holds GOVERNOR_ROLE directly on the
+  //    PAM. On institutions deployed before the timelock flow these were granted directly and are
+  //    NOT revoked here — they BYPASS the governor timelock, so it is not truly the sole governor
+  //    until they are revoked (via a governor-timelock proposal). This script does not revoke them.
+  const directGovernors: string[] = []
+  for (const configuredGovernor of governance.governor) {
+    const ga = getAddress(configuredGovernor)
+    if (ga.toLowerCase() === deployer.toLowerCase()) continue
+    if ((await pam.read.hasRole([GOVERNOR_ROLE, ga])) as boolean) directGovernors.push(ga)
+  }
+  if (directGovernors.length > 0) {
+    const list = directGovernors.map((d) => `  - ${d}`).join('\n')
+    console.log(
+      kleur
+        .yellow()
+        .bold(
+          `[warn] ${directGovernors.length} configured governor EOA(s) still hold GOVERNOR_ROLE ` +
+            `DIRECTLY and BYPASS the governor timelock:\n${list}\n` +
+            `The governor timelock is NOT the sole governor until these are revoked (do so via a ` +
+            `governor-timelock proposal). This script does not revoke them automatically.`,
+        ),
+    )
+  }
+
+  // 5. Renounce the deployer's GOVERNOR_ROLE — the governor timelock becomes the sole governor.
   const deployerStillGovernor = (await pam.read.hasRole([GOVERNOR_ROLE, deployer])) as boolean
   if (deployerStillGovernor) {
     const hash = await pam.write.revokeGovernorRole([deployer])

@@ -52,9 +52,12 @@ import { getInstitutionConfigByNetwork } from './helpers/config-handler'
 import {
   getInstitutionFleetConfigDir,
   promptForInstitutionId,
+  readInstitutionGovernance,
+  readInstitutionTimelockConfig,
   updateInstitutionFleetEntry,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
+import { assertTimelockUsable, computeTimelockProposers } from './helpers/timelock'
 import { getAssetAddress } from './helpers/token-helpers'
 import { validateAddress, validateToken } from './helpers/validation'
 import { FleetConfigSchema } from './helpers/zod-schemas'
@@ -402,6 +405,23 @@ async function main() {
       : undefined
   if (curatorTimelockAddress) {
     console.log(kleur.blue(`Curator timelock ${curatorTimelockAddress} will hold CURATOR_ROLE.`))
+    // Verify the recorded curator timelock (code, delay, proposers) BEFORE granting it CURATOR_ROLE
+    // — a stale/typo'd address would otherwise silently receive fleet curation authority.
+    const curatorTimelockConfig = readInstitutionTimelockConfig(
+      institutionId,
+      useBummerConfig,
+      hre.network.name,
+    )
+    const { curatorProposers } = computeTimelockProposers(
+      readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name),
+    )
+    await assertTimelockUsable(
+      'curator timelock',
+      getAddress(curatorTimelockAddress),
+      curatorTimelockConfig.curatorDelay,
+      curatorProposers,
+      await hre.viem.getPublicClient(),
+    )
   }
 
   // Idempotency helper: returns true when `account` already holds the contract-specific role
@@ -509,6 +529,32 @@ async function main() {
       curatorToGrant,
       buildGrantCuratorRoleAction(pamAddress, fleetAddress, curatorToGrant),
     )
+  }
+
+  // When the curator timelock is in use, loudly warn if the legacy curator EOA ALSO still holds
+  // CURATOR_ROLE on this fleet — it bypasses the timelock and should be revoked separately.
+  if (
+    curatorTimelockAddress &&
+    fleetDefinition.curator &&
+    fleetDefinition.curator !== ADDRESS_ZERO &&
+    getAddress(fleetDefinition.curator as string) !== getAddress(curatorTimelockAddress)
+  ) {
+    const legacyCuratorHasRole = await accountHasContractRole(
+      CONTRACT_SPECIFIC_ROLES.CURATOR,
+      fleetAddress,
+      fleetDefinition.curator as Address,
+    )
+    if (legacyCuratorHasRole) {
+      console.log(
+        kleur
+          .yellow()
+          .bold(
+            `[warn] Legacy curator EOA ${fleetDefinition.curator} still holds CURATOR_ROLE on fleet ` +
+              `${fleetAddress}, BYPASSING the curator timelock ${curatorTimelockAddress}. Revoke it ` +
+              `separately (via the governor timelock) so curation is gated solely by the timelock.`,
+          ),
+      )
+    }
   }
 
   // 5. Keeper on fleet (if configured) — whitelist-specific extension.
