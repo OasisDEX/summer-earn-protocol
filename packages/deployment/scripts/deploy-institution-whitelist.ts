@@ -19,8 +19,9 @@ import { validateAddress, validateToken } from './helpers/validation'
  * Idempotently ensures the governor timelock holds GOVERNOR_ROLE. Safe to call on a fresh deploy
  * (deployer is the bootstrap governor) and on a re-run of an already-registered institution (a
  * prior run may have stopped before this grant). If the timelock lacks the role and the deployer
- * is not a governor, it warns instead of reverting — the grant must then go through the existing
- * governor (or the governor timelock itself).
+ * is not a governor, it THROWS — the institution is in a broken state (the recorded governor
+ * timelock cannot govern the PAM) and must be repaired by granting GOVERNOR_ROLE to the timelock
+ * via the current governor (or the governor timelock itself) before re-running.
  */
 async function ensureGovernorTimelockIsGovernor(
   pam: any,
@@ -39,15 +40,11 @@ async function ensureGovernorTimelockIsGovernor(
 
   const deployerIsGovernor = (await pam.read.hasRole([GOVERNOR_ROLE, deployerAddress])) as boolean
   if (!deployerIsGovernor) {
-    console.log(
-      kleur
-        .yellow()
-        .bold(
-          `Governor timelock ${governorTimelockAddress} does NOT hold GOVERNOR_ROLE and the ` +
-            `deployer is not a governor — grant it via the current governor (or the governor timelock).`,
-        ),
+    throw new Error(
+      `Governor timelock ${governorTimelockAddress} does NOT hold GOVERNOR_ROLE and the deployer is ` +
+        `not a governor — cannot grant it. Grant GOVERNOR_ROLE to the timelock via the current ` +
+        `governor (or the governor timelock itself), then re-run.`,
     )
-    return
   }
 
   const hash = await pam.write.grantGovernorRole([governorTimelockAddress])
