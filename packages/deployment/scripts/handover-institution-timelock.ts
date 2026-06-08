@@ -23,7 +23,7 @@ const CURATOR_ROLE_INDEX = 0
  * Run this ONCE, after the institution and all its fleets have been deployed. By then the deployer
  * has acted as the bootstrap governor and granted every role directly. This script:
  *   1. ensures the governor timelock holds GOVERNOR_ROLE (idempotent),
- *   2. (informational) checks the curator timelock holds CURATOR_ROLE on each fleet,
+ *   2. requires the curator timelock to hold CURATOR_ROLE on each of >= 1 fleets,
  *   3. revokes the deployer's WHITELIST_MANAGER_ROLE (seeded by the PAM V2 constructor), and
  *   4. renounces the deployer's GOVERNOR_ROLE — leaving the governor timelock as the SOLE governor.
  *
@@ -107,41 +107,48 @@ async function main() {
   }
 
   // 1. Verify the curator timelock holds CURATOR_ROLE on EVERY fleet before changing any role.
-  //    This is read-only; if any fleet is missing the role we abort here so the handover never
-  //    runs against an incompletely-wired institution.
-  if (curatorTimelock) {
-    const index = readInstitutionConfigFile(institutionId, useBummerConfig)
-    const fleets = index[hre.network.name]?.fleets ?? {}
-    const missingFleets: { name: string; fleetCommander: string }[] = []
-    for (const [fleetName, entry] of Object.entries(fleets)) {
-      const role = (await pam.read.generateRole([
-        CURATOR_ROLE_INDEX,
-        entry.fleetCommander as ViemAddress,
-      ])) as `0x${string}`
-      const hasCurator = (await pam.read.hasRole([role, curatorTimelock])) as boolean
-      if (hasCurator) {
-        console.log(kleur.gray(`[ok] curator timelock holds CURATOR_ROLE on ${fleetName}`))
-      } else {
-        missingFleets.push({ name: fleetName, fleetCommander: entry.fleetCommander })
-      }
-    }
-    if (missingFleets.length > 0) {
-      const list = missingFleets.map((f) => `  - ${f.name} (${f.fleetCommander})`).join('\n')
-      throw new Error(
-        `Curator timelock ${curatorTimelock} is missing CURATOR_ROLE on ${missingFleets.length} ` +
-          `of the institution's fleets:\n${list}\n` +
-          `Aborting handover — no roles were changed. Re-run the fleet deploy for the listed ` +
-          `fleets so the curator timelock is granted CURATOR_ROLE, then retry.`,
-      )
-    }
-    console.log(kleur.green('Curator timelock holds CURATOR_ROLE on all fleets.'))
-  } else {
-    console.log(
-      kleur.yellow(
-        'No curator timelock recorded for this institution — skipping curator role verification.',
-      ),
+  //    The curator timelock is mandatory, and handover must run only after every fleet is deployed
+  //    — otherwise the deployer renounces GOVERNOR_ROLE while the institution is incompletely wired.
+  if (!curatorTimelock) {
+    throw new Error(
+      `No curator timelock recorded for institution "${institutionId}" on network ` +
+        `"${hre.network.name}". Timelocks are mandatory — re-run the institution deploy so the ` +
+        `curator timelock is recorded before handover.`,
     )
   }
+  const index = readInstitutionConfigFile(institutionId, useBummerConfig)
+  const fleets = index[hre.network.name]?.fleets ?? {}
+  if (Object.keys(fleets).length === 0) {
+    throw new Error(
+      `Institution "${institutionId}" has no fleets recorded on network "${hre.network.name}". ` +
+        `Handover renounces the deployer's GOVERNOR_ROLE and must run only AFTER all fleets are ` +
+        `deployed — otherwise the deployer could no longer wire fleets directly. Deploy the fleets ` +
+        `first, then retry.`,
+    )
+  }
+  const missingFleets: { name: string; fleetCommander: string }[] = []
+  for (const [fleetName, entry] of Object.entries(fleets)) {
+    const role = (await pam.read.generateRole([
+      CURATOR_ROLE_INDEX,
+      entry.fleetCommander as ViemAddress,
+    ])) as `0x${string}`
+    const hasCurator = (await pam.read.hasRole([role, curatorTimelock])) as boolean
+    if (hasCurator) {
+      console.log(kleur.gray(`[ok] curator timelock holds CURATOR_ROLE on ${fleetName}`))
+    } else {
+      missingFleets.push({ name: fleetName, fleetCommander: entry.fleetCommander })
+    }
+  }
+  if (missingFleets.length > 0) {
+    const list = missingFleets.map((f) => `  - ${f.name} (${f.fleetCommander})`).join('\n')
+    throw new Error(
+      `Curator timelock ${curatorTimelock} is missing CURATOR_ROLE on ${missingFleets.length} ` +
+        `of the institution's fleets:\n${list}\n` +
+        `Aborting handover — no roles were changed. Re-run the fleet deploy for the listed ` +
+        `fleets so the curator timelock is granted CURATOR_ROLE, then retry.`,
+    )
+  }
+  console.log(kleur.green('Curator timelock holds CURATOR_ROLE on all fleets.'))
 
   // 2. Ensure the governor timelock holds GOVERNOR_ROLE before we drop the deployer's.
   const timelockIsGovernor = (await pam.read.hasRole([GOVERNOR_ROLE, governorTimelock])) as boolean
