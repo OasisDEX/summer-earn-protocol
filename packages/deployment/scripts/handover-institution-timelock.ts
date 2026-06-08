@@ -73,6 +73,39 @@ async function main() {
   const [deployerWallet] = await hre.viem.getWalletClients()
   const deployer = getAddress(deployerWallet.account.address)
 
+  // 0. Sanity-check the recorded timelock addresses on-chain BEFORE any irreversible role change.
+  //    A copy-paste error in the index file (an EOA, a wrong/dead address, or a contract whose
+  //    delay has drifted from config) would otherwise be handed sole GOVERNOR_ROLE and lock the
+  //    institution's governance permanently. Require each recorded timelock to have code and to
+  //    report exactly the configured minDelay.
+  const assertTimelockMatches = async (
+    label: string,
+    address: ViemAddress,
+    expectedDelay: number,
+  ): Promise<void> => {
+    const code = await publicClient.getBytecode({ address })
+    if (!code || code === '0x') {
+      throw new Error(
+        `${label} ${address} has no contract code — refusing handover. Verify the address recorded ` +
+          `in the institution index file.`,
+      )
+    }
+    const tl = await hre.viem.getContractAt('RwaTimelock' as string, address)
+    const onChainDelay = (await tl.read.getMinDelay()) as bigint
+    if (onChainDelay !== BigInt(expectedDelay)) {
+      throw new Error(
+        `${label} ${address} reports minDelay ${onChainDelay}s but config expects ${expectedDelay}s ` +
+          `— refusing handover. The recorded address may be wrong or the config has drifted.`,
+      )
+    }
+    console.log(kleur.gray(`[ok] ${label} ${address} verified (minDelay=${onChainDelay}s)`))
+  }
+
+  await assertTimelockMatches('governor timelock', governorTimelock, timelockConfig.governorDelay)
+  if (curatorTimelock) {
+    await assertTimelockMatches('curator timelock', curatorTimelock, timelockConfig.curatorDelay)
+  }
+
   // 1. Verify the curator timelock holds CURATOR_ROLE on EVERY fleet before changing any role.
   //    This is read-only; if any fleet is missing the role we abort here so the handover never
   //    runs against an incompletely-wired institution.
