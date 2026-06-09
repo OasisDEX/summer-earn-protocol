@@ -8,6 +8,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Ark} from "../Ark.sol";
 import {ArkWithWithdrawalRequest} from "../ArkWithWithdrawalRequest.sol";
 import {IArk} from "../../interfaces/IArk.sol";
+import {IArkWithSwap} from "../../interfaces/IArkWithSwap.sol";
 import {IArkWithWithdrawalRequest} from "../../interfaces/IArkWithWithdrawalRequest.sol";
 import {IFleetCommander} from "../../interfaces/IFleetCommander.sol";
 import {ArkParams} from "../../types/ArkTypes.sol";
@@ -151,7 +152,7 @@ abstract contract BaseSuperstateArk is
         // No-op: Superstate delivers USDC directly to the ark.
     }
 
-    /// @inheritdoc IArkWithWithdrawalRequest
+    /// @inheritdoc IArkWithSwap
     function withdrawUsingSwap(
         uint256,
         bytes calldata
