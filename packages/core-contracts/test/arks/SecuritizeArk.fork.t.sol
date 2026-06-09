@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/SecuritizeArk.sol";
 import {ISecuritizeArkErrors} from "../../src/errors/arks/ISecuritizeArkErrors.sol";
+import {IArkErrors} from "../../src/errors/IArkErrors.sol";
 import {ISecuritizeOnRamp} from "../../src/interfaces/securitize/ISecuritizeOnRamp.sol";
 import {ISecuritizeNavProvider} from "../../src/interfaces/securitize/ISecuritizeNavProvider.sol";
 import "../../src/events/IArkEvents.sol";
@@ -192,6 +193,128 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         vm.stopPrank();
     }
 
+    function test_Fork_BoardRevertsOnWrongRecipient() public {
+        Fund memory f = funds[0];
+        SecuritizeArk ark = arks[0];
+        uint256 amount = f.minAmount;
+        deal(USDC, commander, amount);
+        vm.startPrank(commander);
+        IERC20(USDC).approve(address(ark), amount);
+        // subscribe mints to a wallet that is NOT this Ark -> rejected by _validateBoardData
+        vm.expectRevert(
+            ISecuritizeArkErrors.InvalidSubscriptionPayload.selector
+        );
+        ark.board(amount, _payload(f.onRamp, address(0xCAFE), amount, 0));
+        vm.stopPrank();
+    }
+
+    function test_Fork_BoardRevertsOnWrongSelector() public {
+        Fund memory f = funds[0];
+        SecuritizeArk ark = arks[0];
+        uint256 amount = f.minAmount;
+        // inner call is well-formed but not `subscribe(...)` -> rejected by _validateBoardData
+        bytes memory inner = _subscribeDataWithSelector(
+            bytes4(0xdeadbeef),
+            address(ark),
+            amount
+        );
+        deal(USDC, commander, amount);
+        vm.startPrank(commander);
+        IERC20(USDC).approve(address(ark), amount);
+        vm.expectRevert(
+            ISecuritizeArkErrors.InvalidSubscriptionPayload.selector
+        );
+        ark.board(amount, _payloadFrom(f.onRamp, inner, 0));
+        vm.stopPrank();
+    }
+
+    function test_Fork_BoardRevertsOnAmountMismatch() public {
+        Fund memory f = funds[0];
+        SecuritizeArk ark = arks[0];
+        uint256 boardAmount = f.minAmount;
+        // destination/recipient/selector pass _validateBoardData, but the payload encodes a
+        // different subscription amount than the keeper boards -> rejected by _board's amount bind.
+        bytes memory data = _payload(
+            f.onRamp,
+            address(ark),
+            boardAmount + 1,
+            0
+        );
+        deal(USDC, commander, boardAmount);
+        vm.startPrank(commander);
+        IERC20(USDC).approve(address(ark), boardAmount);
+        vm.expectRevert(
+            ISecuritizeArkErrors.InvalidSubscriptionPayload.selector
+        );
+        ark.board(boardAmount, data);
+        vm.stopPrank();
+    }
+
+    function test_Fork_BoardRevertsWithoutKeeperData() public {
+        Fund memory f = funds[0];
+        SecuritizeArk ark = arks[0];
+        uint256 amount = f.minAmount;
+        deal(USDC, commander, amount);
+        vm.startPrank(commander);
+        IERC20(USDC).approve(address(ark), amount);
+        // requiresKeeperData = true: empty board data is rejected by the base Ark modifier before
+        // the Ark-specific hooks run, so the signed payload is mandatory.
+        vm.expectRevert(IArkErrors.KeeperDataRequired.selector);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+    }
+
+    function test_Fork_BoardRevertsOnMalformedBoardData() public {
+        Fund memory f = funds[0];
+        SecuritizeArk ark = arks[0];
+        uint256 amount = f.minAmount;
+        // Board data that does not ABI-decode to (bytes, ExecutePreApprovedTransaction): the
+        // on-ramp/asset checks pass, then the outer decode in _validateSubscriptionData reverts
+        // (a generic ABI-decode revert with no selector) before any asset transfer.
+        deal(USDC, commander, amount);
+        vm.startPrank(commander);
+        IERC20(USDC).approve(address(ark), amount);
+        vm.expectRevert();
+        ark.board(amount, hex"deadbeef");
+        vm.stopPrank();
+    }
+
+    function test_Fork_BoardRevertsOnInnerTooShort() public {
+        Fund memory f = funds[0];
+        SecuritizeArk ark = arks[0];
+        uint256 amount = f.minAmount;
+        // Outer payload is well-formed and destined for the on-ramp, but the inner call data is
+        // shorter than a 4-byte selector -> _decodeSubscribe reverts InvalidSubscriptionPayload.
+        bytes memory data = _payloadFrom(f.onRamp, hex"010203", 0);
+        deal(USDC, commander, amount);
+        vm.startPrank(commander);
+        IERC20(USDC).approve(address(ark), amount);
+        vm.expectRevert(
+            ISecuritizeArkErrors.InvalidSubscriptionPayload.selector
+        );
+        ark.board(amount, data);
+        vm.stopPrank();
+    }
+
+    function test_Fork_BoardRevertsOnMalformedSubscribeArgs() public {
+        Fund memory f = funds[0];
+        SecuritizeArk ark = arks[0];
+        uint256 amount = f.minAmount;
+        // Correct subscribe selector but truncated/garbage arguments: the selector check passes,
+        // then abi.decode of the 10-field tuple reverts (generic) before any asset transfer.
+        bytes memory inner = abi.encodePacked(
+            SUBSCRIBE_SELECTOR,
+            hex"deadbeef"
+        );
+        bytes memory data = _payloadFrom(f.onRamp, inner, 0);
+        deal(USDC, commander, amount);
+        vm.startPrank(commander);
+        IERC20(USDC).approve(address(ark), amount);
+        vm.expectRevert();
+        ark.board(amount, data);
+        vm.stopPrank();
+    }
+
     /* ----------------- end-to-end signed relay through the Ark ----------- */
 
     function test_Fork_E2E_RelayBoard() public {
@@ -243,6 +366,17 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         address recipient,
         uint256 amount
     ) internal view returns (bytes memory) {
+        return
+            _subscribeDataWithSelector(SUBSCRIBE_SELECTOR, recipient, amount);
+    }
+
+    /// @dev Builds the on-ramp `subscribe(...)` calldata under an arbitrary leading selector, so a
+    ///      non-`subscribe` selector can be exercised against the Ark's payload validation.
+    function _subscribeDataWithSelector(
+        bytes4 selector,
+        address recipient,
+        uint256 amount
+    ) internal view returns (bytes memory) {
         uint8[] memory ids = new uint8[](3);
         ids[0] = 1;
         ids[1] = 2;
@@ -257,7 +391,7 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         exp[2] = exp[0];
         return
             abi.encodeWithSelector(
-                SUBSCRIBE_SELECTOR,
+                selector,
                 "summer-fork-1",
                 recipient,
                 "US",
@@ -278,11 +412,21 @@ contract SecuritizeArkForkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         uint256 amount,
         uint256 nonce
     ) internal view returns (bytes memory) {
+        return _payloadFrom(onRamp, _subscribeData(recipient, amount), nonce);
+    }
+
+    /// @dev Wraps arbitrary inner call data into an (unsigned) board-data payload, so the
+    ///      destination and inner call can be varied independently in validation tests.
+    function _payloadFrom(
+        address destination,
+        bytes memory innerData,
+        uint256 nonce
+    ) internal pure returns (bytes memory) {
         ISecuritizeOnRamp.ExecutePreApprovedTransaction
             memory txData = ISecuritizeOnRamp.ExecutePreApprovedTransaction({
                 senderInvestor: "summer-fork-1",
-                destination: onRamp,
-                data: _subscribeData(recipient, amount),
+                destination: destination,
+                data: innerData,
                 nonce: nonce
             });
         return abi.encode(bytes(""), txData);

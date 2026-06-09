@@ -26,13 +26,14 @@ import {ISecuritizeArk} from "../../interfaces/arks/ISecuritizeArk.sol";
  *   `ExecutePreApprovedTransaction` (an internal `subscribe(...)`). The Ark cannot sign — Securitize
  *   provides the signed payload off-chain and the keeper passes it as `board` data
  *   (`requiresKeeperData = true`).
- * - `_board` resolves the fund on-ramp (DS service id 16384), validates the payload subscribes to
- *   THIS Ark for exactly the boarded amount, approves the base asset, and relays
- *   `executePreApprovedTransaction`. The on-ramp forwards the asset (minus fee) to the fund
- *   custodian and MINTS the DSToken to this Ark in the same transaction. A post-mint check enforces
- *   the minted shares are within `depositSlippage` of the oracle-implied amount (catching NAV-source
- *   divergence or an excessive on-ramp fee). The relayed `subscribe` also onboards this Ark in the
- *   registry, so no separate onboarding step is needed.
+ * - `_validateBoardData` (the keeper board-data hook, run before `_board`) resolves the fund
+ *   on-ramp (DS service id 16384) and checks the payload relays a `subscribe` to that on-ramp which
+ *   mints to THIS Ark. `_board` then binds the payload to the boarded amount, approves the base
+ *   asset, and relays `executePreApprovedTransaction`. The on-ramp forwards the asset (minus fee) to
+ *   the fund custodian and MINTS the DSToken to this Ark in the same transaction. A post-mint check
+ *   enforces the minted shares are within `depositSlippage` of the oracle-implied amount (catching
+ *   NAV-source divergence or an excessive on-ramp fee). The relayed `subscribe` also onboards this
+ *   Ark in the registry, so no separate onboarding step is needed.
  *
  * Withdrawals (asynchronous — there is no on-chain off-ramp):
  * 1. `requestWithdrawal`: compliance pre-check, then transfer the DSToken to `custodianWallet` for
@@ -364,7 +365,7 @@ contract SecuritizeArk is
     function claimWithdrawal() external override onlyKeeper {}
 
     /**
-     * @inheritdoc IArkWithWithdrawalRequest
+     * @inheritdoc IArkWithSwap
      * @dev No-op: swap-based exits are not supported for this Ark.
      */
     function withdrawUsingSwap(
@@ -470,6 +471,9 @@ contract SecuritizeArk is
      * @notice Subscribes to the fund by relaying a Securitize-signed `executePreApprovedTransaction`
      *         (an internal `subscribe`) supplied as keeper board data. Synchronous: DSToken is
      *         minted to this Ark in the same transaction.
+     * @dev `_validateBoardData` (run by the `board` modifier before this) has already verified the
+     *      payload relays a `subscribe` to the resolved on-ramp that mints to THIS Ark. Here we
+     *      bind that payload to the boarded `amount`, relay it, and check the minted shares.
      * @param amount Base-asset amount to subscribe.
      * @param data ABI-encoded `(bytes signature, ISecuritizeOnRamp.ExecutePreApprovedTransaction)`.
      */
@@ -478,11 +482,6 @@ contract SecuritizeArk is
         bytes calldata data
     ) internal override onlyNotFrozen {
         ISecuritizeOnRamp ramp = onRamp();
-        if (address(ramp) == address(0)) revert OnRampNotConfigured();
-        address liquidityToken = ramp.liquidityToken();
-        if (liquidityToken != address(config.asset)) {
-            revert OnRampAssetMismatch(address(config.asset), liquidityToken);
-        }
 
         (
             bytes memory signature,
@@ -492,13 +491,11 @@ contract SecuritizeArk is
                 (bytes, ISecuritizeOnRamp.ExecutePreApprovedTransaction)
             );
 
-        // The payload is signed by Securitize, but THIS Ark spends its own base asset — so verify
-        // the relayed call is a `subscribe` to the resolved on-ramp that mints to THIS Ark for
-        // exactly `amount`.
-        if (txData.destination != address(ramp)) {
-            revert InvalidSubscriptionPayload();
-        }
-        _assertSubscribesToThisArk(txData.data, amount);
+        // The signed payload pulls THIS Ark's base asset, so the subscription amount it encodes
+        // must equal the amount the keeper is boarding (the destination/recipient were checked in
+        // `_validateBoardData`).
+        (, uint256 liquidityAmount) = _decodeSubscribe(txData.data);
+        if (liquidityAmount != amount) revert InvalidSubscriptionPayload();
 
         uint256 sharesBefore = shareToken.balanceOf(address(this));
         uint256 expectedShares = _assetsToShares(amount);
@@ -519,14 +516,14 @@ contract SecuritizeArk is
     }
 
     /**
-     * @dev Validates that `inner` is a `subscribe(...)` whose `_investorWallet` is this Ark and
-     *      whose `_liquidityAmount` equals the boarded amount, so the keeper-supplied payload can
-     *      only pull our asset to mint to us for the agreed amount.
+     * @dev Decodes the on-ramp's `subscribe(...)` calldata, returning the two fields the Ark binds:
+     *      the investor wallet (must be this Ark, checked in `_validateBoardData`) and the liquidity
+     *      amount (must equal the boarded amount, checked in `_board`). Reverts
+     *      `InvalidSubscriptionPayload` unless `inner` is a `subscribe` call.
      */
-    function _assertSubscribesToThisArk(
-        bytes memory inner,
-        uint256 amount
-    ) internal view {
+    function _decodeSubscribe(
+        bytes memory inner
+    ) internal pure returns (address investorWallet, uint256 liquidityAmount) {
         if (inner.length < 4) revert InvalidSubscriptionPayload();
         bytes4 selector;
         assembly {
@@ -539,25 +536,21 @@ contract SecuritizeArk is
         for (uint256 i = 0; i < args.length; i++) {
             args[i] = inner[i + 4];
         }
-        (, address investorWallet, , , , , , uint256 liquidityAmount, , ) = abi
-            .decode(
-                args,
-                (
-                    string,
-                    address,
-                    string,
-                    uint8[],
-                    uint256[],
-                    uint256[],
-                    uint256,
-                    uint256,
-                    uint256,
-                    bytes32
-                )
-            );
-        if (investorWallet != address(this) || liquidityAmount != amount) {
-            revert InvalidSubscriptionPayload();
-        }
+        (, investorWallet, , , , , , liquidityAmount, , ) = abi.decode(
+            args,
+            (
+                string,
+                address,
+                string,
+                uint8[],
+                uint256[],
+                uint256[],
+                uint256,
+                uint256,
+                uint256,
+                bytes32
+            )
+        );
     }
 
     /**
@@ -635,9 +628,41 @@ contract SecuritizeArk is
     }
 
     /**
-     * @dev No structural validation here; `_board` decodes and validates the payload.
+     * @dev `boardData` must be the Securitize-signed on-ramp subscription payload. Validated here
+     *      (amount-independent); `_board` binds it to the boarded amount and relays it.
      */
-    function _validateBoardData(bytes calldata) internal override {}
+    function _validateBoardData(bytes calldata data) internal override {
+        _validateSubscriptionData(data);
+    }
+
+    /**
+     * @dev Reverts unless `data` ABI-decodes to `(bytes signature, ExecutePreApprovedTransaction)`
+     *      whose call relays a `subscribe(...)` to the resolved on-ramp that mints to THIS Ark. The
+     *      subscription amount is bound to the boarded amount in `_board` (`amount` is not available
+     *      to this hook).
+     * @param data Keeper-supplied `boardData`.
+     */
+    function _validateSubscriptionData(bytes calldata data) internal view {
+        ISecuritizeOnRamp ramp = onRamp();
+        if (address(ramp) == address(0)) revert OnRampNotConfigured();
+        address liquidityToken = ramp.liquidityToken();
+        if (liquidityToken != address(config.asset)) {
+            revert OnRampAssetMismatch(address(config.asset), liquidityToken);
+        }
+
+        (, ISecuritizeOnRamp.ExecutePreApprovedTransaction memory txData) = abi
+            .decode(
+                data,
+                (bytes, ISecuritizeOnRamp.ExecutePreApprovedTransaction)
+            );
+        if (txData.destination != address(ramp)) {
+            revert InvalidSubscriptionPayload();
+        }
+        (address investorWallet, ) = _decodeSubscribe(txData.data);
+        if (investorWallet != address(this)) {
+            revert InvalidSubscriptionPayload();
+        }
+    }
 
     /**
      * @dev No-op: this ark accepts no disembarkData payload.
