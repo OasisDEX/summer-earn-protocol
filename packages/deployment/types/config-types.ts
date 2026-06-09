@@ -124,6 +124,11 @@ export interface BaseConfig {
       summerVestingFactory?: { address: string }
       summerVestingFactoryV2?: { address: string }
       timelockGuardFactory?: { address: string }
+      // Institution-scoped RwaTimelock instances (overlaid from the institution index by
+      // getInstitutionConfigByNetwork). `governorTimelock` is the sole GOVERNOR_ROLE holder;
+      // `curatorTimelock` holds CURATOR_ROLE on each fleet.
+      governorTimelock?: { address: string }
+      curatorTimelock?: { address: string }
     }
     govV2: {
       summerGovernor: { address: string }

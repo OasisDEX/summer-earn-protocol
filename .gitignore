@@ -118,5 +118,10 @@ myenv
 **/terraform.tfvars
 *.tfvars
 x-ray/
+docs/superstate/
 
 .resources/
+
+cmd.in
+cmd.out
+gemini_pipe.sh
