@@ -43,6 +43,8 @@ dataSources:
           file: ./abis/PendleMarket.json
         - name: IRateProvider
           file: ./abis/IRateProvider.json
+        - name: EACAggregatorProxy
+          file: ./abis/EACAggregatorProxy.json
         - name: SkyPSM3
           file: ./abis/SkyPSM3.json
         - name: SkySSRAuthOracle

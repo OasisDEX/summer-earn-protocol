@@ -202,7 +202,7 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @inheritdoc IArkWithWithdrawalRequest
+     * @inheritdoc IArkWithSwap
      */
     function withdrawUsingSwap(
         uint256 amount,
