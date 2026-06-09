@@ -36,6 +36,7 @@ import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import { deployUpshiftArk } from '../arks/deploy-upshift-ark'
 import { deployWisdomTreeArk } from '../arks/deploy-wisdom-tree-ark'
+import { deploySuperstateArk } from '../arks/deploy-superstate-ark'
 import {
   validateAddress,
   validateConfigAddressEntry,
@@ -516,6 +517,49 @@ export async function deployArk(
       deployedArk = ark
       break
     }
+    case ArkType.SuperstateArk: {
+      const fundName = validateString(arkConfig.params.fundName, 'fundName')
+
+      const superstateByToken = config.protocolSpecific.superstate?.[token]
+      if (!superstateByToken) {
+        throw new Error(`Superstate config missing for token '${token}'`)
+      }
+
+      const shareToken = validateConfigAddressEntry(
+        superstateByToken[fundName],
+        'shareToken',
+        `Superstate fund '${fundName}' shareToken`,
+      )
+      const superstateSubscribe = validateConfigAddressEntry(
+        superstateByToken[fundName],
+        'superstateSubscribe',
+        `Superstate fund '${fundName}' superstateSubscribe`,
+      )
+      const superstateRedeem = validateConfigAddressEntry(
+        superstateByToken[fundName],
+        'superstateRedeem',
+        `Superstate fund '${fundName}' superstateRedeem`,
+      )
+      const oracle = validateConfigAddressEntry(
+        superstateByToken[fundName],
+        'oracle',
+        `Superstate fund '${fundName}' oracle`,
+      )
+      const sweepSlippage = superstateByToken[fundName].sweepSlippage
+      const depositSlippage = superstateByToken[fundName].depositSlippage
+      const ark = await deploySuperstateArk(config, {
+        ...baseArkParams,
+        fundName: fundName,
+        shareToken: shareToken,
+        superstateSubscribe: superstateSubscribe,
+        superstateRedeem: superstateRedeem,
+        oracle: oracle,
+        sweepSlippage: sweepSlippage,
+        depositSlippage: depositSlippage,
+      })
+      deployedArk = ark
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${type}`)
   }
@@ -648,6 +692,11 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.Psm3ERC4626Ark: {
       deployedArk = await deployPsmERC4626Ark(config)
+      break
+    }
+
+    case ArkType.SuperstateArk: {
+      deployedArk = await deploySuperstateArk(config, null as any)
       break
     }
     default:

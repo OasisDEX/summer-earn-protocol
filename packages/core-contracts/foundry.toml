@@ -14,6 +14,24 @@ via_ir = false
 optimizer = true
 optimizer_runs = 50
 
+# Fast settings for local dev / normal `pnpm test`. Override via FOUNDRY_FUZZ_RUNS
+# or the `deep` profile (FOUNDRY_PROFILE=deep) for thorough runs.
+[profile.default.fuzz]
+runs = 64
+
+[profile.default.invariant]
+runs = 32
+depth = 128
+
+# Thorough settings for CI and pre-release auditing: `FOUNDRY_PROFILE=deep forge test`
+# (or `pnpm test:deep`). Inherits everything else from the default profile.
+[profile.deep.fuzz]
+runs = 1024
+
+[profile.deep.invariant]
+runs = 256
+depth = 500
+
 [fmt]
   bracket_spacing = true
   int_types = "long"

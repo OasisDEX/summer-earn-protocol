@@ -117,10 +117,15 @@ myenv
 **/.terraform.lock.hcl
 **/terraform.tfvars
 *.tfvars
+
+.antigravitycli
+
+.x-ray/
 x-ray/
 docs/superstate/
 
-.resources/
+.next-docs
+.claude
 
 cmd.in
 cmd.out
