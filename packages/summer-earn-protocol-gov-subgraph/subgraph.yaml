@@ -1,6 +1,11 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
+features:
+  - grafting
+graft:
+  base: QmQkgpiYtZRZnCRw6eMKnVSa8Syv8Z8dQckGb3FofHnqQu
+  block: 37386000
 dataSources:
   - kind: ethereum/contract
     name: SummerGovernor

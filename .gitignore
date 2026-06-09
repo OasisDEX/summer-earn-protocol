@@ -119,6 +119,7 @@ myenv
 *.tfvars
 
 .antigravitycli
+.resources
 
 .x-ray/
 x-ray/

@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-gov-subgraph",
-  "version": "1.4.2-fix-duplicate-sources",
+  "version": "1.4.4-fix-hyper",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",

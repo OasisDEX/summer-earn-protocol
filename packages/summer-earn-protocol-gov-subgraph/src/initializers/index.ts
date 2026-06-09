@@ -8,7 +8,11 @@ export function getOrCreateCrossChainProposal(proposalId: string): CrossChainPro
   if (!proposal) {
     proposal = new CrossChainProposal(proposalId)
     proposal.proposalId = proposalId
-    proposal.chainId = subgraphNetworkToChainIdMap.get(dataSource.network())
+    // AssemblyScript Map#get aborts on a missing key, so guard with has()
+    const network = dataSource.network()
+    proposal.chainId = subgraphNetworkToChainIdMap.has(network)
+      ? subgraphNetworkToChainIdMap.get(network)
+      : network
     proposal.salt = Bytes.fromHexString('')
     proposal.status = 'Pending'
     proposal.targets = []
