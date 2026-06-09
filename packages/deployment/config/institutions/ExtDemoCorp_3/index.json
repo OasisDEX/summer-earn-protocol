@@ -49,7 +49,11 @@
     "superKeeper": "0x0f0fA89471259433b6955827226f19999D93c568",
     "whitelistManagers": [
       "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA"
-    ]
+    ],
+    "timelock": {
+      "governorDelay": 0,
+      "curatorDelay": 0
+    }
   },
   "base": {
     "deployedContracts": {
@@ -110,6 +114,10 @@
     "superKeeper": "0x0f0fA89471259433b6955827226f19999D93c568",
     "whitelistManagers": [
       "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA"
-    ]
+    ],
+    "timelock": {
+      "governorDelay": 0,
+      "curatorDelay": 0
+    }
   }
 }
