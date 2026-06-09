@@ -48,6 +48,7 @@ export enum ArkType {
   MapleInstitutionalArk = 'MapleInstitutionalArk',
   UpshiftArk = 'UpshiftArk',
   OriginUSDArk = 'OriginUSDArk',
+  SuperstateArk = 'SuperstateArk',
 }
 
 export const arkTypes = [
@@ -84,6 +85,7 @@ export const arkTypes = [
   { title: 'MapleInstitutionalArk', value: ArkType.MapleInstitutionalArk },
   { title: 'UpshiftArk', value: ArkType.UpshiftArk },
   { title: 'OriginUSDArk', value: ArkType.OriginUSDArk },
+  { title: 'SuperstateArk', value: ArkType.SuperstateArk },
 ]
 
 export interface Config {
@@ -222,6 +224,17 @@ export interface BaseConfig {
           oracle: string
           shareToken: string
           targetWallet: string
+          sweepSlippage: string
+          depositSlippage: string
+        }
+      } }
+    superstate?: {
+      [key in Token]?: {
+        [key: string]: {
+          oracle: string
+          shareToken: string
+          superstateSubscribe: string
+          superstateRedeem: string
           sweepSlippage: string
           depositSlippage: string
         }

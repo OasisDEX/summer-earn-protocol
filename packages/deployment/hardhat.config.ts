@@ -95,6 +95,9 @@ const config: HardhatUserConfig = {
           balance: '1000000000000000000000', // 1000 ETH in wei
         },
       ],
+      forking: {
+        url: 'https://eth-mainnet.g.alchemy.com/v2/rssSfHwTA7Uswv4e-O9y5',
+      },
     },
     // mainnets
     mainnet: {
