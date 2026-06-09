@@ -15,47 +15,38 @@ import {ISecuritizeArk} from "../../interfaces/arks/ISecuritizeArk.sol";
 
 /**
  * @title SecuritizeArk
- * @notice Ark for allocating into a Securitize DS Protocol security token (`DSToken`) via an
- *         off-chain, issuer-mediated (custodial) settlement model. The base asset (e.g. USDC) is
- *         sent to a Securitize-designated `custodianWallet`; Securitize issues the DSToken to this
- *         Ark off-chain. Redemption reverses the flow. Valuation uses an external NAV oracle.
+ * @notice Ark for allocating into a Securitize DS Protocol security token (`DSToken`, e.g. VBILL,
+ *         ACRED, STAC). Valuation uses an external NAV oracle.
  *
  * @dev Asset tracking model:
- * totalAssets() = (tokenBalance * oraclePrice) + pendingDepositAssets + (pendingWithdrawalShares * oraclePrice)
+ * totalAssets() = (tokenBalance + pendingWithdrawalShares) * oraclePrice
  *
- * Prerequisites (off-chain, performed by Securitize):
- * - This Ark's address AND the `custodianWallet` MUST be KYC'd and registered as investor wallets
- *   in the registry service, otherwise every DSToken transfer reverts. See `isArkOnboarded()`.
+ * Deposits (synchronous, on-ramp subscription):
+ * - Securitize subscriptions are operator-authorized: an EXCHANGE/ISSUER key signs an EIP-712
+ *   `ExecutePreApprovedTransaction` (an internal `subscribe(...)`). The Ark cannot sign — Securitize
+ *   provides the signed payload off-chain and the keeper passes it as `board` data
+ *   (`requiresKeeperData = true`).
+ * - `_board` resolves the fund on-ramp (DS service id 16384), validates the payload subscribes to
+ *   THIS Ark for exactly the boarded amount, approves the base asset, and relays
+ *   `executePreApprovedTransaction`. The on-ramp forwards the asset (minus fee) to the fund
+ *   custodian and MINTS the DSToken to this Ark in the same transaction. A post-mint check enforces
+ *   the minted shares are within `depositSlippage` of the oracle-implied amount (catching NAV-source
+ *   divergence or an excessive on-ramp fee). The relayed `subscribe` also onboards this Ark in the
+ *   registry, so no separate onboarding step is needed.
  *
- * Deposits are HYBRID (keeper-selectable via `setUseOnRampSubscription`):
- * a) On-ramp path (default): Securitize registers a per-fund on-ramp contract in the DSToken's
- *    service registry (id 16384). `_board` approves the base asset to the on-ramp and calls
- *    `swap(amount, minOut)`, which forwards the asset (minus fee) to the fund custodian and MINTS
- *    DSTokens to this Ark in the same transaction at Securitize's NAV — fully synchronous, no
- *    pending-deposit bookkeeping. `minOut` is derived from THIS Ark's oracle minus
- *    `depositSlippage`, so every subscription cross-checks Securitize's NAV against the RedStone
- *    feed (and implicitly caps the on-ramp fee at `depositSlippage`).
- * b) Custodial fallback: send the base asset to `custodianWallet` and track
- *    `pendingDepositAssets` until the keeper confirms off-chain issuance via
- *    `clearPendingDeposit()` (see the rebasing caveat in `_validateReceivedShares`). Used when
- *    the on-ramp is unavailable (subscriptions toggled off, fee above tolerance, min-subscription
- *    constraints, or the service deregistered).
- *
- * Withdrawals are ASYNC only — there is no on-chain off-ramp:
- * 1. `requestWithdrawal`: compliance pre-check, then transfer the DSToken to `custodianWallet`
- *    for off-chain redemption; increase `pendingWithdrawalShares`.
- * 2. `sweep`: the base asset returns from Securitize; the keeper sweeps it to the buffer ark
- *    after the `sweepSlippage` check.
- * 3. Emergency fallbacks: governor-only `emergencySweep()` / `emergencyClearPendingDeposit()` and
- *    keeper `setArkFrozen(...)`.
+ * Withdrawals (asynchronous — there is no on-chain off-ramp):
+ * 1. `requestWithdrawal`: compliance pre-check, then transfer the DSToken to `custodianWallet` for
+ *    off-chain redemption; increase `pendingWithdrawalShares`.
+ * 2. `sweep`: the base asset returns from Securitize; the keeper sweeps it to the buffer ark after
+ *    the `sweepSlippage` check (governor `emergencySweep` bypasses it). `setArkFrozen` quarantines.
  *
  * NAV / oracle sources — the single-source fund NAV is available on-chain two ways:
- * 1. Securitize's `ISecuritizeNavProvider`, resolvable via `onRamp().navProvider().rate()`. This
- *    is the operator-set value the on-ramp prices with, but it carries no freshness timestamp and
- *    its service id is marked deprecated in newer DS Protocol sources.
+ * 1. Securitize's `ISecuritizeNavProvider`, resolvable via `onRamp().navProvider().rate()`. This is
+ *    the operator-set value the on-ramp prices with, but it carries no freshness timestamp and its
+ *    service id is marked deprecated in newer DS Protocol sources.
  * 2. The RedStone `*_FUNDAMENTAL` push feed (`AggregatorV3Interface`): same value, with `updatedAt`.
  * This Ark prices with (2) to enforce `ORACLE_HEARTBEAT_TIMEOUT`, and cross-checks (1) via the
- * on-ramp `minOut` on every synchronous subscription.
+ * post-mint `depositSlippage` bound on every subscription.
  */
 contract SecuritizeArk is
     ISecuritizeArk,
@@ -70,11 +61,7 @@ contract SecuritizeArk is
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /*//////////////////////////////////////////////////////////////
-                                  ENUMS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Default slippage (0.02%)
+    /// @notice Default slippage (0.02%) passed to the swap-helper base.
     uint256 public constant DEFAULT_SWAP_SLIPPAGE = 2;
 
     /// @notice Maximum sweep slippage (0.5%)
@@ -93,32 +80,35 @@ contract SecuritizeArk is
     /// @notice DS Protocol service id for the registry service (per `IDSServiceConsumer`).
     uint256 public constant REGISTRY_SERVICE_ID = 4;
 
-    /// @notice DS Protocol service id for the Securitize on-ramp (subscription/swap) contract.
+    /// @notice DS Protocol service id for the Securitize on-ramp (subscription) contract.
     /// @dev Named `DEPRECATED_SECURITIZE_SWAP` in newer DS Protocol sources but live for the
     ///      integrated funds; resolved dynamically so a re-registration is picked up automatically.
     uint256 public constant SECURITIZE_SWAP_SERVICE_ID = 16384;
+
+    /// @notice Selector of the on-ramp's `subscribe(string,address,string,uint8[],uint256[],
+    ///         uint256[],uint256,uint256,uint256,bytes32)` — the only call `_board` will relay.
+    bytes4 internal constant SUBSCRIBE_SELECTOR = 0x3ca90bd4;
 
     /*//////////////////////////////////////////////////////////////
                            STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The Securitize-controlled wallet that receives the configured asset on deposit and
-    ///         returns it after off-chain settlement.
+    /// @notice The Securitize-controlled wallet that receives the DSToken on redemption requests.
     address public custodianWallet;
 
     /// @notice The Securitize DSToken (fund share token) this Ark holds. Transfers are
     ///         compliance-gated; see `IDSToken`.
     IERC20 public immutable shareToken;
 
-    /// @notice The Securitize registry service, used to verify this Ark (and counterparties) are
-    ///         registered investor wallets before attempting compliance-gated transfers.
+    /// @notice The Securitize registry service, resolved from the DSToken. Used to surface
+    ///         onboarding status (`isArkOnboarded`).
     IDSRegistryService public immutable registryService;
 
-    /// @notice Price feed: price of 1 DSToken denominated in the underlying asset (NAV oracle).
-    /// @dev RedStone `*_FUNDAMENTAL` push feed. NOTE: the same NAV is also resolvable fully
-    ///      on-chain via `onRamp().navProvider().rate()` (Securitize's operator-set TSSO root),
-    ///      but that source has no `updatedAt`/staleness signal, so this feed is primary; the two
-    ///      are cross-checked on every on-ramp subscription via the oracle-derived `minOut`.
+    /// @notice NAV price feed: price of 1 DSToken denominated in the underlying asset.
+    /// @dev RedStone `*_FUNDAMENTAL` push feed. The same NAV is also resolvable on-chain via
+    ///      `onRamp().navProvider().rate()` (Securitize's operator-set source), but that has no
+    ///      `updatedAt`/staleness signal, so this feed is primary; the two are cross-checked on
+    ///      every subscription via the oracle-derived `depositSlippage` bound.
     AggregatorV3Interface public immutable oracle;
 
     /// @notice Decimals reported by the NAV oracle (RedStone AggregatorV3 feed)
@@ -133,15 +123,8 @@ contract SecuritizeArk is
     /// @notice One whole DSToken share, in `shareDecimals` (10 ** shareDecimals)
     uint256 public immutable ONE_SHARE;
 
-    /// @notice Validated configured-asset amount sent to Securitize, awaiting corresponding share
-    ///         issuance clearance.
-    uint256 public pendingDepositAssets;
-
-    /// @notice Frozen share balance used while deposits are pending to prevent double-counting newly minted shares.
-    uint256 public cachedShareBalance;
-
-    /// @notice DSToken shares sent to the custodian for off-chain redemption, pending
-    ///         settlement via `sweep`. Denominated in DSToken units.
+    /// @notice DSToken shares sent to the custodian for off-chain redemption, pending settlement
+    ///         via `sweep`. Denominated in DSToken units.
     uint256 public pendingWithdrawalShares;
 
     /// @notice True while the ark is quarantined by `setArkFrozen`. Gates state-changing entry
@@ -149,17 +132,11 @@ contract SecuritizeArk is
     ///         `_frozenTotalAssets` snapshot instead of recomputing from live state.
     bool public isArkFrozen;
 
-    /// @notice Tolerance applied to the expected vs. actual returned configured-asset amount during
-    ///         `sweep`, denominated as a `Percentage` (units defined by the `Percentage` type).
+    /// @notice Tolerance applied during `sweep` to the expected vs. returned asset amount.
     Percentage public sweepSlippage;
 
-    /// @notice Maximum slippage for deposit clearance
+    /// @notice Tolerance applied to the minted-vs-oracle-implied shares on a subscription.
     Percentage public depositSlippage;
-
-    /// @notice When true (default), `_board` subscribes synchronously through the Securitize
-    ///         on-ramp (`swap`). When false, it falls back to the asynchronous custodial transfer
-    ///         tracked via `pendingDepositAssets`.
-    bool public useOnRampSubscription;
 
     /// @notice Total assets of the ark when it was frozen
     uint256 private _frozenTotalAssets;
@@ -169,14 +146,14 @@ contract SecuritizeArk is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Wires the ark to its off-chain counterparties and slippage bounds.
-     * @param _custodianWallet Securitize-controlled wallet that receives the configured asset on
-     *                         `_board` and returns it after settlement.
-     * @param _shareToken Securitize DSToken (fund share token) issued for accepted asset deposits.
+     * @notice Wires the ark to its counterparties and slippage bounds.
+     * @param _custodianWallet Securitize-controlled wallet that receives the DSToken on redemption.
+     * @param _shareToken Securitize DSToken (fund share token).
      * @param _oracle NAV price feed for "1 DSToken denominated in the underlying asset".
      * @param _sweepSlippage Initial sweep slippage cap; must be `<= MAX_SWEEP_SLIPPAGE` (0.5%).
      * @param _depositSlippage Initial deposit slippage cap; must be `<= MAX_DEPOSIT_SLIPPAGE` (0.5%).
-     * @param _params Standard `ArkParams` (asset, commander, deposit caps, etc.).
+     * @param _params Standard `ArkParams`. `requiresKeeperData` MUST be true (the on-ramp
+     *               subscription payload is supplied as keeper board data).
      */
     constructor(
         address _custodianWallet,
@@ -189,6 +166,7 @@ contract SecuritizeArk is
         if (_custodianWallet == address(0)) revert InvalidTargetWallet();
         if (_oracle == address(0)) revert InvalidOracleAddress();
         if (_shareToken == address(0)) revert InvalidShareTokenAddress();
+        if (!_params.requiresKeeperData) revert MustRequireKeeperData();
 
         custodianWallet = _custodianWallet;
         shareToken = IERC20(_shareToken);
@@ -215,13 +193,9 @@ contract SecuritizeArk is
         shareDecimals = IERC20Metadata(_shareToken).decimals();
         assetDecimals = IERC20Metadata(_params.asset).decimals();
         ONE_SHARE = 10 ** shareDecimals;
-        // Default to the synchronous on-ramp subscription path; the keeper can fall back to the
-        // custodial path via setUseOnRampSubscription(false).
-        useOnRampSubscription = true;
     }
 
-    /// @notice Gates a function on `isArkFrozen == false`. Reverts with `ArkIsFrozen` while the
-    ///         keeper has the ark quarantined via `setArkFrozen(true, ...)`.
+    /// @notice Gates a function on `isArkFrozen == false`.
     modifier onlyNotFrozen() {
         if (isArkFrozen) revert ArkIsFrozen();
         _;
@@ -231,10 +205,8 @@ contract SecuritizeArk is
                               VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @inheritdoc IArk
-     * @notice totalAssets = (actual shares * oracle price) + pending deposits + pending withdrawals
-     */
+    /// @inheritdoc IArk
+    /// @notice totalAssets = (held shares + pending withdrawal shares) valued via the NAV oracle.
     function totalAssets()
         public
         view
@@ -244,33 +216,22 @@ contract SecuritizeArk is
         if (isArkFrozen) {
             return _frozenTotalAssets;
         }
-
-        // If there is an active deposit queue, we use the cached share balance.
-        // This prevents double-counting shares that arrive before the keeper clears the deposit.
-        uint256 currentShares = pendingDepositAssets > 0
-            ? cachedShareBalance
-            : shareToken.balanceOf(address(this));
-        uint256 totalShares = currentShares + pendingWithdrawalShares;
-        assets = _sharesToAssets(totalShares) + pendingDepositAssets;
+        uint256 totalShares = shareToken.balanceOf(address(this)) +
+            pendingWithdrawalShares;
+        assets = _sharesToAssets(totalShares);
     }
 
-    /**
-     * @inheritdoc IArkWithWithdrawalRequest
-     */
+    /// @inheritdoc IArkWithWithdrawalRequest
     function assetsInWithdrawalQueue() public view override returns (uint256) {
         return _sharesToAssets(pendingWithdrawalShares);
     }
 
-    /**
-     * @inheritdoc IArkWithWithdrawalRequest
-     */
+    /// @inheritdoc IArkWithWithdrawalRequest
     function withdrawalRequestId() external pure override returns (uint256) {
         return 0;
     }
 
-    /**
-     * @inheritdoc IArkWithWithdrawalRequest
-     */
+    /// @inheritdoc IArkWithWithdrawalRequest
     function isWithdrawalClaimRequired() external pure override returns (bool) {
         return false;
     }
@@ -287,19 +248,17 @@ contract SecuritizeArk is
     }
 
     /**
-     * @notice Whether this Ark is currently a registered investor wallet in the Securitize registry
-     *         and may therefore hold/transfer the DSToken. Onboarding is performed off-chain by
-     *         Securitize before the Ark can be used.
+     * @notice Whether this Ark is a registered investor wallet in the Securitize registry. The
+     *         relayed subscription onboards the Ark on first deposit; this exposes the live status.
      */
     function isArkOnboarded() external view returns (bool) {
         return registryService.isWallet(address(this));
     }
 
     /**
-     * @notice Resolves the fund's Securitize on-ramp (subscription/swap) contract from the
-     *         DSToken's service registry.
-     * @dev Resolved dynamically (not cached) so Securitize re-registrations are picked up.
-     *      Returns the zero address if no on-ramp is registered.
+     * @notice Resolves the fund's Securitize on-ramp from the DSToken's service registry.
+     * @dev Resolved dynamically (not cached) so Securitize re-registrations are picked up. Returns
+     *      the zero address if no on-ramp is registered.
      */
     function onRamp() public view returns (ISecuritizeOnRamp) {
         return
@@ -315,9 +274,8 @@ contract SecuritizeArk is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Updates the Securitize custodian wallet receiving the configured asset.
+     * @notice Updates the Securitize custodian wallet that receives the DSToken on redemption.
      * @dev Restricted to the keeper role.
-     * @param _custodianWallet The new custodian wallet address
      */
     function setCustodianWallet(address _custodianWallet) external onlyKeeper {
         if (_custodianWallet == address(0)) revert InvalidTargetWallet();
@@ -326,31 +284,10 @@ contract SecuritizeArk is
     }
 
     /**
-     * @notice Switches `_board` between the synchronous on-ramp `swap` path and the asynchronous
-     *         custodial-transfer fallback.
-     * @dev The path is explicit (no silent fallback): if the on-ramp becomes unavailable, boarding
-     *      reverts until the keeper flips this flag — the custodial path requires an off-chain
-     *      subscription order with Securitize, so it must never be entered accidentally.
+     * @notice Freezes or unfreezes the ark. While frozen, `_board`, `requestWithdrawal`, and
+     *         `sweep` revert via `onlyNotFrozen`, and `totalAssets()` returns the freeze snapshot.
+     * @dev Pass `type(uint256).max` as `frozenTotalAssets` to snapshot live `totalAssets()`.
      *      Restricted to the keeper role.
-     * @param _useOnRampSubscription True for the on-ramp path, false for the custodial path
-     */
-    function setUseOnRampSubscription(
-        bool _useOnRampSubscription
-    ) external onlyKeeper {
-        useOnRampSubscription = _useOnRampSubscription;
-        emit UseOnRampSubscriptionUpdated(_useOnRampSubscription);
-    }
-
-    /**
-     * @notice Freezes or unfreezes the ark. While frozen, `_board`, `_disembark`,
-     *         `requestWithdrawal`, and `sweep` revert via `onlyNotFrozen`, and `totalAssets()`
-     *         returns the snapshot taken at freeze time instead of recomputing from live state.
-     * @dev Pass `type(uint256).max` as `frozenTotalAssets` to snapshot the current `totalAssets()`
-     *      at freeze time; pass any other value to override the snapshot. The value is ignored when
-     *      unfreezing. Restricted to the keeper role.
-     * @param _isArkFrozen The new frozen flag
-     * @param frozenTotalAssets `type(uint256).max` to snapshot live `totalAssets()`, otherwise the
-     *                          literal value used while frozen
      */
     function setArkFrozen(
         bool _isArkFrozen,
@@ -361,88 +298,51 @@ contract SecuritizeArk is
                 ? totalAssets()
                 : frozenTotalAssets;
         }
-
         isArkFrozen = _isArkFrozen;
-
         emit ArkIsFrozenUpdated(_isArkFrozen, _frozenTotalAssets);
     }
 
     /**
-     * @notice Clears the full pending deposit after Securitize has actually delivered the
-     *         corresponding shares on-chain.
-     * @dev `_validateReceivedShares` enforces that the share-balance delta since
-     *      `cachedShareBalance` covers the oracle-implied expected shares minus `depositSlippage`,
-     *      so the keeper cannot accidentally clear before the off-chain mint settles. Partial
-     *      clearance is not supported here; the governor must use `emergencyClearPendingDeposit`.
-     *      Restricted to the keeper role.
-     */
-    function clearPendingDeposit() external onlyKeeper {
-        _validateReceivedShares(pendingDepositAssets);
-        _clearPendingDeposit(pendingDepositAssets);
-    }
-
-    /**
      * @inheritdoc IArkWithWithdrawalRequest
-     * @dev Computes the share amount equivalent to `amount` via the oracle, transfers the shares to
-     *      `custodianWallet`, and increases `pendingWithdrawalShares`. Reverts with
-     *      `PendingDepositActive` if a deposit cycle is in flight or `PendingWithdrawalActive` if a
-     *      withdrawal cycle is already in flight — these cycles are intentionally single-threaded.
+     * @dev Compliance pre-checks, transfers the equivalent DSToken shares to `custodianWallet` for
+     *      off-chain redemption, and increases `pendingWithdrawalShares`. Single-threaded: reverts
+     *      `PendingWithdrawalActive` if a withdrawal cycle is already in flight.
      */
     function requestWithdrawal(
         uint256 amount
     ) external override onlyKeeper onlyNotFrozen {
-        // Prevent concurrent deposit/withdrawal cycles
         if (pendingWithdrawalShares > 0) revert PendingWithdrawalActive();
-        if (pendingDepositAssets > 0) revert PendingDepositActive();
 
         uint256 sharesToRedeem = _assetsToShares(amount);
 
-        // Compliance pre-flight: surface a typed error instead of an opaque DSToken revert if the
-        // transfer to the custodian would fail (e.g. custodian unregistered, token paused, balance
-        // locked, destination restricted). Also implicitly asserts this Ark (the sender) is a
-        // registered wallet.
+        // Surface a typed error instead of an opaque DSToken revert if the transfer would fail
+        // (custodian unregistered, token paused, balance locked, destination restricted). Also
+        // implicitly asserts this Ark (the sender) is a registered wallet.
         (uint256 code, string memory reason) = IDSToken(address(shareToken))
             .preTransferCheck(address(this), custodianWallet, sharesToRedeem);
         if (code != 0) revert TransferNotCompliant(code, reason);
 
-        // Transfer the Securitize DSToken off-chain (back to the custodian wallet)
         shareToken.safeTransfer(custodianWallet, sharesToRedeem);
-
-        // Record the total pending withdrawal shares for calculations
         pendingWithdrawalShares += sharesToRedeem;
 
         emit SharesSentForRedemption(sharesToRedeem, amount);
         emit WithdrawalRequested(amount, 0);
     }
 
-    /**
-     * @inheritdoc IArkWithWithdrawalRequest
-     * @dev No-op: Securitize processes withdrawals entirely off-chain.
-     */
-    function claimWithdrawal() external override onlyKeeper {
-        // No-op
-    }
+    /// @inheritdoc IArkWithWithdrawalRequest
+    /// @dev No-op: Securitize processes redemptions entirely off-chain.
+    function claimWithdrawal() external override onlyKeeper {}
 
-    /**
-     * @inheritdoc IArkWithWithdrawalRequest
-     * @dev No-op: Swap-based exits are not supported for this Ark.
-     */
+    /// @inheritdoc IArkWithWithdrawalRequest
+    /// @dev No-op: swap-based exits are not supported for this Ark.
     function withdrawUsingSwap(
         uint256,
         bytes calldata
-    ) external override onlyKeeper nonReentrant {
-        // No-op
-    }
+    ) external override onlyKeeper nonReentrant {}
 
     /**
      * @inheritdoc IArkWithWithdrawalRequest
-     * @notice Sweeps the returned configured asset to the buffer and clears
-     *         `pendingWithdrawalShares`.
-     * @dev Called by keeper after Securitize returns the configured-asset equivalent for the
-     *      retired shares.
-     * @return sweptTokens Single-element array containing the configured asset address.
-     * @return sweptAmounts Single-element array containing the asset amount forwarded to the
-     *                     buffer ark.
+     * @notice Sweeps the returned base asset to the buffer and clears `pendingWithdrawalShares`.
      */
     function sweep()
         public
@@ -454,11 +354,8 @@ contract SecuritizeArk is
     {
         IERC20 asset = config.asset;
 
-        // Check that the amount of assets returned in shares with current oracle price
-        // is not less than the amount of shares requested minus the sweep slippage
         uint256 returnedAssets = asset.balanceOf(address(this));
         uint256 returnedShares = _assetsToShares(returnedAssets);
-
         uint256 pendingWithdrawalSharesMinusSlippage = pendingWithdrawalShares
             .subtractPercentage(sweepSlippage);
 
@@ -474,16 +371,9 @@ contract SecuritizeArk is
     }
 
     /**
-     * @notice Bypass-slippage variant of `sweep`. Sends the full balance of the configured asset
-     *         held by the ark to the FleetCommander buffer ark and clears
-     *         `pendingWithdrawalShares`.
-     * @dev Used when Securitize returns less than `pendingWithdrawalShares - sweepSlippage`, which
-     *      would block the keeper-facing `sweep`. The slippage check is intentionally skipped here;
-     *      the governor should adjust `sweepSlippage` or address the root cause before re-enabling
-     *      normal flow. Restricted to the governor role.
-     * @return sweptTokens Single-element array containing the configured asset address.
-     * @return sweptAmounts Single-element array containing the asset amount forwarded to the
-     *                     buffer ark.
+     * @notice Bypass-slippage variant of `sweep`, sending the full asset balance to the buffer ark.
+     * @dev Used when Securitize returns less than `pendingWithdrawalShares - sweepSlippage`.
+     *      Restricted to the governor role.
      */
     function emergencySweep()
         external
@@ -491,31 +381,134 @@ contract SecuritizeArk is
         nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
     {
-        uint256 returnedAssets = config.asset.balanceOf(address(this));
-        return _sweep(returnedAssets);
+        return _sweep(config.asset.balanceOf(address(this)));
     }
 
     /**
-     * @notice Partial-clearance variant of `clearPendingDeposit` that accepts the current share
-     *         balance as valid without running the slippage check.
-     * @dev Used when Securitize partially fills a deposit in a way the keeper-facing flow cannot
-     *      reconcile, or when oracle staleness blocks the share-arrival validation. The supplied
-     *      `amount` must be `<= pendingDepositAssets`. Restricted to the governor role.
-     * @param amount The portion of `pendingDepositAssets` to clear.
+     * @notice Sets the sweep slippage. Restricted to the keeper role.
      */
-    function emergencyClearPendingDeposit(
-        uint256 amount
-    ) external onlyGovernor {
-        if (amount > pendingDepositAssets) revert InsufficientPendingDeposit();
-        _clearPendingDeposit(amount);
+    function setSweepSlippage(Percentage newSweepSlippage) external onlyKeeper {
+        if (newSweepSlippage > MAX_SWEEP_SLIPPAGE) {
+            revert InvalidSweepSlippage(newSweepSlippage, MAX_SWEEP_SLIPPAGE);
+        }
+        emit SweepSlippageUpdated(sweepSlippage, newSweepSlippage);
+        sweepSlippage = newSweepSlippage;
     }
 
     /**
-     * @dev Shared sweep tail used by both `sweep` and `emergencySweep`. Clears
-     *      `pendingWithdrawalShares`, forwards the asset balance to the FleetCommander's buffer
-     *      ark (skipping if this ark *is* the buffer), and emits the `Disembarked` / `ArkSwept`
-     *      events the indexer consumes.
-     * @param amountToSweep The asset amount to forward to the buffer
+     * @notice Sets the deposit slippage. Restricted to the keeper role.
+     */
+    function setDepositSlippage(
+        Percentage newDepositSlippage
+    ) external onlyKeeper {
+        if (newDepositSlippage > MAX_DEPOSIT_SLIPPAGE) {
+            revert InvalidDepositSlippage(
+                newDepositSlippage,
+                MAX_DEPOSIT_SLIPPAGE
+            );
+        }
+        emit DepositSlippageUpdated(depositSlippage, newDepositSlippage);
+        depositSlippage = newDepositSlippage;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                         INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Subscribes to the fund by relaying a Securitize-signed `executePreApprovedTransaction`
+     *         (an internal `subscribe`) supplied as keeper board data. Synchronous: DSToken is
+     *         minted to this Ark in the same transaction.
+     * @param amount Base-asset amount to subscribe.
+     * @param data ABI-encoded `(bytes signature, ISecuritizeOnRamp.ExecutePreApprovedTransaction)`.
+     */
+    function _board(
+        uint256 amount,
+        bytes calldata data
+    ) internal override onlyNotFrozen {
+        ISecuritizeOnRamp ramp = onRamp();
+        if (address(ramp) == address(0)) revert OnRampNotConfigured();
+        address liquidityToken = ramp.liquidityToken();
+        if (liquidityToken != address(config.asset)) {
+            revert OnRampAssetMismatch(address(config.asset), liquidityToken);
+        }
+
+        (
+            bytes memory signature,
+            ISecuritizeOnRamp.ExecutePreApprovedTransaction memory txData
+        ) = abi.decode(
+                data,
+                (bytes, ISecuritizeOnRamp.ExecutePreApprovedTransaction)
+            );
+
+        // The payload is signed by Securitize, but THIS Ark spends its own base asset — so verify
+        // the relayed call is a `subscribe` to the resolved on-ramp that mints to THIS Ark for
+        // exactly `amount`.
+        if (txData.destination != address(ramp)) {
+            revert InvalidSubscriptionPayload();
+        }
+        _assertSubscribesToThisArk(txData.data, amount);
+
+        uint256 sharesBefore = shareToken.balanceOf(address(this));
+        uint256 expectedShares = _assetsToShares(amount);
+        uint256 minShares = expectedShares.subtractPercentage(depositSlippage);
+
+        config.asset.forceApprove(address(ramp), amount);
+        ramp.executePreApprovedTransaction(signature, txData);
+
+        uint256 received = shareToken.balanceOf(address(this)) - sharesBefore;
+        if (received < minShares) {
+            revert SharesNotArrived(expectedShares, received);
+        }
+
+        emit SubscribedViaOnRamp(amount, received);
+    }
+
+    /**
+     * @dev Validates that `inner` is a `subscribe(...)` whose `_investorWallet` is this Ark and
+     *      whose `_liquidityAmount` equals the boarded amount, so the keeper-supplied payload can
+     *      only pull our asset to mint to us for the agreed amount.
+     */
+    function _assertSubscribesToThisArk(
+        bytes memory inner,
+        uint256 amount
+    ) internal view {
+        if (inner.length < 4) revert InvalidSubscriptionPayload();
+        bytes4 selector;
+        assembly {
+            selector := mload(add(inner, 0x20))
+        }
+        if (selector != SUBSCRIBE_SELECTOR) revert InvalidSubscriptionPayload();
+
+        // Strip the 4-byte selector and decode the subscribe(...) arguments.
+        bytes memory args = new bytes(inner.length - 4);
+        for (uint256 i = 0; i < args.length; i++) {
+            args[i] = inner[i + 4];
+        }
+        (, address investorWallet, , , , , , uint256 liquidityAmount, , ) = abi
+            .decode(
+                args,
+                (
+                    string,
+                    address,
+                    string,
+                    uint8[],
+                    uint256[],
+                    uint256[],
+                    uint256,
+                    uint256,
+                    uint256,
+                    bytes32
+                )
+            );
+        if (investorWallet != address(this) || liquidityAmount != amount) {
+            revert InvalidSubscriptionPayload();
+        }
+    }
+
+    /**
+     * @dev Shared sweep tail: clears `pendingWithdrawalShares` and forwards the asset balance to
+     *      the FleetCommander's buffer ark (skipping if this ark *is* the buffer).
      */
     function _sweep(
         uint256 amountToSweep
@@ -527,7 +520,6 @@ contract SecuritizeArk is
 
         sweptTokens = new address[](1);
         sweptAmounts = new uint256[](1);
-
         sweptTokens[0] = address(asset);
         sweptAmounts[0] = amountToSweep;
 
@@ -536,7 +528,7 @@ contract SecuritizeArk is
         address bufferArk = address(
             IFleetCommander(config.commander).bufferArk()
         );
-        // to keep compatibility with the indexer
+        // First-position arg is msg.sender (the keeper), preserved for subgraph compatibility.
         emit Disembarked(msg.sender, address(asset), sweptAmounts[0]);
 
         if (sweptAmounts[0] > 0 && address(this) != bufferArk) {
@@ -547,122 +539,13 @@ contract SecuritizeArk is
         emit ArkSwept(sweptTokens, sweptAmounts);
     }
 
-    /**
-     * @notice Sets the sweep slippage
-     * @dev Restricted to the keeper role. Reverts with `InvalidSweepSlippage` if the supplied
-     *      value exceeds `MAX_SWEEP_SLIPPAGE`.
-     * @param newSweepSlippage The new sweep slippage
-     */
-    function setSweepSlippage(Percentage newSweepSlippage) external onlyKeeper {
-        if (newSweepSlippage > MAX_SWEEP_SLIPPAGE) {
-            revert InvalidSweepSlippage(newSweepSlippage, MAX_SWEEP_SLIPPAGE);
-        }
-
-        emit SweepSlippageUpdated(sweepSlippage, newSweepSlippage);
-
-        sweepSlippage = newSweepSlippage;
-    }
-
-    /**
-     * @notice Sets the deposit slippage
-     * @dev Restricted to the keeper role. Reverts with `InvalidDepositSlippage` if the supplied
-     *      value exceeds `MAX_DEPOSIT_SLIPPAGE`.
-     * @param newDepositSlippage The new deposit slippage
-     */
-    function setDepositSlippage(
-        Percentage newDepositSlippage
-    ) external onlyKeeper {
-        if (newDepositSlippage > MAX_DEPOSIT_SLIPPAGE) {
-            revert InvalidDepositSlippage(
-                newDepositSlippage,
-                MAX_DEPOSIT_SLIPPAGE
-            );
-        }
-
-        emit DepositSlippageUpdated(depositSlippage, newDepositSlippage);
-
-        depositSlippage = newDepositSlippage;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                         INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Boards the configured asset into the fund — synchronously via the Securitize
-     *         on-ramp `swap` (default) or via the asynchronous custodial transfer (fallback).
-     * @dev See the contract-level docs for the two paths and the keeper toggle.
-     */
-    function _board(
-        uint256 amount,
-        bytes calldata
-    ) internal override onlyNotFrozen {
-        // The Ark must be a registered investor wallet to receive/hold the DSToken (the on-ramp
-        // enforces the same); fail fast rather than stranding the base asset.
-        if (!registryService.isWallet(address(this))) revert ArkNotRegistered();
-        // Block ALL boarding while a custodial deposit is in flight: it has snapshotted
-        // `cachedShareBalance` and frozen `totalAssets()` accounting, so any newly issued/minted
-        // shares (custodial or on-ramp) would be misattributed to the pending clearance.
-        if (pendingDepositAssets > 0) revert PendingDepositActive();
-
-        if (useOnRampSubscription) {
-            _subscribeViaOnRamp(amount);
-        } else {
-            // Custodial fallback: requires a matching off-chain subscription order.
-            cachedShareBalance = shareToken.balanceOf(address(this));
-            pendingDepositAssets += amount;
-
-            config.asset.safeTransfer(custodianWallet, amount);
-        }
-    }
-
-    /**
-     * @dev Synchronous primary-market subscription through the Securitize on-ramp: approves the
-     *      base asset and calls `swap(amount, minOut)`. The on-ramp forwards the asset (minus its
-     *      fee) to the fund custodian and mints DSTokens to this Ark in the same transaction at
-     *      Securitize's NAV. `minOut` is derived from THIS Ark's RedStone oracle minus
-     *      `depositSlippage`, cross-checking the two NAV sources and capping the effective on-ramp
-     *      fee at `depositSlippage`.
-     */
-    function _subscribeViaOnRamp(uint256 amount) internal {
-        ISecuritizeOnRamp ramp = onRamp();
-        if (address(ramp) == address(0)) revert OnRampNotConfigured();
-        if (!ramp.investorSubscriptionEnabled()) {
-            revert OnRampSubscriptionDisabled();
-        }
-        // Guard against a re-registered on-ramp that takes a different liquidity token: we approve
-        // and pass our base asset to `swap`, so the on-ramp's liquidity token must match it.
-        address liquidityToken = ramp.liquidityToken();
-        if (liquidityToken != address(config.asset)) {
-            revert OnRampAssetMismatch(address(config.asset), liquidityToken);
-        }
-
-        uint256 sharesBefore = shareToken.balanceOf(address(this));
-        uint256 expectedShares = _assetsToShares(amount);
-        uint256 minOut = expectedShares.subtractPercentage(depositSlippage);
-
-        config.asset.forceApprove(address(ramp), amount);
-        ramp.swap(amount, minOut);
-
-        uint256 received = shareToken.balanceOf(address(this)) - sharesBefore;
-        if (received < minOut) {
-            revert SharesNotArrived(expectedShares, received);
-        }
-
-        emit SubscribedViaOnRamp(amount, received);
-    }
-
-    /**
-     * @dev No-op: Withdrawals are fully asynchronous via `requestWithdrawal` and `sweep`.
-     */
+    /// @dev No-op: withdrawals are fully asynchronous via `requestWithdrawal` and `sweep`.
     function _disembark(
         uint256,
         bytes calldata
     ) internal view override onlyNotFrozen {}
 
-    /**
-     * @dev Always 0: Synchronous withdrawal is not supported.
-     */
+    /// @dev Always 0: synchronous withdrawal is not supported.
     function _withdrawableTotalAssets()
         internal
         pure
@@ -672,9 +555,7 @@ contract SecuritizeArk is
         return 0;
     }
 
-    /**
-     * @dev No-op: No rewards generated by this Ark.
-     */
+    /// @dev No-op: no rewards generated by this Ark.
     function _harvest(
         bytes calldata
     )
@@ -687,7 +568,7 @@ contract SecuritizeArk is
         rewardAmounts = new uint256[](0);
     }
 
-    /// @dev No-op: this ark accepts no boardData payload.
+    /// @dev No structural validation here; `_board` decodes and validates the payload.
     function _validateBoardData(bytes calldata) internal override {}
 
     /// @dev No-op: this ark accepts no disembarkData payload.
@@ -697,37 +578,24 @@ contract SecuritizeArk is
                             ORACLE HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev Converts DSToken shares to the underlying asset amount via the NAV oracle.
-     */
+    /// @dev Converts DSToken shares to the underlying asset amount via the NAV oracle.
     function _sharesToAssets(uint256 shares) internal view returns (uint256) {
         if (shares == 0) return 0;
-
         Price memory assetPerSharePrice = _fetchOracleAssetPerSharePrice();
-
-        // Convert Base (Shares) to Quote (Asset)
         return assetPerSharePrice.invert().quote(shares);
     }
 
-    /**
-     * @dev Converts an underlying asset amount to DSToken shares via the NAV oracle.
-     */
+    /// @dev Converts an underlying asset amount to DSToken shares via the NAV oracle.
     function _assetsToShares(
         uint256 assetAmount
     ) internal view returns (uint256) {
         if (assetAmount == 0) return 0;
-
         Price memory assetPerSharePrice = _fetchOracleAssetPerSharePrice();
-
-        // Convert Quote (Asset) to Base (Shares)
         return assetPerSharePrice.quote(assetAmount);
     }
 
-    /**
-     * @dev Fetches the oracle asset per share price and returns it as a Price type
-     *      for which the base amount is 1 Share and the quote amount is the oracle price
-     *      adjusted for the asset decimals
-     */
+    /// @dev Fetches the NAV (1 share priced in the asset) as a `Price`, enforcing positivity and
+    ///      the heartbeat staleness bound.
     function _fetchOracleAssetPerSharePrice()
         internal
         view
@@ -735,56 +603,16 @@ contract SecuritizeArk is
     {
         (, int256 answer, , uint256 updatedAt, ) = oracle.latestRoundData();
         if (answer <= 0) revert OraclePriceNotPositive();
-
         if (block.timestamp - updatedAt > ORACLE_HEARTBEAT_TIMEOUT) {
             revert StaleOraclePrice();
         }
-
         // The oracle prices one share in the underlying asset: base = DSToken share, quote = asset.
         return
             toPriceFromOraclePrice(
-                ONE_SHARE, // base amount: one whole share
-                answer, // oracle price of one share, in asset terms
-                oracleDecimals, // decimals of the oracle price
-                assetDecimals // decimals of the quote (asset)
+                ONE_SHARE,
+                answer,
+                oracleDecimals,
+                assetDecimals
             );
-    }
-
-    /**
-     * @dev Reduces `pendingDepositAssets` by `amountCleared` and resets `cachedShareBalance` to
-     *      the live balance so subsequent `totalAssets()` reads pick up the freshly delivered
-     *      shares. Used by both the keeper-facing full clearance and the governor-only partial
-     *      clearance paths.
-     * @param amountCleared Amount of `pendingDepositAssets` to remove from the pending queue.
-     */
-    function _clearPendingDeposit(uint256 amountCleared) internal {
-        pendingDepositAssets -= amountCleared;
-        cachedShareBalance = shareToken.balanceOf(address(this));
-
-        emit PendingDepositCleared(amountCleared);
-    }
-
-    /// @dev Reverts unless the share-balance delta since `cachedShareBalance` covers the
-    ///      oracle-implied expected shares minus `depositSlippage`. Defends against clearing a
-    ///      pending deposit before Securitize has actually issued the matching shares.
-    /// @param amount Portion of `pendingDepositAssets` whose share-delivery is being validated.
-    ///               Must be `<= pendingDepositAssets`; reverts with `InsufficientPendingDeposit`
-    ///               otherwise.
-    function _validateReceivedShares(uint256 amount) internal view {
-        // The DSToken rebases: `balanceOf` can move between the `_board` snapshot
-        // (`cachedShareBalance`) and clearance when the yield multiplier updates, which skews this
-        // delta. `depositSlippage` absorbs an intra-window rebase; for funds with larger rebase
-        // steps, denominate the snapshot/delta in the token's non-rebasing shares instead.
-        if (amount > pendingDepositAssets) revert InsufficientPendingDeposit();
-        uint256 currentShares = shareToken.balanceOf(address(this));
-        uint256 newlyArrivedShares = currentShares - cachedShareBalance;
-        uint256 expectedShares = _assetsToShares(amount);
-        uint256 expectedSharesMinusSlippage = expectedShares.subtractPercentage(
-            depositSlippage
-        );
-
-        if (newlyArrivedShares < expectedSharesMinusSlippage) {
-            revert SharesNotArrived(expectedShares, newlyArrivedShares);
-        }
     }
 }

@@ -73,7 +73,8 @@ export async function deploySecuritizeArk(config: BaseConfig, params: Securitize
         depositCap: depositCap,
         maxRebalanceOutflow: maxRebalanceOutflow,
         maxRebalanceInflow: maxRebalanceInflow,
-        requiresKeeperData: false,
+        // The keeper relays the Securitize-signed on-ramp subscription payload as board data.
+        requiresKeeperData: true,
         maxDepositPercentageOfTVL: maxDepositPercentageOfTVL,
       },
     },
