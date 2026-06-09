@@ -39,13 +39,23 @@ interface ISecuritizeArkErrors {
     /// @notice Reverts when `setSweepSlippage` or the constructor is given a value above
     ///         `MAX_SWEEP_SLIPPAGE`.
     error InvalidSweepSlippage(Percentage newSlippage, Percentage maxSlippage);
-    /// @notice Reverts in `sweep` when the assets returned by Securitize convert to fewer shares
-    ///         (at current oracle price) than `pendingWithdrawalShares - sweepSlippage`.
+    /// @notice Reverts when `setSubscriptionFeeTolerance` is given a value above
+    ///         `MAX_SUBSCRIPTION_FEE`.
+    error InvalidSubscriptionFeeTolerance(
+        Percentage newTolerance,
+        Percentage maxTolerance
+    );
+    /// @notice Reverts in `sweep` when the base asset returned by Securitize is below the asset
+    ///         value snapshotted at `requestWithdrawal` time minus `sweepSlippage`.
+    /// @param receivedAssets The base-asset balance held at sweep time
+    /// @param expectedAssets The asset value requested at `requestWithdrawal` time
     error InsufficientAssetsReturned(
         uint256 receivedAssets,
-        uint256 expectedShares,
-        uint256 receivedShares
+        uint256 expectedAssets
     );
+    /// @notice Reverts when `disembark`/`move` is attempted with a nonzero amount — this Ark exits
+    ///         only via the async `requestWithdrawal`/`sweep` cycle, never synchronous disembark.
+    error DisembarkDisabled();
     /// @notice Reverts in `_board` when the DSTokens minted by the on-ramp subscription are below
     ///         the oracle-implied expected shares minus `depositSlippage` (NAV-source divergence or
     ///         excess on-ramp fee).

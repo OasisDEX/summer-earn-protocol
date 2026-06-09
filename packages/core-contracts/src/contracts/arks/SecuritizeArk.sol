@@ -72,6 +72,10 @@ contract SecuritizeArk is
     Percentage public constant MAX_DEPOSIT_SLIPPAGE =
         Percentage.wrap(PERCENTAGE_FACTOR / 2);
 
+    /// @notice Maximum configurable on-ramp subscription-fee tolerance (5%).
+    Percentage public constant MAX_SUBSCRIPTION_FEE =
+        Percentage.wrap(PERCENTAGE_FACTOR * 5);
+
     /// @notice Max age of a NAV answer before it is rejected as stale. Set above the funds'
     ///         ~daily RedStone update cadence to tolerate weekend/holiday gaps without freezing
     ///         valuation (a 24h bound trips on routine ~16h-old updates).
@@ -127,6 +131,11 @@ contract SecuritizeArk is
     ///         via `sweep`. Denominated in DSToken units.
     uint256 public pendingWithdrawalShares;
 
+    /// @notice Asset value requested at `requestWithdrawal` time. The `sweep` floor (post-slippage)
+    ///         is measured against this fixed value, so live-NAV drift between request and
+    ///         settlement cannot spuriously block the sweep.
+    uint256 public pendingWithdrawalAssets;
+
     /// @notice True while the ark is quarantined by `setArkFrozen`. Gates state-changing entry
     ///         points via `onlyNotFrozen` and forces `totalAssets()` to return the
     ///         `_frozenTotalAssets` snapshot instead of recomputing from live state.
@@ -135,8 +144,13 @@ contract SecuritizeArk is
     /// @notice Tolerance applied during `sweep` to the expected vs. returned asset amount.
     Percentage public sweepSlippage;
 
-    /// @notice Tolerance applied to the minted-vs-oracle-implied shares on a subscription.
+    /// @notice Tolerance applied to the minted-vs-oracle-implied shares on a subscription (NAV
+    ///         source divergence between the RedStone feed and Securitize's navProvider).
     Percentage public depositSlippage;
+
+    /// @notice Additional tolerance for the on-ramp's subscription fee, kept separate from the NAV
+    ///         divergence `depositSlippage`. Governor-set; defaults to 0.
+    Percentage public subscriptionFeeTolerance;
 
     /// @notice Total assets of the ark when it was frozen
     uint256 private _frozenTotalAssets;
@@ -285,9 +299,12 @@ contract SecuritizeArk is
 
     /**
      * @notice Updates the Securitize custodian wallet that receives the DSToken on redemption.
-     * @dev Restricted to the keeper role.
+     * @dev Restricted to the governor role: the keeper must not be able to redirect redemption
+     *      shares to an arbitrary (registered) wallet.
      */
-    function setCustodianWallet(address _custodianWallet) external onlyKeeper {
+    function setCustodianWallet(
+        address _custodianWallet
+    ) external onlyGovernor {
         if (_custodianWallet == address(0)) revert InvalidTargetWallet();
         emit CustodianWalletUpdated(custodianWallet, _custodianWallet);
         custodianWallet = _custodianWallet;
@@ -334,6 +351,7 @@ contract SecuritizeArk is
 
         shareToken.safeTransfer(custodianWallet, sharesToRedeem);
         pendingWithdrawalShares += sharesToRedeem;
+        pendingWithdrawalAssets += amount;
 
         emit SharesSentForRedemption(sharesToRedeem, amount);
         emit WithdrawalRequested(amount, 0);
@@ -366,18 +384,17 @@ contract SecuritizeArk is
         nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
     {
-        IERC20 asset = config.asset;
-
-        uint256 returnedAssets = asset.balanceOf(address(this));
-        uint256 returnedShares = _assetsToShares(returnedAssets);
-        uint256 pendingWithdrawalSharesMinusSlippage = pendingWithdrawalShares
-            .subtractPercentage(sweepSlippage);
-
-        if (returnedShares < pendingWithdrawalSharesMinusSlippage) {
+        uint256 returnedAssets = config.asset.balanceOf(address(this));
+        // Measure against the asset value snapshotted at request time (not a live-NAV
+        // reconversion), so a NAV move between request and settlement can't spuriously block the
+        // sweep. A genuine shortfall beyond `sweepSlippage` still reverts (use `emergencySweep`).
+        uint256 minReturn = pendingWithdrawalAssets.subtractPercentage(
+            sweepSlippage
+        );
+        if (returnedAssets < minReturn) {
             revert InsufficientAssetsReturned(
                 returnedAssets,
-                pendingWithdrawalShares,
-                returnedShares
+                pendingWithdrawalAssets
             );
         }
 
@@ -425,6 +442,26 @@ contract SecuritizeArk is
         depositSlippage = newDepositSlippage;
     }
 
+    /**
+     * @notice Sets the on-ramp subscription-fee tolerance (separate from the NAV-divergence
+     *         `depositSlippage`). Restricted to the governor role.
+     */
+    function setSubscriptionFeeTolerance(
+        Percentage newTolerance
+    ) external onlyGovernor {
+        if (newTolerance > MAX_SUBSCRIPTION_FEE) {
+            revert InvalidSubscriptionFeeTolerance(
+                newTolerance,
+                MAX_SUBSCRIPTION_FEE
+            );
+        }
+        emit SubscriptionFeeToleranceUpdated(
+            subscriptionFeeTolerance,
+            newTolerance
+        );
+        subscriptionFeeTolerance = newTolerance;
+    }
+
     /*//////////////////////////////////////////////////////////////
                          INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -465,7 +502,10 @@ contract SecuritizeArk is
 
         uint256 sharesBefore = shareToken.balanceOf(address(this));
         uint256 expectedShares = _assetsToShares(amount);
-        uint256 minShares = expectedShares.subtractPercentage(depositSlippage);
+        // Allow for NAV-source divergence (depositSlippage) plus the on-ramp fee (feeTolerance).
+        uint256 minShares = expectedShares
+            .subtractPercentage(depositSlippage)
+            .subtractPercentage(subscriptionFeeTolerance);
 
         config.asset.forceApprove(address(ramp), amount);
         ramp.executePreApprovedTransaction(signature, txData);
@@ -538,6 +578,7 @@ contract SecuritizeArk is
         sweptAmounts[0] = amountToSweep;
 
         pendingWithdrawalShares = 0;
+        pendingWithdrawalAssets = 0;
 
         address bufferArk = address(
             IFleetCommander(config.commander).bufferArk()
@@ -554,12 +595,17 @@ contract SecuritizeArk is
     }
 
     /**
-     * @dev No-op: withdrawals are fully asynchronous via `requestWithdrawal` and `sweep`.
+     * @dev Disabled for nonzero amounts: this Ark exits only via the async
+     *      `requestWithdrawal`/`sweep` cycle. A synchronous `disembark`/`move` would otherwise pull
+     *      returned USDC out while `pendingWithdrawalShares` still counts it (double-counting +
+     *      bricked sweep). `disembark(0, ...)` stays a no-op.
      */
     function _disembark(
-        uint256,
+        uint256 amount,
         bytes calldata
-    ) internal view override onlyNotFrozen {}
+    ) internal view override onlyNotFrozen {
+        if (amount > 0) revert DisembarkDisabled();
+    }
 
     /**
      * @dev Always 0: synchronous withdrawal is not supported.

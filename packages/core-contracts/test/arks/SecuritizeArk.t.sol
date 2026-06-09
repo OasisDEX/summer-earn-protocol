@@ -701,4 +701,99 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         assertEq(ark.sharesToAssets(1e6), 1e6);
         assertEq(ark.sharesToAssets(1000 * 1e6), 1000 * 1e6);
     }
+
+    /* --------------------- review fixes (#1,#2,#4,#5) -------------------- */
+
+    /// @notice #1: the keeper must NOT be able to redirect redemption shares; only governor.
+    function test_SetCustodianWallet_GovernorOnly() public {
+        address newCustodian = makeAddr("newCustodian");
+        vm.prank(keeper);
+        vm.expectRevert();
+        ark.setCustodianWallet(newCustodian);
+
+        vm.prank(governor);
+        ark.setCustodianWallet(newCustodian);
+        assertEq(ark.custodianWallet(), newCustodian);
+    }
+
+    /// @notice #2: disembark/move with a nonzero amount is disabled (exit only via sweep).
+    function test_Disembark_RevertsForNonzero() public {
+        vm.startPrank(commander);
+        vm.expectRevert(ISecuritizeArkErrors.DisembarkDisabled.selector);
+        ark.disembark(1, abi.encode(uint256(1))); // requiresKeeperData -> non-empty data
+        vm.stopPrank();
+    }
+
+    /// @notice #4: a NAV rise between request and settlement must NOT brick the sweep, since the
+    ///         floor is the asset value snapshotted at request time (not a live-NAV reconversion).
+    function test_Sweep_NavRiseDoesNotBrick() public {
+        uint256 amount = 1000 * 1e6;
+        _board(amount);
+        registry.register(custodian, "custodian-investor");
+        vm.prank(keeper);
+        ark.requestWithdrawal(amount);
+
+        // NAV climbs 10% after the request; previously this reverted the sweep.
+        oracle.setAnswer((PAR_NAV * 110) / 100);
+
+        deal(USDC_ADDRESS, address(ark), amount); // Securitize returns the requested asset value
+        _mockCommanderBuffer();
+        vm.prank(keeper);
+        ark.sweep();
+
+        assertEq(usdc.balanceOf(address(bufferArk)), amount);
+        assertEq(ark.pendingWithdrawalShares(), 0);
+        assertEq(ark.pendingWithdrawalAssets(), 0);
+    }
+
+    function test_Sweep_RevertsBelowSnapshotFloor() public {
+        uint256 amount = 1000 * 1e6;
+        _board(amount);
+        registry.register(custodian, "custodian-investor");
+        vm.prank(keeper);
+        ark.requestWithdrawal(amount);
+
+        // Return less than amount - 0.5% sweepSlippage.
+        deal(USDC_ADDRESS, address(ark), (amount * 99) / 100); // 1% short
+        _mockCommanderBuffer();
+        vm.prank(keeper);
+        vm.expectRevert(); // InsufficientAssetsReturned
+        ark.sweep();
+    }
+
+    /// @notice #5: an on-ramp fee above depositSlippage bricks deposits until the governor sets a
+    ///         separate fee tolerance; then it succeeds.
+    function test_OnRampFeeTolerance() public {
+        uint256 amount = 1000 * 1e6;
+        onRampMock.setFee(10 * 1e6); // 1% fee, above the 0.5% depositSlippage
+
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        vm.expectRevert(); // SharesNotArrived (fee not yet tolerated)
+        ark.board(amount, _payload(address(onRampMock), address(ark), amount));
+        vm.stopPrank();
+
+        // keeper cannot set it; governor can
+        vm.prank(keeper);
+        vm.expectRevert();
+        ark.setSubscriptionFeeTolerance(Percentage.wrap(PERCENTAGE_FACTOR));
+        vm.prank(governor);
+        ark.setSubscriptionFeeTolerance(Percentage.wrap(PERCENTAGE_FACTOR)); // 1%
+
+        _board(amount); // now succeeds
+        assertEq(
+            vbill.balanceOf(address(ark)),
+            990 * 1e6,
+            "minted net of 1% fee"
+        );
+    }
+
+    function test_SetSubscriptionFeeTolerance_RevertsAboveMax() public {
+        vm.prank(governor);
+        vm.expectRevert();
+        ark.setSubscriptionFeeTolerance(
+            Percentage.wrap(PERCENTAGE_FACTOR * 6) // 6% > 5% max
+        );
+    }
 }

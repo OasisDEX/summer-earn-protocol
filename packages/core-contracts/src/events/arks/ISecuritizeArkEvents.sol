@@ -28,6 +28,12 @@ interface ISecuritizeArkEvents {
         Percentage newDepositSlippage
     );
 
+    /// @notice Emitted by `setSubscriptionFeeTolerance` after the on-ramp fee tolerance is updated.
+    event SubscriptionFeeToleranceUpdated(
+        Percentage oldTolerance,
+        Percentage newTolerance
+    );
+
     /// @notice Emitted when `_board` subscribes by relaying a Securitize-signed
     ///         `executePreApprovedTransaction` through the on-ramp.
     /// @param assets Base-asset amount subscribed
