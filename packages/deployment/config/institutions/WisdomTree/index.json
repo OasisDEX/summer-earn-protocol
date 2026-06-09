@@ -2,6 +2,10 @@
   "base": {
     "treasury": "0xA0d7E9F71597623355e407C0D55047306045cca0",
     "governor": [],
-    "guardian": []
+    "guardian": [],
+    "timelock": {
+      "governorDelay": 0,
+      "curatorDelay": 0
+    }
   }
 }

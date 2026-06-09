@@ -41,6 +41,7 @@ export abstract class BaseVaultProduct extends Product {
       '0xa0d3707c569ff8c87fa923d3823ec5d81c98be78',
       'origin',
       'infinifi',
+      'securitize',
     ]
     for (let i = 0; i < dailyVaults.length; i++) {
       if (nameLower.includes(dailyVaults[i])) {

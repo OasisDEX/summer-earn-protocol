@@ -9,6 +9,10 @@ export const InstitutionNetworkDeployedContractsSchema = z
     gov: z
       .object({
         protocolAccessManager: AddressObj.optional(),
+        // The two RwaTimelock instances deployed per institution. `governorTimelock` is the
+        // sole GOVERNOR_ROLE holder; `curatorTimelock` holds CURATOR_ROLE on each fleet.
+        governorTimelock: AddressObj.optional(),
+        curatorTimelock: AddressObj.optional(),
       })
       .partial()
       .optional(),
@@ -34,23 +38,64 @@ export const InstitutionFleetEntrySchema = z.object({
   roundsVaultOutput: AddressSchema.optional(),
 })
 
-export const InstitutionNetworkSchema = z
-  .object({
-    deployedContracts: InstitutionNetworkDeployedContractsSchema.optional(),
-    fleets: z.record(z.string(), InstitutionFleetEntrySchema).optional(),
-    // Per-network governance fields
-    treasury: AddressSchema.optional(),
-    governor: z.array(AddressSchema).optional(),
-    guardian: z.array(AddressSchema).optional(),
-    superKeeper: AddressSchema.optional(),
-    whitelistManagers: z.array(AddressSchema).optional(),
-  })
-  .partial()
+/**
+ * Per-institution timelock configuration.
+ *
+ * Two RwaTimelock instances are ALWAYS deployed per institution: a Governor timelock (sole
+ * GOVERNOR_ROLE holder) and a Curator timelock (CURATOR_ROLE on each fleet). This block does not
+ * toggle whether the timelocks exist — it only sets each one's delay (in seconds):
+ *
+ *   - `0`   → that timelock executes immediately (schedule + execute can happen in the same block),
+ *             so it imposes no waiting period while keeping the schedule→execute flow uniform.
+ *   - `> 0` → that timelock enforces a mandatory wait of N seconds between schedule and execute.
+ *
+ * The four "modes" map onto delay pairs:
+ *   none      → { governorDelay: 0, curatorDelay: 0 }
+ *   governor  → { governorDelay: >0, curatorDelay: 0 }
+ *   curator   → { governorDelay: 0, curatorDelay: >0 }
+ *   both      → { governorDelay: >0, curatorDelay: >0 }
+ *
+ * This block is MANDATORY for every configured network entry — there is no implicit default.
+ */
+// Upper sanity bound on a timelock delay, in seconds. Catches unit confusion (e.g. a value entered
+// in milliseconds) and fat-fingered magnitudes that would brick governance for years — the timelock
+// is self-administered, so an over-large delay cannot be shortened, only waited out. 365 days is far
+// longer than any realistic governance review window while still rejecting absurd values.
+export const MAX_TIMELOCK_DELAY_SECONDS = 365 * 24 * 60 * 60 // 31_536_000
+
+export const TimelockConfigSchema = z.object({
+  governorDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
+  curatorDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
+})
+
+export type TimelockConfig = z.infer<typeof TimelockConfigSchema>
+
+export const InstitutionNetworkSchema = z.object({
+  deployedContracts: InstitutionNetworkDeployedContractsSchema.optional(),
+  fleets: z.record(z.string(), InstitutionFleetEntrySchema).optional(),
+  // Per-network governance fields
+  treasury: AddressSchema.optional(),
+  governor: z.array(AddressSchema).optional(),
+  // Proposers of the curator timelock — the institution's curators. Kept separate from
+  // `governor` so the two roles can be segregated (different signer sets). When omitted, the
+  // curator timelock falls back to the governor set.
+  curators: z.array(AddressSchema).optional(),
+  guardian: z.array(AddressSchema).optional(),
+  superKeeper: AddressSchema.optional(),
+  whitelistManagers: z.array(AddressSchema).optional(),
+  // Per-network timelock delays. MANDATORY: both RwaTimelock instances are always deployed, so
+  // every configured network entry MUST declare its delays. Use { governorDelay: 0, curatorDelay: 0 }
+  // to EXPLICITLY opt out of any delay ("none" mode) — there is no silent default.
+  timelock: TimelockConfigSchema,
+})
 
 // Governance fields structure (used for validating per-network governance)
 export const InstitutionGovernanceSchema = z.object({
   treasury: AddressSchema,
   governor: z.array(AddressSchema),
+  // Optional curator proposer set; defaults to empty (callers fall back to `governor`). Optional
+  // so existing institution configs that predate this field still validate.
+  curators: z.array(AddressSchema).optional().default([]),
   guardian: z.array(AddressSchema),
   superKeeper: AddressSchema,
   whitelistManagers: z.array(AddressSchema),
