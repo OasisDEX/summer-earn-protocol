@@ -4,6 +4,12 @@
       "gov": {
         "protocolAccessManager": {
           "address": "0x0eF127ce2ae77e7a08Dc4Bb460e6E888E86D0459"
+        },
+        "governorTimelock": {
+          "address": "0x2E26CF6d2c67cBe1530e894B1E8CAaB40781Fc61"
+        },
+        "curatorTimelock": {
+          "address": "0xd690821D4f3972b656B8eB91e1364d475D996633"
         }
       },
       "core": {
@@ -56,6 +62,10 @@
     "superKeeper": "0x0f0fA89471259433b6955827226f19999D93c568",
     "whitelistManagers": [
       "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA"
-    ]
+    ],
+    "timelock": {
+      "governorDelay": 0,
+      "curatorDelay": 0
+    }
   }
 }

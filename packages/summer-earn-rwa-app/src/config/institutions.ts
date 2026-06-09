@@ -30,6 +30,13 @@ export interface Institution {
   chainId: ChainId
   /** Gov + core contracts shared by every fleet under this institution. */
   protocolAccessManager: `0x${string}`
+  /** Governor timelock — sole GOVERNOR_ROLE holder. Present once the institution is deployed
+   *  with the timelock flow. A delay of 0 means it executes immediately. */
+  governorTimelock?: `0x${string}`
+  /** Curator timelock — holds CURATOR_ROLE on each fleet. */
+  curatorTimelock?: `0x${string}`
+  /** Timelock delays in seconds (0 = immediate execution). */
+  timelock?: { governorDelay: number; curatorDelay: number }
   configurationManager: `0x${string}`
   harborCommand: `0x${string}`
   admiralsQuarters: `0x${string}`
@@ -38,6 +45,8 @@ export interface Institution {
   /** Off-chain role assignments encoded in the deployment JSON. */
   treasury: `0x${string}`
   governors: `0x${string}`[]
+  /** Curator timelock proposers — may differ from governors. */
+  curators?: `0x${string}`[]
   guardians: `0x${string}`[]
   superKeeper: `0x${string}`
   whitelistManagers: `0x${string}`[]

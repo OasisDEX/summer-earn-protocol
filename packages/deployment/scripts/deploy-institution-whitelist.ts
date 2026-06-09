@@ -1,17 +1,57 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 
-import { Address as ViemAddress } from 'viem'
+import { Address as ViemAddress, getAddress } from 'viem'
 import { createInstitutionWhitelistModule } from '../ignition/modules/institution-whitelist'
 import { BaseConfig } from '../types/config-types'
+import { ADDRESS_ZERO, GOVERNOR_ROLE } from './common/constants'
 import { getConfigByNetwork, getInstitutionConfigByNetwork } from './helpers/config-handler'
 import {
   promptForInstitutionId,
   readInstitutionGovernance,
+  readInstitutionTimelockConfig,
   updateInstitutionDeployedContracts,
 } from './helpers/institution-config'
 import { promptForConfigType } from './helpers/prompt-helpers'
+import { assertTimelockUsable } from './helpers/timelock'
 import { validateAddress, validateToken } from './helpers/validation'
+
+/**
+ * Idempotently ensures the governor timelock holds GOVERNOR_ROLE. Safe to call on a fresh deploy
+ * (deployer is the bootstrap governor) and on a re-run of an already-registered institution (a
+ * prior run may have stopped before this grant). If the timelock lacks the role and the deployer
+ * is not a governor, it THROWS — the institution is in a broken state (the recorded governor
+ * timelock cannot govern the PAM) and must be repaired by granting GOVERNOR_ROLE to the timelock
+ * via the current governor (or the governor timelock itself) before re-running.
+ */
+async function ensureGovernorTimelockIsGovernor(
+  pam: any,
+  publicClient: any,
+  governorTimelockAddress: ViemAddress,
+  deployerAddress: ViemAddress,
+): Promise<void> {
+  const timelockAlreadyGovernor = (await pam.read.hasRole([
+    GOVERNOR_ROLE,
+    governorTimelockAddress,
+  ])) as boolean
+  if (timelockAlreadyGovernor) {
+    console.log(kleur.gray('[skip] GOVERNOR_ROLE already held by governor timelock'))
+    return
+  }
+
+  const deployerIsGovernor = (await pam.read.hasRole([GOVERNOR_ROLE, deployerAddress])) as boolean
+  if (!deployerIsGovernor) {
+    throw new Error(
+      `Governor timelock ${governorTimelockAddress} does NOT hold GOVERNOR_ROLE and the deployer is ` +
+        `not a governor — cannot grant it. Grant GOVERNOR_ROLE to the timelock via the current ` +
+        `governor (or the governor timelock itself), then re-run.`,
+    )
+  }
+
+  const hash = await pam.write.grantGovernorRole([governorTimelockAddress])
+  await publicClient.waitForTransactionReceipt({ hash })
+  console.log(kleur.green(`Granted GOVERNOR_ROLE to governor timelock ${governorTimelockAddress}`))
+}
 
 async function main() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
@@ -24,6 +64,50 @@ async function main() {
   if (!institutionId) {
     console.log(kleur.red('No institution id provided. Exiting.'))
     return
+  }
+
+  // Read and validate governance + timelock config up front — before any on-chain state changes
+  // or contract deployments — so a misconfiguration fails fast and leaves nothing half-wired.
+  const governance = readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name)
+  const treasury = governance.treasury
+
+  // Timelock delays (both timelocks are always deployed; delays may be 0 = immediate).
+  const timelockConfig = readInstitutionTimelockConfig(
+    institutionId,
+    useBummerConfig,
+    hre.network.name,
+  )
+  console.log(
+    kleur.blue('Timelock delays (seconds):'),
+    kleur.cyan(`governor=${timelockConfig.governorDelay}, curator=${timelockConfig.curatorDelay}`),
+  )
+
+  // Proposers for each timelock are segregated: the governor timelock is proposed to by the
+  // institution governors, the curator timelock by the institution curators (a separate set; it
+  // falls back to the governors when `curators` is not configured). The deployer is intentionally
+  // NOT a proposer — during deployment it acts directly as the bootstrap governor and hands over
+  // to the governor timelock only at the end (see the separate handover script). Executors are
+  // left open at the contract level.
+  const dedupeAddresses = (addrs: string[]): ViemAddress[] =>
+    Array.from(new Set(addrs.map((a) => a.toLowerCase()))).map((a) => getAddress(a))
+
+  const governorTimelockProposers = dedupeAddresses(governance.governor)
+  const curatorTimelockProposers = dedupeAddresses(
+    governance.curators.length > 0 ? governance.curators : governance.governor,
+  )
+  // Fail fast if either timelock would have no proposers. A proposer-less timelock can never
+  // schedule operations and would be permanently stuck.
+  if (governorTimelockProposers.length === 0) {
+    throw new Error(
+      `No governor timelock proposers for institution "${institutionId}" on network "${hre.network.name}". ` +
+        `Configure "governor" in the institution index before deploying.`,
+    )
+  }
+  if (curatorTimelockProposers.length === 0) {
+    throw new Error(
+      `No curator timelock proposers for institution "${institutionId}" on network "${hre.network.name}". ` +
+        `Configure "curators" (or "governor" as fallback) in the institution index before deploying.`,
+    )
   }
 
   const config = getConfigByNetwork(
@@ -62,7 +146,97 @@ async function main() {
     registeredInstitution[2] === institutionConfig.deployedContracts.core.admiralsQuarters?.address
 
   if (exists && addressessMatch) {
-    console.log(kleur.yellow('Institution already registered in registry V2. Skipping deployment.'))
+    // Institution already deployed/registered. Make the timelocks idempotent: deploy whichever
+    // RwaTimelock is missing (institution predates the timelock flow, or a prior run stopped early)
+    // DIRECTLY — not via the Ignition module — so we never re-reconcile the existing PAM/core,
+    // whose embedded metadata hash drifts whenever NatSpec/comments change. Then ensure the
+    // governor timelock holds GOVERNOR_ROLE.
+    const existingPamAddress =
+      institutionConfig.deployedContracts.gov.protocolAccessManager?.address
+    if (!existingPamAddress) {
+      throw new Error(
+        `Institution "${institutionId}" is registered on "${hre.network.name}" but has no ` +
+          `ProtocolAccessManager recorded — cannot wire timelocks. Fix the institution index first.`,
+      )
+    }
+
+    const recordedGovernorTimelock =
+      institutionConfig.deployedContracts.gov.governorTimelock?.address
+    const recordedCuratorTimelock = institutionConfig.deployedContracts.gov.curatorTimelock?.address
+    let governorTimelockAddress = recordedGovernorTimelock
+    let curatorTimelockAddress = recordedCuratorTimelock
+
+    if (!governorTimelockAddress) {
+      const tl = await hre.viem.deployContract('RwaTimelock' as string, [
+        BigInt(timelockConfig.governorDelay),
+        governorTimelockProposers,
+        [ADDRESS_ZERO],
+        ADDRESS_ZERO,
+      ])
+      governorTimelockAddress = getAddress(tl.address)
+      console.log(kleur.green(`Deployed governor timelock ${governorTimelockAddress}`))
+    } else {
+      // Recorded but not deployed by us this run — verify it (code, delay, proposers) before
+      // granting it GOVERNOR_ROLE, so a stale/typo'd recorded address can't be made a governor.
+      await assertTimelockUsable(
+        'governor timelock',
+        getAddress(governorTimelockAddress),
+        timelockConfig.governorDelay,
+        governorTimelockProposers,
+        publicClient,
+      )
+    }
+    if (!curatorTimelockAddress) {
+      const tl = await hre.viem.deployContract('RwaTimelock' as string, [
+        BigInt(timelockConfig.curatorDelay),
+        curatorTimelockProposers,
+        [ADDRESS_ZERO],
+        ADDRESS_ZERO,
+      ])
+      curatorTimelockAddress = getAddress(tl.address)
+      console.log(kleur.green(`Deployed curator timelock ${curatorTimelockAddress}`))
+    } else {
+      // Recorded but not deployed by us this run — verify it before recording/relying on it.
+      await assertTimelockUsable(
+        'curator timelock',
+        getAddress(curatorTimelockAddress),
+        timelockConfig.curatorDelay,
+        curatorTimelockProposers,
+        publicClient,
+      )
+    }
+
+    // Persist the timelock addresses if we deployed either (merge with the existing PAM so the
+    // recorded gov block is not wiped).
+    if (
+      governorTimelockAddress !== recordedGovernorTimelock ||
+      curatorTimelockAddress !== recordedCuratorTimelock
+    ) {
+      updateInstitutionDeployedContracts(institutionId, useBummerConfig, hre.network.name, 'gov', {
+        protocolAccessManager: { address: existingPamAddress },
+        governorTimelock: { address: governorTimelockAddress },
+        curatorTimelock: { address: curatorTimelockAddress },
+      })
+      console.log(kleur.green().bold('Institution index updated with timelock addresses.'))
+    } else {
+      console.log(
+        kleur.yellow(
+          'Institution already registered in registry V2 with timelocks. Skipping deployment.',
+        ),
+      )
+    }
+
+    const pam = await hre.viem.getContractAt(
+      'ProtocolAccessManagerV2' as string,
+      existingPamAddress as ViemAddress,
+    )
+    const [deployerWallet] = await hre.viem.getWalletClients()
+    await ensureGovernorTimelockIsGovernor(
+      pam,
+      publicClient,
+      governorTimelockAddress as ViemAddress,
+      getAddress(deployerWallet.account.address),
+    )
     return
   }
 
@@ -72,11 +246,6 @@ async function main() {
     await publicClient.waitForTransactionReceipt({ hash })
     console.log(kleur.green().bold('Institution successfully removed from registry V2.'))
   }
-
-  // Read institution governance for current network and validate
-  const governance = readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name)
-
-  const treasury = governance.treasury
 
   const envLabel = useBummerConfig ? 'staging_' : ''
   const moduleName = `${envLabel}InstitutionWhitelist_${institutionId}`
@@ -88,14 +257,20 @@ async function main() {
         swapProvider: swapProvider,
         weth: wethAddress,
         treasury: treasury as ViemAddress,
+        governorDelay: timelockConfig.governorDelay,
+        curatorDelay: timelockConfig.curatorDelay,
+        governorTimelockProposers: governorTimelockProposers,
+        curatorTimelockProposers: curatorTimelockProposers,
       },
     },
   })
   console.log(kleur.green().bold('Institution contracts deployed. Writing institution index...'))
 
-  // gov: only protocolAccessManagerV2 for whitelist flow
+  // gov: protocolAccessManagerV2 + the two RwaTimelock instances for the whitelist flow
   updateInstitutionDeployedContracts(institutionId, useBummerConfig, hre.network.name, 'gov', {
     protocolAccessManager: { address: deployed.protocolAccessManager.address },
+    governorTimelock: { address: deployed.governorTimelock.address },
+    curatorTimelock: { address: deployed.curatorTimelock.address },
   })
 
   // core subset
@@ -159,19 +334,19 @@ async function main() {
     )
   }
 
-  // Grant governor and guardian roles to accounts from institution governance
+  // Grant guardian/superKeeper/whitelistManager roles directly (the deployer is the bootstrap
+  // governor), and grant GOVERNOR_ROLE to the governor timelock so it is ready to take over. The
+  // deployer KEEPS its bootstrap GOVERNOR_ROLE here so it can wire fleets directly in subsequent
+  // deploys; it renounces only at the end, via the separate handover script
+  // (handover-institution-timelock.ts), which is what makes the timelock the sole governor. The
+  // institution governors do not receive GOVERNOR_ROLE directly — they are the timelock proposers
+  // (see timelockProposers above).
   try {
     const protocolAccessManagerV2 = await hre.viem.getContractAt(
       'ProtocolAccessManagerV2' as string,
       deployed.protocolAccessManager.address,
     )
     const publicClient = await hre.viem.getPublicClient()
-
-    for (const addr of governance.governor) {
-      const hash = await protocolAccessManagerV2.write.grantGovernorRole([addr as ViemAddress])
-      await publicClient.waitForTransactionReceipt({ hash })
-      console.log(kleur.green(`Granted GOVERNOR_ROLE to ${addr}`))
-    }
 
     for (const addr of governance.guardian) {
       const hash = await protocolAccessManagerV2.write.grantGuardianRole([addr as ViemAddress])
@@ -197,6 +372,17 @@ async function main() {
       await publicClient.waitForTransactionReceipt({ hash })
       console.log(kleur.green(`Granted WHITELIST_MANAGER_ROLE to ${addr}`))
     }
+
+    // Grant GOVERNOR_ROLE to the governor timelock so it is ready to act. The deployer is NOT
+    // renounced here — run handover-institution-timelock.ts after all fleets are deployed to
+    // renounce the deployer and leave the timelock as the sole governor.
+    const [deployerWallet] = await hre.viem.getWalletClients()
+    await ensureGovernorTimelockIsGovernor(
+      protocolAccessManagerV2,
+      publicClient,
+      getAddress(deployed.governorTimelock.address),
+      getAddress(deployerWallet.account.address),
+    )
   } catch (e) {
     console.error(
       kleur.red(`Failed to grant governance roles: ${e instanceof Error ? e.message : String(e)}`),
