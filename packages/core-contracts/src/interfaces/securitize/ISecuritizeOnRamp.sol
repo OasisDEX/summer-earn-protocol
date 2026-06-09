@@ -23,21 +23,28 @@ interface ISecuritizeOnRamp {
 
     /// @notice Executes a Securitize-signed pre-approved transaction (a subscription). The signature
     ///         must recover to an EXCHANGE/ISSUER role holder; the on-ramp then runs `txData.data`.
+    /// @param signature The operator's EIP-712 signature over `txData`
+    /// @param txData The pre-approved transaction (destination, `subscribe` calldata, investor nonce)
     function executePreApprovedTransaction(
         bytes calldata signature,
         ExecutePreApprovedTransaction calldata txData
     ) external;
 
     /// @notice The liquidity (stablecoin) token the on-ramp pulls on subscription.
+    /// @return The liquidity token address
     function liquidityToken() external view returns (address);
 
     /// @notice The fund custodian wallet that receives subscription liquidity.
+    /// @return The fund custodian wallet address
     function custodianWallet() external view returns (address);
 
     /// @notice The Securitize single-source NAV provider the on-ramp prices subscriptions with.
+    /// @return The NAV provider address
     function navProvider() external view returns (address);
 
     /// @notice Per-investor nonce consumed by `executePreApprovedTransaction`.
+    /// @param investorId The Securitize investor identifier
+    /// @return The next nonce for `investorId`
     function nonceByInvestor(
         string calldata investorId
     ) external view returns (uint256);

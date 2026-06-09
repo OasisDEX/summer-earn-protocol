@@ -32,15 +32,21 @@ interface ISecuritizeArkErrors {
     error ArkIsFrozen();
     /// @notice Reverts when `setDepositSlippage` or the constructor is given a value above
     ///         `MAX_DEPOSIT_SLIPPAGE`.
+    /// @param newSlippage The rejected slippage value
+    /// @param maxSlippage The maximum allowed slippage (`MAX_DEPOSIT_SLIPPAGE`)
     error InvalidDepositSlippage(
         Percentage newSlippage,
         Percentage maxSlippage
     );
     /// @notice Reverts when `setSweepSlippage` or the constructor is given a value above
     ///         `MAX_SWEEP_SLIPPAGE`.
+    /// @param newSlippage The rejected slippage value
+    /// @param maxSlippage The maximum allowed slippage (`MAX_SWEEP_SLIPPAGE`)
     error InvalidSweepSlippage(Percentage newSlippage, Percentage maxSlippage);
     /// @notice Reverts when `setSubscriptionFeeTolerance` is given a value above
     ///         `MAX_SUBSCRIPTION_FEE`.
+    /// @param newTolerance The rejected tolerance value
+    /// @param maxTolerance The maximum allowed tolerance (`MAX_SUBSCRIPTION_FEE`)
     error InvalidSubscriptionFeeTolerance(
         Percentage newTolerance,
         Percentage maxTolerance
@@ -57,8 +63,8 @@ interface ISecuritizeArkErrors {
     ///         only via the async `requestWithdrawal`/`sweep` cycle, never synchronous disembark.
     error DisembarkDisabled();
     /// @notice Reverts in `_board` when the DSTokens minted by the on-ramp subscription are below
-    ///         the oracle-implied expected shares minus `depositSlippage` (NAV-source divergence or
-    ///         excess on-ramp fee).
+    ///         the oracle-implied expected shares minus `depositSlippage` and
+    ///         `subscriptionFeeTolerance` (NAV-source divergence or excess on-ramp fee).
     /// @param expectedShares Oracle-implied shares for the boarded amount
     /// @param actualNewShares Shares actually minted to this Ark by the subscription
     error SharesNotArrived(uint256 expectedShares, uint256 actualNewShares);
@@ -66,8 +72,11 @@ interface ISecuritizeArkErrors {
     error OnRampNotConfigured();
     /// @notice Reverts when the resolved on-ramp's liquidity token does not match this Ark's base
     ///         asset (e.g. a re-registered on-ramp), since `_board` approves/passes the base asset.
+    /// @param expected This Ark's configured base asset
+    /// @param actual The on-ramp's liquidity token
     error OnRampAssetMismatch(address expected, address actual);
-    /// @notice Reverts when the keeper-supplied subscription payload does not relay a `subscribe`
-    ///         to the resolved on-ramp that mints to THIS Ark for exactly the boarded amount.
+    /// @notice Reverts when the keeper-supplied subscription payload is malformed, targets a
+    ///         destination other than the resolved on-ramp, uses a non-`subscribe` selector, mints
+    ///         to a wallet other than THIS Ark, or encodes an amount other than the boarded amount.
     error InvalidSubscriptionPayload();
 }

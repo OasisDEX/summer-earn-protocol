@@ -31,9 +31,9 @@ import {ISecuritizeArk} from "../../interfaces/arks/ISecuritizeArk.sol";
  *   mints to THIS Ark. `_board` then binds the payload to the boarded amount, approves the base
  *   asset, and relays `executePreApprovedTransaction`. The on-ramp forwards the asset (minus fee) to
  *   the fund custodian and MINTS the DSToken to this Ark in the same transaction. A post-mint check
- *   enforces the minted shares are within `depositSlippage` of the oracle-implied amount (catching
- *   NAV-source divergence or an excessive on-ramp fee). The relayed `subscribe` also onboards this
- *   Ark in the registry, so no separate onboarding step is needed.
+ *   enforces the minted shares are within `depositSlippage` plus `subscriptionFeeTolerance` of the
+ *   oracle-implied amount (catching NAV-source divergence and the on-ramp fee). The relayed
+ *   `subscribe` also onboards this Ark in the registry, so no separate onboarding step is needed.
  *
  * Withdrawals (asynchronous — there is no on-chain off-ramp):
  * 1. `requestWithdrawal`: compliance pre-check, then transfer the DSToken to `custodianWallet` for
@@ -275,6 +275,7 @@ contract SecuritizeArk is
     /**
      * @notice Whether this Ark is a registered investor wallet in the Securitize registry. The
      *         relayed subscription onboards the Ark on first deposit; this exposes the live status.
+     * @return registered True if this Ark is registered as a wallet in the Securitize registry.
      */
     function isArkOnboarded() external view returns (bool) {
         return registryService.isWallet(address(this));
@@ -284,6 +285,7 @@ contract SecuritizeArk is
      * @notice Resolves the fund's Securitize on-ramp from the DSToken's service registry.
      * @dev Resolved dynamically (not cached) so Securitize re-registrations are picked up. Returns
      *      the zero address if no on-ramp is registered.
+     * @return The registered Securitize on-ramp, or the zero address if none is registered.
      */
     function onRamp() public view returns (ISecuritizeOnRamp) {
         return
@@ -302,6 +304,7 @@ contract SecuritizeArk is
      * @notice Updates the Securitize custodian wallet that receives the DSToken on redemption.
      * @dev Restricted to the governor role: the keeper must not be able to redirect redemption
      *      shares to an arbitrary (registered) wallet.
+     * @param _custodianWallet New Securitize-controlled wallet that receives the DSToken on redemption.
      */
     function setCustodianWallet(
         address _custodianWallet
@@ -316,6 +319,9 @@ contract SecuritizeArk is
      *         `sweep` revert via `onlyNotFrozen`, and `totalAssets()` returns the freeze snapshot.
      * @dev Pass `type(uint256).max` as `frozenTotalAssets` to snapshot live `totalAssets()`.
      *      Restricted to the keeper role.
+     * @param _isArkFrozen True to freeze the ark, false to unfreeze it.
+     * @param frozenTotalAssets Total assets to report while frozen; `type(uint256).max` snapshots
+     *        live `totalAssets()`.
      */
     function setArkFrozen(
         bool _isArkFrozen,
@@ -404,8 +410,10 @@ contract SecuritizeArk is
 
     /**
      * @notice Bypass-slippage variant of `sweep`, sending the full asset balance to the buffer ark.
-     * @dev Used when Securitize returns less than `pendingWithdrawalShares - sweepSlippage`.
+     * @dev Used when Securitize returns less than `pendingWithdrawalAssets - sweepSlippage`.
      *      Restricted to the governor role.
+     * @return sweptTokens The single-element list of the swept base asset.
+     * @return sweptAmounts The single-element list of the swept asset amount.
      */
     function emergencySweep()
         external
@@ -418,6 +426,7 @@ contract SecuritizeArk is
 
     /**
      * @notice Sets the sweep slippage. Restricted to the keeper role.
+     * @param newSweepSlippage New tolerance applied to returned-vs-expected assets in `sweep`.
      */
     function setSweepSlippage(Percentage newSweepSlippage) external onlyKeeper {
         if (newSweepSlippage > MAX_SWEEP_SLIPPAGE) {
@@ -429,6 +438,7 @@ contract SecuritizeArk is
 
     /**
      * @notice Sets the deposit slippage. Restricted to the keeper role.
+     * @param newDepositSlippage New minted-vs-oracle-implied share tolerance applied in `_board`.
      */
     function setDepositSlippage(
         Percentage newDepositSlippage
@@ -446,6 +456,7 @@ contract SecuritizeArk is
     /**
      * @notice Sets the on-ramp subscription-fee tolerance (separate from the NAV-divergence
      *         `depositSlippage`). Restricted to the governor role.
+     * @param newTolerance New additional tolerance for the on-ramp subscription fee.
      */
     function setSubscriptionFeeTolerance(
         Percentage newTolerance

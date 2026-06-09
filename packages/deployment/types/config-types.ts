@@ -227,7 +227,8 @@ export interface BaseConfig {
           sweepSlippage: string
           depositSlippage: string
         }
-      } }
+      }
+    }
     superstate?: {
       [key in Token]?: {
         [key: string]: {
