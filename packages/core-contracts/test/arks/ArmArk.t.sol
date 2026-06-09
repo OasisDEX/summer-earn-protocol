@@ -283,6 +283,7 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
         uint256 wethInArkAfterClaim = weth.balanceOf(address(ark));
         assertEq(wethInArkAfterClaim, assetsInWithdrawalQueue);
     }
+
     function test_ClaimWithdrawal_MaxAmountNoLiquidity() public {
         _test_RequestWithdrawal(100 ether, type(uint256).max);
 
@@ -298,6 +299,7 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
         ark.claimWithdrawal();
         vm.stopPrank();
     }
+
     function test_RequestWithdrawal_MaxAmount() public {
         test_Board();
 
@@ -346,11 +348,10 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
         test_Board();
 
         // Prepare swap data (this would be real swap data in practice)
-        IArkWithWithdrawalRequest.SwapData
-            memory swapData = IArkWithWithdrawalRequest.SwapData({
-                router: ODOS_ROUTER_MAINNET,
-                swapCalldata: hex"" // Would contain actual swap calldata
-            });
+        IArkWithSwap.SwapData memory swapData = IArkWithSwap.SwapData({
+            router: ODOS_ROUTER_MAINNET,
+            swapCalldata: hex"" // Would contain actual swap calldata
+        });
         bytes memory data = abi.encode(swapData);
 
         uint256 withdrawAmount = 0.5 ether;
