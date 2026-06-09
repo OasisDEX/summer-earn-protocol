@@ -66,3 +66,23 @@ export const worstSeverity = (severities: ReadonlyArray<GasSeverityOrIdle>): Gas
     (acc, s) => (GAS_SEVERITY_ORDER[s] > GAS_SEVERITY_ORDER[acc] ? s : acc),
     'idle',
   )
+
+// Splits the chains a proposal touches into those Tenderly can simulate and
+// those it cannot. Chains without a Tenderly network (e.g. HyperLiquid /
+// chainId 999) cannot produce a simulation, so the submit gate must require a
+// `success` only for `required` — otherwise an unsimulatable destination would
+// permanently disable submit. `unsimulatable` drives the "no Tenderly trace"
+// warning. `isSimulatable` is typically derived from CHAINS[*].tenderlyId.
+// Order within each partition mirrors the input.
+export const partitionSimChains = (
+  expectedChainIds: ReadonlyArray<string>,
+  isSimulatable: (chainId: string) => boolean,
+): { required: string[]; unsimulatable: string[] } => {
+  const required: string[] = []
+  const unsimulatable: string[] = []
+  for (const chainId of expectedChainIds) {
+    if (isSimulatable(chainId)) required.push(chainId)
+    else unsimulatable.push(chainId)
+  }
+  return { required, unsimulatable }
+}

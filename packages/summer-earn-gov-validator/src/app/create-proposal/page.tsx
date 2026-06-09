@@ -60,6 +60,7 @@ import {
   GasSeverityOrIdle,
   LZ_GAS_HEADROOM_PERCENT,
   parseLzGas,
+  partitionSimChains,
   worstSeverity,
   ZERO_BYTES32,
 } from '@/utils/proposal-encoding'
@@ -287,9 +288,22 @@ export default function CreateProposalPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionsSignature])
 
+  // Tenderly cannot simulate every chain (e.g. HyperLiquid / chainId 999 has no
+  // tenderlyId). Split the expected targets: `requiredSimChainIds` must reach a
+  // successful simulation before submit, while `unsimulatableChainIds` are
+  // submitted without a Tenderly trace and surfaced as a warning below. The hub
+  // is always Tenderly-supported, so `requiredSimChainIds` is never empty and
+  // the gate can't pass vacuously.
+  const { requiredSimChainIds, unsimulatableChainIds } = useMemo(() => {
+    const { required, unsimulatable } = partitionSimChains(expectedChainIds, (cid) =>
+      Boolean(CHAINS.find((c) => c.id === cid)?.tenderlyId),
+    )
+    return { requiredSimChainIds: required, unsimulatableChainIds: unsimulatable }
+  }, [expectedChainIds])
+
   const simulationPassed =
     lastSimSignatureRef.current === actionsSignature &&
-    expectedChainIds.every((cid) => results[cid]?.status === 'success')
+    requiredSimChainIds.every((cid) => results[cid]?.status === 'success')
 
   interface GasInsight {
     chainId: string
@@ -373,8 +387,7 @@ export default function CreateProposalPage() {
         action.abi.length === 0 &&
         !action.rawCalldata && // Skip ABI fetch for actions with raw calldata (handled by import decoder)
         !isFetchingAbi[action.id] &&
-        !failedAbiFetchIds.has(action.id) &&
-        action.chainId !== '999' // HyperLiquid not supported for ABI fetching
+        !failedAbiFetchIds.has(action.id)
 
       if (shouldFetch) {
         setIsFetchingAbi((prev) => ({ ...prev, [action.id]: true }))
@@ -1014,6 +1027,24 @@ export default function CreateProposalPage() {
                 <p className="text-sm opacity-80">
                   You need to meet the proposal threshold to submit. Current power:{' '}
                   {votingPower?.toString() || '0'}.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {unsimulatableChainIds.length > 0 && (
+            <div className="mb-8 p-4 glass-panel border-warning/20 bg-warning/5 rounded-2xl flex items-center gap-4 text-warning">
+              <AlertCircle size={24} />
+              <div>
+                <p className="font-bold">Destination Not Simulated</p>
+                <p className="text-sm opacity-80">
+                  Tenderly can&apos;t simulate{' '}
+                  {unsimulatableChainIds
+                    .map((cid) => CHAINS.find((c) => c.id === cid)?.name ?? cid)
+                    .join(', ')}
+                  , so {unsimulatableChainIds.length > 1 ? 'these legs' : 'this leg'} will be
+                  submitted without an execution trace. The Hub leg is still simulated — review the
+                  cross-chain calldata carefully before proposing.
                 </p>
               </div>
             </div>

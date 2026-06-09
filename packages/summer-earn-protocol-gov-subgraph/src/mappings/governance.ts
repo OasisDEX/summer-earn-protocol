@@ -14,6 +14,7 @@ import {
 import { CrossChainProposalByCallId, Vote } from '../../generated/schema'
 import { TimelockControllerTemplate } from '../../generated/templates'
 
+import { ADDRESS_ZERO } from '../common/constants'
 import { BigIntOne, EventSignature } from '../constants'
 import {
   getOrCreateCrossChainProposal,
@@ -24,6 +25,16 @@ import { dstEidToChainIdMap, isHub } from '../utils/chain'
 import { dataToTuple, getEventLogs } from '../utils/events'
 
 export function handleTimelockChange(event: TimelockChange): void {
+  // The canonical timelock for each network is already indexed by the static
+  // `TimelockController` data source. The governor constructor emits
+  // TimelockChange(address(0), <canonical timelock>); creating a template for that
+  // initial assignment would make BOTH data sources index the same timelock,
+  // double-processing every CallScheduled event and duplicating proposal
+  // targets/values/calldatas on satellite chains. Only follow a genuine timelock
+  // change (non-zero oldTimelock) to a new, not-yet-indexed address.
+  if (event.params.oldTimelock.equals(ADDRESS_ZERO)) {
+    return
+  }
   TimelockControllerTemplate.create(event.params.newTimelock)
 }
 

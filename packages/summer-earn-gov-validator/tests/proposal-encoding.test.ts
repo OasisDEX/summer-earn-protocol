@@ -13,6 +13,7 @@ import {
   LZ_GAS_HEADROOM_PERCENT,
   LZ_GAS_WARNING_THRESHOLD,
   parseLzGas,
+  partitionSimChains,
   worstSeverity,
   ZERO_BYTES32,
 } from '@/utils/proposal-encoding'
@@ -254,5 +255,47 @@ describe('worstSeverity', () => {
     expect(worstSeverity(['critical', 'ok', 'warning'])).toBe('critical')
     expect(worstSeverity(['ok', 'critical', 'warning'])).toBe('critical')
     expect(worstSeverity(['warning', 'ok', 'critical'])).toBe('critical')
+  })
+})
+
+describe('partitionSimChains', () => {
+  // Tenderly-supported chains (e.g. Base, Arbitrum) vs. unsupported ones
+  // (e.g. HyperLiquid / chainId 999). The submit gate requires success only
+  // for `required`; `unsimulatable` drives the "no Tenderly trace" warning.
+  const isSimulatable = (id: string) => id !== '999'
+
+  it('splits expected chains into Tenderly-simulatable and unsimulatable', () => {
+    expect(partitionSimChains(['8453', '999'], isSimulatable)).toEqual({
+      required: ['8453'],
+      unsimulatable: ['999'],
+    })
+  })
+
+  it('returns two empty arrays for no expected chains', () => {
+    expect(partitionSimChains([], isSimulatable)).toEqual({
+      required: [],
+      unsimulatable: [],
+    })
+  })
+
+  it('puts every chain in required when all are simulatable', () => {
+    expect(partitionSimChains(['8453', '42161', '146'], isSimulatable)).toEqual({
+      required: ['8453', '42161', '146'],
+      unsimulatable: [],
+    })
+  })
+
+  it('puts every chain in unsimulatable when none are simulatable', () => {
+    expect(partitionSimChains(['999'], () => false)).toEqual({
+      required: [],
+      unsimulatable: ['999'],
+    })
+  })
+
+  it('preserves input order within each partition', () => {
+    expect(partitionSimChains(['8453', '999', '42161', '999'], isSimulatable)).toEqual({
+      required: ['8453', '42161'],
+      unsimulatable: ['999', '999'],
+    })
   })
 })
