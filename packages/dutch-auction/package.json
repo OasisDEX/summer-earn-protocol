@@ -33,6 +33,7 @@
     "test": "forge test",
     "test:coverage": "pnpm run gen:prices && forge coverage",
     "test:coverage:report": "pnpm run gen:prices && forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage",
-    "gen:prices": "cd utils && python generate_price_data.py"
+    "gen:prices": "cd utils && python generate_price_data.py",
+    "docs:gen": "forge doc"
   }
 }

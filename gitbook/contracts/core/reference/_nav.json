@@ -1,0 +1,1267 @@
+{
+  "package": "core-contracts",
+  "out": "contracts/core/reference",
+  "tree": [
+    {
+      "dir": "contracts",
+      "pages": [
+        {
+          "title": "AdmiralsQuarters",
+          "file": "contracts/core/reference/contracts/admirals-quarters.md"
+        },
+        {
+          "title": "AdmiralsQuartersWhitelist",
+          "file": "contracts/core/reference/contracts/admirals-quarters-whitelist.md"
+        },
+        {
+          "title": "Ark",
+          "file": "contracts/core/reference/contracts/ark.md"
+        },
+        {
+          "title": "ArkAccessManaged",
+          "file": "contracts/core/reference/contracts/ark-access-managed.md"
+        },
+        {
+          "title": "ArkConfigProvider",
+          "file": "contracts/core/reference/contracts/ark-config-provider.md"
+        },
+        {
+          "title": "ArkWithSwap",
+          "file": "contracts/core/reference/contracts/ark-with-swap.md"
+        },
+        {
+          "title": "ArkWithWithdrawalRequest",
+          "file": "contracts/core/reference/contracts/ark-with-withdrawal-request.md"
+        },
+        {
+          "title": "AuctionManagerBase",
+          "file": "contracts/core/reference/contracts/auction-manager-base.md"
+        },
+        {
+          "title": "BuyAndBurn",
+          "file": "contracts/core/reference/contracts/buy-and-burn.md"
+        },
+        {
+          "title": "FleetCommander",
+          "file": "contracts/core/reference/contracts/fleet-commander.md"
+        },
+        {
+          "title": "FleetCommanderCache",
+          "file": "contracts/core/reference/contracts/fleet-commander-cache.md"
+        },
+        {
+          "title": "FleetCommanderConfigProvider",
+          "file": "contracts/core/reference/contracts/fleet-commander-config-provider.md"
+        },
+        {
+          "title": "FleetCommanderConfigProviderDao",
+          "file": "contracts/core/reference/contracts/fleet-commander-config-provider-dao.md"
+        },
+        {
+          "title": "FleetCommanderConfigProviderWhitelist",
+          "file": "contracts/core/reference/contracts/fleet-commander-config-provider-whitelist.md"
+        },
+        {
+          "title": "FleetCommanderDao",
+          "file": "contracts/core/reference/contracts/fleet-commander-dao.md"
+        },
+        {
+          "title": "FleetCommanderPausable",
+          "file": "contracts/core/reference/contracts/fleet-commander-pausable.md"
+        },
+        {
+          "title": "FleetCommanderRewardsManager",
+          "file": "contracts/core/reference/contracts/fleet-commander-rewards-manager.md"
+        },
+        {
+          "title": "FleetCommanderRewardsManagerFactory",
+          "file": "contracts/core/reference/contracts/fleet-commander-rewards-manager-factory.md"
+        },
+        {
+          "title": "FleetCommanderWhitelist",
+          "file": "contracts/core/reference/contracts/fleet-commander-whitelist.md"
+        },
+        {
+          "title": "FlexibleTipper",
+          "file": "contracts/core/reference/contracts/flexible-tipper.md"
+        },
+        {
+          "title": "HarborCommand",
+          "file": "contracts/core/reference/contracts/harbor-command.md"
+        },
+        {
+          "title": "InstitutionalVaultRegistry",
+          "file": "contracts/core/reference/contracts/institutional-vault-registry.md"
+        },
+        {
+          "title": "ProtectedMulticall",
+          "file": "contracts/core/reference/contracts/protected-multicall.md"
+        },
+        {
+          "title": "ProtectedMulticallWhitelist",
+          "file": "contracts/core/reference/contracts/protected-multicall-whitelist.md"
+        },
+        {
+          "title": "Raft",
+          "file": "contracts/core/reference/contracts/raft.md"
+        },
+        {
+          "title": "TipJar",
+          "file": "contracts/core/reference/contracts/tip-jar.md"
+        },
+        {
+          "title": "Tipper",
+          "file": "contracts/core/reference/contracts/tipper.md"
+        }
+      ]
+    },
+    {
+      "dir": "contracts/arks",
+      "pages": [
+        {
+          "title": "AaveV3Ark",
+          "file": "contracts/core/reference/contracts/arks/aave-v3-ark.md"
+        },
+        {
+          "title": "AeraArk",
+          "file": "contracts/core/reference/contracts/arks/aera-ark.md"
+        },
+        {
+          "title": "ArmArk",
+          "file": "contracts/core/reference/contracts/arks/arm-ark.md"
+        },
+        {
+          "title": "BasePendleArk",
+          "file": "contracts/core/reference/contracts/arks/base-pendle-ark.md"
+        },
+        {
+          "title": "BaseSuperstateArk",
+          "file": "contracts/core/reference/contracts/arks/base-superstate-ark.md"
+        },
+        {
+          "title": "BenjiArk",
+          "file": "contracts/core/reference/contracts/arks/benji-ark.md"
+        },
+        {
+          "title": "BufferArk",
+          "file": "contracts/core/reference/contracts/arks/buffer-ark.md"
+        },
+        {
+          "title": "CompoundV3Ark",
+          "file": "contracts/core/reference/contracts/arks/compound-v3-ark.md"
+        },
+        {
+          "title": "ERC4626Ark",
+          "file": "contracts/core/reference/contracts/arks/erc4626-ark.md"
+        },
+        {
+          "title": "FluidFTokenArk",
+          "file": "contracts/core/reference/contracts/arks/fluid-f-token-ark.md"
+        },
+        {
+          "title": "FluidLiteArk",
+          "file": "contracts/core/reference/contracts/arks/fluid-lite-ark.md"
+        },
+        {
+          "title": "HyperlendArk",
+          "file": "contracts/core/reference/contracts/arks/hyperlend-ark.md"
+        },
+        {
+          "title": "HypurrfiArk",
+          "file": "contracts/core/reference/contracts/arks/hypurrfi-ark.md"
+        },
+        {
+          "title": "MapleInstitutionalArk",
+          "file": "contracts/core/reference/contracts/arks/maple-institutional-ark.md"
+        },
+        {
+          "title": "MoonwellArk",
+          "file": "contracts/core/reference/contracts/arks/moonwell-ark.md"
+        },
+        {
+          "title": "MorphoArk",
+          "file": "contracts/core/reference/contracts/arks/morpho-ark.md"
+        },
+        {
+          "title": "MorphoV2VaultArk",
+          "file": "contracts/core/reference/contracts/arks/morpho-v2-vault-ark.md"
+        },
+        {
+          "title": "MorphoVaultArk",
+          "file": "contracts/core/reference/contracts/arks/morpho-vault-ark.md"
+        },
+        {
+          "title": "OriginETHArk",
+          "file": "contracts/core/reference/contracts/arks/origin-eth-ark.md"
+        },
+        {
+          "title": "OriginSuperOETHArk",
+          "file": "contracts/core/reference/contracts/arks/origin-super-oeth-ark.md"
+        },
+        {
+          "title": "OriginUSDArk",
+          "file": "contracts/core/reference/contracts/arks/origin-usd-ark.md"
+        },
+        {
+          "title": "PendleLPArk",
+          "file": "contracts/core/reference/contracts/arks/pendle-lp-ark.md"
+        },
+        {
+          "title": "PendlePTArk",
+          "file": "contracts/core/reference/contracts/arks/pendle-pt-ark.md"
+        },
+        {
+          "title": "PendlePtOracleArk",
+          "file": "contracts/core/reference/contracts/arks/pendle-pt-oracle-ark.md"
+        },
+        {
+          "title": "Psm3ERC4626Ark",
+          "file": "contracts/core/reference/contracts/arks/psm3-erc4626-ark.md"
+        },
+        {
+          "title": "PsmLiteERC4626Ark",
+          "file": "contracts/core/reference/contracts/arks/psm-lite-erc4626-ark.md"
+        },
+        {
+          "title": "SiloManagedVaultArk",
+          "file": "contracts/core/reference/contracts/arks/silo-managed-vault-ark.md"
+        },
+        {
+          "title": "SiloVaultArk",
+          "file": "contracts/core/reference/contracts/arks/silo-vault-ark.md"
+        },
+        {
+          "title": "SiloVaultArkV2",
+          "file": "contracts/core/reference/contracts/arks/silo-vault-ark-v2.md"
+        },
+        {
+          "title": "SiUSDArk",
+          "file": "contracts/core/reference/contracts/arks/si-usd-ark.md"
+        },
+        {
+          "title": "SkyRewardsArk",
+          "file": "contracts/core/reference/contracts/arks/sky-rewards-ark.md"
+        },
+        {
+          "title": "SkyUsdsArk",
+          "file": "contracts/core/reference/contracts/arks/sky-usds-ark.md"
+        },
+        {
+          "title": "SkyUsdsPsm3Ark",
+          "file": "contracts/core/reference/contracts/arks/sky-usds-psm3-ark.md"
+        },
+        {
+          "title": "SparkArk",
+          "file": "contracts/core/reference/contracts/arks/spark-ark.md"
+        },
+        {
+          "title": "StargateV2PoolArk",
+          "file": "contracts/core/reference/contracts/arks/stargate-v2-pool-ark.md"
+        },
+        {
+          "title": "SuperstateStandardArk",
+          "file": "contracts/core/reference/contracts/arks/superstate-standard-ark.md"
+        },
+        {
+          "title": "SuperstateSubscribeArk",
+          "file": "contracts/core/reference/contracts/arks/superstate-subscribe-ark.md"
+        },
+        {
+          "title": "SyrupArk",
+          "file": "contracts/core/reference/contracts/arks/syrup-ark.md"
+        },
+        {
+          "title": "SyrupArkV2",
+          "file": "contracts/core/reference/contracts/arks/syrup-ark-v2.md"
+        },
+        {
+          "title": "UpshiftArk",
+          "file": "contracts/core/reference/contracts/arks/upshift-ark.md"
+        },
+        {
+          "title": "WisdomTreeArk",
+          "file": "contracts/core/reference/contracts/arks/wisdom-tree-ark.md"
+        }
+      ]
+    },
+    {
+      "dir": "contracts/DCA",
+      "pages": [
+        {
+          "title": "DCAStrategyManager",
+          "file": "contracts/core/reference/contracts/DCA/dca-strategy-manager.md"
+        }
+      ]
+    },
+    {
+      "dir": "contracts/libraries",
+      "pages": [
+        {
+          "title": "FleetCommanderCacheLib",
+          "file": "contracts/core/reference/contracts/libraries/fleet-commander-cache-lib.md"
+        },
+        {
+          "title": "StorageSlots",
+          "file": "contracts/core/reference/contracts/libraries/storage-slots.md"
+        }
+      ]
+    },
+    {
+      "dir": "contracts/misc",
+      "pages": [
+        {
+          "title": "MaxWithdrawExecutor",
+          "file": "contracts/core/reference/contracts/misc/max-withdraw-executor.md"
+        }
+      ]
+    },
+    {
+      "dir": "contracts/rounds-vault",
+      "pages": [
+        {
+          "title": "RoundsVaultBase",
+          "file": "contracts/core/reference/contracts/rounds-vault/rounds-vault-base.md"
+        },
+        {
+          "title": "RoundsVaultInput",
+          "file": "contracts/core/reference/contracts/rounds-vault/rounds-vault-input.md"
+        },
+        {
+          "title": "RoundsVaultOutput",
+          "file": "contracts/core/reference/contracts/rounds-vault/rounds-vault-output.md"
+        },
+        {
+          "title": "RoundsVaultRegistry",
+          "file": "contracts/core/reference/contracts/rounds-vault/rounds-vault-registry.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces",
+      "pages": [
+        {
+          "title": "IAdmiralsQuarters",
+          "file": "contracts/core/reference/interfaces/i-admirals-quarters.md"
+        },
+        {
+          "title": "IAdmiralsQuartersWhitelist",
+          "file": "contracts/core/reference/interfaces/i-admirals-quarters-whitelist.md"
+        },
+        {
+          "title": "IArk",
+          "file": "contracts/core/reference/interfaces/i-ark.md"
+        },
+        {
+          "title": "IArkAccessManaged",
+          "file": "contracts/core/reference/interfaces/i-ark-access-managed.md"
+        },
+        {
+          "title": "IArkConfigProvider",
+          "file": "contracts/core/reference/interfaces/i-ark-config-provider.md"
+        },
+        {
+          "title": "IArkWithSwap",
+          "file": "contracts/core/reference/interfaces/i-ark-with-swap.md"
+        },
+        {
+          "title": "IArkWithWithdrawalRequest",
+          "file": "contracts/core/reference/interfaces/i-ark-with-withdrawal-request.md"
+        },
+        {
+          "title": "IBuyAndBurn",
+          "file": "contracts/core/reference/interfaces/i-buy-and-burn.md"
+        },
+        {
+          "title": "IERC20Extended",
+          "file": "contracts/core/reference/interfaces/ierc20-extended.md"
+        },
+        {
+          "title": "IFleetCommander",
+          "file": "contracts/core/reference/interfaces/i-fleet-commander.md"
+        },
+        {
+          "title": "IFleetCommanderConfigProvider",
+          "file": "contracts/core/reference/interfaces/i-fleet-commander-config-provider.md"
+        },
+        {
+          "title": "IFleetCommanderConfigProviderDao",
+          "file": "contracts/core/reference/interfaces/i-fleet-commander-config-provider-dao.md"
+        },
+        {
+          "title": "IFleetCommanderConfigProviderWhitelist",
+          "file": "contracts/core/reference/interfaces/i-fleet-commander-config-provider-whitelist.md"
+        },
+        {
+          "title": "IFleetCommanderDao",
+          "file": "contracts/core/reference/interfaces/i-fleet-commander-dao.md"
+        },
+        {
+          "title": "IFleetCommanderRewardsManager",
+          "file": "contracts/core/reference/interfaces/i-fleet-commander-rewards-manager.md"
+        },
+        {
+          "title": "IFleetCommanderRewardsManagerFactory",
+          "file": "contracts/core/reference/interfaces/i-fleet-commander-rewards-manager-factory.md"
+        },
+        {
+          "title": "IFleetCommanderWhitelist",
+          "file": "contracts/core/reference/interfaces/i-fleet-commander-whitelist.md"
+        },
+        {
+          "title": "IFleetProxy",
+          "file": "contracts/core/reference/interfaces/i-fleet-proxy.md"
+        },
+        {
+          "title": "IFlexibleTipper",
+          "file": "contracts/core/reference/interfaces/i-flexible-tipper.md"
+        },
+        {
+          "title": "IHarborCommand",
+          "file": "contracts/core/reference/interfaces/i-harbor-command.md"
+        },
+        {
+          "title": "IInstitutionalVaultRegistry",
+          "file": "contracts/core/reference/interfaces/i-institutional-vault-registry.md"
+        },
+        {
+          "title": "IInstitutionalVaultRegistryErrors",
+          "file": "contracts/core/reference/interfaces/i-institutional-vault-registry-errors.md"
+        },
+        {
+          "title": "IInstitutionalVaultRegistryEvents",
+          "file": "contracts/core/reference/interfaces/i-institutional-vault-registry-events.md"
+        },
+        {
+          "title": "IRaft",
+          "file": "contracts/core/reference/interfaces/i-raft.md"
+        },
+        {
+          "title": "ITipJar",
+          "file": "contracts/core/reference/interfaces/i-tip-jar.md"
+        },
+        {
+          "title": "ITipper",
+          "file": "contracts/core/reference/interfaces/i-tipper.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/1inch",
+      "pages": [
+        {
+          "title": "IAggregationRouterV6",
+          "file": "contracts/core/reference/interfaces/1inch/i-aggregation-router-v6.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/aave-v3",
+      "pages": [
+        {
+          "title": "DataTypes",
+          "file": "contracts/core/reference/interfaces/aave-v3/data-types.md"
+        },
+        {
+          "title": "IAtoken",
+          "file": "contracts/core/reference/interfaces/aave-v3/i-atoken.md"
+        },
+        {
+          "title": "IPoolAddressesProvider",
+          "file": "contracts/core/reference/interfaces/aave-v3/i-pool-addresses-provider.md"
+        },
+        {
+          "title": "IPoolDataProvider",
+          "file": "contracts/core/reference/interfaces/aave-v3/i-pool-data-provider.md"
+        },
+        {
+          "title": "IPoolV3",
+          "file": "contracts/core/reference/interfaces/aave-v3/i-pool-v3.md"
+        },
+        {
+          "title": "IRewardsController",
+          "file": "contracts/core/reference/interfaces/aave-v3/i-rewards-controller.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/arks",
+      "pages": [
+        {
+          "title": "IBenjiArk",
+          "file": "contracts/core/reference/interfaces/arks/i-benji-ark.md"
+        },
+        {
+          "title": "IDCAStrategyManager",
+          "file": "contracts/core/reference/interfaces/arks/idca-strategy-manager.md"
+        },
+        {
+          "title": "IPendleBaseArk",
+          "file": "contracts/core/reference/interfaces/arks/i-pendle-base-ark.md"
+        },
+        {
+          "title": "ISuperstateStandardArk",
+          "file": "contracts/core/reference/interfaces/arks/i-superstate-standard-ark.md"
+        },
+        {
+          "title": "ISuperstateSubscribeArk",
+          "file": "contracts/core/reference/interfaces/arks/i-superstate-subscribe-ark.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/benji",
+      "pages": [
+        {
+          "title": "IBenjiToken",
+          "file": "contracts/core/reference/interfaces/benji/i-benji-token.md"
+        },
+        {
+          "title": "ISwapPool",
+          "file": "contracts/core/reference/interfaces/benji/i-swap-pool.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/compound-v3",
+      "pages": [
+        {
+          "title": "IComet",
+          "file": "contracts/core/reference/interfaces/compound-v3/i-comet.md"
+        },
+        {
+          "title": "ICometRewards",
+          "file": "contracts/core/reference/interfaces/compound-v3/i-comet-rewards.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/curve",
+      "pages": [
+        {
+          "title": "ICurveSwap",
+          "file": "contracts/core/reference/interfaces/curve/i-curve-swap.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/extensions/ERC1155FullSupply",
+      "pages": [
+        {
+          "title": "IERC1155FullSupply",
+          "file": "contracts/core/reference/interfaces/extensions/ERC1155FullSupply/ierc1155-full-supply.md"
+        },
+        {
+          "title": "IERC1155FullSupplyErrors",
+          "file": "contracts/core/reference/interfaces/extensions/ERC1155FullSupply/ierc1155-full-supply-errors.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/extensions/ERC4626MultiToken",
+      "pages": [
+        {
+          "title": "IERC4626MultiToken",
+          "file": "contracts/core/reference/interfaces/extensions/ERC4626MultiToken/ierc4626-multi-token.md"
+        },
+        {
+          "title": "IERC4626MultiTokenErrors",
+          "file": "contracts/core/reference/interfaces/extensions/ERC4626MultiToken/ierc4626-multi-token-errors.md"
+        },
+        {
+          "title": "IERC4626MultiTokenEvents",
+          "file": "contracts/core/reference/interfaces/extensions/ERC4626MultiToken/ierc4626-multi-token-events.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/extensions/ERC4626MultiTokenWrapper",
+      "pages": [
+        {
+          "title": "IERC4626MultiTokenWrapper",
+          "file": "contracts/core/reference/interfaces/extensions/ERC4626MultiTokenWrapper/ierc4626-multi-token-wrapper.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/external/Chainlink",
+      "pages": [
+        {
+          "title": "AggregatorV3Interface",
+          "file": "contracts/core/reference/interfaces/external/Chainlink/aggregator-v3-interface.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/fluid",
+      "pages": [
+        {
+          "title": "IEthVaultWrapperV2",
+          "file": "contracts/core/reference/interfaces/fluid/i-eth-vault-wrapper-v2.md"
+        },
+        {
+          "title": "IFluidMerkleDistributor",
+          "file": "contracts/core/reference/interfaces/fluid/i-fluid-merkle-distributor.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/gauntlet",
+      "pages": [
+        {
+          "title": "IPriceFeeCalculator",
+          "file": "contracts/core/reference/interfaces/gauntlet/i-price-fee-calculator.md"
+        },
+        {
+          "title": "IProvisioner",
+          "file": "contracts/core/reference/interfaces/gauntlet/i-provisioner.md"
+        },
+        {
+          "title": "Types",
+          "file": "contracts/core/reference/interfaces/gauntlet/types.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/hyperlend",
+      "pages": [
+        {
+          "title": "HyperlendDataTypes",
+          "file": "contracts/core/reference/interfaces/hyperlend/hyperlend-data-types.md"
+        },
+        {
+          "title": "IHyperlendPool",
+          "file": "contracts/core/reference/interfaces/hyperlend/i-hyperlend-pool.md"
+        },
+        {
+          "title": "IHyperlendPoolAddressesProvider",
+          "file": "contracts/core/reference/interfaces/hyperlend/i-hyperlend-pool-addresses-provider.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/hypurrfi",
+      "pages": [
+        {
+          "title": "HypurrfiDataTypes",
+          "file": "contracts/core/reference/interfaces/hypurrfi/hypurrfi-data-types.md"
+        },
+        {
+          "title": "IHypurrfiPool",
+          "file": "contracts/core/reference/interfaces/hypurrfi/i-hypurrfi-pool.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/infinifi",
+      "pages": [
+        {
+          "title": "IInfiniFiGateway",
+          "file": "contracts/core/reference/interfaces/infinifi/i-infini-fi-gateway.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/lido",
+      "pages": [
+        {
+          "title": "ISteth",
+          "file": "contracts/core/reference/interfaces/lido/i-steth.md"
+        },
+        {
+          "title": "IWithdrawalQueue",
+          "file": "contracts/core/reference/interfaces/lido/i-withdrawal-queue.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/maker",
+      "pages": [
+        {
+          "title": "IPot",
+          "file": "contracts/core/reference/interfaces/maker/i-pot.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/merkl",
+      "pages": [
+        {
+          "title": "IDistributor",
+          "file": "contracts/core/reference/interfaces/merkl/i-distributor.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/misc",
+      "pages": [
+        {
+          "title": "IWETH",
+          "file": "contracts/core/reference/interfaces/misc/iweth.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/moonwell",
+      "pages": [
+        {
+          "title": "IComptroller",
+          "file": "contracts/core/reference/interfaces/moonwell/i-comptroller.md"
+        },
+        {
+          "title": "IInterestRateModel",
+          "file": "contracts/core/reference/interfaces/moonwell/i-interest-rate-model.md"
+        },
+        {
+          "title": "IMToken",
+          "file": "contracts/core/reference/interfaces/moonwell/im-token.md"
+        },
+        {
+          "title": "IRewardDistributor",
+          "file": "contracts/core/reference/interfaces/moonwell/i-reward-distributor.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/morpho",
+      "pages": [
+        {
+          "title": "IMorphoVaultV1Adapter",
+          "file": "contracts/core/reference/interfaces/morpho/i-morpho-vault-v1-adapter.md"
+        },
+        {
+          "title": "IUniversalRewardsDistributor",
+          "file": "contracts/core/reference/interfaces/morpho/i-universal-rewards-distributor.md"
+        },
+        {
+          "title": "IVaultV2",
+          "file": "contracts/core/reference/interfaces/morpho/i-vault-v2.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/origin",
+      "pages": [
+        {
+          "title": "IArm",
+          "file": "contracts/core/reference/interfaces/origin/i-arm.md"
+        },
+        {
+          "title": "IArmZapper",
+          "file": "contracts/core/reference/interfaces/origin/i-arm-zapper.md"
+        },
+        {
+          "title": "IOriginETH",
+          "file": "contracts/core/reference/interfaces/origin/i-origin-eth.md"
+        },
+        {
+          "title": "IOriginETHVault",
+          "file": "contracts/core/reference/interfaces/origin/i-origin-eth-vault.md"
+        },
+        {
+          "title": "IOriginUSD",
+          "file": "contracts/core/reference/interfaces/origin/i-origin-usd.md"
+        },
+        {
+          "title": "IOriginUSDVault",
+          "file": "contracts/core/reference/interfaces/origin/i-origin-usd-vault.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/permit2",
+      "pages": [
+        {
+          "title": "IPermit2",
+          "file": "contracts/core/reference/interfaces/permit2/i-permit2.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/rounds-vault",
+      "pages": [
+        {
+          "title": "IRoundsVaultBase",
+          "file": "contracts/core/reference/interfaces/rounds-vault/i-rounds-vault-base.md"
+        },
+        {
+          "title": "IRoundsVaultBaseEnums",
+          "file": "contracts/core/reference/interfaces/rounds-vault/i-rounds-vault-base-enums.md"
+        },
+        {
+          "title": "IRoundsVaultBaseErrors",
+          "file": "contracts/core/reference/interfaces/rounds-vault/i-rounds-vault-base-errors.md"
+        },
+        {
+          "title": "IRoundsVaultBaseEvents",
+          "file": "contracts/core/reference/interfaces/rounds-vault/i-rounds-vault-base-events.md"
+        },
+        {
+          "title": "IRoundsVaultInput",
+          "file": "contracts/core/reference/interfaces/rounds-vault/i-rounds-vault-input.md"
+        },
+        {
+          "title": "IRoundsVaultInputEvents",
+          "file": "contracts/core/reference/interfaces/rounds-vault/i-rounds-vault-input-events.md"
+        },
+        {
+          "title": "IRoundsVaultOutput",
+          "file": "contracts/core/reference/interfaces/rounds-vault/i-rounds-vault-output.md"
+        },
+        {
+          "title": "IRoundsVaultOutputEvents",
+          "file": "contracts/core/reference/interfaces/rounds-vault/i-rounds-vault-output-events.md"
+        },
+        {
+          "title": "IRoundsVaultRegistry",
+          "file": "contracts/core/reference/interfaces/rounds-vault/i-rounds-vault-registry.md"
+        },
+        {
+          "title": "IRoundsVaultRegistryErrors",
+          "file": "contracts/core/reference/interfaces/rounds-vault/i-rounds-vault-registry-errors.md"
+        },
+        {
+          "title": "IRoundsVaultRegistryEvents",
+          "file": "contracts/core/reference/interfaces/rounds-vault/i-rounds-vault-registry-events.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/silo",
+      "pages": [
+        {
+          "title": "IGaugeHookReceiver",
+          "file": "contracts/core/reference/interfaces/silo/i-gauge-hook-receiver.md"
+        },
+        {
+          "title": "ISilo",
+          "file": "contracts/core/reference/interfaces/silo/i-silo.md"
+        },
+        {
+          "title": "ISiloConfig",
+          "file": "contracts/core/reference/interfaces/silo/i-silo-config.md"
+        },
+        {
+          "title": "ISiloIncentivesController",
+          "file": "contracts/core/reference/interfaces/silo/i-silo-incentives-controller.md"
+        },
+        {
+          "title": "ISiloVault",
+          "file": "contracts/core/reference/interfaces/silo/i-silo-vault.md"
+        },
+        {
+          "title": "ISiloVaultIncentivesModule",
+          "file": "contracts/core/reference/interfaces/silo/i-silo-vault-incentives-module.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/sky",
+      "pages": [
+        {
+          "title": "ILitePSM",
+          "file": "contracts/core/reference/interfaces/sky/i-lite-psm.md"
+        },
+        {
+          "title": "IPsm3",
+          "file": "contracts/core/reference/interfaces/sky/i-psm3.md"
+        },
+        {
+          "title": "IPsmLite",
+          "file": "contracts/core/reference/interfaces/sky/i-psm-lite.md"
+        },
+        {
+          "title": "IStakingRewards",
+          "file": "contracts/core/reference/interfaces/sky/i-staking-rewards.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/spark",
+      "pages": [
+        {
+          "title": "DataTypes",
+          "file": "contracts/core/reference/interfaces/spark/data-types.md"
+        },
+        {
+          "title": "IPool",
+          "file": "contracts/core/reference/interfaces/spark/i-pool.md"
+        },
+        {
+          "title": "IPoolAddressesProvider",
+          "file": "contracts/core/reference/interfaces/spark/i-pool-addresses-provider.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/stargate",
+      "pages": [
+        {
+          "title": "IMultiRewarder",
+          "file": "contracts/core/reference/interfaces/stargate/i-multi-rewarder.md"
+        },
+        {
+          "title": "IRewarder",
+          "file": "contracts/core/reference/interfaces/stargate/i-rewarder.md"
+        },
+        {
+          "title": "IStakingReceiver",
+          "file": "contracts/core/reference/interfaces/stargate/i-staking-receiver.md"
+        },
+        {
+          "title": "IStargate",
+          "file": "contracts/core/reference/interfaces/stargate/i-stargate.md"
+        },
+        {
+          "title": "IStargatePool",
+          "file": "contracts/core/reference/interfaces/stargate/i-stargate-pool.md"
+        },
+        {
+          "title": "IStargateStaking",
+          "file": "contracts/core/reference/interfaces/stargate/i-stargate-staking.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/superstate",
+      "pages": [
+        {
+          "title": "ISuperstateRedeem",
+          "file": "contracts/core/reference/interfaces/superstate/i-superstate-redeem.md"
+        },
+        {
+          "title": "ISuperstateToken",
+          "file": "contracts/core/reference/interfaces/superstate/i-superstate-token.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/syrup",
+      "pages": [
+        {
+          "title": "IPoolPermissionManager",
+          "file": "contracts/core/reference/interfaces/syrup/i-pool-permission-manager.md"
+        },
+        {
+          "title": "ISyrupManager",
+          "file": "contracts/core/reference/interfaces/syrup/i-syrup-manager.md"
+        },
+        {
+          "title": "ISyrupPool",
+          "file": "contracts/core/reference/interfaces/syrup/i-syrup-pool.md"
+        },
+        {
+          "title": "ISyrupRouter",
+          "file": "contracts/core/reference/interfaces/syrup/i-syrup-router.md"
+        },
+        {
+          "title": "ISyrupWithdrawalManager",
+          "file": "contracts/core/reference/interfaces/syrup/i-syrup-withdrawal-manager.md"
+        },
+        {
+          "title": "ISyrupWithdrawalManagerV2",
+          "file": "contracts/core/reference/interfaces/syrup/i-syrup-withdrawal-manager-v2.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces/upshift",
+      "pages": [
+        {
+          "title": "IUpshiftVault",
+          "file": "contracts/core/reference/interfaces/upshift/i-upshift-vault.md"
+        }
+      ]
+    },
+    {
+      "dir": "types",
+      "pages": [
+        {
+          "title": "ArkFactoryTypes",
+          "file": "contracts/core/reference/types/ark-factory-types.md"
+        },
+        {
+          "title": "ArkTypes",
+          "file": "contracts/core/reference/types/ark-types.md"
+        },
+        {
+          "title": "CommonAuctionTypes",
+          "file": "contracts/core/reference/types/common-auction-types.md"
+        },
+        {
+          "title": "FleetCommanderTypes",
+          "file": "contracts/core/reference/types/fleet-commander-types.md"
+        }
+      ]
+    },
+    {
+      "dir": "events",
+      "pages": [
+        {
+          "title": "IAdmiralsQuartersEvents",
+          "file": "contracts/core/reference/events/i-admirals-quarters-events.md"
+        },
+        {
+          "title": "IArkConfigProviderEvents",
+          "file": "contracts/core/reference/events/i-ark-config-provider-events.md"
+        },
+        {
+          "title": "IArkEvents",
+          "file": "contracts/core/reference/events/i-ark-events.md"
+        },
+        {
+          "title": "IAuctionManagerBaseEvents",
+          "file": "contracts/core/reference/events/i-auction-manager-base-events.md"
+        },
+        {
+          "title": "IBuyAndBurnEvents",
+          "file": "contracts/core/reference/events/i-buy-and-burn-events.md"
+        },
+        {
+          "title": "IFleetCommanderConfigProviderEvents",
+          "file": "contracts/core/reference/events/i-fleet-commander-config-provider-events.md"
+        },
+        {
+          "title": "IFleetCommanderEvents",
+          "file": "contracts/core/reference/events/i-fleet-commander-events.md"
+        },
+        {
+          "title": "IHarborCommandEvents",
+          "file": "contracts/core/reference/events/i-harbor-command-events.md"
+        },
+        {
+          "title": "IRaftEvents",
+          "file": "contracts/core/reference/events/i-raft-events.md"
+        },
+        {
+          "title": "ITipJarEvents",
+          "file": "contracts/core/reference/events/i-tip-jar-events.md"
+        },
+        {
+          "title": "ITipperEvents",
+          "file": "contracts/core/reference/events/i-tipper-events.md"
+        }
+      ]
+    },
+    {
+      "dir": "events/arks",
+      "pages": [
+        {
+          "title": "IBaseSwapArkEvents",
+          "file": "contracts/core/reference/events/arks/i-base-swap-ark-events.md"
+        },
+        {
+          "title": "IBenjiArkEvents",
+          "file": "contracts/core/reference/events/arks/i-benji-ark-events.md"
+        },
+        {
+          "title": "IDCAStrategyManagerEvents",
+          "file": "contracts/core/reference/events/arks/idca-strategy-manager-events.md"
+        },
+        {
+          "title": "IPendleBaseArkEvents",
+          "file": "contracts/core/reference/events/arks/i-pendle-base-ark-events.md"
+        },
+        {
+          "title": "ISuperstateArkEvents",
+          "file": "contracts/core/reference/events/arks/i-superstate-ark-events.md"
+        },
+        {
+          "title": "ISuperstateStandardArkEvents",
+          "file": "contracts/core/reference/events/arks/i-superstate-standard-ark-events.md"
+        }
+      ]
+    },
+    {
+      "dir": "errors",
+      "pages": [
+        {
+          "title": "IAdmiralsQuartersErrors",
+          "file": "contracts/core/reference/errors/i-admirals-quarters-errors.md"
+        },
+        {
+          "title": "IArkConfigProviderErrors",
+          "file": "contracts/core/reference/errors/i-ark-config-provider-errors.md"
+        },
+        {
+          "title": "IArkErrors",
+          "file": "contracts/core/reference/errors/i-ark-errors.md"
+        },
+        {
+          "title": "IArkFactoryErrors",
+          "file": "contracts/core/reference/errors/i-ark-factory-errors.md"
+        },
+        {
+          "title": "IBuyAndBurnErrors",
+          "file": "contracts/core/reference/errors/i-buy-and-burn-errors.md"
+        },
+        {
+          "title": "IFleetCommanderConfigProviderErrors",
+          "file": "contracts/core/reference/errors/i-fleet-commander-config-provider-errors.md"
+        },
+        {
+          "title": "IFleetCommanderErrors",
+          "file": "contracts/core/reference/errors/i-fleet-commander-errors.md"
+        },
+        {
+          "title": "IHarborCommandErrors",
+          "file": "contracts/core/reference/errors/i-harbor-command-errors.md"
+        },
+        {
+          "title": "IRaftErrors",
+          "file": "contracts/core/reference/errors/i-raft-errors.md"
+        },
+        {
+          "title": "ITipJarErrors",
+          "file": "contracts/core/reference/errors/i-tip-jar-errors.md"
+        },
+        {
+          "title": "ITipperErrors",
+          "file": "contracts/core/reference/errors/i-tipper-errors.md"
+        }
+      ]
+    },
+    {
+      "dir": "errors/arks",
+      "pages": [
+        {
+          "title": "IBenjiArkErrors",
+          "file": "contracts/core/reference/errors/arks/i-benji-ark-errors.md"
+        },
+        {
+          "title": "IDCAStrategyManagerErrors",
+          "file": "contracts/core/reference/errors/arks/idca-strategy-manager-errors.md"
+        },
+        {
+          "title": "IPendleBaseArkErrors",
+          "file": "contracts/core/reference/errors/arks/i-pendle-base-ark-errors.md"
+        },
+        {
+          "title": "ISuperstateArkErrors",
+          "file": "contracts/core/reference/errors/arks/i-superstate-ark-errors.md"
+        },
+        {
+          "title": "ISuperstateStandardArkErrors",
+          "file": "contracts/core/reference/errors/arks/i-superstate-standard-ark-errors.md"
+        },
+        {
+          "title": "ISuperstateSubscribeArkErrors",
+          "file": "contracts/core/reference/errors/arks/i-superstate-subscribe-ark-errors.md"
+        }
+      ]
+    },
+    {
+      "dir": "utils",
+      "pages": [
+        {
+          "title": "ChainlinkOracleUtils",
+          "file": "contracts/core/reference/utils/chainlink-oracle-utils.md"
+        },
+        {
+          "title": "EnsoRouterSwapper",
+          "file": "contracts/core/reference/utils/enso-router-swapper.md"
+        },
+        {
+          "title": "HarborCommandConsumer",
+          "file": "contracts/core/reference/utils/harbor-command-consumer.md"
+        },
+        {
+          "title": "Permit2Consumer",
+          "file": "contracts/core/reference/utils/permit2-consumer.md"
+        }
+      ]
+    },
+    {
+      "dir": "utils/AssetsForwarder",
+      "pages": [
+        {
+          "title": "AssetsForwarder",
+          "file": "contracts/core/reference/utils/AssetsForwarder/assets-forwarder.md"
+        },
+        {
+          "title": "IAssetsForwarder",
+          "file": "contracts/core/reference/utils/AssetsForwarder/i-assets-forwarder.md"
+        },
+        {
+          "title": "IAssetsForwarderErrors",
+          "file": "contracts/core/reference/utils/AssetsForwarder/i-assets-forwarder-errors.md"
+        },
+        {
+          "title": "IAssetsForwarderEvents",
+          "file": "contracts/core/reference/utils/AssetsForwarder/i-assets-forwarder-events.md"
+        }
+      ]
+    },
+    {
+      "dir": "utils/CooldownEnforcer",
+      "pages": [
+        {
+          "title": "CooldownEnforcer",
+          "file": "contracts/core/reference/utils/CooldownEnforcer/cooldown-enforcer.md"
+        },
+        {
+          "title": "ICooldownEnforcer",
+          "file": "contracts/core/reference/utils/CooldownEnforcer/i-cooldown-enforcer.md"
+        },
+        {
+          "title": "ICooldownEnforcerErrors",
+          "file": "contracts/core/reference/utils/CooldownEnforcer/i-cooldown-enforcer-errors.md"
+        },
+        {
+          "title": "ICooldownEnforcerEvents",
+          "file": "contracts/core/reference/utils/CooldownEnforcer/i-cooldown-enforcer-events.md"
+        }
+      ]
+    },
+    {
+      "dir": "utils/exchangeRateProvider",
+      "pages": [
+        {
+          "title": "CurveExchangeRateProvider",
+          "file": "contracts/core/reference/utils/exchangeRateProvider/curve-exchange-rate-provider.md"
+        },
+        {
+          "title": "ExchangeRateProviderBase",
+          "file": "contracts/core/reference/utils/exchangeRateProvider/exchange-rate-provider-base.md"
+        }
+      ]
+    },
+    {
+      "dir": "utils/Whitelist",
+      "pages": [
+        {
+          "title": "IWhitelist",
+          "file": "contracts/core/reference/utils/Whitelist/i-whitelist.md"
+        },
+        {
+          "title": "IWhitelistErrors",
+          "file": "contracts/core/reference/utils/Whitelist/i-whitelist-errors.md"
+        },
+        {
+          "title": "IWhitelistEvents",
+          "file": "contracts/core/reference/utils/Whitelist/i-whitelist-events.md"
+        },
+        {
+          "title": "Whitelist",
+          "file": "contracts/core/reference/utils/Whitelist/whitelist.md"
+        }
+      ]
+    },
+    {
+      "dir": "extensions",
+      "pages": [
+        {
+          "title": "ERC1155FullSupply",
+          "file": "contracts/core/reference/extensions/erc1155-full-supply.md"
+        },
+        {
+          "title": "ERC4626MultiToken",
+          "file": "contracts/core/reference/extensions/erc4626-multi-token.md"
+        },
+        {
+          "title": "ERC4626MultiTokenWrapper",
+          "file": "contracts/core/reference/extensions/erc4626-multi-token-wrapper.md"
+        }
+      ]
+    }
+  ]
+}

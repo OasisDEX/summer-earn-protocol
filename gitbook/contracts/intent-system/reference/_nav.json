@@ -1,0 +1,48 @@
+{
+  "package": "intent-system",
+  "out": "contracts/intent-system/reference",
+  "tree": [
+    {
+      "dir": "contracts",
+      "pages": [
+        {
+          "title": "Escrow",
+          "file": "contracts/intent-system/reference/contracts/escrow.md"
+        },
+        {
+          "title": "IntentBondFactory",
+          "file": "contracts/intent-system/reference/contracts/intent-bond-factory.md"
+        },
+        {
+          "title": "IntentHandler",
+          "file": "contracts/intent-system/reference/contracts/intent-handler.md"
+        },
+        {
+          "title": "SolverBond",
+          "file": "contracts/intent-system/reference/contracts/solver-bond.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces",
+      "pages": [
+        {
+          "title": "IEscrow",
+          "file": "contracts/intent-system/reference/interfaces/i-escrow.md"
+        },
+        {
+          "title": "IIntentBondFactory",
+          "file": "contracts/intent-system/reference/interfaces/i-intent-bond-factory.md"
+        },
+        {
+          "title": "IIntentHandler",
+          "file": "contracts/intent-system/reference/interfaces/i-intent-handler.md"
+        },
+        {
+          "title": "IIntentOracle",
+          "file": "contracts/intent-system/reference/interfaces/i-intent-oracle.md"
+        }
+      ]
+    }
+  ]
+}

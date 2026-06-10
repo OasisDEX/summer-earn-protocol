@@ -1,0 +1,27 @@
+{
+  "package": "percentage",
+  "out": "contracts/libraries/percentage",
+  "tree": [
+    {
+      "dir": "",
+      "pages": [
+        {
+          "title": "BPS",
+          "file": "contracts/libraries/percentage/bps.md"
+        },
+        {
+          "title": "BpsUtils",
+          "file": "contracts/libraries/percentage/bps-utils.md"
+        },
+        {
+          "title": "Percentage",
+          "file": "contracts/libraries/percentage/percentage.md"
+        },
+        {
+          "title": "PercentageUtils",
+          "file": "contracts/libraries/percentage/percentage-utils.md"
+        }
+      ]
+    }
+  ]
+}

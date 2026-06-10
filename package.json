@@ -23,7 +23,11 @@
     "infra:init": "cd infrastructure && terraform init",
     "infra:plan": "cd infrastructure && terraform plan",
     "infra:apply": "cd infrastructure && terraform apply",
-    "infra:validate": "cd infrastructure && terraform validate"
+    "infra:validate": "cd infrastructure && terraform validate",
+    "docs:gen": "turbo run docs:gen --cache-dir=.turbo",
+    "docs:assemble": "node scripts/docs/assemble.mjs",
+    "docs:build": "pnpm docs:gen && pnpm docs:assemble",
+    "docs:check": "pnpm docs:build && git diff --exit-code -- gitbook/"
   },
   "devDependencies": {
     "@summerfi/eslint-config": "workspace:*",

@@ -1,0 +1,40 @@
+{
+  "package": "rewards-contracts",
+  "out": "contracts/rewards/reference",
+  "tree": [
+    {
+      "dir": "contracts",
+      "pages": [
+        {
+          "title": "StakingRewardsManagerBase",
+          "file": "contracts/rewards/reference/contracts/staking-rewards-manager-base.md"
+        },
+        {
+          "title": "SummerRewardsRedeemer",
+          "file": "contracts/rewards/reference/contracts/summer-rewards-redeemer.md"
+        },
+        {
+          "title": "SummerRewardsRedeemerOwnable",
+          "file": "contracts/rewards/reference/contracts/summer-rewards-redeemer-ownable.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces",
+      "pages": [
+        {
+          "title": "IStakingRewardsManagerBase",
+          "file": "contracts/rewards/reference/interfaces/i-staking-rewards-manager-base.md"
+        },
+        {
+          "title": "IStakingRewardsManagerBaseErrors",
+          "file": "contracts/rewards/reference/interfaces/i-staking-rewards-manager-base-errors.md"
+        },
+        {
+          "title": "ISummerRewardsRedeemer",
+          "file": "contracts/rewards/reference/interfaces/i-summer-rewards-redeemer.md"
+        }
+      ]
+    }
+  ]
+}

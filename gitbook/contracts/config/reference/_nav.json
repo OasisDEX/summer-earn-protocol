@@ -1,0 +1,63 @@
+{
+  "package": "config-contracts",
+  "out": "contracts/config/reference",
+  "tree": [
+    {
+      "dir": "contracts",
+      "pages": [
+        {
+          "title": "ConfigurationManaged",
+          "file": "contracts/config/reference/contracts/configuration-managed.md"
+        },
+        {
+          "title": "ConfigurationManager",
+          "file": "contracts/config/reference/contracts/configuration-manager.md"
+        },
+        {
+          "title": "ConfigurationManagerWhitelist",
+          "file": "contracts/config/reference/contracts/configuration-manager-whitelist.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces",
+      "pages": [
+        {
+          "title": "IConfigurationManaged",
+          "file": "contracts/config/reference/interfaces/i-configuration-managed.md"
+        },
+        {
+          "title": "IConfigurationManager",
+          "file": "contracts/config/reference/interfaces/i-configuration-manager.md"
+        }
+      ]
+    },
+    {
+      "dir": "types",
+      "pages": [
+        {
+          "title": "ConfigurationManagerTypes",
+          "file": "contracts/config/reference/types/configuration-manager-types.md"
+        }
+      ]
+    },
+    {
+      "dir": "events",
+      "pages": [
+        {
+          "title": "IConfigurationManagerEvents",
+          "file": "contracts/config/reference/events/i-configuration-manager-events.md"
+        }
+      ]
+    },
+    {
+      "dir": "errors",
+      "pages": [
+        {
+          "title": "IConfigurationManagerErrors",
+          "file": "contracts/config/reference/errors/i-configuration-manager-errors.md"
+        }
+      ]
+    }
+  ]
+}

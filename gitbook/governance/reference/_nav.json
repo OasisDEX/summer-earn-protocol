@@ -1,0 +1,162 @@
+{
+  "package": "gov-contracts",
+  "out": "governance/reference",
+  "tree": [
+    {
+      "dir": "contracts",
+      "pages": [
+        {
+          "title": "DecayController",
+          "file": "governance/reference/contracts/decay-controller.md"
+        },
+        {
+          "title": "GovernanceRewardsManager",
+          "file": "governance/reference/contracts/governance-rewards-manager.md"
+        },
+        {
+          "title": "RwaTimelock",
+          "file": "governance/reference/contracts/rwa-timelock.md"
+        },
+        {
+          "title": "StakedSummerToken",
+          "file": "governance/reference/contracts/staked-summer-token.md"
+        },
+        {
+          "title": "SummerGovernor",
+          "file": "governance/reference/contracts/summer-governor.md"
+        },
+        {
+          "title": "SummerGovernorV2",
+          "file": "governance/reference/contracts/summer-governor-v2.md"
+        },
+        {
+          "title": "SummerStaking",
+          "file": "governance/reference/contracts/summer-staking.md"
+        },
+        {
+          "title": "SummerTimelockController",
+          "file": "governance/reference/contracts/summer-timelock-controller.md"
+        },
+        {
+          "title": "SummerToken",
+          "file": "governance/reference/contracts/summer-token.md"
+        },
+        {
+          "title": "SummerVestingWallet",
+          "file": "governance/reference/contracts/summer-vesting-wallet.md"
+        },
+        {
+          "title": "SummerVestingWalletFactory",
+          "file": "governance/reference/contracts/summer-vesting-wallet-factory.md"
+        },
+        {
+          "title": "SummerVestingWalletFactoryV2",
+          "file": "governance/reference/contracts/summer-vesting-wallet-factory-v2.md"
+        },
+        {
+          "title": "SummerVestingWalletsEscrow",
+          "file": "governance/reference/contracts/summer-vesting-wallets-escrow.md"
+        },
+        {
+          "title": "SummerVestingWalletV2",
+          "file": "governance/reference/contracts/summer-vesting-wallet-v2.md"
+        },
+        {
+          "title": "WrappedStakingToken",
+          "file": "governance/reference/contracts/wrapped-staking-token.md"
+        }
+      ]
+    },
+    {
+      "dir": "contracts/misc",
+      "pages": [
+        {
+          "title": "TimelockGuard",
+          "file": "governance/reference/contracts/misc/timelock-guard.md"
+        },
+        {
+          "title": "TimelockGuardFactory",
+          "file": "governance/reference/contracts/misc/timelock-guard-factory.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces",
+      "pages": [
+        {
+          "title": "IDecayController",
+          "file": "governance/reference/interfaces/i-decay-controller.md"
+        },
+        {
+          "title": "IGovernanceRewardsManager",
+          "file": "governance/reference/interfaces/i-governance-rewards-manager.md"
+        },
+        {
+          "title": "IMinimalVestingFactory",
+          "file": "governance/reference/interfaces/i-minimal-vesting-factory.md"
+        },
+        {
+          "title": "IMinimalVestingWallet",
+          "file": "governance/reference/interfaces/i-minimal-vesting-wallet.md"
+        },
+        {
+          "title": "IStakedSummerToken",
+          "file": "governance/reference/interfaces/i-staked-summer-token.md"
+        },
+        {
+          "title": "ISummerGovernor",
+          "file": "governance/reference/interfaces/i-summer-governor.md"
+        },
+        {
+          "title": "ISummerGovernorV2",
+          "file": "governance/reference/interfaces/i-summer-governor-v2.md"
+        },
+        {
+          "title": "ISummerStaking",
+          "file": "governance/reference/interfaces/i-summer-staking.md"
+        },
+        {
+          "title": "ISummerToken",
+          "file": "governance/reference/interfaces/i-summer-token.md"
+        },
+        {
+          "title": "ISummerVestingWallet",
+          "file": "governance/reference/interfaces/i-summer-vesting-wallet.md"
+        },
+        {
+          "title": "ISummerVestingWalletFactory",
+          "file": "governance/reference/interfaces/i-summer-vesting-wallet-factory.md"
+        },
+        {
+          "title": "ISummerVestingWalletFactoryV2",
+          "file": "governance/reference/interfaces/i-summer-vesting-wallet-factory-v2.md"
+        },
+        {
+          "title": "ISummerVestingWalletsEscrow",
+          "file": "governance/reference/interfaces/i-summer-vesting-wallets-escrow.md"
+        },
+        {
+          "title": "ISummerVestingWalletV2",
+          "file": "governance/reference/interfaces/i-summer-vesting-wallet-v2.md"
+        }
+      ]
+    },
+    {
+      "dir": "errors",
+      "pages": [
+        {
+          "title": "IGovernanceRewardsManagerErrors",
+          "file": "governance/reference/errors/i-governance-rewards-manager-errors.md"
+        },
+        {
+          "title": "ISummerGovernorErrors",
+          "file": "governance/reference/errors/i-summer-governor-errors.md"
+        },
+        {
+          "title": "ISummerTokenErrors",
+          "file": "governance/reference/errors/i-summer-token-errors.md"
+        }
+      ]
+    }
+  ]
+}
