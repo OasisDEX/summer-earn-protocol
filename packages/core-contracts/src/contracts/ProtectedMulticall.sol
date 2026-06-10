@@ -7,6 +7,9 @@ import {Address, Context} from "@openzeppelin/contracts/utils/Multicall.sol";
 import {StorageSlot} from "@summerfi/dependencies/openzeppelin-next/StorageSlot.sol";
 
 /**
+ * @title ProtectedMulticall
+ * @notice Provides a function to batch together multiple calls in a single external call, recording
+ *         the original caller in transient storage so nested calls can be gated to the multicall flow
  * @dev Provides a function to batch together multiple calls in a single external call.
  *
  * Consider any assumption about calldata validation performed by the sender may be violated if it's not especially
@@ -27,6 +30,7 @@ abstract contract ProtectedMulticall is Context {
 
     bytes32 constant CALLER_KEY = keccak256("admirals-quarters-caller");
 
+    /// @notice Restricts a function to be called only within an active multicall by the recorded caller
     modifier onlyMulticall() {
         if (_getCaller() != _msgSender()) {
             revert NotMulticall();
@@ -34,8 +38,12 @@ abstract contract ProtectedMulticall is Context {
         _;
     }
     /**
-     * @dev Receives and executes a batch of function calls on this contract.
+     * @notice Receives and executes a batch of function calls on this contract
+     * @dev Reverts with MulticallAlreadyInProgress if a multicall is already active. Records the
+     *      caller in transient storage for the duration of the batch.
      * @custom:oz-upgrades-unsafe-allow-reachable delegatecall
+     * @param data The encoded function calls to execute against this contract
+     * @return results The return data of each executed call
      */
 
     function multicall(
@@ -49,6 +57,8 @@ abstract contract ProtectedMulticall is Context {
         _setCaller(address(0));
     }
 
+    /// @notice Executes a batch of delegatecalls against this contract, propagating the ERC-2771
+    ///         context suffix to each subcall when in a non-canonical context
     function _multicall(
         bytes[] calldata data
     ) internal returns (bytes[] memory results) {
@@ -66,10 +76,12 @@ abstract contract ProtectedMulticall is Context {
         return results;
     }
 
+    /// @notice Records the original multicall caller in transient storage
     function _setCaller(address caller) internal {
         CALLER_KEY.asAddress().tstore(caller);
     }
 
+    /// @notice Returns the original multicall caller from transient storage (zero when inactive)
     function _getCaller() internal view returns (address) {
         return CALLER_KEY.asAddress().tload();
     }

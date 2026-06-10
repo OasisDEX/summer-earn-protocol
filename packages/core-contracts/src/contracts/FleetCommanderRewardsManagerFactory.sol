@@ -4,6 +4,10 @@ pragma solidity 0.8.28;
 import {IFleetCommanderRewardsManagerFactory} from "../interfaces/IFleetCommanderRewardsManagerFactory.sol";
 import {FleetCommanderRewardsManager} from "./FleetCommanderRewardsManager.sol";
 
+/**
+ * @title FleetCommanderRewardsManagerFactory
+ * @notice Factory that deploys FleetCommanderRewardsManager instances for FleetCommander vaults
+ */
 contract FleetCommanderRewardsManagerFactory is
     IFleetCommanderRewardsManagerFactory
 {

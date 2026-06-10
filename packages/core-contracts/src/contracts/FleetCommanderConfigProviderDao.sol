@@ -106,6 +106,7 @@ contract FleetCommanderConfigProviderDao is
     }
 
     ///@inheritdoc IFleetCommanderConfigProviderDao
+    ///@param arkAddress The address of the Ark to check
     function isArkActiveOrBufferArk(
         address arkAddress
     ) public view returns (bool) {
@@ -199,6 +200,7 @@ contract FleetCommanderConfigProviderDao is
     }
 
     ///@inheritdoc IFleetCommanderConfigProviderDao
+    ///@param newCap The new fleet-wide deposit cap
     function setFleetDepositCap(
         uint256 newCap
     ) external onlyCurator(address(this)) whenNotPaused {

@@ -43,6 +43,7 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
         _;
     }
 
+    /// @notice Reverts unless the caller is the commander itself, the Raft, or an active Ark of the commander
     function _revertIfNotAuthorizedToBoard(address commander) internal view {
         if (commander != _msgSender()) {
             address msgSender = _msgSender();
@@ -78,6 +79,7 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
         _;
     }
 
+    /// @notice Reverts unless the caller is the Raft contract
     function _revertIfNotRaft() internal view {
         if (_msgSender() != IConfigurationManaged(address(this)).raft()) {
             revert CallerIsNotRaft(_msgSender());

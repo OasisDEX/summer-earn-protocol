@@ -248,6 +248,8 @@ abstract contract RoundsVaultBase is
 
     /**
      * @inheritdoc IERC4626MultiToken
+     * @notice Deposits `assets` of the underlying token into the currently open round and mints
+     *         round-receipt tokens to `receiver`
      */
     function deposit(
         uint256 assets,
@@ -269,6 +271,10 @@ abstract contract RoundsVaultBase is
 
     /**
      * @inheritdoc IERC4626MultiToken
+     * @param id The round-receipt token id to redeem (must be the currently open round)
+     * @param amount The amount of round-receipt tokens to redeem
+     * @param receiver The address that receives the redeemed assets
+     * @param owner The address whose round-receipt tokens are burned
      */
     function redeem(
         uint256 id,
@@ -295,6 +301,10 @@ abstract contract RoundsVaultBase is
      *
      * @dev All `ids` must equal the currently open round. To exchange settled-round receipts for the
      *      exchange asset, use `redeemExchangeAssetBatch` instead.
+     * @param ids The round-receipt token ids to redeem (all must be the currently open round)
+     * @param amounts The amounts of each round-receipt token to redeem
+     * @param receiver The address that receives the redeemed assets
+     * @param owner The address whose round-receipt tokens are burned
      */
     function redeemBatch(
         uint256[] memory ids,
@@ -386,8 +396,13 @@ abstract contract RoundsVaultBase is
 
     /**
      * @inheritdoc IERC1155
-     *
+     * @notice Transfers `value` round-receipt tokens of token `id` from `from` to `to`
      * @dev Gate the function so only whitelisted addresses can transfer receipts
+     * @param from The address to transfer the receipts from
+     * @param to The address to transfer the receipts to
+     * @param id The round-receipt token id being transferred
+     * @param value The amount of round-receipt tokens to transfer
+     * @param data Additional data forwarded to the ERC-1155 receiver hook
      */
     function safeTransferFrom(
         address from,
@@ -402,8 +417,13 @@ abstract contract RoundsVaultBase is
 
     /**
      * @inheritdoc IERC1155
-     *
+     * @notice Transfers batches of round-receipt tokens from `from` to `to`
      * @dev Gate the function so only whitelisted addresses can transfer receipts in batch
+     * @param from The address to transfer the receipts from
+     * @param to The address to transfer the receipts to
+     * @param ids The round-receipt token ids being transferred
+     * @param values The amounts of each round-receipt token to transfer
+     * @param data Additional data forwarded to the ERC-1155 receiver hook
      */
     function safeBatchTransferFrom(
         address from,
@@ -581,6 +601,11 @@ abstract contract RoundsVaultBase is
 
     // PRIVATES
 
+    // @audit This function follows the CEI pattern to avoid out-of-order execution. The only
+    // external call is `safeTransfer` that is done at the end of the function where the state
+    // of the contract is consistent and a reentrancy is protected by the `_burn` function that
+    // will check the balance of the user
+
     /**
      * @notice Burns receipts for a settled round and pays out the matching exchange-asset amount.
      * @dev Caller authorization (must be the owner or an operator approved by the owner) is checked
@@ -595,12 +620,6 @@ abstract contract RoundsVaultBase is
      * @param amount The number of receipts to burn
      * @return exchangeAmount The amount of exchange asset paid to `receiver`
      */
-
-    // @audit This function follows the CEI pattern to avoid out-of-order execution. The only
-    // external call is `safeTransfer` that is done at the end of the function where the state
-    // of the contract is consistent and a reentrancy is protected by the `_burn` function that
-    // will check the balance of the user
-
     function _redeemExchangeAsset(
         address caller,
         address receiver,
@@ -638,6 +657,11 @@ abstract contract RoundsVaultBase is
         );
     }
 
+    // @audit This function follows the CEI pattern to avoid out-of-order execution. The only
+    // external call is `safeTransfer` that is done at the end of the function where the state
+    // of the contract is consistent and a reentrancy is protected by the `_burnBatch` function that
+    // will check the balance of the user
+
     /**
      * @notice Batch variant of `_redeemExchangeAsset`. Burns receipts for several settled rounds in
      *         one call and pays out the cumulative exchange-asset amount.
@@ -651,12 +675,6 @@ abstract contract RoundsVaultBase is
      * @param amounts The receipts burned per round id (aligned with `ids`)
      * @return exchangeAmount The total exchange asset paid to `receiver`
      */
-
-    // @audit This function follows the CEI pattern to avoid out-of-order execution. The only
-    // external call is `safeTransfer` that is done at the end of the function where the state
-    // of the contract is consistent and a reentrancy is protected by the `_burnBatch` function that
-    // will check the balance of the user
-
     function _redeemExchangeAssetBatch(
         address caller,
         address receiver,

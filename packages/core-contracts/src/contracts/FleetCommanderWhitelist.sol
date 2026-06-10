@@ -63,14 +63,17 @@ contract FleetCommanderWhitelist is
         _accrueTip(tipJar(), totalSupply());
     }
 
+    /// @notice Clears the tip-collection flag after a tip-collecting action completes
     function _collectTipPost() private {
         _setIsCollectingTip(false);
     }
 
+    /// @notice Populates the Arks data cache before a cache-using action
     function _useCachePre() private {
         _getArksData(config.bufferArk);
     }
 
+    /// @notice Populates the withdrawable-Arks data cache before a withdraw cache-using action
     function _useWithdrawCachePre() private {
         _getWithdrawableArksData(config.bufferArk);
     }
@@ -249,6 +252,13 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Deposits `assets` of the underlying token, mints shares to `receiver`,
+    ///         and boards the assets into the buffer Ark
+    /// @dev Enforces the entry gateway and whitelist; reverts when paused; collects the tip and
+    ///      refreshes the totals cache before executing
+    /// @param assets The amount of underlying assets to deposit
+    /// @param receiver The address that receives the minted shares
+    /// @return shares The amount of shares minted
     function deposit(
         uint256 assets,
         address receiver
@@ -278,6 +288,13 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Mints exactly `shares` to `receiver`, pulling the required assets and boarding
+    ///         them into the buffer Ark
+    /// @dev Enforces the entry gateway and whitelist; reverts when paused; collects the tip and
+    ///      refreshes the totals cache before executing
+    /// @param shares The amount of shares to mint
+    /// @param receiver The address that receives the minted shares
+    /// @return assets The amount of underlying assets pulled from the caller
     function mint(
         uint256 shares,
         address receiver
@@ -317,6 +334,7 @@ contract FleetCommanderWhitelist is
 
     /**
      * @inheritdoc IERC20
+     * @notice Returns the total supply of FleetCommander shares, including not-yet-minted accrued tip shares
      * @dev Overridden to fold the pending tip shares into the reported total supply, so external
      *      integrators always see an honest share count. The check on `_isCollectingTip` makes the
      *      function reentrancy-safe when the contract is mid-tip: while collecting, the parent
@@ -338,7 +356,7 @@ contract FleetCommanderWhitelist is
         return _totalSupply + previewTip(tipJar(), _totalSupply);
     }
 
-    /// @inheritdoc ERC4626
+    /// @inheritdoc IFleetCommanderWhitelist
     function totalAssets()
         public
         view
@@ -354,8 +372,12 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Returns the maximum amount of assets `owner` can deposit, bounded by the remaining
+    ///         deposit cap and the owner's asset balance; returns 0 when max functions are blocked
     /// @dev Note: parameter named `owner` historically; semantically the recipient
     ///      (matches ERC-4626 `receiver`). Signature preserved for upstream compatibility.
+    /// @param owner The address whose maximum deposit is queried
+    /// @return _maxDeposit The maximum depositable amount of underlying assets
     function maxDeposit(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit) {
@@ -370,8 +392,12 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Returns the maximum number of shares `owner` can mint, bounded by the remaining
+    ///         deposit cap and the owner's asset balance; returns 0 when max functions are blocked
     /// @dev Note: parameter named `owner` historically; semantically the recipient
     ///      (matches ERC-4626 `receiver`). Signature preserved for upstream compatibility.
+    /// @param owner The address whose maximum mint is queried
+    /// @return _maxMint The maximum number of shares that can be minted
     function maxMint(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxMint) {
@@ -399,6 +425,10 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Returns the maximum amount of assets `owner` can withdraw, bounded by the currently
+    ///         withdrawable total assets and the owner's share value; returns 0 when blocked
+    /// @param owner The address whose maximum withdrawal is queried
+    /// @return _maxWithdraw The maximum withdrawable amount of underlying assets
     function maxWithdraw(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxWithdraw) {
@@ -411,6 +441,10 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Returns the maximum number of shares `owner` can redeem, bounded by the currently
+    ///         withdrawable total assets and the owner's share balance; returns 0 when blocked
+    /// @param owner The address whose maximum redemption is queried
+    /// @return _maxRedeem The maximum number of shares that can be redeemed
     function maxRedeem(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem) {
@@ -439,6 +473,7 @@ contract FleetCommanderWhitelist is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IFleetCommanderWhitelist
+    /// @param rebalanceData The array of rebalance operations to execute
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper collectTip whenNotPaused {
@@ -463,6 +498,7 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IFleetCommanderWhitelist
+    /// @param _newMinimumPauseTime The new minimum pause time in seconds
     function setMinimumPauseTime(
         uint256 _newMinimumPauseTime
     ) public onlyGovernor whenNotPaused {
@@ -498,6 +534,12 @@ contract FleetCommanderWhitelist is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IERC20
+    /// @notice Transfers `amount` shares to `to`
+    /// @dev Reverts when paused. Operators bypass the gate; otherwise reverts with
+    ///      FleetCommanderTransfersDisabled when transfers are disabled and requires both
+    ///      sender and recipient to be whitelisted
+    /// @param to The recipient of the shares
+    /// @param amount The amount of shares to transfer
     function transfer(
         address to,
         uint256 amount
@@ -515,6 +557,13 @@ contract FleetCommanderWhitelist is
     }
 
     /// @inheritdoc IERC20
+    /// @notice Transfers `amount` shares from `from` to `to` using the caller's allowance
+    /// @dev Reverts when paused. Operators bypass the gate; otherwise reverts with
+    ///      FleetCommanderTransfersDisabled when transfers are disabled and requires the
+    ///      participants to be whitelisted
+    /// @param from The address to transfer the shares from
+    /// @param to The recipient of the shares
+    /// @param amount The amount of shares to transfer
     function transferFrom(
         address from,
         address to,
@@ -1165,6 +1214,7 @@ contract FleetCommanderWhitelist is
         }
     }
 
+    /// @inheritdoc FleetCommanderCache
     function _getActiveArksAddresses()
         internal
         view

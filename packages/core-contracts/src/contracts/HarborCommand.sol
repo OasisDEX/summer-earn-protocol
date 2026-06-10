@@ -9,6 +9,8 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 
 /**
  * @title HarborCommand - Fleet Commander Management System
+ * @notice Central registry that tracks the authorized FleetCommanders in the protocol and gates
+ *         their enlistment and decommissioning behind governance access control
  * @dev This contract serves as a central registry for managing official Fleet Commanders in the system.
  *
  * The HarborCommand contract is responsible for:

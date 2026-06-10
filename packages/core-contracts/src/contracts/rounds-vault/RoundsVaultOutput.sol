@@ -61,12 +61,6 @@ contract RoundsVaultOutput is
      * INTERNAL FUNCTIONS
      */
 
-    /**
-     * @inheritdoc RoundsVaultBase
-     * @dev Redeems the round's frozen target-vault shares back to the target vault's underlying
-     *      asset and returns that amount. The underlying stays in this contract and backs
-     *      `redeemExchangeAsset` payouts for the round.
-     */
     // @audit Re-entrancy posture: `_operate` is only reachable via `_setRoundSettled`, which is
     // gated by `onlyKeeper` on `setRoundSettled` / `setRoundSettledBatch`. The Keeper is a trusted
     // role. Even if a Keeper attempted to re-enter `setRoundSettled` for the same round, the round
@@ -74,6 +68,12 @@ contract RoundsVaultOutput is
     // `InvalidRoundState`. And the round's frozen target vault shares have already been redeemed
     // against the target ERC-4626 vault, leaving this contract with nothing to move on a re-entrant
     // pass.
+    /**
+     * @inheritdoc RoundsVaultBase
+     * @dev Redeems the round's frozen target-vault shares back to the target vault's underlying
+     *      asset and returns that amount. The underlying stays in this contract and backs
+     *      `redeemExchangeAsset` payouts for the round.
+     */
     function _operate(
         uint256 amount,
         uint256 roundId

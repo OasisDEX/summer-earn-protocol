@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+/**
+ * @title IFleetCommanderConfigProviderEvents
+ * @notice Events emitted by the FleetCommander configuration provider
+ */
 interface IFleetCommanderConfigProviderEvents {
     /**
      * @notice Emitted when the deposit cap is updated
