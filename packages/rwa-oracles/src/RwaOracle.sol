@@ -18,7 +18,7 @@ import {IRwaOracle} from "./interfaces/IRwaOracle.sol";
 contract RwaOracle is Ownable, AggregatorV3Interface, IRwaOracle, EIP712 {
     using ECDSA for bytes32;
 
-    /// @dev EIP-712 typehash for PriceUpdate struct
+    /// @notice EIP-712 typehash for PriceUpdate struct
     bytes32 public constant PRICE_UPDATE_TYPEHASH =
         keccak256(
             "PriceUpdate(int256 price,uint256 timestamp,uint256 nonce,address oracle,uint256 chainId)"
