@@ -21,4 +21,12 @@ interface IInflightAssetTracking is IERC165 {
      * @param amount The new amount of in-flight assets
      */
     event InflightAssetsUpdated(uint256 amount);
+
+    /**
+     * @notice Returns true if this contract implements the interface defined by `interfaceId`.
+     * @dev See ERC-165. Implementations must return true for IInflightAssetTracking and IERC165 selectors.
+     * @param interfaceId The ERC-165 interface identifier to query.
+     * @return bool True if the interface is supported.
+     */
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }

@@ -8,6 +8,12 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeCodec} from "../libraries/BridgeCodec.sol";
 
+/**
+ * @title BaseBridgeAdapter
+ * @notice Abstract base contract for cross-chain bridge adapters
+ * @dev Handles mapping between chain IDs and bridge-specific protocol IDs,
+ *      managing trusted source/destination relationships, and encoding/decoding payloads.
+ */
 abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
     ReentrancyGuard,
@@ -37,6 +43,7 @@ abstract contract BaseBridgeAdapter is
     /// @notice Error thrown when invalid parameters are provided
     error InvalidParams();
 
+    /// @notice The chain ID of the current blockchain
     uint16 public immutable THIS_CHAIN;
 
     /// @notice Mapping of supported chains to their external bridge protocol IDs
@@ -91,6 +98,11 @@ abstract contract BaseBridgeAdapter is
         _;
     }
 
+    /**
+     * @notice Modifier checking that the caller adapter is a trusted peer on the source chain
+     * @param srcAdapter The source bridge adapter address
+     * @param srcChain The source chain ID
+     */
     modifier onlyTrustedSource(address srcAdapter, uint16 srcChain) {
         _assertTrustedSource(srcAdapter, srcChain);
         _;
@@ -114,6 +126,11 @@ abstract contract BaseBridgeAdapter is
         return targetChainIds;
     }
 
+    /**
+     * @notice Get the registered peer adapter for a given destination chain
+     * @param dstChain The destination chain ID
+     * @return The address of the peer adapter on the destination chain
+     */
     function _peerAdapter(uint16 dstChain) internal view returns (address) {
         return CROSS_CHAIN_REGISTRY.getAdapterPeer(address(this), dstChain);
     }
@@ -135,6 +152,11 @@ abstract contract BaseBridgeAdapter is
         }
     }
 
+    /**
+     * @notice Asserts that the received shared-decimal amount matches the expected amount
+     * @param amountSD The amount in shared-decimals format
+     * @param amount The expected full amount
+     */
     function _assertReceivedAmount(
         uint256 amountSD,
         uint256 amount
@@ -142,6 +164,11 @@ abstract contract BaseBridgeAdapter is
         if (amountSD != amount) revert InvalidAmount();
     }
 
+    /**
+     * @notice Asserts that the source chain ID matches the expected chain ID
+     * @param sourceChainId The received source chain ID
+     * @param expectedChainId The expected source chain ID
+     */
     function _assertSourceChainId(
         uint16 sourceChainId,
         uint16 expectedChainId
@@ -180,42 +207,77 @@ abstract contract BaseBridgeAdapter is
         return userGas > 0 ? userGas : uint64(defaultGasLimit());
     }
 
+    /**
+     * @notice Decodes the relayed message parameters from raw bytes
+     * @param _message Raw bytes of the encoded parameters
+     * @return Decoded RelayedMessageParams structure
+     */
     function _decodeRelayedMessageParams(
         bytes memory _message
     ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
         return abi.decode(_message, (BridgeTypes.RelayedMessageParams));
     }
 
+    /**
+     * @notice Decodes the relayed transfer parameters from raw bytes
+     * @param _message Raw bytes of the encoded parameters
+     * @return Decoded RelayedTransferParams structure
+     */
     function _decodeRelayedTransferParams(
         bytes memory _message
     ) internal pure returns (BridgeTypes.RelayedTransferParams memory) {
         return abi.decode(_message, (BridgeTypes.RelayedTransferParams));
     }
 
+    /**
+     * @notice Decodes the relayed read response from raw bytes
+     * @param _message Raw bytes of the encoded response
+     * @return Decoded RelayedReadResponse structure
+     */
     function _decodeRelayedReadResponse(
         bytes memory _message
     ) internal pure returns (BridgeTypes.RelayedReadResponse memory) {
         return abi.decode(_message, (BridgeTypes.RelayedReadResponse));
     }
 
+    /**
+     * @notice Encodes the relayed message parameters into raw bytes
+     * @param _params The RelayedMessageParams structure to encode
+     * @return Encoded raw bytes
+     */
     function _encodeRelayedMessageParams(
         BridgeTypes.RelayedMessageParams memory _params
     ) internal pure returns (bytes memory) {
         return abi.encode(_params);
     }
 
+    /**
+     * @notice Encodes the relayed transfer parameters into raw bytes
+     * @param _params The RelayedTransferParams structure to encode
+     * @return Encoded raw bytes
+     */
     function _encodeRelayedTransferParams(
         BridgeTypes.RelayedTransferParams memory _params
     ) internal pure returns (bytes memory) {
         return abi.encode(_params);
     }
 
+    /**
+     * @notice Encodes the relayed read response parameters into raw bytes
+     * @param _params The RelayedReadResponse structure to encode
+     * @return Encoded raw bytes
+     */
     function _encodeRelayedReadResponse(
         BridgeTypes.RelayedReadResponse memory _params
     ) internal pure returns (bytes memory) {
         return abi.encode(_params);
     }
 
+    /**
+     * @notice Encodes relayed message parameters prefixed with the MESSAGE operation type
+     * @param _params The RelayedMessageParams structure to encode
+     * @return Encoded raw bytes containing type prefix and parameters
+     */
     function _encodeRelayedMessageParamsWithType(
         BridgeTypes.RelayedMessageParams memory _params
     ) internal pure returns (bytes memory) {
@@ -226,6 +288,11 @@ abstract contract BaseBridgeAdapter is
             );
     }
 
+    /**
+     * @notice Encodes relayed transfer parameters prefixed with the TRANSFER_ASSET operation type
+     * @param _params The RelayedTransferParams structure to encode
+     * @return Encoded raw bytes containing type prefix and parameters
+     */
     function _encodeRelayedTransferParamsWithType(
         BridgeTypes.RelayedTransferParams memory _params
     ) internal pure returns (bytes memory) {
@@ -236,6 +303,11 @@ abstract contract BaseBridgeAdapter is
             );
     }
 
+    /**
+     * @notice Encodes relayed read response prefixed with the READ_STATE operation type
+     * @param _params The RelayedReadResponse structure to encode
+     * @return Encoded raw bytes containing type prefix and response
+     */
     function _encodeRelayedReadResponseWithType(
         BridgeTypes.RelayedReadResponse memory _params
     ) internal pure returns (bytes memory) {

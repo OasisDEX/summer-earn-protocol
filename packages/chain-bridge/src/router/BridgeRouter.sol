@@ -185,6 +185,10 @@ contract BridgeRouter is
         }
     }
 
+    /**
+     * @notice Validates that the originator of the request matches the sender
+     * @param originator The originator address to validate
+     */
     function _validateOriginator(address originator) internal view {
         if (originator != msg.sender) revert InvalidOriginator();
     }
@@ -624,7 +628,11 @@ contract BridgeRouter is
         emit RouterAssetsRecovered(token, recipient, amount);
     }
 
-    /// @inheritdoc IERC165
+    /**
+     * @notice Checks if the contract supports a given interface ID
+     * @param interfaceId The interface ID to check
+     * @return True if the contract supports the interface, false otherwise
+     */
     function supportsInterface(
         bytes4 interfaceId
     ) external pure returns (bool) {

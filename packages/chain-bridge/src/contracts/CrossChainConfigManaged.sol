@@ -11,6 +11,7 @@ import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
  * @custom:see ICrossChainConfigManaged
  */
 abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
+    /// @notice The cross-chain registry contract instance
     ICrossChainRegistry public immutable CROSS_CHAIN_REGISTRY;
 
     /**

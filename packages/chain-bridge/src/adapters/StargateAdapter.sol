@@ -427,7 +427,7 @@ contract StargateAdapter is
 
     /// @inheritdoc IBridgeAdapter
     function estimateFee(
-        uint16 dstChainId,
+        uint16 destinationChainId,
         address asset,
         uint256 amount,
         BridgeTypes.BridgeOptions calldata options,
@@ -435,7 +435,7 @@ contract StargateAdapter is
     )
         public
         view
-        onlyTrustedDestination(dstChainId)
+        onlyTrustedDestination(destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
         // Check if asset is supported on current chain
@@ -471,7 +471,7 @@ contract StargateAdapter is
 
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
-            dstEid: chainToExternalId[dstChainId],
+            dstEid: chainToExternalId[destinationChainId],
             to: address(0xdead).toBytes32(),
             amountLD: amount,
             minAmountLD: amount,
@@ -623,6 +623,8 @@ contract StargateAdapter is
 
     /**
      * @notice Get the LayerZero Endpoint ID for a given chain
+     * @param chainId The chain ID to query
+     * @return The LayerZero Endpoint ID for the chain
      */
     function getEndpointId(uint16 chainId) external view returns (uint32) {
         return chainToExternalId[chainId];

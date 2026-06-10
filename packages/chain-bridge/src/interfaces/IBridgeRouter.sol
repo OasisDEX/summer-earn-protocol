@@ -126,6 +126,7 @@ interface IBridgeRouter is IERC165 {
      *      Expects `msg.value` to cover the *base* fee required by the adapter.
      *      The implementation should pass the provided `originator` to the internal execution logic and adapter.
      * @param params Struct containing all parameters for the transfer execution.
+     * @param options Struct containing bridge options including adapter choice and parameters.
      * @return operationId Unique operation ID.
      */
     function executeTransferAssets(
@@ -140,6 +141,7 @@ interface IBridgeRouter is IERC165 {
      *      The `originator` parameter represents the original requester; the implementation determines how the response
      * is routed (e.g., back to the originator, or potentially to the BridgeQueue itself depending on the design).
      * @param params Struct containing all parameters for the state read execution.
+     * @param options Struct containing bridge options including adapter choice and parameters.
      * @return operationId Unique operation ID.
      */
     function executeReadState(
@@ -153,6 +155,7 @@ interface IBridgeRouter is IERC165 {
      *      Expects `msg.value` to cover the *base* fee required by the adapter.
      *      The implementation should pass the provided `originator` to the internal execution logic and adapter.
      * @param params Struct containing all parameters for the message send execution.
+     * @param options Struct containing bridge options including adapter choice and parameters.
      * @return operationId Unique operation ID.
      */
     function executeSendMessage(
@@ -259,4 +262,12 @@ interface IBridgeRouter is IERC165 {
         address recipient,
         uint256 amount
     ) external;
+
+    /**
+     * @notice Returns true if this contract implements the interface defined by `interfaceId`.
+     * @dev See ERC-165. Implementations should check their own interface plus the parent IERC165.
+     * @param interfaceId The ERC-165 interface identifier to query.
+     * @return bool True if the interface is supported.
+     */
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
