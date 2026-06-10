@@ -64,7 +64,10 @@ contract ERC4626Ark is Ark {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev ERC4626Ark is always withdrawable
+     * @dev Caps the withdrawable amount by vault.maxWithdraw(), the ERC4626
+     *      vault's own reported limit. This can be less than totalAssets() (or
+     *      0) when the vault constrains redemptions; see the contract-level
+     *      note about overly conservative vaults.
      */
     function _withdrawableTotalAssets()
         internal

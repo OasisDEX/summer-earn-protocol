@@ -142,6 +142,7 @@ contract SuperstateStandardArk is BaseSuperstateArk, ISuperstateStandardArk {
      * @notice Adds the Standard-ark preconditions (`onlyNotFrozen`, no active pending deposit) on
      *         top of the base `requestWithdrawal`, which burns shares via `offchainRedeem` and
      *         tracks them in `pendingWithdrawalShares`.
+     * @param amount The base-asset amount to redeem
      */
     function requestWithdrawal(
         uint256 amount
@@ -154,6 +155,7 @@ contract SuperstateStandardArk is BaseSuperstateArk, ISuperstateStandardArk {
     /// @dev Bypasses `_validateReceivedShares`; lets the governor accept the current share balance
     ///      as valid for `amount` of the pending queue when the keeper path is deadlocked
     ///      (partial fills, oracle staleness). `emergencySweep` lives on `BaseSuperstateArk`.
+    /// @param amount The pending-deposit asset amount to clear (must be <= pendingDepositAssets)
     function emergencyClearPendingDeposit(
         uint256 amount
     ) external onlyGovernor {
@@ -176,6 +178,8 @@ contract SuperstateStandardArk is BaseSuperstateArk, ISuperstateStandardArk {
     }
 
     /// @notice Freezes the Ark, locking the total assets value.
+    /// @param _isArkFrozen Whether to freeze (true) or unfreeze (false) the Ark
+    /// @param frozenTotalAssets The total-assets value to lock while frozen; pass type(uint256).max to snapshot the current totalAssets()
     function setArkFrozen(
         bool _isArkFrozen,
         uint256 frozenTotalAssets

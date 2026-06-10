@@ -64,7 +64,13 @@ contract SparkArk is Ark {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev SparkArk is withdrawable if the asset is active, not frozen, and not paused
+     * @dev Returns 0 unless the reserve is active and not paused. A frozen
+     *      reserve is deliberately NOT treated as blocking: Spark (like Aave)
+     *      keeps withdrawals/repayments/liquidations active on frozen reserves
+     *      and only halts supplying/borrowing. When withdrawals are allowed, the
+     *      amount is capped by the underlying liquidity held by the spToken
+     *      (config.asset.balanceOf(spToken)), so it can be less than
+     *      totalAssets() when the market is highly utilised.
      */
     function _withdrawableTotalAssets()
         internal
@@ -145,10 +151,12 @@ contract SparkArk is Ark {
      */
     function _validateDisembarkData(bytes calldata) internal override {}
 
+    /// @notice Returns whether the Spark reserve is active, decoded from its packed configuration bitmap
     function _isActive(uint256 configData) internal pure returns (bool) {
         return configData & ~Constants.ACTIVE_MASK != 0;
     }
 
+    /// @notice Returns whether the Spark reserve is paused, decoded from its packed configuration bitmap
     function _isPaused(uint256 configData) internal pure returns (bool) {
         return configData & ~Constants.PAUSED_MASK != 0;
     }

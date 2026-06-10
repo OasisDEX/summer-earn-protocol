@@ -4,7 +4,9 @@ pragma solidity 0.8.28;
 import {IUpshiftVault} from "../../interfaces/upshift/IUpshiftVault.sol";
 import "../ArkWithWithdrawalRequest.sol";
 
+/// @notice Thrown when requesting a withdrawal while a prior request still has a non-zero claimable amount
 error PendingWithdrawalExists();
+/// @notice Thrown by operations that this Ark does not support (e.g. withdrawUsingSwap)
 error NotSupported();
 
 /**
@@ -19,11 +21,17 @@ contract UpshiftArk is ArkWithWithdrawalRequest {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice The Upshift TokenizedAccount (vault) this Ark interacts with
     IUpshiftVault public immutable vault;
 
+    /// @notice Year component of the withdrawal epoch for the active redeem request
     uint16 public pendingClaimYear;
+    /// @notice Month component of the withdrawal epoch for the active redeem request
     uint8 public pendingClaimMonth;
+    /// @notice Day component of the withdrawal epoch for the active redeem request
     uint8 public pendingClaimDay;
+    /// @notice Declared pending-claim flag. Currently unused: the active request
+    ///         is tracked via the claimable amount rather than this boolean.
     bool public hasPendingClaim;
 
     /*//////////////////////////////////////////////////////////////
@@ -177,6 +185,7 @@ contract UpshiftArk is ArkWithWithdrawalRequest {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns the amount currently claimable for the stored withdrawal epoch and this Ark
     function _getClaimableAmount() internal view returns (uint256) {
         return
             vault.getClaimableAmountByReceiver(
@@ -187,6 +196,7 @@ contract UpshiftArk is ArkWithWithdrawalRequest {
             );
     }
 
+    /// @notice Returns only the asset balance held directly by the Ark; pending requests are reported via assetsInWithdrawalQueue
     function _withdrawableTotalAssets()
         internal
         view
@@ -198,15 +208,18 @@ contract UpshiftArk is ArkWithWithdrawalRequest {
         return config.asset.balanceOf(address(this));
     }
 
+    /// @notice Deposits the asset into the Upshift vault, receiving vault shares
     function _board(uint256 amount, bytes calldata) internal override {
         vault.deposit(amount, address(this));
     }
 
+    /// @notice No-op disembark hook; exits are asynchronous via requestWithdrawal/claimWithdrawal
     function _disembark(uint256, bytes calldata) internal override {
         // No-op: disembark is handled by Ark contract implementation
         // Withdrawals must be requested through keeper
     }
 
+    /// @notice No-op harvest: the Upshift vault auto-accrues yield, so no rewards are claimed here
     function _harvest(
         bytes calldata
     )
@@ -219,7 +232,9 @@ contract UpshiftArk is ArkWithWithdrawalRequest {
         rewardAmounts = new uint256[](0);
     }
 
+    /// @notice Validates the board data (no-op; this Ark requires no board data)
     function _validateBoardData(bytes calldata) internal override {}
 
+    /// @notice Validates the disembark data (no-op; this Ark requires no disembark data)
     function _validateDisembarkData(bytes calldata) internal override {}
 }

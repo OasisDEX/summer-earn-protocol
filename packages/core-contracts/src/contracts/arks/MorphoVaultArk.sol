@@ -6,7 +6,9 @@ import "../Ark.sol";
 import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 import {IUrdFactory} from "morpho-blue/interfaces/IUrdFactory.sol";
 
+/// @notice Thrown when a claim references a distributor not deployed by the configured URD factory
 error InvalidUrdAddress();
+/// @notice Thrown when the supplied Universal Rewards Distributor factory address is the zero address
 error InvalidUrdFactoryAddress();
 
 /**
@@ -87,7 +89,10 @@ contract MorphoVaultArk is Ark {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev MetaMorphoArk is always withdrawable
+     * @dev MorphoVaultArk caps the withdrawable amount by
+     *      metaMorpho.maxWithdraw(), which reflects the liquidity available
+     *      across the vault's underlying Morpho markets. This can be less than
+     *      totalAssets() when those markets are illiquid.
      */
     function _withdrawableTotalAssets()
         internal

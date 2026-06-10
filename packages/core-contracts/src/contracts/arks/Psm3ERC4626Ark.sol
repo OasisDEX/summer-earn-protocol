@@ -42,9 +42,13 @@ contract Psm3ERC4626Ark is Ark {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
+    /// @notice Thrown when the supplied PSM3 address is the zero address
     error InvalidPSMAddress();
+    /// @notice Thrown when the supplied USDS address is the zero address
     error InvalidUSDSAddress();
+    /// @notice Thrown when the supplied sUSDS address is the zero address
     error InvalidSUSDSAddress();
+    /// @notice Thrown when the supplied gem (fleet asset) address is the zero address
     error InvalidGemAddress();
 
     /*//////////////////////////////////////////////////////////////

@@ -8,14 +8,22 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IStakingRewards} from "../../interfaces/sky/IStakingRewards.sol";
 import {ILitePSM} from "../../interfaces/sky/ILitePSM.sol";
 
+/// @notice Thrown when the supplied Lite PSM address is the zero address
 error InvalidLitePsmAddress();
+/// @notice Thrown when the supplied USDS address is the zero address
 error InvalidUsdsAddress();
+/// @notice Thrown when the supplied staking rewards address is the zero address
 error InvalidStakingRewardsAddress();
+/// @notice Thrown when the Lite PSM's gem does not match the Ark's configured asset
 error InvalidGem();
 
+/// @title SkyRewardsArk
+/// @notice Ark that swaps the fleet asset to USDS via the Lite PSM and stakes
+///         the USDS in a Sky StakingRewards contract, harvesting the reward token
 contract SkyRewardsArk is Ark {
     using SafeERC20 for IERC20;
 
+    /// @notice Factor scaling the fleet asset's amount up to USDS's 18 decimals
     uint256 public immutable TO_18_DECIMALS_CONVERSION_FACTOR;
 
     /*//////////////////////////////////////////////////////////////
@@ -64,7 +72,10 @@ contract SkyRewardsArk is Ark {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev SkyRewardsArk is always withdrawable
+     * @dev Returns the staked USDS balance converted to the fleet asset's
+     *      decimals (accrued, unclaimed rewards are intentionally excluded). It
+     *      does NOT account for available LitePSM buyGem liquidity, so a
+     *      withdrawal can still fail at the PSM step if the PSM lacks gem.
      */
     function _withdrawableTotalAssets()
         internal
@@ -79,6 +90,7 @@ contract SkyRewardsArk is Ark {
         }
     }
 
+    /// @notice Swaps the fleet asset to USDS via the Lite PSM and stakes it in the rewards contract
     function _board(uint256 amount, bytes calldata) internal override {
         config.asset.forceApprove(address(litePsm), amount);
         uint256 usdsAmount = litePsm.sellGem(address(this), amount);
@@ -86,6 +98,7 @@ contract SkyRewardsArk is Ark {
         stakingRewards.stake(usdsAmount, lazySummerReferralCode);
     }
 
+    /// @notice Unstakes USDS from the rewards contract and swaps it back to the fleet asset via the Lite PSM
     function _disembark(uint256 amount, bytes calldata) internal override {
         // convert from usdc to usds decimals
         uint256 usdsAmount = amount * TO_18_DECIMALS_CONVERSION_FACTOR;
@@ -94,10 +107,12 @@ contract SkyRewardsArk is Ark {
         litePsm.buyGem(address(this), amount);
     }
 
-    // additional keeper data not needed for SkyRewardsArk
+    /// @notice Validates the board data (no-op; this Ark requires no board data)
     function _validateBoardData(bytes calldata) internal pure override {}
+    /// @notice Validates the disembark data (no-op; this Ark requires no disembark data)
     function _validateDisembarkData(bytes calldata) internal pure override {}
 
+    /// @notice Claims the staking reward token and forwards it to the raft()
     function _harvest(
         bytes calldata
     )

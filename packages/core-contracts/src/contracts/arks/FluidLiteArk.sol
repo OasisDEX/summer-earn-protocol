@@ -10,8 +10,12 @@ import {IWithdrawalQueue} from "../../interfaces/lido/IWithdrawalQueue.sol";
 
 /**
  * @title FluidLiteArk
- * @notice Ark contract for managing ETH/WETH through FluidLite's vault via eth wrapper
- * @dev Implements strategy for depositing/withdrawing ETH/WETH through FluidLite, which requires unwrapping WETH to ETH
+ * @notice Ark contract for managing WETH by staking it into Lido stETH and
+ *         depositing the stETH into a FluidLite (ERC4626) vault
+ * @dev On board, WETH is unwrapped to ETH, submitted to Lido (stETH), and the
+ *      resulting stETH is deposited into the vault. Withdrawals redeem stETH
+ *      from the vault and exit either through the Lido withdrawal queue
+ *      (requestWithdrawal / claimWithdrawal) or via a swap (withdrawUsingSwap).
  */
 contract FluidLiteArk is ArkWithWithdrawalRequest {
     using SafeERC20 for IERC20;
@@ -20,7 +24,10 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The Eth Wrapper used for depositing into the vault
+    /// @notice Address recorded at construction for the FluidLite ETH vault
+    ///         wrapper. Currently assigned but unused: boarding stakes ETH into
+    ///         Lido stETH and deposits stETH directly into the vault rather than
+    ///         routing through this wrapper.
     IEthVaultWrapperV2 public immutable wrapper;
 
     /// @notice The ERC4626-compliant vault this Ark interacts with
@@ -44,11 +51,17 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when the supplied wrapper address is the zero address
     error InvalidWrapperAddress();
+    /// @notice Thrown when the supplied WETH address is the zero address
     error InvalidWETHAddress();
+    /// @notice Thrown when the Ark's configured asset is not the supplied WETH address
     error AssetMustBeWETH();
+    /// @notice Thrown when the supplied stETH address is the zero address
     error InvalidStETHAddress();
+    /// @notice Thrown when the supplied Lido withdrawal queue address is the zero address
     error InvalidWithdrawalQueueAddress();
+    /// @notice Thrown when board authorization data is malformed
     error InvalidAuthData();
 
     /*//////////////////////////////////////////////////////////////
@@ -131,7 +144,10 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev FluidLiteArk stores value in shares of the vault plus any WETH held directly
+     * @dev Returns only the WETH currently held directly by this Ark. The vault
+     *      position cannot be redeemed synchronously: exiting requires a
+     *      keeper-initiated requestWithdrawal through the Lido withdrawal queue
+     *      (claimed later) or withdrawUsingSwap, so it is not counted here.
      */
     function _withdrawableTotalAssets()
         internal
@@ -144,8 +160,10 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @notice Deposits WETH into the vault through the router
-     * @dev Unwraps WETH to ETH first, then deposits via the router
+     * @notice Boards WETH by staking it into Lido stETH and depositing into the vault
+     * @dev Unwraps WETH to ETH, submits the ETH to Lido (receiving stETH), then
+     *      deposits the stETH into the FluidLite ERC4626 vault. Reverts if the
+     *      received stETH is insufficient for the vault deposit.
      * @param amount The amount of WETH to deposit
      */
     function _board(uint256 amount, bytes calldata) internal override {
@@ -276,8 +294,8 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
 
     /**
      * @notice Validates the board data
-     * @dev Ensures the AuthData is properly encoded
-     * @param data AuthData containing signature for deposit authorization
+     * @dev No-op: boarding does not consume any board data in this implementation
+     * @param data Additional data to validate (unused in this implementation)
      */
     function _validateBoardData(bytes calldata data) internal pure override {}
 

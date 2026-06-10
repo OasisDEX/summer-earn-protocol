@@ -7,8 +7,11 @@ import {ISyrupManager} from "../../interfaces/syrup/ISyrupManager.sol";
 import {ISyrupWithdrawalManager} from "../../interfaces/syrup/ISyrupWithdrawalManager.sol";
 import {ISyrupRouter} from "../../interfaces/syrup/ISyrupRouter.sol";
 
+/// @notice Thrown when the pool manager reports a zero withdrawal manager address
 error InvalidWithdrawalManager();
+/// @notice Thrown when the resolved pool manager address is invalid
 error InvalidManager();
+/// @notice Thrown when the supplied Syrup router address is the zero address
 error InvalidRouterAddress();
 
 /**
@@ -24,10 +27,15 @@ contract SyrupArk is ArkWithWithdrawalRequest {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice The Syrup pool (ERC4626-style vault) this Ark deposits into
     ISyrupPool public immutable vault;
+    /// @notice The Syrup pool manager, used to resolve the withdrawal manager
     ISyrupManager public immutable manager;
+    /// @notice The Syrup withdrawal manager that tracks redemption requests
     ISyrupWithdrawalManager public immutable withdrawalManager;
+    /// @notice The Syrup router used to deposit with a referral code
     ISyrupRouter public immutable router;
+    /// @notice Referral code passed to the Syrup router on deposit
     bytes32 public immutable summerReferralCode;
 
     /*//////////////////////////////////////////////////////////////
@@ -179,6 +187,7 @@ contract SyrupArk is ArkWithWithdrawalRequest {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns only the asset balance already processed by the withdrawal manager and held by the Ark
     function _withdrawableTotalAssets()
         internal
         view
@@ -189,16 +198,19 @@ contract SyrupArk is ArkWithWithdrawalRequest {
         return IERC20(vault.asset()).balanceOf(address(this));
     }
 
+    /// @notice Deposits the asset into the Syrup pool via the router, passing the referral code
     function _board(uint256 amount, bytes calldata) internal override {
         IERC20(vault.asset()).forceApprove(address(router), amount);
         router.deposit(amount, summerReferralCode);
     }
 
+    /// @notice No-op disembark hook; exits are asynchronous via requestWithdrawal through the withdrawal manager
     function _disembark(uint256, bytes calldata) internal override {
         // No-op: disembark is handled by Ark contract implementation
         // Withdrawals must be requested through withdrawal manager
     }
 
+    /// @notice No-op harvest: the Syrup pool auto-accrues yield, so no rewards are claimed here
     function _harvest(
         bytes calldata
     )
@@ -212,9 +224,11 @@ contract SyrupArk is ArkWithWithdrawalRequest {
         rewardAmounts = new uint256[](0);
     }
 
+    /// @notice Validates the board data (no-op; this Ark requires no board data)
     function _validateBoardData(bytes calldata) internal override {
         // No additional validation needed
     }
 
+    /// @notice Validates the disembark data (no-op; this Ark requires no disembark data)
     function _validateDisembarkData(bytes calldata) internal override {}
 }

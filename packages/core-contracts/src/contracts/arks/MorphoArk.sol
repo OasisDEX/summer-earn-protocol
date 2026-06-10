@@ -26,9 +26,13 @@ contract MorphoArk is Ark {
     using MorphoLib for IMorpho;
     using MorphoBalancesLib for IMorpho;
 
+    /// @notice Thrown when the supplied Morpho protocol address is the zero address
     error InvalidMorphoAddress();
+    /// @notice Thrown when the supplied Morpho market ID is zero
     error InvalidMarketId();
+    /// @notice Thrown when the supplied Universal Rewards Distributor factory address is the zero address
     error InvalidUrdFactoryAddress();
+    /// @notice Thrown when a claim references a distributor not deployed by the configured URD factory
     error InvalidUrdAddress();
 
     /**
@@ -51,6 +55,7 @@ contract MorphoArk is Ark {
     /// @notice The Morpho protocol contract
     IMorpho public immutable MORPHO;
 
+    /// @notice The Morpho Universal Rewards Distributor factory, used to validate URDs during harvest
     IUrdFactory public immutable URD_FACTORY;
 
     /// @notice The market ID for the Morpho market this Ark interacts with
@@ -116,7 +121,10 @@ contract MorphoArk is Ark {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev MorphoArk is always withdrawable
+     * @dev Caps the withdrawable amount by the Morpho market's available
+     *      on-chain liquidity (totalSupplyAssets - totalBorrowAssets). When the
+     *      market is fully utilised this can be less than totalAssets(), and is
+     *      0 when no liquidity is available.
      */
     function _withdrawableTotalAssets()
         internal
