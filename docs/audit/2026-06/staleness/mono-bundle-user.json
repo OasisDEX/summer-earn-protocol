@@ -1,0 +1,23 @@
+{
+  "group": "mono:bundle-user",
+  "sourceRepo": "/home/halaprix/Projects/summerfi-monorepo",
+  "docs": [
+    {
+      "doc": "sdk/sdk-client/bundle/README.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 95,
+      "staleClaims": [
+        {
+          "claim": "Intent swap examples import and use makeSDKWithSigner from @summer_fi/sdk-client",
+          "currentTruth": "The current sdk-client public index exports makeSDK and makeAdminSDK, but no makeSDKWithSigner symbol. IntentSwapClient methods accept account/signer-like params internally, but the documented factory is not present in the checked source export surface.",
+          "evidence": "/home/halaprix/Projects/summerfi-monorepo/sdk/sdk-client/bundle/README.md:1325-1353; /home/halaprix/Projects/summerfi-monorepo/sdk/sdk-client/src/index.ts:1-29; rg makeSDKWithSigner sdk/sdk-client/src"
+        }
+      ],
+      "unverifiable": [
+        "Example API response values, APYs, token addresses, and Notion installation-guide availability were not checked against live services."
+      ],
+      "notes": "Most public user-facing method names in the README match the checked SDK source: makeSDK, getVaultInfoList, getVaultInfo, getVaultsHistoricalRates, getNewDepositTx, getCrossChainDepositTx, getWithdrawTx, getDeposits, getWithdrawals, getVaultSwitchTx, getUserMerklRewards, getUserMerklClaimTx, getVaultRewardsMerklClaimTx, getAggregatedRewardsIncludingMerkl, and intentSwaps getSellOrderQuote/sendOrder/checkOrder/cancelOrder. The latest version v2.3.0 matches sdk/sdk-client/bundle/package.json, not the private workspace package.json."
+    }
+  ],
+  "summary": "Audited the user-facing SDK bundle README from summerfi-monorepo against sdk-client/sdk-common exports and interfaces (95 claims). The document is mostly aligned with the v2.3.0 bundle package and current Armada user APIs, including vault info, deposits, withdrawals, cross-chain deposits, positions, Merkl rewards, aggregated rewards, and intent-swap client methods. One material stale claim remains: the README documents a makeSDKWithSigner factory for intent swaps, but the checked sdk-client public index does not export that symbol."
+}

@@ -1,0 +1,75 @@
+{
+  "docs": [
+    {
+      "doc": "packages/deployment/README.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 88,
+      "staleClaims": [
+        {
+          "claim": "Prerequisites: Node.js 16+",
+          "currentTruth": "Repo root package.json requires \"node\": \">=20\"",
+          "evidence": "package.json:83-85 (repo root)"
+        },
+        {
+          "claim": "Example fleet configuration file is config/fleets/usdc-base-USDC-1.json with initialRebalanceCooldown 3600, depositCap 1000000000, initialTipRate 0",
+          "currentTruth": "No such file exists; fleet configs follow <network>-<ASSET>-<n>.json naming (e.g. config/fleets/base-USDC-1.json), and that file has initialRebalanceCooldown \"600\", depositCap \"100000000\", initialTipRate \"1000000000000000000\". Field names/shape (fleetName, symbol, assetSymbol, arks[].type/params, etc.) do still match.",
+          "evidence": "packages/deployment/config/fleets/ (directory listing); packages/deployment/config/fleets/base-USDC-1.json:1-11"
+        },
+        {
+          "claim": "Example deployment file deployments/fleets/LazyVault_LowerRisk_USDC_base_deployment.json contains fleetAddress 0x3d34EC4588BAe77AfBbd894c5BeB6d53958b161D, bufferArkAddress 0x776373D6D4f84160C34364851f131e63EBF20d42, initialRebalanceCooldown 3600, depositCap 1000000000",
+          "currentTruth": "The file exists but contains fleetAddress 0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17, bufferArkAddress 0x106CBB1F445F0bFFa7894F4199EE940BF7f6dD2B, initialRebalanceCooldown \"600\", depositCap \"100000000\", initialTipRate \"1000000000000000000\". Field names (fleetName, fleetSymbol, assetSymbol, fleetAddress, bufferArkAddress, network, arks) are confirmed.",
+          "evidence": "packages/deployment/deployments/fleets/LazyVault_LowerRisk_USDC_base_deployment.json"
+        },
+        {
+          "claim": "Supported Ark Types: 'The following Ark types can be configured' lists only AaveV3Ark, CompoundV3Ark, ERC4626Ark, MorphoVaultArk, SkyUsdsPsm3Ark",
+          "currentTruth": "The ArkType enum now has 36 members; the 5 listed are still valid but the list is far from complete (also SparkArk, CrossChainArk, MorphoArk, PendleLPArk, PendlePTArk, PendlePtOracleArk, SkyUsdsArk, MoonwellArk, SyrupArk, SkyRewardsArk, SiloArk, SiloArkV2, SiloManagedVaultArk, OriginETHArk, ArmArk, FluidLiteArk, AeraArk, StargateV2PoolArk, SiUSDArk, FluidFTokenArk, PsmLiteERC4626Ark, Psm3ERC4626Ark, HyperlendArk, HypurrArk, WisdomTreeArk, MorphoV2VaultArk, MapleInstitutionalArk, UpshiftArk, OriginUSDArk, SuperstateArk)",
+          "evidence": "packages/deployment/types/config-types.ts:15-51"
+        },
+        {
+          "claim": "Directory structure shows ignition/modules/ containing only core.ts, gov.ts, staking.ts, fleet.ts and scripts/ containing only deploy-core.ts, deploy-gov.ts, deploy-staking.ts, deploy-fleet.ts, generate-merkle-root.ts",
+          "currentTruth": "All listed files exist, but ignition/modules/ now has ~25 module files plus arks/, utils/, rounds/ subdirectories (e.g. gov-v2.ts, bridge.ts, fleet-proxy.ts, buy-and-burn.ts), and scripts/ has 40+ entries plus governance/, arks/, fleets/, bridge/, helpers/ subdirectories; the package also contains config/, deployments/, docs/, contracts/, proposals/ directories not shown in the tree",
+          "evidence": "packages/deployment/ignition/modules/ and packages/deployment/scripts/ (directory listings)"
+        },
+        {
+          "claim": "Governance deployment order names contracts 'TimelockController' and 'RewardsRedeemer'",
+          "currentTruth": "The deployed contracts are SummerTimelockController and SummerRewardsRedeemer (deployment order 1.ProtocolAccessManager 2.timelock 3.SummerToken 4.SummerGovernor 5.rewards redeemer is otherwise confirmed; module also deploys SummerVestingWalletFactory, not mentioned)",
+          "evidence": "packages/deployment/ignition/modules/gov.ts:53,63,89,129,131"
+        }
+      ],
+      "unverifiable": [],
+      "notes": "Core claims confirmed with evidence: all 11 listed pnpm commands exist verbatim in packages/deployment/package.json (deploy:gov/staking/core/fleet/ark/buy-and-burn, deploy:status:arbitrum=chain-42161, deploy:status:base=chain-8453, verify:arbitrum/base, visualize:core); gov defaults votingDelay 60s, votingPeriod 600s, proposalThreshold 10000e18, quorumFraction 4 (ignition/modules/gov.ts:44-47); staking contracts StakedSummerToken/SummerStaking/SummerVestingWalletsEscrow (ignition/modules/staking.ts:28-61), lockup 0-3 years (SummerStaking.sol:64 MAX_LOCKUP_PERIOD=3*365 days), penalties 2-20% (SummerStaking.sol:66-67); core module deploys DutchAuctionLibrary, ConfigurationManager, TipJar, FleetCommanderRewardsManagerFactory, HarborCommand, Raft, AdmiralsQuarters exactly as listed (ignition/modules/core.ts:24-85); merkle input/output paths token-distributions/{input,output}/{chainId}/merkle-redeemer/ and output schema (chainId, distributionId, merkleRoot, totalAmount, addressCount, claims{amount,proof}) match scripts/generate-merkle-root.ts:10-22,40,67,126,155; license BUSL-1.1 matches repo LICENSE. Verdict partially-stale: commands, constants, and architecture are right; examples, prerequisites, and the ark-type list have rotted."
+    },
+    {
+      "doc": "packages/deployment/docs/MERGE_PROPOSALS.md",
+      "verdict": "current",
+      "claimsChecked": 32,
+      "staleClaims": [
+        {
+          "claim": "Validation section: '✅ Valid Structure: Each proposal must have valid targets, values, calldatas arrays' is performed by the script",
+          "currentTruth": "scripts/merge-proposals.ts performs only two validations: same governorId (throws/prints 'Cannot merge proposals with different governor addresses') and minimum 2 selected proposals (multiselect min:2, message 'You must select at least 2 proposals to merge.'). There is no explicit structure validation of targets/values/calldatas; malformed input would fail with an unhandled error",
+          "evidence": "packages/deployment/scripts/merge-proposals.ts:97-103,201-213,226-237"
+        }
+      ],
+      "unverifiable": [],
+      "notes": "Everything else confirmed against scripts/merge-proposals.ts and helpers: pnpm gov:merge-proposals exists (package.json: 'hardhat run scripts/merge-proposals.ts --network mainnet'); proposals loaded from proposals/ dir (scripts/helpers/proposal-helpers.ts:67-68); hub actions concatenated (merge-proposals.ts:111-115); cross-chain executions grouped by chainId into an array of {name, chainId, targets, values, datas} (merge-proposals.ts:13-21,34-87) exactly as the output example shows; merged file saved as merged_proposal_<timestamp>.json (325-327); optional deletion of originals (333-347); both quoted error strings match verbatim (102/231 and 211); discourse URLs deduped and joined (127-139); governorId format eip155:<chainId>:<governor> (proposal-helpers.ts:279); input example structure incl. crossChainExecution.targetChain{name,chainId,targets,values,datas} matches what fleet-governance-helpers.ts:1081-1089 actually writes; deploy-fleet.ts has 'Add Ark to Existing Fleet' mode (deploy-fleet.ts:79); gov:submit-proposal and gov:execute-proposal scripts exist; sendProposalToTargetChain hub call exists (fleet-governance-helpers.ts:1014). Minor note: the merged-output example also omits the optional predecessor/delay fields carried through by the script (merge-proposals.ts:19-20,72-73). Verdict current: the single stale item is a non-core validation claim."
+    },
+    {
+      "doc": "packages/deployment/config/cross-chain/README.md",
+      "verdict": "current",
+      "claimsChecked": 18,
+      "staleClaims": [
+        {
+          "claim": "Deployment Flow step 3: 'Deploy CrossChainArk on source chain → updates crossChainArkAddress' (implying the ark deployment updates the config)",
+          "currentTruth": "scripts/arks/deploy-cross-chain-ark.ts only reads the cross-chain config (findProtocolConfigInData, line 202/268) and never calls saveCrossChainConfig; crossChainArkAddress is written via an optional manual prompt in deploy-fleet-proxy.ts (promptForCrossChainArkAddress asks the user to paste the address and saves it). CrossChainArk being deployed on the source chain is itself confirmed (deploy-cross-chain-ark.ts:44,48)",
+          "evidence": "packages/deployment/scripts/deploy-fleet-proxy.ts:305-328; packages/deployment/scripts/arks/deploy-cross-chain-ark.ts:44,202,268"
+        }
+      ],
+      "unverifiable": [
+        "'Each fleet has one configuration file' — the directory currently contains no fleet config files (only .gitkeep and this README), so no committed example exists to inspect; configs are created at deploy time by saveCrossChainConfig (cross-chain-config.ts:51-68) and are apparently not committed"
+      ],
+      "notes": "Core claims confirmed: the documented JSON shape {fleetName, sourceChainId, destinations[].{chainId, name, protocols[].{protocol, fleetProxyAddress, crossChainArkAddress}}} matches the CrossChainConfig/CrossChainDestination/CrossChainProtocolConfig interfaces exactly (scripts/helpers/cross-chain-config.ts:5-21); CONFIG_DIR is config/cross-chain with one <fleetName>.json per fleet (cross-chain-config.ts:23-26); the usage snippet matches the real signatures saveCrossChainConfig(fleetName, {chainId, protocol, fleetProxyAddress, crossChainArkAddress, sourceChainId}) (41-50), loadCrossChainConfig(fleetName) (25), findProtocolConfig(config, chainId, protocol) (120-124); fleetProxyAddress is saved when FleetProxy is deployed on the destination chain (deploy-fleet-proxy.ts:264-268) and sourceChainId is back-filled (271-276); the CrossChainRegistry on-chain contract exists at packages/chain-bridge/src/contracts/CrossChainRegistry.sol; 'no asset metadata / timestamps / gas costs' simplification claims are consistent with the interface. Verdict current with one minor flow nuance."
+    }
+  ],
+  "group": "earn:deployment",
+  "summary": "Audited 3 docs in packages/deployment against scripts, ignition modules, and configs (138 claims total). README.md is partially-stale: all 11 pnpm commands, governance parameters (60s/600s/10k SUMMER/4%), staking constants (0-3yr lockup, 2-20% penalties), core/staking/gov deployment orders, and merkle paths/schema are confirmed, but the prerequisite says Node 16+ (engines require >=20), the example fleet config file usdc-base-USDC-1.json does not exist (actual pattern: base-USDC-1.json with different values), the example deployment file's addresses/values no longer match, the 'Supported Ark Types' list of 5 omits 31 of the 36 ArkType enum members, and the directory tree is far out of date. docs/MERGE_PROPOSALS.md is current: script behavior, error strings, data structures, and merge logic all match scripts/merge-proposals.ts verbatim; only the claimed 'Valid Structure' validation is not actually implemented. config/cross-chain/README.md is current: JSON shape and helper signatures match scripts/helpers/cross-chain-config.ts exactly and CrossChainRegistry.sol exists; one nuance — crossChainArkAddress is recorded via a manual prompt in deploy-fleet-proxy.ts, not by the CrossChainArk deployment itself, and the directory currently holds no committed config files."
+}
