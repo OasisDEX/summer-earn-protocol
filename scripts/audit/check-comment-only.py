@@ -10,21 +10,30 @@ Exit 0 = all matching artifacts have identical executable bytecode.
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
+# Solidity appends a CBOR metadata blob to each contract's bytecode. A factory's
+# runtime bytecode also embeds the *creation* bytecode of every child contract
+# it deploys, so a single deployedBytecode can contain MULTIPLE metadata blobs.
+# Each blob's trailing hash is derived from the source text, so it changes on
+# any comment/formatting edit even when the executable opcodes are identical.
+# Strip every blob (ipfs or bzzr0/bzzr1 variants) so the comparison sees only
+# executable code.
+_META_RE = re.compile(
+    r"a264697066735822[0-9a-f]{68}64736f6c6343[0-9a-f]{6}0033"  # ipfs CID v0
+    r"|a265627a7a72(?:58|31)[0-9a-f]{2}[0-9a-f]{64}64736f6c6343[0-9a-f]{6}0032",  # bzzr
+    re.IGNORECASE,
+)
+
 
 def strip_metadata(code: str) -> str:
-    """Drop the CBOR metadata tail: last 2 bytes encode its length."""
+    """Remove all CBOR metadata blobs (trailing + factory-embedded children)."""
     if not code or code in ("0x", ""):
         return code
     h = code[2:] if code.startswith("0x") else code
-    if len(h) < 4:
-        return h
-    cbor_len = int(h[-4:], 16) * 2
-    if cbor_len + 4 > len(h):
-        return h
-    return h[: -(cbor_len + 4)]
+    return _META_RE.sub("", h)
 
 
 def collect(out_dir: Path) -> dict[str, str]:

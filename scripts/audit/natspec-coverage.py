@@ -297,6 +297,8 @@ def audit_package(pkg: str, pkg_dir: Path, build: bool, force: bool,
             data = json.loads(artifact.read_text())
         except (json.JSONDecodeError, UnicodeDecodeError):
             continue
+        if not isinstance(data, dict):
+            continue
         meta = data.get("metadata")
         if not isinstance(meta, dict):
             continue
