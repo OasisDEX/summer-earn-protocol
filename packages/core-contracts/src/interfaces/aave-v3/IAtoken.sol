@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+/// @title IAToken
+/// @notice Interface for an Aave V3 aToken (interest-bearing receipt token)
 interface IAToken is IERC20 {
     /**
      * @dev Emitted during the transfer action
@@ -18,6 +20,8 @@ interface IAToken is IERC20 {
         uint256 index
     );
 
+    /// @notice Returns the address of the Pool that manages this aToken
+    /// @return The Pool address
     function POOL() external view returns (address);
 
     /**

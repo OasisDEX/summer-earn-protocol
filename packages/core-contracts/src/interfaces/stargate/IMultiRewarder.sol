@@ -3,7 +3,8 @@ pragma solidity ^0.8.22;
 
 import {IRewarder, IERC20} from "./IRewarder.sol";
 
-// @dev This is an internal struct, placed here as its shared between multiple libraries.
+/// @notice Per-pool reward accounting state shared between multiple libraries.
+/// @dev This is an internal struct, placed here as its shared between multiple libraries.
 struct RewardPool {
     uint256 accRewardPerShare;
     address rewardToken;
@@ -14,9 +15,11 @@ struct RewardPool {
     mapping(address => uint256) rewardDebt;
 }
 
+/// @title IMultiRewarder
 /// @notice A rewarder that can distribute multiple reward tokens (ERC20 and native) to `StargateStaking` pools.
 /// @dev The native token is encoded as 0x0.
 interface IMultiRewarder is IRewarder {
+    /// @notice Emission configuration and schedule for a reward token
     struct RewardDetails {
         uint256 rewardPerSec;
         uint160 totalAllocPoints;
@@ -112,6 +115,10 @@ interface IMultiRewarder is IRewarder {
     /**
      *  @notice Sets the reward for `rewards` of `rewardToken` over `duration` seconds, starting at `start`. The actual
      *          reward over this period will be increased by any rewards on the pool that haven't been distributed yet.
+     *  @param  rewardToken The reward token to configure
+     *  @param  rewards The total reward amount to distribute over the period
+     *  @param  start The start time of the emission
+     *  @param  duration The emission duration in seconds
      */
     function setReward(
         address rewardToken,
@@ -122,12 +129,17 @@ interface IMultiRewarder is IRewarder {
     /**
      *  @notice Extends the reward duration for `rewardToken` by `amount` tokens, extending the duration by the
      *          equivalent time according to the `rewardPerSec` rate of the pool.
+     *  @param  rewardToken The reward token to extend
+     *  @param  amount The additional reward amount to add
      */
     function extendReward(address rewardToken, uint256 amount) external payable;
     /**
      *  @notice Configures allocation points for a reward token over multiple staking tokens, setting the `allocPoints`
      *          for each `stakingTokens` and updating the `totalAllocPoint` for the `rewardToken`. The allocation
      *          points of any non-provided staking tokens will be left as-is, and won't be reset to zero.
+     *  @param  rewardToken The reward token whose allocations are configured
+     *  @param  stakingTokens The staking tokens to set allocation points for
+     *  @param  allocPoints The allocation points for each staking token
      */
     function setAllocPoints(
         address rewardToken,
@@ -138,6 +150,9 @@ interface IMultiRewarder is IRewarder {
      *  @notice Unregisters a reward token fully, immediately preventing users from ever harvesting their pending
      *          accumulated rewards. Optionally `pullTokens` can be set to false which causes the token balance to
      *          not be sent to the owner, this should only be set to false in case the token is bugged and reverts.
+     *  @param  rewardToken The reward token to stop
+     *  @param  receiver The address that receives the pulled token balance
+     *  @param  pullTokens Whether to transfer the remaining token balance to the receiver
      */
     function stopReward(
         address rewardToken,
@@ -148,6 +163,10 @@ interface IMultiRewarder is IRewarder {
     /**
      *  @notice Returns the reward pools linked to the `stakingToken` alongside the pending rewards for `user`
      *          for these pools.
+     *  @param  stakingToken The staking token whose linked reward pools are queried
+     *  @param  user The user whose pending rewards are returned
+     *  @return The reward token addresses
+     *  @return The pending reward amounts, one per reward token
      */
     function getRewards(
         IERC20 stakingToken,
@@ -155,6 +174,9 @@ interface IMultiRewarder is IRewarder {
     ) external view returns (address[] memory, uint256[] memory);
 
     /// @notice Returns the allocation points for the `rewardToken` over all staking tokens linked to it.
+    /// @param rewardToken The reward token to query
+    /// @return stakingTokens The staking tokens linked to the reward token
+    /// @return allocPoints The allocation points for each staking token
     function allocPointsByReward(
         address rewardToken
     )
@@ -162,6 +184,9 @@ interface IMultiRewarder is IRewarder {
         view
         returns (IERC20[] memory stakingTokens, uint48[] memory allocPoints);
     /// @notice Returns the allocation points for the `stakingToken` over all reward tokens linked to it.
+    /// @param stakingToken The staking token to query
+    /// @return rewardTokens The reward tokens linked to the staking token
+    /// @return allocPoints The allocation points for each reward token
     function allocPointsByStake(
         IERC20 stakingToken
     )
@@ -172,6 +197,8 @@ interface IMultiRewarder is IRewarder {
     /// @notice Returns all enabled reward tokens. Stopped reward tokens are not included, while ended rewards are.
     function rewardTokens() external view returns (address[] memory);
     /// @notice Returns the emission details of a `rewardToken`, configured via `setReward`.
+    /// @param rewardToken The reward token to query
+    /// @return The reward token's emission details
     function rewardDetails(
         address rewardToken
     ) external view returns (RewardDetails memory);

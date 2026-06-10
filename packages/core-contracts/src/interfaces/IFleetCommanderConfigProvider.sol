@@ -83,13 +83,13 @@ interface IFleetCommanderConfigProvider is
     ) external;
 
     /**
-     * @dev Sets the minimum buffer balance for the fleet commander.
+     * @notice Sets the minimum buffer balance for the fleet commander.
      * @param newMinimumBalance The new minimum buffer balance to be set.
      */
     function setMinimumBufferBalance(uint256 newMinimumBalance) external;
 
     /**
-     * @dev Sets the minimum number of allowe rebalance operations.
+     * @notice Sets the minimum number of allowe rebalance operations.
      * @param newMaxRebalanceOperations The new maximum allowed rebalance operations.
      */
     function setMaxRebalanceOperations(

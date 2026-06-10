@@ -5,6 +5,9 @@ import {IFleetCommander} from "../IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAllowanceTransfer, ISignatureTransfer} from "../permit2/IPermit2.sol";
 
+/// @title IDCAStrategyManager
+/// @notice Interface for the manager that creates and keeper-executes dollar-cost-averaging strategies between
+///         FleetCommander vaults
 interface IDCAStrategyManager {
     /**
      * @notice Lifecycle states of a DCA strategy.

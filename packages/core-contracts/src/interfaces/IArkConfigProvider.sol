@@ -25,7 +25,7 @@ interface IArkConfigProvider is
     function getConfig() external view returns (ArkConfig memory);
 
     /**
-     * @dev Returns the name of the Ark.
+     * @notice Returns the name of the Ark.
      * @return The name of the Ark as a string.
      */
     function name() external view returns (string memory);

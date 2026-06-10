@@ -1,17 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+/// @title IEthVaultWrapperV2
+/// @notice Interface for the Fluid ETH vault wrapper that swaps ETH<>stETH around deposits and withdrawals
 interface IEthVaultWrapperV2 {
+    /// @notice Thrown when the swap output is below the required minimum
     error EthVaultWrapper__OutputInsufficient();
+    /// @notice Thrown when the withdrawn amount does not match the expected amount
     error EthVaultWrapper__UnexpectedWithdrawAmount();
+    /// @notice Thrown when an input parameter is invalid
     error EthVaultWrapper__InvalidInput();
+    /// @notice Thrown when the caller is not whitelisted
     error EthVaultWrapper__OnlyWhitelisted();
 
+    /// @notice Swap parameters for the deposit path (ETH -> stETH)
+    /// @param route The router route string (e.g. "1INCH-A")
+    /// @param swapCalldata The calldata forwarded to the aggregation router
     struct DepositData {
         string route;
         bytes swapCalldata;
     }
 
+    /// @notice Swap parameters for the withdrawal path (stETH -> ETH)
+    /// @param route The router route string (e.g. "1INCH-A")
+    /// @param swapCalldata The calldata forwarded to the aggregation router
     struct WithdrawData {
         string route;
         bytes swapCalldata;

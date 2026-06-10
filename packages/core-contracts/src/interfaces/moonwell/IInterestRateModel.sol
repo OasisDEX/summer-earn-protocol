@@ -1,4 +1,6 @@
 pragma solidity 0.8.28;
+/// @title IInterestRateModel
+/// @notice Minimal interface for a Moonwell/Compound interest rate model
 interface IInterestRateModel {
     /**
      * @notice Calculates the current borrow interest rate per timestmp

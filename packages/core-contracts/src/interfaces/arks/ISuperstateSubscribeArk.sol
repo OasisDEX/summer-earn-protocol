@@ -7,6 +7,8 @@ import {ISuperstateArkErrors} from "../../errors/arks/ISuperstateArkErrors.sol";
 import {ISuperstateArkEvents} from "../../events/arks/ISuperstateArkEvents.sol";
 import {ISuperstateSubscribeArkErrors} from "../../errors/arks/ISuperstateSubscribeArkErrors.sol";
 
+/// @title ISuperstateSubscribeArk
+/// @notice Aggregates the withdrawal-request Ark interface with Superstate subscribe-Ark events and errors
 interface ISuperstateSubscribeArk is
     IArkWithWithdrawalRequest,
     ISuperstateArkErrors,

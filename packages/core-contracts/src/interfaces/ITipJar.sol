@@ -10,6 +10,12 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
  * @notice Interface for managing tip streams and distributing accumulated tips
  */
 interface ITipJar is ITipJarEvents, ITipJarErrors {
+    /**
+     * @notice Defines a recipient's share of distributed tips
+     * @param recipient The address that receives this stream's allocation
+     * @param allocation The fraction of total tips allocated to the recipient, as a Percentage
+     * @param lockedUntilEpoch The epoch until which the stream cannot be modified or removed
+     */
     struct TipStream {
         address recipient;
         Percentage allocation;

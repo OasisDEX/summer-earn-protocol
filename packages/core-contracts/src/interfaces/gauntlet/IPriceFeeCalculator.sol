@@ -12,22 +12,39 @@ interface IPriceAndFeeCalculator {
     //                         Errors                         //
     ////////////////////////////////////////////////////////////
 
+    /// @notice Thrown when the stored price is older than the maximum allowed age
     error Aera__StalePrice();
+    /// @notice Thrown when the supplied timestamp is not after the last update timestamp
     error Aera__TimestampMustBeAfterLastUpdate();
+    /// @notice Thrown when the supplied timestamp is in the future
     error Aera__TimestampCantBeInFuture();
+    /// @notice Thrown when the oracle registry address is the zero address
     error Aera__ZeroAddressOracleRegistry();
+    /// @notice Thrown when the maximum price tolerance ratio is invalid
     error Aera__InvalidMaxPriceToleranceRatio();
+    /// @notice Thrown when the minimum price tolerance ratio is invalid
     error Aera__InvalidMinPriceToleranceRatio();
+    /// @notice Thrown when the maximum price age is invalid
     error Aera__InvalidMaxPriceAge();
+    /// @notice Thrown when the maximum update delay in days is invalid
     error Aera__InvalidMaxUpdateDelayDays();
+    /// @notice Thrown when vault thresholds have not been configured
     error Aera__ThresholdNotSet();
+    /// @notice Thrown when the vault is paused
     error Aera__VaultPaused();
+    /// @notice Thrown when the vault is not paused but the action requires it to be
     error Aera__VaultNotPaused();
+    /// @notice Thrown when the supplied unit price does not match the last update
     error Aera__UnitPriceMismatch();
+    /// @notice Thrown when the supplied timestamp does not match the last update
     error Aera__TimestampMismatch();
+    /// @notice Thrown when initializing a vault that is already initialized
     error Aera__VaultAlreadyInitialized();
+    /// @notice Thrown when acting on a vault that has not been initialized
     error Aera__VaultNotInitialized();
+    /// @notice Thrown when the supplied price is invalid
     error Aera__InvalidPrice();
+    /// @notice Thrown when the current price exceeds the recorded highest price
     error Aera__CurrentPriceAboveHighestPrice();
     ////////////////////////////////////////////////////////////
     //                       Functions                        //
@@ -157,6 +174,10 @@ interface IPriceAndFeeCalculator {
     /// @return True if the vault is paused, false otherwise
     function isVaultPaused(address vault) external view returns (bool);
 
+    /// @notice Returns the full price and accrual state for a vault
+    /// @param vault Address of the vault
+    /// @return The vault's price state
+    /// @return The vault's fee accrual state
     function getVaultState(
         address vault
     ) external view returns (VaultPriceState memory, VaultAccruals memory);

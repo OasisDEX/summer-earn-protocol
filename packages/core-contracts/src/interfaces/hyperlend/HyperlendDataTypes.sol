@@ -6,6 +6,7 @@ library HyperlendDataTypes {
      * This exists specifically to maintain the `getReserveData()` interface, since the new, internal
      * `ReserveData` struct includes the reserve's `virtualUnderlyingBalance`.
      */
+    /// @notice Legacy layout of on-chain reserve state and configuration
     struct ReserveDataLegacy {
         //stores the reserve configuration
         ReserveConfigurationMap configuration;
@@ -39,6 +40,7 @@ library HyperlendDataTypes {
         uint128 isolationModeTotalDebt;
     }
 
+    /// @notice On-chain state and configuration of a single reserve
     struct ReserveData {
         //stores the reserve configuration
         ReserveConfigurationMap configuration;
@@ -76,6 +78,7 @@ library HyperlendDataTypes {
         uint128 virtualUnderlyingBalance;
     }
 
+    /// @notice Packed bitmap encoding a reserve's configuration parameters
     struct ReserveConfigurationMap {
         //bit 0-15: LTV
         //bit 16-31: Liq. threshold
@@ -102,6 +105,7 @@ library HyperlendDataTypes {
         uint256 data;
     }
 
+    /// @notice Packed bitmap encoding which assets a user supplies as collateral and borrows
     struct UserConfigurationMap {
         /**
          * @dev Bitmap of the users collaterals and borrows. It is divided in pairs of bits, one pair per asset.
@@ -112,6 +116,7 @@ library HyperlendDataTypes {
     }
 
     // DEPRECATED: kept for backwards compatibility, might be removed in a future version
+    /// @notice Legacy layout of efficiency-mode (eMode) category risk parameters
     struct EModeCategoryLegacy {
         // each eMode category has a custom ltv and liquidation threshold
         uint16 ltv;
@@ -122,12 +127,14 @@ library HyperlendDataTypes {
         string label;
     }
 
+    /// @notice Collateral risk configuration (LTV, liquidation threshold and bonus)
     struct CollateralConfig {
         uint16 ltv;
         uint16 liquidationThreshold;
         uint16 liquidationBonus;
     }
 
+    /// @notice Base configuration fields of an efficiency-mode (eMode) category
     struct EModeCategoryBaseConfiguration {
         uint16 ltv;
         uint16 liquidationThreshold;
@@ -135,6 +142,7 @@ library HyperlendDataTypes {
         string label;
     }
 
+    /// @notice Risk parameters for an efficiency-mode (eMode) category
     struct EModeCategory {
         // each eMode category has a custom ltv and liquidation threshold
         uint16 ltv;
@@ -145,12 +153,14 @@ library HyperlendDataTypes {
         uint128 borrowableBitmap;
     }
 
+    /// @notice The interest rate mode of a borrow position
     enum InterestRateMode {
         NONE,
         __DEPRECATED,
         VARIABLE
     }
 
+    /// @notice Cached reserve state used during a single transaction's calculations
     struct ReserveCache {
         uint256 currScaledVariableDebt;
         uint256 nextScaledVariableDebt;
@@ -167,6 +177,7 @@ library HyperlendDataTypes {
         uint40 reserveLastUpdateTimestamp;
     }
 
+    /// @notice Parameters for executing a liquidation call
     struct ExecuteLiquidationCallParams {
         uint256 reservesCount;
         uint256 debtToCover;
@@ -179,6 +190,7 @@ library HyperlendDataTypes {
         address priceOracleSentinel;
     }
 
+    /// @notice Parameters for executing a supply
     struct ExecuteSupplyParams {
         address asset;
         uint256 amount;
@@ -186,6 +198,7 @@ library HyperlendDataTypes {
         uint16 referralCode;
     }
 
+    /// @notice Parameters for executing a borrow
     struct ExecuteBorrowParams {
         address asset;
         address user;
@@ -200,6 +213,7 @@ library HyperlendDataTypes {
         address priceOracleSentinel;
     }
 
+    /// @notice Parameters for executing a repay
     struct ExecuteRepayParams {
         address asset;
         uint256 amount;
@@ -208,6 +222,7 @@ library HyperlendDataTypes {
         bool useATokens;
     }
 
+    /// @notice Parameters for executing a withdraw
     struct ExecuteWithdrawParams {
         address asset;
         uint256 amount;
@@ -217,12 +232,14 @@ library HyperlendDataTypes {
         uint8 userEModeCategory;
     }
 
+    /// @notice Parameters for setting a user's eMode category
     struct ExecuteSetUserEModeParams {
         uint256 reservesCount;
         address oracle;
         uint8 categoryId;
     }
 
+    /// @notice Parameters for finalizing an aToken transfer
     struct FinalizeTransferParams {
         address asset;
         address from;
@@ -235,6 +252,7 @@ library HyperlendDataTypes {
         uint8 fromEModeCategory;
     }
 
+    /// @notice Parameters for executing a multi-asset flash loan
     struct FlashloanParams {
         address receiverAddress;
         address[] assets;
@@ -252,6 +270,7 @@ library HyperlendDataTypes {
         bool isAuthorizedFlashBorrower;
     }
 
+    /// @notice Parameters for executing a single-asset flash loan
     struct FlashloanSimpleParams {
         address receiverAddress;
         address asset;
@@ -262,6 +281,7 @@ library HyperlendDataTypes {
         uint256 flashLoanPremiumTotal;
     }
 
+    /// @notice Parameters describing the repayment of a flash loan
     struct FlashLoanRepaymentParams {
         uint256 amount;
         uint256 totalPremium;
@@ -271,6 +291,7 @@ library HyperlendDataTypes {
         uint16 referralCode;
     }
 
+    /// @notice Parameters for calculating a user's aggregate account data
     struct CalculateUserAccountDataParams {
         UserConfigurationMap userConfig;
         uint256 reservesCount;
@@ -279,6 +300,7 @@ library HyperlendDataTypes {
         uint8 userEModeCategory;
     }
 
+    /// @notice Parameters for validating a borrow
     struct ValidateBorrowParams {
         ReserveCache reserveCache;
         UserConfigurationMap userConfig;
@@ -295,6 +317,7 @@ library HyperlendDataTypes {
         uint256 isolationModeDebtCeiling;
     }
 
+    /// @notice Parameters for validating a liquidation call
     struct ValidateLiquidationCallParams {
         ReserveCache debtReserveCache;
         uint256 totalDebt;
@@ -302,6 +325,7 @@ library HyperlendDataTypes {
         address priceOracleSentinel;
     }
 
+    /// @notice Parameters for calculating reserve interest rates
     struct CalculateInterestRatesParams {
         uint256 unbacked;
         uint256 liquidityAdded;
@@ -313,6 +337,7 @@ library HyperlendDataTypes {
         uint256 virtualUnderlyingBalance;
     }
 
+    /// @notice Parameters for initializing a new reserve
     struct InitReserveParams {
         address asset;
         address aTokenAddress;

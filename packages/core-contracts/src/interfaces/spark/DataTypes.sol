@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
+/**
+ * @title DataTypes
+ * @notice Shared data structures used by the Spark protocol
+ */
 library DataTypes {
+    /// @notice On-chain state and configuration of a single Spark reserve
     struct ReserveData {
         //stores the reserve configuration
         ReserveConfigurationMap configuration;
@@ -35,6 +40,7 @@ library DataTypes {
         uint128 isolationModeTotalDebt;
     }
 
+    /// @notice Packed bitmap encoding a reserve's configuration parameters
     struct ReserveConfigurationMap {
         //bit 0-15: LTV
         //bit 16-31: Liq. threshold
@@ -60,6 +66,7 @@ library DataTypes {
         uint256 data;
     }
 
+    /// @notice Packed bitmap encoding which assets a user supplies as collateral and borrows
     struct UserConfigurationMap {
         /**
          * @dev Bitmap of the users collaterals and borrows. It is divided in pairs of bits, one pair per asset.
@@ -69,6 +76,7 @@ library DataTypes {
         uint256 data;
     }
 
+    /// @notice Risk parameters for an efficiency-mode (eMode) category
     struct EModeCategory {
         // each eMode category has a custom ltv and liquidation threshold
         uint16 ltv;
@@ -79,12 +87,14 @@ library DataTypes {
         string label;
     }
 
+    /// @notice The interest rate mode of a borrow position
     enum InterestRateMode {
         NONE,
         STABLE,
         VARIABLE
     }
 
+    /// @notice Cached reserve state used during a single transaction's calculations
     struct ReserveCache {
         uint256 currScaledVariableDebt;
         uint256 nextScaledVariableDebt;
@@ -108,6 +118,7 @@ library DataTypes {
         uint40 stableDebtLastUpdateTimestamp;
     }
 
+    /// @notice Parameters for executing a liquidation call
     struct ExecuteLiquidationCallParams {
         uint256 reservesCount;
         uint256 debtToCover;
@@ -120,6 +131,7 @@ library DataTypes {
         address priceOracleSentinel;
     }
 
+    /// @notice Parameters for executing a supply
     struct ExecuteSupplyParams {
         address asset;
         uint256 amount;
@@ -127,6 +139,7 @@ library DataTypes {
         uint16 referralCode;
     }
 
+    /// @notice Parameters for executing a borrow
     struct ExecuteBorrowParams {
         address asset;
         address user;
@@ -142,6 +155,7 @@ library DataTypes {
         address priceOracleSentinel;
     }
 
+    /// @notice Parameters for executing a repay
     struct ExecuteRepayParams {
         address asset;
         uint256 amount;
@@ -150,6 +164,7 @@ library DataTypes {
         bool useATokens;
     }
 
+    /// @notice Parameters for executing a withdraw
     struct ExecuteWithdrawParams {
         address asset;
         uint256 amount;
@@ -159,12 +174,14 @@ library DataTypes {
         uint8 userEModeCategory;
     }
 
+    /// @notice Parameters for setting a user's eMode category
     struct ExecuteSetUserEModeParams {
         uint256 reservesCount;
         address oracle;
         uint8 categoryId;
     }
 
+    /// @notice Parameters for finalizing an aToken transfer
     struct FinalizeTransferParams {
         address asset;
         address from;
@@ -177,6 +194,7 @@ library DataTypes {
         uint8 fromEModeCategory;
     }
 
+    /// @notice Parameters for executing a multi-asset flash loan
     struct FlashloanParams {
         address receiverAddress;
         address[] assets;
@@ -195,6 +213,7 @@ library DataTypes {
         bool isAuthorizedFlashBorrower;
     }
 
+    /// @notice Parameters for executing a single-asset flash loan
     struct FlashloanSimpleParams {
         address receiverAddress;
         address asset;
@@ -205,6 +224,7 @@ library DataTypes {
         uint256 flashLoanPremiumTotal;
     }
 
+    /// @notice Parameters describing the repayment of a flash loan
     struct FlashLoanRepaymentParams {
         uint256 amount;
         uint256 totalPremium;
@@ -214,6 +234,7 @@ library DataTypes {
         uint16 referralCode;
     }
 
+    /// @notice Parameters for calculating a user's aggregate account data
     struct CalculateUserAccountDataParams {
         UserConfigurationMap userConfig;
         uint256 reservesCount;
@@ -222,6 +243,7 @@ library DataTypes {
         uint8 userEModeCategory;
     }
 
+    /// @notice Parameters for validating a borrow
     struct ValidateBorrowParams {
         ReserveCache reserveCache;
         UserConfigurationMap userConfig;
@@ -239,6 +261,7 @@ library DataTypes {
         uint256 isolationModeDebtCeiling;
     }
 
+    /// @notice Parameters for validating a liquidation call
     struct ValidateLiquidationCallParams {
         ReserveCache debtReserveCache;
         uint256 totalDebt;
@@ -246,6 +269,7 @@ library DataTypes {
         address priceOracleSentinel;
     }
 
+    /// @notice Parameters for calculating reserve interest rates
     struct CalculateInterestRatesParams {
         uint256 unbacked;
         uint256 liquidityAdded;
@@ -258,6 +282,7 @@ library DataTypes {
         address aToken;
     }
 
+    /// @notice Parameters for initializing a new reserve
     struct InitReserveParams {
         address asset;
         address aTokenAddress;
