@@ -14,8 +14,8 @@ interface ISuperstateStandardArkErrors {
     error PendingDepositActive();
     /// @notice Thrown when an operation is attempted while the Ark is frozen.
     error ArkIsFrozen();
-    /// @notice Thrown when the caller is not on the Superstate allowlist required for the operation.
+    /// @notice Reserved; not reverted by the Ark — allowlist enforcement is performed by the external Superstate token during redemption, not via this error.
     error NotAllowlisted();
-    /// @notice Thrown when the realized yield is insufficient for the requested operation.
+    /// @notice Reserved; not currently reverted anywhere in the Ark.
     error InsufficientYield();
 }
