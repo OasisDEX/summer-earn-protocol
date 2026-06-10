@@ -187,7 +187,7 @@ library DutchAuctionLibrary {
      * @notice Calculates the current price of tokens in an ongoing auction
      * @dev This function computes the price based on the elapsed time and decay function
      * @param auction The Auction struct containing configuration and state for the auction
-     * @return The current price of tokens in the auction (in payment token units, 18 decimals)
+     * @return The current price of tokens in the auction, denominated in payment token units and scaled to the payment token's own decimals
      */
     function getCurrentPrice(
         Auction memory auction
