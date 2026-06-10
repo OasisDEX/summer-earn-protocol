@@ -99,7 +99,7 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2 glass-elevated rounded-3xl p-8 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] rounded-full -mr-20 -mt-20"></div>
           <div className="relative z-10 flex flex-col h-full justify-between">
@@ -124,15 +124,6 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
               </h3>
             </div>
           </div>
-        </div>
-
-        <div className="glass-panel p-6 rounded-2xl hover:glass-panel-elevated hover:scale-105 transition-all duration-300">
-          <p className="text-on-surface-variant text-xs font-medium uppercase tracking-wider mb-2">
-            24h Change
-          </p>
-          <p className="text-2xl font-bold text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]">
-            {initialData.change24h}
-          </p>
         </div>
 
         <div className="glass-panel p-6 rounded-2xl hover:glass-panel-elevated hover:scale-105 transition-all duration-300">

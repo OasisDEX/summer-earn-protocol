@@ -43,7 +43,6 @@ export interface WalletSection {
 
 export interface TreasuryData {
   totalValue: string
-  change24h: string
   holdings: TreasuryHolding[]
   aggregatedHoldings: AggregatedHolding[]
   wallets: WalletSection[]
@@ -252,7 +251,6 @@ export async function fetchTreasuryBalances(): Promise<TreasuryData> {
 
   return {
     totalValue: formatUsd(totalUsdValue),
-    change24h: '+0.00%',
     holdings: allHoldings,
     aggregatedHoldings,
     wallets: sections,
