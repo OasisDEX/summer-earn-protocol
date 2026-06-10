@@ -23,6 +23,8 @@ contract Escrow is ReentrancyGuard, IEscrow {
 
     /// @notice The IntentHandler that this escrow works with
     address public immutable intentHandler;
+
+    /// @notice The amount of tokens escrowed for a given intent ID
     mapping(bytes32 intentId => uint256 amount) public intentAmounts;
 
     /*//////////////////////////////////////////////////////////////
@@ -41,6 +43,7 @@ contract Escrow is ReentrancyGuard, IEscrow {
                                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IEscrow
     function deposit(
         address asset,
         uint256 amount,
@@ -50,6 +53,7 @@ contract Escrow is ReentrancyGuard, IEscrow {
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
     }
 
+    /// @inheritdoc IEscrow
     function withdraw(
         address asset,
         address to,
@@ -60,5 +64,6 @@ contract Escrow is ReentrancyGuard, IEscrow {
         IERC20(asset).safeTransfer(to, amount);
     }
 
+    /// @notice Thrown when the caller is not the authorized IntentHandler
     error UnauthorizedCaller();
 }
