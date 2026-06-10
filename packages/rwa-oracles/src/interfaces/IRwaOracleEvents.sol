@@ -32,4 +32,3 @@ interface IRwaOracleEvents {
      */
     event ThresholdUpdated(uint256 threshold);
 }
-

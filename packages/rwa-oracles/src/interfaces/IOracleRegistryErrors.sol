@@ -22,7 +22,8 @@ interface IOracleRegistryErrors {
     error InvalidOracle();
 
     /**
-     * @notice Reverted when a zero address is provided where a valid address is required.
+     * @notice Reserved; not currently thrown by OracleRegistry (zero-address
+     *         checks use InvalidAsset / InvalidOracle instead).
      */
     error InvalidAddress();
 }

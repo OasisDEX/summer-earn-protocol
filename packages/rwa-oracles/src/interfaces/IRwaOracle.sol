@@ -39,4 +39,3 @@ interface IRwaOracle is IRwaOracleErrors, IRwaOracleEvents {
      */
     function setThreshold(uint256 threshold) external;
 }
-

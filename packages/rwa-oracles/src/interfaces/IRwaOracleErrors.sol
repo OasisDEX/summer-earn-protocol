@@ -7,7 +7,8 @@ pragma solidity ^0.8.20;
  */
 interface IRwaOracleErrors {
     /**
-     * @notice Reverted when a signature verification fails.
+     * @notice Reverted when submitted signatures are not strictly ascending by
+     *         signer address (i.e. unsorted or containing a duplicate signer).
      */
     error InvalidSignature();
 
@@ -27,7 +28,7 @@ interface IRwaOracleErrors {
     error FuturePrice();
 
     /**
-     * @notice Reverted when a caller lacks the required permissions for an administrative action.
+     * @notice Reverted when a recovered signer is not an authorized signer.
      */
     error Unauthorized();
 
@@ -42,8 +43,8 @@ interface IRwaOracleErrors {
     error DuplicateSigner();
 
     /**
-     * @notice Reverted when querying price data but no prices have been set yet.
+     * @notice Reverted when querying price data before any price has been set,
+     *         or when the queried round ID is zero or out of range.
      */
     error NoDataPresent();
 }
-
