@@ -3,17 +3,20 @@ pragma solidity 0.8.28;
 
 import {UD60x18, ud, unwrap} from "@prb/math/src/UD60x18.sol";
 
-/*
+/**
  * @title VotingDecayMath
  * @notice A library for advanced mathematical operations used in voting decay calculations
  * @dev Utilizes PRBMath for precise calculations
  */
 library VotingDecayMath {
-    /* @notice Constant representing the scale factor for calculations (18 decimal places) */
+    /**
+     * @notice Constant representing the scale factor for calculations (18 decimal places)
+     */
     uint256 private constant WAD = 1e18;
 
     /**
-     * @dev Multiplies two numbers and divides the result by a third number, using PRBMath for precision.
+     * @notice Multiplies two numbers and divides the result by a third number, using PRBMath for precision
+     * @dev Utilizes PRBMath for precise calculations
      * @param a The first number to multiply
      * @param b The second number to multiply
      * @param denominator The number to divide by
@@ -29,7 +32,8 @@ library VotingDecayMath {
     }
 
     /**
-     * @dev Calculates the exponential decay using PRBMath's UD60x18 type.
+     * @notice Calculates the exponential decay of a value over a given time period using PRBMath's UD60x18 type
+     * @dev Utilizes PRBMath for precision and safe math checks.
      * @param initialValue The initial value
      * @param decayRatePerSecond The decay rate per second
      * @param decayTimeInSeconds The time elapsed in seconds
@@ -81,7 +85,8 @@ library VotingDecayMath {
     }
 
     /**
-     * @dev Calculates the linear decay.
+     * @notice Calculates the linear decay of a value over a given time period
+     * @dev Simple linear scaling of value decay.
      * @param initialValue The initial value
      * @param decayRatePerSecond The decay rate per second
      * @param decayTimeInSeconds The time elapsed in seconds
