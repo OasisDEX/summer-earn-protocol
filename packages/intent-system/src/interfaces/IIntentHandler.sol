@@ -25,7 +25,9 @@ interface IIntentHandler {
         uint256 escrowedYield
     );
 
-    /// @notice Emitted when a solved intent is activated
+    /// @notice Reserved for a future activation step; not currently emitted
+    /// @dev The IntentState.Active state and this event are declared but never
+    ///      assigned/emitted by the current IntentHandler implementation.
     /// @param ark The address of the Ark
     /// @param solver The address of the solver
     /// @param startTime The block timestamp when the intent was activated
@@ -45,10 +47,10 @@ interface IIntentHandler {
         uint256 escrowedYield
     );
 
-    /// @notice Emitted when an intent is resigned by the Ark (user)
+    /// @notice Emitted when an intent is resigned on behalf of the user
     /// @param ark The address of the Ark
-    /// @param solver The address of the solver
-    /// @param escrowedYield The amount of escrowed yield refunded
+    /// @param solver Always address(0) for this event (not populated on user resignation)
+    /// @param escrowedYield Always 0 for this event (the escrow refund is not reported here)
     event IntentResignedByArk(
         address indexed ark,
         address indexed solver,
@@ -59,7 +61,7 @@ interface IIntentHandler {
     /// @param ark The address of the Ark
     /// @param solver The address of the solver
     /// @param slashedAmount The amount of solver's bond slashed
-    /// @param escrowedYield The amount of escrowed yield refunded/processed
+    /// @param escrowedYield The intent's target yield (intent.targetYield), which is the upper bound on the escrowed amount
     event IntentResignedBySolver(
         address indexed ark,
         address indexed solver,
@@ -146,13 +148,17 @@ interface IIntentHandler {
     function solveIntent(Intent memory intent, uint256 escrowedYield) external;
 
     /**
-     * @notice Settles an intent (can only be called by the solver)
+     * @notice Settles an intent once it has reached its expiry
+     * @dev Permissionless: callable by anyone; gated on block.timestamp >= intent.expiry
+     *      and on the intent being in the Solved state.
      * @param intent Intent struct containing intent information
      */
     function settleIntent(Intent memory intent) external;
 
     /**
-     * @notice Resigns an intent by the Ark (can only be called before solving)
+     * @notice Resigns an intent on behalf of the user
+     * @dev Callable by a keeper (onlyKeeper) while the intent is in the Created or
+     *      Solved state; in the Solved state the escrow is returned to the solver.
      * @param intent Intent struct containing intent information
      */
     function resignByUser(Intent memory intent) external;
