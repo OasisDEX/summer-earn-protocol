@@ -1,5 +1,14 @@
 import { CHAIN_CONFIG, SupportedChainId } from './constants'
 
+// An Aerodrome Slipstream position the wallet holds via a wrapped-staked-position
+// NFT. The pool yields its gauge + NFPM on-chain; the wrapper is used to attribute
+// staked token ids back to the wallet. See services/slipstream.ts.
+export interface SlipstreamPositionSource {
+  chainId: SupportedChainId
+  pool: string
+  wrapper: string
+}
+
 export interface TreasuryWallet {
   key: string
   label: string
@@ -7,6 +16,8 @@ export interface TreasuryWallet {
   addresses: Partial<Record<SupportedChainId, string>>
   // Optional external link (e.g. the Arcadia foundry account page).
   externalUrl?: string
+  // Optional Aerodrome Slipstream LP positions to value in addition to ERC20s.
+  slipstreamPositions?: SlipstreamPositionSource[]
 }
 
 const SUPPORTED_CHAIN_IDS = Object.keys(CHAIN_CONFIG).map(Number) as SupportedChainId[]
@@ -28,15 +39,23 @@ export const TREASURY_WALLETS: TreasuryWallet[] = [
     addresses: onAllChains('0x89b39e0007577e5aE3d9f87CAaeaC4d2A3db5B34'),
   },
   {
-    // AccountV4 spot account (Base) owned by the Arcadia Control Multisig. It
-    // exposes no on-chain value/asset getter, so we value it from the tokens it
-    // holds directly (currently SUMR). LP/CL positions, if ever held, would need
-    // an off-chain source — see the linked foundry page for the full breakdown.
+    // AccountV4 spot account (Base) owned by the Arcadia Control Multisig. We sum
+    // the tokens it holds directly (e.g. SUMR) plus its Aerodrome Slipstream LP
+    // position, which it holds as a wrapped staked-position NFT (token0=SUMR,
+    // token1=USDC). The account exposes no on-chain value getter, so the position
+    // is valued from the pool/gauge/NFPM directly (see services/slipstream.ts).
     key: 'arcadia-pol',
     label: 'Arcadia PoL',
     addresses: { 8453: '0x18A2D63cE434DD77e2b518458E636aA7ff4d7cc8' },
     externalUrl:
       'https://foundry.arcadia.finance/account/8453/0x18A2D63cE434DD77e2b518458E636aA7ff4d7cc8',
+    slipstreamPositions: [
+      {
+        chainId: 8453,
+        pool: '0xddae632a9f43f8c911b6f99a4bd5c7b108d4a8d7',
+        wrapper: '0x9189BC25f8faC157B4D87b0b3c14F56bA1477d53',
+      },
+    ],
   },
   {
     key: 'aerodrome',

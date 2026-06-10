@@ -1,11 +1,12 @@
 import { formatUnits, getAddress } from 'viem'
 
-import { CHAIN_CONFIG, ERC20_ABI, SupportedChainId } from '@/config/constants'
+import { CHAIN_CONFIG, ERC20_ABI, SupportedChainId, TokenInfo } from '@/config/constants'
 import { getPublicClient } from '@/config/rpc'
 import { TOKEN_LISTS } from '@/config/tokenLists'
 import { TREASURY_WALLETS, TreasuryWallet } from '@/config/treasuryWallets'
 
 import { getPrices } from './prices'
+import { getWrappedSlipstreamTokenAmounts } from './slipstream'
 
 export interface TreasuryHolding {
   token: string
@@ -108,6 +109,53 @@ async function scanErc20(
   return holdings
 }
 
+// Value the wallet's Aerodrome Slipstream LP positions (token amounts priced like
+// the ERC20 holdings). Tokens not in the chain's token list are skipped.
+async function scanSlipstreamPositions(
+  chainId: SupportedChainId,
+  owner: string,
+  prices: PriceMap,
+  wallet: TreasuryWallet,
+): Promise<TreasuryHolding[]> {
+  const sources = (wallet.slipstreamPositions ?? []).filter((s) => s.chainId === chainId)
+  if (sources.length === 0) return []
+
+  const tokenByAddress = new Map<string, TokenInfo>(
+    TOKEN_LISTS[chainId].map((t) => [t.address.toLowerCase(), t]),
+  )
+  const config = CHAIN_CONFIG[chainId]
+  const holdings: TreasuryHolding[] = []
+
+  for (const source of sources) {
+    const amounts = await getWrappedSlipstreamTokenAmounts(chainId, owner, source)
+    for (const { tokenAddress, amount } of amounts) {
+      const token = tokenByAddress.get(tokenAddress.toLowerCase())
+      if (!token) continue
+
+      const formattedBalance = formatUnits(amount, token.decimals)
+      const price = prices[token.symbol] || 0
+      const usdValue = Number(formattedBalance) * price
+
+      holdings.push({
+        token: `${token.name} (Aerodrome LP)`,
+        symbol: token.symbol,
+        chain: config.name,
+        balance: `${Number(formattedBalance).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${token.symbol}`,
+        formattedBalance,
+        usdValue,
+        value: usdValue > 0 ? formatUsd(usdValue) : '—',
+        logoURI: token.logoURI,
+        chainId,
+        address: token.address,
+        walletKey: wallet.key,
+        walletLabel: wallet.label,
+      })
+    }
+  }
+
+  return holdings
+}
+
 export async function fetchTreasuryBalances(): Promise<TreasuryData> {
   const supportedChains = Object.keys(CHAIN_CONFIG).map(Number) as SupportedChainId[]
 
@@ -136,8 +184,11 @@ export async function fetchTreasuryBalances(): Promise<TreasuryData> {
           const chainId = Number(chainIdStr) as SupportedChainId
           try {
             const client = getPublicClient(chainId)
-            const holdings = await scanErc20(client, chainId, address, prices, wallet)
-            return { key: wallet.key, holdings }
+            const [erc20Holdings, slipstreamHoldings] = await Promise.all([
+              scanErc20(client, chainId, address, prices, wallet),
+              scanSlipstreamPositions(chainId, address, prices, wallet),
+            ])
+            return { key: wallet.key, holdings: [...erc20Holdings, ...slipstreamHoldings] }
           } catch (error) {
             console.error(`Error fetching ${wallet.key} on chain ${chainId}:`, error)
             return { key: wallet.key, holdings: [] as TreasuryHolding[] }
