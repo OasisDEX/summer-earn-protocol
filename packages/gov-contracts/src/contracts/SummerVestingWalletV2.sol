@@ -9,6 +9,9 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title SummerVestingWalletV2
+ * @notice Vesting wallet with a configurable cliff (timestamp and amount), monthly time-based release over
+ * a configurable number of periods, and custom performance goals; the factory owner can mark goals reached
+ * and recall unvested tokens.
  * @dev Improved vesting wallet with configurable parameters and enhanced functionality
  *
  * Features:
@@ -36,7 +39,7 @@ contract SummerVestingWalletV2 is ISummerVestingWalletV2, VestingWallet {
     /// @inheritdoc ISummerVestingWalletV2
     address public immutable token;
 
-    /// @dev Address of the factory that created this vesting wallet
+    /// @notice Address of the factory that created this vesting wallet
     address public immutable factory;
 
     /// @dev Vesting parameters
@@ -45,7 +48,7 @@ contract SummerVestingWalletV2 is ISummerVestingWalletV2, VestingWallet {
     /// @dev Array of performance goals
     PerformanceGoal[] private _performanceGoals;
 
-    /// @dev Flag to indicate if tokens have been recalled (wallet is bricked)
+    /// @notice Whether unvested tokens have been recalled (after which the wallet is bricked)
     bool public isRecalled;
 
     //////////////////////////////////////////////
@@ -118,7 +121,11 @@ contract SummerVestingWalletV2 is ISummerVestingWalletV2, VestingWallet {
         return _vestingParams;
     }
 
-    /// @inheritdoc ISummerVestingWalletV2
+    /**
+     * @notice Returns a performance goal by its 1-indexed goal number
+     * @param goalNumber The 1-indexed number of the performance goal
+     * @return The PerformanceGoal struct for the given goal number
+     */
     function performanceGoals(
         uint256 goalNumber
     ) external view returns (PerformanceGoal memory) {

@@ -291,8 +291,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     function updatePenaltyEnabled(bool _penaltyEnabled) external;
 
     /**
-     *@notice Claims rewards for a specific account and specific reward token
-     * @dev
+     * @notice Claims rewards for a specific account and specific reward token
      * @param account The address to claim rewards for
      * @param rewardToken The address of the reward token to claim
      * @dev Authorization: the caller MUST be on the receiver-managed authorization list.

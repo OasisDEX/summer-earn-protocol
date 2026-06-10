@@ -5,6 +5,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title ISummerVestingWallet
+ * @notice Interface for SummerVestingWallet, a vesting wallet with time-based and performance-based
+ * release schedules for Summer team members, investors and ex-team members.
  * @dev Interface for SummerVestingWallet, an extension of OpenZeppelin's VestingWallet with custom vesting schedules
  * and separate admin role.
  * Supports two types of vesting: Team vesting and Investor/Ex-Team vesting, both with a 6-month cliff.
@@ -30,19 +32,26 @@ interface ISummerVestingWallet {
     ///             VIEW FUNCTIONS             ///
     //////////////////////////////////////////////
 
-    /// @dev The token being vested
+    /// @notice Returns the address of the ERC20 token being vested
+    /// @return The address of the vested token
     function token() external view returns (address);
 
-    /// @dev Performance-based vesting amounts
+    /// @notice Returns the token amount allocated to a performance-based vesting goal
+    /// @param index The zero-based index of the performance goal
+    /// @return The token amount associated with the goal at the given index
     function goalAmounts(uint256 index) external view returns (uint256);
 
-    /// @dev Performance milestone flags
+    /// @notice Returns whether a performance-based vesting goal has been marked as reached
+    /// @param index The zero-based index of the performance goal
+    /// @return True if the goal has been reached, false otherwise
     function goalsReached(uint256 index) external view returns (bool);
 
-    /// @dev Time-based vesting amount
+    /// @notice Returns the total amount allocated to time-based (monthly) vesting
+    /// @return The total time-based vesting amount
     function timeBasedVestingAmount() external view returns (uint256);
 
     /**
+     * @notice Returns the vesting type of this wallet
      * @dev Returns the vesting type of this wallet
      * @return The VestingType enum value representing the vesting type (TeamVesting or InvestorExTeamVesting)
      */
