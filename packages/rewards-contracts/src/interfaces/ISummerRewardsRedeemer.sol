@@ -101,7 +101,7 @@ interface ISummerRewardsRedeemer {
     );
 
     /**
-     * @notice Thrown when the caller is not Admiral's Quarters (the governor manager)
+     * @notice Thrown when the caller is not the Admirals Quarters router contract
      */
     error CallerNotAdmiralsQuarters();
 

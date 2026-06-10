@@ -60,8 +60,9 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
     /**
      * @notice Get the reward for the entire duration for a specific reward token
      * @param rewardToken The address of the reward token
-     * @return The total reward amount for the duration (not WAD-scaled)
-     * @dev Calculated as: (rewardRate * rewardsDuration) / WAD
+     * @return The reward amount for the remaining period (not WAD-scaled)
+     * @dev After the period ends, returns (rewardRate * rewardsDuration) / WAD;
+     *      during an active period, returns (rewardRate * (periodFinish - block.timestamp)) / WAD.
      */
     function getRewardForDuration(
         address rewardToken
