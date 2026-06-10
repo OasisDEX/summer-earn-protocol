@@ -6,8 +6,8 @@ import "./DutchAuctionErrors.sol";
 import "./DutchAuctionEvents.sol";
 import "./DutchAuctionLibrary.sol";
 
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title Dutch Auction Manager
@@ -23,7 +23,14 @@ contract DutchAuctionManager is
 {
     using DutchAuctionLibrary for DutchAuctionLibrary.AuctionState;
 
+    /**
+     * @notice Mapping of auction ID to Auction struct containing all auction data
+     */
     mapping(uint256 => DutchAuctionLibrary.Auction) public auctions;
+
+    /**
+     * @notice Counter for generating unique auction IDs
+     */
     uint256 public auctionCounter;
 
     /**
