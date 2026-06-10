@@ -59,9 +59,9 @@ interface ISummerVestingWalletV2 {
     /// @return The VestingParams struct for this wallet
     function vestingParams() external view returns (VestingParams memory);
 
-    /// @notice Returns a performance goal by its index
-    /// @param index The zero-based index of the performance goal
-    /// @return The PerformanceGoal struct at the given index
+    /// @notice Returns a performance goal by its 1-indexed goal number
+    /// @param index The 1-indexed goal number (1..goalCount); reverts with InvalidGoalNumber otherwise
+    /// @return The PerformanceGoal struct for the given goal number
     function performanceGoals(
         uint256 index
     ) external view returns (PerformanceGoal memory);

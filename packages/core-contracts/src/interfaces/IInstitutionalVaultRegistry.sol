@@ -50,7 +50,8 @@ interface IInstitutionalVaultRegistry is
     ) external pure returns (string memory name);
 
     /**
-     * @notice Returns true if an institution id exists (active or disabled)
+     * @notice Returns true if an institution id is currently registered
+     * @dev Returns false after removeInstitution, which deletes the entry
      * @param id The institution identifier
      */
     function exists(bytes32 id) external view returns (bool);
@@ -112,7 +113,8 @@ interface IInstitutionalVaultRegistry is
     ) external;
 
     /**
-     * @notice Removes an existing institution id (keeps data visible)
+     * @notice Removes an institution, deleting its stored data
+     * @dev After removal exists(id) returns false and getInstitution(id) reverts
      * @param id The institution identifier
      */
     function removeInstitution(bytes32 id) external;
