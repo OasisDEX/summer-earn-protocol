@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
+import { useAccount, useReadContract, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { VoteBar } from '@/components/VoteBar'
 import { GOVERNOR_ABI } from '@/hooks/useProposalVoting'
@@ -20,7 +20,69 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
   const { writeContract, isPending } = useWriteContract()
   const { switchChain } = useSwitchChain()
   const [isExecuting, setIsExecuting] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const [showVotingModal, setShowVotingModal] = useState(false)
+
+  // A proposal can only be cancelled before it reaches a terminal state.
+  const isCancellableStatus = ['Pending', 'Active', 'Succeeded', 'Queued'].includes(proposal.status)
+
+  // The subgraph does not index the proposer, so read it on-chain from the hub
+  // (Base) governor. SummerGovernorV2.cancel always allows the original proposer.
+  const { data: proposer } = useReadContract({
+    address: proposal.governor as `0x${string}`,
+    abi: GOVERNOR_ABI,
+    functionName: 'proposalProposer',
+    args: [BigInt(proposal.id)],
+    chainId: 8453,
+    query: { enabled: isCancellableStatus && !!proposal.governor },
+  })
+
+  const isProposer =
+    !!address && !!proposer && address.toLowerCase() === (proposer as string).toLowerCase()
+
+  const handleCancelProposal = async () => {
+    if (!isConnected || !address) return
+
+    const governorAddress = proposal.governor
+    if (!governorAddress) return
+
+    try {
+      setIsCancelling(true)
+      if (chainId !== 8453) await switchChain({ chainId: 8453 })
+      await writeContract({
+        address: governorAddress as `0x${string}`,
+        abi: GOVERNOR_ABI,
+        functionName: 'cancel',
+        args: [
+          proposal.targets as `0x${string}`[],
+          proposal.values.map((v) => BigInt(v)),
+          proposal.calldatas as `0x${string}`[],
+          proposal.descriptionHash,
+        ],
+      })
+    } catch (error) {
+      console.error('Error cancelling proposal:', error)
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
+  const cancelButton = isCancellableStatus ? (
+    <div className="space-y-1">
+      <button
+        onClick={handleCancelProposal}
+        disabled={!isConnected || !isProposer || isCancelling || isPending}
+        className="w-full text-center py-3 bg-error/10 text-error border border-error/20 rounded-xl font-bold hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isCancelling ? 'Cancelling...' : 'Cancel Proposal'}
+      </button>
+      {isConnected && !isProposer && (
+        <p className="text-[10px] text-center text-on-surface-variant opacity-70">
+          Only the proposer can cancel
+        </p>
+      )}
+    </div>
+  ) : null
 
   const handleQueueBaseProposal = async () => {
     if (!isConnected || !address) return
@@ -90,6 +152,7 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
         <p className="text-3xl font-mono font-black text-on-surface tracking-tighter">
           {formatTimeRemaining(proposal.timeRemaining)}
         </p>
+        {cancelButton && <div className="mt-6 px-6 relative">{cancelButton}</div>}
       </div>
     )
   }
@@ -226,6 +289,8 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
             {proposal.status}
           </div>
         ) : null}
+
+        {cancelButton}
       </div>
     </div>
   )
