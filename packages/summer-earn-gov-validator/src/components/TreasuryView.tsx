@@ -2,19 +2,87 @@
 
 import { useState } from 'react'
 
-import type { TreasuryData } from '@/services/treasury'
+import type { TreasuryData, TreasuryHolding } from '@/services/treasury'
 
 interface TreasuryViewProps {
   initialData: TreasuryData
 }
 
+function HoldingsTable({ holdings }: { holdings: TreasuryHolding[] }) {
+  return (
+    <div className="glass rounded-3xl overflow-hidden border-sky-400/5">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead className="bg-slate-900/50 border-b border-sky-400/10">
+            <tr>
+              <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                Token
+              </th>
+              <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                Balance
+              </th>
+              <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                Value
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-sky-400/5">
+            {holdings.map((holding, index) => (
+              <tr key={index} className="hover:bg-primary/5 transition-colors">
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center border border-sky-400/10 bg-slate-800">
+                      {holding.logoURI ? (
+                        <img
+                          src={holding.logoURI}
+                          alt={holding.symbol}
+                          className="w-full h-full object-contain p-1"
+                          onError={(e) => {
+                            ;(e.target as HTMLImageElement).src =
+                              'https://assets.smold.app/api/token/1/0x0000000000000000000000000000000000000000/logo-128.png'
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary to-tertiary flex items-center justify-center">
+                          <span className="material-symbols-outlined text-xs text-on-primary">
+                            paid
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold text-on-surface">{holding.token}</p>
+                      <p className="text-xs text-on-surface-variant">
+                        {holding.symbol} • {holding.chain}
+                      </p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-5">
+                  <p className="font-medium text-on-surface">{holding.balance}</p>
+                </td>
+                <td className="px-6 py-5">
+                  <p className="font-bold text-primary">{holding.value}</p>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export function TreasuryView({ initialData }: TreasuryViewProps) {
   const [selectedChain, setSelectedChain] = useState<string>('all')
 
-  const filteredHoldings =
-    selectedChain === 'all'
-      ? initialData.holdings
-      : initialData.holdings.filter((h) => h.chain.toLowerCase() === selectedChain.toLowerCase())
+  const matchesChain = (holding: TreasuryHolding) =>
+    selectedChain === 'all' || holding.chain.toLowerCase() === selectedChain.toLowerCase()
+
+  // Per-wallet sections, each filtered by the selected chain; hide empties.
+  const walletSections = initialData.wallets
+    .map((section) => ({ ...section, holdings: section.holdings.filter(matchesChain) }))
+    .filter((section) => section.holdings.length > 0)
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto w-full">
@@ -148,10 +216,10 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
         ))}
       </div>
 
-      {/* Holdings Table */}
+      {/* Per-wallet sections */}
       <div className="space-y-4">
         <div className="flex justify-between items-end">
-          <h3 className="text-xl font-bold text-on-surface">Asset Holdings</h3>
+          <h3 className="text-xl font-bold text-on-surface">Asset Holdings by Wallet</h3>
           <div className="text-xs text-on-surface-variant pb-1">
             Prices provided by{' '}
             <a
@@ -164,66 +232,39 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
             </a>
           </div>
         </div>
-        <div className="glass rounded-3xl overflow-hidden border-sky-400/5">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-900/50 border-b border-sky-400/10">
-                <tr>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-                    Token
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-                    Balance
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-                    Value
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-sky-400/5">
-                {filteredHoldings.map((holding, index) => (
-                  <tr key={index} className="hover:bg-primary/5 transition-colors">
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center border border-sky-400/10 bg-slate-800">
-                          {holding.logoURI ? (
-                            <img
-                              src={holding.logoURI}
-                              alt={holding.symbol}
-                              className="w-full h-full object-contain p-1"
-                              onError={(e) => {
-                                ;(e.target as HTMLImageElement).src =
-                                  'https://assets.smold.app/api/token/1/0x0000000000000000000000000000000000000000/logo-128.png'
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-primary to-tertiary flex items-center justify-center">
-                              <span className="material-symbols-outlined text-xs text-on-primary">
-                                paid
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-bold text-on-surface">{holding.token}</p>
-                          <p className="text-xs text-on-surface-variant">
-                            {holding.symbol} • {holding.chain}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <p className="font-medium text-on-surface">{holding.balance}</p>
-                    </td>
-                    <td className="px-6 py-5">
-                      <p className="font-bold text-primary">{holding.value}</p>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+        {walletSections.length === 0 ? (
+          <div className="glass rounded-3xl px-6 py-10 text-center text-on-surface-variant border-sky-400/5">
+            No holdings for the selected chain.
           </div>
-        </div>
+        ) : (
+          <div className="space-y-8">
+            {walletSections.map((section) => (
+              <div key={section.key} className="space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-lg font-bold text-on-surface">{section.label}</h4>
+                    {section.externalUrl && (
+                      <a
+                        href={section.externalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-on-surface-variant hover:text-primary transition-colors"
+                        title="View account"
+                      >
+                        <span className="material-symbols-outlined text-base align-middle">
+                          open_in_new
+                        </span>
+                      </a>
+                    )}
+                  </div>
+                  <span className="text-lg font-black text-primary">{section.value}</span>
+                </div>
+                <HoldingsTable holdings={section.holdings} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
